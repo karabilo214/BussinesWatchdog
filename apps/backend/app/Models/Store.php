@@ -47,4 +47,14 @@ class Store extends Model
     {
         return $this->hasMany(StoreVerification::class);
     }
+
+    public function integrations(): HasMany
+    {
+        return $this->hasMany(Integration::class);
+    }
+
+    public function pairingCodes(): HasMany
+    {
+        return $this->hasMany(PairingCode::class);
+    }
 }

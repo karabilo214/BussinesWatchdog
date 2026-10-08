@@ -280,6 +280,33 @@ Remaining:
 - Update store `verified_at` only after successful external ownership proof.
 - Add pairing codes and integration credential bootstrap later.
 
+### Step 12: Connector Pairing Exchange Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `integrations`, `integration_credentials`, and `pairing_codes` migrations.
+- `Integration`, `IntegrationCredential`, and `PairingCode` models.
+- `POST /api/v1/stores/{store}/pairing-codes` for owner/admin code creation.
+- Stateless `POST /api/v1/pairing/exchange` for connector HMAC bootstrap.
+- Platform-neutral `connector_code` instead of WordPress-only pairing.
+- At-most-once pairing exchange with `consumed_at`.
+- Base URL binding during exchange.
+- 32-byte HMAC secret issue with base64 response and encrypted storage.
+- Feature tests for code creation, role denial, foreign store isolation, exchange success, consumed/expired rejection, base URL mismatch, and connector code validation.
+- `docs/implementation-step-12-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add HMAC middleware, nonce replay protection, integration list/revoke/rotate, and audit log.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete

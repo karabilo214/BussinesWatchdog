@@ -91,7 +91,7 @@ CREATE TABLE integrations (
  id uuid PRIMARY KEY,
  tenant_id uuid NOT NULL,
  store_id uuid NOT NULL,
- provider text NOT NULL CHECK (provider IN ('woocommerce','stripe')),
+ provider text NOT NULL CHECK (provider ~ '^[a-z][a-z0-9_]{1,63}$'),
  external_account_id text,
  install_id uuid,
  mode text NOT NULL DEFAULT 'live' CHECK (mode IN ('live','test')),
@@ -108,8 +108,8 @@ CREATE TABLE integrations (
  UNIQUE (tenant_id,store_id,id),
  FOREIGN KEY (tenant_id,store_id) REFERENCES stores(tenant_id,id)
 );
-CREATE UNIQUE INDEX one_active_woo_integration ON integrations(store_id)
- WHERE provider='woocommerce' AND status IN ('pending','active','degraded');
+CREATE UNIQUE INDEX one_active_store_provider_integration ON integrations(store_id,provider)
+ WHERE status IN ('pending','active','degraded');
 CREATE INDEX integrations_sync_idx ON integrations(status,last_successful_sync_at);
 
 CREATE TABLE integration_credentials (
@@ -119,7 +119,7 @@ CREATE TABLE integration_credentials (
  integration_id uuid NOT NULL,
  kind text NOT NULL CHECK (kind IN ('plugin_hmac','stripe_api','stripe_webhook')),
  key_id text NOT NULL UNIQUE,
- ciphertext bytea NOT NULL,
+ ciphertext text NOT NULL,
  key_version integer NOT NULL CHECK (key_version > 0),
  fingerprint text NOT NULL,
  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','draining','revoked')),

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Pairing\PairingCodeController;
+use App\Http\Controllers\Api\V1\Pairing\PairingExchangeController;
 use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
 use App\Http\Controllers\Api\V1\Tenancy\TenantController;
@@ -33,4 +35,8 @@ Route::middleware(['web', 'auth', 'tenant.session'])->prefix('/v1')->group(funct
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
     Route::get('/stores/{store}/verification', [StoreVerificationController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+    Route::post('/stores/{store}/pairing-codes', [PairingCodeController::class, 'store'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
 });
+
+Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store']);

@@ -50,9 +50,9 @@ StoreDTO: id, name, base_url, platform, timezone, locale, default_currency, stat
 
 `POST /stores/{id}/verify` input method plugin_challenge|dns. Response202: verification_id, method, public challenge инструкции, expires_at. Challenge secret не является integration credential. `plugin_challenge` является платформенно-нейтральным способом проверки через installed connector/plugin/app и не привязан только к WordPress/WooCommerce. `GET /stores/{id}/verification`: state, verified_origin, expires_at, reason_code. DNS verification bound exact hostname; wildcard ownership без явной проверки запрещено.
 
-`POST /stores/{id}/pairing-codes`: input пусто, admin. Response201: pairing_code одноразово, expires_at, saas_endpoint. Code не логировать. WordPress pairing HTTP endpoint должен быть доступен только admin `manage_woocommerce` + WP nonce; публичный REST endpoint не должен создавать credentials.
+`POST /stores/{id}/pairing-codes`: input пусто, admin. Response201: pairing_code одноразово, expires_at, saas_endpoint. Code не логировать. Pairing endpoint в установленном connector/plugin/app должен быть доступен только authenticated admin соответствующей системы; публичный endpoint connector-а не должен создавать credentials.
 
-`POST /pairing/exchange`: pairing_code, install_id UUID, plugin_version, base_url. Response201: integration_id, key_id, secret, secret_encoding=base64, signature_version=1. Secret exactly32 random bytes; HMAC uses decoded bytes, не ASCII base64. At-most-once exchange: потерянный response требует новый pairing code/reconnect, а не повторное раскрытие секрета.
+`POST /pairing/exchange`: pairing_code, install_id UUID, connector_code lowercase snake_case, plugin_version, base_url. Response201: integration_id, key_id, secret, secret_encoding=base64, signature_version=1. Secret exactly32 random bytes; HMAC uses decoded bytes, не ASCII base64. At-most-once exchange: потерянный response требует новый pairing code/reconnect, а не повторное раскрытие секрета.
 
 ## 4 Интеграции и sync
 
@@ -153,7 +153,7 @@ ManifestDTO: install_id, schema_version, platform versions, checkout_mode, hpos,
 
 ## 10 Error code registry
 
-Обязательные стабильные codes: invalid_json, schema_invalid, schema_unsupported, signature_invalid, nonce_replayed, timestamp_out_of_range, credential_revoked, pairing_expired, pairing_consumed, tenant_forbidden, version_conflict, event_id_conflict, revision_conflict, quota_exceeded, integration_stale, source_incomplete, gateway_unsupported, currency_mismatch, match_ambiguous, allocation_exceeded, lease_expired, stale_fencing_token, result_conflict, forbidden_mutation, unsafe_destination, monitoring_blocked, adapter_unsupported, artifact_redaction_failed, infrastructure_unavailable.
+Обязательные стабильные codes: invalid_json, schema_invalid, schema_unsupported, signature_invalid, nonce_replayed, timestamp_out_of_range, credential_revoked, pairing_not_found, pairing_expired, pairing_consumed, pairing_attempts_exceeded, pairing_base_url_mismatch, tenant_forbidden, version_conflict, event_id_conflict, revision_conflict, quota_exceeded, integration_stale, source_incomplete, gateway_unsupported, currency_mismatch, match_ambiguous, allocation_exceeded, lease_expired, stale_fencing_token, result_conflict, forbidden_mutation, unsafe_destination, monitoring_blocked, adapter_unsupported, artifact_redaction_failed, infrastructure_unavailable.
 
 Provider error message не подставляется в UI напрямую. Translation key привязан к stable code, подробности sanitized. HTTP status и machine code имеют разные функции: 409 может быть stale version либо event conflict; клиент использует code.
 
