@@ -92,3 +92,27 @@ Notes:
 - First backend HTTP run hit missing `sessions` table because the generated local `.env` still used database sessions. Bootstrap repair now sets `SESSION_DRIVER=file` until auth/session migrations are deliberately introduced.
 - User verified `/health/live` returned `status=ok`.
 - User verified `/health/ready` returned `status=ok` with database, Redis, and cache checks passing.
+
+### Step 04: Auth, Tenancy, and Store Schema Foundation
+
+Status: prepared, migration run pending
+
+Added:
+
+- UUID-based users migration aligned with the reference schema.
+- Tenants, memberships, invitations, and stores migration.
+- CHECK constraints for role/state/currency/base URL/config version invariants.
+- Models and relationships for User, Tenant, Membership, Invitation, and Store.
+- User factory updated for `password_hash`.
+- `docs/implementation-step-04-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan migrate:fresh` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run migrations in local PostgreSQL.
+- Run backend tests.
+- Add auth/session foundation and TenantContext in the next slices.
