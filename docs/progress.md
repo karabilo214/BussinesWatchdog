@@ -282,7 +282,7 @@ Remaining:
 
 ### Step 12: Connector Pairing Exchange Foundation
 
-Status: implemented, test run pending
+Status: complete for connector pairing exchange foundation
 
 Added:
 
@@ -299,12 +299,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for migrations, models, requests, controllers, routes, and tests.
+- User ran `php artisan test`; 42 tests passed with 133 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add HMAC middleware, nonce replay protection, integration list/revoke/rotate, and audit log.
 
 ### Specification Update: Mandatory Three-Language Portal

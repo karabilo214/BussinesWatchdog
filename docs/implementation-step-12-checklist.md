@@ -28,6 +28,7 @@ This step adds one-time connector pairing and HMAC credential bootstrap. It is p
 - [x] Expired pairing code is rejected.
 - [x] Exchange requires matching store base URL.
 - [x] `connector_code` is platform-neutral and validated.
+- [x] Run `php artisan test`; 42 tests passed with 133 assertions.
 
 ## Not Done In This Step
 
