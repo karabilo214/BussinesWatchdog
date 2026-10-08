@@ -6,7 +6,7 @@
 
 Гость понимает что проверяет сервис, выбирает подходящий tariff, регистрируется, безопасно оплачивает нашу recurring подписку и получает понятный access state. Public site pages SSR Blade+Vite или prerendered Vue; интерактивные pricing/signup components Vue3. Customer cabinet Vue SPA. Всё в существующем Laravel монолите, без обязательного Nuxt/нового CMS.
 
-Public origin и `/app` customer origin могут совпадать. Owner/admin origin изолирован. Основной public language ru, локализации en/de из versioned content. Public pages могут кешироваться; user/billing/private pages `Cache-Control: no-store`. SEO title/description/canonical по locale, robots noindex для login/checkout return/private app/admin. Не публиковать private API response в статические bundle artifacts.
+Public origin и `/app` customer origin могут совпадать. Owner/admin origin изолирован. Public site и billing flow MUST поддерживать `ru`, `en`, `de` через versioned content/translation keys. Public pages могут кешироваться; user/billing/private pages `Cache-Control: no-store`. SEO title/description/canonical по locale, robots noindex для login/checkout return/private app/admin. Не публиковать private API response в статические bundle artifacts.
 
 ## 2 Карта страниц
 

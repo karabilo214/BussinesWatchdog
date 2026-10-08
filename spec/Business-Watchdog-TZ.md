@@ -396,7 +396,7 @@ Retry: 1 мин, 5 мин, 15 мин, 1 ч, 6 ч; 429 учитывать provide
 
 ## 24 Кабинет пользователя
 
-Минимальная навигация: обзор, магазины, инциденты, сверка, проверки, интеграции, настройки, billing. UI на русском в P0, strings через i18n; английский и немецкий SHOULD к P1. Mobile width 360 px+, keyboard navigation, accessible labels, timezone/currency явно указаны.
+Минимальная навигация: обзор, магазины, инциденты, сверка, проверки, интеграции, настройки, billing. Весь портал, включая public сайт, customer app `/app`, owner panel `/owner`, admin panel `/admin`, email/Telegram шаблоны, backend validation/problem messages и downloadable user-facing exports, MUST поддерживать три locale: `ru`, `en`, `de`. Любая user-facing строка создаётся через i18n/translation key, а не hardcoded text в контроллере, Vue component, job или notification renderer. Для P0 допускается неполнота отдельных переводов только если feature скрыта за development flag; shipping UI/API response не должен показывать missing translation key. Mobile width 360 px+, keyboard navigation, accessible labels, timezone/currency явно указаны.
 
 Overview показывает active incidents, coverage источников, last successful check и currency-specific discrepancy totals. «Нет обнаруженных проблем» только если все необходимые checks/data coverage свежие; иначе «Данные неполные» или «Проверка ещё не завершена». Потенциальная выручка/потеря продаж не показывается как доказанная сумма.
 

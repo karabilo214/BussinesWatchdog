@@ -32,5 +32,6 @@
 | EXT-26 | Customer deletion с recurring contract | Cancellation resolved before purge; tombstone retained |
 | EXT-27 | Legal/policy/price version changed | New purchase preview+acceptance, old history immutable |
 | EXT-28 | Provider unavailable | No paid grant, previous paid_until preserved |
+| EXT-29 | Portal locale coverage ru/en/de | Public, customer, owner, admin, backend validation/problem messages, notification templates and user-facing exports have complete localized strings; no missing keys or raw provider messages are shown |
 
 Требуются также16 BILL fixture outcomes, проверка no-card storage/secret redaction, CSRF и stored XSS, изоляция guard cookies, private invoice export/download, provider sandbox upgrade/proration/cancel/refund и наблюдаемость webhook lag. Tests of actual provider behavior нельзя заменить JSON fixtures.

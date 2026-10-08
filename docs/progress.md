@@ -210,3 +210,16 @@ Remaining:
 - Run tests after pulling changes.
 - Add PATCH store and optimistic versioning.
 - Add domain verification and pairing flows later.
+
+### Specification Update: Mandatory Three-Language Portal
+
+Status: complete
+
+Added:
+
+- Mandatory `ru`, `en`, `de` locale coverage for public site, customer app, owner panel, admin panel, backend validation/problem messages, notifications, and user-facing exports.
+- Updated base TZ, panel specs, UI API catalog, and panels acceptance.
+
+Reason:
+
+- Owner requirement: the whole backend/frontend portal must be multilingual in three languages, and deviations from specification must be documented.

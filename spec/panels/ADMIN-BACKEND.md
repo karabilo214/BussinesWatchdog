@@ -80,6 +80,8 @@ Staff audit records read of detailed customer evidence, secret rotations metadat
 
 Все GET lists cursor50/max100. Request headers session+CSRF mutations, If-Match for versioned resources, Idempotency-Key for commands. Tenant target по explicit parameter и platform permission; обычные customer endpoints не расширять `?tenant_id=any`.
 
+Все user-facing backend messages, validation errors, problem `message`, notification templates, action labels, export headers и public content fields MUST иметь translation keys/records для `ru`, `en`, `de`. Machine `code` остаётся stable и не локализуется; provider/raw exception text не подставляется пользователю напрямую.
+
 | Route | Request/Filters | DTO / действие |
 |---|---|---|
 | GET /platform-api/v1/me | — | staff_id,role,MFA,capabilities |

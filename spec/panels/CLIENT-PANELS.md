@@ -65,7 +65,7 @@ Tenant privacy export/deletion через owner step-up; admin403. Остано�
 
 Feature folders: workspace/auth, onboarding, stores, incidents, reconciliation, checks, integrations, notifications, team, billing, support. Shared UI controls reusable, authorization logic серверная. Query cache keys include tenant_id+filters+resource version; sensitive query persists only in memory. Money formatter принимает string+currency+exponent; float parse запрещён.
 
-Locale strings ru обязательны, en/de SHOULD P1. Date formatting использует выбранную timezone, source UTC accessible; long IDs copyable. Empty reconciliation без independent provider содержит connect CTA, не «деньги сошлись».
+Locale strings `ru`, `en`, `de` обязательны для всех customer surfaces. Date formatting использует выбранную timezone, source UTC accessible; long IDs copyable. Empty reconciliation без independent provider содержит connect CTA, не «деньги сошлись».
 
 ## 8 Приёмка
 

@@ -26,6 +26,8 @@ MFA обязательна; после login до MFA защищённые ст�
 
 Все таблицы: cursor pagination50/max100, сортировка server-side whitelist, filters сохраняются в querystring без PII, loading/empty/stale/error states, timezone и currency labels. Owner actions доступны через backend permissions; скрытая кнопка не является защитой. Экспорт async с audit и short-lived private link.
 
+Все owner panel strings, validation messages, empty/error states, exports и notification previews MUST иметь locale coverage `ru`, `en`, `de`; hardcoded production text запрещён.
+
 ## 3 Обзор бизнеса
 
 Период default последние30д, timezone UTC для platform reports, можно выбрать IANA; comparison previous equal duration. Owner видит active paid tenants, trial tenants, past_due, scheduled cancellations, confirmed subscription revenue, refunds, churn и onboarding funnel. Переключатель LIVE/TEST по умолчанию LIVE; test tenants/data исключены из коммерческих KPI.

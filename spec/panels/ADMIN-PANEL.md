@@ -30,6 +30,8 @@ System permission catalog backend must map each route/action to a capability, н
 
 Data refresh polling15–30с только visible page, stop on hidden tab/unmount, request cancellation, stale badge при missed updates. Long queries через async report, не HTTP timeout120с. Staff timezone configurable, исходные timestamps UTC доступны.
 
+Все admin panel strings, operational action previews, safe errors и export labels MUST иметь locale coverage `ru`, `en`, `de`; provider/raw technical messages не выводятся напрямую вместо translation key.
+
 ## 3 Поиск клиента и support grant
 
 Support case P1 — reason+target tenant+scope+expiry. Минимальные summary доступны staff по роли; подробные orders/findings/screenshots требуют grant. Grant выдаёт tenant_owner в кабинете, TTL default24ч, maximum72ч; permissions read_diagnostics/read_artifacts/request_recheck явно перечислены. Staff access read-only; изменяющее действие проходит отдельный platform action policy.
