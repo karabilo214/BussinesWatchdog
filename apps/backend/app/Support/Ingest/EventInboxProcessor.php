@@ -3,10 +3,16 @@
 namespace App\Support\Ingest;
 
 use App\Models\EventInbox;
+use App\Support\Projections\OrderSnapshotProjector;
 use Illuminate\Support\Facades\DB;
 
 class EventInboxProcessor
 {
+    public function __construct(
+        private readonly OrderSnapshotProjector $orderSnapshotProjector,
+    ) {
+    }
+
     public function processReceived(string $eventInboxId): bool
     {
         return DB::transaction(function () use ($eventInboxId): bool {
@@ -25,6 +31,10 @@ class EventInboxProcessor
             }
 
             if ($event->status !== EventInbox::STATUS_RECEIVED) {
+                return false;
+            }
+
+            if (! $this->orderSnapshotProjector->project($event)) {
                 return false;
             }
 

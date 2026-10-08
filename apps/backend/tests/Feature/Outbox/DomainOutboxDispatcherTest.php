@@ -5,6 +5,8 @@ namespace Tests\Feature\Outbox;
 use App\Models\DomainOutbox;
 use App\Models\EventInbox;
 use App\Models\Integration;
+use App\Models\Order;
+use App\Models\OrderRevision;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Support\Outbox\DomainOutboxDispatcher;
@@ -43,6 +45,71 @@ class DomainOutboxDispatcherTest extends TestCase
             'error_code' => null,
         ]);
         $this->assertNotNull($inbox->refresh()->processed_at);
+    }
+
+    public function test_dispatcher_projects_order_snapshot_before_publishing_outbox(): void
+    {
+        [$tenant, $inbox] = $this->receivedEventInbox();
+        $message = $this->outbox(
+            $tenant,
+            DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED,
+            ['event_inbox_id' => $inbox->id],
+        );
+
+        app(DomainOutboxDispatcher::class)->dispatchDue(limit: 10, leaseSeconds: 60);
+
+        $this->assertDatabaseHas('orders', [
+            'tenant_id' => $inbox->tenant_id,
+            'store_id' => $inbox->store_id,
+            'integration_id' => $inbox->integration_id,
+            'external_id' => 'order-1001',
+            'source_revision' => 1,
+            'status' => 'processing',
+            'currency' => 'EUR',
+            'currency_exponent' => 2,
+            'total_minor' => 18400,
+            'payment_expected' => true,
+            'gateway' => 'stripe',
+            'transaction_ref' => 'pi_demo_1001',
+            'financial_support' => 'supported',
+        ]);
+        $order = Order::query()->where('external_id', 'order-1001')->firstOrFail();
+        $this->assertDatabaseHas('order_revisions', [
+            'tenant_id' => $inbox->tenant_id,
+            'store_id' => $inbox->store_id,
+            'order_id' => $order->id,
+            'event_id' => $inbox->id,
+            'source_revision' => 1,
+            'payload_hash' => $inbox->payload_hash,
+        ]);
+        $this->assertSame(DomainOutbox::STATUS_PUBLISHED, $message->refresh()->status);
+    }
+
+    public function test_stale_order_snapshot_revision_does_not_overwrite_current_order(): void
+    {
+        [$tenant, $store, $integration] = $this->integrationContext();
+        $latest = $this->receivedEventInbox(
+            context: [$tenant, $store, $integration],
+            sourceRevision: 2,
+            totalMinor: '25000',
+            status: 'completed',
+        )[1];
+        $stale = $this->receivedEventInbox(
+            context: [$tenant, $store, $integration],
+            sourceRevision: 1,
+            totalMinor: '18400',
+            status: 'processing',
+        )[1];
+        $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $latest->id]);
+        $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $stale->id]);
+
+        app(DomainOutboxDispatcher::class)->dispatchDue(limit: 10, leaseSeconds: 60);
+
+        $order = Order::query()->where('integration_id', $integration->id)->where('external_id', 'order-1001')->firstOrFail();
+        $this->assertSame(2, $order->source_revision);
+        $this->assertSame(25000, $order->total_minor);
+        $this->assertSame('completed', $order->status);
+        $this->assertSame(2, OrderRevision::query()->where('order_id', $order->id)->count());
     }
 
     public function test_dispatcher_publishes_already_processed_inbox_events_idempotently(): void
@@ -137,8 +204,76 @@ class DomainOutboxDispatcherTest extends TestCase
 
     /**
      * @return array{0: Tenant, 1: EventInbox}
+     *
+     * @param array{0: Tenant, 1: Store, 2: Integration}|null $context
      */
-    private function receivedEventInbox(string $status = EventInbox::STATUS_RECEIVED): array
+    private function receivedEventInbox(
+        string $inboxStatus = EventInbox::STATUS_RECEIVED,
+        ?array $context = null,
+        int $sourceRevision = 1,
+        string $totalMinor = '18400',
+        string $status = 'processing',
+    ): array
+    {
+        [$tenant, $store, $integration] = $context ?? $this->integrationContext();
+        $processedAt = $inboxStatus === EventInbox::STATUS_PROCESSED ? now()->subMinute() : null;
+        $payload = [
+            'schema_version' => '1.0',
+            'event_id' => fake()->uuid(),
+            'type' => 'order.snapshot',
+            'aggregate_type' => 'order',
+            'aggregate_id' => 'order-1001',
+            'aggregate_revision' => $sourceRevision,
+            'occurred_at' => now()->subMinute()->toJSON(),
+            'observed_at' => now()->toJSON(),
+            'is_synthetic' => false,
+            'data' => [
+                'status' => $status,
+                'display_number' => '#1001',
+                'currency' => 'EUR',
+                'currency_exponent' => 2,
+                'total_minor' => $totalMinor,
+                'gateway' => 'stripe',
+                'transaction_ref' => 'pi_demo_1001',
+                'payment_expected' => true,
+                'paid_marked_at' => now()->subSeconds(30)->toJSON(),
+                'source_created_at' => now()->subMinutes(2)->toJSON(),
+                'source_updated_at' => now()->subMinute()->toJSON(),
+                'mode' => 'live',
+                'financial_support' => 'supported',
+            ],
+        ];
+        $inbox = EventInbox::query()->create([
+            'tenant_id' => $tenant->id,
+            'store_id' => $store->id,
+            'integration_id' => $integration->id,
+            'provider_event_id' => fake()->uuid(),
+            'schema_version' => '1.0',
+            'event_type' => $payload['type'],
+            'aggregate_type' => $payload['aggregate_type'],
+            'aggregate_external_id' => $payload['aggregate_id'],
+            'aggregate_revision' => $sourceRevision,
+            'occurred_at' => now()->subMinute(),
+            'observed_at' => now(),
+            'received_at' => now(),
+            'is_synthetic' => false,
+            'payload' => $payload,
+            'payload_hash' => hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR)),
+            'canonicalization_version' => 1,
+            'status' => $inboxStatus,
+            'attempt_count' => 0,
+            'next_attempt_at' => now(),
+            'processed_at' => $processedAt,
+            'request_id' => fake()->uuid(),
+        ]);
+
+        return [$tenant, $inbox];
+    }
+
+    /**
+     * @return array{0: Tenant, 1: Store, 2: Integration}
+     */
+    private function integrationContext(): array
     {
         $tenant = $this->tenant();
         $store = Store::query()->create([
@@ -161,32 +296,7 @@ class DomainOutboxDispatcherTest extends TestCase
             'health' => [],
         ]);
 
-        $processedAt = $status === EventInbox::STATUS_PROCESSED ? now()->subMinute() : null;
-        $inbox = EventInbox::query()->create([
-            'tenant_id' => $tenant->id,
-            'store_id' => $store->id,
-            'integration_id' => $integration->id,
-            'provider_event_id' => fake()->uuid(),
-            'schema_version' => '1.0',
-            'event_type' => 'order.snapshot',
-            'aggregate_type' => 'order',
-            'aggregate_external_id' => 'order-1001',
-            'aggregate_revision' => 1,
-            'occurred_at' => now()->subMinute(),
-            'observed_at' => now()->subMinute(),
-            'received_at' => now(),
-            'is_synthetic' => false,
-            'payload' => [],
-            'payload_hash' => hash('sha256', fake()->uuid()),
-            'canonicalization_version' => 1,
-            'status' => $status,
-            'attempt_count' => 0,
-            'next_attempt_at' => now(),
-            'processed_at' => $processedAt,
-            'request_id' => fake()->uuid(),
-        ]);
-
-        return [$tenant, $inbox];
+        return [$tenant, $store, $integration];
     }
 
     /**

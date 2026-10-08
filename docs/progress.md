@@ -476,6 +476,30 @@ Remaining:
 
 - Add Woo/order/payment/refund projections, projection-specific idempotency, external side effects, long-running worker loop, exponential backoff with jitter, sweeper, and manual replay/dead-letter tooling.
 
+### Step 20: Order Snapshot Projection Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `orders` and `order_revisions` migrations.
+- `Order` and `OrderRevision` models.
+- `OrderSnapshotProjector`.
+- `order.snapshot` processing inside `EventInboxProcessor` before marking inbox events processed.
+- Current order upsert by integration and external order ID.
+- Immutable order revision insertion by order and source revision.
+- Stale revision protection for current order state.
+- `docs/implementation-step-20-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for order projection migration, models, projector, inbox processor, and dispatcher tests.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Add `order.deleted`, refund/payment/transaction/allocation projections, same-revision hash conflict handling, full JSON Schema validation, partial PostgreSQL indexes, reconciliation rules, and projection-specific idempotency tests.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete

@@ -92,6 +92,18 @@ Risk: some structurally invalid event `data` payloads may be accepted until full
 
 Return plan: add a JSON Schema validator dependency or generated validator, request-size limit enforcement, quarantine persistence, and projection/outbox worker before using ingress for production data.
 
+### Order Revision Event FK Is Simplified During Bootstrap
+
+Specification target: `order_revisions` references `event_inbox` through the tenant/store scoped composite key.
+
+Current implementation: Step 20 uses a single-column nullable FK from `order_revisions.event_id` to `event_inbox.id`.
+
+Reason: the reference composite FK uses `ON DELETE SET NULL (event_id)` semantics, while Laravel's portable schema builder does not express column-specific `SET NULL` for a composite FK cleanly across PostgreSQL and SQLite test migrations.
+
+Risk: the database does not independently prove that `order_revisions.tenant_id/store_id` match the referenced inbox event; application code currently writes both from the same `EventInbox` row.
+
+Return plan: replace the simplified FK with PostgreSQL-specific DDL for the exact composite constraint, or make the scoped event reference enforceable through an additional nullable scoped key design, before projection tables are considered production-complete.
+
 ## Tracking
 
 Related docs:
