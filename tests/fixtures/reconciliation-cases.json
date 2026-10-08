@@ -1,0 +1,654 @@
+{
+  "schema_version": "1.0",
+  "description": "Synthetic acceptance data; semantic classifications are test expectations, not implemented business code.",
+  "cases": [
+    {
+      "id": "FIN-01",
+      "name": "Оплата совпадает",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "12500",
+        "captured_minor": "12500",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0",
+        "result": "ok",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-02",
+      "name": "Paid marker есть но capture отсутствует",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "18400",
+        "captured_minor": "0",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true,
+        "paid_marked": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-18400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-18400"
+      },
+      "expected": {
+        "capture_difference_minor": "-18400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-18400",
+        "result": "MONEY_CAPTURE_MISSING",
+        "publish_monetary_mismatch": true
+      }
+    },
+    {
+      "id": "FIN-03",
+      "name": "Частичный capture",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "18400",
+        "captured_minor": "15000",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-3400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-3400"
+      },
+      "expected": {
+        "capture_difference_minor": "-3400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-3400",
+        "result": "MONEY_CAPTURE_AMOUNT",
+        "publish_monetary_mismatch": true
+      }
+    },
+    {
+      "id": "FIN-04",
+      "name": "Переплата",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "18400",
+        "captured_minor": "20000",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "1600",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "1600"
+      },
+      "expected": {
+        "capture_difference_minor": "1600",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "1600",
+        "result": "MONEY_CAPTURE_AMOUNT",
+        "publish_monetary_mismatch": true
+      }
+    },
+    {
+      "id": "FIN-05",
+      "name": "Успешный частичный возврат",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "30000",
+        "captured_minor": "30000",
+        "refund_expected_minor": "10000",
+        "refund_actual_minor": "10000",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0",
+        "result": "ok",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-06",
+      "name": "Возврат не подтверждён",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "30000",
+        "captured_minor": "30000",
+        "refund_expected_minor": "10000",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "-10000",
+        "net_difference_minor": "10000"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "-10000",
+        "net_difference_minor": "10000",
+        "result": "MONEY_REFUND_MISSING",
+        "publish_monetary_mismatch": true
+      }
+    },
+    {
+      "id": "FIN-07",
+      "name": "Полный возврат",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "30000",
+        "captured_minor": "30000",
+        "refund_expected_minor": "30000",
+        "refund_actual_minor": "30000",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0",
+        "result": "ok",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-08",
+      "name": "Provider refund без Woo refund",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "30000",
+        "captured_minor": "30000",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "10000",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "10000",
+        "net_difference_minor": "-10000"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "10000",
+        "net_difference_minor": "-10000",
+        "result": "MONEY_REFUND_EXTRA",
+        "publish_monetary_mismatch": true
+      }
+    },
+    {
+      "id": "FIN-09",
+      "name": "Net совпал но capture и refund ошибочны",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "30000",
+        "captured_minor": "25000",
+        "refund_expected_minor": "10000",
+        "refund_actual_minor": "5000",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-5000",
+        "refund_difference_minor": "-5000",
+        "net_difference_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": "-5000",
+        "refund_difference_minor": "-5000",
+        "net_difference_minor": "0",
+        "result": "two_mismatches",
+        "publish_monetary_mismatch": true
+      }
+    },
+    {
+      "id": "FIN-10",
+      "name": "Нулевая стоимость",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "0",
+        "captured_minor": "0",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0",
+        "result": "ok",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-11",
+      "name": "Pending неоплаченный заказ",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "18400",
+        "captured_minor": "0",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true,
+        "paid_marked": false,
+        "order_status": "pending",
+        "payment_expected": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-18400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-18400"
+      },
+      "expected": {
+        "capture_difference_minor": null,
+        "refund_difference_minor": null,
+        "net_difference_minor": null,
+        "result": "pending",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-12",
+      "name": "Данные processor устарели",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "18400",
+        "captured_minor": "0",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "stale",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-18400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-18400"
+      },
+      "expected": {
+        "capture_difference_minor": null,
+        "refund_difference_minor": null,
+        "net_difference_minor": null,
+        "result": "unknown",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-13",
+      "name": "Capture в grace",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "18400",
+        "captured_minor": "0",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": false,
+        "supported": true,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-18400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-18400"
+      },
+      "expected": {
+        "capture_difference_minor": null,
+        "refund_difference_minor": null,
+        "net_difference_minor": null,
+        "result": "pending",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-14",
+      "name": "Gateway не поддерживается",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "18400",
+        "captured_minor": "0",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": false,
+        "exact_match": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-18400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-18400"
+      },
+      "expected": {
+        "capture_difference_minor": null,
+        "refund_difference_minor": null,
+        "net_difference_minor": null,
+        "result": "unsupported",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-15",
+      "name": "Невозможно связать transaction ID",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "18400",
+        "captured_minor": "0",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": false
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-18400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-18400"
+      },
+      "expected": {
+        "capture_difference_minor": null,
+        "refund_difference_minor": null,
+        "net_difference_minor": null,
+        "result": "unmatched",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-16",
+      "name": "Authorization не capture",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "18400",
+        "captured_minor": "0",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true,
+        "authorization_minor": "18400",
+        "paid_marked": false
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-18400",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-18400"
+      },
+      "expected": {
+        "capture_difference_minor": null,
+        "refund_difference_minor": null,
+        "net_difference_minor": null,
+        "result": "pending",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-17",
+      "name": "Manual Woo refund с неизвестной отправкой",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "30000",
+        "captured_minor": "30000",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true,
+        "manual_refund_minor": "10000",
+        "external_required": null
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": null,
+        "refund_difference_minor": null,
+        "net_difference_minor": null,
+        "result": "unknown_refund",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-18",
+      "name": "Повтор webhook не увеличивает capture",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "12500",
+        "captured_minor": "12500",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true,
+        "repeated_operation_ids": [
+          "ch_demo_1",
+          "ch_demo_1"
+        ]
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0",
+        "result": "ok",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-19",
+      "name": "Cancelled paid не значит возвращён",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "30000",
+        "captured_minor": "30000",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true,
+        "order_status": "cancelled",
+        "paid_marked": true
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0",
+        "result": "review_cancelled_paid",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-20",
+      "name": "Total изменён после capture",
+      "currency": "EUR",
+      "currency_exponent": 2,
+      "input": {
+        "gross_minor": "35000",
+        "captured_minor": "30000",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0",
+        "coverage": "complete",
+        "grace_elapsed": true,
+        "supported": true,
+        "exact_match": true,
+        "previous_total_minor": "30000"
+      },
+      "arithmetic_reference": {
+        "capture_difference_minor": "-5000",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-5000"
+      },
+      "expected": {
+        "capture_difference_minor": "-5000",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "-5000",
+        "result": "MONEY_ORDER_CHANGED",
+        "publish_monetary_mismatch": false
+      }
+    },
+    {
+      "id": "FIN-21",
+      "name": "Валюты различаются — арифметика запрещена",
+      "input": {
+        "order_currency": "EUR",
+        "payment_currency": "USD",
+        "gross_minor": "10000",
+        "captured_minor": "10000",
+        "exact_match": true
+      },
+      "expected": {
+        "result": "MONEY_CURRENCY_MISMATCH",
+        "difference_minor": null
+      }
+    },
+    {
+      "id": "FIN-22",
+      "name": "Две разные операции capture не два webhook",
+      "input": {
+        "gross_minor": "10000",
+        "operations": [
+          {
+            "id": "ch_A",
+            "kind": "capture",
+            "amount_minor": "10000"
+          },
+          {
+            "id": "ch_B",
+            "kind": "capture",
+            "amount_minor": "10000"
+          }
+        ]
+      },
+      "expected": {
+        "captured_minor": "20000",
+        "result": "MONEY_MULTIPLE_CAPTURES"
+      }
+    },
+    {
+      "id": "FIN-23",
+      "name": "Большая сумма не теряет точность JS",
+      "currency": "EUR",
+      "input": {
+        "gross_minor": "9007199254740993",
+        "captured_minor": "9007199254740993",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0",
+        "result": "ok"
+      }
+    },
+    {
+      "id": "FIN-24",
+      "name": "JPY exponent zero",
+      "currency": "JPY",
+      "currency_exponent": 0,
+      "input": {
+        "gross_minor": "184",
+        "captured_minor": "184",
+        "refund_expected_minor": "0",
+        "refund_actual_minor": "0"
+      },
+      "expected": {
+        "capture_difference_minor": "0",
+        "refund_difference_minor": "0",
+        "net_difference_minor": "0",
+        "result": "ok"
+      }
+    }
+  ]
+}

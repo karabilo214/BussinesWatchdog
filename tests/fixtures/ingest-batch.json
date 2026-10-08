@@ -1,0 +1,29 @@
+{
+  "events": [
+    {
+      "schema_version": "1.0",
+      "event_id": "33333333-3333-4333-8333-333333333333",
+      "type": "order.snapshot",
+      "aggregate_type": "order",
+      "aggregate_id": "15238",
+      "aggregate_revision": 17,
+      "occurred_at": "2026-10-07T12:20:00Z",
+      "observed_at": "2026-10-07T12:20:01Z",
+      "is_synthetic": false,
+      "data": {
+        "status": "processing",
+        "currency": "EUR",
+        "currency_exponent": 2,
+        "total_minor": "18400",
+        "gateway": "stripe",
+        "transaction_ref": "pi_demo_15238",
+        "payment_expected": true,
+        "paid_marked_at": "2026-10-07T12:19:55Z",
+        "source_created_at": "2026-10-07T12:18:00Z",
+        "source_updated_at": "2026-10-07T12:20:00Z",
+        "mode": "live",
+        "financial_support": "supported"
+      }
+    }
+  ]
+}

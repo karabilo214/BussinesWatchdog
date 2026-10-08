@@ -35,3 +35,28 @@ Terminal evidence:
 - `make ps` showed `business-watchdog-mailpit-1`, `business-watchdog-postgres-1`, `business-watchdog-redis-1`, and `business-watchdog-s3-1` running.
 - Follow-up `make ps` showed Mailpit, PostgreSQL, and Redis healthy; S3Mock was running.
 - Published ports: PostgreSQL `5432`, Redis `6379`, S3Mock `9090`, Mailpit SMTP `1025`, Mailpit UI `8025`.
+
+### Step 02: Repository Skeleton
+
+Status: complete
+
+Added:
+
+- Application placeholders under `apps/backend`, `apps/frontend`, and `apps/browser-worker`.
+- WooCommerce plugin placeholder under `plugins/woocommerce-watchdog`.
+- Working contract copies under `contracts`.
+- Reference SQL copies under `database/reference`.
+- Synthetic fixture copies under `tests/fixtures`.
+- ADR, operations, compatibility, and checklist docs under `docs`.
+
+Verification:
+
+- Reference files copied without manual transformation.
+- No application code generated yet.
+
+Remaining:
+
+- Generate backend Laravel application in `apps/backend`.
+- Generate frontend Vue/Vite application in `apps/frontend`.
+- Generate browser worker package in `apps/browser-worker`.
+- Add CI and real health endpoints.

@@ -1,0 +1,704 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://watchdog.example.invalid/contracts/event/1.0",
+  "title": "Business Watchdog normalized event v1",
+  "description": "Woo ingress accepts only plugin capabilities. Independent-provider fields are produced by verified server adapters and cannot be asserted by plugin credentials.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "type",
+    "aggregate_type",
+    "aggregate_id",
+    "occurred_at",
+    "observed_at",
+    "is_synthetic",
+    "data"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "type": {
+      "enum": [
+        "order.snapshot",
+        "order.deleted",
+        "refund.snapshot",
+        "payment.snapshot",
+        "transaction.observed",
+        "integration.heartbeat",
+        "integration.capabilities_changed",
+        "deployment.observed",
+        "funnel.observed"
+      ]
+    },
+    "aggregate_type": {
+      "enum": [
+        "order",
+        "refund",
+        "payment",
+        "transaction",
+        "integration",
+        "deployment",
+        "session"
+      ]
+    },
+    "aggregate_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "aggregate_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_synthetic": {
+      "type": "boolean"
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "order": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "currency",
+        "currency_exponent",
+        "total_minor",
+        "payment_expected"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "display_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "currency_exponent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "total_minor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Nonnegative bigint minor units as string; enforce <= 9223372036854775807 in semantic validation."
+        },
+        "gateway": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        },
+        "transaction_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        },
+        "payment_expected": {
+          "type": "boolean"
+        },
+        "paid_marked_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "source_created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "mode": {
+          "enum": [
+            "live",
+            "test"
+          ]
+        },
+        "financial_support": {
+          "enum": [
+            "supported",
+            "unsupported",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "refund": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "currency",
+        "currency_exponent",
+        "amount_minor",
+        "external_required",
+        "status"
+      ],
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "currency_exponent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "amount_minor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Nonnegative bigint minor units as string; enforce <= 9223372036854775807 in semantic validation."
+        },
+        "external_required": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "provider_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        },
+        "status": {
+          "enum": [
+            "requested",
+            "recorded",
+            "cancelled",
+            "deleted"
+          ]
+        }
+      }
+    },
+    "deleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason_code"
+      ],
+      "properties": {
+        "reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      }
+    },
+    "payment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "currency",
+        "currency_exponent",
+        "status",
+        "source_updated_at",
+        "source_authority"
+      ],
+      "properties": {
+        "intent_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        },
+        "charge_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        },
+        "mode": {
+          "enum": [
+            "live",
+            "test"
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "currency_exponent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "authorized",
+            "captured",
+            "failed",
+            "cancelled",
+            "unknown"
+          ]
+        },
+        "source_updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_authority": {
+          "enum": [
+            "store_reported",
+            "independent_provider"
+          ]
+        }
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_operation_id",
+        "kind",
+        "status",
+        "currency",
+        "currency_exponent",
+        "amount_minor",
+        "source_authority"
+      ],
+      "properties": {
+        "external_operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "payment_external_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        },
+        "kind": {
+          "enum": [
+            "capture",
+            "refund",
+            "fee",
+            "dispute_debit",
+            "dispute_credit",
+            "adjustment"
+          ]
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "currency_exponent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "amount_minor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Nonnegative bigint minor units as string; enforce <= 9223372036854775807 in semantic validation."
+        },
+        "source_authority": {
+          "enum": [
+            "store_reported",
+            "independent_provider"
+          ]
+        }
+      }
+    },
+    "heartbeat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backlog_count",
+        "plugin_version"
+      ],
+      "properties": {
+        "backlog_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "oldest_pending_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "plugin_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkout_mode",
+        "order_snapshots"
+      ],
+      "properties": {
+        "hpos": {
+          "type": "boolean"
+        },
+        "checkout_mode": {
+          "enum": [
+            "classic",
+            "blocks",
+            "custom",
+            "unknown"
+          ]
+        },
+        "order_snapshots": {
+          "type": "boolean"
+        },
+        "refund_snapshots": {
+          "type": "boolean"
+        },
+        "payment_form_check": {
+          "type": "boolean"
+        },
+        "funnel_telemetry": {
+          "type": "boolean"
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component",
+        "component_id",
+        "new_version",
+        "observation_method"
+      ],
+      "properties": {
+        "component": {
+          "enum": [
+            "wordpress",
+            "woocommerce",
+            "theme",
+            "plugin",
+            "asset"
+          ]
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "old_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        },
+        "new_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "observation_method": {
+          "enum": [
+            "version_scan",
+            "hash_scan",
+            "explicit_hook"
+          ]
+        }
+      }
+    },
+    "funnel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "session_id",
+        "consent_scope"
+      ],
+      "properties": {
+        "stage": {
+          "enum": [
+            "cart_observed",
+            "checkout_observed",
+            "payment_attempt_observed",
+            "purchase_confirmed"
+          ]
+        },
+        "session_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "consent_scope": {
+          "enum": [
+            "analytics_opt_in",
+            "server_transactional"
+          ]
+        },
+        "order_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "order.snapshot"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "order"
+          },
+          "data": {
+            "$ref": "#/$defs/order"
+          }
+        },
+        "required": [
+          "aggregate_revision"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "order.deleted"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "order"
+          },
+          "data": {
+            "$ref": "#/$defs/deleted"
+          }
+        },
+        "required": [
+          "aggregate_revision"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "refund.snapshot"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "refund"
+          },
+          "data": {
+            "$ref": "#/$defs/refund"
+          }
+        },
+        "required": [
+          "aggregate_revision"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "payment.snapshot"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "payment"
+          },
+          "data": {
+            "$ref": "#/$defs/payment"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "transaction.observed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "transaction"
+          },
+          "data": {
+            "$ref": "#/$defs/transaction"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "integration.heartbeat"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "integration"
+          },
+          "data": {
+            "$ref": "#/$defs/heartbeat"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "integration.capabilities_changed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "integration"
+          },
+          "data": {
+            "$ref": "#/$defs/capabilities"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "deployment.observed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "deployment"
+          },
+          "data": {
+            "$ref": "#/$defs/deployment"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "funnel.observed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "session"
+          },
+          "data": {
+            "$ref": "#/$defs/funnel"
+          }
+        }
+      }
+    }
+  ]
+}
