@@ -96,7 +96,7 @@ class OrderReconciliationServiceTest extends TestCase
     {
         $order = $this->order(['paid_marked_at' => now()->subHours(2)]);
         $this->allocateCapture($order, 18400, 18400);
-        $this->wooRefund($order, 5000, true, now()->subMinutes(10));
+        $this->storeReportedRefund($order, 5000, true, now()->subMinutes(10));
 
         $run = app(OrderReconciliationService::class)->evaluate($order);
 
@@ -105,14 +105,14 @@ class OrderReconciliationServiceTest extends TestCase
 
         $orderPastGrace = $this->order(['paid_marked_at' => now()->subHours(2)]);
         $this->allocateCapture($orderPastGrace, 18400, 18400);
-        $this->wooRefund($orderPastGrace, 5000, true, now()->subMinutes(61));
+        $this->storeReportedRefund($orderPastGrace, 5000, true, now()->subMinutes(61));
 
         $runPastGrace = app(OrderReconciliationService::class)->evaluate($orderPastGrace);
         $findingsPastGrace = $runPastGrace->findings()->get()->keyBy('rule_code');
         $this->assertSame(ReconciliationFinding::STATUS_MISMATCH, $findingsPastGrace[ReconciliationFinding::RULE_REFUND_MISSING]->status);
     }
 
-    public function test_it_reports_refund_extra_when_provider_refund_has_no_matching_woo_refund(): void
+    public function test_it_reports_refund_extra_when_provider_refund_has_no_matching_store_reported_refund(): void
     {
         $order = $this->order(['paid_marked_at' => now()->subHours(2)]);
         $allocation = $this->allocateCapture($order, 18400, 18400);
@@ -128,11 +128,11 @@ class OrderReconciliationServiceTest extends TestCase
         $this->assertSame(5000, $finding->refund_actual_minor);
     }
 
-    public function test_it_reports_refund_reconciled_ok_when_woo_and_provider_refund_match(): void
+    public function test_it_reports_refund_reconciled_ok_when_store_reported_and_provider_refund_match(): void
     {
         $order = $this->order(['paid_marked_at' => now()->subHours(2)]);
         $allocation = $this->allocateCapture($order, 18400, 18400);
-        $refund = $this->wooRefund($order, 5000, true, now()->subMinutes(10));
+        $refund = $this->storeReportedRefund($order, 5000, true, now()->subMinutes(10));
         $this->allocateRefund($order, $allocation, $refund, 5000, now()->subMinutes(5));
 
         $run = app(OrderReconciliationService::class)->evaluate($order);
@@ -267,7 +267,7 @@ class OrderReconciliationServiceTest extends TestCase
         );
     }
 
-    private function wooRefund(Order $order, int $amountMinor, bool $externalRequired, \DateTimeInterface $occurredAt): Refund
+    private function storeReportedRefund(Order $order, int $amountMinor, bool $externalRequired, \DateTimeInterface $occurredAt): Refund
     {
         return Refund::query()->create([
             'tenant_id' => $order->tenant_id,
@@ -290,7 +290,7 @@ class OrderReconciliationServiceTest extends TestCase
 
     private function bookkeepingOnlyRefund(Order $order, int $amountMinor): Refund
     {
-        return $this->wooRefund($order, $amountMinor, false, now()->subMinutes(30));
+        return $this->storeReportedRefund($order, $amountMinor, false, now()->subMinutes(30));
     }
 
     private function allocateRefund(Order $order, PaymentAllocation $paymentAllocation, Refund $refund, int $amountMinor, \DateTimeInterface $occurredAt): RefundAllocation

@@ -13,14 +13,16 @@ This step adds the `reconciliation_runs`/`reconciliation_findings` tables and a 
 - [x] Add `OrderReconciliationService::evaluate(Order $order)`:
   - [x] Locks the order row and the relevant active allocation rows before computing sums (consistent read).
   - [x] `MONEY_UNSUPPORTED` when `orders.financial_support !== 'supported'`; short-circuits the other rules for that order.
-  - [x] `MONEY_CAPTURE_MISSING` when the order has a Woo paid marker (`paid_marked_at`), a positive payable total, and zero active capture allocations; `pending` within a 30-minute grace from `paid_marked_at`, `mismatch` after.
+  - [x] `MONEY_CAPTURE_MISSING` when the order has a store-reported paid marker (`orders.paid_marked_at`, written by whichever connector projected the order — WooCommerce today, any other platform connector later), a positive payable total, and zero active capture allocations; `pending` within a 30-minute grace from `paid_marked_at`, `mismatch` after.
   - [x] `MONEY_CAPTURE_AMOUNT` when there is a non-zero captured amount; `ok`/`mismatch` against the order total at zero tolerance.
   - [x] Skips capture findings entirely when there is no paid marker and nothing captured yet (nothing to reconcile).
-  - [x] `MONEY_REFUND_MISSING` / `MONEY_REFUND_EXTRA` from Woo refunds marked `external_required` (RW) vs. active refund allocations (RP); `pending`/`mismatch` after a 60-minute grace; `ok` (under `MONEY_REFUND_MISSING`) when RW equals RP; skipped when both are zero.
-  - [x] Bookkeeping-only Woo refunds (`external_required = false`) are correctly excluded from RW, so a manual refund is never counted as a verified provider refund (ACC-32).
+  - [x] `MONEY_REFUND_MISSING` / `MONEY_REFUND_EXTRA` from store-reported refunds marked `external_required` (RW) vs. active refund allocations (RP); `pending`/`mismatch` after a 60-minute grace; `ok` (under `MONEY_REFUND_MISSING`) when RW equals RP; skipped when both are zero.
+  - [x] Bookkeeping-only store-reported refunds (`external_required = false`) are correctly excluded from RW, so a manual refund is never counted as a verified provider refund (ACC-32).
   - [x] Every run is persisted with `status`, `algorithm_version`, `config_version`, `scope`, `coverage_snapshot`, `counters`, timestamps.
   - [x] Findings are append-only: replaying evaluation creates a new run with new findings; history is never overwritten.
-- [x] Focused tests: capture missing pending/mismatch, capture amount ok/mismatch, no-op when nothing to reconcile, unsupported short-circuit, refund missing pending/mismatch, refund extra from a bookkeeping-only Woo refund, refund reconciled ok, and replay preserving finding history across two runs.
+- [x] Focused tests: capture missing pending/mismatch, capture amount ok/mismatch, no-op when nothing to reconcile, unsupported short-circuit, refund missing pending/mismatch, refund extra from a bookkeeping-only store-reported refund, refund reconciled ok, and replay preserving finding history across two runs.
+
+Note: nothing in `OrderReconciliationService`, the migration, or the models reads a WooCommerce-specific field or connector code. The engine only consumes the generic `orders`/`refunds`/`payments`/`financial_transactions` projections, so any connector that normalizes into those tables (WooCommerce today, another CMS/CRM/cart platform later) is reconciled identically.
 
 ## Verification
 

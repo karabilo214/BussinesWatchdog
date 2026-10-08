@@ -25,7 +25,7 @@
 Полный список — в `AGENTS.md`. Ключевое, что нельзя нарушать:
 
 - Деньги — minor units, bigint/string, никаких float и JS Number.
-- Woo paid marker не является независимым доказательством capture.
+- Store-reported paid marker (от любого коннектора — сейчас WooCommerce, в будущем любая другая CMS/CRM/платформа) не является независимым доказательством capture.
 - Разные финансовые сущности (charge/intent/refund/fee/payout) не смешиваются и не суммируются как одно и то же.
 - Unknown/stale данные не являются нулём.
 - Tenant scope обязателен в каждом service/repository/job/export/artifact access.
@@ -40,6 +40,11 @@
 - После каждой выполненной задачи прогонять backend-тесты через PHP 8.4, установленный параллельно с основной версией через brew (`/opt/homebrew/opt/php@8.4/bin/php`), а не через системный `php` по умолчанию — composer требует `^8.3`, а системный `php` может быть более старой версии.
   Команда из `apps/backend`: `/opt/homebrew/opt/php@8.4/bin/php artisan test`.
 - Коммитить и делать push после задачи только тогда, когда все тесты зелёные. Если тесты красные — сначала исправить, не коммитить незавершённое.
+
+## Терминология
+
+- Сервис (ingestion, projections, allocation, reconciliation) платформенно-нейтральный: он работает с нормализованными таблицами (`orders`, `refunds`, `payments`, `financial_transactions`), а не с WooCommerce напрямую. WooCommerce-плагин — первый, но не единственный коннектор; архитектура рассчитана на любую CMS/CRM/платформу.
+- В коде, тестах, чеклистах и progress.md для общей (не WooCommerce-специфичной) логики использовать нейтральные термины: "store-reported paid marker", "store-reported refund", "connector" — а не "Woo paid marker"/"Woo refund". Слово "Woo" уместно только там, где речь реально идёт о WooCommerce-плагине (`plugins/woocommerce-watchdog`, его хуки, HPOS и т.п.), а не о ядровом reconciliation/ingestion движке.
 
 ## Прочее
 
