@@ -15,22 +15,23 @@ This step prepares the local infrastructure only. It does not implement Laravel,
 
 ## Local Tooling
 
-- [ ] Install Docker Desktop on macOS Apple Silicon, or Docker Engine on Linux amd64.
-- [ ] Confirm `docker --version` works.
-- [ ] Confirm `docker compose version` works.
-- [ ] If Docker Desktop is installed but `docker` is not in `PATH`, confirm `make check-tools` can find `/Applications/Docker.app/Contents/Resources/bin/docker`.
-- [ ] Confirm Docker Desktop credential helpers are reachable. The `Makefile` prepends `/Applications/Docker.app/Contents/Resources/bin` to `PATH` for this.
-- [ ] Copy `.env.example` to `.env` using `make setup`.
-- [ ] Review local-only credentials in `.env`.
+- [x] Install Docker Desktop on macOS Apple Silicon, or Docker Engine on Linux amd64.
+- [x] Confirm Docker CLI is available through Docker Desktop.
+- [x] Confirm Docker Compose is available through Docker Desktop.
+- [x] If Docker Desktop is installed but `docker` is not in `PATH`, confirm `make check-tools` can find `/Applications/Docker.app/Contents/Resources/bin/docker`.
+- [x] Confirm Docker Desktop credential helpers are reachable. The `Makefile` prepends `/Applications/Docker.app/Contents/Resources/bin` to `PATH` for this.
+- [x] Copy `.env.example` to `.env` using `make setup`.
+- [x] Review local-only credentials in `.env`.
 
 ## Containers
 
-- [ ] PostgreSQL 18 starts and passes healthcheck.
-- [ ] Redis starts with append-only persistence and passes healthcheck.
-- [ ] Local S3-compatible storage starts. Current local bootstrap uses Adobe S3Mock because the official MinIO Docker Hub image is not reliably pullable and LocalStack latest requires license activation.
-- [ ] Mailpit starts and UI is reachable.
-- [ ] Data persists across `make down` and returns after `make up`.
-- [ ] `make reset-infra` removes local volumes when a clean reset is needed.
+- [x] PostgreSQL 18 starts.
+- [x] Redis starts with append-only persistence.
+- [x] Local S3-compatible storage starts. Current local bootstrap uses Adobe S3Mock because the official MinIO Docker Hub image is not reliably pullable and LocalStack latest requires license activation.
+- [x] Mailpit starts and UI is reachable.
+- [ ] Confirm PostgreSQL and Redis health become `healthy` after startup.
+- [ ] Confirm data persists across `make down` and returns after `make up`.
+- [x] `make reset-infra` removes local volumes when a clean reset is needed.
 
 ## Expected Local Endpoints
 

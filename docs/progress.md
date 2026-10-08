@@ -4,7 +4,7 @@
 
 ### Step 01: Local Infrastructure Bootstrap
 
-Status: in progress
+Status: local services running; health verification pending
 
 Added:
 
@@ -25,6 +25,13 @@ Verification:
 
 Remaining:
 
-- Install Docker locally and run `make up`.
+- Confirm PostgreSQL and Redis health become `healthy` with a second `make ps` after startup.
+- Confirm S3Mock responds on `http://localhost:9090`.
+- Confirm Mailpit UI opens on `http://localhost:8025`.
 - Pin production image digests during D0/D1 compatibility work.
 - Add Laravel backend, migrations, health endpoints, and CI in later D1 slices.
+
+Terminal evidence:
+
+- `make ps` showed `business-watchdog-mailpit-1`, `business-watchdog-postgres-1`, `business-watchdog-redis-1`, and `business-watchdog-s3-1` running.
+- Published ports: PostgreSQL `5432`, Redis `6379`, S3Mock `9090`, Mailpit SMTP `1025`, Mailpit UI `8025`.
