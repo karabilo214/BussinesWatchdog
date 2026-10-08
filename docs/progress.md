@@ -63,7 +63,7 @@ Remaining:
 
 ### Step 03: Backend Runtime Bootstrap
 
-Status: prepared, not built in Codex sandbox
+Status: Laravel scaffold generated; HTTP verification pending
 
 Added:
 
@@ -81,12 +81,14 @@ Verification:
 
 Remaining:
 
-- Run `make backend-build`.
-- Run `make backend-create` again after script fix; the first run generated files but failed because root `.env` had no Laravel `APP_KEY` slot.
-- Add health endpoints after Laravel files exist.
+- Run `make backend-up`.
+- Verify `http://localhost:8080/health/live`.
+- Verify `http://localhost:8080/health/ready`.
 - Add D1 auth/tenant/store migrations and tests.
 
 Notes:
 
 - `infra/scripts/create-backend.sh` now preserves Laravel's own `.env`, applies local infrastructure settings, and generates `APP_KEY` if missing.
 - If Laravel files already exist from a partial first run, `make backend-create` repairs `apps/backend/.env` instead of exiting.
+- `make backend-create` completed successfully in the user's terminal and generated `APP_KEY`.
+- Health endpoints were added after scaffold generation.

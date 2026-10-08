@@ -26,11 +26,16 @@ Expected backend URL after Laravel is generated:
 
 - `http://localhost:${BACKEND_HTTP_PORT:-8080}`
 
+## Application
+
+- [x] Laravel application generated in `apps/backend`.
+- [x] Backend `.env.example` points at local Postgres, Redis, Mailpit, and S3Mock.
+- [x] `/health/live` endpoint added.
+- [x] `/health/ready` endpoint added.
+
 ## Not Done In This Step
 
-- Laravel application generated and verified.
-- Backend health endpoints.
+- Backend container served and verified over HTTP.
 - Laravel migrations.
 - Sanctum/auth/tenancy.
 - CI pipeline.
-

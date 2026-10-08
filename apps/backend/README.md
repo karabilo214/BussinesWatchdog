@@ -1,20 +1,28 @@
-# Backend
+# Business Watchdog Backend
 
-Laravel backend placeholder.
+Laravel backend for Business Watchdog.
 
-Target stack from the specification:
+Runtime:
 
 - Laravel 13
-- PHP 8.4
+- PHP 8.4 through `infra/docker/backend/Dockerfile`
 - PostgreSQL 18
-- Redis + Horizon
-- Sanctum same-origin sessions
+- Redis
+- Mailpit for local email
+- S3-compatible local object storage through S3Mock
 
-First backend slice:
+Local commands from the repository root:
 
-1. Create Laravel application files.
-2. Add health endpoints.
-3. Add auth/session foundation.
-4. Add tenant/store bootstrap migrations from `database/reference`.
-5. Keep reference SQL as reviewed design input, not direct production DDL.
+```sh
+make backend-build
+make backend-create
+make backend-up
+make backend-logs
+```
 
+Health endpoints:
+
+- `GET /health/live`
+- `GET /health/ready`
+
+The backend is currently a D1 scaffold. Auth, tenancy, store setup, migrations, durable ingestion, browser leases, reconciliation, billing, and notifications are not implemented yet.
