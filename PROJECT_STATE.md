@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-08 (Step 31)
+2026-10-08 (Step 32)
 
 ## Что это за проект
 
@@ -14,7 +14,7 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 Репозиторий сейчас в фазе **D1–D4 бэкенд-слайсов** (по внутренней нумерации шагов `docs/progress.md`, не всегда совпадает 1:1 с разделом 36 ТЗ). P0 pilot пока не достигнут — минимальный кабинет, браузерные проверки, incident engine и email ещё не реализованы.
 
-Реализовано (backend, `apps/backend`, до Step 31 включительно):
+Реализовано (backend, `apps/backend`, до Step 32 включительно):
 
 - Локальный инфраструктурный bootstrap (Docker Compose: PostgreSQL 18, Redis, S3Mock вместо MinIO, Mailpit).
 - Auth/tenancy: регистрация, сессии (пока без Sanctum), membership/roles.
@@ -25,8 +25,9 @@ Business Watchdog — SaaS для обнаружения финансовых р
 - Integration lifecycle: list/detail/revoke endpoints, audit log (`audit_log`).
 - Payment/refund allocation foundation: таблицы `payment_allocations`/`refund_allocations`, `PaymentAllocationService` с блокировками строк и проверкой сумм.
 - Allocation revoke/unlink: `PaymentAllocationService::revokeCaptureAllocation()`/`revokeRefundAllocation()` — reason обязателен, повторный revoke запрещён, revoke capture allocation блокируется активными refund allocations на неё, каждый revoke пишет `audit_log`.
+- Reconciliation foundation: таблицы `reconciliation_runs`/`reconciliation_findings`, `OrderReconciliationService::evaluate()` — считает G/C/RW/RP по одному заказу и пишет findings по правилам `MONEY_UNSUPPORTED`, `MONEY_CAPTURE_MISSING`, `MONEY_CAPTURE_AMOUNT`, `MONEY_REFUND_MISSING`, `MONEY_REFUND_EXTRA` с grace-окнами (30/60 мин) и нулевым tolerance. Синхронный, по одному заказу — без scheduler/nightly sweep/dirty-order coalescing.
 
-104 теста, 337 assertions проходят (`php artisan test` на PHP 8.4).
+114 тестов, 369 assertions проходят (`php artisan test` на PHP 8.4). Миграция reconciliation-таблиц проверена и накатана на реальной PostgreSQL 18 в локальном Docker.
 
 Известные зафиксированные отклонения от спеки — `docs/adr/0001-bootstrap-deviations.md` (S3Mock вместо MinIO, нет Sanctum, упрощённые FK в projection-таблицах, неполная JSON Schema валидация ingest, store verification без реальной внешней проверки, pairing без полного anti-abuse).
 
@@ -34,13 +35,15 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 ## Следующий шаг
 
-По "Not Done In This Step" из `docs/implementation-step-31-checklist.md`, логичное продолжение D4-слайса сверки:
+По "Not Done In This Step" из `docs/implementation-step-32-checklist.md`:
 
-1. Reconciliation runs и findings (`reconciliation_runs`, `reconciliation_findings`) — правила из раздела 14 ТЗ, теперь безопасно: allocation-связи можно создавать и безопасно пересматривать (revoke/unlink готов).
-2. Публичный/manual allocation API (`POST /payment-allocations`, `POST /refund-allocations` и их `/revoke` из `spec/contracts/ui-api-catalog.md` раздел 5) — сервисный слой готов, нужны только routes/controllers/DTO.
-3. Автоматический matcher (раздел 13 ТЗ) сверх текущих ручных allocation primitives.
-4. Nightly allocation audit.
-5. При добавлении reconciliation runs — решить, нужен ли `dirty_order`-outbox topic для пересчёта findings при revoke (сейчас сознательно не добавлен, так как потребителя для него ещё нет).
+1. Публичный reconciliation/findings API (`POST /stores/{id}/reconciliations`, `GET /stores/{id}/findings` из `spec/contracts/ui-api-catalog.md` раздел 5) — сервисный слой готов, нужны routes/controllers/DTO. Это удобно сделать вместе с manual allocation API (тот же раздел), который тоже пока без HTTP.
+2. Оставшиеся rule codes: `MONEY_PAYMENT_WITHOUT_ORDER`, `MONEY_MULTIPLE_CAPTURES`, `MONEY_CURRENCY_MISMATCH`, `MONEY_ORDER_CHANGED` — требуют сканирования по store/payment, а не по одному заказу (unmatched payments, order-revision diff).
+3. Dirty-order coalescing (30с), пересчёт по grace-дедлайну и nightly sweep (90 дней) — сейчас только on-demand по одному заказу синхронно.
+4. `rule_configs`: версионируемые tolerance/grace вместо текущих constants в сервисе.
+5. Автоматический matcher (раздел 13 ТЗ) сверх текущих ручных allocation primitives.
+6. Nightly allocation audit.
+7. Incident engine поверх findings (критичность, корреляция, авто-resolve) — сейчас только finding, без инцидентов/уведомлений.
 
 Параллельно остаются открытыми более ранние gaps из ADR 0001 (Sanctum, DNS/connector верификация домена, полная JSON Schema валидация) — не блокируют текущий слайс, но нужны до P0/P1 acceptance.
 
