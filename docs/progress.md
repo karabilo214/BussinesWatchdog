@@ -407,6 +407,31 @@ Remaining:
 
 - Add dispatcher command/worker loop, side-effect execution, publish/dead-letter result handling, backoff policy, and consumer idempotency tests.
 
+### Step 17: Domain Outbox Result Recording Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `DomainOutboxResultRecorder`.
+- Publish result recording for active leases.
+- Retry scheduling for failed active leases before max attempts.
+- Dead-letter transition at max attempts.
+- Stale lease result rejection.
+- Non-leased message result rejection.
+- Feature tests for publish, retry, dead-letter, stale lease rejection, and non-leased rejection.
+- `docs/implementation-step-17-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add dispatcher command/worker loop, side-effect execution, exponential backoff with jitter, consumer idempotency tests, and manual replay/dead-letter resolution.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete
