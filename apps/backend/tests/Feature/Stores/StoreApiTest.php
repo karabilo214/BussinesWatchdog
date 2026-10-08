@@ -202,6 +202,74 @@ class StoreApiTest extends TestCase
             ->assertStatus(428);
     }
 
+    public function test_viewer_cannot_create_store(): void
+    {
+        [$user, $tenant] = $this->userWithTenant('viewer');
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->postJson('/api/v1/stores', [
+                'name' => 'Main Shop',
+                'base_url' => 'https://shop.example.test',
+                'timezone' => 'Europe/Kyiv',
+                'default_currency' => 'EUR',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_operator_can_read_but_cannot_update_store(): void
+    {
+        [$user, $tenant] = $this->userWithTenant('operator');
+        $store = Store::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Readable Shop',
+            'base_url' => 'https://readable.example.test',
+            'timezone' => 'Europe/Kyiv',
+            'default_currency' => 'EUR',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->getJson("/api/v1/stores/{$store->id}")
+            ->assertOk()
+            ->assertJsonPath('id', $store->id);
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->withHeader('If-Match', (string) $store->refresh()->config_version)
+            ->patchJson("/api/v1/stores/{$store->id}", [
+                'name' => 'Updated Shop',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_create_and_update_store(): void
+    {
+        [$user, $tenant] = $this->userWithTenant('admin');
+
+        $storeId = $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->postJson('/api/v1/stores', [
+                'name' => 'Admin Shop',
+                'base_url' => 'https://admin.example.test',
+                'timezone' => 'Europe/Kyiv',
+                'default_currency' => 'EUR',
+            ])
+            ->assertCreated()
+            ->json('id');
+
+        $store = Store::query()->findOrFail($storeId);
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->withHeader('If-Match', (string) $store->refresh()->config_version)
+            ->patchJson("/api/v1/stores/{$store->id}", [
+                'name' => 'Updated Admin Shop',
+            ])
+            ->assertOk()
+            ->assertJsonPath('name', 'Updated Admin Shop');
+    }
+
     public function test_store_base_url_change_resets_verification_and_browser_flag(): void
     {
         [$user, $tenant] = $this->userWithTenant();
@@ -254,7 +322,7 @@ class StoreApiTest extends TestCase
     /**
      * @return array{0: User, 1: Tenant}
      */
-    private function userWithTenant(): array
+    private function userWithTenant(string $role = 'owner'): array
     {
         $user = User::query()->create([
             'name' => 'Owner',
@@ -269,7 +337,7 @@ class StoreApiTest extends TestCase
         Membership::query()->create([
             'tenant_id' => $tenant->id,
             'user_id' => $user->id,
-            'role' => 'owner',
+            'role' => $role,
         ]);
 
         return [$user, $tenant];

@@ -234,6 +234,28 @@ Remaining:
 - Add role policy checks.
 - Add store verification and pairing flows later.
 
+### Step 10: Tenant Role Policy Foundation
+
+Status: prepared, test run pending
+
+Added:
+
+- Tenant role constants.
+- `tenant.role` route middleware.
+- Store read/manage route role checks.
+- Feature tests for viewer/operator/admin store permissions.
+- `docs/implementation-step-10-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Expand permission checks to incidents/checks/integrations/billing in future slices.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete
