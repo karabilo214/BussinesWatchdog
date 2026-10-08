@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Incidents\IncidentController;
+use App\Http\Controllers\Api\V1\Incidents\SuppressionController;
 use App\Http\Controllers\Api\V1\Ingest\EventsController;
 use App\Http\Controllers\Api\V1\Ingest\HeartbeatController;
 use App\Http\Controllers\Api\V1\Integrations\IntegrationController;
@@ -73,6 +75,21 @@ Route::middleware(['web', 'auth', 'tenant.session'])->prefix('/v1')->group(funct
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+
+    Route::get('/incidents', [IncidentController::class, 'index'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentRead()));
+    Route::get('/incidents/{incident}', [IncidentController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentRead()));
+    Route::post('/incidents/{incident}/acknowledge', [IncidentController::class, 'acknowledge'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentManage()));
+    Route::post('/incidents/{incident}/resolve', [IncidentController::class, 'resolve'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentManage()));
+    Route::post('/incidents/{incident}/comments', [IncidentController::class, 'comment'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentManage()));
+    Route::post('/incidents/{incident}/snooze', [IncidentController::class, 'snooze'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentSnooze()));
+    Route::post('/suppressions/{suppression}/revoke', [SuppressionController::class, 'revoke'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentSnooze()));
 });
 
 Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store']);

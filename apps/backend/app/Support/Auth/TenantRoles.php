@@ -79,4 +79,28 @@ class TenantRoles
     {
         return self::storeRead();
     }
+
+    /**
+     * @return list<string>
+     */
+    public static function incidentRead(): array
+    {
+        return self::storeRead();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function incidentManage(): array
+    {
+        return self::reconciliationTrigger();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function incidentSnooze(): array
+    {
+        return self::storeManage();
+    }
 }

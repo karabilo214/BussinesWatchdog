@@ -859,3 +859,27 @@ Verification:
 Remaining:
 
 - Windowed bulk reconciliation triggers, true dry-run, cursor signing, rate limiting, idempotency-key expiry cleanup, automatic matcher, nightly allocation audit, and the incident engine.
+
+### Step 36: Incident Engine Foundation
+
+Status: complete for the money-family incident engine
+
+Added:
+
+- `signals`, `incidents`, `incident_signals`, `incident_activity`, `suppressions` tables and models.
+- `MoneyIncidentCorrelator`: opens/attaches incidents from mismatch findings, auto-resolves on a fresh ok finding, reopens within 24h of resolution or creates a separate incident after. Groups rule codes into a coarser `component` (`capture`, `refund`, ...) for fingerprinting after discovering that fixing a capture-missing problem changes the triggering rule code to capture-amount, which would otherwise never match back to the original incident.
+- `IncidentLifecycleService`: acknowledge, resolve, comment, snooze, revoke-suppression, each with its own rejection rules (idempotent acknowledge, no double-resolve, no double-revoke, 30-day snooze cap).
+- Wired `MoneyIncidentCorrelator::correlate()` into `ReconciliationController::store()` so every trigger call also updates the incident state.
+- Public API: `GET /incidents`, `GET /incidents/{id}`, `POST /incidents/{id}/acknowledge|resolve|comments|snooze`, `POST /suppressions/{id}/revoke`.
+- `docs/implementation-step-36-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed (PHP 8.4) for all new/changed files.
+- `php vendor/bin/pint --test`: clean.
+- `php artisan test` (PHP 8.4) passed: 181 tests, 583 assertions.
+- `php artisan migrate --force` against real PostgreSQL 18 in local Docker applied the new migration cleanly, including the partial-unique active-fingerprint index.
+
+Remaining:
+
+- Checkout/sales-drop incident families (need the browser worker and metrics pipeline), critical severity escalation, notifications on incident transitions, dirty-order coalescing/scheduler-driven re-correlation, automatic matcher, nightly allocation audit.
