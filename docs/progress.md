@@ -188,7 +188,7 @@ Remaining:
 
 ### Step 08: Store CRUD Foundation
 
-Status: prepared, test run pending
+Status: complete for store CRUD foundation
 
 Added:
 
@@ -202,12 +202,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for store controller, request, routes, and tests.
+- User ran `php artisan test`; 19 tests passed with 55 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add PATCH store and optimistic versioning.
 - Add domain verification and pairing flows later.
 

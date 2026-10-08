@@ -28,6 +28,7 @@ This step adds minimal store CRUD foundation scoped by active tenant. It does no
 - [x] User lists only active tenant stores.
 - [x] User cannot read foreign store.
 - [x] Non-HTTPS store URL is rejected.
+- [x] Run `php artisan test`; 19 tests passed with 55 assertions.
 
 ## Not Done In This Step
 
