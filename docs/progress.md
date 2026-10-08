@@ -257,7 +257,7 @@ Remaining:
 
 ### Step 11: Store Verification Challenge Foundation
 
-Status: implemented, test run pending
+Status: complete for store verification challenge foundation
 
 Added:
 
@@ -271,12 +271,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for migration, model, request, controller, routes, and tests.
+- User ran `php artisan test`; 34 tests passed with 105 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add external DNS/plugin challenge checks.
 - Update store `verified_at` only after successful external ownership proof.
 - Add pairing codes and integration credential bootstrap later.

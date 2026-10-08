@@ -25,6 +25,7 @@ This step adds the first domain verification challenge API. It creates and reads
 - [x] Foreign store cannot be verified.
 - [x] Operator can read latest verification state.
 - [x] Expired pending verification is marked expired on read.
+- [x] Run `php artisan test`; 34 tests passed with 105 assertions.
 
 ## Not Done In This Step
 
