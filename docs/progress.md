@@ -382,6 +382,32 @@ Remaining:
 
 - Add outbox leasing/dispatcher, projection worker, dead-letter transitions, retry/backoff, and consumer idempotency tests.
 
+### Step 16: Domain Outbox Leasing Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- Domain outbox status constants.
+- `DomainOutboxLeaser` service.
+- Ordered leasing for due pending messages.
+- Active lease exclusion.
+- Expired lease re-leasing.
+- Attempt increment and `lease_until` update.
+- Terminal message exclusion.
+- Feature tests for due ordering, active lease skip, expired lease retry, and terminal status skip.
+- `docs/implementation-step-16-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add dispatcher command/worker loop, side-effect execution, publish/dead-letter result handling, backoff policy, and consumer idempotency tests.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete

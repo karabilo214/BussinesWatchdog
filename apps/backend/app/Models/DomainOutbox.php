@@ -12,6 +12,12 @@ class DomainOutbox extends Model
 
     public const STATUS_PENDING = 'pending';
 
+    public const STATUS_LEASED = 'leased';
+
+    public const STATUS_PUBLISHED = 'published';
+
+    public const STATUS_DEAD_LETTER = 'dead_letter';
+
     public const TOPIC_EVENT_INBOX_RECEIVED = 'event_inbox.received';
 
     public $timestamps = false;
