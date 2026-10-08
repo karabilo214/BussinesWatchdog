@@ -409,7 +409,7 @@ Remaining:
 
 ### Step 17: Domain Outbox Result Recording Foundation
 
-Status: implemented, test run pending
+Status: complete for domain outbox result recording foundation
 
 Added:
 
@@ -424,12 +424,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for outbox result recorder and tests.
+- User ran `php artisan test`; 67 tests passed with 218 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add dispatcher command/worker loop, side-effect execution, exponential backoff with jitter, consumer idempotency tests, and manual replay/dead-letter resolution.
 
 ### Specification Update: Mandatory Three-Language Portal

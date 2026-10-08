@@ -24,6 +24,7 @@ This step records processing outcomes for leased outbox messages. It does not ex
 - [x] Failed active lease becomes dead letter at max attempts.
 - [x] Stale lease results are rejected.
 - [x] Non-leased messages reject result recording.
+- [x] Run `php artisan test`; 67 tests passed with 218 assertions.
 
 ## Not Done In This Step
 
