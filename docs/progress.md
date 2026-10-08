@@ -716,3 +716,27 @@ Verification:
 Remaining:
 
 - Add credential rotation/draining endpoint, audit listing/export, Stripe integration APIs, and staff/platform audit separation later.
+
+### Step 30: Payment And Refund Allocation Foundation
+
+Status: complete
+
+Added:
+
+- `payment_allocations` bootstrap table.
+- `refund_allocations` bootstrap table.
+- `PaymentAllocation` and `RefundAllocation` models.
+- `PaymentAllocationService` for locked capture and refund allocations.
+- `AllocationRejected` exception with stable reason codes.
+- Focused tests for successful allocation, sum limit rejection, and cross-tenant rejection.
+- `docs/implementation-step-30-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for allocation service/model/test files.
+- `php artisan test tests/Feature/Payments/PaymentAllocationServiceTest.php` passed: 5 tests, 16 assertions.
+- `php artisan test` passed: 97 tests, 323 assertions.
+
+Remaining:
+
+- Add manual allocation API, allocation revoke/unlink service, automatic matching, reconciliation runs/findings, and nightly allocation audit in later steps.
