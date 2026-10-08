@@ -40,12 +40,28 @@ class OrderSnapshotProjector
             unset($attributes['created_at']);
 
             $order->forceFill($attributes)->save();
+        } elseif ($sourceRevision === $order->source_revision && $order->current_payload_hash !== $payloadHash) {
+            return EventProjectionResult::failed('order_revision_conflict');
         }
 
-        OrderRevision::query()->firstOrCreate([
+        /** @var OrderRevision|null $revision */
+        $revision = OrderRevision::query()
+            ->where('order_id', $order->id)
+            ->where('source_revision', $sourceRevision)
+            ->lockForUpdate()
+            ->first();
+
+        if ($revision !== null) {
+            if ($revision->payload_hash !== $payloadHash) {
+                return EventProjectionResult::failed('order_revision_conflict');
+            }
+
+            return EventProjectionResult::ok();
+        }
+
+        OrderRevision::query()->create([
             'order_id' => $order->id,
             'source_revision' => $sourceRevision,
-        ], [
             'tenant_id' => $event->tenant_id,
             'store_id' => $event->store_id,
             'event_id' => $event->id,
@@ -87,21 +103,21 @@ class OrderSnapshotProjector
             'store_id' => $event->store_id,
             'integration_id' => $event->integration_id,
             'external_id' => $event->aggregate_external_id,
-            'display_number' => $this->stringOrDefault($data['display_number'] ?? null, $event->aggregate_external_id),
+            'display_number' => ProjectionValueNormalizer::stringOrDefault($data['display_number'] ?? null, $event->aggregate_external_id),
             'source_revision' => $sourceRevision,
             'status' => $data['status'],
-            'gateway' => $this->nullableString($data['gateway'] ?? null),
-            'mode' => $this->stringOrDefault($data['mode'] ?? null, 'live'),
+            'gateway' => ProjectionValueNormalizer::nullableString($data['gateway'] ?? null),
+            'mode' => ProjectionValueNormalizer::stringOrDefault($data['mode'] ?? null, 'live'),
             'currency' => $data['currency'],
             'currency_exponent' => $data['currency_exponent'],
             'total_minor' => (int) $data['total_minor'],
             'payment_expected' => $data['payment_expected'],
-            'paid_marked_at' => $this->nullableDateTime($data['paid_marked_at'] ?? null),
-            'transaction_ref' => $this->nullableString($data['transaction_ref'] ?? null),
-            'financial_support' => $this->stringOrDefault($data['financial_support'] ?? null, 'unknown'),
+            'paid_marked_at' => ProjectionValueNormalizer::nullableDateTime($data['paid_marked_at'] ?? null),
+            'transaction_ref' => ProjectionValueNormalizer::nullableString($data['transaction_ref'] ?? null),
+            'financial_support' => ProjectionValueNormalizer::stringOrDefault($data['financial_support'] ?? null, 'unknown'),
             'is_synthetic' => $event->is_synthetic,
-            'source_created_at' => $this->nullableDateTime($data['source_created_at'] ?? null) ?? $event->occurred_at,
-            'source_updated_at' => $this->nullableDateTime($data['source_updated_at'] ?? null) ?? $event->occurred_at,
+            'source_created_at' => ProjectionValueNormalizer::nullableDateTime($data['source_created_at'] ?? null) ?? $event->occurred_at,
+            'source_updated_at' => ProjectionValueNormalizer::nullableDateTime($data['source_updated_at'] ?? null) ?? $event->occurred_at,
             'deleted_at' => null,
             'current_payload_hash' => $payloadHash,
             'metadata' => [],
@@ -110,18 +126,4 @@ class OrderSnapshotProjector
         ];
     }
 
-    private function nullableString(mixed $value): ?string
-    {
-        return is_string($value) && $value !== '' ? $value : null;
-    }
-
-    private function stringOrDefault(mixed $value, string $default): string
-    {
-        return is_string($value) && $value !== '' ? $value : $default;
-    }
-
-    private function nullableDateTime(mixed $value): mixed
-    {
-        return is_string($value) && strtotime($value) !== false ? $value : null;
-    }
 }

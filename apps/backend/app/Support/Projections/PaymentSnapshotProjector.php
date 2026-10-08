@@ -29,19 +29,22 @@ class PaymentSnapshotProjector
             ->first();
 
         $now = now();
+        $payloadHash = $event->payload_hash;
 
         if ($payment === null) {
-            Payment::query()->create($this->paymentAttributes($event, $data, $now));
+            Payment::query()->create($this->paymentAttributes($event, $data, $payloadHash, $now));
 
             return EventProjectionResult::ok();
         }
 
         $sourceUpdatedAt = strtotime($data['source_updated_at']);
-        if ($sourceUpdatedAt >= $payment->source_updated_at->getTimestamp()) {
-            $attributes = $this->paymentAttributes($event, $data, $now);
+        if ($sourceUpdatedAt > $payment->source_updated_at->getTimestamp()) {
+            $attributes = $this->paymentAttributes($event, $data, $payloadHash, $now);
             unset($attributes['created_at']);
 
             $payment->forceFill($attributes)->save();
+        } elseif ($sourceUpdatedAt === $payment->source_updated_at->getTimestamp() && $payment->current_payload_hash !== $payloadHash) {
+            return EventProjectionResult::failed('payment_snapshot_conflict');
         }
 
         return EventProjectionResult::ok();
@@ -68,29 +71,26 @@ class PaymentSnapshotProjector
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    private function paymentAttributes(EventInbox $event, array $data, mixed $now): array
+    private function paymentAttributes(EventInbox $event, array $data, string $payloadHash, mixed $now): array
     {
         return [
             'tenant_id' => $event->tenant_id,
             'store_id' => $event->store_id,
             'integration_id' => $event->integration_id,
             'external_id' => $event->aggregate_external_id,
-            'intent_ref' => $this->nullableString($data['intent_ref'] ?? null),
-            'charge_ref' => $this->nullableString($data['charge_ref'] ?? null),
+            'intent_ref' => ProjectionValueNormalizer::nullableString($data['intent_ref'] ?? null),
+            'charge_ref' => ProjectionValueNormalizer::nullableString($data['charge_ref'] ?? null),
             'mode' => $data['mode'],
             'currency' => $data['currency'],
             'currency_exponent' => $data['currency_exponent'],
             'status' => $data['status'],
             'source_authority' => $data['source_authority'],
             'source_updated_at' => $data['source_updated_at'],
+            'current_payload_hash' => $payloadHash,
             'metadata' => [],
             'created_at' => $now,
             'updated_at' => $now,
         ];
     }
 
-    private function nullableString(mixed $value): ?string
-    {
-        return is_string($value) && $value !== '' ? $value : null;
-    }
 }

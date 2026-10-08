@@ -24,6 +24,7 @@ return new class extends Migration
             $table->text('provider_ref')->nullable();
             $table->text('status');
             $table->timestampTz('occurred_at');
+            $table->char('current_payload_hash', 64);
             $table->timestampTz('updated_at')->useCurrent();
 
             $table->unique(['integration_id', 'external_id']);
@@ -46,6 +47,7 @@ return new class extends Migration
             $table->text('status');
             $table->text('source_authority');
             $table->timestampTz('source_updated_at');
+            $table->char('current_payload_hash', 64);
             $metadataDefault = DB::getDriverName() === 'pgsql'
                 ? DB::raw("'{}'::jsonb")
                 : '{}';

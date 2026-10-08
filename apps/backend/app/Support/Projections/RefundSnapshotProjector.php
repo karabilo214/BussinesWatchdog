@@ -42,15 +42,18 @@ class RefundSnapshotProjector
             ->first();
 
         $now = now();
+        $payloadHash = $event->payload_hash;
 
         if ($refund === null) {
-            Refund::query()->create($this->refundAttributes($event, $data, $order, $sourceRevision, $now));
+            Refund::query()->create($this->refundAttributes($event, $data, $order, $sourceRevision, $payloadHash, $now));
 
             return EventProjectionResult::ok();
         }
 
         if ($sourceRevision > $refund->source_revision) {
-            $refund->forceFill($this->refundAttributes($event, $data, $order, $sourceRevision, $now))->save();
+            $refund->forceFill($this->refundAttributes($event, $data, $order, $sourceRevision, $payloadHash, $now))->save();
+        } elseif ($sourceRevision === $refund->source_revision && $refund->current_payload_hash !== $payloadHash) {
+            return EventProjectionResult::failed('refund_revision_conflict');
         }
 
         return EventProjectionResult::ok();
@@ -78,7 +81,7 @@ class RefundSnapshotProjector
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    private function refundAttributes(EventInbox $event, array $data, Order $order, int $sourceRevision, mixed $now): array
+    private function refundAttributes(EventInbox $event, array $data, Order $order, int $sourceRevision, string $payloadHash, mixed $now): array
     {
         return [
             'tenant_id' => $event->tenant_id,
@@ -91,15 +94,12 @@ class RefundSnapshotProjector
             'currency_exponent' => $data['currency_exponent'],
             'amount_minor' => (int) $data['amount_minor'],
             'external_required' => $data['external_required'],
-            'provider_ref' => $this->nullableString($data['provider_ref'] ?? null),
+            'provider_ref' => ProjectionValueNormalizer::nullableString($data['provider_ref'] ?? null),
             'status' => $data['status'],
             'occurred_at' => $event->occurred_at,
+            'current_payload_hash' => $payloadHash,
             'updated_at' => $now,
         ];
     }
 
-    private function nullableString(mixed $value): ?string
-    {
-        return is_string($value) && $value !== '' ? $value : null;
-    }
 }

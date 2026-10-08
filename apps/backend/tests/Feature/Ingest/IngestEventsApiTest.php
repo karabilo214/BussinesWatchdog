@@ -113,7 +113,34 @@ class IngestEventsApiTest extends TestCase
         $this->assertSame(0, \App\Models\EventInbox::query()->count());
     }
 
-    public function test_unsupported_schema_version_is_per_record_invalid(): void
+    public function test_malformed_json_rejects_without_commit(): void
+    {
+        [, $credential, $secret] = $this->integrationCredential();
+        $body = '{"events":[';
+
+        $this->callSignedEvents($credential->key_id, $secret, $body)
+            ->assertBadRequest()
+            ->assertJsonPath('code', 'malformed_json');
+
+        $this->assertSame(0, \App\Models\EventInbox::query()->count());
+    }
+
+    public function test_oversized_batch_rejects_without_commit(): void
+    {
+        [, $credential, $secret] = $this->integrationCredential();
+        $body = json_encode([
+            'events' => [$this->event('33333333-3333-4333-8333-333333333333')],
+            'padding' => str_repeat('x', 1048576),
+        ], JSON_THROW_ON_ERROR);
+
+        $this->callSignedEvents($credential->key_id, $secret, $body)
+            ->assertStatus(413)
+            ->assertJsonPath('code', 'request_too_large');
+
+        $this->assertSame(0, \App\Models\EventInbox::query()->count());
+    }
+
+    public function test_unsupported_schema_version_is_quarantined_without_outbox(): void
     {
         [, $credential, $secret] = $this->integrationCredential();
         $event = $this->event('33333333-3333-4333-8333-333333333333');
@@ -122,8 +149,35 @@ class IngestEventsApiTest extends TestCase
 
         $this->callSignedEvents($credential->key_id, $secret, $body)
             ->assertStatus(207)
-            ->assertJsonPath('results.0.status', 'invalid')
+            ->assertJsonPath('results.0.status', 'quarantined')
             ->assertJsonPath('results.0.code', 'schema_unsupported');
+
+        $this->assertDatabaseHas('event_inbox', [
+            'provider_event_id' => '33333333-3333-4333-8333-333333333333',
+            'status' => 'quarantined',
+            'error_code' => 'schema_unsupported',
+        ]);
+        $this->assertSame(0, \App\Models\DomainOutbox::query()->count());
+    }
+
+    public function test_event_data_contract_violation_is_quarantined_without_outbox(): void
+    {
+        [, $credential, $secret] = $this->integrationCredential();
+        $event = $this->event('33333333-3333-4333-8333-333333333333');
+        $event['data']['unexpected'] = 'not in contract';
+        $body = json_encode(['events' => [$event]], JSON_THROW_ON_ERROR);
+
+        $this->callSignedEvents($credential->key_id, $secret, $body)
+            ->assertStatus(207)
+            ->assertJsonPath('results.0.status', 'quarantined')
+            ->assertJsonPath('results.0.code', 'schema_invalid');
+
+        $this->assertDatabaseHas('event_inbox', [
+            'provider_event_id' => '33333333-3333-4333-8333-333333333333',
+            'status' => 'quarantined',
+            'error_code' => 'schema_invalid',
+        ]);
+        $this->assertSame(0, \App\Models\DomainOutbox::query()->count());
     }
 
     /**

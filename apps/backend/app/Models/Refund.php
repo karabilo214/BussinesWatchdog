@@ -26,6 +26,7 @@ class Refund extends Model
         'provider_ref',
         'status',
         'occurred_at',
+        'current_payload_hash',
         'updated_at',
     ];
 

@@ -638,3 +638,29 @@ Added:
 Reason:
 
 - Owner requirement: the whole backend/frontend portal must be multilingual in three languages, and deviations from specification must be documented.
+
+### Step 27: Projection And Ingest Hardening
+
+Status: complete
+
+Added:
+
+- `ProjectionValueNormalizer` for shared projection value normalization.
+- Contract-aware event payload validation for supported normalized event types.
+- Ingest request handling for malformed JSON and 1 MiB body limit.
+- Quarantine persistence for invalid-but-identifiable events without creating projection outbox messages.
+- Same-revision/source timestamp conflict detection for order, refund, and payment projections.
+- Focused tests for ingest limits, quarantine behavior, and projection conflict failure codes.
+- `docs/implementation-step-27-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for changed ingest/projection files.
+- `php artisan test tests/Feature/Ingest/IngestEventsApiTest.php` passed: 9 tests, 40 assertions.
+- `php artisan test tests/Feature/Outbox/DomainOutboxDispatcherTest.php` passed: 13 tests, 44 assertions.
+- `php artisan test` passed: 83 tests, 275 assertions.
+
+Remaining:
+
+- Add external schema validator only if future contract complexity justifies another dependency.
+- Add admin quarantine/dead-letter UI, manual replay summaries, allocation services, reconciliation, and outbox sweeper in later steps.

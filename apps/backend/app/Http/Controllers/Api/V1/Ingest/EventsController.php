@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DomainOutbox;
 use App\Models\EventInbox;
 use App\Models\Integration;
+use App\Support\Ingest\EventPayloadValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,12 +14,29 @@ use Illuminate\Support\Str;
 
 class EventsController extends Controller
 {
+    private const MAX_BODY_BYTES = 1048576;
+
+    public function __construct(
+        private readonly EventPayloadValidator $validator,
+    ) {
+    }
+
     public function store(Request $request): JsonResponse
     {
         /** @var Integration $integration */
         $integration = $request->attributes->get('integration');
         $requestId = (string) Str::uuid();
-        $body = $request->json()->all();
+        $rawBody = $request->getContent();
+
+        if (strlen($rawBody) > self::MAX_BODY_BYTES) {
+            return $this->problem('request_too_large', 'The events batch exceeds the maximum size.', 413, $requestId);
+        }
+
+        try {
+            $body = json_decode($rawBody, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return $this->problem('malformed_json', 'The request body is not valid JSON.', 400, $requestId);
+        }
 
         if (! is_array($body) || ! array_key_exists('events', $body) || ! is_array($body['events'])) {
             return $this->problem('schema_invalid', 'The events batch envelope is invalid.', 422, $requestId);
@@ -37,27 +55,29 @@ class EventsController extends Controller
                     continue;
                 }
 
-                $error = $this->validateEvent($event);
+                $validation = $this->validator->validate($event);
                 $eventId = is_string($event['event_id'] ?? null) ? $event['event_id'] : null;
+                $payloadHash = $this->payloadHash($event);
 
-                if ($error !== null) {
-                    $results[] = $this->recordResult($index, $eventId, null, 'invalid', $error);
+                if (! $validation->valid && ! $validation->quarantinable) {
+                    $results[] = $this->recordResult($index, $eventId, null, 'invalid', $validation->errorCode);
                     continue;
                 }
 
-                $payloadHash = $this->payloadHash($event);
                 /** @var EventInbox|null $existing */
-                $existing = EventInbox::query()
-                    ->where('integration_id', $integration->id)
-                    ->where('provider_event_id', $event['event_id'])
-                    ->lockForUpdate()
-                    ->first();
+                $existing = $eventId === null
+                    ? null
+                    : EventInbox::query()
+                        ->where('integration_id', $integration->id)
+                        ->where('provider_event_id', $eventId)
+                        ->lockForUpdate()
+                        ->first();
 
                 if ($existing !== null) {
                     if ($existing->payload_hash === $payloadHash) {
-                        $results[] = $this->recordResult($index, $event['event_id'], $existing->id, 'duplicate');
+                        $results[] = $this->recordResult($index, $eventId, $existing->id, 'duplicate');
                     } else {
-                        $results[] = $this->recordResult($index, $event['event_id'], $existing->id, 'conflict', 'event_id_conflict');
+                        $results[] = $this->recordResult($index, $eventId, $existing->id, 'conflict', 'event_id_conflict');
                     }
 
                     continue;
@@ -67,7 +87,7 @@ class EventsController extends Controller
                     'tenant_id' => $integration->tenant_id,
                     'store_id' => $integration->store_id,
                     'integration_id' => $integration->id,
-                    'provider_event_id' => $event['event_id'],
+                    'provider_event_id' => $eventId,
                     'schema_version' => $event['schema_version'],
                     'event_type' => $event['type'],
                     'aggregate_type' => $event['aggregate_type'],
@@ -80,29 +100,34 @@ class EventsController extends Controller
                     'payload' => $event,
                     'payload_hash' => $payloadHash,
                     'canonicalization_version' => 1,
-                    'status' => EventInbox::STATUS_RECEIVED,
+                    'status' => $validation->valid ? EventInbox::STATUS_RECEIVED : EventInbox::STATUS_QUARANTINED,
                     'attempt_count' => 0,
                     'next_attempt_at' => now(),
+                    'error_code' => $validation->errorCode,
                     'request_id' => $requestId,
                 ]);
 
-                DomainOutbox::query()->create([
-                    'tenant_id' => $integration->tenant_id,
-                    'topic' => DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED,
-                    'dedupe_key' => $inbox->id,
-                    'payload' => [
-                        'event_inbox_id' => $inbox->id,
-                        'integration_id' => $integration->id,
-                        'store_id' => $integration->store_id,
-                        'event_type' => $inbox->event_type,
-                    ],
-                    'status' => DomainOutbox::STATUS_PENDING,
-                    'attempts' => 0,
-                    'next_attempt_at' => now(),
-                    'created_at' => now(),
-                ]);
+                if ($validation->valid) {
+                    DomainOutbox::query()->create([
+                        'tenant_id' => $integration->tenant_id,
+                        'topic' => DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED,
+                        'dedupe_key' => $inbox->id,
+                        'payload' => [
+                            'event_inbox_id' => $inbox->id,
+                            'integration_id' => $integration->id,
+                            'store_id' => $integration->store_id,
+                            'event_type' => $inbox->event_type,
+                        ],
+                        'status' => DomainOutbox::STATUS_PENDING,
+                        'attempts' => 0,
+                        'next_attempt_at' => now(),
+                        'created_at' => now(),
+                    ]);
+                }
 
-                $results[] = $this->recordResult($index, $event['event_id'], $inbox->id, 'accepted');
+                $results[] = $validation->valid
+                    ? $this->recordResult($index, $eventId, $inbox->id, 'accepted')
+                    : $this->recordResult($index, $eventId, $inbox->id, 'quarantined', $validation->errorCode);
             }
 
             return $results;
@@ -116,58 +141,6 @@ class EventsController extends Controller
             'request_id' => $requestId,
             'results' => $results,
         ], $status);
-    }
-
-    private function validateEvent(array $event): ?string
-    {
-        foreach (['schema_version', 'event_id', 'type', 'aggregate_type', 'aggregate_id', 'occurred_at', 'observed_at', 'is_synthetic', 'data'] as $field) {
-            if (! array_key_exists($field, $event)) {
-                return 'schema_invalid';
-            }
-        }
-
-        if ($event['schema_version'] !== '1.0') {
-            return 'schema_unsupported';
-        }
-
-        if (! is_string($event['event_id']) || ! Str::isUuid($event['event_id'])) {
-            return 'schema_invalid';
-        }
-
-        if (! is_string($event['type']) || ! EventInbox::supportsEventType($event['type'])) {
-            return 'schema_invalid';
-        }
-
-        if (! is_string($event['aggregate_type']) || ! EventInbox::supportsAggregateType($event['aggregate_type'])) {
-            return 'schema_invalid';
-        }
-
-        if (! is_string($event['aggregate_id']) || $event['aggregate_id'] === '' || mb_strlen($event['aggregate_id']) > 255) {
-            return 'schema_invalid';
-        }
-
-        if (array_key_exists('aggregate_revision', $event) && (! is_int($event['aggregate_revision']) || $event['aggregate_revision'] < 0)) {
-            return 'schema_invalid';
-        }
-
-        if (! is_bool($event['is_synthetic']) || ! is_array($event['data'])) {
-            return 'schema_invalid';
-        }
-
-        if (! $this->isRfc3339DateTime($event['occurred_at']) || ! $this->isRfc3339DateTime($event['observed_at'])) {
-            return 'schema_invalid';
-        }
-
-        if (strtotime($event['observed_at']) > time() + 300 || strtotime($event['occurred_at']) > time() + 300) {
-            return 'clock_skew';
-        }
-
-        return null;
-    }
-
-    private function isRfc3339DateTime(mixed $value): bool
-    {
-        return is_string($value) && strtotime($value) !== false;
     }
 
     private function payloadHash(array $event): string

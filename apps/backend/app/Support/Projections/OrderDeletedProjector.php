@@ -44,12 +44,28 @@ class OrderDeletedProjector
                 'current_payload_hash' => $payloadHash,
                 'updated_at' => $now,
             ])->save();
+        } elseif ($sourceRevision === $order->source_revision && $order->current_payload_hash !== $payloadHash) {
+            return EventProjectionResult::failed('order_revision_conflict');
         }
 
-        OrderRevision::query()->firstOrCreate([
+        /** @var OrderRevision|null $revision */
+        $revision = OrderRevision::query()
+            ->where('order_id', $order->id)
+            ->where('source_revision', $sourceRevision)
+            ->lockForUpdate()
+            ->first();
+
+        if ($revision !== null) {
+            if ($revision->payload_hash !== $payloadHash) {
+                return EventProjectionResult::failed('order_revision_conflict');
+            }
+
+            return EventProjectionResult::ok();
+        }
+
+        OrderRevision::query()->create([
             'order_id' => $order->id,
             'source_revision' => $sourceRevision,
-        ], [
             'tenant_id' => $event->tenant_id,
             'store_id' => $event->store_id,
             'event_id' => $event->id,

@@ -25,6 +25,7 @@ class Payment extends Model
         'status',
         'source_authority',
         'source_updated_at',
+        'current_payload_hash',
         'metadata',
         'created_at',
         'updated_at',
