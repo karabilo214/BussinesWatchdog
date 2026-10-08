@@ -740,3 +740,27 @@ Verification:
 Remaining:
 
 - Add manual allocation API, allocation revoke/unlink service, automatic matching, reconciliation runs/findings, and nightly allocation audit in later steps.
+
+### Step 31: Allocation Revoke And Unlink Service
+
+Status: complete for allocation revoke/unlink service
+
+Added:
+
+- `PaymentAllocationService::revokeCaptureAllocation()` and `revokeRefundAllocation()`.
+- Reason-required and already-revoked rejections for both revoke paths.
+- Rejection of capture allocation revoke while an active refund allocation still references it.
+- `audit_log` row per revoke (actor, reason, `revoked_at`) via new `AuditLog` action/entity constants.
+- `PaymentAllocation::refundAllocations()` inverse relation.
+- Focused tests for revoke success/audit, double-revoke, missing reason, blocked-by-active-refund-allocation, revoke-after-refund-unlinked, and capacity freed for re-allocation.
+- `docs/implementation-step-31-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed (PHP 8.4) for all changed files.
+- `php vendor/bin/pint` applied to changed files only; pre-existing lint drift in unrelated files left untouched.
+- `php artisan test` (PHP 8.4) passed: 104 tests, 337 assertions.
+
+Remaining:
+
+- Add manual/public allocation API and its `/revoke` HTTP endpoints, reconciliation runs/findings, automatic matcher strategies, and nightly allocation audit in later steps.

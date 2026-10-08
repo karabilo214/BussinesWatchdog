@@ -3,6 +3,7 @@
 namespace App\Support\Payments;
 
 use App\Exceptions\Payments\AllocationRejected;
+use App\Models\AuditLog;
 use App\Models\FinancialTransaction;
 use App\Models\Order;
 use App\Models\Payment;
@@ -10,6 +11,7 @@ use App\Models\PaymentAllocation;
 use App\Models\Refund;
 use App\Models\RefundAllocation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PaymentAllocationService
 {
@@ -25,8 +27,14 @@ class PaymentAllocationService
 
     public const ERROR_AMOUNT_EXCEEDS_REFUND = 'allocation_amount_exceeds_refund';
 
+    public const ERROR_ALREADY_REVOKED = 'allocation_already_revoked';
+
+    public const ERROR_REASON_REQUIRED = 'allocation_revoke_reason_required';
+
+    public const ERROR_HAS_ACTIVE_REFUND_ALLOCATIONS = 'allocation_has_active_refund_allocations';
+
     /**
-     * @param array<string, mixed> $evidence
+     * @param  array<string, mixed>  $evidence
      */
     public function allocateCapture(
         Payment $payment,
@@ -85,7 +93,7 @@ class PaymentAllocationService
     }
 
     /**
-     * @param array<string, mixed> $evidence
+     * @param  array<string, mixed>  $evidence
      */
     public function allocateRefund(
         Refund $refund,
@@ -139,6 +147,102 @@ class PaymentAllocationService
                 'created_at' => now(),
             ]);
         });
+    }
+
+    public function revokeCaptureAllocation(
+        PaymentAllocation $allocation,
+        string $reason,
+        ?string $actorUserId = null,
+        ?string $requestId = null,
+    ): PaymentAllocation {
+        return DB::transaction(function () use ($allocation, $reason, $actorUserId, $requestId): PaymentAllocation {
+            $this->assertReasonPresent($reason);
+
+            /** @var PaymentAllocation $locked */
+            $locked = PaymentAllocation::query()->whereKey($allocation->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->revoked_at !== null) {
+                throw new AllocationRejected(self::ERROR_ALREADY_REVOKED);
+            }
+
+            $hasActiveRefundAllocations = RefundAllocation::query()
+                ->where('payment_allocation_id', $locked->id)
+                ->whereNull('revoked_at')
+                ->lockForUpdate()
+                ->get()
+                ->isNotEmpty();
+
+            if ($hasActiveRefundAllocations) {
+                throw new AllocationRejected(self::ERROR_HAS_ACTIVE_REFUND_ALLOCATIONS);
+            }
+
+            $revokedAt = now();
+            $locked->forceFill(['revoked_at' => $revokedAt])->save();
+
+            AuditLog::query()->create([
+                'tenant_id' => $locked->tenant_id,
+                'store_id' => $locked->store_id,
+                'actor_user_id' => $actorUserId,
+                'actor_type' => AuditLog::ACTOR_USER,
+                'action' => AuditLog::ACTION_PAYMENT_ALLOCATION_REVOKED,
+                'entity_type' => AuditLog::ENTITY_PAYMENT_ALLOCATION,
+                'entity_id' => $locked->id,
+                'changes' => [
+                    'revoked_at' => $revokedAt->toJSON(),
+                    'reason' => $reason,
+                ],
+                'request_id' => $requestId ?? (string) Str::uuid(),
+                'created_at' => $revokedAt,
+            ]);
+
+            return $locked->refresh();
+        });
+    }
+
+    public function revokeRefundAllocation(
+        RefundAllocation $allocation,
+        string $reason,
+        ?string $actorUserId = null,
+        ?string $requestId = null,
+    ): RefundAllocation {
+        return DB::transaction(function () use ($allocation, $reason, $actorUserId, $requestId): RefundAllocation {
+            $this->assertReasonPresent($reason);
+
+            /** @var RefundAllocation $locked */
+            $locked = RefundAllocation::query()->whereKey($allocation->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->revoked_at !== null) {
+                throw new AllocationRejected(self::ERROR_ALREADY_REVOKED);
+            }
+
+            $revokedAt = now();
+            $locked->forceFill(['revoked_at' => $revokedAt])->save();
+
+            AuditLog::query()->create([
+                'tenant_id' => $locked->tenant_id,
+                'store_id' => $locked->store_id,
+                'actor_user_id' => $actorUserId,
+                'actor_type' => AuditLog::ACTOR_USER,
+                'action' => AuditLog::ACTION_REFUND_ALLOCATION_REVOKED,
+                'entity_type' => AuditLog::ENTITY_REFUND_ALLOCATION,
+                'entity_id' => $locked->id,
+                'changes' => [
+                    'revoked_at' => $revokedAt->toJSON(),
+                    'reason' => $reason,
+                ],
+                'request_id' => $requestId ?? (string) Str::uuid(),
+                'created_at' => $revokedAt,
+            ]);
+
+            return $locked->refresh();
+        });
+    }
+
+    private function assertReasonPresent(string $reason): void
+    {
+        if (trim($reason) === '') {
+            throw new AllocationRejected(self::ERROR_REASON_REQUIRED);
+        }
     }
 
     private function assertSameScope(object ...$models): void

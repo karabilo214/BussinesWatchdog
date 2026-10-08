@@ -3,6 +3,7 @@
 namespace Tests\Feature\Payments;
 
 use App\Exceptions\Payments\AllocationRejected;
+use App\Models\AuditLog;
 use App\Models\FinancialTransaction;
 use App\Models\Integration;
 use App\Models\Order;
@@ -144,6 +145,202 @@ class PaymentAllocationServiceTest extends TestCase
             PaymentAllocation::STRATEGY_MANUAL,
             [],
         );
+    }
+
+    public function test_it_revokes_capture_allocation_and_frees_capacity_for_a_new_allocation(): void
+    {
+        $context = $this->context();
+        $service = app(PaymentAllocationService::class);
+        $allocation = $service->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+
+        $revoked = $service->revokeCaptureAllocation($allocation, 'wrong order matched');
+
+        $this->assertNotNull($revoked->revoked_at);
+        $this->assertDatabaseHas('audit_log', [
+            'entity_type' => AuditLog::ENTITY_PAYMENT_ALLOCATION,
+            'entity_id' => $allocation->id,
+            'action' => AuditLog::ACTION_PAYMENT_ALLOCATION_REVOKED,
+        ]);
+
+        $reallocated = $service->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_MANUAL,
+            [],
+        );
+
+        $this->assertSame(18400, $reallocated->amount_minor);
+    }
+
+    public function test_it_rejects_revoking_capture_allocation_twice(): void
+    {
+        $context = $this->context();
+        $service = app(PaymentAllocationService::class);
+        $allocation = $service->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+        $service->revokeCaptureAllocation($allocation, 'duplicate link');
+
+        $this->expectException(AllocationRejected::class);
+        $this->expectExceptionMessage(PaymentAllocationService::ERROR_ALREADY_REVOKED);
+
+        $service->revokeCaptureAllocation($allocation, 'duplicate link');
+    }
+
+    public function test_it_requires_a_reason_to_revoke_capture_allocation(): void
+    {
+        $context = $this->context();
+        $service = app(PaymentAllocationService::class);
+        $allocation = $service->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+
+        $this->expectException(AllocationRejected::class);
+        $this->expectExceptionMessage(PaymentAllocationService::ERROR_REASON_REQUIRED);
+
+        $service->revokeCaptureAllocation($allocation, '   ');
+    }
+
+    public function test_it_rejects_revoking_capture_allocation_with_active_refund_allocations(): void
+    {
+        $context = $this->context();
+        $service = app(PaymentAllocationService::class);
+        $paymentAllocation = $service->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+        $service->allocateRefund(
+            $context['refund'],
+            $context['refundTransaction'],
+            $paymentAllocation,
+            5000,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+
+        $this->expectException(AllocationRejected::class);
+        $this->expectExceptionMessage(PaymentAllocationService::ERROR_HAS_ACTIVE_REFUND_ALLOCATIONS);
+
+        $service->revokeCaptureAllocation($paymentAllocation, 'trying to unlink too early');
+    }
+
+    public function test_it_revokes_capture_allocation_after_its_refund_allocation_is_revoked(): void
+    {
+        $context = $this->context();
+        $service = app(PaymentAllocationService::class);
+        $paymentAllocation = $service->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+        $refundAllocation = $service->allocateRefund(
+            $context['refund'],
+            $context['refundTransaction'],
+            $paymentAllocation,
+            5000,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+
+        $service->revokeRefundAllocation($refundAllocation, 'wrong refund matched');
+        $revoked = $service->revokeCaptureAllocation($paymentAllocation, 'order resolved manually');
+
+        $this->assertNotNull($revoked->revoked_at);
+    }
+
+    public function test_it_rejects_revoking_refund_allocation_twice(): void
+    {
+        $context = $this->context();
+        $service = app(PaymentAllocationService::class);
+        $paymentAllocation = $service->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+        $refundAllocation = $service->allocateRefund(
+            $context['refund'],
+            $context['refundTransaction'],
+            $paymentAllocation,
+            5000,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+        $service->revokeRefundAllocation($refundAllocation, 'wrong refund matched');
+
+        $this->expectException(AllocationRejected::class);
+        $this->expectExceptionMessage(PaymentAllocationService::ERROR_ALREADY_REVOKED);
+
+        $service->revokeRefundAllocation($refundAllocation, 'wrong refund matched');
+    }
+
+    public function test_it_revokes_refund_allocation_and_frees_capacity_for_a_new_allocation(): void
+    {
+        $context = $this->context();
+        $service = app(PaymentAllocationService::class);
+        $paymentAllocation = $service->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+        $refundAllocation = $service->allocateRefund(
+            $context['refund'],
+            $context['refundTransaction'],
+            $paymentAllocation,
+            5000,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+
+        $service->revokeRefundAllocation($refundAllocation, 'wrong refund matched');
+
+        $this->assertDatabaseHas('audit_log', [
+            'entity_type' => AuditLog::ENTITY_REFUND_ALLOCATION,
+            'entity_id' => $refundAllocation->id,
+            'action' => AuditLog::ACTION_REFUND_ALLOCATION_REVOKED,
+        ]);
+
+        $reallocated = $service->allocateRefund(
+            $context['refund'],
+            $context['refundTransaction'],
+            $paymentAllocation,
+            5000,
+            PaymentAllocation::STRATEGY_MANUAL,
+            [],
+        );
+
+        $this->assertSame(5000, $reallocated->amount_minor);
     }
 
     /**

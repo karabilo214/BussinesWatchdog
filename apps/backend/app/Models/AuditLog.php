@@ -15,9 +15,17 @@ class AuditLog extends Model
 
     public const ENTITY_INTEGRATION = 'integration';
 
+    public const ENTITY_PAYMENT_ALLOCATION = 'payment_allocation';
+
+    public const ENTITY_REFUND_ALLOCATION = 'refund_allocation';
+
     public const ACTION_INTEGRATION_PAIRED = 'integration.paired';
 
     public const ACTION_INTEGRATION_REVOKED = 'integration.revoked';
+
+    public const ACTION_PAYMENT_ALLOCATION_REVOKED = 'payment_allocation.revoked';
+
+    public const ACTION_REFUND_ALLOCATION_REVOKED = 'refund_allocation.revoked';
 
     public $timestamps = false;
 
