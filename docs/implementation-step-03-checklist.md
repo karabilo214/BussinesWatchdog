@@ -33,9 +33,15 @@ Expected backend URL after Laravel is generated:
 - [x] `/health/live` endpoint added.
 - [x] `/health/ready` endpoint added.
 
+## HTTP Verification
+
+- [x] Backend container served over HTTP through nginx.
+- [x] `GET /health/live` returned `status=ok`.
+- [x] `GET /health/ready` returned `status=ok`.
+- [x] Ready checks confirmed database, Redis, and cache.
+
 ## Not Done In This Step
 
-- Backend container served and verified over HTTP.
 - Laravel migrations.
 - Sanctum/auth/tenancy.
 - CI pipeline.

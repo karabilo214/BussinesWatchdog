@@ -63,7 +63,7 @@ Remaining:
 
 ### Step 03: Backend Runtime Bootstrap
 
-Status: Laravel scaffold generated; HTTP verification pending
+Status: complete for backend runtime and health bootstrap
 
 Added:
 
@@ -81,9 +81,6 @@ Verification:
 
 Remaining:
 
-- Run `make backend-up`.
-- Verify `http://localhost:8080/health/live`.
-- Verify `http://localhost:8080/health/ready`.
 - Add D1 auth/tenant/store migrations and tests.
 
 Notes:
@@ -93,3 +90,5 @@ Notes:
 - `make backend-create` completed successfully in the user's terminal and generated `APP_KEY`.
 - Health endpoints were added after scaffold generation.
 - First backend HTTP run hit missing `sessions` table because the generated local `.env` still used database sessions. Bootstrap repair now sets `SESSION_DRIVER=file` until auth/session migrations are deliberately introduced.
+- User verified `/health/live` returned `status=ok`.
+- User verified `/health/ready` returned `status=ok` with database, Redis, and cache checks passing.
