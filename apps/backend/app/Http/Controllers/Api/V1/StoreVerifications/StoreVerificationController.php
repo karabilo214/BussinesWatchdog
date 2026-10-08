@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\StoreVerifications;
 
 use App\Http\Controllers\Controller;
+use App\Http\Dto\StoreVerifications\StoreVerificationDto;
 use App\Http\Requests\StoreVerifications\CreateStoreVerificationRequest;
 use App\Models\Store;
 use App\Models\StoreVerification;
@@ -12,6 +13,11 @@ use Illuminate\Support\Str;
 
 class StoreVerificationController extends Controller
 {
+    public function __construct(
+        private readonly StoreVerificationDto $storeVerificationDto,
+    ) {
+    }
+
     public function store(CreateStoreVerificationRequest $request, Store $store, TenantContext $tenantContext): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('create store verification');
@@ -33,7 +39,7 @@ class StoreVerificationController extends Controller
         ]);
 
         return response()->json([
-            ...$this->verificationDto($verification),
+            ...$this->storeVerificationDto->toArray($verification),
             'challenge' => $challenge,
             'instructions' => $this->instructions($method, $challenge, $store),
         ], 202);
@@ -58,24 +64,7 @@ class StoreVerificationController extends Controller
             $verification->forceFill(['status' => StoreVerification::STATUS_EXPIRED])->save();
         }
 
-        return response()->json($this->verificationDto($verification->refresh()));
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function verificationDto(StoreVerification $verification): array
-    {
-        return [
-            'id' => $verification->id,
-            'store_id' => $verification->store_id,
-            'method' => $verification->method,
-            'state' => $verification->status,
-            'verified_origin' => $verification->verified_origin,
-            'expires_at' => $verification->expires_at->toJSON(),
-            'verified_at' => $verification->verified_at?->toJSON(),
-            'reason_code' => null,
-        ];
+        return response()->json($this->storeVerificationDto->toArray($verification->refresh()));
     }
 
     /**

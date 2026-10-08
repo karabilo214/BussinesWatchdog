@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Stores;
 
 use App\Http\Controllers\Controller;
+use App\Http\Dto\Stores\StoreDto;
 use App\Http\Requests\Stores\CreateStoreRequest;
 use App\Http\Requests\Stores\UpdateStoreRequest;
 use App\Models\Store;
@@ -13,6 +14,11 @@ use Illuminate\Support\Facades\DB;
 
 class StoreController extends Controller
 {
+    public function __construct(
+        private readonly StoreDto $storeDto,
+    ) {
+    }
+
     public function index(TenantContext $tenantContext): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('list stores');
@@ -21,12 +27,10 @@ class StoreController extends Controller
             ->where('tenant_id', $tenantId)
             ->orderBy('created_at')
             ->orderBy('id')
-            ->get()
-            ->map(fn (Store $store): array => $this->storeDto($store))
-            ->all();
+            ->get();
 
         return response()->json([
-            'data' => $stores,
+            'data' => $this->storeDto->collection($stores),
             'next_cursor' => null,
         ]);
     }
@@ -45,7 +49,7 @@ class StoreController extends Controller
             'default_currency' => $validated['default_currency'],
         ]);
 
-        return response()->json($this->storeDto($store->refresh()), 201);
+        return response()->json($this->storeDto->toArray($store->refresh()), 201);
     }
 
     public function show(Request $request, Store $store, TenantContext $tenantContext): JsonResponse
@@ -54,7 +58,7 @@ class StoreController extends Controller
 
         abort_unless($store->tenant_id === $tenantId, 404);
 
-        return response()->json($this->storeDto($store));
+        return response()->json($this->storeDto->toArray($store));
     }
 
     public function update(UpdateStoreRequest $request, Store $store, TenantContext $tenantContext): JsonResponse
@@ -100,7 +104,7 @@ class StoreController extends Controller
             ], 409);
         }
 
-        return response()->json($this->storeDto($updated));
+        return response()->json($this->storeDto->toArray($updated));
     }
 
     private function expectedVersion(Request $request): int
@@ -116,27 +120,4 @@ class StoreController extends Controller
         return (int) $matches[1];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function storeDto(Store $store): array
-    {
-        return [
-            'id' => $store->id,
-            'name' => $store->name,
-            'base_url' => $store->base_url,
-            'platform' => $store->platform,
-            'timezone' => $store->timezone,
-            'locale' => $store->locale,
-            'default_currency' => $store->default_currency,
-            'status' => $store->status,
-            'verified_at' => $store->verified_at?->toJSON(),
-            'browser_enabled' => $store->browser_enabled,
-            'telemetry_enabled' => $store->telemetry_enabled,
-            'config_version' => $store->config_version,
-            'coverage' => null,
-            'last_successful_check_at' => null,
-            'active_incident_count' => 0,
-        ];
-    }
 }
