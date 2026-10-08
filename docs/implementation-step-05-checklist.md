@@ -20,6 +20,7 @@ This step adds the fail-closed tenant context primitive that future services, jo
 - [x] Unit test scoped context restores previous context.
 - [x] Unit test scoped context restores after exception.
 - [x] Feature test container scoped binding.
+- [x] Run `php artisan test`; 7 tests passed with 14 assertions.
 
 ## Not Done In This Step
 

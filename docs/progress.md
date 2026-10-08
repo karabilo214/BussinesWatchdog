@@ -119,7 +119,7 @@ Remaining:
 
 ### Step 05: TenantContext Foundation
 
-Status: prepared, test run pending
+Status: complete for TenantContext foundation
 
 Added:
 
@@ -132,8 +132,8 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for TenantContext, exception, provider, and tests.
+- User ran `php artisan test`; 7 tests passed with 14 assertions.
 
 Remaining:
 
