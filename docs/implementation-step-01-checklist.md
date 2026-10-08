@@ -18,6 +18,7 @@ This step prepares the local infrastructure only. It does not implement Laravel,
 - [ ] Install Docker Desktop on macOS Apple Silicon, or Docker Engine on Linux amd64.
 - [ ] Confirm `docker --version` works.
 - [ ] Confirm `docker compose version` works.
+- [ ] If Docker Desktop is installed but `docker` is not in `PATH`, confirm `make check-tools` can find `/Applications/Docker.app/Contents/Resources/bin/docker`.
 - [ ] Copy `.env.example` to `.env` using `make setup`.
 - [ ] Review local-only credentials in `.env`.
 

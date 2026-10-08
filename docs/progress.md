@@ -15,8 +15,10 @@ Added:
 
 Verification:
 
-- `docker --version`: not available in the current Codex environment.
-- `docker compose version`: not available in the current Codex environment.
+- Docker CLI found inside `/Applications/Docker.app/Contents/Resources/bin/docker`.
+- Docker version: 27.5.1.
+- Docker Compose version: v2.32.4-desktop.1.
+- Docker daemon is not currently reachable from this Codex session. Docker Desktop must be started before `make up`.
 
 Remaining:
 

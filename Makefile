@@ -1,5 +1,6 @@
 SHELL := /bin/sh
-COMPOSE ?= docker compose
+DOCKER ?= $(shell if command -v docker >/dev/null 2>&1; then command -v docker; elif [ -x /Applications/Docker.app/Contents/Resources/bin/docker ]; then printf '%s\n' /Applications/Docker.app/Contents/Resources/bin/docker; else printf '%s\n' docker; fi)
+COMPOSE ?= $(DOCKER) compose
 
 .PHONY: setup up down ps logs reset-infra check-tools
 
@@ -8,8 +9,9 @@ setup:
 	@echo "Local env ready. Review .env before starting services."
 
 check-tools:
-	@command -v docker >/dev/null 2>&1 || (echo "Docker is not installed or not in PATH"; exit 1)
-	@docker compose version >/dev/null
+	@$(DOCKER) --version >/dev/null || (echo "Docker CLI is not installed or not available"; exit 1)
+	@$(COMPOSE) version >/dev/null
+	@$(DOCKER) info >/dev/null 2>&1 || (echo "Docker CLI found, but Docker Desktop/daemon is not running. Start Docker Desktop and retry."; exit 1)
 	@echo "Docker Compose is available."
 
 up: setup check-tools
