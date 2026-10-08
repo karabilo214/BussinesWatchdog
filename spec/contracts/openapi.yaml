@@ -1,0 +1,589 @@
+openapi: 3.1.0
+info:
+  title: Business Watchdog core API
+  version: 1.0.0
+  description: |
+    Core contracts for P0 and P1. This document is a specification, not a running API.
+    HMAC canonicalization and transport limits are normative in TZ sections 11 and 27.
+    UI CRUD, auth, billing, export and credential rotation must be added before their implementation.
+    All monetary amounts are decimal strings in minor units. All timestamps are RFC3339 UTC.
+servers:
+  - url: https://watchdog.example.invalid
+tags:
+  - name: Ingestion
+  - name: Incidents
+  - name: Checks
+  - name: BrowserInternal
+paths:
+  /api/v1/ingest/events:
+    post:
+      tags: [Ingestion]
+      operationId: ingestEvents
+      security:
+        - IntegrationKeyId: []
+      description: |
+        Derive tenant, store and integration from verified key; never from body fields.
+        Verify raw-body HMAC before JSON parse. Maximum 100 events and 1 MiB uncompressed.
+        Fresh transport nonce is required for retry; event IDs remain unchanged.
+        Accepted means committed to durable PostgreSQL inbox, not fully processed.
+      parameters:
+        - $ref: '#/components/parameters/SignatureTimestamp'
+        - $ref: '#/components/parameters/SignatureNonce'
+        - $ref: '#/components/parameters/Signature'
+        - $ref: '#/components/parameters/SignatureVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [events]
+              properties:
+                events:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    $ref: ./event.schema.json
+      responses:
+        '202':
+          description: All records durably accepted or known identical duplicates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchResult'
+        '207':
+          description: Valid batch envelope with mixed per-record results; retry only unaccepted records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /api/v1/ingest/heartbeat:
+    post:
+      tags: [Ingestion]
+      operationId: ingestHeartbeat
+      security:
+        - IntegrationKeyId: []
+      parameters:
+        - $ref: '#/components/parameters/SignatureTimestamp'
+        - $ref: '#/components/parameters/SignatureNonce'
+        - $ref: '#/components/parameters/Signature'
+        - $ref: '#/components/parameters/SignatureVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Heartbeat'
+      responses:
+        '202':
+          description: Health snapshot persisted; does not imply complete sales coverage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accepted'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /api/v1/incidents:
+    get:
+      tags: [Incidents]
+      operationId: listIncidents
+      security:
+        - UserSession: []
+      parameters:
+        - name: store_id
+          in: query
+          schema: {type: string, format: uuid}
+        - name: state
+          in: query
+          schema: {type: string, enum: [open, acknowledged, resolved]}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+        - name: cursor
+          in: query
+          schema: {type: string, maxLength: 2048}
+      responses:
+        '200':
+          description: Tenant-scoped stable cursor page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Incident'
+                  next_cursor: {type: [string, 'null']}
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/v1/incidents/{incident_id}:
+    get:
+      tags: [Incidents]
+      operationId: getIncident
+      security:
+        - UserSession: []
+      parameters:
+        - $ref: '#/components/parameters/IncidentId'
+      responses:
+        '200':
+          description: Incident with sanitized facts and evidence
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/incidents/{incident_id}/acknowledge:
+    post:
+      tags: [Incidents]
+      operationId: acknowledgeIncident
+      security:
+        - UserSession: []
+      parameters:
+        - $ref: '#/components/parameters/IncidentId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '200':
+          description: Updated incident; duplicate acknowledge by same actor is harmless
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/incidents/{incident_id}/resolve:
+    post:
+      tags: [Incidents]
+      operationId: resolveIncident
+      security:
+        - UserSession: []
+      parameters:
+        - $ref: '#/components/parameters/IncidentId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 5, maxLength: 2000}
+      responses:
+        '200':
+          description: Manually resolved with audit; detectors remain enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/stores/{store_id}/checks:
+    post:
+      tags: [Checks]
+      operationId: createManualCheck
+      security:
+        - UserSession: []
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [scenario_id]
+              properties:
+                scenario_id: {type: string, format: uuid}
+      responses:
+        '202':
+          description: Durable logical run created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [run_id, status]
+                properties:
+                  run_id: {type: string, format: uuid}
+                  status: {const: queued}
+        '409':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /internal/v1/browser/leases:
+    post:
+      tags: [BrowserInternal]
+      operationId: leaseBrowserAttempt
+      security:
+        - WorkerToken: []
+      description: Worker identity comes from token, not body. DB claim uses SKIP LOCKED and fencing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [browser_version, location]
+              properties:
+                browser_version: {type: string, minLength: 1, maxLength: 100}
+                location: {type: string, minLength: 1, maxLength: 100}
+      responses:
+        '200':
+          description: New attempt leased; secret token returned once and never logged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrowserLease'
+        '204':
+          description: No eligible run; worker polls with bounded backoff and jitter
+        '401':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /internal/v1/browser/attempts/{attempt_id}/heartbeat:
+    post:
+      tags: [BrowserInternal]
+      operationId: heartbeatBrowserAttempt
+      security:
+        - WorkerToken: []
+      parameters:
+        - $ref: '#/components/parameters/AttemptId'
+        - $ref: '#/components/parameters/LeaseToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [fencing_token]
+              properties:
+                fencing_token: {type: integer, minimum: 1}
+      responses:
+        '200':
+          description: Valid lease heartbeat persisted; absolute deadline unchanged
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lease_until, absolute_deadline_at]
+                properties:
+                  lease_until: {type: string, format: date-time}
+                  absolute_deadline_at: {type: string, format: date-time}
+        '409':
+          $ref: '#/components/responses/Problem'
+  /internal/v1/browser/attempts/{attempt_id}/result:
+    post:
+      tags: [BrowserInternal]
+      operationId: completeBrowserAttempt
+      security:
+        - WorkerToken: []
+      parameters:
+        - $ref: '#/components/parameters/AttemptId'
+        - $ref: '#/components/parameters/LeaseToken'
+      description: |
+        Verify worker identity, current lease and fencing token transactionally.
+        Repeated identical final result is 200; altered result or stale attempt is 409.
+        Store attempt result and domain outbox in one transaction.
+        Lease expiry never turns infrastructure error into a confirmed site failure.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrowserResult'
+      responses:
+        '200':
+          description: Result durably persisted or known identical retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accepted'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+components:
+  securitySchemes:
+    IntegrationKeyId:
+      type: apiKey
+      in: header
+      name: X-BW-Key-Id
+      description: Key ID plus mandatory raw-body HMAC signature headers; key ID alone never authenticates.
+    UserSession:
+      type: apiKey
+      in: cookie
+      name: watchdog_session
+      description: Same-origin Sanctum session with CSRF on mutations.
+    WorkerToken:
+      type: http
+      scheme: bearer
+      description: Scoped worker credential restricted to private ingress.
+  parameters:
+    SignatureTimestamp:
+      name: X-BW-Timestamp
+      in: header
+      required: true
+      schema: {type: string, pattern: '^[0-9]{10,12}$'}
+    SignatureNonce:
+      name: X-BW-Nonce
+      in: header
+      required: true
+      schema: {type: string, format: uuid}
+    Signature:
+      name: X-BW-Signature
+      in: header
+      required: true
+      schema: {type: string, pattern: '^[a-f0-9]{64}$'}
+    SignatureVersion:
+      name: X-BW-Signature-Version
+      in: header
+      required: true
+      schema: {type: string, const: '1'}
+    IncidentId:
+      name: incident_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    AttemptId:
+      name: attempt_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    LeaseToken:
+      name: X-BW-Lease-Token
+      in: header
+      required: true
+      schema: {type: string, minLength: 32, maxLength: 256}
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Strong ETag containing quoted incident revision, for example "3".
+      schema: {type: string, pattern: '^"[0-9]+"$'}
+    CsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: true
+      schema: {type: string}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, minLength: 16, maxLength: 128}
+  responses:
+    Problem:
+      description: Structured safe problem response; HTTP status determines retry policy.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    MoneyMinor:
+      type: string
+      pattern: '^-?(0|[1-9][0-9]{0,18})$'
+      description: Signed 64-bit integer encoded as decimal string; semantic validator enforces bigint bounds.
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [code, message, request_id]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        request_id: {type: string, format: uuid}
+        errors: {type: array, items: {type: object}}
+        retry_after_seconds: {type: integer, minimum: 0}
+    Accepted:
+      type: object
+      additionalProperties: false
+      required: [request_id, accepted]
+      properties:
+        request_id: {type: string, format: uuid}
+        accepted: {const: true}
+    BatchResult:
+      type: object
+      additionalProperties: false
+      required: [request_id, results]
+      properties:
+        request_id: {type: string, format: uuid}
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [index, status]
+            properties:
+              index: {type: integer, minimum: 0, maximum: 99}
+              event_id: {type: [string, 'null'], format: uuid}
+              inbox_id: {type: [string, 'null'], format: uuid}
+              status: {type: string, enum: [accepted, duplicate, invalid, conflict, temporarily_rejected]}
+              code: {type: string}
+    Heartbeat:
+      type: object
+      additionalProperties: false
+      required: [install_id, plugin_version, observed_at, backlog_count, capabilities]
+      properties:
+        install_id: {type: string, format: uuid}
+        plugin_version: {type: string, minLength: 1, maxLength: 32}
+        wordpress_version: {type: string, maxLength: 32}
+        woocommerce_version: {type: string, maxLength: 32}
+        observed_at: {type: string, format: date-time}
+        backlog_count: {type: integer, minimum: 0}
+        oldest_pending_at: {type: [string, 'null'], format: date-time}
+        last_successful_delivery_at: {type: [string, 'null'], format: date-time}
+        last_rescan_at: {type: [string, 'null'], format: date-time}
+        capabilities:
+          type: object
+          additionalProperties: false
+          required: [hpos, checkout_mode, order_snapshots]
+          properties:
+            hpos: {type: boolean}
+            checkout_mode: {type: string, enum: [classic, blocks, custom, unknown]}
+            order_snapshots: {type: boolean}
+            refund_snapshots: {type: boolean}
+            payment_form_check: {type: boolean}
+            funnel_telemetry: {type: boolean}
+        errors:
+          type: array
+          maxItems: 20
+          items: {type: string, maxLength: 128}
+    Incident:
+      type: object
+      required: [id, store_id, family, state, severity, revision, first_seen_at, last_seen_at, facts]
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        family: {type: string}
+        state: {type: string, enum: [open, acknowledged, resolved]}
+        severity: {type: string, enum: [info, warning, critical]}
+        revision: {type: integer, minimum: 1}
+        first_seen_at: {type: string, format: date-time}
+        last_seen_at: {type: string, format: date-time}
+        last_good_at: {type: [string, 'null'], format: date-time}
+        first_bad_at: {type: [string, 'null'], format: date-time}
+        currency: {type: [string, 'null'], pattern: '^[A-Z]{3}$'}
+        verified_discrepancy_minor:
+          oneOf:
+            - $ref: '#/components/schemas/MoneyMinor'
+            - type: 'null'
+        facts: {type: object}
+        evidence_refs:
+          type: array
+          items:
+            type: object
+            required: [type, id]
+            properties:
+              type: {enum: [finding, check_run, signal, artifact]}
+              id: {type: string, format: uuid}
+    BrowserLease:
+      type: object
+      additionalProperties: false
+      required: [attempt_id, run_id, store_id, fencing_token, lease_token, lease_until, absolute_deadline_at, scenario, network_policy]
+      properties:
+        attempt_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        fencing_token: {type: integer, minimum: 1}
+        lease_token: {type: string, minLength: 32}
+        lease_until: {type: string, format: date-time}
+        absolute_deadline_at: {type: string, format: date-time}
+        scenario:
+          type: object
+          required: [version, adapter_version, mode, store_origin, product_url, cart_url, checkout_url, steps]
+          properties:
+            version: {type: integer, minimum: 1}
+            adapter_version: {type: string}
+            mode: {const: payment_form}
+            store_origin: {type: string, format: uri}
+            product_url: {type: string, format: uri}
+            cart_url: {type: string, format: uri}
+            checkout_url: {type: string, format: uri}
+            synthetic_token: {type: string, description: Short-lived store and run bound signed token, never logged.}
+            steps:
+              type: array
+              minItems: 1
+              maxItems: 20
+              items:
+                type: object
+                required: [code, action]
+                properties:
+                  code: {type: string}
+                  action: {enum: [goto, click_safe, fill_synthetic, select, assert_visible, assert_cart, wait_response]}
+                  selector: {type: string, maxLength: 1000}
+                  timeout_ms: {type: integer, minimum: 1000, maximum: 30000}
+        network_policy:
+          type: object
+          required: [version, allowed_origins, blocked_operations]
+          properties:
+            version: {type: string}
+            allowed_origins: {type: array, items: {type: string, format: uri}}
+            blocked_operations: {type: array, items: {type: string}}
+    BrowserResult:
+      type: object
+      additionalProperties: false
+      required: [fencing_token, status, finished_at, steps, diagnostics]
+      properties:
+        fencing_token: {type: integer, minimum: 1}
+        status: {type: string, enum: [passed, failed, inconclusive, blocked, unsupported, cancelled]}
+        finished_at: {type: string, format: date-time}
+        error_code: {type: [string, 'null'], maxLength: 128}
+        steps:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required: [index, code, status, started_at, finished_at, assertions]
+            properties:
+              index: {type: integer, minimum: 0}
+              code: {type: string, maxLength: 128}
+              status: {enum: [passed, failed, skipped, inconclusive, blocked]}
+              started_at: {type: string, format: date-time}
+              finished_at: {type: string, format: date-time}
+              assertions: {type: array, items: {type: object}}
+              error_code: {type: [string, 'null']}
+        diagnostics:
+          type: object
+          description: Sanitized metadata only, no response bodies, secrets, cookies or full headers.
+          required: [redaction_version, relevant_errors]
+          properties:
+            redaction_version: {type: string}
+            relevant_errors: {type: array, maxItems: 100, items: {type: object}}
+        artifact_ids:
+          type: array
+          maxItems: 10
+          items: {type: string, format: uuid}

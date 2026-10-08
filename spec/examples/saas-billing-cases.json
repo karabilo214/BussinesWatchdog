@@ -1,0 +1,150 @@
+{
+  "version": "1.1",
+  "description": "Expected policy fixtures, not running reducer. activate_paid_once means applying newly verified period idempotently, not charging a card.",
+  "cases": [
+    {
+      "id": "BILL-01",
+      "scenario": "Return query success=1 without evidence",
+      "expected": {
+        "billing_state": "pending",
+        "access_state": "onboarding",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-02",
+      "scenario": "Confirmed first invoice and eligible active contract",
+      "expected": {
+        "billing_state": "active",
+        "access_state": "active",
+        "activate_paid_once": true
+      }
+    },
+    {
+      "id": "BILL-03",
+      "scenario": "Same paid event twice",
+      "expected": {
+        "billing_state": "active",
+        "access_state": "active",
+        "activate_paid_once": true
+      }
+    },
+    {
+      "id": "BILL-04",
+      "scenario": "Renewal failure within paid grace",
+      "expected": {
+        "billing_state": "past_due",
+        "access_state": "grace",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-05",
+      "scenario": "Grace expired",
+      "expected": {
+        "billing_state": "suspended",
+        "access_state": "paused_billing",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-06",
+      "scenario": "Cancellation scheduled, current period paid",
+      "expected": {
+        "billing_state": "active",
+        "access_state": "active",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-07",
+      "scenario": "Contract ended and no override",
+      "expected": {
+        "billing_state": "cancelled",
+        "access_state": "expired",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-08",
+      "scenario": "Manual suspension despite paid contract",
+      "expected": {
+        "billing_state": "active",
+        "access_state": "paused_manual",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-09",
+      "scenario": "Payment requires extra authentication, no earlier grant",
+      "expected": {
+        "billing_state": "requires_action",
+        "access_state": "onboarding",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-10",
+      "scenario": "Valid trial without payment method",
+      "expected": {
+        "billing_state": "trial",
+        "access_state": "trial",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-11",
+      "scenario": "Trial ended, no paid evidence",
+      "expected": {
+        "billing_state": "cancelled",
+        "access_state": "expired",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-12",
+      "scenario": "Downgrade capacity choice missing",
+      "expected": {
+        "billing_state": "active",
+        "access_state": "capacity_choice_required",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-13",
+      "scenario": "Test-mode event for live customer",
+      "expected": {
+        "billing_state": "ignored",
+        "access_state": "unchanged",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-14",
+      "scenario": "Provider state unknown with previous paid period",
+      "expected": {
+        "billing_state": "unknown",
+        "access_state": "preserve_previous_paid_period",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-15",
+      "scenario": "Refund request with lost provider response",
+      "expected": {
+        "billing_state": "unknown",
+        "access_state": "policy_not_guessed",
+        "activate_paid_once": false
+      }
+    },
+    {
+      "id": "BILL-16",
+      "scenario": "Successful subscription recreated after cancellation",
+      "expected": {
+        "billing_state": "active",
+        "access_state": "active",
+        "activate_paid_once": true
+      }
+    }
+  ]
+}

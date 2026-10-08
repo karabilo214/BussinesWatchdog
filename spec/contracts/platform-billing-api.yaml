@@ -1,0 +1,1792 @@
+openapi: 3.1.0
+info:
+  title: Business Watchdog platform and SaaS billing API
+  version: 1.1.0
+  description: Additional contracts. SaaS billing has a separate commercial provider
+    account and webhook secret. Action-specific parameter validation, RBAC, step-up
+    and support grants are normative in panels/ADMIN-BACKEND.md. This is a specification,
+    not an application.
+paths:
+  /api/v1/public/plans:
+    get:
+      operationId: publicPlans
+      description: Published LIVE plans only. No hidden prices or provider secrets.
+      security: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanList'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: currency
+        in: query
+        schema: &id001
+          type: string
+      - name: locale
+        in: query
+        schema:
+          enum:
+          - ru
+          - en
+          - de
+      - name: interval
+        in: query
+        schema:
+          enum:
+          - month
+          - year
+  /api/v1/billing/trial:
+    post:
+      operationId: startTrial
+      description: Verified tenant owner only. Trial consumed once per tenant under
+        lock.
+      security:
+      - CustomerSession: []
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrialRequest'
+  /api/v1/billing/checkout:
+    post:
+      operationId: createSaasCheckout
+      description: Tenant owner only. Provider amount from published price, not request.
+        Lost response is resolved idempotently.
+      security:
+      - CustomerSession: []
+      responses:
+        '202':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Checkout'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+  /api/v1/billing/checkouts/{checkout_id}:
+    get:
+      operationId: getSaasCheckout
+      description: Only current tenant owner. Browser return URL never grants paid
+        access.
+      security:
+      - CustomerSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Checkout'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: checkout_id
+        in: path
+        required: true
+        schema: &id003
+          type: string
+          format: uuid
+  /api/v1/billing/subscription:
+    get:
+      operationId: getSaasSubscription
+      description: Tenant owner only; provider status and access state are distinct.
+      security:
+      - CustomerSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '204':
+          description: No current trial or paid subscription projection. Client shows
+            onboarding; pending checkout is read from its own resource.
+  /api/v1/billing/portal:
+    post:
+      operationId: createBillingPortal
+      description: ''
+      security:
+      - CustomerSession: []
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  expires_at: &id004
+                    type:
+                    - string
+                    - 'null'
+                    format: date-time
+                required:
+                - url
+                - expires_at
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                return_path:
+                  const: /app/billing
+              required:
+              - return_path
+  /api/v1/billing/plan-change-preview:
+    post:
+      operationId: previewSaasPlanChange
+      description: ''
+      security:
+      - CustomerSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanPreview'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanChangeRequest'
+  /api/v1/billing/plan-change:
+    post:
+      operationId: confirmSaasPlanChange
+      description: ''
+      security:
+      - CustomerSession: []
+      responses:
+        '202':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                preview_token: *id001
+              required:
+              - preview_token
+  /api/v1/billing/cancel:
+    post:
+      operationId: cancelSaasRenewal
+      description: ''
+      security:
+      - CustomerSession: []
+      responses:
+        '202':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                at_period_end:
+                  const: true
+                reason:
+                  type: string
+                  maxLength: 2000
+              required:
+              - at_period_end
+  /api/v1/billing/resume:
+    post:
+      operationId: resumeSaasRenewal
+      description: ''
+      security:
+      - CustomerSession: []
+      responses:
+        '202':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+              required: []
+  /api/v1/billing/invoices:
+    get:
+      operationId: listOwnSaasInvoices
+      description: ''
+      security:
+      - CustomerSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invoice'
+                  next_cursor:
+                    type:
+                    - string
+                    - 'null'
+                required:
+                - data
+                - next_cursor
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: cursor
+        in: query
+        schema: *id001
+      - name: limit
+        in: query
+        schema: &id002
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+  /platform-api/v1/tenants:
+    get:
+      operationId: platformListTenants
+      description: Platform capability required. Role-specific commercial fields and
+        safe summaries only.
+      security:
+      - StaffSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TenantSummary'
+                  next_cursor:
+                    type:
+                    - string
+                    - 'null'
+                required:
+                - data
+                - next_cursor
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: cursor
+        in: query
+        schema: *id001
+      - name: limit
+        in: query
+        schema: *id002
+      - name: state
+        in: query
+        schema: *id001
+      - name: plan
+        in: query
+        schema: *id001
+  /platform-api/v1/tenants/{tenant_id}:
+    get:
+      operationId: platformGetTenant
+      description: ''
+      security:
+      - StaffSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantSummary'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema: *id003
+  /platform-api/v1/overview:
+    get:
+      operationId: platformOverview
+      description: Owner financial KPIs; per currency, LIVE/TEST separate, drift/freshness
+        reported.
+      security:
+      - StaffSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Overview'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: mode
+        in: query
+        schema:
+          enum:
+          - live
+          - test
+          default: live
+      - name: currency
+        in: query
+        schema: *id001
+  /platform-api/v1/invoices:
+    get:
+      operationId: platformListInvoices
+      description: ''
+      security:
+      - StaffSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invoice'
+                  next_cursor:
+                    type:
+                    - string
+                    - 'null'
+                required:
+                - data
+                - next_cursor
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: cursor
+        in: query
+        schema: *id001
+      - name: limit
+        in: query
+        schema: *id002
+      - name: tenant_id
+        in: query
+        schema: *id003
+      - name: mode
+        in: query
+        schema:
+          enum:
+          - live
+          - test
+  /platform-api/v1/actions:
+    post:
+      operationId: platformCreateAction
+      description: Each action checks capability, target, parameter schema, expected
+        version and recent MFA step-up; billing/support roles cannot submit monetary
+        action.
+      security:
+      - StaffSession: []
+      responses:
+        '202':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlatformActionRequest'
+  /platform-api/v1/actions/{action_id}:
+    get:
+      operationId: platformGetAction
+      description: ''
+      security:
+      - StaffSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: action_id
+        in: path
+        required: true
+        schema: *id003
+  /platform-api/v1/support-grants:
+    post:
+      operationId: platformRequestSupportGrant
+      description: ''
+      security:
+      - StaffSession: []
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportGrant'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupportGrantRequest'
+  /api/v1/support-grants/{grant_id}/approve:
+    post:
+      operationId: customerApproveSupportGrant
+      description: Verified tenant owner only. Actor role and requested scope/expiry
+        enforced.
+      security:
+      - CustomerSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportGrant'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: grant_id
+        in: path
+        required: true
+        schema: *id003
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+              required: []
+  /api/v1/support-grants/{grant_id}/revoke:
+    post:
+      operationId: customerRevokeSupportGrant
+      description: ''
+      security:
+      - CustomerSession: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportGrant'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Role, scope or support grant denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Version, idempotency or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      parameters:
+      - name: grant_id
+        in: path
+        required: true
+        schema: *id003
+      - $ref: '#/components/parameters/Csrf'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason:
+                  type: string
+                  minLength: 5
+                  maxLength: 2000
+              required:
+              - reason
+components:
+  schemas:
+    Problem:
+      type: object
+      additionalProperties: false
+      properties:
+        code: *id001
+        message: *id001
+        request_id: *id003
+      required:
+      - code
+      - message
+      - request_id
+    CheckoutRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        price_id: *id003
+        policy_version_ids:
+          type: array
+          minItems: 1
+          items: *id003
+        return_path:
+          type: string
+          enum:
+          - /checkout/return
+          - /app/billing
+      required:
+      - price_id
+      - policy_version_ids
+      - return_path
+    Checkout:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id003
+        status:
+          enum:
+          - creating
+          - pending
+          - requires_action
+          - confirmed
+          - failed
+          - cancelled
+          - expired
+          - unknown
+        hosted_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+        expires_at: *id004
+        access_state: *id001
+        billing_state: *id001
+      required:
+      - id
+      - status
+      - expires_at
+      - access_state
+      - billing_state
+    TrialRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        plan_version_id: *id003
+        policy_version_ids:
+          type: array
+          minItems: 1
+          items: *id003
+      required:
+      - plan_version_id
+      - policy_version_ids
+    Subscription:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id003
+        tenant_id: *id003
+        plan_code: *id001
+        plan_version_id: *id003
+        contract_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        status:
+          enum:
+          - trial
+          - active
+          - past_due
+          - suspended
+          - cancelled
+        billing_state: *id001
+        access_state:
+          enum:
+          - onboarding
+          - trial
+          - active
+          - grace
+          - paused_billing
+          - paused_manual
+          - expired
+          - deleting
+          - capacity_choice_required
+        access_reason_codes:
+          type: array
+          items: *id001
+        paid_until: *id004
+        trial_ends_at: *id004
+        grace_until: *id004
+        period_end: *id004
+        next_charge_at: *id004
+        cancel_at_period_end:
+          type: boolean
+        version:
+          type: integer
+          minimum: 1
+        entitlements:
+          type: object
+      required:
+      - id
+      - tenant_id
+      - status
+      - access_state
+      - access_reason_codes
+      - version
+      - entitlements
+    Price:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id003
+        plan_version_id: *id003
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+        currency_exponent:
+          type: integer
+          minimum: 0
+          maximum: 6
+        amount_minor: &id005
+          type: string
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        billing_interval:
+          enum:
+          - month
+          - year
+        tax_behavior:
+          enum:
+          - inclusive
+          - exclusive
+          - provider_calculated
+      required:
+      - id
+      - plan_version_id
+      - currency
+      - currency_exponent
+      - amount_minor
+      - billing_interval
+      - tax_behavior
+    PublicPlan:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id003
+        code: *id001
+        version_id: *id003
+        title: *id001
+        description: *id001
+        entitlements:
+          type: object
+        trial_days:
+          type: integer
+          minimum: 0
+        prices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Price'
+      required:
+      - id
+      - code
+      - version_id
+      - title
+      - entitlements
+      - trial_days
+      - prices
+    PlanList:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicPlan'
+        catalog_version: *id001
+      required:
+      - data
+      - catalog_version
+    Action:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id003
+        action_type: *id001
+        status:
+          enum:
+          - queued
+          - running
+          - succeeded
+          - failed
+          - unknown
+          - cancelled
+        stage:
+          type:
+          - string
+          - 'null'
+        result_refs:
+          type: object
+        error_code:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - action_type
+      - status
+    PlatformActionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        action_type:
+          enum:
+          - sync_billing
+          - replay_event
+          - retry_job
+          - suspend_monitoring
+          - resume_monitoring
+          - grant_override
+          - publish_plan
+          - cancel_subscription
+          - request_refund
+          - drain_worker_pool
+        target_tenant_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        target_id: *id003
+        parameters:
+          type: object
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 2000
+        expected_version:
+          type: integer
+          minimum: 1
+      required:
+      - action_type
+      - parameters
+      - reason
+      allOf:
+      - if:
+          properties:
+            action_type:
+              const: sync_billing
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                object_family:
+                  enum:
+                  - subscriptions
+                  - invoices
+                  - payments
+                  - refunds
+                  - all
+                kind:
+                  enum:
+                  - delta
+                  - audit
+              required:
+              - object_family
+              - kind
+            target_tenant_id: *id003
+          required:
+          - target_tenant_id
+      - if:
+          properties:
+            action_type:
+              const: replay_event
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                inbox_kind:
+                  enum:
+                  - merchant
+                  - saas_billing
+                dry_run:
+                  type: boolean
+                  default: true
+              required:
+              - inbox_kind
+              - dry_run
+            target_tenant_id: *id003
+          required:
+          - target_tenant_id
+          - target_id
+      - if:
+          properties:
+            action_type:
+              const: retry_job
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                queue_kind:
+                  enum:
+                  - ingestion
+                  - sync
+                  - reconciliation
+                  - notifications
+                  - billing
+                dry_run:
+                  type: boolean
+                  default: true
+              required:
+              - queue_kind
+              - dry_run
+            target_tenant_id: *id003
+          required:
+          - target_tenant_id
+          - target_id
+      - if:
+          properties:
+            action_type:
+              const: suspend_monitoring
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                scope:
+                  enum:
+                  - browser
+                  - all_scheduled_monitoring
+              required:
+              - scope
+            target_tenant_id: *id003
+          required:
+          - target_tenant_id
+      - if:
+          properties:
+            action_type:
+              const: resume_monitoring
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                scope:
+                  enum:
+                  - browser
+                  - all_scheduled_monitoring
+              required:
+              - scope
+            target_tenant_id: *id003
+          required:
+          - target_tenant_id
+      - if:
+          properties:
+            action_type:
+              const: grant_override
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                entitlements:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    max_stores:
+                      type: integer
+                      minimum: 1
+                    monthly_events_limit:
+                      type: integer
+                      minimum: 0
+                    browser_interval_seconds:
+                      type: integer
+                      minimum: 300
+                  required: []
+                starts_at:
+                  type: string
+                  format: date-time
+                ends_at:
+                  type: string
+                  format: date-time
+              required:
+              - entitlements
+              - starts_at
+              - ends_at
+            target_tenant_id: *id003
+          required:
+          - target_tenant_id
+      - if:
+          properties:
+            action_type:
+              const: publish_plan
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                plan_version_id: *id003
+              required:
+              - plan_version_id
+      - if:
+          properties:
+            action_type:
+              const: cancel_subscription
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                at_period_end:
+                  const: true
+              required:
+              - at_period_end
+            target_tenant_id: *id003
+          required:
+          - target_tenant_id
+          - target_id
+      - if:
+          properties:
+            action_type:
+              const: request_refund
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                payment_attempt_id: *id003
+                amount_minor: *id005
+                currency:
+                  type: string
+                  pattern: ^[A-Z]{3}$
+              required:
+              - payment_attempt_id
+              - amount_minor
+              - currency
+            target_tenant_id: *id003
+          required:
+          - target_tenant_id
+      - if:
+          properties:
+            action_type:
+              const: drain_worker_pool
+          required:
+          - action_type
+        then:
+          properties:
+            parameters:
+              type: object
+              additionalProperties: false
+              properties:
+                pool_id: *id001
+                mode:
+                  enum:
+                  - graceful
+                  - cancel_with_fencing
+              required:
+              - pool_id
+              - mode
+    PlanChangeRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        price_id: *id003
+        requested_effect:
+          enum:
+          - immediate
+          - period_end
+      required:
+      - price_id
+      - requested_effect
+    PlanPreview:
+      type: object
+      additionalProperties: false
+      properties:
+        preview_token: *id001
+        expires_at: *id004
+        subscription_version:
+          type: integer
+          minimum: 1
+        due_now_minor: *id005
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+        next_recurring_minor: *id005
+        effective_at: *id004
+        lines:
+          type: array
+          items:
+            type: object
+      required:
+      - preview_token
+      - expires_at
+      - subscription_version
+      - due_now_minor
+      - currency
+      - next_recurring_minor
+      - effective_at
+      - lines
+    SupportGrant:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id003
+        tenant_id: *id003
+        staff_id: *id003
+        scopes:
+          type: array
+          items:
+            enum:
+            - read_diagnostics
+            - read_artifacts
+            - request_recheck
+        state:
+          enum:
+          - pending
+          - approved
+          - denied
+          - revoked
+          - expired
+        reason: *id001
+        expires_at: *id004
+      required:
+      - id
+      - tenant_id
+      - staff_id
+      - scopes
+      - state
+      - reason
+      - expires_at
+    SupportGrantRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        tenant_id: *id003
+        scopes:
+          type: array
+          minItems: 1
+          items:
+            enum:
+            - read_diagnostics
+            - read_artifacts
+            - request_recheck
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 2000
+      required:
+      - tenant_id
+      - scopes
+      - expires_at
+      - reason
+    TenantSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id003
+        name: *id001
+        plan_code:
+          type:
+          - string
+          - 'null'
+        billing_state: *id001
+        access_state: *id001
+        paid_until: *id004
+        active_stores:
+          type: integer
+          minimum: 0
+        store_limit:
+          type: integer
+          minimum: 0
+        monitoring_health: *id001
+        allowed_actions:
+          type: array
+          items: *id001
+      required:
+      - id
+      - name
+      - billing_state
+      - access_state
+      - allowed_actions
+    Overview:
+      type: object
+      additionalProperties: false
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        mode:
+          enum:
+          - live
+          - test
+        currency:
+          type:
+          - string
+          - 'null'
+        metrics:
+          type: array
+          items:
+            type: object
+        coverage:
+          enum:
+          - complete
+          - partial
+          - stale
+          - unknown
+        as_of:
+          type: string
+          format: date-time
+      required:
+      - from
+      - to
+      - mode
+      - metrics
+      - coverage
+      - as_of
+    Invoice:
+      type: object
+      additionalProperties: false
+      properties:
+        id: *id003
+        tenant_id: *id003
+        contract_id: *id003
+        state:
+          enum:
+          - draft
+          - open
+          - paid
+          - void
+          - uncollectible
+          - unknown
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+        currency_exponent:
+          type: integer
+          minimum: 0
+          maximum: 6
+        total_minor: *id005
+        paid_minor: *id005
+        due_minor: *id005
+        paid_at: *id004
+        mode:
+          enum:
+          - live
+          - test
+      required:
+      - id
+      - tenant_id
+      - contract_id
+      - state
+      - currency
+      - currency_exponent
+      - total_minor
+      - paid_minor
+      - due_minor
+      - mode
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+    Csrf:
+      name: X-XSRF-TOKEN
+      in: header
+      required: true
+      schema: *id001
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^"[0-9]+"$
+  securitySchemes:
+    CustomerSession:
+      type: apiKey
+      in: cookie
+      name: watchdog_session
+    StaffSession:
+      type: apiKey
+      in: cookie
+      name: watchdog_platform_session
