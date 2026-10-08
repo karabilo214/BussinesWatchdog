@@ -77,7 +77,7 @@ CREATE TABLE store_verifications (
  id uuid PRIMARY KEY,
  tenant_id uuid NOT NULL,
  store_id uuid NOT NULL,
- method text NOT NULL CHECK (method IN ('wordpress_challenge','dns')),
+ method text NOT NULL CHECK (method IN ('plugin_challenge','dns')),
  challenge_hash char(64) NOT NULL,
  verified_origin text NOT NULL,
  status text NOT NULL CHECK (status IN ('pending','verified','expired','failed')),

@@ -92,7 +92,7 @@ class StoreVerificationController extends Controller
         }
 
         return [
-            'type' => 'wordpress_challenge',
+            'type' => 'plugin_challenge',
             'path' => '/.well-known/business-watchdog-verification.txt',
             'body' => $challenge,
         ];

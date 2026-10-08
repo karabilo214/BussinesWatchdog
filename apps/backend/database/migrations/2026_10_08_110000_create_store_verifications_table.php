@@ -26,7 +26,7 @@ return new class extends Migration
         });
 
         if (DB::getDriverName() === 'pgsql') {
-            DB::statement("ALTER TABLE store_verifications ADD CONSTRAINT store_verifications_method_check CHECK (method IN ('wordpress_challenge','dns'))");
+            DB::statement("ALTER TABLE store_verifications ADD CONSTRAINT store_verifications_method_check CHECK (method IN ('plugin_challenge','dns'))");
             DB::statement("ALTER TABLE store_verifications ADD CONSTRAINT store_verifications_status_check CHECK (status IN ('pending','verified','expired','failed'))");
         }
     }

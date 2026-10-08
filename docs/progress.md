@@ -263,7 +263,7 @@ Added:
 
 - `store_verifications` migration.
 - `StoreVerification` model.
-- `POST /api/v1/stores/{store}/verify` for DNS and WordPress challenge creation.
+- `POST /api/v1/stores/{store}/verify` for DNS and platform-neutral plugin challenge creation.
 - `GET /api/v1/stores/{store}/verification` for latest verification state.
 - Tenant scoping and store role checks for verification endpoints.
 - Feature tests for challenge creation, method validation, role denial, tenant isolation, latest state read, and pending expiration.
@@ -277,7 +277,7 @@ Verification:
 Remaining:
 
 - Run tests after pulling changes.
-- Add external DNS/WordPress challenge checks.
+- Add external DNS/plugin challenge checks.
 - Update store `verified_at` only after successful external ownership proof.
 - Add pairing codes and integration credential bootstrap later.
 

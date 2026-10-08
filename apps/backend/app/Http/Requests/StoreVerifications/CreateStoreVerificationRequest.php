@@ -22,7 +22,7 @@ class CreateStoreVerificationRequest extends FormRequest
                 'required',
                 'string',
                 'in:'.implode(',', [
-                    StoreVerification::METHOD_WORDPRESS_CHALLENGE,
+                    StoreVerification::METHOD_PLUGIN_CHALLENGE,
                     StoreVerification::METHOD_DNS,
                 ]),
             ],

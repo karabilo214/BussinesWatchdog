@@ -47,18 +47,18 @@ class StoreVerificationApiTest extends TestCase
         ]);
     }
 
-    public function test_owner_can_create_wordpress_verification_challenge(): void
+    public function test_owner_can_create_plugin_verification_challenge(): void
     {
         [$user, $tenant, $store] = $this->userWithStore();
 
         $this->actingAs($user)
             ->withSession(['active_tenant_id' => $tenant->id])
             ->postJson("/api/v1/stores/{$store->id}/verify", [
-                'method' => 'wordpress_challenge',
+                'method' => 'plugin_challenge',
             ])
             ->assertAccepted()
-            ->assertJsonPath('method', 'wordpress_challenge')
-            ->assertJsonPath('instructions.type', 'wordpress_challenge')
+            ->assertJsonPath('method', 'plugin_challenge')
+            ->assertJsonPath('instructions.type', 'plugin_challenge')
             ->assertJsonPath('instructions.path', '/.well-known/business-watchdog-verification.txt');
     }
 
@@ -126,7 +126,7 @@ class StoreVerificationApiTest extends TestCase
         $latest = StoreVerification::query()->create([
             'tenant_id' => $tenant->id,
             'store_id' => $store->id,
-            'method' => 'wordpress_challenge',
+            'method' => 'plugin_challenge',
             'challenge_hash' => hash('sha256', 'latest'),
             'verified_origin' => $store->base_url,
             'status' => 'pending',

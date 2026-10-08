@@ -48,7 +48,7 @@ MFA endpoints и implementation выбираются D1 ADR через штат�
 
 StoreDTO: id, name, base_url, platform, timezone, locale, default_currency, status, verified_at|null, browser_enabled, telemetry_enabled, config_version, coverage summary, last successful check time, active_incident_count. Coverage fields не принимаются от frontend.
 
-`POST /stores/{id}/verify` input method wordpress_challenge|dns. Response202: verification_id, method, public challenge инструкции, expires_at. Challenge secret не является integration credential. `GET /stores/{id}/verification`: state, verified_origin, expires_at, reason_code. DNS verification bound exact hostname; wildcard ownership без явной проверки запрещено.
+`POST /stores/{id}/verify` input method plugin_challenge|dns. Response202: verification_id, method, public challenge инструкции, expires_at. Challenge secret не является integration credential. `plugin_challenge` является платформенно-нейтральным способом проверки через installed connector/plugin/app и не привязан только к WordPress/WooCommerce. `GET /stores/{id}/verification`: state, verified_origin, expires_at, reason_code. DNS verification bound exact hostname; wildcard ownership без явной проверки запрещено.
 
 `POST /stores/{id}/pairing-codes`: input пусто, admin. Response201: pairing_code одноразово, expires_at, saas_endpoint. Code не логировать. WordPress pairing HTTP endpoint должен быть доступен только admin `manage_woocommerce` + WP nonce; публичный REST endpoint не должен создавать credentials.
 

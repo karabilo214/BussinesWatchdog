@@ -3,7 +3,7 @@
 Stage: D1 bootstrap
 Spec references: `spec/Business-Watchdog-TZ.md` sections 24, 25.3, 26, 33, 36; `contracts/ui-api-catalog.md` section 3; `spec/database/schema.sql` `store_verifications`.
 
-This step adds the first domain verification challenge API. It creates and reads verification state, but it does not perform DNS lookup, WordPress challenge fetch, automatic store activation, or pairing yet.
+This step adds the first domain verification challenge API. It creates and reads verification state, but it does not perform DNS lookup, connector/plugin challenge fetch, automatic store activation, or pairing yet.
 
 ## Implementation
 
@@ -19,7 +19,7 @@ This step adds the first domain verification challenge API. It creates and reads
 ## Tests
 
 - [x] Owner can create DNS verification challenge.
-- [x] Owner can create WordPress verification challenge.
+- [x] Owner can create platform-neutral plugin verification challenge.
 - [x] Invalid verification method is rejected.
 - [x] Viewer cannot create verification challenge.
 - [x] Foreign store cannot be verified.
@@ -29,7 +29,7 @@ This step adds the first domain verification challenge API. It creates and reads
 ## Not Done In This Step
 
 - DNS TXT lookup and hostname ownership validation.
-- WordPress `.well-known` challenge fetch.
+- Connector/plugin `.well-known` challenge fetch.
 - Store `verified_at` update on successful external verification.
 - Store status transition to `active`.
 - Pairing codes and integration credentials.

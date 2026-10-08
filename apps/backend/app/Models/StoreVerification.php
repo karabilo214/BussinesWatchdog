@@ -10,7 +10,7 @@ class StoreVerification extends Model
 {
     use HasUuids;
 
-    public const METHOD_WORDPRESS_CHALLENGE = 'wordpress_challenge';
+    public const METHOD_PLUGIN_CHALLENGE = 'plugin_challenge';
 
     public const METHOD_DNS = 'dns';
 
