@@ -308,7 +308,7 @@ Remaining:
 
 ### Step 13: Integration HMAC Authentication Foundation
 
-Status: implemented, test run pending
+Status: complete for integration HMAC authentication foundation
 
 Added:
 
@@ -324,12 +324,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for middleware, controller, bootstrap, routes, and tests.
+- User ran `php artisan test`; 49 tests passed with 150 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add durable `POST /api/v1/ingest/events`, event schema validation, throttling, audit log, and rotated-key draining support.
 
 ### Specification Update: Mandatory Three-Language Portal

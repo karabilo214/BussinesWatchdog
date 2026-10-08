@@ -29,6 +29,7 @@ This step adds reusable HMAC authentication for connector-originated requests. I
 - [x] Stale timestamp is rejected.
 - [x] Revoked credential is rejected.
 - [x] Query string is rejected for signed ingest.
+- [x] Run `php artisan test`; 49 tests passed with 150 assertions.
 
 ## Not Done In This Step
 
