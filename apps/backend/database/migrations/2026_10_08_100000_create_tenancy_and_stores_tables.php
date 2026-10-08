@@ -75,7 +75,10 @@ return new class extends Migration
             $table->boolean('browser_enabled')->default(false);
             $table->boolean('telemetry_enabled')->default(false);
             $table->unsignedBigInteger('config_version')->default(1);
-            $table->jsonb('settings')->default(DB::raw("'{}'::jsonb"));
+            $settingsDefault = DB::getDriverName() === 'pgsql'
+                ? DB::raw("'{}'::jsonb")
+                : '{}';
+            $table->jsonb('settings')->default($settingsDefault);
             $table->timestampTz('created_at')->useCurrent();
             $table->timestampTz('updated_at')->useCurrent();
 
