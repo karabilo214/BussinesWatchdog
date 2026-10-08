@@ -20,8 +20,10 @@ return new class extends Migration
             $table->timestampTz('updated_at')->useCurrent();
         });
 
-        DB::statement("ALTER TABLE tenants ADD CONSTRAINT tenants_status_check CHECK (status IN ('active','suspended','deleting','deleted'))");
-        DB::statement('ALTER TABLE tenants ADD CONSTRAINT tenants_config_version_check CHECK (config_version > 0)');
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE tenants ADD CONSTRAINT tenants_status_check CHECK (status IN ('active','suspended','deleting','deleted'))");
+            DB::statement('ALTER TABLE tenants ADD CONSTRAINT tenants_config_version_check CHECK (config_version > 0)');
+        }
 
         Schema::create('memberships', function (Blueprint $table) {
             $table->uuid('tenant_id');
@@ -35,7 +37,9 @@ return new class extends Migration
             $table->index(['user_id', 'tenant_id'], 'memberships_user_idx');
         });
 
-        DB::statement("ALTER TABLE memberships ADD CONSTRAINT memberships_role_check CHECK (role IN ('owner','admin','operator','viewer'))");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE memberships ADD CONSTRAINT memberships_role_check CHECK (role IN ('owner','admin','operator','viewer'))");
+        }
 
         Schema::create('invitations', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -53,7 +57,9 @@ return new class extends Migration
             $table->foreign('invited_by')->references('id')->on('users');
         });
 
-        DB::statement("ALTER TABLE invitations ADD CONSTRAINT invitations_role_check CHECK (role IN ('admin','operator','viewer'))");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE invitations ADD CONSTRAINT invitations_role_check CHECK (role IN ('admin','operator','viewer'))");
+        }
 
         Schema::create('stores', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -78,10 +84,12 @@ return new class extends Migration
             $table->index(['tenant_id', 'status'], 'stores_tenant_idx');
         });
 
-        DB::statement("ALTER TABLE stores ADD CONSTRAINT stores_base_url_check CHECK (base_url LIKE 'https://%')");
-        DB::statement("ALTER TABLE stores ADD CONSTRAINT stores_default_currency_check CHECK (default_currency ~ '^[A-Z]{3}$')");
-        DB::statement("ALTER TABLE stores ADD CONSTRAINT stores_status_check CHECK (status IN ('onboarding','active','paused','degraded','deleted'))");
-        DB::statement('ALTER TABLE stores ADD CONSTRAINT stores_config_version_check CHECK (config_version > 0)');
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE stores ADD CONSTRAINT stores_base_url_check CHECK (base_url LIKE 'https://%')");
+            DB::statement("ALTER TABLE stores ADD CONSTRAINT stores_default_currency_check CHECK (default_currency ~ '^[A-Z]{3}$')");
+            DB::statement("ALTER TABLE stores ADD CONSTRAINT stores_status_check CHECK (status IN ('onboarding','active','paused','degraded','deleted'))");
+            DB::statement('ALTER TABLE stores ADD CONSTRAINT stores_config_version_check CHECK (config_version > 0)');
+        }
     }
 
     public function down(): void

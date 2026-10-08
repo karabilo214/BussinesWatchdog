@@ -139,3 +139,27 @@ Remaining:
 
 - Add tenant resolution middleware after auth/session foundation.
 - Enforce TenantContext in repositories/services/jobs as they are introduced.
+
+### Step 06: Auth Session Foundation
+
+Status: prepared, test run pending
+
+Added:
+
+- Register/login/logout/me auth endpoints under `/api/v1/auth`.
+- Register request validation and email normalization.
+- Login request validation and email normalization.
+- Transactional user + tenant + owner membership registration.
+- Session `active_tenant_id` assignment after register/login.
+- Feature tests for register, login/me, unauthenticated me, and logout.
+- `docs/implementation-step-06-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run migrations/tests after pulling changes.
+- Add email verification, password reset, MFA, tenant switch, invitations, and policies in later slices.

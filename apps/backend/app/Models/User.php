@@ -30,6 +30,11 @@ class User extends Authenticatable
             ->withPivot('role', 'created_at');
     }
 
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(Membership::class);
+    }
+
     public function invitationsSent(): HasMany
     {
         return $this->hasMany(Invitation::class, 'invited_by');
