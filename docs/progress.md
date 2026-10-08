@@ -20,7 +20,8 @@ Verification:
 - Docker Compose version: v2.32.4-desktop.1.
 - Docker Desktop was started, but this Codex session cannot access `/Users/karabin/.docker/run/docker.sock` due to sandbox permissions. Run `make up` from a normal terminal.
 - First terminal run reached image pull, then failed because `docker-credential-desktop` was not in `PATH`. `Makefile` now prepends Docker Desktop's bundled bin directory.
-- Next terminal run reached image pull and failed on `minio/minio` pull access denied. Local S3 was switched to LocalStack S3 for bootstrap continuity; this needs a D0 infra ADR before production-like environments.
+- Next terminal run reached image pull and failed on `minio/minio` pull access denied. LocalStack latest then required license activation. Local S3 was switched to Adobe S3Mock for bootstrap continuity; this needs a D0 infra ADR before production-like environments.
+- PostgreSQL 18 rejected the old `/var/lib/postgresql/data` mount layout. Compose now mounts the named volume at `/var/lib/postgresql`.
 
 Remaining:
 
