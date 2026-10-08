@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Middleware;
+namespace App\Http\Middleware\Tenancy;
 
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
