@@ -27,7 +27,7 @@ This step prepares the local infrastructure only. It does not implement Laravel,
 
 - [ ] PostgreSQL 18 starts and passes healthcheck.
 - [ ] Redis starts with append-only persistence and passes healthcheck.
-- [ ] MinIO starts and console is reachable.
+- [ ] Local S3-compatible storage starts. Current local bootstrap uses LocalStack S3 because the official MinIO Docker Hub image is not reliably pullable.
 - [ ] Mailpit starts and UI is reachable.
 - [ ] Data persists across `make down` and returns after `make up`.
 - [ ] `make reset-infra` removes local volumes when a clean reset is needed.
@@ -36,8 +36,7 @@ This step prepares the local infrastructure only. It does not implement Laravel,
 
 - PostgreSQL: `localhost:${POSTGRES_PORT:-5432}`
 - Redis: `localhost:${REDIS_PORT:-6379}`
-- MinIO API: `http://localhost:${MINIO_API_PORT:-9000}`
-- MinIO Console: `http://localhost:${MINIO_CONSOLE_PORT:-9001}`
+- Local S3 endpoint: `http://localhost:${S3_PORT:-4566}`
 - Mailpit UI: `http://localhost:${MAILPIT_UI_PORT:-8025}`
 
 ## Verification Commands
@@ -57,7 +56,7 @@ Expected successful `make ps` services:
 
 - `business-watchdog-postgres-1`
 - `business-watchdog-redis-1`
-- `business-watchdog-minio-1`
+- `business-watchdog-s3-1`
 - `business-watchdog-mailpit-1`
 
 ## Not Done In This Step
@@ -74,4 +73,5 @@ Expected successful `make ps` services:
 
 - Docker is not available in the current Codex execution environment, so the stack configuration was prepared but not run here.
 - Image tags are centralized in `.env.example`; D0 must pin exact production image tags/digests after compatibility verification.
+- MinIO is still mentioned in the product specification as the preferred local S3-compatible service, but its official Docker Hub image is not currently pullable. LocalStack S3 is used for the first bootstrap so development can continue; revisit this in D0 infra ADR.
 - Reference SQL is not mounted into PostgreSQL automatically because production schema must be created through reviewed Laravel migrations.

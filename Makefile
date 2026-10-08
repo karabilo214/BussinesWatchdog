@@ -9,6 +9,7 @@ COMPOSE ?= $(DOCKER) compose
 
 setup:
 	@test -f .env || cp .env.example .env
+	@if grep -q '^MINIO_IMAGE=' .env 2>/dev/null; then echo "Warning: .env contains old MINIO_* settings. Refresh from .env.example or replace them with S3_* settings."; fi
 	@echo "Local env ready. Review .env before starting services."
 
 check-tools:
@@ -18,7 +19,7 @@ check-tools:
 	@echo "Docker Compose is available."
 
 up: setup check-tools
-	$(COMPOSE) up -d postgres redis minio mailpit
+	$(COMPOSE) up -d postgres redis s3 mailpit
 
 down:
 	$(COMPOSE) down
