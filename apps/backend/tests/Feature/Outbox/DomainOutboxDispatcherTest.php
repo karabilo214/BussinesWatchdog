@@ -361,6 +361,20 @@ class DomainOutboxDispatcherTest extends TestCase
             ->assertSuccessful();
     }
 
+    public function test_console_command_can_run_bounded_loop(): void
+    {
+        [$tenant, $inbox] = $this->receivedEventInbox();
+        $this->outbox(
+            $tenant,
+            DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED,
+            ['event_inbox_id' => $inbox->id],
+        );
+
+        $this->artisan('outbox:dispatch --loop --max-iterations=2 --limit=5 --lease-seconds=30')
+            ->expectsOutputToContain('Outbox loop complete: iterations=2 leased=1 published=1 failed=0')
+            ->assertSuccessful();
+    }
+
     private function tenant(): Tenant
     {
         return Tenant::query()->create([

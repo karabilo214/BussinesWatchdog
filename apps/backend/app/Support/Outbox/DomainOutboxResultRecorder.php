@@ -7,6 +7,11 @@ use Illuminate\Support\Facades\DB;
 
 class DomainOutboxResultRecorder
 {
+    public function __construct(
+        private readonly DomainOutboxBackoff $backoff,
+    ) {
+    }
+
     public function markPublished(string $messageId): bool
     {
         return DB::transaction(function () use ($messageId): bool {
@@ -27,10 +32,9 @@ class DomainOutboxResultRecorder
         });
     }
 
-    public function markFailed(string $messageId, string $errorCode, int $maxAttempts = 5, int $retryDelaySeconds = 60): bool
+    public function markFailed(string $messageId, string $errorCode, int $maxAttempts = 5, ?int $retryDelaySeconds = null): bool
     {
         $maxAttempts = max(1, $maxAttempts);
-        $retryDelaySeconds = max(1, min($retryDelaySeconds, 86400));
 
         return DB::transaction(function () use ($messageId, $errorCode, $maxAttempts, $retryDelaySeconds): bool {
             $message = $this->currentLease($messageId);
@@ -42,11 +46,14 @@ class DomainOutboxResultRecorder
             $status = $message->attempts >= $maxAttempts
                 ? DomainOutbox::STATUS_DEAD_LETTER
                 : DomainOutbox::STATUS_PENDING;
+            $delaySeconds = $retryDelaySeconds === null
+                ? $this->backoff->retryDelaySeconds($message->attempts)
+                : max(1, min($retryDelaySeconds, 86400));
 
             $message->forceFill([
                 'status' => $status,
                 'lease_until' => null,
-                'next_attempt_at' => now()->addSeconds($retryDelaySeconds),
+                'next_attempt_at' => now()->addSeconds($delaySeconds),
                 'error_code' => $errorCode,
             ])->save();
 

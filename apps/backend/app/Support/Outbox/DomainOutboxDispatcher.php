@@ -17,6 +17,7 @@ class DomainOutboxDispatcher
         private readonly DomainOutboxLeaser $leaser,
         private readonly DomainOutboxResultRecorder $resultRecorder,
         private readonly EventInboxProcessor $eventInboxProcessor,
+        private readonly DomainOutboxSweeper $sweeper,
     ) {
     }
 
@@ -25,6 +26,8 @@ class DomainOutboxDispatcher
      */
     public function dispatchDue(int $limit = 50, int $leaseSeconds = 60): array
     {
+        $this->sweeper->releaseExpiredLeases();
+
         $leased = $this->leaser->leaseDue($limit, $leaseSeconds);
         $published = 0;
         $failed = 0;

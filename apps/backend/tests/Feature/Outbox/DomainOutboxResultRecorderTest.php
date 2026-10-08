@@ -45,6 +45,26 @@ class DomainOutboxResultRecorderTest extends TestCase
         $this->assertTrue($message->next_attempt_at->greaterThan(now()->addSeconds(90)));
     }
 
+    public function test_it_uses_exponential_backoff_with_jitter_by_default(): void
+    {
+        $message = $this->outbox(attempts: 3);
+        $before = now();
+
+        $recorded = app(DomainOutboxResultRecorder::class)->markFailed(
+            $message->id,
+            'temporary_failure',
+            maxAttempts: 5,
+        );
+
+        $this->assertTrue($recorded);
+        $message->refresh();
+        $this->assertSame(DomainOutbox::STATUS_PENDING, $message->status);
+        $this->assertTrue($message->next_attempt_at->betweenIncluded(
+            $before->copy()->addSeconds(96),
+            $before->copy()->addSeconds(144),
+        ));
+    }
+
     public function test_it_dead_letters_failed_active_lease_at_max_attempts(): void
     {
         $message = $this->outbox(attempts: 5);

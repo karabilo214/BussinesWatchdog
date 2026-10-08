@@ -664,3 +664,28 @@ Remaining:
 
 - Add external schema validator only if future contract complexity justifies another dependency.
 - Add admin quarantine/dead-letter UI, manual replay summaries, allocation services, reconciliation, and outbox sweeper in later steps.
+
+### Step 28: Domain Outbox Worker Recovery
+
+Status: complete
+
+Added:
+
+- `DomainOutboxBackoff` with exponential retry delay and jitter.
+- `DomainOutboxSweeper` for explicit expired lease recovery.
+- Dispatcher sweeper pass before each leasing cycle.
+- Bounded loop mode for `outbox:dispatch`.
+- Focused tests for retry backoff, expired lease recovery, and loop dispatch.
+- `docs/implementation-step-28-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for changed outbox command/support/test files.
+- `php artisan test tests/Feature/Outbox/DomainOutboxResultRecorderTest.php` passed: 6 tests, 22 assertions.
+- `php artisan test tests/Feature/Outbox/DomainOutboxDispatcherTest.php` passed: 14 tests, 46 assertions.
+- `php artisan test tests/Feature/Outbox/DomainOutboxSweeperTest.php` passed: 1 test, 3 assertions.
+- `php artisan test` passed: 86 tests, 283 assertions.
+
+Remaining:
+
+- Add scheduler/Horizon process integration, manual replay/dead-letter UI, tenant fairness, and event inbox processing leases in later steps.
