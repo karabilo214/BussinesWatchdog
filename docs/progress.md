@@ -60,3 +60,28 @@ Remaining:
 - Generate frontend Vue/Vite application in `apps/frontend`.
 - Generate browser worker package in `apps/browser-worker`.
 - Add CI and real health endpoints.
+
+### Step 03: Backend Runtime Bootstrap
+
+Status: prepared, not built in Codex sandbox
+
+Added:
+
+- PHP 8.4 CLI/FPM Dockerfile under `infra/docker/backend`.
+- nginx config for Laravel under `infra/nginx/backend.conf`.
+- backend Compose services behind `tools` and `app` profiles.
+- Makefile targets: `backend-build`, `backend-create`, `backend-shell`, `backend-up`, `backend-logs`.
+- `infra/scripts/create-backend.sh` to create Laravel from inside the PHP 8.4 container.
+- `docs/implementation-step-03-checklist.md`.
+
+Verification:
+
+- Host PHP is 8.1.31, so backend generation must run inside Docker PHP 8.4, not host Composer.
+- Docker socket remains unavailable from Codex sandbox, so `make backend-build` and `make backend-create` must be run from the normal terminal.
+
+Remaining:
+
+- Run `make backend-build`.
+- Run `make backend-create`.
+- Add health endpoints after Laravel files exist.
+- Add D1 auth/tenant/store migrations and tests.

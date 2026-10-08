@@ -5,7 +5,7 @@ export PATH := $(DOCKER_APP_BIN):$(PATH)
 DOCKER ?= $(shell if command -v docker >/dev/null 2>&1; then command -v docker; elif [ -x $(DOCKER_APP_BIN)/docker ]; then printf '%s\n' $(DOCKER_APP_BIN)/docker; else printf '%s\n' docker; fi)
 COMPOSE ?= $(DOCKER) compose
 
-.PHONY: setup up down ps logs reset-infra check-tools
+.PHONY: setup up down ps logs reset-infra check-tools backend-build backend-create backend-shell backend-up backend-logs
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -32,3 +32,18 @@ logs:
 
 reset-infra:
 	$(COMPOSE) down -v
+
+backend-build: check-tools
+	$(COMPOSE) build backend-cli backend
+
+backend-create: check-tools
+	$(COMPOSE) run --rm backend-cli sh /workspace/infra/scripts/create-backend.sh
+
+backend-shell: check-tools
+	$(COMPOSE) run --rm backend-cli sh
+
+backend-up: setup check-tools
+	$(COMPOSE) --profile app up -d backend nginx
+
+backend-logs:
+	$(COMPOSE) logs -f --tail=200 backend nginx
