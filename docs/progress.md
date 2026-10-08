@@ -787,3 +787,27 @@ Verification:
 Remaining:
 
 - Add public reconciliation/findings API, dirty-order coalescing and nightly sweep scheduling, the remaining rule codes (`MONEY_PAYMENT_WITHOUT_ORDER`, `MONEY_MULTIPLE_CAPTURES`, `MONEY_CURRENCY_MISMATCH`, `MONEY_ORDER_CHANGED`), `rule_configs`-backed versioned tolerance/grace, failed-run diagnostics outside the evaluation transaction, and incident engine correlation in later steps.
+
+### Step 33: Remaining Reconciliation Rules
+
+Status: complete for the remaining section-14 rule codes
+
+Added:
+
+- `OrderReconciliationService::activeCaptureAllocations()` shared lookup, reused by the capture-amount, multiple-captures, and order-changed checks.
+- `MONEY_MULTIPLE_CAPTURES`, `MONEY_CURRENCY_MISMATCH`, and `MONEY_ORDER_CHANGED` as additional per-order rules — all three turned out to be resolvable from data already scoped to the order, not a store-wide scan.
+- `UnmatchedPaymentScanner::scan(Store $store)`: a genuinely store-wide scan for `MONEY_PAYMENT_WITHOUT_ORDER` — succeeded captures older than a 24h orphan grace with no active allocation, capped at 100 findings per run.
+- New `ReconciliationFinding` rule-code constants for all four.
+- Focused tests for each rule's present/absent cases.
+- `docs/implementation-step-33-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed (PHP 8.4) for all changed/added files.
+- `php vendor/bin/pint --test` on changed/added files: clean.
+- `php artisan test` (PHP 8.4) passed: 123 tests, 387 assertions.
+- No schema change in this step, so no additional PostgreSQL migration verification was needed.
+
+Remaining:
+
+- Public reconciliation/findings API (Step 34), `rule_configs`-backed versioned tolerance/grace, nightly sweep scheduling and dedup, incident engine correlation, and the `GET /stores/{id}/unmatched-payments` candidate-suggestion endpoint.

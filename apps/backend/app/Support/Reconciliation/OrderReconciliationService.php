@@ -2,12 +2,16 @@
 
 namespace App\Support\Reconciliation;
 
+use App\Models\FinancialTransaction;
 use App\Models\Order;
+use App\Models\OrderRevision;
+use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Refund;
 use App\Models\RefundAllocation;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -54,9 +58,14 @@ class OrderReconciliationService
                     'evidence' => ['financial_support' => $lockedOrder->financial_support],
                 ], $now);
             } else {
+                $allocations = $this->activeCaptureAllocations($lockedOrder);
+
                 $findings = array_merge(
                     $findings,
-                    $this->evaluateCaptureRules($run, $lockedOrder, $now),
+                    $this->evaluateCaptureRules($run, $lockedOrder, $allocations, $now),
+                    $this->evaluateMultipleCaptures($run, $lockedOrder, $allocations, $now),
+                    $this->evaluateCurrencyMismatch($run, $lockedOrder, $now),
+                    $this->evaluateOrderChanged($run, $lockedOrder, $allocations, $now),
                     $this->evaluateRefundRules($run, $lockedOrder, $now),
                 );
             }
@@ -76,18 +85,25 @@ class OrderReconciliationService
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return Collection<int, PaymentAllocation>
      */
-    private function evaluateCaptureRules(ReconciliationRun $run, Order $order, Carbon $now): array
+    private function activeCaptureAllocations(Order $order): Collection
     {
-        $gross = $order->total_minor;
-
-        $capturedMinor = (int) PaymentAllocation::query()
+        return PaymentAllocation::query()
             ->where('order_id', $order->id)
             ->whereNull('revoked_at')
             ->lockForUpdate()
-            ->get()
-            ->sum('amount_minor');
+            ->get();
+    }
+
+    /**
+     * @param  Collection<int, PaymentAllocation>  $allocations
+     * @return list<array<string, mixed>>
+     */
+    private function evaluateCaptureRules(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array
+    {
+        $gross = $order->total_minor;
+        $capturedMinor = (int) $allocations->sum('amount_minor');
 
         if ($order->paid_marked_at !== null && $gross > 0) {
             if ($capturedMinor === 0) {
@@ -134,6 +150,103 @@ class OrderReconciliationService
             'difference_minor' => $difference,
             'evidence' => [],
         ], $now);
+    }
+
+    /**
+     * @param  Collection<int, PaymentAllocation>  $allocations
+     * @return list<array<string, mixed>>
+     */
+    private function evaluateMultipleCaptures(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array
+    {
+        $distinctCaptureTransactionIds = $allocations->pluck('capture_transaction_id')->unique();
+
+        if ($distinctCaptureTransactionIds->count() <= 1) {
+            return [];
+        }
+
+        return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_MULTIPLE_CAPTURES, [
+            'status' => ReconciliationFinding::STATUS_MISMATCH,
+            'reason_code' => 'multiple_distinct_captures',
+            'evidence' => ['capture_transaction_ids' => $distinctCaptureTransactionIds->values()->all()],
+        ], $now)];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function evaluateCurrencyMismatch(ReconciliationRun $run, Order $order, Carbon $now): array
+    {
+        if ($order->transaction_ref === null) {
+            return [];
+        }
+
+        $candidate = Payment::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('store_id', $order->store_id)
+            ->where(function ($query) use ($order) {
+                $query->where('intent_ref', $order->transaction_ref)
+                    ->orWhere('charge_ref', $order->transaction_ref);
+            })
+            ->first();
+
+        if ($candidate === null || $candidate->currency === $order->currency) {
+            return [];
+        }
+
+        return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_CURRENCY_MISMATCH, [
+            'status' => ReconciliationFinding::STATUS_MISMATCH,
+            'reason_code' => 'currency_mismatch_detected',
+            'payment_id' => $candidate->id,
+            'evidence' => ['order_currency' => $order->currency, 'payment_currency' => $candidate->currency],
+        ], $now)];
+    }
+
+    /**
+     * @param  Collection<int, PaymentAllocation>  $allocations
+     * @return list<array<string, mixed>>
+     */
+    private function evaluateOrderChanged(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array
+    {
+        $captureTransactionIds = $allocations->pluck('capture_transaction_id')->unique();
+
+        if ($captureTransactionIds->isEmpty()) {
+            return [];
+        }
+
+        $earliestCaptureAt = FinancialTransaction::query()
+            ->whereIn('id', $captureTransactionIds)
+            ->min('occurred_at');
+
+        if ($earliestCaptureAt === null) {
+            return [];
+        }
+
+        /** @var OrderRevision|null $baselineRevision */
+        $baselineRevision = OrderRevision::query()
+            ->where('order_id', $order->id)
+            ->where('observed_at', '<=', $earliestCaptureAt)
+            ->orderByDesc('observed_at')
+            ->orderByDesc('source_revision')
+            ->first();
+
+        if ($baselineRevision === null) {
+            return [];
+        }
+
+        $baselineTotalMinor = (int) ($baselineRevision->snapshot['data']['total_minor'] ?? $order->total_minor);
+
+        if ($baselineTotalMinor === $order->total_minor) {
+            return [];
+        }
+
+        return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_ORDER_CHANGED, [
+            'status' => ReconciliationFinding::STATUS_MISMATCH,
+            'reason_code' => 'order_changed_after_capture',
+            'expected_minor' => $baselineTotalMinor,
+            'actual_minor' => $order->total_minor,
+            'difference_minor' => $order->total_minor - $baselineTotalMinor,
+            'evidence' => ['capture_occurred_at' => (string) $earliestCaptureAt],
+        ], $now)];
     }
 
     /**

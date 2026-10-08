@@ -28,6 +28,14 @@ class ReconciliationFinding extends Model
 
     public const RULE_REFUND_EXTRA = 'MONEY_REFUND_EXTRA';
 
+    public const RULE_PAYMENT_WITHOUT_ORDER = 'MONEY_PAYMENT_WITHOUT_ORDER';
+
+    public const RULE_MULTIPLE_CAPTURES = 'MONEY_MULTIPLE_CAPTURES';
+
+    public const RULE_CURRENCY_MISMATCH = 'MONEY_CURRENCY_MISMATCH';
+
+    public const RULE_ORDER_CHANGED = 'MONEY_ORDER_CHANGED';
+
     public const RULE_UNSUPPORTED = 'MONEY_UNSUPPORTED';
 
     public $timestamps = false;

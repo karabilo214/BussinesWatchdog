@@ -5,6 +5,7 @@ namespace Tests\Feature\Reconciliation;
 use App\Models\FinancialTransaction;
 use App\Models\Integration;
 use App\Models\Order;
+use App\Models\OrderRevision;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
@@ -141,6 +142,113 @@ class OrderReconciliationServiceTest extends TestCase
         $finding = $findings[ReconciliationFinding::RULE_REFUND_MISSING];
         $this->assertSame(ReconciliationFinding::STATUS_OK, $finding->status);
         $this->assertSame('refund_reconciled_ok', $finding->reason_code);
+    }
+
+    public function test_it_reports_multiple_captures_when_two_distinct_captures_are_allocated(): void
+    {
+        $order = $this->order(['paid_marked_at' => now()->subMinutes(10)]);
+        $this->allocateCapture($order, 10000, 10000);
+        $this->allocateCapture($order, 8400, 8400);
+
+        $run = app(OrderReconciliationService::class)->evaluate($order);
+
+        $findings = $run->findings()->get()->keyBy('rule_code');
+        $this->assertSame(ReconciliationFinding::STATUS_MISMATCH, $findings[ReconciliationFinding::RULE_MULTIPLE_CAPTURES]->status);
+        $this->assertSame(ReconciliationFinding::STATUS_OK, $findings[ReconciliationFinding::RULE_CAPTURE_AMOUNT]->status);
+    }
+
+    public function test_it_does_not_report_multiple_captures_for_a_single_capture(): void
+    {
+        $order = $this->order(['paid_marked_at' => now()->subMinutes(10)]);
+        $this->allocateCapture($order, 18400, 18400);
+
+        $run = app(OrderReconciliationService::class)->evaluate($order);
+
+        $this->assertFalse($run->findings()->get()->keyBy('rule_code')->has(ReconciliationFinding::RULE_MULTIPLE_CAPTURES));
+    }
+
+    public function test_it_reports_currency_mismatch_when_the_referenced_payment_currency_differs(): void
+    {
+        $order = $this->order(['paid_marked_at' => now()->subMinutes(10), 'transaction_ref' => 'pi_mismatch_1']);
+        Payment::query()->create([
+            'tenant_id' => $order->tenant_id,
+            'store_id' => $order->store_id,
+            'integration_id' => $order->integration_id,
+            'external_id' => fake()->uuid(),
+            'intent_ref' => 'pi_mismatch_1',
+            'charge_ref' => 'ch_mismatch_1',
+            'mode' => 'live',
+            'currency' => 'USD',
+            'currency_exponent' => 2,
+            'status' => 'captured',
+            'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+            'source_updated_at' => now()->subMinute(),
+            'current_payload_hash' => hash('sha256', fake()->uuid()),
+            'metadata' => [],
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $run = app(OrderReconciliationService::class)->evaluate($order);
+
+        $finding = $run->findings()->get()->keyBy('rule_code')[ReconciliationFinding::RULE_CURRENCY_MISMATCH];
+        $this->assertSame(ReconciliationFinding::STATUS_MISMATCH, $finding->status);
+    }
+
+    public function test_it_does_not_report_currency_mismatch_without_a_transaction_ref(): void
+    {
+        $order = $this->order(['paid_marked_at' => now()->subMinutes(10), 'transaction_ref' => null]);
+
+        $run = app(OrderReconciliationService::class)->evaluate($order);
+
+        $this->assertFalse($run->findings()->get()->keyBy('rule_code')->has(ReconciliationFinding::RULE_CURRENCY_MISMATCH));
+    }
+
+    public function test_it_reports_order_changed_when_total_differs_from_the_revision_active_at_capture_time(): void
+    {
+        $order = $this->order(['paid_marked_at' => now()->subHours(2), 'total_minor' => 18400]);
+        OrderRevision::query()->create([
+            'tenant_id' => $order->tenant_id,
+            'store_id' => $order->store_id,
+            'order_id' => $order->id,
+            'event_id' => null,
+            'source_revision' => 1,
+            'snapshot' => ['data' => ['total_minor' => '10000']],
+            'payload_hash' => hash('sha256', fake()->uuid()),
+            'observed_at' => now()->subHours(3),
+            'created_at' => now()->subHours(3),
+        ]);
+        $this->allocateCapture($order, 10000, 10000);
+
+        $run = app(OrderReconciliationService::class)->evaluate($order);
+
+        $findings = $run->findings()->get()->keyBy('rule_code');
+        $orderChanged = $findings[ReconciliationFinding::RULE_ORDER_CHANGED];
+        $this->assertSame(ReconciliationFinding::STATUS_MISMATCH, $orderChanged->status);
+        $this->assertSame(10000, $orderChanged->expected_minor);
+        $this->assertSame(18400, $orderChanged->actual_minor);
+        $this->assertSame(8400, $orderChanged->difference_minor);
+    }
+
+    public function test_it_does_not_report_order_changed_when_total_matches_the_revision_at_capture_time(): void
+    {
+        $order = $this->order(['paid_marked_at' => now()->subHours(2), 'total_minor' => 18400]);
+        OrderRevision::query()->create([
+            'tenant_id' => $order->tenant_id,
+            'store_id' => $order->store_id,
+            'order_id' => $order->id,
+            'event_id' => null,
+            'source_revision' => 1,
+            'snapshot' => ['data' => ['total_minor' => '18400']],
+            'payload_hash' => hash('sha256', fake()->uuid()),
+            'observed_at' => now()->subHours(3),
+            'created_at' => now()->subHours(3),
+        ]);
+        $this->allocateCapture($order, 18400, 18400);
+
+        $run = app(OrderReconciliationService::class)->evaluate($order);
+
+        $this->assertFalse($run->findings()->get()->keyBy('rule_code')->has(ReconciliationFinding::RULE_ORDER_CHANGED));
     }
 
     public function test_replaying_evaluation_creates_a_new_run_and_preserves_finding_history(): void
