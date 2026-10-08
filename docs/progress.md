@@ -834,3 +834,28 @@ Verification:
 Remaining:
 
 - Order/payment detail reads and the unmatched-payments candidate-suggestion endpoint, windowed bulk reconciliation triggers, true dry-run, cursor signing, rate limiting, and an idempotency-key expiry cleanup job.
+
+### Step 35: Order And Payment Detail Reads
+
+Status: complete for the three deferred detail/candidate-suggestion endpoints
+
+Added:
+
+- `GET /orders/{id}`: order fields plus latest finding per rule, captures, Woo-side refunds, refund transactions, allocations, and revision history.
+- `GET /payments/{id}`: payment fields plus latest finding per rule, transactions, and allocations (both directions).
+- `GET /stores/{id}/unmatched-payments`: exact-candidate (by `transaction_ref`) and manual-review (by same currency/amount, ranked by time proximity in PHP, not DB-specific SQL) suggestions for orphaned captures. Read-only — never writes an allocation itself.
+- `App\Support\Api\UuidCursor`, extracted out of `ReconciliationController` and reused for the new unmatched-payments cursor.
+- New `OrderDto`, `RefundDto`, `OrderRevisionDto`, `PaymentDto`, `FinancialTransactionDto`.
+- Focused tests for all three endpoints, including cross-tenant 404s and the already-allocated-is-excluded case.
+- `docs/implementation-step-35-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed (PHP 8.4) for all new/changed files.
+- `php vendor/bin/pint --test`: clean.
+- `php artisan test` (PHP 8.4) passed: 156 tests, 498 assertions.
+- No schema change in this step, so no additional PostgreSQL migration verification was needed.
+
+Remaining:
+
+- Windowed bulk reconciliation triggers, true dry-run, cursor signing, rate limiting, idempotency-key expiry cleanup, automatic matcher, nightly allocation audit, and the incident engine.

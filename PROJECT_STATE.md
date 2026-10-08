@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-08 (Step 34)
+2026-10-08 (Step 35)
 
 ## Что это за проект
 
@@ -14,7 +14,7 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 Репозиторий сейчас в фазе **D1–D4 бэкенд-слайсов** (по внутренней нумерации шагов `docs/progress.md`, не всегда совпадает 1:1 с разделом 36 ТЗ). P0 pilot пока не достигнут — минимальный кабинет, браузерные проверки, incident engine и email ещё не реализованы.
 
-Реализовано (backend, `apps/backend`, до Step 34 включительно):
+Реализовано (backend, `apps/backend`, до Step 35 включительно):
 
 - Локальный инфраструктурный bootstrap (Docker Compose: PostgreSQL 18, Redis, S3Mock вместо MinIO, Mailpit).
 - Auth/tenancy: регистрация, сессии (пока без Sanctum), membership/roles.
@@ -28,7 +28,9 @@ Business Watchdog — SaaS для обнаружения финансовых р
 - Reconciliation foundation: таблицы `reconciliation_runs`/`reconciliation_findings`, `OrderReconciliationService::evaluate()` — считает G/C/RW/RP по одному заказу. Правила: `MONEY_UNSUPPORTED`, `MONEY_CAPTURE_MISSING`, `MONEY_CAPTURE_AMOUNT`, `MONEY_REFUND_MISSING`, `MONEY_REFUND_EXTRA`, `MONEY_MULTIPLE_CAPTURES`, `MONEY_CURRENCY_MISMATCH`, `MONEY_ORDER_CHANGED` (все — per-order, несмотря на то, что три последних сначала казались store-wide). `MONEY_PAYMENT_WITHOUT_ORDER` — единственное действительно store-wide правило, отдельный `UnmatchedPaymentScanner`. Все 9 rule-кодов раздела 14 ТЗ покрыты. Синхронно, без scheduler/nightly sweep/dirty-order coalescing.
 - Публичный API allocation + reconciliation: `POST /payment-allocations[/{id}/revoke]`, `POST /refund-allocations[/{id}/revoke]`, `POST /stores/{id}/reconciliations`, `GET /stores/{id}/findings`. Новая инфраструктура `Idempotency-Key` (`idempotency_keys` таблица + middleware, reserve-then-run mutex через unique constraint) обязательна на всех create/trigger-мутациях. По ходу закрыт реальный пробел в `PaymentAllocationService::allocateRefund` — refund и payment_allocation теперь должны принадлежать одному заказу (`ERROR_ORDER_MISMATCH`).
 
-147 тестов, 453 assertions проходят (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker.
+- Детальные GET-эндпоинты: `GET /orders/{id}` (поля заказа + последний finding по каждому rule_code + captures/refunds/refund_transactions/allocations/revisions), `GET /payments/{id}` (аналогично для платежа), `GET /stores/{id}/unmatched-payments` (подсказки exact_candidate/manual_review для orphan-captures, read-only, ничего не пишет). Общий `App\Support\Api\UuidCursor` для курсорной пагинации.
+
+156 тестов, 498 assertions проходят (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker.
 
 Известные зафиксированные отклонения от спеки — `docs/adr/0001-bootstrap-deviations.md` (S3Mock вместо MinIO, нет Sanctum, упрощённые FK в projection-таблицах, неполная JSON Schema валидация ingest, store verification без реальной внешней проверки, pairing без полного anti-abuse).
 
@@ -36,15 +38,16 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 ## Следующий шаг
 
-По "Not Done In This Step" из `docs/implementation-step-34-checklist.md`:
+Договорённость с пользователем: следующий крупный шаг — **incident engine** (раздел 22 ТЗ) поверх findings. Сейчас есть только findings (reconciliation), но нет incidents/signals/уведомлений. Нужно:
 
-1. `GET /orders/{id}`, `GET /payments/{id}`, `GET /stores/{id}/unmatched-payments` — детальные карточки заказа/платежа и candidate-suggestion для orphan-captures (сознательно не делал, т.к. это не allocation/reconciliation).
-2. Dirty-order coalescing (30с), пересчёт по grace-дедлайну и nightly sweep (90 дней) — сейчас только on-demand синхронно (по order_ids или store-wide scan).
-3. `rule_configs`: версионируемые tolerance/grace вместо текущих constants в сервисах.
-4. Windowed bulk reconciliation trigger (`from`/`to` вместо только `order_ids`), настоящий `dry_run`, подписанный cursor, rate limiting на `POST /stores/{id}/reconciliations`, очистка просроченных `idempotency_keys`.
-5. Автоматический matcher (раздел 13 ТЗ) сверх текущих ручных allocation primitives.
-6. Nightly allocation audit.
-7. Incident engine поверх findings (критичность, корреляция, авто-resolve) — сейчас только finding, без инцидентов/уведомлений.
+1. Таблицы `incidents`, `incident_signals`, `incident_activity`, `suppressions` (`spec/database/schema.sql`).
+2. Correlation: объединение findings/signals в incident по ключу tenant/store + family + component/currency/entity (раздел 22).
+3. Severity (info/warning/critical), confidence (observed/corroborated/inferred/unknown).
+4. State machine: open → acknowledged → resolved, snooze/suppression отдельно от state, reopen в течение 24ч.
+5. Auto-resolve правила (2 последовательных успешных проверки и т.п. — зависит от типа инцидента; для money — fresh reconciliation ok по всем active findings).
+6. Публичный API: `GET /incidents`, `GET /incidents/{id}`, `POST /incidents/{id}/acknowledge`, `/resolve`, `/comments`, `/snooze`.
+
+После этого остаются более мелкие доработки (не блокируют): dirty-order coalescing/nightly sweep, `rule_configs`-версионирование, windowed bulk trigger, настоящий `dry_run`, подписанный cursor, rate limiting, очистка `idempotency_keys`, автоматический matcher, nightly allocation audit, уведомления (email/Telegram) поверх incidents.
 
 Параллельно остаются открытыми более ранние gaps из ADR 0001 (Sanctum, DNS/connector верификация домена, полная JSON Schema валидация) — не блокируют текущий слайс, но нужны до P0/P1 acceptance.
 

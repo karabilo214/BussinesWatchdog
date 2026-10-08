@@ -4,10 +4,13 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Ingest\EventsController;
 use App\Http\Controllers\Api\V1\Ingest\HeartbeatController;
 use App\Http\Controllers\Api\V1\Integrations\IntegrationController;
+use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Pairing\PairingCodeController;
 use App\Http\Controllers\Api\V1\Pairing\PairingExchangeController;
 use App\Http\Controllers\Api\V1\Payments\PaymentAllocationController;
+use App\Http\Controllers\Api\V1\Payments\PaymentController;
 use App\Http\Controllers\Api\V1\Payments\RefundAllocationController;
+use App\Http\Controllers\Api\V1\Payments\UnmatchedPaymentController;
 use App\Http\Controllers\Api\V1\Reconciliation\ReconciliationController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
 use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
@@ -63,6 +66,13 @@ Route::middleware(['web', 'auth', 'tenant.session'])->prefix('/v1')->group(funct
         ->middleware(['tenant.role:'.implode(',', TenantRoles::reconciliationTrigger()), 'idempotency']);
     Route::get('/stores/{store}/findings', [ReconciliationController::class, 'findings'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
+    Route::get('/stores/{store}/unmatched-payments', [UnmatchedPaymentController::class, 'index'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
+
+    Route::get('/orders/{order}', [OrderController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
 });
 
 Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store']);

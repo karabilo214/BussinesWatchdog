@@ -10,11 +10,11 @@ use App\Models\Order;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Store;
+use App\Support\Api\UuidCursor;
 use App\Support\Reconciliation\OrderReconciliationService;
 use App\Support\Reconciliation\UnmatchedPaymentScanner;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
 
 class ReconciliationController extends Controller
 {
@@ -104,7 +104,7 @@ class ReconciliationController extends Controller
         }
 
         if (isset($validated['cursor'])) {
-            $cursorId = $this->decodeCursor($validated['cursor']);
+            $cursorId = UuidCursor::decode($validated['cursor']);
             abort_if($cursorId === null, 400, 'Invalid cursor.');
 
             $query->where('id', '>', $cursorId);
@@ -119,7 +119,7 @@ class ReconciliationController extends Controller
         if ($hasMore && $items->isNotEmpty()) {
             /** @var ReconciliationFinding $last */
             $last = $items->last();
-            $nextCursor = $this->encodeCursor($last->id);
+            $nextCursor = UuidCursor::encode($last->id);
         }
 
         return response()->json([
@@ -146,21 +146,5 @@ class ReconciliationController extends Controller
             'started_at' => $run->started_at?->toJSON(),
             'finished_at' => $run->finished_at?->toJSON(),
         ];
-    }
-
-    private function encodeCursor(string $id): string
-    {
-        return base64_encode($id);
-    }
-
-    private function decodeCursor(string $cursor): ?string
-    {
-        $decoded = base64_decode($cursor, true);
-
-        if ($decoded === false || ! Str::isUuid($decoded)) {
-            return null;
-        }
-
-        return $decoded;
     }
 }
