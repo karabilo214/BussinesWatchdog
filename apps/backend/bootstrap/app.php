@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         DispatchDomainOutbox::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->validateCsrfTokens(except: [
+        $middleware->preventRequestForgery(except: [
             'api/*',
         ]);
         $middleware->alias([
