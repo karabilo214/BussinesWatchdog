@@ -125,6 +125,132 @@ class StoreApiTest extends TestCase
             ->assertJsonValidationErrors(['base_url']);
     }
 
+    public function test_user_can_update_store_with_matching_version(): void
+    {
+        [$user, $tenant] = $this->userWithTenant();
+        $store = Store::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Old Shop',
+            'base_url' => 'https://old.example.test',
+            'timezone' => 'Europe/Kyiv',
+            'default_currency' => 'EUR',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->withHeader('If-Match', (string) $store->refresh()->config_version)
+            ->patchJson("/api/v1/stores/{$store->id}", [
+                'name' => 'Updated Shop',
+                'timezone' => 'Europe/Berlin',
+                'default_currency' => 'usd',
+                'status' => 'active',
+                'telemetry_enabled' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('name', 'Updated Shop')
+            ->assertJsonPath('timezone', 'Europe/Berlin')
+            ->assertJsonPath('default_currency', 'USD')
+            ->assertJsonPath('status', 'active')
+            ->assertJsonPath('telemetry_enabled', true)
+            ->assertJsonPath('config_version', 2);
+    }
+
+    public function test_store_update_rejects_stale_version(): void
+    {
+        [$user, $tenant] = $this->userWithTenant();
+        $store = Store::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Old Shop',
+            'base_url' => 'https://old.example.test',
+            'timezone' => 'Europe/Kyiv',
+            'default_currency' => 'EUR',
+            'config_version' => 2,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->withHeader('If-Match', '1')
+            ->patchJson("/api/v1/stores/{$store->id}", [
+                'name' => 'Updated Shop',
+            ])
+            ->assertConflict()
+            ->assertJsonPath('code', 'version_conflict');
+
+        $this->assertDatabaseHas('stores', [
+            'id' => $store->id,
+            'name' => 'Old Shop',
+            'config_version' => 2,
+        ]);
+    }
+
+    public function test_store_update_requires_if_match_header(): void
+    {
+        [$user, $tenant] = $this->userWithTenant();
+        $store = Store::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Old Shop',
+            'base_url' => 'https://old.example.test',
+            'timezone' => 'Europe/Kyiv',
+            'default_currency' => 'EUR',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->patchJson("/api/v1/stores/{$store->id}", [
+                'name' => 'Updated Shop',
+            ])
+            ->assertStatus(428);
+    }
+
+    public function test_store_base_url_change_resets_verification_and_browser_flag(): void
+    {
+        [$user, $tenant] = $this->userWithTenant();
+        $store = Store::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Old Shop',
+            'base_url' => 'https://old.example.test',
+            'timezone' => 'Europe/Kyiv',
+            'default_currency' => 'EUR',
+            'verified_at' => now(),
+            'browser_enabled' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->withHeader('If-Match', (string) $store->refresh()->config_version)
+            ->patchJson("/api/v1/stores/{$store->id}", [
+                'base_url' => 'https://new.example.test/',
+            ])
+            ->assertOk()
+            ->assertJsonPath('base_url', 'https://new.example.test')
+            ->assertJsonPath('verified_at', null)
+            ->assertJsonPath('browser_enabled', false);
+    }
+
+    public function test_user_cannot_update_foreign_store(): void
+    {
+        [$user, $tenant] = $this->userWithTenant();
+        $otherTenant = Tenant::query()->create([
+            'name' => 'Other Tenant',
+            'timezone' => 'Europe/Kyiv',
+        ]);
+        $foreignStore = Store::query()->create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Hidden Shop',
+            'base_url' => 'https://hidden.example.test',
+            'timezone' => 'Europe/Kyiv',
+            'default_currency' => 'EUR',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->withHeader('If-Match', (string) $foreignStore->refresh()->config_version)
+            ->patchJson("/api/v1/stores/{$foreignStore->id}", [
+                'name' => 'Updated Shop',
+            ])
+            ->assertNotFound();
+    }
+
     /**
      * @return array{0: User, 1: Tenant}
      */

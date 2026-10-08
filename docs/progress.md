@@ -210,6 +210,31 @@ Remaining:
 - Add PATCH store and optimistic versioning.
 - Add domain verification and pairing flows later.
 
+### Step 09: Store Update With Optimistic Versioning
+
+Status: prepared, test run pending
+
+Added:
+
+- `PATCH /api/v1/stores/{store}`.
+- `UpdateStoreRequest`.
+- `If-Match`/`config_version` optimistic concurrency.
+- 409 `version_conflict` response for stale updates.
+- Base URL change resets `verified_at` and disables browser checks.
+- Feature tests for update success, stale version, missing header, base URL reset, and foreign tenant rejection.
+- `docs/implementation-step-09-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add role policy checks.
+- Add store verification and pairing flows later.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete

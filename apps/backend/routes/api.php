@@ -22,4 +22,5 @@ Route::middleware(['web', 'auth', 'tenant.session'])->prefix('/v1')->group(funct
     Route::get('/stores', [StoreController::class, 'index']);
     Route::post('/stores', [StoreController::class, 'store']);
     Route::get('/stores/{store}', [StoreController::class, 'show']);
+    Route::patch('/stores/{store}', [StoreController::class, 'update']);
 });
