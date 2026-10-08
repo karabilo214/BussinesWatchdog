@@ -361,7 +361,7 @@ Remaining:
 
 ### Step 15: Domain Outbox Foundation
 
-Status: implemented, test run pending
+Status: complete for domain outbox foundation
 
 Added:
 
@@ -375,12 +375,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for migration, model, ingest controller, and tests.
+- User ran `php artisan test`; 58 tests passed with 188 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add outbox leasing/dispatcher, projection worker, dead-letter transitions, retry/backoff, and consumer idempotency tests.
 
 ### Specification Update: Mandatory Three-Language Portal

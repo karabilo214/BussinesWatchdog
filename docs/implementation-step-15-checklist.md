@@ -20,6 +20,7 @@ This step adds the durable domain outbox table and creates a pending outbox mess
 - [x] Accepted event creates pending domain outbox row.
 - [x] Identical duplicate event does not create duplicate outbox rows.
 - [x] Mixed valid/invalid batch creates outbox only for accepted records.
+- [x] Run `php artisan test`; 58 tests passed with 188 assertions.
 
 ## Not Done In This Step
 
