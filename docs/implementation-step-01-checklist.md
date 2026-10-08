@@ -19,6 +19,7 @@ This step prepares the local infrastructure only. It does not implement Laravel,
 - [ ] Confirm `docker --version` works.
 - [ ] Confirm `docker compose version` works.
 - [ ] If Docker Desktop is installed but `docker` is not in `PATH`, confirm `make check-tools` can find `/Applications/Docker.app/Contents/Resources/bin/docker`.
+- [ ] Confirm Docker Desktop credential helpers are reachable. The `Makefile` prepends `/Applications/Docker.app/Contents/Resources/bin` to `PATH` for this.
 - [ ] Copy `.env.example` to `.env` using `make setup`.
 - [ ] Review local-only credentials in `.env`.
 

@@ -19,6 +19,7 @@ Verification:
 - Docker version: 27.5.1.
 - Docker Compose version: v2.32.4-desktop.1.
 - Docker Desktop was started, but this Codex session cannot access `/Users/karabin/.docker/run/docker.sock` due to sandbox permissions. Run `make up` from a normal terminal.
+- First terminal run reached image pull, then failed because `docker-credential-desktop` was not in `PATH`. `Makefile` now prepends Docker Desktop's bundled bin directory.
 
 Remaining:
 
