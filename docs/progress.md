@@ -456,7 +456,7 @@ Remaining:
 
 ### Step 19: Event Inbox Processor Skeleton
 
-Status: implemented, test run pending
+Status: complete for event inbox processor skeleton
 
 Added:
 
@@ -470,7 +470,7 @@ Added:
 Verification:
 
 - PHP syntax checks passed for inbox processor, event inbox model, dispatcher, and dispatcher tests.
-- `php artisan test` must be run inside the backend Docker container.
+- User ran `php artisan test`; 72 tests passed with 232 assertions.
 
 Remaining:
 
