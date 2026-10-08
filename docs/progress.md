@@ -331,6 +331,35 @@ Remaining:
 
 - Add durable `POST /api/v1/ingest/events`, event schema validation, throttling, audit log, and rotated-key draining support.
 
+### Step 14: Durable Event Ingress Inbox Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `event_inbox` migration.
+- `EventInbox` model.
+- HMAC-protected `POST /api/v1/ingest/events`.
+- Tenant/store/integration derivation from verified credential context.
+- Batch envelope validation.
+- Event envelope validation for required fields, supported schema version, known event/aggregate types, timestamps, and future clock skew.
+- Canonical payload hashing for duplicate/conflict detection.
+- Duplicate handling for identical event retries.
+- Conflict handling for same event ID with different payload hash.
+- `202` all accepted/duplicates and `207` mixed per-record results.
+- Feature tests for accept, duplicate, conflict, mixed invalid, bad envelope, and unsupported schema version.
+- `docs/implementation-step-14-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add full JSON Schema validation, projection/outbox processing, request size limits, throttling, quarantine persistence, and audit log.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete

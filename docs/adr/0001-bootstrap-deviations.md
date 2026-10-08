@@ -80,6 +80,18 @@ Risk: the exchange and signed heartbeat endpoints are not yet production-hardene
 
 Return plan: add route throttle policies, audit logging, deployment keyring design, rotated-key draining, and durable event ingestion before enabling connector ingestion beyond local bootstrap.
 
+### Event Ingress Uses Envelope Validation Before Full JSON Schema Validation
+
+Specification target: `/api/v1/ingest/events` validates signed raw body, batch limits, event schema, semantic rules, and persists invalid semantic records to the correct durable state.
+
+Current implementation: Step 14 commits valid signed events into `event_inbox`, handles identical duplicates and event ID conflicts, and validates required envelope fields, schema version, event/aggregate enums, timestamps, and batch count. It does not yet run full JSON Schema Draft 2020-12 validation against `contracts/event.schema.json`, enforce the 1 MiB body limit, persist quarantined semantic failures, or start projection/outbox processing.
+
+Reason: this slice establishes durable at-least-once intake and idempotency before adding schema engine, projection workers, and operational throttles.
+
+Risk: some structurally invalid event `data` payloads may be accepted until full schema validation is added.
+
+Return plan: add a JSON Schema validator dependency or generated validator, request-size limit enforcement, quarantine persistence, and projection/outbox worker before using ingress for production data.
+
 ## Tracking
 
 Related docs:
@@ -90,3 +102,4 @@ Related docs:
 - `docs/implementation-step-11-checklist.md`
 - `docs/implementation-step-12-checklist.md`
 - `docs/implementation-step-13-checklist.md`
+- `docs/implementation-step-14-checklist.md`
