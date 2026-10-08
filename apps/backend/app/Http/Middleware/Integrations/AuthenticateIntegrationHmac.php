@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware\Integrations;
 
+use App\Exceptions\Integrations\InvalidIntegrationCredentialSecret;
 use App\Models\IntegrationCredential;
 use Closure;
 use Illuminate\Http\JsonResponse;
@@ -9,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 class AuthenticateIntegrationHmac
 {
@@ -59,12 +59,8 @@ class AuthenticateIntegrationHmac
         }
 
         try {
-            $secret = base64_decode(Crypt::decryptString($credential->ciphertext), true);
-        } catch (Throwable) {
-            return $this->unauthorized('signature_invalid', 'Integration credential secret is invalid.');
-        }
-
-        if ($secret === false || strlen($secret) !== 32) {
+            $secret = $this->credentialSecret($credential);
+        } catch (InvalidIntegrationCredentialSecret) {
             return $this->unauthorized('signature_invalid', 'Integration credential secret is invalid.');
         }
 
@@ -126,6 +122,23 @@ class AuthenticateIntegrationHmac
             $request->getPathInfo(),
             hash('sha256', $request->getContent()),
         ]);
+    }
+
+    private function credentialSecret(IntegrationCredential $credential): string
+    {
+        try {
+            $secretBase64 = Crypt::decryptString($credential->ciphertext);
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $exception) {
+            throw new InvalidIntegrationCredentialSecret(previous: $exception);
+        }
+
+        $secret = base64_decode($secretBase64, true);
+
+        if ($secret === false || strlen($secret) !== 32) {
+            throw new InvalidIntegrationCredentialSecret();
+        }
+
+        return $secret;
     }
 
     private function unauthorized(string $code, string $message): JsonResponse
