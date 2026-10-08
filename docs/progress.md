@@ -433,7 +433,7 @@ Remaining:
 
 ### Step 18: Domain Outbox Dispatcher Skeleton
 
-Status: implemented, test run pending
+Status: complete for domain outbox dispatcher skeleton
 
 Added:
 
@@ -447,12 +447,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for dispatcher, console command, console routes, and tests.
+- User ran `php artisan test`; 70 tests passed with 225 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add real projection processing, external side effects, long-running worker loop, exponential backoff with jitter, and consumer idempotency tests.
 
 ### Specification Update: Mandatory Three-Language Portal

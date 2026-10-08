@@ -20,6 +20,7 @@ This step connects outbox leasing and result recording into a dispatcher skeleto
 - [x] Dispatcher publishes known due messages.
 - [x] Dispatcher schedules retry for unsupported topics.
 - [x] Console command dispatches due messages and reports counters.
+- [x] Run `php artisan test`; 70 tests passed with 225 assertions.
 
 ## Not Done In This Step
 
