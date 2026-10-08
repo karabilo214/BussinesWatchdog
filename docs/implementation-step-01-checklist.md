@@ -41,14 +41,23 @@ This step prepares the local infrastructure only. It does not implement Laravel,
 
 ## Verification Commands
 
+Run these from a normal macOS terminal, not from a restricted Codex shell, if Docker socket access is blocked.
+
 ```sh
 make setup
 make check-tools
 make up
-docker compose ps
-docker compose logs --tail=100 postgres redis minio mailpit
+make ps
+make logs
 make down
 ```
+
+Expected successful `make ps` services:
+
+- `business-watchdog-postgres-1`
+- `business-watchdog-redis-1`
+- `business-watchdog-minio-1`
+- `business-watchdog-mailpit-1`
 
 ## Not Done In This Step
 

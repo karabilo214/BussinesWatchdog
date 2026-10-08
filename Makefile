@@ -11,7 +11,7 @@ setup:
 check-tools:
 	@$(DOCKER) --version >/dev/null || (echo "Docker CLI is not installed or not available"; exit 1)
 	@$(COMPOSE) version >/dev/null
-	@$(DOCKER) info >/dev/null 2>&1 || (echo "Docker CLI found, but Docker Desktop/daemon is not running. Start Docker Desktop and retry."; exit 1)
+	@$(DOCKER) info >/dev/null 2>&1 || (echo "Docker CLI found, but the daemon is not reachable from this shell. Start Docker Desktop, then retry from a normal terminal if this shell is sandboxed."; exit 1)
 	@echo "Docker Compose is available."
 
 up: setup check-tools

@@ -18,7 +18,7 @@ Verification:
 - Docker CLI found inside `/Applications/Docker.app/Contents/Resources/bin/docker`.
 - Docker version: 27.5.1.
 - Docker Compose version: v2.32.4-desktop.1.
-- Docker daemon is not currently reachable from this Codex session. Docker Desktop must be started before `make up`.
+- Docker Desktop was started, but this Codex session cannot access `/Users/karabin/.docker/run/docker.sock` due to sandbox permissions. Run `make up` from a normal terminal.
 
 Remaining:
 
