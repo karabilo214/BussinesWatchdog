@@ -9,9 +9,15 @@ use App\Support\Ingest\EventProjectionResult;
 
 class OrderDeletedProjector
 {
+    public const ERROR_INVALID = 'order_deleted_invalid';
+
+    public const ERROR_ORDER_MISSING = 'order_deleted_order_missing';
+
+    public const ERROR_REVISION_CONFLICT = OrderSnapshotProjector::ERROR_REVISION_CONFLICT;
+
     public function project(EventInbox $event): EventProjectionResult
     {
-        if ($event->event_type !== 'order.deleted' || $event->aggregate_type !== 'order') {
+        if ($event->event_type !== EventInbox::EVENT_ORDER_DELETED || $event->aggregate_type !== EventInbox::AGGREGATE_ORDER) {
             return EventProjectionResult::ok();
         }
 
@@ -20,7 +26,7 @@ class OrderDeletedProjector
         $sourceRevision = $event->aggregate_revision;
 
         if ($data === null || $sourceRevision === null || ! $this->isValidDeletedData($data)) {
-            return EventProjectionResult::failed('order_deleted_invalid');
+            return EventProjectionResult::failed(self::ERROR_INVALID);
         }
 
         /** @var Order|null $order */
@@ -31,7 +37,7 @@ class OrderDeletedProjector
             ->first();
 
         if ($order === null) {
-            return EventProjectionResult::failed('order_deleted_order_missing');
+            return EventProjectionResult::failed(self::ERROR_ORDER_MISSING);
         }
 
         $payloadHash = $event->payload_hash;
@@ -45,7 +51,7 @@ class OrderDeletedProjector
                 'updated_at' => $now,
             ])->save();
         } elseif ($sourceRevision === $order->source_revision && $order->current_payload_hash !== $payloadHash) {
-            return EventProjectionResult::failed('order_revision_conflict');
+            return EventProjectionResult::failed(self::ERROR_REVISION_CONFLICT);
         }
 
         /** @var OrderRevision|null $revision */
@@ -57,7 +63,7 @@ class OrderDeletedProjector
 
         if ($revision !== null) {
             if ($revision->payload_hash !== $payloadHash) {
-                return EventProjectionResult::failed('order_revision_conflict');
+                return EventProjectionResult::failed(self::ERROR_REVISION_CONFLICT);
             }
 
             return EventProjectionResult::ok();

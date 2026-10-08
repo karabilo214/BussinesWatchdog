@@ -7,6 +7,7 @@ use App\Models\DomainOutbox;
 use App\Models\EventInbox;
 use App\Models\Integration;
 use App\Support\Ingest\EventPayloadValidator;
+use App\Support\Ingest\EventValidationResult;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,22 @@ use Illuminate\Support\Str;
 class EventsController extends Controller
 {
     private const MAX_BODY_BYTES = 1048576;
+
+    public const ERROR_REQUEST_TOO_LARGE = 'request_too_large';
+
+    public const ERROR_MALFORMED_JSON = 'malformed_json';
+
+    public const ERROR_EVENT_ID_CONFLICT = 'event_id_conflict';
+
+    public const RESULT_ACCEPTED = 'accepted';
+
+    public const RESULT_DUPLICATE = 'duplicate';
+
+    public const RESULT_INVALID = 'invalid';
+
+    public const RESULT_CONFLICT = 'conflict';
+
+    public const RESULT_QUARANTINED = 'quarantined';
 
     public function __construct(
         private readonly EventPayloadValidator $validator,
@@ -29,21 +46,21 @@ class EventsController extends Controller
         $rawBody = $request->getContent();
 
         if (strlen($rawBody) > self::MAX_BODY_BYTES) {
-            return $this->problem('request_too_large', 'The events batch exceeds the maximum size.', 413, $requestId);
+            return $this->problem(self::ERROR_REQUEST_TOO_LARGE, 'The events batch exceeds the maximum size.', 413, $requestId);
         }
 
         try {
             $body = json_decode($rawBody, true, flags: JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
-            return $this->problem('malformed_json', 'The request body is not valid JSON.', 400, $requestId);
+            return $this->problem(self::ERROR_MALFORMED_JSON, 'The request body is not valid JSON.', 400, $requestId);
         }
 
         if (! is_array($body) || ! array_key_exists('events', $body) || ! is_array($body['events'])) {
-            return $this->problem('schema_invalid', 'The events batch envelope is invalid.', 422, $requestId);
+            return $this->problem(EventValidationResult::ERROR_SCHEMA_INVALID, 'The events batch envelope is invalid.', 422, $requestId);
         }
 
         if (count($body['events']) < 1 || count($body['events']) > 100) {
-            return $this->problem('schema_invalid', 'The events batch size is invalid.', 422, $requestId);
+            return $this->problem(EventValidationResult::ERROR_SCHEMA_INVALID, 'The events batch size is invalid.', 422, $requestId);
         }
 
         $results = DB::transaction(function () use ($body, $integration, $requestId): array {
@@ -51,7 +68,7 @@ class EventsController extends Controller
 
             foreach (array_values($body['events']) as $index => $event) {
                 if (! is_array($event)) {
-                    $results[] = $this->recordResult($index, null, null, 'invalid', 'schema_invalid');
+                    $results[] = $this->recordResult($index, null, null, self::RESULT_INVALID, EventValidationResult::ERROR_SCHEMA_INVALID);
                     continue;
                 }
 
@@ -60,7 +77,7 @@ class EventsController extends Controller
                 $payloadHash = $this->payloadHash($event);
 
                 if (! $validation->valid && ! $validation->quarantinable) {
-                    $results[] = $this->recordResult($index, $eventId, null, 'invalid', $validation->errorCode);
+                    $results[] = $this->recordResult($index, $eventId, null, self::RESULT_INVALID, $validation->errorCode);
                     continue;
                 }
 
@@ -75,9 +92,9 @@ class EventsController extends Controller
 
                 if ($existing !== null) {
                     if ($existing->payload_hash === $payloadHash) {
-                        $results[] = $this->recordResult($index, $eventId, $existing->id, 'duplicate');
+                        $results[] = $this->recordResult($index, $eventId, $existing->id, self::RESULT_DUPLICATE);
                     } else {
-                        $results[] = $this->recordResult($index, $eventId, $existing->id, 'conflict', 'event_id_conflict');
+                        $results[] = $this->recordResult($index, $eventId, $existing->id, self::RESULT_CONFLICT, self::ERROR_EVENT_ID_CONFLICT);
                     }
 
                     continue;
@@ -126,14 +143,14 @@ class EventsController extends Controller
                 }
 
                 $results[] = $validation->valid
-                    ? $this->recordResult($index, $eventId, $inbox->id, 'accepted')
-                    : $this->recordResult($index, $eventId, $inbox->id, 'quarantined', $validation->errorCode);
+                    ? $this->recordResult($index, $eventId, $inbox->id, self::RESULT_ACCEPTED)
+                    : $this->recordResult($index, $eventId, $inbox->id, self::RESULT_QUARANTINED, $validation->errorCode);
             }
 
             return $results;
         });
 
-        $status = collect($results)->every(fn (array $result): bool => in_array($result['status'], ['accepted', 'duplicate'], true))
+        $status = collect($results)->every(fn (array $result): bool => in_array($result['status'], [self::RESULT_ACCEPTED, self::RESULT_DUPLICATE], true))
             ? 202
             : 207;
 

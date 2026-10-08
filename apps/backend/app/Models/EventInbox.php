@@ -20,26 +20,58 @@ class EventInbox extends Model
 
     public const STATUS_DEAD_LETTER = 'dead_letter';
 
+    public const EVENT_ORDER_SNAPSHOT = 'order.snapshot';
+
+    public const EVENT_ORDER_DELETED = 'order.deleted';
+
+    public const EVENT_REFUND_SNAPSHOT = 'refund.snapshot';
+
+    public const EVENT_PAYMENT_SNAPSHOT = 'payment.snapshot';
+
+    public const EVENT_TRANSACTION_OBSERVED = 'transaction.observed';
+
+    public const EVENT_INTEGRATION_HEARTBEAT = 'integration.heartbeat';
+
+    public const EVENT_INTEGRATION_CAPABILITIES_CHANGED = 'integration.capabilities_changed';
+
+    public const EVENT_DEPLOYMENT_OBSERVED = 'deployment.observed';
+
+    public const EVENT_FUNNEL_OBSERVED = 'funnel.observed';
+
+    public const AGGREGATE_ORDER = 'order';
+
+    public const AGGREGATE_REFUND = 'refund';
+
+    public const AGGREGATE_PAYMENT = 'payment';
+
+    public const AGGREGATE_TRANSACTION = 'transaction';
+
+    public const AGGREGATE_INTEGRATION = 'integration';
+
+    public const AGGREGATE_DEPLOYMENT = 'deployment';
+
+    public const AGGREGATE_SESSION = 'session';
+
     public const EVENT_TYPES = [
-        'order.snapshot',
-        'order.deleted',
-        'refund.snapshot',
-        'payment.snapshot',
-        'transaction.observed',
-        'integration.heartbeat',
-        'integration.capabilities_changed',
-        'deployment.observed',
-        'funnel.observed',
+        self::EVENT_ORDER_SNAPSHOT,
+        self::EVENT_ORDER_DELETED,
+        self::EVENT_REFUND_SNAPSHOT,
+        self::EVENT_PAYMENT_SNAPSHOT,
+        self::EVENT_TRANSACTION_OBSERVED,
+        self::EVENT_INTEGRATION_HEARTBEAT,
+        self::EVENT_INTEGRATION_CAPABILITIES_CHANGED,
+        self::EVENT_DEPLOYMENT_OBSERVED,
+        self::EVENT_FUNNEL_OBSERVED,
     ];
 
     public const AGGREGATE_TYPES = [
-        'order',
-        'refund',
-        'payment',
-        'transaction',
-        'integration',
-        'deployment',
-        'session',
+        self::AGGREGATE_ORDER,
+        self::AGGREGATE_REFUND,
+        self::AGGREGATE_PAYMENT,
+        self::AGGREGATE_TRANSACTION,
+        self::AGGREGATE_INTEGRATION,
+        self::AGGREGATE_DEPLOYMENT,
+        self::AGGREGATE_SESSION,
     ];
 
     public $timestamps = false;

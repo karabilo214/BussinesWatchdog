@@ -9,9 +9,13 @@ use App\Support\Ingest\EventProjectionResult;
 
 class FinancialTransactionProjector
 {
+    public const ERROR_INVALID = 'transaction_observed_invalid';
+
+    public const ERROR_OPERATION_CONFLICT = 'transaction_operation_conflict';
+
     public function project(EventInbox $event): EventProjectionResult
     {
-        if ($event->event_type !== 'transaction.observed' || $event->aggregate_type !== 'transaction') {
+        if ($event->event_type !== EventInbox::EVENT_TRANSACTION_OBSERVED || $event->aggregate_type !== EventInbox::AGGREGATE_TRANSACTION) {
             return EventProjectionResult::ok();
         }
 
@@ -19,7 +23,7 @@ class FinancialTransactionProjector
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : null;
 
         if ($data === null || ! $this->isValidTransactionData($data)) {
-            return EventProjectionResult::failed('transaction_observed_invalid');
+            return EventProjectionResult::failed(self::ERROR_INVALID);
         }
 
         $payment = $this->payment($event, $data['payment_external_id'] ?? null);
@@ -40,7 +44,7 @@ class FinancialTransactionProjector
         }
 
         if ($transaction->operation_hash !== $operationHash) {
-            return EventProjectionResult::failed('transaction_operation_conflict');
+            return EventProjectionResult::failed(self::ERROR_OPERATION_CONFLICT);
         }
 
         return EventProjectionResult::ok();

@@ -8,9 +8,13 @@ use App\Support\Ingest\EventProjectionResult;
 
 class PaymentSnapshotProjector
 {
+    public const ERROR_INVALID = 'payment_snapshot_invalid';
+
+    public const ERROR_SNAPSHOT_CONFLICT = 'payment_snapshot_conflict';
+
     public function project(EventInbox $event): EventProjectionResult
     {
-        if ($event->event_type !== 'payment.snapshot' || $event->aggregate_type !== 'payment') {
+        if ($event->event_type !== EventInbox::EVENT_PAYMENT_SNAPSHOT || $event->aggregate_type !== EventInbox::AGGREGATE_PAYMENT) {
             return EventProjectionResult::ok();
         }
 
@@ -18,7 +22,7 @@ class PaymentSnapshotProjector
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : null;
 
         if ($data === null || ! $this->isValidPaymentData($data)) {
-            return EventProjectionResult::failed('payment_snapshot_invalid');
+            return EventProjectionResult::failed(self::ERROR_INVALID);
         }
 
         /** @var Payment|null $payment */
@@ -44,7 +48,7 @@ class PaymentSnapshotProjector
 
             $payment->forceFill($attributes)->save();
         } elseif ($sourceUpdatedAt === $payment->source_updated_at->getTimestamp() && $payment->current_payload_hash !== $payloadHash) {
-            return EventProjectionResult::failed('payment_snapshot_conflict');
+            return EventProjectionResult::failed(self::ERROR_SNAPSHOT_CONFLICT);
         }
 
         return EventProjectionResult::ok();

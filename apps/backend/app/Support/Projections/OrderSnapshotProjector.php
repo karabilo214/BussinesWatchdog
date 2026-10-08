@@ -9,9 +9,13 @@ use App\Support\Ingest\EventProjectionResult;
 
 class OrderSnapshotProjector
 {
+    public const ERROR_INVALID = 'order_snapshot_invalid';
+
+    public const ERROR_REVISION_CONFLICT = 'order_revision_conflict';
+
     public function project(EventInbox $event): EventProjectionResult
     {
-        if ($event->event_type !== 'order.snapshot' || $event->aggregate_type !== 'order') {
+        if ($event->event_type !== EventInbox::EVENT_ORDER_SNAPSHOT || $event->aggregate_type !== EventInbox::AGGREGATE_ORDER) {
             return EventProjectionResult::ok();
         }
 
@@ -20,7 +24,7 @@ class OrderSnapshotProjector
         $sourceRevision = $event->aggregate_revision;
 
         if ($data === null || $sourceRevision === null || ! $this->isValidOrderData($data)) {
-            return EventProjectionResult::failed('order_snapshot_invalid');
+            return EventProjectionResult::failed(self::ERROR_INVALID);
         }
 
         /** @var Order|null $order */
@@ -41,7 +45,7 @@ class OrderSnapshotProjector
 
             $order->forceFill($attributes)->save();
         } elseif ($sourceRevision === $order->source_revision && $order->current_payload_hash !== $payloadHash) {
-            return EventProjectionResult::failed('order_revision_conflict');
+            return EventProjectionResult::failed(self::ERROR_REVISION_CONFLICT);
         }
 
         /** @var OrderRevision|null $revision */
@@ -53,7 +57,7 @@ class OrderSnapshotProjector
 
         if ($revision !== null) {
             if ($revision->payload_hash !== $payloadHash) {
-                return EventProjectionResult::failed('order_revision_conflict');
+                return EventProjectionResult::failed(self::ERROR_REVISION_CONFLICT);
             }
 
             return EventProjectionResult::ok();

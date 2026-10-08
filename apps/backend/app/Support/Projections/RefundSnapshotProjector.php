@@ -9,9 +9,15 @@ use App\Support\Ingest\EventProjectionResult;
 
 class RefundSnapshotProjector
 {
+    public const ERROR_INVALID = 'refund_snapshot_invalid';
+
+    public const ERROR_ORDER_MISSING = 'refund_order_missing';
+
+    public const ERROR_REVISION_CONFLICT = 'refund_revision_conflict';
+
     public function project(EventInbox $event): EventProjectionResult
     {
-        if ($event->event_type !== 'refund.snapshot' || $event->aggregate_type !== 'refund') {
+        if ($event->event_type !== EventInbox::EVENT_REFUND_SNAPSHOT || $event->aggregate_type !== EventInbox::AGGREGATE_REFUND) {
             return EventProjectionResult::ok();
         }
 
@@ -20,7 +26,7 @@ class RefundSnapshotProjector
         $sourceRevision = $event->aggregate_revision;
 
         if ($data === null || $sourceRevision === null || ! $this->isValidRefundData($data)) {
-            return EventProjectionResult::failed('refund_snapshot_invalid');
+            return EventProjectionResult::failed(self::ERROR_INVALID);
         }
 
         /** @var Order|null $order */
@@ -31,7 +37,7 @@ class RefundSnapshotProjector
             ->first();
 
         if ($order === null) {
-            return EventProjectionResult::failed('refund_order_missing');
+            return EventProjectionResult::failed(self::ERROR_ORDER_MISSING);
         }
 
         /** @var Refund|null $refund */
@@ -53,7 +59,7 @@ class RefundSnapshotProjector
         if ($sourceRevision > $refund->source_revision) {
             $refund->forceFill($this->refundAttributes($event, $data, $order, $sourceRevision, $payloadHash, $now))->save();
         } elseif ($sourceRevision === $refund->source_revision && $refund->current_payload_hash !== $payloadHash) {
-            return EventProjectionResult::failed('refund_revision_conflict');
+            return EventProjectionResult::failed(self::ERROR_REVISION_CONFLICT);
         }
 
         return EventProjectionResult::ok();

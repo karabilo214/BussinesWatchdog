@@ -4,8 +4,11 @@ namespace Tests\Feature\Ingest;
 
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
+use App\Models\EventInbox;
 use App\Models\Store;
 use App\Models\Tenant;
+use App\Http\Controllers\Api\V1\Ingest\EventsController;
+use App\Support\Ingest\EventValidationResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -31,7 +34,7 @@ class IngestEventsApiTest extends TestCase
 
         $this->callSignedEvents($credential->key_id, $secret, $body)
             ->assertAccepted()
-            ->assertJsonPath('results.0.status', 'accepted')
+            ->assertJsonPath('results.0.status', EventsController::RESULT_ACCEPTED)
             ->assertJsonPath('results.0.event_id', '33333333-3333-4333-8333-333333333333');
 
         $this->assertDatabaseHas('event_inbox', [
@@ -40,8 +43,8 @@ class IngestEventsApiTest extends TestCase
             'integration_id' => $integration->id,
             'provider_event_id' => '33333333-3333-4333-8333-333333333333',
             'schema_version' => '1.0',
-            'event_type' => 'order.snapshot',
-            'aggregate_type' => 'order',
+            'event_type' => EventInbox::EVENT_ORDER_SNAPSHOT,
+            'aggregate_type' => EventInbox::AGGREGATE_ORDER,
             'aggregate_external_id' => 'order-1001',
             'status' => 'received',
         ]);
@@ -60,10 +63,10 @@ class IngestEventsApiTest extends TestCase
 
         $this->callSignedEvents($credential->key_id, $secret, $body, nonce: '550e8400-e29b-41d4-a716-446655440000')
             ->assertAccepted()
-            ->assertJsonPath('results.0.status', 'accepted');
+            ->assertJsonPath('results.0.status', EventsController::RESULT_ACCEPTED);
         $this->callSignedEvents($credential->key_id, $secret, $body, nonce: '550e8400-e29b-41d4-a716-446655440001')
             ->assertAccepted()
-            ->assertJsonPath('results.0.status', 'duplicate');
+            ->assertJsonPath('results.0.status', EventsController::RESULT_DUPLICATE);
 
         $this->assertSame(1, \App\Models\EventInbox::query()->count());
         $this->assertSame(1, \App\Models\DomainOutbox::query()->count());
@@ -79,8 +82,8 @@ class IngestEventsApiTest extends TestCase
             ->assertAccepted();
         $this->callSignedEvents($credential->key_id, $secret, json_encode(['events' => [$second]], JSON_THROW_ON_ERROR), nonce: '550e8400-e29b-41d4-a716-446655440001')
             ->assertStatus(207)
-            ->assertJsonPath('results.0.status', 'conflict')
-            ->assertJsonPath('results.0.code', 'event_id_conflict');
+            ->assertJsonPath('results.0.status', EventsController::RESULT_CONFLICT)
+            ->assertJsonPath('results.0.code', EventsController::ERROR_EVENT_ID_CONFLICT);
     }
 
     public function test_mixed_batch_returns_207_with_per_record_results(): void
@@ -93,9 +96,9 @@ class IngestEventsApiTest extends TestCase
 
         $this->callSignedEvents($credential->key_id, $secret, $body)
             ->assertStatus(207)
-            ->assertJsonPath('results.0.status', 'accepted')
-            ->assertJsonPath('results.1.status', 'invalid')
-            ->assertJsonPath('results.1.code', 'schema_invalid');
+            ->assertJsonPath('results.0.status', EventsController::RESULT_ACCEPTED)
+            ->assertJsonPath('results.1.status', EventsController::RESULT_INVALID)
+            ->assertJsonPath('results.1.code', EventValidationResult::ERROR_SCHEMA_INVALID);
 
         $this->assertSame(1, \App\Models\EventInbox::query()->count());
         $this->assertSame(1, \App\Models\DomainOutbox::query()->count());
@@ -108,7 +111,7 @@ class IngestEventsApiTest extends TestCase
 
         $this->callSignedEvents($credential->key_id, $secret, $body)
             ->assertUnprocessable()
-            ->assertJsonPath('code', 'schema_invalid');
+            ->assertJsonPath('code', EventValidationResult::ERROR_SCHEMA_INVALID);
 
         $this->assertSame(0, \App\Models\EventInbox::query()->count());
     }
@@ -120,7 +123,7 @@ class IngestEventsApiTest extends TestCase
 
         $this->callSignedEvents($credential->key_id, $secret, $body)
             ->assertBadRequest()
-            ->assertJsonPath('code', 'malformed_json');
+            ->assertJsonPath('code', EventsController::ERROR_MALFORMED_JSON);
 
         $this->assertSame(0, \App\Models\EventInbox::query()->count());
     }
@@ -135,7 +138,7 @@ class IngestEventsApiTest extends TestCase
 
         $this->callSignedEvents($credential->key_id, $secret, $body)
             ->assertStatus(413)
-            ->assertJsonPath('code', 'request_too_large');
+            ->assertJsonPath('code', EventsController::ERROR_REQUEST_TOO_LARGE);
 
         $this->assertSame(0, \App\Models\EventInbox::query()->count());
     }
@@ -149,13 +152,13 @@ class IngestEventsApiTest extends TestCase
 
         $this->callSignedEvents($credential->key_id, $secret, $body)
             ->assertStatus(207)
-            ->assertJsonPath('results.0.status', 'quarantined')
-            ->assertJsonPath('results.0.code', 'schema_unsupported');
+            ->assertJsonPath('results.0.status', EventsController::RESULT_QUARANTINED)
+            ->assertJsonPath('results.0.code', EventValidationResult::ERROR_SCHEMA_UNSUPPORTED);
 
         $this->assertDatabaseHas('event_inbox', [
             'provider_event_id' => '33333333-3333-4333-8333-333333333333',
-            'status' => 'quarantined',
-            'error_code' => 'schema_unsupported',
+            'status' => EventInbox::STATUS_QUARANTINED,
+            'error_code' => EventValidationResult::ERROR_SCHEMA_UNSUPPORTED,
         ]);
         $this->assertSame(0, \App\Models\DomainOutbox::query()->count());
     }
@@ -169,13 +172,13 @@ class IngestEventsApiTest extends TestCase
 
         $this->callSignedEvents($credential->key_id, $secret, $body)
             ->assertStatus(207)
-            ->assertJsonPath('results.0.status', 'quarantined')
-            ->assertJsonPath('results.0.code', 'schema_invalid');
+            ->assertJsonPath('results.0.status', EventsController::RESULT_QUARANTINED)
+            ->assertJsonPath('results.0.code', EventValidationResult::ERROR_SCHEMA_INVALID);
 
         $this->assertDatabaseHas('event_inbox', [
             'provider_event_id' => '33333333-3333-4333-8333-333333333333',
-            'status' => 'quarantined',
-            'error_code' => 'schema_invalid',
+            'status' => EventInbox::STATUS_QUARANTINED,
+            'error_code' => EventValidationResult::ERROR_SCHEMA_INVALID,
         ]);
         $this->assertSame(0, \App\Models\DomainOutbox::query()->count());
     }
@@ -232,8 +235,8 @@ class IngestEventsApiTest extends TestCase
         return [
             'schema_version' => '1.0',
             'event_id' => $eventId,
-            'type' => 'order.snapshot',
-            'aggregate_type' => 'order',
+            'type' => EventInbox::EVENT_ORDER_SNAPSHOT,
+            'aggregate_type' => EventInbox::AGGREGATE_ORDER,
             'aggregate_id' => $aggregateId,
             'aggregate_revision' => 1,
             'occurred_at' => $observedAt->copy()->subSecond()->toJSON(),

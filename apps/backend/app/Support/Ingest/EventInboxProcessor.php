@@ -88,7 +88,7 @@ class EventInboxProcessor
             return true;
         }
 
-        $this->lastErrorCode = $result->errorCode ?? 'projection_failed';
+        $this->lastErrorCode = $result->errorCode ?? EventProjectionResult::ERROR_PROJECTION_FAILED;
 
         return false;
     }

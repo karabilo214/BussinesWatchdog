@@ -12,6 +12,10 @@ use App\Models\Refund;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Support\Outbox\DomainOutboxDispatcher;
+use App\Support\Projections\OrderDeletedProjector;
+use App\Support\Projections\OrderSnapshotProjector;
+use App\Support\Projections\PaymentSnapshotProjector;
+use App\Support\Projections\RefundSnapshotProjector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -140,7 +144,7 @@ class DomainOutboxDispatcherTest extends TestCase
         $this->assertDatabaseHas('domain_outbox', [
             'id' => $conflictMessage->id,
             'status' => DomainOutbox::STATUS_PENDING,
-            'error_code' => 'order_revision_conflict',
+            'error_code' => OrderSnapshotProjector::ERROR_REVISION_CONFLICT,
         ]);
         $order = Order::query()->where('integration_id', $integration->id)->where('external_id', 'order-1001')->firstOrFail();
         $this->assertSame(18400, $order->total_minor);
@@ -218,7 +222,7 @@ class DomainOutboxDispatcherTest extends TestCase
             'id' => $message->id,
             'status' => DomainOutbox::STATUS_PENDING,
             'attempts' => 1,
-            'error_code' => 'order_deleted_order_missing',
+            'error_code' => OrderDeletedProjector::ERROR_ORDER_MISSING,
         ]);
         $this->assertDatabaseMissing('orders', [
             'integration_id' => $deleted->integration_id,
@@ -246,7 +250,7 @@ class DomainOutboxDispatcherTest extends TestCase
         $this->assertDatabaseHas('domain_outbox', [
             'id' => $conflictMessage->id,
             'status' => DomainOutbox::STATUS_PENDING,
-            'error_code' => 'refund_revision_conflict',
+            'error_code' => RefundSnapshotProjector::ERROR_REVISION_CONFLICT,
         ]);
         $this->assertSame(5000, Refund::query()->where('integration_id', $integration->id)->where('external_id', 'refund-1001')->firstOrFail()->amount_minor);
     }
@@ -270,7 +274,7 @@ class DomainOutboxDispatcherTest extends TestCase
         $this->assertDatabaseHas('domain_outbox', [
             'id' => $conflictMessage->id,
             'status' => DomainOutbox::STATUS_PENDING,
-            'error_code' => 'payment_snapshot_conflict',
+            'error_code' => PaymentSnapshotProjector::ERROR_SNAPSHOT_CONFLICT,
         ]);
         $this->assertSame('pending', Payment::query()->where('integration_id', $integration->id)->where('external_id', 'payment-1001')->firstOrFail()->status);
     }
@@ -315,7 +319,7 @@ class DomainOutboxDispatcherTest extends TestCase
             'id' => $message->id,
             'status' => DomainOutbox::STATUS_PENDING,
             'attempts' => 1,
-            'error_code' => 'outbox_topic_unsupported',
+            'error_code' => DomainOutboxDispatcher::ERROR_TOPIC_UNSUPPORTED,
         ]);
     }
 
@@ -339,7 +343,7 @@ class DomainOutboxDispatcherTest extends TestCase
             'id' => $message->id,
             'status' => DomainOutbox::STATUS_PENDING,
             'attempts' => 1,
-            'error_code' => 'event_inbox_unprocessable',
+            'error_code' => DomainOutboxDispatcher::ERROR_EVENT_INBOX_UNPROCESSABLE,
         ]);
     }
 
@@ -383,8 +387,8 @@ class DomainOutboxDispatcherTest extends TestCase
         $payload = [
             'schema_version' => '1.0',
             'event_id' => fake()->uuid(),
-            'type' => 'order.snapshot',
-            'aggregate_type' => 'order',
+            'type' => EventInbox::EVENT_ORDER_SNAPSHOT,
+            'aggregate_type' => EventInbox::AGGREGATE_ORDER,
             'aggregate_id' => 'order-1001',
             'aggregate_revision' => $sourceRevision,
             'occurred_at' => now()->subMinute()->toJSON(),
@@ -448,8 +452,8 @@ class DomainOutboxDispatcherTest extends TestCase
         $payload = [
             'schema_version' => '1.0',
             'event_id' => fake()->uuid(),
-            'type' => 'order.deleted',
-            'aggregate_type' => 'order',
+            'type' => EventInbox::EVENT_ORDER_DELETED,
+            'aggregate_type' => EventInbox::AGGREGATE_ORDER,
             'aggregate_id' => 'order-1001',
             'aggregate_revision' => $sourceRevision,
             'occurred_at' => now()->subMinute()->toJSON(),
@@ -500,8 +504,8 @@ class DomainOutboxDispatcherTest extends TestCase
         $payload = [
             'schema_version' => '1.0',
             'event_id' => fake()->uuid(),
-            'type' => 'refund.snapshot',
-            'aggregate_type' => 'refund',
+            'type' => EventInbox::EVENT_REFUND_SNAPSHOT,
+            'aggregate_type' => EventInbox::AGGREGATE_REFUND,
             'aggregate_id' => 'refund-1001',
             'aggregate_revision' => $sourceRevision,
             'occurred_at' => now()->subMinute()->toJSON(),
@@ -536,8 +540,8 @@ class DomainOutboxDispatcherTest extends TestCase
         $payload = [
             'schema_version' => '1.0',
             'event_id' => fake()->uuid(),
-            'type' => 'payment.snapshot',
-            'aggregate_type' => 'payment',
+            'type' => EventInbox::EVENT_PAYMENT_SNAPSHOT,
+            'aggregate_type' => EventInbox::AGGREGATE_PAYMENT,
             'aggregate_id' => 'payment-1001',
             'occurred_at' => now()->subMinute()->toJSON(),
             'observed_at' => now()->toJSON(),

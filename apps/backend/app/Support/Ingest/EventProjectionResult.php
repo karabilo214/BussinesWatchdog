@@ -4,6 +4,8 @@ namespace App\Support\Ingest;
 
 class EventProjectionResult
 {
+    public const ERROR_PROJECTION_FAILED = 'projection_failed';
+
     private function __construct(
         public readonly bool $ok,
         public readonly ?string $errorCode = null,
