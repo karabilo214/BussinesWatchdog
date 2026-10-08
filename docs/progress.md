@@ -236,7 +236,7 @@ Remaining:
 
 ### Step 10: Tenant Role Policy Foundation
 
-Status: prepared, test run pending
+Status: complete for tenant role policy foundation
 
 Added:
 
@@ -248,12 +248,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for middleware, role helper, routes, and tests.
+- User ran `php artisan test`; 27 tests passed with 78 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Expand permission checks to incidents/checks/integrations/billing in future slices.
 
 ### Specification Update: Mandatory Three-Language Portal

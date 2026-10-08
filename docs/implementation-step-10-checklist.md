@@ -25,6 +25,7 @@ This step adds a small route middleware foundation for tenant role authorization
 - [x] Operator cannot update store.
 - [x] Admin can create store.
 - [x] Admin can update store.
+- [x] Run `php artisan test`; 27 tests passed with 78 assertions.
 
 ## Not Done In This Step
 
