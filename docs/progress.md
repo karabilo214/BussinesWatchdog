@@ -142,7 +142,7 @@ Remaining:
 
 ### Step 06: Auth Session Foundation
 
-Status: prepared, test run pending
+Status: complete for auth session foundation
 
 Added:
 
@@ -156,10 +156,9 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for auth controller, requests, routes, and tests.
+- User ran `php artisan test`; 11 tests passed with 32 assertions.
 
 Remaining:
 
-- Run migrations/tests after pulling changes.
 - Add email verification, password reset, MFA, tenant switch, invitations, and policies in later slices.

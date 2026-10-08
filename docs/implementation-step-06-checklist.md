@@ -28,6 +28,7 @@ This step adds the first same-origin session auth endpoints. It does not impleme
 - [x] Login and `me` return membership context.
 - [x] `me` rejects unauthenticated access.
 - [x] Logout invalidates session.
+- [x] Run `php artisan test`; 11 tests passed with 32 assertions.
 
 ## Not Done In This Step
 
