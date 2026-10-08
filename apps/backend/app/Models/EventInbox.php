@@ -12,6 +12,14 @@ class EventInbox extends Model
 
     public const STATUS_RECEIVED = 'received';
 
+    public const STATUS_PROCESSING = 'processing';
+
+    public const STATUS_PROCESSED = 'processed';
+
+    public const STATUS_QUARANTINED = 'quarantined';
+
+    public const STATUS_DEAD_LETTER = 'dead_letter';
+
     public const EVENT_TYPES = [
         'order.snapshot',
         'order.deleted',

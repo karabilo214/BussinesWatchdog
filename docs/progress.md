@@ -454,6 +454,28 @@ Remaining:
 
 - Add real projection processing, external side effects, long-running worker loop, exponential backoff with jitter, and consumer idempotency tests.
 
+### Step 19: Event Inbox Processor Skeleton
+
+Status: implemented, test run pending
+
+Added:
+
+- `EventInboxProcessor`.
+- `event_inbox.received` dispatcher handling now processes the referenced inbox row before publishing the outbox message.
+- Idempotent success for already processed inbox rows.
+- Retry path for missing or unprocessable inbox references.
+- Feature tests for successful inbox processing, processed-row idempotency, missing inbox retry, unsupported topic retry, and console dispatch.
+- `docs/implementation-step-19-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for inbox processor, event inbox model, dispatcher, and dispatcher tests.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Add Woo/order/payment/refund projections, projection-specific idempotency, external side effects, long-running worker loop, exponential backoff with jitter, sweeper, and manual replay/dead-letter tooling.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete

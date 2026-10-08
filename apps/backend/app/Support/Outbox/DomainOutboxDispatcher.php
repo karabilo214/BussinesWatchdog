@@ -3,12 +3,14 @@
 namespace App\Support\Outbox;
 
 use App\Models\DomainOutbox;
+use App\Support\Ingest\EventInboxProcessor;
 
 class DomainOutboxDispatcher
 {
     public function __construct(
         private readonly DomainOutboxLeaser $leaser,
         private readonly DomainOutboxResultRecorder $resultRecorder,
+        private readonly EventInboxProcessor $eventInboxProcessor,
     ) {
     }
 
@@ -39,10 +41,29 @@ class DomainOutboxDispatcher
     private function dispatchMessage(DomainOutbox $message): bool
     {
         $handled = match ($message->topic) {
-            DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED => $this->resultRecorder->markPublished($message->id),
+            DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED => $this->dispatchEventInboxReceived($message),
             default => $this->resultRecorder->markFailed($message->id, 'outbox_topic_unsupported'),
         };
 
         return $handled && $message->topic === DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED;
+    }
+
+    private function dispatchEventInboxReceived(DomainOutbox $message): bool
+    {
+        $eventInboxId = $message->payload['event_inbox_id'] ?? null;
+
+        if (! is_string($eventInboxId) || $eventInboxId === '') {
+            $this->resultRecorder->markFailed($message->id, 'event_inbox_id_missing');
+
+            return false;
+        }
+
+        if (! $this->eventInboxProcessor->processReceived($eventInboxId)) {
+            $this->resultRecorder->markFailed($message->id, 'event_inbox_unprocessable');
+
+            return false;
+        }
+
+        return $this->resultRecorder->markPublished($message->id);
     }
 }
