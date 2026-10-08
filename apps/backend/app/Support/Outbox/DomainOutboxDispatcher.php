@@ -59,7 +59,10 @@ class DomainOutboxDispatcher
         }
 
         if (! $this->eventInboxProcessor->processReceived($eventInboxId)) {
-            $this->resultRecorder->markFailed($message->id, 'event_inbox_unprocessable');
+            $this->resultRecorder->markFailed(
+                $message->id,
+                $this->eventInboxProcessor->lastErrorCode() ?? 'event_inbox_unprocessable',
+            );
 
             return false;
         }

@@ -183,7 +183,7 @@ class DomainOutboxDispatcherTest extends TestCase
             'id' => $message->id,
             'status' => DomainOutbox::STATUS_PENDING,
             'attempts' => 1,
-            'error_code' => 'event_inbox_unprocessable',
+            'error_code' => 'order_deleted_order_missing',
         ]);
         $this->assertDatabaseMissing('orders', [
             'integration_id' => $deleted->integration_id,

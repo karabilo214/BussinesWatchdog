@@ -92,15 +92,15 @@ Risk: some structurally invalid event `data` payloads may be accepted until full
 
 Return plan: add a JSON Schema validator dependency or generated validator, request-size limit enforcement, quarantine persistence, and projection/outbox worker before using ingress for production data.
 
-### Order Revision Event FK Is Simplified During Bootstrap
+### Projection Event FKs Are Simplified During Bootstrap
 
-Specification target: `order_revisions` references `event_inbox` through the tenant/store scoped composite key.
+Specification target: projection tables reference `event_inbox` through tenant/store scoped composite keys where applicable.
 
-Current implementation: Step 20 uses a single-column nullable FK from `order_revisions.event_id` to `event_inbox.id`.
+Current implementation: Step 20 uses a single-column nullable FK from `order_revisions.event_id` to `event_inbox.id`. Step 23 uses the same single-column nullable FK pattern from `financial_transactions.source_event_id` to `event_inbox.id`.
 
 Reason: the reference composite FK uses `ON DELETE SET NULL (event_id)` semantics, while Laravel's portable schema builder does not express column-specific `SET NULL` for a composite FK cleanly across PostgreSQL and SQLite test migrations.
 
-Risk: the database does not independently prove that `order_revisions.tenant_id/store_id` match the referenced inbox event; application code currently writes both from the same `EventInbox` row.
+Risk: the database does not independently prove that projection `tenant_id/store_id` values match the referenced inbox event; application code currently writes scoped values from the same `EventInbox` row.
 
 Return plan: replace the simplified FK with PostgreSQL-specific DDL for the exact composite constraint, or make the scoped event reference enforceable through an additional nullable scoped key design, before projection tables are considered production-complete.
 

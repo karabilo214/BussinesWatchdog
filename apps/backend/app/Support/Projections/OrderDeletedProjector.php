@@ -5,13 +5,14 @@ namespace App\Support\Projections;
 use App\Models\EventInbox;
 use App\Models\Order;
 use App\Models\OrderRevision;
+use App\Support\Ingest\EventProjectionResult;
 
 class OrderDeletedProjector
 {
-    public function project(EventInbox $event): bool
+    public function project(EventInbox $event): EventProjectionResult
     {
         if ($event->event_type !== 'order.deleted' || $event->aggregate_type !== 'order') {
-            return true;
+            return EventProjectionResult::ok();
         }
 
         $payload = $event->payload;
@@ -19,7 +20,7 @@ class OrderDeletedProjector
         $sourceRevision = $event->aggregate_revision;
 
         if ($data === null || $sourceRevision === null || ! $this->isValidDeletedData($data)) {
-            return false;
+            return EventProjectionResult::failed('order_deleted_invalid');
         }
 
         /** @var Order|null $order */
@@ -30,7 +31,7 @@ class OrderDeletedProjector
             ->first();
 
         if ($order === null) {
-            return false;
+            return EventProjectionResult::failed('order_deleted_order_missing');
         }
 
         $payloadHash = $event->payload_hash;
@@ -58,7 +59,7 @@ class OrderDeletedProjector
             'created_at' => $now,
         ]);
 
-        return true;
+        return EventProjectionResult::ok();
     }
 
     /**

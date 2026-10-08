@@ -5,13 +5,14 @@ namespace App\Support\Projections;
 use App\Models\EventInbox;
 use App\Models\Order;
 use App\Models\OrderRevision;
+use App\Support\Ingest\EventProjectionResult;
 
 class OrderSnapshotProjector
 {
-    public function project(EventInbox $event): bool
+    public function project(EventInbox $event): EventProjectionResult
     {
         if ($event->event_type !== 'order.snapshot' || $event->aggregate_type !== 'order') {
-            return true;
+            return EventProjectionResult::ok();
         }
 
         $payload = $event->payload;
@@ -19,7 +20,7 @@ class OrderSnapshotProjector
         $sourceRevision = $event->aggregate_revision;
 
         if ($data === null || $sourceRevision === null || ! $this->isValidOrderData($data)) {
-            return false;
+            return EventProjectionResult::failed('order_snapshot_invalid');
         }
 
         /** @var Order|null $order */
@@ -54,7 +55,7 @@ class OrderSnapshotProjector
             'created_at' => $now,
         ]);
 
-        return true;
+        return EventProjectionResult::ok();
     }
 
     /**

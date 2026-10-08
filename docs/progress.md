@@ -502,7 +502,7 @@ Remaining:
 
 ### Step 21: Order Deleted Projection Foundation
 
-Status: implemented, test run pending
+Status: complete for order deleted projection foundation
 
 Added:
 
@@ -517,11 +517,114 @@ Added:
 Verification:
 
 - PHP syntax checks passed for order deleted projector, inbox processor, and dispatcher tests.
-- `php artisan test` must be run inside the backend Docker container.
+- User ran `php artisan test`; 77 tests passed with 252 assertions.
 
 Remaining:
 
 - Add refund/payment/transaction/allocation projections, same-revision hash conflict handling, full JSON Schema validation, reconciliation rules, financial cleanup semantics, and projection-specific idempotency tests.
+
+### Step 22: Order Deleted Tests Complete
+
+Status: complete
+
+Added:
+
+- Recorded the completed Docker test run for Step 21.
+- `docs/implementation-step-22-checklist.md`.
+
+Verification:
+
+- User ran `php artisan test`; 77 tests passed with 252 assertions.
+
+### Step 23: Refund Snapshot Projection Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- Financial projection migration with `refunds`, `payments`, and `financial_transactions`.
+- `Refund` model.
+- `RefundSnapshotProjector`.
+- `refund.snapshot` processing inside `EventInboxProcessor`.
+- Refund upsert by integration and refund external ID.
+- Stale refund revision protection.
+- Retry path for refunds referencing unknown orders.
+- `docs/implementation-step-23-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for financial projection migration, refund model, refund projector, inbox processor, and changed projector contracts.
+- `php artisan test` must be run inside the backend Docker container after the 5-step batch.
+
+Remaining:
+
+- Add payment/transaction projections, refund allocations, reconciliation findings, same-revision hash conflict handling, and full JSON Schema validation.
+
+### Step 24: Payment Snapshot Projection Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `Payment` model.
+- `PaymentSnapshotProjector`.
+- `payment.snapshot` processing inside `EventInboxProcessor`.
+- Payment upsert by integration and payment external ID.
+- Stale payment snapshot protection through `source_updated_at`.
+- `docs/implementation-step-24-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for payment model, payment projector, inbox processor, and changed projector contracts.
+- `php artisan test` must be run inside the backend Docker container after the 5-step batch.
+
+Remaining:
+
+- Add transaction projection, payment allocations, provider adapter lookups, reconciliation findings, same-revision hash conflict handling, and full JSON Schema validation.
+
+### Step 25: Financial Transaction Projection Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `FinancialTransaction` model.
+- `FinancialTransactionProjector`.
+- `transaction.observed` processing inside `EventInboxProcessor`.
+- Append-only transaction insert by integration, kind, and external operation ID.
+- Optional link to existing payment projection by `payment_external_id`.
+- Operation hash conflict rejection for duplicate operation keys with different content.
+- `docs/implementation-step-25-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for financial transaction model, transaction projector, inbox processor, and changed projector contracts.
+- `php artisan test` must be run inside the backend Docker container after the 5-step batch.
+
+Remaining:
+
+- Add payment/refund allocations, operation correction strategy, reconciliation findings, same-revision hash conflict handling for mutable projections, and full JSON Schema validation.
+
+### Step 26: Projection Failure Reason Codes
+
+Status: implemented, test run pending
+
+Added:
+
+- `EventProjectionResult`.
+- Explicit projector failure reason codes.
+- `EventInboxProcessor::lastErrorCode()`.
+- Outbox retry error propagation from projector failure codes.
+- `docs/implementation-step-26-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for `EventProjectionResult`, inbox processor, dispatcher, and all projectors.
+- `php artisan test` must be run inside the backend Docker container after this 5-step batch.
+
+Remaining:
+
+- Add admin dead-letter UI, manual replay dry-run summaries, localized operator-facing reason descriptions, payment/refund allocations, reconciliation findings, and full JSON Schema validation.
 
 ### Specification Update: Mandatory Three-Language Portal
 
