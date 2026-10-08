@@ -45,6 +45,11 @@ class IngestEventsApiTest extends TestCase
             'aggregate_external_id' => 'order-1001',
             'status' => 'received',
         ]);
+        $this->assertDatabaseHas('domain_outbox', [
+            'tenant_id' => $integration->tenant_id,
+            'topic' => 'event_inbox.received',
+            'status' => 'pending',
+        ]);
     }
 
     public function test_identical_duplicate_event_is_reported_as_duplicate(): void
@@ -61,6 +66,7 @@ class IngestEventsApiTest extends TestCase
             ->assertJsonPath('results.0.status', 'duplicate');
 
         $this->assertSame(1, \App\Models\EventInbox::query()->count());
+        $this->assertSame(1, \App\Models\DomainOutbox::query()->count());
     }
 
     public function test_same_event_id_with_different_payload_is_conflict(): void
@@ -92,6 +98,7 @@ class IngestEventsApiTest extends TestCase
             ->assertJsonPath('results.1.code', 'schema_invalid');
 
         $this->assertSame(1, \App\Models\EventInbox::query()->count());
+        $this->assertSame(1, \App\Models\DomainOutbox::query()->count());
     }
 
     public function test_invalid_batch_envelope_rejects_without_commit(): void

@@ -357,7 +357,31 @@ Verification:
 
 Remaining:
 
-- Add full JSON Schema validation, projection/outbox processing, request size limits, throttling, quarantine persistence, and audit log.
+- Add full JSON Schema validation, projection processing, request size limits, throttling, quarantine persistence, and audit log.
+
+### Step 15: Domain Outbox Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `domain_outbox` migration.
+- `DomainOutbox` model.
+- `event_inbox.received` outbox topic.
+- Pending outbox message creation in the same transaction as newly accepted inbox events.
+- Dedupe by accepted `event_inbox.id`.
+- Tests for accepted event outbox creation, duplicate retry no-op, and mixed batch outbox count.
+- `docs/implementation-step-15-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add outbox leasing/dispatcher, projection worker, dead-letter transitions, retry/backoff, and consumer idempotency tests.
 
 ### Specification Update: Mandatory Three-Language Portal
 

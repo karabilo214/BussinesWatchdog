@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Ingest;
 
 use App\Http\Controllers\Controller;
+use App\Models\DomainOutbox;
 use App\Models\EventInbox;
 use App\Models\Integration;
 use Illuminate\Http\JsonResponse;
@@ -83,6 +84,22 @@ class EventsController extends Controller
                     'attempt_count' => 0,
                     'next_attempt_at' => now(),
                     'request_id' => $requestId,
+                ]);
+
+                DomainOutbox::query()->create([
+                    'tenant_id' => $integration->tenant_id,
+                    'topic' => DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED,
+                    'dedupe_key' => $inbox->id,
+                    'payload' => [
+                        'event_inbox_id' => $inbox->id,
+                        'integration_id' => $integration->id,
+                        'store_id' => $integration->store_id,
+                        'event_type' => $inbox->event_type,
+                    ],
+                    'status' => DomainOutbox::STATUS_PENDING,
+                    'attempts' => 0,
+                    'next_attempt_at' => now(),
+                    'created_at' => now(),
                 ]);
 
                 $results[] = $this->recordResult($index, $event['event_id'], $inbox->id, 'accepted');
