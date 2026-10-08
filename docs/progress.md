@@ -185,3 +185,28 @@ Remaining:
 
 - Replace diagnostic context endpoint with real tenant DTO endpoints as the API matures.
 - Add store CRUD endpoints with TenantContext enforcement.
+
+### Step 08: Store CRUD Foundation
+
+Status: prepared, test run pending
+
+Added:
+
+- `POST /api/v1/stores`.
+- `GET /api/v1/stores`.
+- `GET /api/v1/stores/{store}`.
+- Store create request validation.
+- Store API controller scoped by `TenantContext`.
+- Feature tests for create/list/detail isolation and HTTPS validation.
+- `docs/implementation-step-08-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add PATCH store and optimistic versioning.
+- Add domain verification and pairing flows later.
