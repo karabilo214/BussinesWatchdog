@@ -27,6 +27,7 @@ This step adds partial store update with `If-Match`/`config_version` optimistic 
 - [x] Missing `If-Match` is rejected.
 - [x] Base URL change resets verification/browser flag.
 - [x] Foreign store update is rejected.
+- [x] Run `php artisan test`; 24 tests passed with 71 assertions.
 
 ## Not Done In This Step
 

@@ -212,7 +212,7 @@ Remaining:
 
 ### Step 09: Store Update With Optimistic Versioning
 
-Status: prepared, test run pending
+Status: complete for store update foundation
 
 Added:
 
@@ -226,12 +226,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for update controller, request, routes, and tests.
+- User ran `php artisan test`; 24 tests passed with 71 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add role policy checks.
 - Add store verification and pairing flows later.
 
