@@ -1,3 +1,86 @@
+# OS and editor files
 .DS_Store
+Thumbs.db
 .idea/
+.vscode/
+*.swp
+*.swo
+*~
 
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+*.enc
+auth.json
+
+# Logs and runtime dumps
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+php_errors.log
+*.pid
+*.seed
+*.pid.lock
+
+# PHP / Laravel
+/vendor/
+/storage/*.key
+/storage/app/*
+!/storage/app/.gitignore
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/testing/*
+!/storage/framework/testing/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+/bootstrap/cache/*.php
+.phpunit.cache/
+.phpunit.result.cache
+/.php-cs-fixer.cache
+
+# JavaScript / Vue / Vite / Playwright
+/node_modules/
+/.pnpm-store/
+/dist/
+/build/
+/.vite/
+/coverage/
+/playwright-report/
+/test-results/
+/blob-report/
+/.nyc_output/
+
+# WordPress plugin local/dev artifacts
+plugins/**/vendor/
+plugins/**/node_modules/
+plugins/**/*.zip
+plugins/**/build/
+plugins/**/dist/
+
+# Local infrastructure data
+/.docker-data/
+/.minio/
+/.postgres/
+/.redis/
+docker-compose.override.yml
+
+# Generated artifacts and temporary exports
+/tmp/
+/temp/
+/exports/
+/artifacts/
+*.sqlite
+*.sqlite3
