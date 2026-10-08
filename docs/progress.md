@@ -500,6 +500,29 @@ Remaining:
 
 - Add `order.deleted`, refund/payment/transaction/allocation projections, same-revision hash conflict handling, full JSON Schema validation, partial PostgreSQL indexes, reconciliation rules, and projection-specific idempotency tests.
 
+### Step 21: Order Deleted Projection Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `OrderDeletedProjector`.
+- `order.deleted` processing inside `EventInboxProcessor`.
+- Soft-delete projection behavior through `orders.deleted_at`.
+- Immutable order revision insertion for delete events.
+- Stale delete revision protection for current order state.
+- Retry path for delete events referencing unknown orders.
+- `docs/implementation-step-21-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for order deleted projector, inbox processor, and dispatcher tests.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Add refund/payment/transaction/allocation projections, same-revision hash conflict handling, full JSON Schema validation, reconciliation rules, financial cleanup semantics, and projection-specific idempotency tests.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete

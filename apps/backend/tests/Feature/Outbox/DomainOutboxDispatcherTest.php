@@ -112,6 +112,85 @@ class DomainOutboxDispatcherTest extends TestCase
         $this->assertSame(2, OrderRevision::query()->where('order_id', $order->id)->count());
     }
 
+    public function test_order_deleted_event_marks_existing_order_deleted(): void
+    {
+        [$tenant, $store, $integration] = $this->integrationContext();
+        $snapshot = $this->receivedEventInbox(
+            context: [$tenant, $store, $integration],
+            sourceRevision: 1,
+        )[1];
+        $deleted = $this->orderDeletedEventInbox(
+            context: [$tenant, $store, $integration],
+            sourceRevision: 2,
+        )[1];
+        $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $snapshot->id]);
+        $deleteMessage = $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $deleted->id]);
+
+        app(DomainOutboxDispatcher::class)->dispatchDue(limit: 10, leaseSeconds: 60);
+
+        $order = Order::query()->where('integration_id', $integration->id)->where('external_id', 'order-1001')->firstOrFail();
+        $this->assertSame(2, $order->source_revision);
+        $this->assertNotNull($order->deleted_at);
+        $this->assertSame($deleted->payload_hash, $order->current_payload_hash);
+        $this->assertSame(2, OrderRevision::query()->where('order_id', $order->id)->count());
+        $this->assertDatabaseHas('order_revisions', [
+            'order_id' => $order->id,
+            'event_id' => $deleted->id,
+            'source_revision' => 2,
+            'payload_hash' => $deleted->payload_hash,
+        ]);
+        $this->assertSame(DomainOutbox::STATUS_PUBLISHED, $deleteMessage->refresh()->status);
+    }
+
+    public function test_stale_order_deleted_revision_does_not_mark_current_order_deleted(): void
+    {
+        [$tenant, $store, $integration] = $this->integrationContext();
+        $snapshot = $this->receivedEventInbox(
+            context: [$tenant, $store, $integration],
+            sourceRevision: 2,
+            totalMinor: '25000',
+            status: 'completed',
+        )[1];
+        $deleted = $this->orderDeletedEventInbox(
+            context: [$tenant, $store, $integration],
+            sourceRevision: 1,
+        )[1];
+        $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $snapshot->id]);
+        $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $deleted->id]);
+
+        app(DomainOutboxDispatcher::class)->dispatchDue(limit: 10, leaseSeconds: 60);
+
+        $order = Order::query()->where('integration_id', $integration->id)->where('external_id', 'order-1001')->firstOrFail();
+        $this->assertSame(2, $order->source_revision);
+        $this->assertNull($order->deleted_at);
+        $this->assertSame(25000, $order->total_minor);
+        $this->assertSame(2, OrderRevision::query()->where('order_id', $order->id)->count());
+    }
+
+    public function test_order_deleted_event_for_unknown_order_schedules_retry(): void
+    {
+        [$tenant, $deleted] = $this->orderDeletedEventInbox(sourceRevision: 1);
+        $message = $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $deleted->id]);
+
+        $result = app(DomainOutboxDispatcher::class)->dispatchDue(limit: 10, leaseSeconds: 60);
+
+        $this->assertSame([
+            'leased' => 1,
+            'published' => 0,
+            'failed' => 1,
+        ], $result);
+        $this->assertDatabaseHas('domain_outbox', [
+            'id' => $message->id,
+            'status' => DomainOutbox::STATUS_PENDING,
+            'attempts' => 1,
+            'error_code' => 'event_inbox_unprocessable',
+        ]);
+        $this->assertDatabaseMissing('orders', [
+            'integration_id' => $deleted->integration_id,
+            'external_id' => 'order-1001',
+        ]);
+    }
+
     public function test_dispatcher_publishes_already_processed_inbox_events_idempotently(): void
     {
         [$tenant, $inbox] = $this->receivedEventInbox(EventInbox::STATUS_PROCESSED);
@@ -264,6 +343,58 @@ class DomainOutboxDispatcherTest extends TestCase
             'attempt_count' => 0,
             'next_attempt_at' => now(),
             'processed_at' => $processedAt,
+            'request_id' => fake()->uuid(),
+        ]);
+
+        return [$tenant, $inbox];
+    }
+
+    /**
+     * @return array{0: Tenant, 1: EventInbox}
+     *
+     * @param array{0: Tenant, 1: Store, 2: Integration}|null $context
+     */
+    private function orderDeletedEventInbox(
+        string $inboxStatus = EventInbox::STATUS_RECEIVED,
+        ?array $context = null,
+        int $sourceRevision = 1,
+    ): array
+    {
+        [$tenant, $store, $integration] = $context ?? $this->integrationContext();
+        $payload = [
+            'schema_version' => '1.0',
+            'event_id' => fake()->uuid(),
+            'type' => 'order.deleted',
+            'aggregate_type' => 'order',
+            'aggregate_id' => 'order-1001',
+            'aggregate_revision' => $sourceRevision,
+            'occurred_at' => now()->subMinute()->toJSON(),
+            'observed_at' => now()->toJSON(),
+            'is_synthetic' => false,
+            'data' => [
+                'reason_code' => 'source_deleted',
+            ],
+        ];
+        $inbox = EventInbox::query()->create([
+            'tenant_id' => $tenant->id,
+            'store_id' => $store->id,
+            'integration_id' => $integration->id,
+            'provider_event_id' => fake()->uuid(),
+            'schema_version' => '1.0',
+            'event_type' => $payload['type'],
+            'aggregate_type' => $payload['aggregate_type'],
+            'aggregate_external_id' => $payload['aggregate_id'],
+            'aggregate_revision' => $sourceRevision,
+            'occurred_at' => now()->subMinute(),
+            'observed_at' => now(),
+            'received_at' => now(),
+            'is_synthetic' => false,
+            'payload' => $payload,
+            'payload_hash' => hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR)),
+            'canonicalization_version' => 1,
+            'status' => $inboxStatus,
+            'attempt_count' => 0,
+            'next_attempt_at' => now(),
             'request_id' => fake()->uuid(),
         ]);
 

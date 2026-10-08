@@ -3,6 +3,7 @@
 namespace App\Support\Ingest;
 
 use App\Models\EventInbox;
+use App\Support\Projections\OrderDeletedProjector;
 use App\Support\Projections\OrderSnapshotProjector;
 use Illuminate\Support\Facades\DB;
 
@@ -10,6 +11,7 @@ class EventInboxProcessor
 {
     public function __construct(
         private readonly OrderSnapshotProjector $orderSnapshotProjector,
+        private readonly OrderDeletedProjector $orderDeletedProjector,
     ) {
     }
 
@@ -35,6 +37,10 @@ class EventInboxProcessor
             }
 
             if (! $this->orderSnapshotProjector->project($event)) {
+                return false;
+            }
+
+            if (! $this->orderDeletedProjector->project($event)) {
                 return false;
             }
 
