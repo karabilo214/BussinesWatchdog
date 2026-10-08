@@ -689,3 +689,30 @@ Verification:
 Remaining:
 
 - Add scheduler/Horizon process integration, manual replay/dead-letter UI, tenant fairness, and event inbox processing leases in later steps.
+
+### Step 29: Integration Lifecycle And Audit
+
+Status: complete
+
+Added:
+
+- `audit_log` bootstrap table and `AuditLog` model.
+- Tenant-scoped `GET /api/v1/integrations`.
+- Tenant-scoped `GET /api/v1/integrations/{integration}`.
+- Tenant-scoped `POST /api/v1/integrations/{integration}/revoke`.
+- Integration DTO that returns credential summaries without ciphertext, fingerprint, or secret material.
+- Revoke transaction that marks integration and non-revoked credentials revoked.
+- Audit rows for pairing exchange and integration revoke.
+- Focused tests for list/detail/filter/revoke/tenant isolation/role denial/audit.
+- `docs/implementation-step-29-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed for changed integration/audit files.
+- `php artisan test tests/Feature/Integrations/IntegrationApiTest.php` passed: 6 tests, 23 assertions.
+- `php artisan test tests/Feature/Pairing/PairingApiTest.php` passed: 8 tests, 29 assertions.
+- `php artisan test` passed: 92 tests, 307 assertions.
+
+Remaining:
+
+- Add credential rotation/draining endpoint, audit listing/export, Stripe integration APIs, and staff/platform audit separation later.

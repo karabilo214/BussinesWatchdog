@@ -14,6 +14,10 @@ class IntegrationCredential extends Model
 
     public const STATUS_ACTIVE = 'active';
 
+    public const STATUS_DRAINING = 'draining';
+
+    public const STATUS_REVOKED = 'revoked';
+
     public $timestamps = false;
 
     protected $fillable = [

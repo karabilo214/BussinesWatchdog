@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Ingest\EventsController;
 use App\Http\Controllers\Api\V1\Ingest\HeartbeatController;
+use App\Http\Controllers\Api\V1\Integrations\IntegrationController;
 use App\Http\Controllers\Api\V1\Pairing\PairingCodeController;
 use App\Http\Controllers\Api\V1\Pairing\PairingExchangeController;
 use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
@@ -39,6 +40,12 @@ Route::middleware(['web', 'auth', 'tenant.session'])->prefix('/v1')->group(funct
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::post('/stores/{store}/pairing-codes', [PairingCodeController::class, 'store'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+    Route::get('/integrations', [IntegrationController::class, 'index'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+    Route::get('/integrations/{integration}', [IntegrationController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+    Route::post('/integrations/{integration}/revoke', [IntegrationController::class, 'revoke'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
 });
 
 Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store']);

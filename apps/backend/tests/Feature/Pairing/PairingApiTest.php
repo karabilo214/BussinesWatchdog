@@ -3,6 +3,7 @@
 namespace Tests\Feature\Pairing;
 
 use App\Models\IntegrationCredential;
+use App\Models\AuditLog;
 use App\Models\Membership;
 use App\Models\PairingCode;
 use App\Models\Store;
@@ -114,6 +115,13 @@ class PairingApiTest extends TestCase
         ]);
         $this->assertDatabaseMissing('integration_credentials', [
             'ciphertext' => $response->json('secret'),
+        ]);
+        $this->assertDatabaseHas('audit_log', [
+            'tenant_id' => $tenant->id,
+            'store_id' => $store->id,
+            'actor_type' => AuditLog::ACTOR_CONNECTOR,
+            'action' => AuditLog::ACTION_INTEGRATION_PAIRED,
+            'entity_type' => AuditLog::ENTITY_INTEGRATION,
         ]);
     }
 

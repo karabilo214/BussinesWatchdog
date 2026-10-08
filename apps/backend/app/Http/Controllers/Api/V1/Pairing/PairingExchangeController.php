@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Pairing;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Pairing\ExchangePairingCodeRequest;
+use App\Models\AuditLog;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
 use App\Models\PairingCode;
@@ -79,6 +80,24 @@ class PairingExchangeController extends Controller
             ]);
 
             $pairingCode->forceFill(['consumed_at' => now()])->save();
+
+            AuditLog::query()->create([
+                'tenant_id' => $integration->tenant_id,
+                'store_id' => $integration->store_id,
+                'actor_user_id' => null,
+                'actor_type' => AuditLog::ACTOR_CONNECTOR,
+                'action' => AuditLog::ACTION_INTEGRATION_PAIRED,
+                'entity_type' => AuditLog::ENTITY_INTEGRATION,
+                'entity_id' => $integration->id,
+                'changes' => [
+                    'provider' => $integration->provider,
+                    'status' => $integration->status,
+                    'credential_kind' => $credential->kind,
+                    'key_version' => $credential->key_version,
+                ],
+                'request_id' => (string) Str::uuid(),
+                'created_at' => now(),
+            ]);
 
             return [
                 'payload' => [

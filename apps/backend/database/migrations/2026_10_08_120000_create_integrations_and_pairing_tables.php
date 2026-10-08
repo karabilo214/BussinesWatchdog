@@ -72,6 +72,29 @@ return new class extends Migration
             $table->foreign(['tenant_id', 'store_id'])->references(['tenant_id', 'id'])->on('stores');
         });
 
+        Schema::create('audit_log', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('tenant_id');
+            $table->uuid('store_id')->nullable();
+            $table->uuid('actor_user_id')->nullable();
+            $table->text('actor_type');
+            $table->text('action');
+            $table->text('entity_type');
+            $table->uuid('entity_id');
+            $changesDefault = DB::getDriverName() === 'pgsql'
+                ? DB::raw("'{}'::jsonb")
+                : '{}';
+            $table->jsonb('changes')->default($changesDefault);
+            $table->uuid('request_id');
+            $table->timestampTz('created_at')->useCurrent();
+
+            $table->foreign('tenant_id')->references('id')->on('tenants');
+            $table->foreign(['tenant_id', 'store_id'])->references(['tenant_id', 'id'])->on('stores');
+            $table->foreign('actor_user_id')->references('id')->on('users')->nullOnDelete();
+            $table->index(['tenant_id', 'created_at'], 'audit_log_tenant_time_idx');
+            $table->index(['tenant_id', 'entity_type', 'entity_id'], 'audit_log_entity_idx');
+        });
+
         if (DB::getDriverName() === 'pgsql') {
             DB::statement("ALTER TABLE integrations ADD CONSTRAINT integrations_provider_check CHECK (provider ~ '^[a-z][a-z0-9_]{1,63}$')");
             DB::statement("ALTER TABLE integrations ADD CONSTRAINT integrations_mode_check CHECK (mode IN ('live','test'))");
@@ -82,12 +105,16 @@ return new class extends Migration
             DB::statement('ALTER TABLE integration_credentials ADD CONSTRAINT integration_credentials_key_version_check CHECK (key_version > 0)');
             DB::statement("ALTER TABLE integration_credentials ADD CONSTRAINT integration_credentials_status_check CHECK (status IN ('active','draining','revoked'))");
             DB::statement('ALTER TABLE pairing_codes ADD CONSTRAINT pairing_codes_attempt_count_check CHECK (attempt_count >= 0)');
+            DB::statement("ALTER TABLE audit_log ADD CONSTRAINT audit_log_actor_type_check CHECK (actor_type IN ('user','connector','system'))");
+            DB::statement("ALTER TABLE audit_log ADD CONSTRAINT audit_log_action_check CHECK (action ~ '^[a-z][a-z0-9_.]{1,127}$')");
+            DB::statement("ALTER TABLE audit_log ADD CONSTRAINT audit_log_entity_type_check CHECK (entity_type ~ '^[a-z][a-z0-9_]{1,63}$')");
         }
     }
 
     public function down(): void
     {
         Schema::dropIfExists('pairing_codes');
+        Schema::dropIfExists('audit_log');
         Schema::dropIfExists('integration_credentials');
         Schema::dropIfExists('integrations');
     }

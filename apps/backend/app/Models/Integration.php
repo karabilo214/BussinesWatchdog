@@ -13,7 +13,17 @@ class Integration extends Model
 
     public const SOURCE_STORE_REPORTED = 'store_reported';
 
+    public const SOURCE_INDEPENDENT_PROVIDER = 'independent_provider';
+
+    public const STATUS_PENDING = 'pending';
+
     public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_DEGRADED = 'degraded';
+
+    public const STATUS_REVOKED = 'revoked';
+
+    public const STATUS_DISABLED = 'disabled';
 
     protected $fillable = [
         'tenant_id',

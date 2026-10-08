@@ -35,4 +35,20 @@ class TenantRoles
             self::ADMIN,
         ];
     }
+
+    /**
+     * @return list<string>
+     */
+    public static function integrationRead(): array
+    {
+        return self::storeRead();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function integrationManage(): array
+    {
+        return self::storeManage();
+    }
 }
