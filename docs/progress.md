@@ -92,3 +92,4 @@ Notes:
 - If Laravel files already exist from a partial first run, `make backend-create` repairs `apps/backend/.env` instead of exiting.
 - `make backend-create` completed successfully in the user's terminal and generated `APP_KEY`.
 - Health endpoints were added after scaffold generation.
+- First backend HTTP run hit missing `sessions` table because the generated local `.env` still used database sessions. Bootstrap repair now sets `SESSION_DRIVER=file` until auth/session migrations are deliberately introduced.

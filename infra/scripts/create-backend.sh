@@ -44,6 +44,7 @@ configure_env() {
   set_env "${env_file}" REDIS_PORT 6379
   set_env "${env_file}" CACHE_STORE redis
   set_env "${env_file}" QUEUE_CONNECTION redis
+  set_env "${env_file}" SESSION_DRIVER file
 
   set_env "${env_file}" MAIL_MAILER smtp
   set_env "${env_file}" MAIL_HOST mailpit
