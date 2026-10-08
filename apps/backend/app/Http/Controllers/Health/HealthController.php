@@ -3,11 +3,8 @@
 namespace App\Http\Controllers\Health;
 
 use App\Http\Controllers\Controller;
+use App\Support\Health\ReadinessChecks;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
-use Throwable;
 
 class HealthController extends Controller
 {
@@ -19,13 +16,9 @@ class HealthController extends Controller
         ]);
     }
 
-    public function ready(): JsonResponse
+    public function ready(ReadinessChecks $readinessChecks): JsonResponse
     {
-        $checks = [
-            'database' => $this->checkDatabase(),
-            'redis' => $this->checkRedis(),
-            'cache' => $this->checkCache(),
-        ];
+        $checks = $readinessChecks->all();
 
         $ready = collect($checks)->every(fn (array $check): bool => $check['ok']);
 
@@ -34,38 +27,5 @@ class HealthController extends Controller
             'service' => 'backend',
             'checks' => $checks,
         ], $ready ? 200 : 503);
-    }
-
-    private function checkDatabase(): array
-    {
-        return $this->safeCheck(function (): void {
-            DB::select('select 1');
-        });
-    }
-
-    private function checkRedis(): array
-    {
-        return $this->safeCheck(function (): void {
-            Redis::connection()->ping();
-        });
-    }
-
-    private function checkCache(): array
-    {
-        return $this->safeCheck(function (): void {
-            Cache::put('health:ready', 'ok', 5);
-            Cache::get('health:ready');
-        });
-    }
-
-    private function safeCheck(callable $callback): array
-    {
-        try {
-            $callback();
-
-            return ['ok' => true];
-        } catch (Throwable) {
-            return ['ok' => false];
-        }
     }
 }
