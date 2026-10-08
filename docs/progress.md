@@ -333,7 +333,7 @@ Remaining:
 
 ### Step 14: Durable Event Ingress Inbox Foundation
 
-Status: implemented, test run pending
+Status: complete for durable event ingress inbox foundation
 
 Added:
 
@@ -352,12 +352,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for migration, model, controller, routes, and tests.
+- User ran `php artisan test`; 55 tests passed with 174 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add full JSON Schema validation, projection/outbox processing, request size limits, throttling, quarantine persistence, and audit log.
 
 ### Specification Update: Mandatory Three-Language Portal
