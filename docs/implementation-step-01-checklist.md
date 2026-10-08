@@ -29,7 +29,7 @@ This step prepares the local infrastructure only. It does not implement Laravel,
 - [x] Redis starts with append-only persistence.
 - [x] Local S3-compatible storage starts. Current local bootstrap uses Adobe S3Mock because the official MinIO Docker Hub image is not reliably pullable and LocalStack latest requires license activation.
 - [x] Mailpit starts and UI is reachable.
-- [ ] Confirm PostgreSQL and Redis health become `healthy` after startup.
+- [x] Confirm PostgreSQL and Redis health become `healthy` after startup.
 - [ ] Confirm data persists across `make down` and returns after `make up`.
 - [x] `make reset-infra` removes local volumes when a clean reset is needed.
 
