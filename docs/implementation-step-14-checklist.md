@@ -30,7 +30,7 @@ This step adds durable signed event intake into `event_inbox`. It does not norma
 - [x] Mixed valid/invalid batch returns per-record results.
 - [x] Invalid batch envelope rejects without commit.
 - [x] Unsupported schema version is per-record invalid.
-- [x] Run `php artisan test`; 55 tests passed with 174 assertions.
+- [x] Run `php artisan test`; 58 tests passed with 185 assertions.
 
 ## Not Done In This Step
 
