@@ -24,6 +24,7 @@ This step adds the first outbox lease service. It does not dispatch side effects
 - [x] Active leases are not leased again.
 - [x] Expired leases are leased again and attempts increment.
 - [x] Terminal messages are ignored.
+- [x] Run `php artisan test`; 62 tests passed with 199 assertions.
 
 ## Not Done In This Step
 

@@ -384,7 +384,7 @@ Remaining:
 
 ### Step 16: Domain Outbox Leasing Foundation
 
-Status: implemented, test run pending
+Status: complete for domain outbox leasing foundation
 
 Added:
 
@@ -400,12 +400,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for model, outbox leaser, and tests.
+- User ran `php artisan test`; 62 tests passed with 199 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Add dispatcher command/worker loop, side-effect execution, publish/dead-letter result handling, backoff policy, and consumer idempotency tests.
 
 ### Specification Update: Mandatory Three-Language Portal
