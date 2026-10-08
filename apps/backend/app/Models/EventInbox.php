@@ -12,6 +12,28 @@ class EventInbox extends Model
 
     public const STATUS_RECEIVED = 'received';
 
+    public const EVENT_TYPES = [
+        'order.snapshot',
+        'order.deleted',
+        'refund.snapshot',
+        'payment.snapshot',
+        'transaction.observed',
+        'integration.heartbeat',
+        'integration.capabilities_changed',
+        'deployment.observed',
+        'funnel.observed',
+    ];
+
+    public const AGGREGATE_TYPES = [
+        'order',
+        'refund',
+        'payment',
+        'transaction',
+        'integration',
+        'deployment',
+        'session',
+    ];
+
     public $timestamps = false;
 
     protected $table = 'event_inbox';
@@ -62,5 +84,15 @@ class EventInbox extends Model
     public function integration(): BelongsTo
     {
         return $this->belongsTo(Integration::class);
+    }
+
+    public static function supportsEventType(string $eventType): bool
+    {
+        return in_array($eventType, self::EVENT_TYPES, true);
+    }
+
+    public static function supportsAggregateType(string $aggregateType): bool
+    {
+        return in_array($aggregateType, self::AGGREGATE_TYPES, true);
     }
 }

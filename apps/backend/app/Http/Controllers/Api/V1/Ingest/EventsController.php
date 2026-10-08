@@ -12,28 +12,6 @@ use Illuminate\Support\Str;
 
 class EventsController extends Controller
 {
-    private const EVENT_TYPES = [
-        'order.snapshot',
-        'order.deleted',
-        'refund.snapshot',
-        'payment.snapshot',
-        'transaction.observed',
-        'integration.heartbeat',
-        'integration.capabilities_changed',
-        'deployment.observed',
-        'funnel.observed',
-    ];
-
-    private const AGGREGATE_TYPES = [
-        'order',
-        'refund',
-        'payment',
-        'transaction',
-        'integration',
-        'deployment',
-        'session',
-    ];
-
     public function store(Request $request): JsonResponse
     {
         /** @var Integration $integration */
@@ -139,11 +117,11 @@ class EventsController extends Controller
             return 'schema_invalid';
         }
 
-        if (! is_string($event['type']) || ! in_array($event['type'], self::EVENT_TYPES, true)) {
+        if (! is_string($event['type']) || ! EventInbox::supportsEventType($event['type'])) {
             return 'schema_invalid';
         }
 
-        if (! is_string($event['aggregate_type']) || ! in_array($event['aggregate_type'], self::AGGREGATE_TYPES, true)) {
+        if (! is_string($event['aggregate_type']) || ! EventInbox::supportsAggregateType($event['aggregate_type'])) {
             return 'schema_invalid';
         }
 
