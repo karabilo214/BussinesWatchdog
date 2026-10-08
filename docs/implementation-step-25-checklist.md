@@ -17,7 +17,7 @@ This step adds append-only financial transaction projection for `transaction.obs
 ## Verification
 
 - [x] Run PHP syntax checks for changed backend files.
-- [ ] Run `php artisan test` inside the backend container.
+- [x] Run `php artisan test`; 77 tests passed with 252 assertions.
 
 ## Not Done In This Step
 

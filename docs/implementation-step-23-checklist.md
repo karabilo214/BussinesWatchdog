@@ -18,7 +18,7 @@ This step adds the first refund projection for `refund.snapshot` events. It upse
 ## Verification
 
 - [x] Run PHP syntax checks for changed backend files.
-- [ ] Run `php artisan test` inside the backend container.
+- [x] Run `php artisan test`; 77 tests passed with 252 assertions.
 
 ## Not Done In This Step
 

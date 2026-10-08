@@ -538,7 +538,7 @@ Verification:
 
 ### Step 23: Refund Snapshot Projection Foundation
 
-Status: implemented, test run pending
+Status: complete for refund snapshot projection foundation
 
 Added:
 
@@ -554,7 +554,7 @@ Added:
 Verification:
 
 - PHP syntax checks passed for financial projection migration, refund model, refund projector, inbox processor, and changed projector contracts.
-- `php artisan test` must be run inside the backend Docker container after the 5-step batch.
+- User ran `php artisan test`; 77 tests passed with 252 assertions.
 
 Remaining:
 
@@ -562,7 +562,7 @@ Remaining:
 
 ### Step 24: Payment Snapshot Projection Foundation
 
-Status: implemented, test run pending
+Status: complete for payment snapshot projection foundation
 
 Added:
 
@@ -576,7 +576,7 @@ Added:
 Verification:
 
 - PHP syntax checks passed for payment model, payment projector, inbox processor, and changed projector contracts.
-- `php artisan test` must be run inside the backend Docker container after the 5-step batch.
+- User ran `php artisan test`; 77 tests passed with 252 assertions.
 
 Remaining:
 
@@ -584,7 +584,7 @@ Remaining:
 
 ### Step 25: Financial Transaction Projection Foundation
 
-Status: implemented, test run pending
+Status: complete for financial transaction projection foundation
 
 Added:
 
@@ -599,7 +599,7 @@ Added:
 Verification:
 
 - PHP syntax checks passed for financial transaction model, transaction projector, inbox processor, and changed projector contracts.
-- `php artisan test` must be run inside the backend Docker container after the 5-step batch.
+- User ran `php artisan test`; 77 tests passed with 252 assertions.
 
 Remaining:
 
@@ -607,7 +607,7 @@ Remaining:
 
 ### Step 26: Projection Failure Reason Codes
 
-Status: implemented, test run pending
+Status: complete for projection failure reason codes
 
 Added:
 
@@ -620,7 +620,7 @@ Added:
 Verification:
 
 - PHP syntax checks passed for `EventProjectionResult`, inbox processor, dispatcher, and all projectors.
-- `php artisan test` must be run inside the backend Docker container after this 5-step batch.
+- User ran `php artisan test`; 77 tests passed with 252 assertions.
 
 Remaining:
 
