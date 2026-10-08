@@ -116,3 +116,26 @@ Verification:
 Remaining:
 
 - Add auth/session foundation and TenantContext in the next slices.
+
+### Step 05: TenantContext Foundation
+
+Status: prepared, test run pending
+
+Added:
+
+- `TenantContext` scoped service.
+- `MissingTenantContext` exception.
+- Laravel container scoped binding.
+- Unit tests for fail-closed behavior and scoped restoration.
+- Feature test for container binding.
+- `docs/implementation-step-05-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Add tenant resolution middleware after auth/session foundation.
+- Enforce TenantContext in repositories/services/jobs as they are introduced.
