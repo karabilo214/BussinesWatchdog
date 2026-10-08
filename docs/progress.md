@@ -162,3 +162,27 @@ Verification:
 Remaining:
 
 - Add email verification, password reset, MFA, tenant switch, invitations, and policies in later slices.
+
+### Step 07: Tenant Switch And Session Context
+
+Status: prepared, test run pending
+
+Added:
+
+- ADR for bootstrap deviations from specification.
+- `POST /api/v1/tenants/{tenant}/activate`.
+- Session-backed TenantContext middleware.
+- Diagnostic `GET /api/v1/tenants/context`.
+- Feature tests for own tenant activation, foreign tenant rejection, and auth requirement.
+- `docs/implementation-step-07-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Replace diagnostic context endpoint with real tenant DTO endpoints as the API matures.
+- Add store CRUD endpoints with TenantContext enforcement.
