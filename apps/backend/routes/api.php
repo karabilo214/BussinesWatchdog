@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Ingest\HeartbeatController;
 use App\Http\Controllers\Api\V1\Pairing\PairingCodeController;
 use App\Http\Controllers\Api\V1\Pairing\PairingExchangeController;
 use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
@@ -40,3 +41,5 @@ Route::middleware(['web', 'auth', 'tenant.session'])->prefix('/v1')->group(funct
 });
 
 Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store']);
+Route::post('/v1/ingest/heartbeat', [HeartbeatController::class, 'store'])
+    ->middleware('integration.hmac');

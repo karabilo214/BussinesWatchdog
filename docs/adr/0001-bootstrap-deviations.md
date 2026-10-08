@@ -72,13 +72,13 @@ Return plan: add DNS/connector external checks, explicit failure reason codes, a
 
 Specification target: pairing has code attempt limits, IP-level rate limiting, audit trail, production keyring-backed credential encryption, and HMAC/nonce verification before accepting connector traffic.
 
-Current implementation: pairing code creation and exchange are implemented with hashed one-time codes, per-code attempt tracking, base URL binding, encrypted secret storage through Laravel encryption, and one-time secret reveal. IP-level rate limiting, audit events, HMAC middleware, nonce replay protection, and production keyring strategy are not implemented yet.
+Current implementation: pairing code creation and exchange are implemented with hashed one-time codes, per-code attempt tracking, base URL binding, encrypted secret storage through Laravel encryption, and one-time secret reveal. HMAC middleware and cache-backed nonce replay protection were added in Step 13. IP-level rate limiting, audit events, rotated-key draining, and production keyring strategy are not implemented yet.
 
 Reason: this D1 slice establishes durable pairing tables, at-most-once exchange, and credential bootstrap before signed ingestion endpoints exist.
 
-Risk: the exchange endpoint is not yet production-hardened against distributed abuse and must not be exposed publicly without edge/app rate limiting.
+Risk: the exchange and signed heartbeat endpoints are not yet production-hardened against distributed abuse and must not be exposed publicly without edge/app rate limiting.
 
-Return plan: add route throttle policies, audit logging, deployment keyring design, HMAC middleware, and nonce replay storage before enabling connector ingestion beyond local bootstrap.
+Return plan: add route throttle policies, audit logging, deployment keyring design, rotated-key draining, and durable event ingestion before enabling connector ingestion beyond local bootstrap.
 
 ## Tracking
 
@@ -89,3 +89,4 @@ Related docs:
 - `docs/implementation-step-06-checklist.md`
 - `docs/implementation-step-11-checklist.md`
 - `docs/implementation-step-12-checklist.md`
+- `docs/implementation-step-13-checklist.md`

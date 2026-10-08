@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
 use App\Http\Middleware\RequireTenantRole;
 use App\Http\Middleware\SetTenantContextFromSession;
 
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
         ]);
         $middleware->alias([
+            'integration.hmac' => AuthenticateIntegrationHmac::class,
             'tenant.role' => RequireTenantRole::class,
             'tenant.session' => SetTenantContextFromSession::class,
         ]);

@@ -306,6 +306,32 @@ Remaining:
 
 - Add HMAC middleware, nonce replay protection, integration list/revoke/rotate, and audit log.
 
+### Step 13: Integration HMAC Authentication Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `integration.hmac` middleware.
+- HMAC header validation for `X-BW-Key-Id`, `X-BW-Timestamp`, `X-BW-Nonce`, `X-BW-Signature`, and `X-BW-Signature-Version`.
+- Canonical raw-body signature verification.
+- Timestamp tolerance and query-string rejection.
+- Cache-backed nonce replay protection.
+- Credential status enforcement.
+- Protected `POST /api/v1/ingest/heartbeat`.
+- Feature tests for signed heartbeat, missing headers, altered body, nonce replay, stale timestamp, revoked credential, and query string rejection.
+- `docs/implementation-step-13-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add durable `POST /api/v1/ingest/events`, event schema validation, throttling, audit log, and rotated-key draining support.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete
