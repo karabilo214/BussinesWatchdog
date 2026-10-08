@@ -1,0 +1,3 @@
+-- Local bootstrap marker.
+-- Production schema must come from reviewed Laravel migrations.
+-- Reference DDL lives in spec/database/schema.sql and spec/database/platform-billing-extension.sql.
