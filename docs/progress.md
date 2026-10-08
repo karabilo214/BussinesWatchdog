@@ -255,6 +255,32 @@ Remaining:
 
 - Expand permission checks to incidents/checks/integrations/billing in future slices.
 
+### Step 11: Store Verification Challenge Foundation
+
+Status: implemented, test run pending
+
+Added:
+
+- `store_verifications` migration.
+- `StoreVerification` model.
+- `POST /api/v1/stores/{store}/verify` for DNS and WordPress challenge creation.
+- `GET /api/v1/stores/{store}/verification` for latest verification state.
+- Tenant scoping and store role checks for verification endpoints.
+- Feature tests for challenge creation, method validation, role denial, tenant isolation, latest state read, and pending expiration.
+- `docs/implementation-step-11-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add external DNS/WordPress challenge checks.
+- Update store `verified_at` only after successful external ownership proof.
+- Add pairing codes and integration credential bootstrap later.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete

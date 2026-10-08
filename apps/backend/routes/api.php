@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
 use App\Http\Controllers\Api\V1\Tenancy\TenantController;
 use App\Support\Auth\TenantRoles;
@@ -28,4 +29,8 @@ Route::middleware(['web', 'auth', 'tenant.session'])->prefix('/v1')->group(funct
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::patch('/stores/{store}', [StoreController::class, 'update'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+    Route::post('/stores/{store}/verify', [StoreVerificationController::class, 'store'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+    Route::get('/stores/{store}/verification', [StoreVerificationController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
 });

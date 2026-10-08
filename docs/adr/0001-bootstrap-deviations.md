@@ -56,6 +56,18 @@ Risk: session behavior may differ from final DB-backed or Sanctum-backed setup.
 
 Return plan: decide session storage as part of auth hardening and update `.env.example`, tests, and deployment config together.
 
+### Store Verification API Issues Challenges Without External Proof Check
+
+Specification target: domain verification proves exact hostname ownership through WordPress challenge or DNS before a store is considered verified.
+
+Current implementation: `/api/v1/stores/{store}/verify` creates a pending challenge and `/api/v1/stores/{store}/verification` reads latest state. It does not yet perform DNS TXT lookup, WordPress challenge fetch, store `verified_at` update, or activation.
+
+Reason: this D1 slice establishes the database shape, routing, tenant scoping, role checks, and safe DTO behavior before adding network-dependent verification workers.
+
+Risk: the current endpoint must not be interpreted as proof of domain ownership.
+
+Return plan: add DNS/WordPress external checks, explicit failure reason codes, and store activation rules before enabling browser checks or integrations.
+
 ## Tracking
 
 Related docs:
@@ -63,3 +75,4 @@ Related docs:
 - `docs/progress.md`
 - `docs/implementation-step-01-checklist.md`
 - `docs/implementation-step-06-checklist.md`
+- `docs/implementation-step-11-checklist.md`
