@@ -18,7 +18,7 @@ This step adds the first commerce projection for `order.snapshot` events. It cre
 ## Verification
 
 - [x] Run PHP syntax checks for changed backend files.
-- [ ] Run `php artisan test` inside the backend container.
+- [x] Run `php artisan test`; 74 tests passed with 239 assertions.
 
 ## Not Done In This Step
 

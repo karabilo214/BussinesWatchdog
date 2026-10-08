@@ -478,7 +478,7 @@ Remaining:
 
 ### Step 20: Order Snapshot Projection Foundation
 
-Status: implemented, test run pending
+Status: complete for order snapshot projection foundation
 
 Added:
 
@@ -494,7 +494,7 @@ Added:
 Verification:
 
 - PHP syntax checks passed for order projection migration, models, projector, inbox processor, and dispatcher tests.
-- `php artisan test` must be run inside the backend Docker container.
+- User ran `php artisan test`; 74 tests passed with 239 assertions.
 
 Remaining:
 
