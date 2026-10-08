@@ -33,6 +33,8 @@ class PaymentAllocationService
 
     public const ERROR_HAS_ACTIVE_REFUND_ALLOCATIONS = 'allocation_has_active_refund_allocations';
 
+    public const ERROR_ORDER_MISMATCH = 'allocation_order_mismatch';
+
     /**
      * @param  array<string, mixed>  $evidence
      */
@@ -113,6 +115,10 @@ class PaymentAllocationService
             $lockedPaymentAllocation = PaymentAllocation::query()->whereKey($paymentAllocation->id)->lockForUpdate()->firstOrFail();
 
             $this->assertSameScope($lockedRefund, $lockedRefundTransaction, $lockedPaymentAllocation);
+
+            if ($lockedRefund->order_id !== $lockedPaymentAllocation->order_id) {
+                throw new AllocationRejected(self::ERROR_ORDER_MISMATCH);
+            }
 
             if ($lockedRefundTransaction->kind !== 'refund' || $lockedRefundTransaction->status !== 'succeeded') {
                 throw new AllocationRejected(self::ERROR_REFUND_INVALID);

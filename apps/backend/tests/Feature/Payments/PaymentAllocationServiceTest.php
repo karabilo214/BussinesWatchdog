@@ -147,6 +147,72 @@ class PaymentAllocationServiceTest extends TestCase
         );
     }
 
+    public function test_it_rejects_refund_allocation_when_refund_order_does_not_match_payment_allocation_order(): void
+    {
+        $context = $this->context();
+        $service = app(PaymentAllocationService::class);
+        $paymentAllocation = $service->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+
+        $otherOrder = Order::query()->create([
+            'tenant_id' => $context['tenant']->id,
+            'store_id' => $context['store']->id,
+            'integration_id' => $context['integration']->id,
+            'external_id' => fake()->uuid(),
+            'display_number' => '#1002',
+            'source_revision' => 1,
+            'status' => 'processing',
+            'mode' => 'live',
+            'currency' => 'EUR',
+            'currency_exponent' => 2,
+            'total_minor' => 5000,
+            'payment_expected' => true,
+            'financial_support' => 'supported',
+            'is_synthetic' => false,
+            'source_created_at' => now()->subMinutes(2),
+            'source_updated_at' => now()->subMinute(),
+            'current_payload_hash' => hash('sha256', fake()->uuid()),
+            'metadata' => [],
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $otherRefund = Refund::query()->create([
+            'tenant_id' => $context['tenant']->id,
+            'store_id' => $context['store']->id,
+            'integration_id' => $context['integration']->id,
+            'order_id' => $otherOrder->id,
+            'external_id' => fake()->uuid(),
+            'source_revision' => 1,
+            'currency' => 'EUR',
+            'currency_exponent' => 2,
+            'amount_minor' => 5000,
+            'external_required' => true,
+            'provider_ref' => 're_other_1',
+            'status' => 'recorded',
+            'occurred_at' => now()->subMinute(),
+            'current_payload_hash' => hash('sha256', fake()->uuid()),
+            'updated_at' => now(),
+        ]);
+
+        $this->expectException(AllocationRejected::class);
+        $this->expectExceptionMessage(PaymentAllocationService::ERROR_ORDER_MISMATCH);
+
+        $service->allocateRefund(
+            $otherRefund,
+            $context['refundTransaction'],
+            $paymentAllocation,
+            5000,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+    }
+
     public function test_it_revokes_capture_allocation_and_frees_capacity_for_a_new_allocation(): void
     {
         $context = $this->context();

@@ -1,13 +1,14 @@
 <?php
 
+use App\Console\Commands\DispatchDomainOutbox;
+use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
+use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
+use App\Http\Middleware\Tenancy\RequireTenantRole;
+use App\Http\Middleware\Tenancy\SetTenantContextFromSession;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use App\Console\Commands\DispatchDomainOutbox;
-use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
-use App\Http\Middleware\Tenancy\RequireTenantRole;
-use App\Http\Middleware\Tenancy\SetTenantContextFromSession;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
         ]);
         $middleware->alias([
+            'idempotency' => EnsureIdempotencyKey::class,
             'integration.hmac' => AuthenticateIntegrationHmac::class,
             'tenant.role' => RequireTenantRole::class,
             'tenant.session' => SetTenantContextFromSession::class,

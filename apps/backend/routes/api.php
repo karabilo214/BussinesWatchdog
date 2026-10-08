@@ -6,8 +6,11 @@ use App\Http\Controllers\Api\V1\Ingest\HeartbeatController;
 use App\Http\Controllers\Api\V1\Integrations\IntegrationController;
 use App\Http\Controllers\Api\V1\Pairing\PairingCodeController;
 use App\Http\Controllers\Api\V1\Pairing\PairingExchangeController;
-use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
+use App\Http\Controllers\Api\V1\Payments\PaymentAllocationController;
+use App\Http\Controllers\Api\V1\Payments\RefundAllocationController;
+use App\Http\Controllers\Api\V1\Reconciliation\ReconciliationController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
+use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
 use App\Http\Controllers\Api\V1\Tenancy\TenantController;
 use App\Support\Auth\TenantRoles;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +49,20 @@ Route::middleware(['web', 'auth', 'tenant.session'])->prefix('/v1')->group(funct
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
     Route::post('/integrations/{integration}/revoke', [IntegrationController::class, 'revoke'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+
+    Route::post('/payment-allocations', [PaymentAllocationController::class, 'store'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::allocationManage()), 'idempotency']);
+    Route::post('/payment-allocations/{paymentAllocation}/revoke', [PaymentAllocationController::class, 'revoke'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::allocationManage()));
+    Route::post('/refund-allocations', [RefundAllocationController::class, 'store'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::allocationManage()), 'idempotency']);
+    Route::post('/refund-allocations/{refundAllocation}/revoke', [RefundAllocationController::class, 'revoke'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::allocationManage()));
+
+    Route::post('/stores/{store}/reconciliations', [ReconciliationController::class, 'store'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::reconciliationTrigger()), 'idempotency']);
+    Route::get('/stores/{store}/findings', [ReconciliationController::class, 'findings'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
 });
 
 Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store']);

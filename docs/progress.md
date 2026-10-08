@@ -811,3 +811,26 @@ Verification:
 Remaining:
 
 - Public reconciliation/findings API (Step 34), `rule_configs`-backed versioned tolerance/grace, nightly sweep scheduling and dedup, incident engine correlation, and the `GET /stores/{id}/unmatched-payments` candidate-suggestion endpoint.
+
+### Step 34: Public Allocation And Reconciliation API
+
+Status: complete for the scoped allocation + reconciliation HTTP surface
+
+Added:
+
+- `idempotency_keys` table and `EnsureIdempotencyKey` middleware (`idempotency` alias): reserve-then-run mutex via a unique DB constraint, replays the cached response for a repeated key+body, `409` for a repeated key with a different body, `400` for a missing header.
+- `POST /payment-allocations`, `POST /payment-allocations/{id}/revoke`, `POST /refund-allocations`, `POST /refund-allocations/{id}/revoke`: tenant-scoped resolution, server-side currency revalidation, `AllocationRejected::httpStatus()` mapping (409 for state conflicts, 422 otherwise), `audit_log` row on every create and revoke.
+- `POST /stores/{id}/reconciliations` (order_ids or store-wide unmatched-payment scan, `dry_run` explicitly rejected) and `GET /stores/{id}/findings` (filtered, cursor-paginated by finding `id`).
+- Closed a real gap in `PaymentAllocationService::allocateRefund`: it now rejects linking a refund to a payment allocation from a *different* order (`ERROR_ORDER_MISMATCH`).
+- `docs/implementation-step-34-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed (PHP 8.4) for all new/changed files.
+- `php vendor/bin/pint --test`: clean.
+- `php artisan test` (PHP 8.4) passed: 147 tests, 453 assertions.
+- `php artisan migrate --force` against real PostgreSQL 18 in local Docker applied the new migration cleanly.
+
+Remaining:
+
+- Order/payment detail reads and the unmatched-payments candidate-suggestion endpoint, windowed bulk reconciliation triggers, true dry-run, cursor signing, rate limiting, and an idempotency-key expiry cleanup job.

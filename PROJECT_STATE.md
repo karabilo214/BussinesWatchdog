@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-08 (Step 32)
+2026-10-08 (Step 34)
 
 ## Что это за проект
 
@@ -14,7 +14,7 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 Репозиторий сейчас в фазе **D1–D4 бэкенд-слайсов** (по внутренней нумерации шагов `docs/progress.md`, не всегда совпадает 1:1 с разделом 36 ТЗ). P0 pilot пока не достигнут — минимальный кабинет, браузерные проверки, incident engine и email ещё не реализованы.
 
-Реализовано (backend, `apps/backend`, до Step 32 включительно):
+Реализовано (backend, `apps/backend`, до Step 34 включительно):
 
 - Локальный инфраструктурный bootstrap (Docker Compose: PostgreSQL 18, Redis, S3Mock вместо MinIO, Mailpit).
 - Auth/tenancy: регистрация, сессии (пока без Sanctum), membership/roles.
@@ -25,9 +25,10 @@ Business Watchdog — SaaS для обнаружения финансовых р
 - Integration lifecycle: list/detail/revoke endpoints, audit log (`audit_log`).
 - Payment/refund allocation foundation: таблицы `payment_allocations`/`refund_allocations`, `PaymentAllocationService` с блокировками строк и проверкой сумм.
 - Allocation revoke/unlink: `PaymentAllocationService::revokeCaptureAllocation()`/`revokeRefundAllocation()` — reason обязателен, повторный revoke запрещён, revoke capture allocation блокируется активными refund allocations на неё, каждый revoke пишет `audit_log`.
-- Reconciliation foundation: таблицы `reconciliation_runs`/`reconciliation_findings`, `OrderReconciliationService::evaluate()` — считает G/C/RW/RP по одному заказу и пишет findings по правилам `MONEY_UNSUPPORTED`, `MONEY_CAPTURE_MISSING`, `MONEY_CAPTURE_AMOUNT`, `MONEY_REFUND_MISSING`, `MONEY_REFUND_EXTRA` с grace-окнами (30/60 мин) и нулевым tolerance. Синхронный, по одному заказу — без scheduler/nightly sweep/dirty-order coalescing.
+- Reconciliation foundation: таблицы `reconciliation_runs`/`reconciliation_findings`, `OrderReconciliationService::evaluate()` — считает G/C/RW/RP по одному заказу. Правила: `MONEY_UNSUPPORTED`, `MONEY_CAPTURE_MISSING`, `MONEY_CAPTURE_AMOUNT`, `MONEY_REFUND_MISSING`, `MONEY_REFUND_EXTRA`, `MONEY_MULTIPLE_CAPTURES`, `MONEY_CURRENCY_MISMATCH`, `MONEY_ORDER_CHANGED` (все — per-order, несмотря на то, что три последних сначала казались store-wide). `MONEY_PAYMENT_WITHOUT_ORDER` — единственное действительно store-wide правило, отдельный `UnmatchedPaymentScanner`. Все 9 rule-кодов раздела 14 ТЗ покрыты. Синхронно, без scheduler/nightly sweep/dirty-order coalescing.
+- Публичный API allocation + reconciliation: `POST /payment-allocations[/{id}/revoke]`, `POST /refund-allocations[/{id}/revoke]`, `POST /stores/{id}/reconciliations`, `GET /stores/{id}/findings`. Новая инфраструктура `Idempotency-Key` (`idempotency_keys` таблица + middleware, reserve-then-run mutex через unique constraint) обязательна на всех create/trigger-мутациях. По ходу закрыт реальный пробел в `PaymentAllocationService::allocateRefund` — refund и payment_allocation теперь должны принадлежать одному заказу (`ERROR_ORDER_MISMATCH`).
 
-114 тестов, 369 assertions проходят (`php artisan test` на PHP 8.4). Миграция reconciliation-таблиц проверена и накатана на реальной PostgreSQL 18 в локальном Docker.
+147 тестов, 453 assertions проходят (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker.
 
 Известные зафиксированные отклонения от спеки — `docs/adr/0001-bootstrap-deviations.md` (S3Mock вместо MinIO, нет Sanctum, упрощённые FK в projection-таблицах, неполная JSON Schema валидация ingest, store verification без реальной внешней проверки, pairing без полного anti-abuse).
 
@@ -35,12 +36,12 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 ## Следующий шаг
 
-По "Not Done In This Step" из `docs/implementation-step-32-checklist.md`:
+По "Not Done In This Step" из `docs/implementation-step-34-checklist.md`:
 
-1. Публичный reconciliation/findings API (`POST /stores/{id}/reconciliations`, `GET /stores/{id}/findings` из `spec/contracts/ui-api-catalog.md` раздел 5) — сервисный слой готов, нужны routes/controllers/DTO. Это удобно сделать вместе с manual allocation API (тот же раздел), который тоже пока без HTTP.
-2. Оставшиеся rule codes: `MONEY_PAYMENT_WITHOUT_ORDER`, `MONEY_MULTIPLE_CAPTURES`, `MONEY_CURRENCY_MISMATCH`, `MONEY_ORDER_CHANGED` — требуют сканирования по store/payment, а не по одному заказу (unmatched payments, order-revision diff).
-3. Dirty-order coalescing (30с), пересчёт по grace-дедлайну и nightly sweep (90 дней) — сейчас только on-demand по одному заказу синхронно.
-4. `rule_configs`: версионируемые tolerance/grace вместо текущих constants в сервисе.
+1. `GET /orders/{id}`, `GET /payments/{id}`, `GET /stores/{id}/unmatched-payments` — детальные карточки заказа/платежа и candidate-suggestion для orphan-captures (сознательно не делал, т.к. это не allocation/reconciliation).
+2. Dirty-order coalescing (30с), пересчёт по grace-дедлайну и nightly sweep (90 дней) — сейчас только on-demand синхронно (по order_ids или store-wide scan).
+3. `rule_configs`: версионируемые tolerance/grace вместо текущих constants в сервисах.
+4. Windowed bulk reconciliation trigger (`from`/`to` вместо только `order_ids`), настоящий `dry_run`, подписанный cursor, rate limiting на `POST /stores/{id}/reconciliations`, очистка просроченных `idempotency_keys`.
 5. Автоматический matcher (раздел 13 ТЗ) сверх текущих ручных allocation primitives.
 6. Nightly allocation audit.
 7. Incident engine поверх findings (критичность, корреляция, авто-resolve) — сейчас только finding, без инцидентов/уведомлений.

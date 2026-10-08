@@ -23,7 +23,11 @@ class AuditLog extends Model
 
     public const ACTION_INTEGRATION_REVOKED = 'integration.revoked';
 
+    public const ACTION_PAYMENT_ALLOCATION_CREATED = 'payment_allocation.created';
+
     public const ACTION_PAYMENT_ALLOCATION_REVOKED = 'payment_allocation.revoked';
+
+    public const ACTION_REFUND_ALLOCATION_CREATED = 'refund_allocation.created';
 
     public const ACTION_REFUND_ALLOCATION_REVOKED = 'refund_allocation.revoked';
 

@@ -51,4 +51,32 @@ class TenantRoles
     {
         return self::storeManage();
     }
+
+    /**
+     * @return list<string>
+     */
+    public static function allocationManage(): array
+    {
+        return self::storeManage();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function reconciliationTrigger(): array
+    {
+        return [
+            self::OWNER,
+            self::ADMIN,
+            self::OPERATOR,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function findingsRead(): array
+    {
+        return self::storeRead();
+    }
 }
