@@ -431,6 +431,30 @@ Remaining:
 
 - Add dispatcher command/worker loop, side-effect execution, exponential backoff with jitter, consumer idempotency tests, and manual replay/dead-letter resolution.
 
+### Step 18: Domain Outbox Dispatcher Skeleton
+
+Status: implemented, test run pending
+
+Added:
+
+- `DomainOutboxDispatcher`.
+- No-op handler for `event_inbox.received`.
+- Unsupported topic failure handling.
+- `outbox:dispatch` console command.
+- Dispatch counters for leased/published/failed.
+- Feature tests for known topic publish, unsupported topic retry, and console command execution.
+- `docs/implementation-step-18-checklist.md`.
+
+Verification:
+
+- PHP syntax checks should be run before commit.
+- `php artisan test` must be run inside the backend Docker container.
+
+Remaining:
+
+- Run tests after pulling changes.
+- Add real projection processing, external side effects, long-running worker loop, exponential backoff with jitter, and consumer idempotency tests.
+
 ### Specification Update: Mandatory Three-Language Portal
 
 Status: complete
