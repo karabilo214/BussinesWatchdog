@@ -43,7 +43,7 @@ class StoreController extends Controller
             'default_currency' => $validated['default_currency'],
         ]);
 
-        return response()->json($this->storeDto($store), 201);
+        return response()->json($this->storeDto($store->refresh()), 201);
     }
 
     public function show(Request $request, Store $store, TenantContext $tenantContext): JsonResponse
