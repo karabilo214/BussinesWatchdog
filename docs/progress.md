@@ -95,7 +95,7 @@ Notes:
 
 ### Step 04: Auth, Tenancy, and Store Schema Foundation
 
-Status: prepared, migration run pending
+Status: complete for schema foundation
 
 Added:
 
@@ -108,11 +108,11 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan migrate:fresh` must be run inside the backend Docker container.
+- PHP syntax checks passed for migrations, models, and factory.
+- User ran `php artisan migrate:fresh`; migrations completed.
+- User ran `php artisan test`; 2 tests passed.
+- `/health/ready` remained green after migrations.
 
 Remaining:
 
-- Run migrations in local PostgreSQL.
-- Run backend tests.
 - Add auth/session foundation and TenantContext in the next slices.

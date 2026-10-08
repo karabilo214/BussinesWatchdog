@@ -28,10 +28,10 @@ This step creates the first Laravel migrations and models for identity, tenant m
 
 ## Verification
 
-- [ ] Run `make backend-shell`.
-- [ ] Run `php artisan migrate:fresh`.
-- [ ] Run `php artisan test`.
-- [ ] Confirm `/health/ready` remains green after migrations.
+- [x] Run `make backend-shell`.
+- [x] Run `php artisan migrate:fresh`.
+- [x] Run `php artisan test`.
+- [x] Confirm `/health/ready` remains green after migrations.
 
 ## Not Done In This Step
 
