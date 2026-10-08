@@ -19,6 +19,7 @@ This step wires authenticated session tenant selection into `TenantContext`. It 
 - [x] TenantContext is populated from active tenant session.
 - [x] User cannot activate a foreign tenant.
 - [x] Context endpoint requires authentication.
+- [x] Run `php artisan test`; 14 tests passed with 40 assertions.
 
 ## Not Done In This Step
 

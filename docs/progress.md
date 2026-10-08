@@ -165,7 +165,7 @@ Remaining:
 
 ### Step 07: Tenant Switch And Session Context
 
-Status: prepared, test run pending
+Status: complete for tenant switch and session context foundation
 
 Added:
 
@@ -178,11 +178,10 @@ Added:
 
 Verification:
 
-- PHP syntax checks should be run before commit.
-- `php artisan test` must be run inside the backend Docker container.
+- PHP syntax checks passed for middleware, controller, routes, and tests.
+- User ran `php artisan test`; 14 tests passed with 40 assertions.
 
 Remaining:
 
-- Run tests after pulling changes.
 - Replace diagnostic context endpoint with real tenant DTO endpoints as the API matures.
 - Add store CRUD endpoints with TenantContext enforcement.
