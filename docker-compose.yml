@@ -96,6 +96,30 @@ services:
     networks:
       - bw-local
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: infra/docker/backend/Dockerfile
+      target: cli
+    profiles:
+      - app
+    env_file:
+      - .env
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - ./apps/backend:/workspace/apps/backend
+    working_dir: /workspace/apps/backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    networks:
+      - bw-local
+
   nginx:
     image: nginx:1.27-alpine
     profiles:

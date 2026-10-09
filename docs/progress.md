@@ -909,3 +909,28 @@ Verification:
 Remaining:
 
 - Telegram binding (P1), digest and reminders, re-notify after suppression revoke, maintenance windows, manual resend of uncertain/dead-letter, scheduler wiring for `outbox:dispatch`/`notifications:deliver`, resend-verification and channel deletion endpoints.
+
+### Step 38: Scheduler And Dirty-Order Reconciliation
+
+Status: complete for background reconciliation, grace re-checks, nightly sweep and scheduler wiring
+
+Added:
+
+- `reconciliation_dirty_subjects` and `scheduled_job_windows` tables (schema additions, ADR 0003).
+- `DirtySubjectMarker` (30 s coalescing, version bump) wired into `EventInboxProcessor` (via `EventDirtyMarker`) and `PaymentAllocationService` create/revoke, inside their existing transactions.
+- `DirtySubjectProcessor` / `reconciliation:process-dirty`: leased, tenant-scoped evaluation + incident correlation; delete-or-release by `mark_version`; backoff on failure.
+- Grace re-checks via `evidence.grace_deadline_at` and `GraceRecheckScheduler` (processor and API trigger).
+- `NightlyReconciliationSweep` / `reconciliation:nightly-sweep`: 90-day lookback, once per UTC day via `ScheduledWindowGuard`.
+- Laravel schedule in `routes/console.php` for outbox, dirty processing, notification delivery and nightly sweep; `scheduler` service in Docker Compose.
+- ADR 0002 marked accepted by the owner as-is; `docs/adr/0003-scheduler-and-dirty-reconciliation.md`; `docs/implementation-step-38-checklist.md`.
+
+Verification:
+
+- PHP syntax checks passed (PHP 8.4); pint applied to new/changed files.
+- `php artisan test` (PHP 8.4) passed: 228 tests, 789 assertions.
+- `php artisan migrate --force` against real PostgreSQL 18 in local Docker applied the new migration; all four commands smoke-run against it.
+- `schedule:work` not run inside the Docker scheduler container yet.
+
+Remaining:
+
+- Per-tenant fairness and dead letter for dirty subjects, API rate limiting, stale-integration detection, cleanup jobs.

@@ -8,13 +8,19 @@ use App\Models\FinancialTransaction;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
+use App\Models\ReconciliationDirtySubject;
 use App\Models\Refund;
 use App\Models\RefundAllocation;
+use App\Support\Reconciliation\DirtySubjectMarker;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PaymentAllocationService
 {
+    public function __construct(
+        private readonly DirtySubjectMarker $dirtyMarker,
+    ) {}
+
     public const ERROR_SCOPE_MISMATCH = 'allocation_scope_mismatch';
 
     public const ERROR_CAPTURE_INVALID = 'allocation_capture_invalid';
@@ -78,6 +84,8 @@ class PaymentAllocationService
                 throw new AllocationRejected(self::ERROR_AMOUNT_EXCEEDS_CAPTURE);
             }
 
+            $this->markAllocationChanged($lockedPayment->tenant_id, $lockedPayment->store_id, $lockedOrder->id);
+
             return PaymentAllocation::query()->create([
                 'tenant_id' => $lockedPayment->tenant_id,
                 'store_id' => $lockedPayment->store_id,
@@ -138,6 +146,8 @@ class PaymentAllocationService
             if ($amountMinor < 0 || $allocatedMinor + $amountMinor > $lockedRefundTransaction->amount_minor) {
                 throw new AllocationRejected(self::ERROR_AMOUNT_EXCEEDS_REFUND);
             }
+
+            $this->markAllocationChanged($lockedRefund->tenant_id, $lockedRefund->store_id, $lockedRefund->order_id);
 
             return RefundAllocation::query()->create([
                 'tenant_id' => $lockedRefund->tenant_id,
@@ -200,6 +210,7 @@ class PaymentAllocationService
                 'request_id' => $requestId ?? (string) Str::uuid(),
                 'created_at' => $revokedAt,
             ]);
+            $this->markAllocationChanged($locked->tenant_id, $locked->store_id, $locked->order_id);
 
             return $locked->refresh();
         });
@@ -239,9 +250,23 @@ class PaymentAllocationService
                 'request_id' => $requestId ?? (string) Str::uuid(),
                 'created_at' => $revokedAt,
             ]);
+            $this->markAllocationChanged(
+                $locked->tenant_id,
+                $locked->store_id,
+                Refund::query()->whereKey($locked->refund_id)->value('order_id'),
+            );
 
             return $locked->refresh();
         });
+    }
+
+    private function markAllocationChanged(string $tenantId, string $storeId, ?string $orderId): void
+    {
+        if ($orderId !== null) {
+            $this->dirtyMarker->markOrder($tenantId, $storeId, $orderId, ReconciliationDirtySubject::REASON_ALLOCATION_CHANGED);
+        }
+
+        $this->dirtyMarker->markStoreUnmatchedPayments($tenantId, $storeId, ReconciliationDirtySubject::REASON_ALLOCATION_CHANGED);
     }
 
     private function assertReasonPresent(string $reason): void

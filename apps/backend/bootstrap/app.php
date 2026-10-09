@@ -2,6 +2,8 @@
 
 use App\Console\Commands\DeliverNotifications;
 use App\Console\Commands\DispatchDomainOutbox;
+use App\Console\Commands\ProcessDirtyReconciliation;
+use App\Console\Commands\RunNightlyReconciliationSweep;
 use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
 use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
 use App\Http\Middleware\Tenancy\RequireTenantRole;
@@ -21,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         DispatchDomainOutbox::class,
         DeliverNotifications::class,
+        ProcessDirtyReconciliation::class,
+        RunNightlyReconciliationSweep::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->preventRequestForgery(except: [

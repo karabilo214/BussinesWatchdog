@@ -8,6 +8,7 @@ use App\Support\Projections\OrderDeletedProjector;
 use App\Support\Projections\OrderSnapshotProjector;
 use App\Support\Projections\PaymentSnapshotProjector;
 use App\Support\Projections\RefundSnapshotProjector;
+use App\Support\Reconciliation\EventDirtyMarker;
 use Illuminate\Support\Facades\DB;
 
 class EventInboxProcessor
@@ -20,8 +21,8 @@ class EventInboxProcessor
         private readonly RefundSnapshotProjector $refundSnapshotProjector,
         private readonly PaymentSnapshotProjector $paymentSnapshotProjector,
         private readonly FinancialTransactionProjector $financialTransactionProjector,
-    ) {
-    }
+        private readonly EventDirtyMarker $dirtyMarker,
+    ) {}
 
     public function processReceived(string $eventInboxId): bool
     {
@@ -65,6 +66,8 @@ class EventInboxProcessor
             if (! $this->recordProjectionResult($this->financialTransactionProjector->project($event))) {
                 return false;
             }
+
+            $this->dirtyMarker->markForEvent($event);
 
             $event->forceFill([
                 'status' => EventInbox::STATUS_PROCESSED,

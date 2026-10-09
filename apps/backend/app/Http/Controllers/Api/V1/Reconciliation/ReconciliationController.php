@@ -12,6 +12,7 @@ use App\Models\ReconciliationRun;
 use App\Models\Store;
 use App\Support\Api\UuidCursor;
 use App\Support\Incidents\MoneyIncidentCorrelator;
+use App\Support\Reconciliation\GraceRecheckScheduler;
 use App\Support\Reconciliation\OrderReconciliationService;
 use App\Support\Reconciliation\UnmatchedPaymentScanner;
 use App\Support\Tenancy\TenantContext;
@@ -30,6 +31,7 @@ class ReconciliationController extends Controller
         OrderReconciliationService $orderService,
         UnmatchedPaymentScanner $scanner,
         MoneyIncidentCorrelator $correlator,
+        GraceRecheckScheduler $graceScheduler,
     ): JsonResponse {
         $tenantId = $tenantContext->requireTenantId('trigger reconciliation');
 
@@ -65,11 +67,13 @@ class ReconciliationController extends Controller
             foreach ($orderIds as $orderId) {
                 $run = $orderService->evaluate($orders[$orderId], 'api');
                 $correlator->correlate($run);
+                $graceScheduler->scheduleFor($run);
                 $runs[] = $this->runSummary($run);
             }
         } else {
             $run = $scanner->scan($store, 'api');
             $correlator->correlate($run);
+            $graceScheduler->scheduleFor($run);
             $runs[] = $this->runSummary($run);
         }
 

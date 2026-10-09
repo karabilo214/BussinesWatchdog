@@ -2,7 +2,7 @@
 
 Date: 2026-10-09
 
-Status: accepted for the P0 email slice; owner review requested for the behavioural choices marked **[owner]**.
+Status: accepted for the P0 email slice. The owner reviewed the choices marked **[owner]** on 2026-10-09 and accepted them as-is for the current stage; they may be extended later (e.g. manual resend of uncertain deliveries).
 
 Section 23 of `spec/Business-Watchdog-TZ.md` leaves several behaviours open. This ADR records how Step 37 resolved them, so none of them is an unannounced business assumption.
 

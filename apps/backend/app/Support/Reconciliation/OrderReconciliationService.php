@@ -118,7 +118,10 @@ class OrderReconciliationService
                     'expected_minor' => $gross,
                     'actual_minor' => 0,
                     'difference_minor' => -$gross,
-                    'evidence' => ['paid_marked_at' => $order->paid_marked_at->toJSON()],
+                    'evidence' => array_merge(
+                        ['paid_marked_at' => $order->paid_marked_at->toJSON()],
+                        $isPastGrace ? [] : ['grace_deadline_at' => $graceDeadline->toJSON()],
+                    ),
                 ], $now)];
             }
 
@@ -306,7 +309,7 @@ class OrderReconciliationService
                 'expected_minor' => $refundExpectedMinor,
                 'actual_minor' => $refundActualMinor,
                 'difference_minor' => $difference,
-                'evidence' => [],
+                'evidence' => $isPastGrace ? [] : ['grace_deadline_at' => $graceDeadline->toJSON()],
             ], $now)];
         }
 
@@ -323,7 +326,7 @@ class OrderReconciliationService
             'expected_minor' => $refundExpectedMinor,
             'actual_minor' => $refundActualMinor,
             'difference_minor' => $difference,
-            'evidence' => [],
+            'evidence' => $isPastGrace ? [] : ['grace_deadline_at' => $graceDeadline->toJSON()],
         ], $now)];
     }
 

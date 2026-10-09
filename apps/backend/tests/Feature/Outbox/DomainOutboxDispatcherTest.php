@@ -8,6 +8,7 @@ use App\Models\Integration;
 use App\Models\Order;
 use App\Models\OrderRevision;
 use App\Models\Payment;
+use App\Models\ReconciliationDirtySubject;
 use App\Models\Refund;
 use App\Models\Store;
 use App\Models\Tenant;
@@ -89,6 +90,48 @@ class DomainOutboxDispatcherTest extends TestCase
             'payload_hash' => $inbox->payload_hash,
         ]);
         $this->assertSame(DomainOutbox::STATUS_PUBLISHED, $message->refresh()->status);
+    }
+
+    public function test_projected_order_snapshot_marks_the_order_dirty_with_coalescing_delay(): void
+    {
+        [$tenant, $inbox] = $this->receivedEventInbox();
+        $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $inbox->id]);
+
+        app(DomainOutboxDispatcher::class)->dispatchDue(limit: 10, leaseSeconds: 60);
+
+        $order = Order::query()->where('external_id', 'order-1001')->firstOrFail();
+        /** @var ReconciliationDirtySubject $dirty */
+        $dirty = ReconciliationDirtySubject::query()->firstOrFail();
+        $this->assertSame(ReconciliationDirtySubject::TYPE_ORDER, $dirty->subject_type);
+        $this->assertSame($order->id, $dirty->subject_id);
+        $this->assertSame(ReconciliationDirtySubject::REASON_ORDER_EVENT, $dirty->reason);
+        $this->assertEqualsWithDelta(30, now()->diffInSeconds($dirty->due_at), 2);
+    }
+
+    public function test_projected_refund_and_payment_snapshots_mark_order_and_store_scan_dirty(): void
+    {
+        $context = $this->integrationContext();
+        [$tenant, $store] = $context;
+        [, $orderInbox] = $this->receivedEventInbox(context: $context);
+        [, $refundInbox] = $this->refundSnapshotEventInbox(context: $context);
+        [, $paymentInbox] = $this->paymentSnapshotEventInbox(context: $context);
+
+        foreach ([$orderInbox, $refundInbox, $paymentInbox] as $inbox) {
+            $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $inbox->id]);
+            app(DomainOutboxDispatcher::class)->dispatchDue(limit: 10, leaseSeconds: 60);
+        }
+
+        $order = Order::query()->where('external_id', 'order-1001')->firstOrFail();
+        $orderDirty = ReconciliationDirtySubject::query()->where('subject_type', ReconciliationDirtySubject::TYPE_ORDER)->get();
+        $this->assertCount(1, $orderDirty);
+        $this->assertSame($order->id, $orderDirty[0]->subject_id);
+        $this->assertSame(2, $orderDirty[0]->mark_version);
+        $this->assertSame(ReconciliationDirtySubject::REASON_REFUND_EVENT, $orderDirty[0]->reason);
+        $this->assertDatabaseHas('reconciliation_dirty_subjects', [
+            'tenant_id' => $tenant->id,
+            'subject_type' => ReconciliationDirtySubject::TYPE_STORE_UNMATCHED_PAYMENTS,
+            'subject_id' => $store->id,
+        ]);
     }
 
     public function test_stale_order_snapshot_revision_does_not_overwrite_current_order(): void
@@ -384,9 +427,8 @@ class DomainOutboxDispatcherTest extends TestCase
     }
 
     /**
+     * @param  array{0: Tenant, 1: Store, 2: Integration}|null  $context
      * @return array{0: Tenant, 1: EventInbox}
-     *
-     * @param array{0: Tenant, 1: Store, 2: Integration}|null $context
      */
     private function receivedEventInbox(
         string $inboxStatus = EventInbox::STATUS_RECEIVED,
@@ -394,8 +436,7 @@ class DomainOutboxDispatcherTest extends TestCase
         int $sourceRevision = 1,
         string $totalMinor = '18400',
         string $status = 'processing',
-    ): array
-    {
+    ): array {
         [$tenant, $store, $integration] = $context ?? $this->integrationContext();
         $processedAt = $inboxStatus === EventInbox::STATUS_PROCESSED ? now()->subMinute() : null;
         $payload = [
@@ -452,16 +493,14 @@ class DomainOutboxDispatcherTest extends TestCase
     }
 
     /**
+     * @param  array{0: Tenant, 1: Store, 2: Integration}|null  $context
      * @return array{0: Tenant, 1: EventInbox}
-     *
-     * @param array{0: Tenant, 1: Store, 2: Integration}|null $context
      */
     private function orderDeletedEventInbox(
         string $inboxStatus = EventInbox::STATUS_RECEIVED,
         ?array $context = null,
         int $sourceRevision = 1,
-    ): array
-    {
+    ): array {
         [$tenant, $store, $integration] = $context ?? $this->integrationContext();
         $payload = [
             'schema_version' => '1.0',
@@ -504,16 +543,14 @@ class DomainOutboxDispatcherTest extends TestCase
     }
 
     /**
+     * @param  array{0: Tenant, 1: Store, 2: Integration}|null  $context
      * @return array{0: Tenant, 1: EventInbox}
-     *
-     * @param array{0: Tenant, 1: Store, 2: Integration}|null $context
      */
     private function refundSnapshotEventInbox(
         ?array $context = null,
         int $sourceRevision = 1,
         string $amountMinor = '5000',
-    ): array
-    {
+    ): array {
         [$tenant, $store, $integration] = $context ?? $this->integrationContext();
         $payload = [
             'schema_version' => '1.0',
@@ -540,16 +577,14 @@ class DomainOutboxDispatcherTest extends TestCase
     }
 
     /**
+     * @param  array{0: Tenant, 1: Store, 2: Integration}|null  $context
      * @return array{0: Tenant, 1: EventInbox}
-     *
-     * @param array{0: Tenant, 1: Store, 2: Integration}|null $context
      */
     private function paymentSnapshotEventInbox(
         ?array $context = null,
         string $status = 'pending',
         ?string $sourceUpdatedAt = null,
-    ): array
-    {
+    ): array {
         [$tenant, $store, $integration] = $context ?? $this->integrationContext();
         $payload = [
             'schema_version' => '1.0',
@@ -576,7 +611,7 @@ class DomainOutboxDispatcherTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function eventInbox(Tenant $tenant, Store $store, Integration $integration, array $payload, ?int $sourceRevision = null): EventInbox
     {
@@ -634,7 +669,7 @@ class DomainOutboxDispatcherTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed>|null $payload
+     * @param  array<string, mixed>|null  $payload
      */
     private function outbox(Tenant $tenant, string $topic, ?array $payload = null): DomainOutbox
     {

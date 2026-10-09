@@ -1,8 +1,24 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+Schedule::command('outbox:dispatch')
+    ->everyTenSeconds()
+    ->withoutOverlapping(5)
+    ->onOneServer();
+
+Schedule::command('reconciliation:process-dirty')
+    ->everyThirtySeconds()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
+Schedule::command('notifications:deliver')
+    ->everyThirtySeconds()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
+Schedule::command('reconciliation:nightly-sweep')
+    ->dailyAt('02:30')
+    ->timezone('UTC')
+    ->withoutOverlapping(120)
+    ->onOneServer();
