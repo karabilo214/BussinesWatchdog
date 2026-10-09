@@ -4,7 +4,7 @@ namespace BusinessWatchdog\WooCommerce\Storage;
 
 final class Schema
 {
-    public const VERSION = 1;
+    public const VERSION = 2;
 
     public const OPTION = 'bw_schema_version';
 
@@ -67,10 +67,13 @@ final class Schema
 
         dbDelta("CREATE TABLE {$revisions} (
   aggregate_key varchar(191) NOT NULL,
+  parent_key varchar(191) NULL,
   revision bigint(20) unsigned NOT NULL DEFAULT 0,
   snapshot_hash char(64) NOT NULL,
+  last_data longtext NULL,
   updated_at datetime NOT NULL,
-  PRIMARY KEY  (aggregate_key)
+  PRIMARY KEY  (aggregate_key),
+  KEY parent_key (parent_key)
 ) ENGINE=InnoDB {$charsetCollate};");
 
         dbDelta("CREATE TABLE {$state} (

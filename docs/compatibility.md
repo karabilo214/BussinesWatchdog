@@ -19,7 +19,17 @@ Verified on 2026-10-09 with `plugins/woocommerce-watchdog/tests/matrix/run.sh` (
 
 Database for all targets: `mariadb:10.6.21`. WP-CLI 2.11.0.
 
-Scope of this verification (Step 45): activation, schema install/re-install, environment detection, scheduling, secret storage, REST permissions, public challenge endpoint, pairing, signed heartbeat, rotation. Order/refund snapshot behaviour is not yet implemented and therefore not yet verified.
+Scope of this verification: Step 45 — activation, schema install/re-install, environment detection, scheduling, secret storage, REST permissions, public challenge endpoint, pairing, signed heartbeat, rotation. Step 46 — order/refund/deletion capture (20 integration tests per target) and backend validation (JSON Schema + semantic) of the events produced by each real WooCommerce version.
+
+### Version differences found by the matrix (Step 46)
+
+| Behaviour | WC 6.0 legacy | WC 7.9 legacy | WC 7.9 HPOS | WC 8.9 HPOS | WC 9.9 HPOS | WC 11.2 HPOS | Plugin handling |
+|---|---|---|---|---|---|---|---|
+| Hook fired when a refund is deleted | `before_delete_post` | `before_delete_post` | **none** | `woocommerce_pre_delete_order_refund` (filter) | same as 8.9 | `woocommerce_delete_order_refund` + filter | hooks where available; otherwise detected by comparing current refunds with previously sent ones on the next snapshot/rescan |
+| Trash updates the cached order | yes | yes | **no** (raw `UPDATE`, stale `OrderCache`) | yes | yes | yes | order cache is cleared before every snapshot |
+| `get_refunds()` after deleting a refund | fresh | fresh | **stale cache** | fresh | fresh | fresh | refunds read via `wc_get_orders(type=shop_order_refund, parent=…)` |
+| `checkout-draft` status exists | no | yes | yes | yes | yes | yes | drafts skipped where the status exists |
+| Refund deletion via generic `woocommerce_delete_order` with the refund id | n/a | n/a | no hook | yes | yes | yes | refund ids recognised in generic order-deletion hooks |
 
 Not verified: WooCommerce Stripe gateway versions, themes, multisite, PHP 7.4 with WooCommerce ≥ 7 (official WordPress images for newer WP versions no longer ship PHP 7.4), WP-Cron-only path (Action Scheduler is bundled in every WooCommerce ≥ 6.0 tested).
 

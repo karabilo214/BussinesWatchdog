@@ -58,6 +58,17 @@ for target in $TARGETS; do
         [ "$(json "$status" "['integration_provider']")" = "woocommerce" ] || result="provider_unexpected"
     fi
 
+    if [ "$result" = "ok" ]; then
+        events_file="$(pwd)/.cache/events-${target}.json"
+        $W eval-file /var/www/html/wp-content/plugins/business-watchdog/tests/matrix/e2e-orders.php 2>/dev/null | sed -n 's/^BW_EVENTS=//p' > "$events_file"
+        validation=$(backend BW_E2E_ACTION=validate-events BW_E2E_EVENTS_FILE="$events_file")
+        echo "  events: $(json "$validation" "['types']")"
+        [ "$(json "$validation" "['failures']")" = "[]" ] || result="events_invalid($(json "$validation" "['failures']"))"
+        for expected in order.snapshot:processing refund.snapshot:recorded refund.snapshot:deleted order.snapshot:on-hold order.deleted; do
+            echo "$(json "$validation" "['types']")" | grep -q "'${expected}'" || result="missing_event(${expected})"
+        done
+    fi
+
     if [ "$result" = "ok" ]; then echo "PASS ${target} e2e"; else echo "FAIL ${target} e2e: ${result}"; STATUS=1; fi
     docker compose -p "bwmatrix-${target}" -f docker-compose.yml down -v >/dev/null 2>&1 || true
 done

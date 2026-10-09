@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-09 (Step 45)
+2026-10-09 (Step 46)
 
 ## Что это за проект
 
@@ -38,7 +38,7 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 Отклонения из ADR 0001 закрыты или формализованы в Steps 39–44 (у каждого пункта есть Resolution); локальное S3 — `docs/adr/0004-local-object-storage.md` (MinIO больше не раздаётся публично, остаётся S3Mock). Остальные решения — ADR 0002 (уведомления), ADR 0003 (scheduler).
 
-WooCommerce-плагин (`plugins/woocommerce-watchdog`, Step 45): фундамент — слой совместимости по возможностям (HPOS/legacy, classic/blocks, Action Scheduler/WP-Cron), локальные таблицы, pairing, подписанный heartbeat с ротацией, публичный challenge. Нижняя граница по решению владельца: PHP 7.4 / WP 5.9 / WC 6.0 (ADR 0005). Docker-матрица из 6 целей (WC 6.0.2 … 11.2.0, legacy и HPOS) + e2e с бэкендом — всё зелёное; проверенные комбинации в `docs/compatibility.md`. Снимков заказов/refund и доставки outbox ещё нет.
+WooCommerce-плагин (`plugins/woocommerce-watchdog`, Step 45): фундамент — слой совместимости по возможностям (HPOS/legacy, classic/blocks, Action Scheduler/WP-Cron), локальные таблицы, pairing, подписанный heartbeat с ротацией, публичный challenge. Нижняя граница по решению владельца: PHP 7.4 / WP 5.9 / WC 6.0 (ADR 0005). Docker-матрица из 6 целей (WC 6.0.2 … 11.2.0, legacy и HPOS) + e2e с бэкендом — всё зелёное; проверенные комбинации в `docs/compatibility.md`. С Step 46 плагин пишет снимки заказов/refund/удалений в локальный outbox с ревизиями (хуки только помечают заказ, снимок на shutdown; суммы строками в minor units); найденные различия версий WC задокументированы в `docs/compatibility.md`. Доставки outbox в бэкенд и rescan ещё нет.
 
 Пока пустые заглушки: `apps/frontend` (Vue), `apps/browser-worker` (Node/Playwright).
 
@@ -46,9 +46,8 @@ WooCommerce-плагин (`plugins/woocommerce-watchdog`, Step 45): фундам
 
 Продолжение WooCommerce-плагина (решение владельца 2026-10-09):
 
-1. **Step 46** — снимки заказов и refund: хуки (разные для HPOS/legacy, classic/blocks, удаление/trash), сбор «грязных» заказов за запрос и запись на `shutdown`, `bw_revisions` (новая revision только при новом hash), `bw_outbox`, конвертация сумм в minor units строками (ISO-экспоненты, без float), Stripe-gateway → `financial_support`. Проверка на всей матрице + e2e до проекций бэкенда.
-2. **Step 47** — доставка outbox батчами (≤100 событий / 1 MiB, retry 30с/2м/10м/1ч/6ч ±20%, 401/403 → suspend, 422 → dead letter, 429 Retry-After), rescan изменённых заказов каждые 15 мин с 48ч overlap, backfill 90 дней, события capabilities/deployment.
-3. Потом: минимальный кабинет, stale-integration detection (ACC-14), Telegram, escalation, browser worker.
+1. **Step 47** — доставка outbox батчами (≤100 событий / 1 MiB, retry 30с/2м/10м/1ч/6ч ±20%, 401/403 → suspend, 422 → dead letter, 429 Retry-After), rescan изменённых заказов каждые 15 мин с 48ч overlap (обязателен: на WC 7.9 HPOS удаление refund не вызывает хуков), backfill 90 дней, события capabilities/deployment.
+2. Потом: минимальный кабинет, stale-integration detection (ACC-14), Telegram, escalation, browser worker.
 
 MinIO — владелец разберётся сам (ADR 0004 остаётся как есть).
 

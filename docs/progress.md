@@ -1060,3 +1060,21 @@ Verification:
 Remaining:
 
 - Order/refund snapshots + revisions + outbox delivery (Step 46), rescan/backfill, capabilities/deployment events.
+
+### Step 46: WooCommerce Order And Refund Snapshots
+
+Status: complete for capture into the local outbox
+
+Added:
+
+- Revisions (schema v2), outbox writes, minor-unit conversion, order/refund snapshot builders, shutdown-time capture from hooks, deletion/trash handling, cache busting.
+- The matrix found real version differences (WC 7.9 HPOS fires no hook on refund deletion and keeps stale caches after trash/refund deletion; `checkout-draft` absent in WC 6.0; refund deletion hooks differ between 8.9/9.9/11.2); each is handled and documented in `docs/compatibility.md`.
+- `docs/implementation-step-46-checklist.md`.
+
+Verification:
+
+- Integration 20/20 and e2e (events validated by the backend) on all six targets; PHP 7.4 lint; backend suite green.
+
+Remaining:
+
+- Outbox delivery, rescan/backfill, capabilities/deployment events (Step 47).

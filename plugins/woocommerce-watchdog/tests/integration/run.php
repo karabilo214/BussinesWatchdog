@@ -1,6 +1,7 @@
 <?php
 
 $GLOBALS['bwTests'] = [];
+$GLOBALS['bwObservations'] = [];
 $bwFailures = [];
 
 function bw_test(string $name, callable $callback): void
@@ -38,6 +39,7 @@ foreach ($GLOBALS['bwTests'] as $name => $callback) {
 
 echo wp_json_encode([
     'environment' => \BusinessWatchdog\WooCommerce\Compat\Environment::describe(),
+    'observations' => $GLOBALS['bwObservations'],
     'passed' => count($results) - count($bwFailures),
     'failed' => count($bwFailures),
     'results' => $results,

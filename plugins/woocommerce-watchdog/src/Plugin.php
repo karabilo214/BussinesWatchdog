@@ -3,6 +3,7 @@
 namespace BusinessWatchdog\WooCommerce;
 
 use BusinessWatchdog\WooCommerce\Admin\SettingsPage;
+use BusinessWatchdog\WooCommerce\Capture\OrderHooks;
 use BusinessWatchdog\WooCommerce\Compat\Environment;
 use BusinessWatchdog\WooCommerce\Compat\SchedulerFactory;
 use BusinessWatchdog\WooCommerce\Compat\WpCronAdapter;
@@ -43,6 +44,7 @@ final class Plugin
             Schema::install();
         }
 
+        OrderHooks::register();
         add_action(HeartbeatJob::HOOK, [HeartbeatJob::class, 'run']);
         add_action('rest_api_init', [RestController::class, 'register']);
         add_action('init', [self::class, 'ensureSchedules']);

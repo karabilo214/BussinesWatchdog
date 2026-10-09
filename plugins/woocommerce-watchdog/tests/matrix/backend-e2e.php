@@ -42,4 +42,25 @@ if ($action === 'setup') {
     ];
 }
 
+if ($action === 'validate-events') {
+    $events = json_decode((string) file_get_contents(getenv('BW_E2E_EVENTS_FILE')), true);
+    $schema = app(\App\Support\Ingest\EventSchemaValidator::class);
+    $semantic = app(\App\Support\Ingest\EventPayloadValidator::class);
+    $types = [];
+    $failures = [];
+
+    foreach ($events as $index => $event) {
+        $raw = json_decode(json_encode($event));
+        $result = $semantic->validate($event, $raw);
+        $types[] = $event['type'].(isset($event['data']['status']) ? ':'.$event['data']['status'] : '');
+
+        if (! $result->valid) {
+            $error = $schema->firstError($raw);
+            $failures[] = ['index' => $index, 'type' => $event['type'], 'code' => $result->errorCode, 'schema' => $error ? $error->keyword().' at '.implode('/', $error->data()->fullPath()) : null];
+        }
+    }
+
+    $out = ['count' => count($events), 'types' => $types, 'failures' => $failures];
+}
+
 echo 'BW_E2E_JSON='.json_encode($out).PHP_EOL;
