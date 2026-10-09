@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Integration;
 use App\Models\Store;
 use App\Models\StoreVerification;
+use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Integrations\IntegrationCredentialService;
 use App\Support\Stores\StoreVerificationService;
 use Illuminate\Http\JsonResponse;
@@ -13,11 +14,12 @@ use Illuminate\Http\Request;
 
 class HeartbeatController extends Controller
 {
-    public function store(Request $request, StoreVerificationService $verifications): JsonResponse
+    public function store(Request $request, StoreVerificationService $verifications, ConnectorFreshness $freshness): JsonResponse
     {
         /** @var Integration $integration */
         $integration = $request->attributes->get('integration');
-        $integration->forceFill(['last_heartbeat_at' => now()])->save();
+        $report = $request->json()->all();
+        $freshness->recordHeartbeat($integration, is_array($report) ? $report : []);
 
         return response()->json([
             'status' => 'ok',

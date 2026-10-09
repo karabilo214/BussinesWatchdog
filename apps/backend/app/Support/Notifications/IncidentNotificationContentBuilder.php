@@ -10,6 +10,7 @@ use App\Models\ReconciliationFinding;
 use App\Models\Signal;
 use App\Models\Store;
 use App\Support\Checkout\PaymentAttemptMonitor;
+use App\Support\Integrations\ConnectorFreshness;
 
 class IncidentNotificationContentBuilder
 {
@@ -24,6 +25,10 @@ class IncidentNotificationContentBuilder
     {
         if ($incident->family === PaymentAttemptMonitor::FAMILY) {
             return $this->forPaymentAttempts($incident, $store, $kind, $preferences);
+        }
+
+        if ($incident->family === ConnectorFreshness::FAMILY) {
+            return $this->forConnectorFreshness($incident, $store, $kind, $preferences);
         }
 
         $finding = $this->latestMismatchFinding($incident);
@@ -84,20 +89,7 @@ class IncidentNotificationContentBuilder
      */
     private function forPaymentAttempts(Incident $incident, Store $store, string $kind, NotificationPreferences $preferences): array
     {
-        $evidence = Signal::query()
-            ->where('tenant_id', $incident->tenant_id)
-            ->where('store_id', $incident->store_id)
-            ->where('signal_type', Signal::TYPE_PAYMENT_ATTEMPTS)
-            ->whereIn('id', IncidentSignal::query()
-                ->where('incident_id', $incident->id)
-                ->select('signal_id'))
-            ->where('severity', '!=', Signal::SEVERITY_INFO)
-            ->orderByDesc('detected_at')
-            ->value('evidence') ?? [];
-
-        if (is_string($evidence)) {
-            $evidence = json_decode($evidence, true) ?: [];
-        }
+        $evidence = $this->latestProblemEvidence($incident, Signal::TYPE_PAYMENT_ATTEMPTS);
 
         return [
             'kind' => $kind,
@@ -123,6 +115,64 @@ class IncidentNotificationContentBuilder
             'checked_steps' => ['store_checkout_attempts'],
             'link' => $this->incidentLink($incident),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function forConnectorFreshness(Incident $incident, Store $store, string $kind, NotificationPreferences $preferences): array
+    {
+        $evidence = $this->latestProblemEvidence($incident, Signal::TYPE_CONNECTOR_FRESHNESS);
+
+        return [
+            'kind' => $kind,
+            'locale' => $preferences->locale,
+            'timezone' => $preferences->timezone,
+            'store_name' => $store->name,
+            'severity' => $incident->severity,
+            'family' => $incident->family,
+            'component' => $incident->component,
+            'rule_code' => $incident->title_code,
+            'order_number' => null,
+            'fact_params' => [
+                'last_heartbeat_at' => is_string($evidence['last_heartbeat_at'] ?? null) ? $evidence['last_heartbeat_at'] : null,
+                'oldest_pending_at' => is_string($evidence['oldest_pending_at'] ?? null) ? $evidence['oldest_pending_at'] : null,
+            ],
+            'currency' => null,
+            'amount_minor' => null,
+            'currency_exponent' => null,
+            'possible_start_from' => null,
+            'possible_start_to' => ($incident->first_bad_at ?? $incident->first_seen_at)?->toJSON(),
+            'recovered_at' => $kind === NotificationDelivery::KIND_INCIDENT_RECOVERED
+                ? $incident->resolved_at?->toJSON()
+                : null,
+            'source' => 'connector_heartbeat',
+            'checked_steps' => ['connector_heartbeat', 'connector_delivery'],
+            'link' => $this->incidentLink($incident),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function latestProblemEvidence(Incident $incident, string $signalType): array
+    {
+        $evidence = Signal::query()
+            ->where('tenant_id', $incident->tenant_id)
+            ->where('store_id', $incident->store_id)
+            ->where('signal_type', $signalType)
+            ->whereIn('id', IncidentSignal::query()
+                ->where('incident_id', $incident->id)
+                ->select('signal_id'))
+            ->where('severity', '!=', Signal::SEVERITY_INFO)
+            ->orderByDesc('detected_at')
+            ->value('evidence') ?? [];
+
+        if (is_string($evidence)) {
+            $evidence = json_decode($evidence, true) ?: [];
+        }
+
+        return is_array($evidence) ? $evidence : [];
     }
 
     private function latestMismatchFinding(Incident $incident): ?ReconciliationFinding

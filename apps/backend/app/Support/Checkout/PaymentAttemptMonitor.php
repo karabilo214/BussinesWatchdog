@@ -3,12 +3,9 @@
 namespace App\Support\Checkout;
 
 use App\Models\Incident;
-use App\Models\IncidentActivity;
-use App\Models\IncidentSignal;
-use App\Models\NotificationDelivery;
 use App\Models\PaymentAttemptWindow;
 use App\Models\Signal;
-use App\Support\Notifications\IncidentNotificationRequester;
+use App\Support\Incidents\IncidentRecorder;
 use Illuminate\Support\Carbon;
 
 class PaymentAttemptMonitor
@@ -29,10 +26,8 @@ class PaymentAttemptMonitor
 
     public const MAX_WINDOWS = 2016;
 
-    public const REOPEN_WINDOW_HOURS = 24;
-
     public function __construct(
-        private readonly IncidentNotificationRequester $notifications,
+        private readonly IncidentRecorder $incidents,
     ) {}
 
     public function evaluate(string $tenantId, string $storeId, string $paymentMethod): ?Incident
@@ -43,12 +38,28 @@ class PaymentAttemptMonitor
             return null;
         }
 
+        $fingerprint = $this->fingerprint($storeId, $paymentMethod);
+
         if ($state['streak'] >= self::FAILURE_STREAK_THRESHOLD) {
-            return $this->openOrAttach($tenantId, $storeId, $paymentMethod, $state);
+            return $this->incidents->openOrAttach($tenantId, $storeId, $fingerprint, [
+                'family' => self::FAMILY,
+                'component' => self::COMPONENT,
+                'title_code' => self::RULE_CODE,
+                'severity' => Incident::SEVERITY_WARNING,
+                'first_bad_at' => $state['first_failure_at'],
+                'last_good_at' => $state['last_success_at'],
+            ], $this->signal($tenantId, $storeId, $paymentMethod, $state, Signal::SEVERITY_WARNING), 'payment_method_failure_streak');
         }
 
-        if ($state['last_success_at'] !== null) {
-            return $this->maybeResolve($tenantId, $storeId, $paymentMethod, $state);
+        if ($state['last_success_at'] !== null && $this->incidents->active($tenantId, $storeId, $fingerprint) !== null) {
+            return $this->incidents->resolve(
+                $tenantId,
+                $storeId,
+                $fingerprint,
+                'auto_resolved_successful_payment',
+                $this->signal($tenantId, $storeId, $paymentMethod, $state, Signal::SEVERITY_INFO),
+                $state['last_success_at'],
+            );
         }
 
         return null;
@@ -112,130 +123,10 @@ class PaymentAttemptMonitor
     /**
      * @param  array{streak: int, last_success_at: ?Carbon, first_failure_at: ?Carbon, latest: PaymentAttemptWindow, failure_classes: array<string, int>}  $state
      */
-    private function openOrAttach(string $tenantId, string $storeId, string $paymentMethod, array $state): Incident
-    {
-        $fingerprint = $this->fingerprint($storeId, $paymentMethod);
-        $now = Carbon::now();
-        $notificationKind = null;
-
-        $incident = $this->activeIncident($tenantId, $storeId, $fingerprint);
-
-        if ($incident === null) {
-            $recentlyResolved = Incident::query()
-                ->where('tenant_id', $tenantId)
-                ->where('store_id', $storeId)
-                ->where('fingerprint', $fingerprint)
-                ->where('state', Incident::STATE_RESOLVED)
-                ->where('resolved_at', '>=', $now->copy()->subHours(self::REOPEN_WINDOW_HOURS))
-                ->orderByDesc('resolved_at')
-                ->lockForUpdate()
-                ->first();
-
-            if ($recentlyResolved !== null) {
-                $recentlyResolved->forceFill([
-                    'state' => Incident::STATE_OPEN,
-                    'resolved_at' => null,
-                    'resolution_reason' => null,
-                    'last_seen_at' => $now,
-                    'revision' => $recentlyResolved->revision + 1,
-                    'updated_at' => $now,
-                ])->save();
-                $this->writeActivity($recentlyResolved, IncidentActivity::KIND_REOPENED, []);
-                $incident = $recentlyResolved;
-                $notificationKind = NotificationDelivery::KIND_INCIDENT_REOPENED;
-            }
-        }
-
-        $signal = $this->signal($tenantId, $storeId, $paymentMethod, $state, Signal::SEVERITY_WARNING, $now);
-
-        if ($incident === null) {
-            $incident = Incident::query()->create([
-                'tenant_id' => $tenantId,
-                'store_id' => $storeId,
-                'family' => self::FAMILY,
-                'component' => self::COMPONENT,
-                'fingerprint' => $fingerprint,
-                'state' => Incident::STATE_OPEN,
-                'severity' => Incident::SEVERITY_WARNING,
-                'title_code' => self::RULE_CODE,
-                'currency' => null,
-                'verified_discrepancy_minor' => null,
-                'first_seen_at' => $now,
-                'last_seen_at' => $now,
-                'last_good_at' => $state['last_success_at'],
-                'first_bad_at' => $state['first_failure_at'] ?? $now,
-                'revision' => 1,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-            $this->writeActivity($incident, IncidentActivity::KIND_CREATED, []);
-            $notificationKind = NotificationDelivery::KIND_INCIDENT_OPENED;
-        } elseif ($notificationKind === null) {
-            $incident->forceFill([
-                'last_seen_at' => $now,
-                'revision' => $incident->revision + 1,
-                'updated_at' => $now,
-            ])->save();
-            $this->writeActivity($incident, IncidentActivity::KIND_SIGNAL_LINKED, []);
-        }
-
-        $this->link($incident, $signal, 'payment_method_failure_streak', $now);
-
-        if ($notificationKind !== null) {
-            $this->notifications->request($incident, $notificationKind);
-        }
-
-        return $incident;
-    }
-
-    /**
-     * @param  array{streak: int, last_success_at: ?Carbon, first_failure_at: ?Carbon, latest: PaymentAttemptWindow, failure_classes: array<string, int>}  $state
-     */
-    private function maybeResolve(string $tenantId, string $storeId, string $paymentMethod, array $state): ?Incident
-    {
-        $incident = $this->activeIncident($tenantId, $storeId, $this->fingerprint($storeId, $paymentMethod));
-
-        if ($incident === null) {
-            return null;
-        }
-
-        $now = Carbon::now();
-        $signal = $this->signal($tenantId, $storeId, $paymentMethod, $state, Signal::SEVERITY_INFO, $now);
-
-        $incident->forceFill([
-            'state' => Incident::STATE_RESOLVED,
-            'resolved_at' => $now,
-            'resolution_reason' => 'auto_resolved_successful_payment',
-            'last_good_at' => $state['last_success_at'],
-            'last_seen_at' => $now,
-            'revision' => $incident->revision + 1,
-            'updated_at' => $now,
-        ])->save();
-
-        $this->link($incident, $signal, 'successful_payment_observed', $now);
-        $this->writeActivity($incident, IncidentActivity::KIND_RESOLVED, ['reason' => 'auto_resolved_successful_payment']);
-        $this->notifications->request($incident, NotificationDelivery::KIND_INCIDENT_RECOVERED);
-
-        return $incident;
-    }
-
-    private function activeIncident(string $tenantId, string $storeId, string $fingerprint): ?Incident
-    {
-        return Incident::query()
-            ->where('tenant_id', $tenantId)
-            ->where('store_id', $storeId)
-            ->where('fingerprint', $fingerprint)
-            ->whereIn('state', Incident::ACTIVE_STATES)
-            ->lockForUpdate()
-            ->first();
-    }
-
-    /**
-     * @param  array{streak: int, last_success_at: ?Carbon, first_failure_at: ?Carbon, latest: PaymentAttemptWindow, failure_classes: array<string, int>}  $state
-     */
-    private function signal(string $tenantId, string $storeId, string $paymentMethod, array $state, string $severity, Carbon $now): Signal
+    private function signal(string $tenantId, string $storeId, string $paymentMethod, array $state, string $severity): Signal
     {
         $latest = $state['latest'];
+        $now = Carbon::now();
 
         return Signal::query()->firstOrCreate(
             [
@@ -264,31 +155,6 @@ class PaymentAttemptMonitor
                 'detected_at' => $now,
             ],
         );
-    }
-
-    private function link(Incident $incident, Signal $signal, string $reason, Carbon $now): void
-    {
-        IncidentSignal::query()->firstOrCreate(
-            ['incident_id' => $incident->id, 'signal_id' => $signal->id],
-            ['tenant_id' => $incident->tenant_id, 'store_id' => $incident->store_id, 'association_reason' => $reason, 'linked_at' => $now],
-        );
-    }
-
-    /**
-     * @param  array<string, mixed>  $extra
-     */
-    private function writeActivity(Incident $incident, string $kind, array $extra): void
-    {
-        IncidentActivity::query()->create([
-            'tenant_id' => $incident->tenant_id,
-            'store_id' => $incident->store_id,
-            'incident_id' => $incident->id,
-            'kind' => $kind,
-            'actor_id' => null,
-            'incident_revision' => $incident->revision,
-            'sanitized_data' => $extra,
-            'created_at' => Carbon::now(),
-        ]);
     }
 
     private function fingerprint(string $storeId, string $paymentMethod): string

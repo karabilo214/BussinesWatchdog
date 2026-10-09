@@ -27,6 +27,8 @@ class ReconciliationDirtySubject extends Model
 
     public const REASON_PROVIDER_COVERAGE_CHANGED = 'provider_coverage_changed';
 
+    public const REASON_CONNECTOR_RECOVERED = 'connector_recovered';
+
     public $timestamps = false;
 
     protected $fillable = [

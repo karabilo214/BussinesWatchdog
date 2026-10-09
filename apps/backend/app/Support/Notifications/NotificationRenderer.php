@@ -123,11 +123,19 @@ class NotificationRenderer
      */
     private function factReplace(array $content, string $order): array
     {
-        return [
+        $replace = [
             'order' => $order,
             'method' => (string) ($content['payment_method'] ?? '—'),
             'count' => (string) ($content['failure_streak'] ?? '—'),
         ];
+
+        foreach ((array) ($content['fact_params'] ?? []) as $key => $value) {
+            $replace[(string) $key] = str_ends_with((string) $key, '_at')
+                ? $this->time(is_string($value) ? $value : null, (string) $content['timezone'])
+                : (string) $value;
+        }
+
+        return $replace;
     }
 
     /**

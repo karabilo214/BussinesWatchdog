@@ -1139,3 +1139,22 @@ Verification:
 Remaining:
 
 - Order-pay page, statistical success-rate rule, dashboard coverage, entitlement gating, layer 2 checkout script.
+
+### Step 50: Store Connector Freshness (ACC-14, ADR 0009)
+
+Status: complete; a silent or lagging store plugin is now detected instead of looking healthy
+
+Added:
+
+- Heartbeat stores the plugin self-report; `ConnectorFreshness` assesses `warming_up` / `fresh` / `stale` / `partial`, flips the integration `active` ↔ `degraded`, opens/resolves an `integration` incident; `integrations:check-freshness` every minute.
+- Money reconciliation and the unmatched-payment scan return unknown while store data is stale; recovery requeues the store window.
+- Shared `IncidentRecorder` (used by the payment-attempt monitor and connector freshness); notification texts (ru/en/de) saying data is missing, not that sales stopped.
+- `docs/adr/0009-connector-freshness.md`, `docs/implementation-step-50-checklist.md`.
+
+Verification:
+
+- SQLite 282 passed + 4 skipped; PostgreSQL 18 286 passed; plugin e2e on WooCommerce 11.2.
+
+Remaining:
+
+- Plugin backlog flag/limits, deactivation report, dashboard coverage.

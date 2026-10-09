@@ -28,6 +28,8 @@ class Signal extends Model
 
     public const TYPE_PAYMENT_ATTEMPTS = 'payment_attempts';
 
+    public const TYPE_CONNECTOR_FRESHNESS = 'connector_freshness';
+
     public $timestamps = false;
 
     protected $fillable = [

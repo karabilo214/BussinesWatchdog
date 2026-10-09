@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-09 (Step 49)
+2026-10-09 (Step 50)
 
 ## Что это за проект
 
@@ -38,7 +38,9 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 - Наблюдение реальных попыток оплаты, слой 1 (Step 49, ТЗ §17.1, ADR 0007): плагин фиксирует попытки Classic и Store API/Blocks и их исходы (`paid`, `on_hold`, `failed` с классом, `pending_stuck` 30 мин, `late_success`, `rejected_before_order`) и раз в 5 минут шлёт окна `checkout.payment_attempts` по способам оплаты, без PII. Бэкенд проецирует окна в `payment_attempt_windows`; правило `CHECKOUT_PAYMENTS_FAILING` (3 подряд неуспешных по способу оплаты) открывает инциденты семейства `checkout_payment` с уведомлениями и закрывает их при успешной оплате. Проверено настоящими HTTP-оформлениями заказов на всех 6 версиях WooCommerce.
 
-277 тестов: на SQLite 273 проходят + 4 PostgreSQL-only пропускаются; на PostgreSQL 18 (`make backend-test-pgsql`) проходят все 277 (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
+- Свежесть коннектора (Step 50, ACC-14, ADR 0009): heartbeat сохраняет самоотчёт плагина (backlog, самое старое неотправленное событие, версия); `integrations:check-freshness` раз в минуту помечает коннектор `stale` (3 пропущенных heartbeat) или `partial` (отставание доставки > 1 ч), переводит интеграцию в `degraded` и открывает инцидент «нет данных от плагина — это не остановка продаж». Пока данные магазина неполные, сверка денег даёт `unknown/store_data_stale`; при восстановлении инцидент закрывается и окно заказов пересчитывается. Общий `IncidentRecorder` для не-денежных инцидентов.
+
+286 тестов: на SQLite 282 проходят + 4 PostgreSQL-only пропускаются; на PostgreSQL 18 (`make backend-test-pgsql`) проходят все 286 (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
 
 Отклонения из ADR 0001 закрыты или формализованы в Steps 39–44 (у каждого пункта есть Resolution); локальное S3 — `docs/adr/0004-local-object-storage.md` (MinIO больше не раздаётся публично, остаётся S3Mock). Остальные решения — ADR 0002 (уведомления), ADR 0003 (scheduler).
 
@@ -51,7 +53,7 @@ WooCommerce-плагин (`plugins/woocommerce-watchdog`, Step 45): фундам
 WooCommerce-плагин работает сквозь всю цепочку (P0-часть коннектора). Варианты дальше (выбирает владелец):
 
 1. **Минимальный кабинет** (`apps/frontend`): вход, магазины + верификация + pairing code, интеграции, инциденты, сверка, каналы уведомлений.
-2. **Stale-integration detection** на бэкенде (нет 3 heartbeat → stale/partial, ACC-14) и coverage-сигналы — данные от плагина теперь есть.
+2. ~~Stale-integration detection~~ — сделано в Step 50 (ADR 0009). Осталось: показ покрытия в кабинете.
 3. **Stripe read-only коннектор** (P1) — без него сверка видит только данные магазина, а captures/refunds провайдера не приходят.
 4. ~~Шлюз «провайдер не подключён»~~ — сделано в Step 48 (ADR 0006 п.1). Осталось: Stripe-коннектор (п.3), при подключении вызывать `StoreReconciliationRequeue`.
 5. Наблюдение попыток оплаты: ~~слой 1~~ сделан в Step 49 (решения по порогам и исходам в ADR 0007 — показать владельцу). Осталось: страница «оплатить заказ» (order-pay), статистическое правило падения доли успешных, слой 2 — скрипт на checkout (P1) со счётчиком отданных страниц.

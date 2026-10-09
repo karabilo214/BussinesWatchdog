@@ -11,6 +11,7 @@ use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Refund;
 use App\Models\RefundAllocation;
+use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Integrations\ProviderCoverage;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -30,6 +31,7 @@ class OrderReconciliationService
 
     public function __construct(
         private readonly ProviderCoverage $coverage,
+        private readonly ConnectorFreshness $freshness,
     ) {}
 
     public function evaluate(Order $order, string $trigger = 'manual'): ReconciliationRun
@@ -40,6 +42,7 @@ class OrderReconciliationService
 
             $now = Carbon::now();
             $providerConnected = $this->coverage->isConnected($lockedOrder->tenant_id, $lockedOrder->store_id);
+            $storeDataStale = $this->freshness->storeDataStale($lockedOrder->tenant_id, $lockedOrder->store_id);
 
             $run = ReconciliationRun::query()->create([
                 'tenant_id' => $lockedOrder->tenant_id,
@@ -52,6 +55,7 @@ class OrderReconciliationService
                 'coverage_snapshot' => [
                     'financial_support' => $lockedOrder->financial_support,
                     'provider_connected' => $providerConnected,
+                    'store_data_stale' => $storeDataStale,
                 ],
                 'counters' => [],
                 'started_at' => $now,
@@ -70,6 +74,12 @@ class OrderReconciliationService
                 $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
                     'status' => ReconciliationFinding::STATUS_UNKNOWN,
                     'reason_code' => ProviderCoverage::REASON_NOT_CONNECTED,
+                    'evidence' => ['financial_support' => $lockedOrder->financial_support],
+                ], $now);
+            } elseif ($storeDataStale) {
+                $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
+                    'status' => ReconciliationFinding::STATUS_UNKNOWN,
+                    'reason_code' => ConnectorFreshness::REASON_STORE_DATA_STALE,
                     'evidence' => ['financial_support' => $lockedOrder->financial_support],
                 ], $now);
             } else {

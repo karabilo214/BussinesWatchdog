@@ -27,3 +27,8 @@ Schedule::command('stores:check-verifications')
     ->everyMinute()
     ->withoutOverlapping(5)
     ->onOneServer();
+
+Schedule::command('integrations:check-freshness')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->onOneServer();

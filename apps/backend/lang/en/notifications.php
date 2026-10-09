@@ -25,6 +25,8 @@ return [
         'MONEY_ORDER_CHANGED' => 'Order :order was changed after a confirmed capture.',
         'MONEY_PAYMENT_WITHOUT_ORDER' => 'The payment provider has a confirmed capture that is not matched to any store order.',
         'CHECKOUT_PAYMENTS_FAILING' => 'The last :count payment attempts with “:method” in a row did not end in a successful payment. This may be a broken payment flow or a series of bank declines — store data cannot always tell them apart.',
+        'INTEGRATION_STALE' => 'The store plugin has stopped checking in: last signal :last_heartbeat_at. Until it reconnects no order or payment-attempt data arrives, so money and payment checks for this store are paused. This does not mean sales have stopped.',
+        'INTEGRATION_DELIVERY_DELAYED' => 'The store plugin is checking in but cannot deliver data in time: the oldest unsent event is from :oldest_pending_at. Until the delay clears, money and payment checks for this store are paused. This does not mean sales have stopped.',
         'default' => 'A payment data discrepancy was found for order :order.',
     ],
     'amount' => 'Discrepancy: :amount :currency.',
@@ -35,6 +37,7 @@ return [
     'source' => [
         'reconciliation' => 'Source: reconciliation of store data against the connected payment provider.',
         'payment_attempts' => 'Source: payment attempts on the store website (store plugin data).',
+        'connector_heartbeat' => 'Source: heartbeats and the delivery queue of the store plugin.',
     ],
     'checked_steps' => 'Checked: :steps.',
     'step' => [
@@ -42,12 +45,15 @@ return [
         'provider_transactions' => 'payment provider transactions',
         'payment_allocations' => 'payment-to-order links',
         'store_checkout_attempts' => 'payment attempts at checkout',
+        'connector_heartbeat' => 'store plugin heartbeat',
+        'connector_delivery' => 'store plugin data delivery',
     ],
     'what_to_check' => [
         'capture' => 'What to check: the transaction in the payment provider and the order payment status.',
         'refund' => 'What to check: the refund in the payment provider and in the store.',
         'payment_without_order' => 'What to check: which order the payment belongs to, and link it manually if needed.',
         'payment_method' => 'What to check: place a test order with this payment method, check the payment plugin settings and log, and the payment provider status.',
+        'connector_freshness' => 'What to check: the Business Watchdog plugin is active, WP-Cron or a system cron (Action Scheduler) runs on the site, and the site is reachable and can make outbound requests.',
         'default' => 'What to check: payment provider transactions and the store order.',
     ],
     'link' => 'Open incident: :link',
@@ -57,6 +63,17 @@ return [
         'restored' => 'Restored: order reconciliation against the payment provider.',
     ],
     'family' => [
+        'integration' => [
+            'subject' => [
+                'opened' => '[:store] :severity: no data from the store plugin',
+                'reopened' => '[:store] :severity: no data from the store plugin again',
+                'recovered' => '[:store] Store plugin data is arriving again',
+            ],
+            'recovery' => [
+                'fact' => 'The store plugin is back and delivering data. Checks for the period without data will be recalculated.',
+                'restored' => 'Restored: connection to the store plugin.',
+            ],
+        ],
         'checkout_payment' => [
             'subject' => [
                 'opened' => '[:store] :severity: payments are not going through',
