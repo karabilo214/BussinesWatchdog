@@ -20,6 +20,8 @@ class DomainOutbox extends Model
 
     public const TOPIC_EVENT_INBOX_RECEIVED = 'event_inbox.received';
 
+    public const TOPIC_INCIDENT_NOTIFICATION_REQUESTED = 'incident.notification_requested';
+
     public $timestamps = false;
 
     protected $table = 'domain_outbox';

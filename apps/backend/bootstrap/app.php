@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\DeliverNotifications;
 use App\Console\Commands\DispatchDomainOutbox;
 use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
 use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         DispatchDomainOutbox::class,
+        DeliverNotifications::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->preventRequestForgery(except: [

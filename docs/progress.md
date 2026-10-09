@@ -883,3 +883,29 @@ Verification:
 Remaining:
 
 - Checkout/sales-drop incident families (need the browser worker and metrics pipeline), critical severity escalation, notifications on incident transitions, dirty-order coalescing/scheduler-driven re-correlation, automatic matcher, nightly allocation audit.
+
+### Step 37: Email Notifications On Incident Transitions
+
+Status: complete for the P0 email slice of section 23
+
+Added:
+
+- `notification_channels`, `notification_deliveries` (per `spec/database/schema.sql`) and `notification_channel_verifications` (schema addition, ADR 0002).
+- Transactional request: `MoneyIncidentCorrelator` writes an `incident.notification_requested` outbox row in the same transaction as open/reopen/auto-resolve. `DomainOutboxDispatcher` fans it out via `IncidentNotificationPlanner` into one delivery per enabled+verified channel (store filter, severity threshold, recovery opt-out, quiet hours, suppression → `suppressed` row). Dedupe key `incident:{id}:rev:{revision}:{kind}` + unique `(tenant_id, channel_id, dedupe_key)` make replays safe.
+- `NotificationDeliveryWorker` + `php artisan notifications:deliver`: retry 1m/5m/15m/1h/6h with `Retry-After`, dead letter after 24h with channel `health`, timeout → `uncertain` (not retried), stuck `sending` → `uncertain`.
+- `NotificationChannelSender` interface, `EmailNotificationSender`, PII-free structured content rendered per locale from `lang/{ru,en,de}/notifications.php`; amounts via string arithmetic (`MinorUnits`).
+- API: `GET/POST /notification-channels`, `PATCH /notification-channels/{id}`, `POST .../verify`, `POST .../test`, `GET /notification-deliveries`. Email verification code (hashed, 15 min, 5 attempts), owner-only critical quiet-hours bypass, audit on create/update/verify. Telegram rejected with `channel_kind_not_supported_yet`.
+- `docs/adr/0002-notification-delivery-decisions.md` (behaviour choices for owner review), `docs/implementation-step-37-checklist.md`.
+- `AGENTS.md` intro no longer claims the repository is specification-only.
+
+Verification:
+
+- PHP syntax checks passed (PHP 8.4) for all new/changed files.
+- `php vendor/bin/pint --test` on new/changed files: clean (pre-existing findings in `DomainOutboxDispatcher.php` left as they were at HEAD).
+- `php artisan test` (PHP 8.4) passed: 213 tests, 733 assertions.
+- `php artisan migrate --force` against real PostgreSQL 18 in local Docker applied the new migration cleanly.
+- Email sending exercised only through `Mail::fake` and an in-test sender, not a real SMTP provider.
+
+Remaining:
+
+- Telegram binding (P1), digest and reminders, re-notify after suppression revoke, maintenance windows, manual resend of uncertain/dead-letter, scheduler wiring for `outbox:dispatch`/`notifications:deliver`, resend-verification and channel deletion endpoints.

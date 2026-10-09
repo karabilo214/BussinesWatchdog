@@ -5,9 +5,11 @@ namespace App\Support\Incidents;
 use App\Models\Incident;
 use App\Models\IncidentActivity;
 use App\Models\IncidentSignal;
+use App\Models\NotificationDelivery;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Signal;
+use App\Support\Notifications\IncidentNotificationRequester;
 use App\Support\Reconciliation\OrderReconciliationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +38,10 @@ class MoneyIncidentCorrelator
         ReconciliationFinding::RULE_ORDER_CHANGED => 'order_changed',
         ReconciliationFinding::RULE_PAYMENT_WITHOUT_ORDER => 'payment_without_order',
     ];
+
+    public function __construct(
+        private readonly IncidentNotificationRequester $notifications,
+    ) {}
 
     /**
      * @return list<Incident>
@@ -67,6 +73,7 @@ class MoneyIncidentCorrelator
             $component = $this->component($finding->rule_code);
             $fingerprint = $this->fingerprint($component, $entityId);
             $now = $finding->evaluated_at ?? Carbon::now();
+            $notificationKind = null;
 
             $incident = Incident::query()
                 ->where('tenant_id', $finding->tenant_id)
@@ -89,6 +96,7 @@ class MoneyIncidentCorrelator
 
                 if ($recentlyResolved !== null) {
                     $incident = $this->reopen($recentlyResolved, $now);
+                    $notificationKind = NotificationDelivery::KIND_INCIDENT_REOPENED;
                 }
             }
 
@@ -115,6 +123,7 @@ class MoneyIncidentCorrelator
                 ]);
 
                 $this->writeActivity($incident, IncidentActivity::KIND_CREATED, null, []);
+                $notificationKind = NotificationDelivery::KIND_INCIDENT_OPENED;
             } else {
                 $incident->forceFill([
                     'last_seen_at' => $now,
@@ -128,6 +137,10 @@ class MoneyIncidentCorrelator
             }
 
             $this->linkSignal($incident, $signal, 'same_rule_and_entity_mismatch', $now);
+
+            if ($notificationKind !== null) {
+                $this->notifications->request($incident, $notificationKind);
+            }
 
             return $incident;
         });
@@ -173,6 +186,7 @@ class MoneyIncidentCorrelator
             $this->writeActivity($incident, IncidentActivity::KIND_RESOLVED, null, [
                 'reason' => 'auto_resolved_fresh_reconciliation_ok',
             ]);
+            $this->notifications->request($incident, NotificationDelivery::KIND_INCIDENT_RECOVERED);
 
             return $incident;
         });

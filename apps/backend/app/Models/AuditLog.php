@@ -19,6 +19,8 @@ class AuditLog extends Model
 
     public const ENTITY_REFUND_ALLOCATION = 'refund_allocation';
 
+    public const ENTITY_NOTIFICATION_CHANNEL = 'notification_channel';
+
     public const ACTION_INTEGRATION_PAIRED = 'integration.paired';
 
     public const ACTION_INTEGRATION_REVOKED = 'integration.revoked';
@@ -30,6 +32,12 @@ class AuditLog extends Model
     public const ACTION_REFUND_ALLOCATION_CREATED = 'refund_allocation.created';
 
     public const ACTION_REFUND_ALLOCATION_REVOKED = 'refund_allocation.revoked';
+
+    public const ACTION_NOTIFICATION_CHANNEL_CREATED = 'notification_channel.created';
+
+    public const ACTION_NOTIFICATION_CHANNEL_UPDATED = 'notification_channel.updated';
+
+    public const ACTION_NOTIFICATION_CHANNEL_VERIFIED = 'notification_channel.verified';
 
     public $timestamps = false;
 

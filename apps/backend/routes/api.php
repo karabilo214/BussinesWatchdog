@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\Incidents\SuppressionController;
 use App\Http\Controllers\Api\V1\Ingest\EventsController;
 use App\Http\Controllers\Api\V1\Ingest\HeartbeatController;
 use App\Http\Controllers\Api\V1\Integrations\IntegrationController;
+use App\Http\Controllers\Api\V1\Notifications\NotificationChannelController;
+use App\Http\Controllers\Api\V1\Notifications\NotificationDeliveryController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Pairing\PairingCodeController;
 use App\Http\Controllers\Api\V1\Pairing\PairingExchangeController;
@@ -90,6 +92,19 @@ Route::middleware(['web', 'auth', 'tenant.session'])->prefix('/v1')->group(funct
         ->middleware('tenant.role:'.implode(',', TenantRoles::incidentSnooze()));
     Route::post('/suppressions/{suppression}/revoke', [SuppressionController::class, 'revoke'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::incidentSnooze()));
+
+    Route::get('/notification-channels', [NotificationChannelController::class, 'index'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+    Route::post('/notification-channels', [NotificationChannelController::class, 'store'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::notificationManage()), 'idempotency']);
+    Route::patch('/notification-channels/{notificationChannel}', [NotificationChannelController::class, 'update'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+    Route::post('/notification-channels/{notificationChannel}/verify', [NotificationChannelController::class, 'verify'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+    Route::post('/notification-channels/{notificationChannel}/test', [NotificationChannelController::class, 'test'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+    Route::get('/notification-deliveries', [NotificationDeliveryController::class, 'index'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationDeliveryRead()));
 });
 
 Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store']);

@@ -1,8 +1,8 @@
 # Business Watchdog Implementation Rules
 
-This repository currently contains the specification package, not a working SaaS implementation.
+This repository contains the specification package (`spec/`) and an in-progress implementation: the Laravel backend in `apps/backend` is built step by step (see `PROJECT_STATE.md` for the current status and `docs/progress.md` for step history). `apps/frontend`, `apps/browser-worker` and `plugins/woocommerce-watchdog` are still placeholders.
 
-Before implementation, read:
+Before a task, read `PROJECT_STATE.md`, then:
 
 1. `spec/Business-Watchdog-TZ.md`, especially sections 2, 9-14, 18-20, 25-28 and 36-39.
 2. `spec/database/schema.sql`, `spec/contracts`, and `spec/ACCEPTANCE.md`.
@@ -11,7 +11,7 @@ Before implementation, read:
 Core invariants:
 
 - Money values are minor units as `bigint`/string. Do not use floats or JS Number for monetary sums.
-- Woo paid markers are not independent capture evidence.
+- Store-reported paid markers (from any connector, WooCommerce being the first) are not independent capture evidence.
 - Charge, PaymentIntent, refund, fee and payout semantics must not be mixed.
 - Unknown, stale or incomplete coverage is not zero and not healthy.
 - Tenant scope is mandatory in services, repositories, jobs, exports and artifact access.
