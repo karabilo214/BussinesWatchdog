@@ -28,6 +28,10 @@
 - `examples/saas-billing-cases.json` —16 сценариев собственного биллинга.
 - `PANELS-ACCEPTANCE.md` — приёмка дополнения1.1.
 
+Дополнение1.2:
+
+- `Business-Watchdog-Market-Research-and-Product-Addendum-RU.md` — исследование рынка и контроль исполнения оплаченных заказов (обязательства заказа, адаптеры Sendcloud/Postmark, модель данных, API, сценарии). Согласование с принятыми решениями и открытые вопросы — раздел 43 основного ТЗ.
+
 Сначала base SQL, затем extension. При противоречии краткого billing описания1.0 и подробного дополнения1.1 применять новые billing contracts; мониторинг магазинов не изменяет финансовую семантику. Platform owner/staff и tenant owner/admin — разные роли и sessions. Реального UI/backend в пакете пока нет.
 
 Порядок: ТЗ → схема/контракты → примеры → acceptance → инструкция Codex. При реализации перенести документацию в repository, оформить D0 ADR и начать D1. Миграции Laravel должны сохранять смысл reference DDL, включая composite tenant FK.
