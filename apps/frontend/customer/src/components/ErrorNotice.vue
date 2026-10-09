@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { ApiError } from '@bw/api-client';
 import { errorKey, requestIdOf } from '@/composables/errors';
 
 const props = defineProps<{ error: unknown }>();
+const { te } = useI18n();
 
-const key = computed(() => errorKey(props.error));
+const key = computed(() => {
+  const specific = props.error instanceof ApiError ? `errors.${props.error.code}` : null;
+
+  return specific !== null && te(specific) ? specific : errorKey(props.error);
+});
 const requestId = computed(() => requestIdOf(props.error));
 </script>
 

@@ -172,6 +172,7 @@ Provider error message не подставляется в UI напрямую. T
 - `/integrations` дополнительно доступен с фильтром `?store_id=`; `GET /stores/{id}/integrations` реализован по каталогу.
 - `GET /stores/{id}/verification` и `POST .../verification/check` пока проверка в состоянии `pending` дополнительно возвращают `instructions` (DNS TXT имя/значение или URL для коннектора), чтобы инструкции не терялись при перезагрузке кабинета (Step 58).
 - `POST /stores/{id}/pairing-codes` дополнительно возвращает `service_url` — адрес сервиса, который спрашивают настройки коннектора (Step 58).
+- `GET /incidents` отдаёт сначала новые инциденты; `state` принимает список через запятую (`open,acknowledged`). `Incident.currency_exponent` берётся из связанного finding; `GET /incidents/{id}` дополнительно возвращает `active_suppression` и `findings` (findings связанных сигналов с номером заказа) (Step 59).
 - Heartbeat коннектора (`/ingest/heartbeat`) отвечает 200 с флагом ротации и ожидающей проверкой домена; тело — самоотчёт плагина (`backlog_count`, `oldest_pending_at`, `plugin_version`).
 
 Ещё не реализовано из каталога (не блокирует пилот с одним владельцем): password reset, e-mail verification, MFA, `POST /tenants`, memberships/invitations/ownership transfer, Stripe/PayPal подключение и `sync`, exports, maintenance windows, rules, billing, privacy deletion, Telegram.

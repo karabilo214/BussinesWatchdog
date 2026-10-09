@@ -25,7 +25,19 @@ if (! User::query()->where("email", "smoke@example.test")->exists()) {
     Membership::query()->create(["tenant_id" => $t->id, "user_id" => $u->id, "role" => "owner"]);
     $s = Store::query()->create(["tenant_id" => $t->id, "name" => "Kaffeerösterei Lindner", "base_url" => "https://kaffee-lindner.example", "timezone" => "Europe/Berlin", "default_currency" => "EUR"]);
     Integration::query()->create(["tenant_id" => $t->id, "store_id" => $s->id, "provider" => "woocommerce", "install_id" => Str::uuid(), "mode" => "live", "source_authority" => "store_reported", "status" => "active", "capabilities" => [], "connector_version" => "0.6.0", "health" => ["freshness" => ["state" => "fresh"]], "last_heartbeat_at" => now()]);
-}' >/dev/null)
+}
+$lindner = Store::query()->where("name", "Kaffeerösterei Lindner")->firstOrFail();
+$smokeSignals = DB::table("signals")->where("tenant_id", $lindner->tenant_id)->where("dedupe_key", "like", "smoke-%")->pluck("id");
+$smokeIncidents = DB::table("incident_signals")->whereIn("signal_id", $smokeSignals)->pluck("incident_id");
+DB::table("incident_activity")->whereIn("incident_id", $smokeIncidents)->delete();
+DB::table("suppressions")->whereIn("incident_id", $smokeIncidents)->delete();
+DB::table("incident_signals")->whereIn("incident_id", $smokeIncidents)->delete();
+DB::table("incidents")->whereIn("id", $smokeIncidents)->delete();
+DB::table("signals")->whereIn("id", $smokeSignals)->delete();
+$incident = App\Models\Incident::query()->create(["tenant_id" => $lindner->tenant_id, "store_id" => $lindner->id, "family" => "checkout_payment", "component" => "payment_method:stripe", "fingerprint" => "smoke-".Str::uuid(), "state" => "open", "severity" => "warning", "title_code" => "CHECKOUT_PAYMENTS_FAILING", "first_seen_at" => now()->subMinutes(20), "last_seen_at" => now()->subMinutes(5), "first_bad_at" => now()->subMinutes(20), "last_good_at" => now()->subHours(2), "revision" => 1, "created_at" => now()->subMinutes(20), "updated_at" => now()->subMinutes(5)]);
+$signal = App\Models\Signal::query()->forceCreate(["id" => Str::uuid7(), "tenant_id" => $lindner->tenant_id, "store_id" => $lindner->id, "signal_type" => "payment_attempts", "family" => "checkout_payment", "component" => "CHECKOUT_PAYMENTS_FAILING", "dedupe_key" => "smoke-".Str::uuid(), "severity" => "warning", "confidence" => "observed", "rule_version" => "1", "config_version" => 1, "evidence" => ["payment_method" => "stripe", "failure_streak" => 4, "threshold" => 3, "failure_classes" => ["declined" => 4], "last_success_at" => now()->subHours(2)->toJSON()], "data_quality" => ["source" => "store_reported_checkout"], "detected_at" => now()->subMinutes(5)]);
+App\Models\IncidentSignal::query()->create(["tenant_id" => $lindner->tenant_id, "store_id" => $lindner->id, "incident_id" => $incident->id, "signal_id" => $signal->id, "association_reason" => "smoke", "linked_at" => now()]);
+App\Models\IncidentActivity::query()->create(["tenant_id" => $lindner->tenant_id, "store_id" => $lindner->id, "incident_id" => $incident->id, "kind" => "created", "actor_id" => null, "incident_revision" => 1, "sanitized_data" => [], "created_at" => now()->subMinutes(20)]);' >/dev/null)
 
 (cd apps/backend && DB_HOST=127.0.0.1 CACHE_STORE=database SANCTUM_STATEFUL_DOMAINS=host.docker.internal:5173,localhost:5173 "$PHP" artisan serve --host=127.0.0.1 --port=8000 > "$OUT/backend.log" 2>&1) &
 (cd apps/frontend/customer && BW_ALLOWED_HOSTS=host.docker.internal npx vite --host 0.0.0.0 > "$OUT/vite.log" 2>&1) &

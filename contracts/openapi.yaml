@@ -919,7 +919,8 @@ paths:
           schema: {type: string, format: uuid}
         - name: state
           in: query
-          schema: {enum: [open, acknowledged, resolved]}
+          description: "One state or a comma-separated list, e.g. open,acknowledged."
+          schema: {type: string, pattern: "^(open|acknowledged|resolved)(,(open|acknowledged|resolved)){0,2}$"}
         - name: severity
           in: query
           schema: {enum: [info, warning, critical]}
@@ -937,7 +938,7 @@ paths:
           schema: {type: string, maxLength: 2048}
       responses:
         "200":
-          description: Tenant-scoped stable cursor page
+          description: Tenant-scoped stable cursor page, newest incident first
           content:
             application/json:
               schema:
@@ -2281,6 +2282,7 @@ components:
         severity: {enum: [info, warning, critical]}
         title_code: {type: string, description: Stable code; the UI translates it (ru/en/de).}
         currency: {type: [string, "null"], pattern: "^[A-Z]{3}$"}
+        currency_exponent: {type: [integer, "null"], minimum: 0, description: "Exponent of verified_discrepancy_minor, from the linked reconciliation finding; null when unknown."}
         verified_discrepancy_minor:
           oneOf:
             - {$ref: "#/components/schemas/MoneyMinor"}
@@ -2328,14 +2330,28 @@ components:
       allOf:
         - {$ref: "#/components/schemas/Incident"}
         - type: object
-          required: [signals, activity]
+          required: [signals, findings, activity, active_suppression]
           properties:
             signals:
               type: array
               items: {$ref: "#/components/schemas/Signal"}
+            findings:
+              type: array
+              description: Reconciliation findings behind the linked signals, oldest first.
+              items:
+                allOf:
+                  - {$ref: "#/components/schemas/Finding"}
+                  - type: object
+                    properties:
+                      order_display_number: {type: [string, "null"]}
             activity:
               type: array
               items: {$ref: "#/components/schemas/IncidentActivity"}
+            active_suppression:
+              description: Suppression in force now (notifications muted), or null.
+              oneOf:
+                - {$ref: "#/components/schemas/Suppression"}
+                - {type: "null"}
     Suppression:
       type: object
       required: [id, incident_id, reason, starts_at, ends_at]

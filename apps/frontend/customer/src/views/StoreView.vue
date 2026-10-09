@@ -63,12 +63,9 @@ watch(
             <h1 class="truncate text-2xl font-semibold">{{ store.name }}</h1>
             <p class="truncate text-sm text-text-muted">{{ host }} · {{ $t(`store_status.${store.status}`) }}</p>
           </div>
-          <StatusBadge
-            v-if="store.active_incident_count > 0"
-            tone="crit"
-            solid
-            :label="$t('overview.active_incidents', { n: store.active_incident_count })"
-          />
+          <RouterLink v-if="store.active_incident_count > 0" :to="{ name: 'incidents', query: { store: store.id } }" class="rounded-full focus-visible:outline-2">
+            <StatusBadge tone="crit" solid :label="$t('overview.active_incidents', { n: store.active_incident_count })" />
+          </RouterLink>
           <StatusBadge v-else tone="ok" :label="$t('overview.no_incidents')" />
         </header>
 

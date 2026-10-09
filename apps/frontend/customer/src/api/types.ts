@@ -128,3 +128,112 @@ export interface Integration {
   last_heartbeat_at: string | null;
   created_at: string;
 }
+
+export type IncidentState = 'open' | 'acknowledged' | 'resolved';
+export type IncidentSeverity = 'info' | 'warning' | 'critical';
+export type IncidentFamily = 'money' | 'checkout' | 'checkout_payment' | 'integration';
+
+export interface Incident {
+  id: string;
+  store_id: string;
+  family: IncidentFamily;
+  component: string;
+  state: IncidentState;
+  severity: IncidentSeverity;
+  title_code: string;
+  currency: string | null;
+  currency_exponent: number | null;
+  verified_discrepancy_minor: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  last_good_at: string | null;
+  first_bad_at: string | null;
+  acknowledged_by: string | null;
+  acknowledged_at: string | null;
+  resolved_at: string | null;
+  resolution_reason: string | null;
+  revision: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Signal {
+  id: string;
+  signal_type: 'reconciliation_finding' | 'payment_attempts' | 'connector_freshness' | 'browser_check';
+  family: string;
+  component: string;
+  severity: IncidentSeverity;
+  confidence: 'observed' | 'corroborated' | 'inferred' | 'unknown';
+  currency: string | null;
+  finding_id: string | null;
+  evidence: Record<string, unknown>;
+  detected_at: string;
+}
+
+export interface Finding {
+  id: string;
+  run_id: string;
+  order_id: string | null;
+  payment_id: string | null;
+  rule_code: string;
+  status: string;
+  reason_code: string | null;
+  currency: string;
+  currency_exponent: number | null;
+  expected_minor: string | null;
+  actual_minor: string | null;
+  difference_minor: string | null;
+  evaluated_at: string;
+  order_display_number?: string | null;
+}
+
+export interface IncidentActivity {
+  id: string;
+  incident_id: string;
+  kind: 'created' | 'signal_linked' | 'acknowledged' | 'comment' | 'resolved' | 'reopened' | 'severity_changed' | 'suppressed';
+  actor_id: string | null;
+  incident_revision: number;
+  data: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface Suppression {
+  id: string;
+  incident_id: string;
+  reason: string;
+  created_by: string | null;
+  starts_at: string;
+  ends_at: string;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+export interface IncidentDetail extends Incident {
+  signals: Signal[];
+  findings: Finding[];
+  activity: IncidentActivity[];
+  active_suppression: Suppression | null;
+}
+
+export interface CheckArtifact {
+  id: string;
+  kind: string;
+  content_type: string;
+}
+
+export interface CheckRun {
+  id: string;
+  store_id: string;
+  scenario_id: string;
+  status: string;
+  error_code: string | null;
+  finished_at: string | null;
+  attempts: { id: string; status: string; artifacts: CheckArtifact[] }[];
+}
+
+export interface ArtifactLink {
+  url: string;
+  expires_at: string;
+  content_type: string;
+  size_bytes: number;
+}

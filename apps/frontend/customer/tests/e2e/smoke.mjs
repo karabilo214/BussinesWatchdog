@@ -121,6 +121,44 @@ try {
     await page.getByRole('heading', { name: 'Магазины' }).waitFor();
   });
 
+  await step('the incident badge leads to the store incidents', async () => {
+    const card = page.locator('article', { hasText: 'Kaffeerösterei Lindner' });
+    await card.getByText('Активных инцидентов: 1').click();
+    await page.waitForURL(/\/app\/incidents\?store=/);
+    await page.getByRole('heading', { name: 'Инциденты' }).waitFor();
+    await page.getByRole('link', { name: 'Оплаты подряд не проходят' }).click();
+    await page.getByRole('heading', { name: 'Оплаты подряд не проходят' }).waitFor();
+    await page.getByText('Способ оплаты «stripe»: 4 неудачных попыток подряд (порог 3).').waitFor();
+    await page.screenshot({ path: `${shots}/incident-ru.png`, fullPage: true });
+  });
+
+  await step('comment, acknowledge, snooze and lift the snooze', async () => {
+    await page.getByLabel('Комментарий для команды').fill('Smoke: <b>проверяем</b> Stripe');
+    await page.getByRole('button', { name: 'Добавить комментарий' }).click();
+    await page.locator('[data-activity-kind="comment"]').getByText('Smoke: <b>проверяем</b> Stripe').waitFor();
+    await page.getByRole('button', { name: 'Подтвердить' }).click();
+    await page.locator('[data-panel="incident-actions"]').getByText('Инцидент подтверждён').waitFor();
+    await page.getByRole('button', { name: 'Заглушить уведомления' }).click();
+    await page.getByLabel('Причина').fill('Smoke: known issue');
+    await page.getByRole('button', { name: 'Заглушить', exact: true }).click();
+    await page.locator('[data-suppression]').waitFor();
+    await page.getByRole('button', { name: 'Снять заглушение' }).click();
+    await page.locator('[data-suppression]').waitFor({ state: 'detached' });
+  });
+
+  await step('resolve with a reason and find it under resolved', async () => {
+    await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
+    await page.getByLabel('Что сделано или почему закрываете').fill('Smoke: Stripe keys rotated');
+    await page.getByRole('button', { name: 'Закрыть инцидент' }).click();
+    await page.locator('[data-resolution]').getByText('Smoke: Stripe keys rotated').waitFor();
+    await page.getByRole('link', { name: '← Инциденты' }).click();
+    await page.getByRole('heading', { name: 'Активных инцидентов нет' }).waitFor();
+    await page.getByRole('tab', { name: 'Закрытые' }).click();
+    await page.getByRole('link', { name: 'Оплаты подряд не проходят' }).first().waitFor();
+    await page.getByRole('link', { name: 'Обзор', exact: true }).click();
+    await page.getByRole('heading', { name: 'Магазины' }).waitFor();
+  });
+
   await step('language switch to German', async () => {
     await page.getByRole('combobox').first().selectOption('de');
     await page.getByRole('heading', { name: 'Shops' }).waitFor();
@@ -134,6 +172,16 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     if (overflow) throw new Error('horizontal scroll on mobile');
     await page.screenshot({ path: `${shots}/store-de-mobile.png`, fullPage: true });
+  });
+
+  await step('incident page in German at mobile width', async () => {
+    await page.getByRole('link', { name: 'Vorfälle' }).click();
+    await page.getByRole('tab', { name: 'Geschlossen' }).click();
+    await page.getByRole('link', { name: 'Zahlungen schlagen wiederholt fehl' }).first().click();
+    await page.getByRole('heading', { name: 'Was prüfen' }).waitFor();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    if (overflow) throw new Error('horizontal scroll on mobile');
+    await page.screenshot({ path: `${shots}/incident-de-mobile.png`, fullPage: true });
   });
 
   await step('sign out ends the session', async () => {

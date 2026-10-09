@@ -20,7 +20,8 @@ class ListIncidentsRequest extends FormRequest
     {
         return [
             'store_id' => ['sometimes', 'uuid'],
-            'state' => ['sometimes', Rule::in([
+            'state' => ['sometimes', 'array', 'min:1', 'max:3'],
+            'state.*' => ['string', Rule::in([
                 Incident::STATE_OPEN,
                 Incident::STATE_ACKNOWLEDGED,
                 Incident::STATE_RESOLVED,
@@ -39,6 +40,10 @@ class ListIncidentsRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if (is_string($this->input('state'))) {
+            $this->merge(['state' => array_values(array_unique(explode(',', $this->input('state'))))]);
+        }
+
         if ($this->has('currency')) {
             $this->merge(['currency' => strtoupper(trim((string) $this->input('currency')))]);
         }

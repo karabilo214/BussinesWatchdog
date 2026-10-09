@@ -1298,3 +1298,22 @@ Verification:
 - Backend: SQLite 310 + 4 skipped, PostgreSQL 18 314 passed.
 - Not tested: a real plugin pairing through the dashboard and a real DNS record (the smoke store uses a non-existent `.example` domain).
 
+### Step 59: Dashboard Incident Screens
+
+Status: complete
+
+Added:
+
+- Customer app `/app/incidents`: Active (open + acknowledged) / Resolved tabs, store and severity filters kept in the URL, cursor "show more"; the incident badge on the overview and the store page opens the store's incidents.
+- `/app/incidents/:id`: severity/state, last good / first bad (with the "somewhere between" note), verified discrepancy only for money incidents, advice per title code, facts (findings with expected/found/difference per order, plain-language signal evidence for payment attempts, plugin connection and browser checks, masked screenshot of the last check on demand), timeline with comments (plain text), actions: acknowledge and resolve with a reason (`If-Match` revision; a conflict reloads), snooze notifications 1 h–7 d with a reason and lift it, recheck (money: reconcile the orders behind the findings or the unmatched-payment scan; checkout: manual run of the failed run's scenario).
+- Money is formatted from minor-unit strings with the exponent via `Intl.NumberFormat` on decimal strings, never JS Number (tested beyond 2^53); unknown amounts are shown as unknown, not zero.
+- Stable error codes are translated (`errors.<code>`); a test fails if any title code the backend can raise lacks a title or advice.
+- Backend: `GET /incidents` newest first, `state` accepts a comma-separated list; `Incident.currency_exponent` from the linked finding; `GET /incidents/{id}` adds `findings` (with order display number) and `active_suppression`. OpenAPI and catalogue §11 updated.
+
+Verification:
+
+- `make frontend-check` green (customer 31 tests).
+- `make frontend-smoke` 17/17: badge → store incidents → incident page, comment with HTML shown as text, acknowledge, snooze and lift, resolve with a reason, Resolved tab, German mobile layout; screenshots inspected.
+- Backend: SQLite 311 + 4 skipped, PostgreSQL 18 315 passed.
+- Not tested in the browser: money incidents with findings and the check screenshot (covered by unit and API tests only; the smoke incident is a seeded payment-attempts incident).
+

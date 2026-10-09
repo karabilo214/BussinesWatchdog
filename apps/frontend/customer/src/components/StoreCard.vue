@@ -21,12 +21,9 @@ const host = computed(() => storeHost(props.store.base_url));
         </h2>
         <p class="truncate text-sm text-text-muted">{{ host }} · {{ $t(`store_status.${store.status}`) }}</p>
       </div>
-      <StatusBadge
-        v-if="store.active_incident_count > 0"
-        tone="crit"
-        solid
-        :label="$t('overview.active_incidents', { n: store.active_incident_count })"
-      />
+      <RouterLink v-if="store.active_incident_count > 0" :to="{ name: 'incidents', query: { store: store.id } }" class="rounded-full focus-visible:outline-2">
+        <StatusBadge tone="crit" solid :label="$t('overview.active_incidents', { n: store.active_incident_count })" />
+      </RouterLink>
       <StatusBadge v-else tone="ok" :label="$t('overview.no_incidents')" />
     </header>
 

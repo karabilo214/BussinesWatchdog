@@ -8,13 +8,17 @@ use App\Http\Dto\Incidents\IncidentActivityDto;
 use App\Http\Dto\Incidents\IncidentDto;
 use App\Http\Dto\Incidents\SignalDto;
 use App\Http\Dto\Incidents\SuppressionDto;
+use App\Http\Dto\Reconciliation\ReconciliationFindingDto;
 use App\Http\Requests\Incidents\CommentIncidentRequest;
 use App\Http\Requests\Incidents\ListIncidentsRequest;
 use App\Http\Requests\Incidents\ResolveIncidentRequest;
 use App\Http\Requests\Incidents\SnoozeIncidentRequest;
 use App\Models\Incident;
 use App\Models\IncidentSignal;
+use App\Models\Order;
+use App\Models\ReconciliationFinding;
 use App\Models\Signal;
+use App\Models\Suppression;
 use App\Support\Api\UuidCursor;
 use App\Support\Incidents\IncidentLifecycleService;
 use App\Support\Tenancy\TenantContext;
@@ -29,6 +33,7 @@ class IncidentController extends Controller
         private readonly IncidentActivityDto $activityDto,
         private readonly SignalDto $signalDto,
         private readonly SuppressionDto $suppressionDto,
+        private readonly ReconciliationFindingDto $findingDto,
         private readonly IncidentLifecycleService $lifecycle,
     ) {}
 
@@ -45,7 +50,7 @@ class IncidentController extends Controller
         }
 
         if (isset($validated['state'])) {
-            $query->where('state', $validated['state']);
+            $query->whereIn('state', $validated['state']);
         }
 
         if (isset($validated['severity'])) {
@@ -64,10 +69,10 @@ class IncidentController extends Controller
             $cursorId = UuidCursor::decode($validated['cursor']);
             abort_if($cursorId === null, 400, 'Invalid cursor.');
 
-            $query->where('id', '>', $cursorId);
+            $query->where('id', '<', $cursorId);
         }
 
-        $items = $query->orderBy('id')->limit($limit + 1)->get();
+        $items = $query->orderByDesc('id')->limit($limit + 1)->get();
         $hasMore = $items->count() > $limit;
         $items = $items->take($limit);
 
@@ -92,9 +97,36 @@ class IncidentController extends Controller
             ->pluck('signal_id');
         $signals = Signal::query()->whereIn('id', $signalIds)->orderBy('detected_at')->get();
 
+        $suppression = Suppression::query()
+            ->where('tenant_id', $tenantId)
+            ->where('incident_id', $incident->id)
+            ->whereNull('revoked_at')
+            ->where('starts_at', '<=', now())
+            ->where('ends_at', '>', now())
+            ->orderByDesc('ends_at')
+            ->first();
+
+        $findings = ReconciliationFinding::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', $signals->pluck('finding_id')->filter()->unique()->values())
+            ->orderBy('evaluated_at')
+            ->get();
+        $orderNumbers = Order::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', $findings->pluck('order_id')->filter()->unique()->values())
+            ->pluck('display_number', 'id');
+
         return response()->json(array_merge($this->incidentDto->toArray($incident), [
             'signals' => $this->signalDto->collection($signals),
+            'findings' => $findings
+                ->map(fn (ReconciliationFinding $finding): array => [
+                    ...$this->findingDto->toArray($finding),
+                    'order_display_number' => $finding->order_id === null ? null : ($orderNumbers[$finding->order_id] ?? null),
+                ])
+                ->values()
+                ->all(),
             'activity' => $this->activityDto->collection($incident->activity),
+            'active_suppression' => $suppression === null ? null : $this->suppressionDto->toArray($suppression),
         ]))->setEtag((string) $incident->revision);
     }
 

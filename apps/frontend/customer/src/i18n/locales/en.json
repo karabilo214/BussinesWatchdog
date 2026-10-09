@@ -5,7 +5,8 @@
   },
   "nav": {
     "main": "Main navigation",
-    "overview": "Overview"
+    "overview": "Overview",
+    "incidents": "Incidents"
   },
   "common": {
     "loading": "Loading…",
@@ -196,6 +197,224 @@
       "resume": "Resume monitoring",
       "pause_hint": "Pausing stops scheduled checkout checks and the nightly reconciliation. Plugin data keeps arriving.",
       "resume_hint": "Monitoring is paused: scheduled checks and the nightly reconciliation do not run."
+    }
+  },
+  "errors": {
+    "check_run_already_active": "A check is already running. Wait for its result.",
+    "manual_check_rate_limited": "A manual check can be started at most once a minute.",
+    "store_not_eligible_for_browser_checks": "Checks are not available for this store right now: confirm the domain and enable the check scenario.",
+    "incident_already_resolved": "The incident is already resolved. We loaded its current state.",
+    "incident_resolved_cannot_acknowledge": "The incident is already resolved; no need to acknowledge it.",
+    "suppression_already_revoked": "The snooze has already been lifted.",
+    "suppression_window_invalid": "The end time must be in the future.",
+    "suppression_window_too_long": "You can snooze for at most 30 days."
+  },
+  "incidents": {
+    "title": "Incidents",
+    "subtitle": "Problems the service found in your stores. “Acknowledged” means seen, not fixed.",
+    "tab": {
+      "active": "Active",
+      "resolved": "Resolved"
+    },
+    "filter": {
+      "store": "Store",
+      "all_stores": "All stores",
+      "severity": "Severity",
+      "all_severities": "Any"
+    },
+    "empty": {
+      "active": "No active incidents",
+      "active_note": "That does not mean everything is fine if the store data is incomplete. See the coverage on the store page.",
+      "resolved": "No resolved incidents yet"
+    },
+    "load_more": "Show more"
+  },
+  "incident": {
+    "severity": {
+      "critical": "critical",
+      "warning": "warning",
+      "info": "info"
+    },
+    "state": {
+      "open": "open",
+      "acknowledged": "acknowledged",
+      "resolved": "resolved"
+    },
+    "family": {
+      "money": "Money",
+      "checkout": "Path to payment",
+      "checkout_payment": "Payment attempts",
+      "integration": "Store plugin"
+    },
+    "title": {
+      "MONEY_UNSUPPORTED": "The order cannot be reconciled",
+      "MONEY_CAPTURE_MISSING": "Order marked as paid, no capture found at the provider",
+      "MONEY_CAPTURE_AMOUNT": "Captured amount differs from the order total",
+      "MONEY_REFUND_MISSING": "Refund in the store, not found at the provider",
+      "MONEY_REFUND_EXTRA": "Refund at the provider that the store does not show",
+      "MONEY_MULTIPLE_CAPTURES": "Several different captures for one order",
+      "MONEY_CURRENCY_MISMATCH": "Capture currency differs from the order currency",
+      "MONEY_ORDER_CHANGED": "Order changed after the capture",
+      "MONEY_PAYMENT_WITHOUT_ORDER": "Provider payment not matched to an order",
+      "CHECKOUT_PAYMENTS_FAILING": "Payments keep failing",
+      "CHECKOUT_FLOW_FAILED": "The check did not reach the payment form",
+      "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "The test product for checks is unavailable",
+      "CHECKOUT_MONITORING_BLOCKED": "The site blocks the check",
+      "CHECKOUT_ADAPTER_UNSUPPORTED": "This site's checkout is not supported by the check yet",
+      "INTEGRATION_STALE": "The store plugin is not reporting",
+      "INTEGRATION_DELIVERY_DELAYED": "The store plugin is sending data late",
+      "unknown": "Incident {code}"
+    },
+    "advice_title": "What to check",
+    "advice": {
+      "MONEY_UNSUPPORTED": "The order's payment method is not supported by reconciliation. Check the payment manually in the provider dashboard.",
+      "MONEY_CAPTURE_MISSING": "Find the transaction in the provider dashboard and check the order status. If the payment went through under another reference, match it manually. Not finding a capture does not prove the money is missing.",
+      "MONEY_CAPTURE_AMOUNT": "Compare the order total with the provider capture: a partial capture, an order change or a gateway error are possible.",
+      "MONEY_REFUND_MISSING": "Check whether the refund was actually sent through the provider and not only marked in the store.",
+      "MONEY_REFUND_EXTRA": "Check who issued the refund in the provider dashboard and whether the order should reflect it.",
+      "MONEY_MULTIPLE_CAPTURES": "Check whether the customer was charged twice. Refund if necessary.",
+      "MONEY_CURRENCY_MISMATCH": "Check the currency settings of the store and the payment gateway.",
+      "MONEY_ORDER_CHANGED": "The order was edited after payment. Make sure the final total and the capture agree.",
+      "MONEY_PAYMENT_WITHOUT_ORDER": "Find the payment in the provider dashboard and work out which order it belongs to. A match by amount and time is only a hint.",
+      "CHECKOUT_PAYMENTS_FAILING": "Try paying with this method yourself and check the payment plugin log and the provider dashboard.",
+      "CHECKOUT_FLOW_FAILED": "Open the site and walk the path to payment: product, cart, checkout. Look at the check screenshot. This check does not verify that charging succeeds.",
+      "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Make sure the test product is published, in stock and can be added to the cart.",
+      "CHECKOUT_MONITORING_BLOCKED": "Site protection (WAF, CAPTCHA) blocks the check. This is not a store failure, but the store cannot be checked right now.",
+      "CHECKOUT_ADAPTER_UNSUPPORTED": "The theme or checkout plugins are not supported yet. This is not a store failure; we cannot check this path.",
+      "INTEGRATION_STALE": "Check that the site is up and the Business Watchdog plugin is active. This does not mean sales stopped, but while the plugin is silent the service cannot see orders.",
+      "INTEGRATION_DELIVERY_DELAYED": "The plugin is behind with sending data. Check that scheduled tasks run on the site (WP-Cron or Action Scheduler).",
+      "unknown": "Open the details below and check the affected part of the store."
+    },
+    "discrepancy_short": "discrepancy {amount}",
+    "last_seen": "last seen {time}",
+    "resolved_at": "resolved {time}",
+    "resolution": {
+      "auto_resolved_fresh_reconciliation_ok": "a fresh reconciliation found no discrepancy",
+      "auto_resolved_successful_payment": "a payment succeeded",
+      "auto_resolved_scheduled_checks_passed": "scheduled checks pass again",
+      "auto_resolved_check_passed": "the check passed",
+      "auto_resolved_connector_fresh": "the plugin is reporting again"
+    },
+    "fields": {
+      "last_good": "Last known good",
+      "first_bad": "First detected",
+      "last_seen": "Last seen",
+      "discrepancy": "Verified discrepancy",
+      "unknown": "unknown",
+      "no_amount": "amount not determined",
+      "window_note": "The failure started somewhere between these two moments; it cannot be narrowed down further.",
+      "resolved": "Resolved {time}"
+    },
+    "actions": {
+      "title": "Actions",
+      "read_only": "You have view-only access.",
+      "acknowledge": "Acknowledge",
+      "acknowledged_note": "The incident is acknowledged: seen, not fixed yet.",
+      "resolve": "Resolve",
+      "resolve_reason": "What was done or why you are resolving it",
+      "resolve_note": "Monitoring keeps running: if the failure happens again, the incident reopens.",
+      "resolve_confirm": "Resolve incident",
+      "snooze": "Snooze notifications",
+      "snooze_for": "For how long",
+      "snooze_hours": {
+        "h1": "1 hour",
+        "h4": "4 hours",
+        "h24": "1 day",
+        "h72": "3 days",
+        "h168": "7 days"
+      },
+      "snooze_reason": "Reason",
+      "snooze_note": "The incident state does not change; no notifications are sent for it until the time is up.",
+      "snooze_confirm": "Snooze",
+      "snoozed_until": "Notifications snoozed until {time}.",
+      "unsnooze": "Lift snooze",
+      "recheck_money": "Reconcile now",
+      "recheck_checkout": "Run check",
+      "recheck_money_done": "Reconciliation done, data updated.",
+      "recheck_check_done": "Check started. The result appears in a few minutes.",
+      "resolved_note": "The incident is resolved. Monitoring continues: it reopens if the failure happens again."
+    },
+    "evidence": {
+      "title": "Facts",
+      "findings": "Reconciliation results",
+      "check": "Check",
+      "order": "Order",
+      "expected": "Expected",
+      "actual": "Found",
+      "difference": "Difference",
+      "unknown": "unknown",
+      "no_order": "no order",
+      "order_unknown_number": "number unknown",
+      "none": "No details yet.",
+      "show_screenshot": "Show check screenshot",
+      "screenshot_note": "Input fields and addresses are masked in the screenshot.",
+      "no_screenshot": "This check has no screenshot.",
+      "screenshot_alt": "Screenshot of the page at the step where the check stopped"
+    },
+    "signal_type": {
+      "reconciliation_finding": "Money reconciliation",
+      "payment_attempts": "Payment attempts",
+      "connector_freshness": "Plugin connection",
+      "browser_check": "Path-to-payment check"
+    },
+    "confidence": {
+      "observed": "observed",
+      "corroborated": "corroborated by several sources",
+      "inferred": "inferred indirectly",
+      "unknown": "confidence unknown"
+    },
+    "facts": {
+      "payment_streak": "Payment method “{method}”: {n} failed attempts in a row (threshold {threshold}).",
+      "last_success": "Last successful payment: {time}.",
+      "connector_state": "Plugin state: {state}.",
+      "connector_reason": {
+        "heartbeats_missed": "The plugin missed several signals in a row.",
+        "no_heartbeat_since_pairing": "No signal from the plugin since it was connected.",
+        "delivery_backlog": "The plugin has a backlog of unsent events."
+      },
+      "last_heartbeat": "Last signal: {time}.",
+      "backlog": "Unsent events: {n}.",
+      "check_status": "Check status: {status}.",
+      "check_error": {
+        "site_failure": "The site did not let the check reach the payment form.",
+        "product_unavailable": "The test product is unavailable.",
+        "waf_challenge": "The site showed bot protection.",
+        "blocked_external_origin": "The page called an address the check does not allow.",
+        "forbidden_mutation": "The page tried a forbidden action; the check stopped.",
+        "selector_changed": "A page element was not found: the site theme may have changed.",
+        "adapter_unsupported": "The site's checkout is not supported by the check."
+      },
+      "failed_step": "Stopped at step: {step}.",
+      "step": {
+        "product": "product page",
+        "add_to_cart": "add to cart",
+        "cart": "cart",
+        "checkout": "checkout",
+        "shipping": "shipping details",
+        "payment_form": "payment form"
+      },
+      "attempts": "Attempts: {n}."
+    },
+    "timeline": {
+      "title": "Timeline",
+      "comment": "Comment for the team",
+      "send": "Add comment",
+      "suppressed_until": "until {time}",
+      "actor": {
+        "system": "system",
+        "you": "you",
+        "member": "team member"
+      },
+      "kind": {
+        "created": "Opened",
+        "signal_linked": "New observation",
+        "acknowledged": "Acknowledged",
+        "comment": "Comment",
+        "resolved": "Resolved",
+        "reopened": "Reopened",
+        "severity_changed": "Severity changed",
+        "suppressed": "Notifications snoozed"
+      }
     }
   }
 }

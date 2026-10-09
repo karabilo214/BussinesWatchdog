@@ -5,7 +5,8 @@
   },
   "nav": {
     "main": "Hauptnavigation",
-    "overview": "Übersicht"
+    "overview": "Übersicht",
+    "incidents": "Vorfälle"
   },
   "common": {
     "loading": "Wird geladen…",
@@ -196,6 +197,224 @@
       "resume": "Überwachung fortsetzen",
       "pause_hint": "Die Pause stoppt geplante Checkout-Prüfungen und den nächtlichen Abgleich. Plugin-Daten kommen weiter an.",
       "resume_hint": "Die Überwachung ist pausiert: geplante Prüfungen und der nächtliche Abgleich laufen nicht."
+    }
+  },
+  "errors": {
+    "check_run_already_active": "Eine Prüfung läuft bereits. Bitte das Ergebnis abwarten.",
+    "manual_check_rate_limited": "Eine manuelle Prüfung kann höchstens einmal pro Minute gestartet werden.",
+    "store_not_eligible_for_browser_checks": "Für diesen Shop sind Prüfungen gerade nicht möglich: Domain bestätigen und Prüfszenario aktivieren.",
+    "incident_already_resolved": "Der Vorfall ist bereits geschlossen. Wir haben den aktuellen Stand geladen.",
+    "incident_resolved_cannot_acknowledge": "Der Vorfall ist bereits geschlossen und muss nicht bestätigt werden.",
+    "suppression_already_revoked": "Die Stummschaltung wurde bereits aufgehoben.",
+    "suppression_window_invalid": "Das Ende muss in der Zukunft liegen.",
+    "suppression_window_too_long": "Stummschalten ist höchstens für 30 Tage möglich."
+  },
+  "incidents": {
+    "title": "Vorfälle",
+    "subtitle": "Probleme, die der Dienst in Ihren Shops gefunden hat. „Bestätigt“ heißt gesehen, nicht behoben.",
+    "tab": {
+      "active": "Aktiv",
+      "resolved": "Geschlossen"
+    },
+    "filter": {
+      "store": "Shop",
+      "all_stores": "Alle Shops",
+      "severity": "Schweregrad",
+      "all_severities": "Alle"
+    },
+    "empty": {
+      "active": "Keine aktiven Vorfälle",
+      "active_note": "Das heißt nicht, dass alles in Ordnung ist, wenn die Shop-Daten unvollständig sind. Die Abdeckung sehen Sie auf der Shop-Seite.",
+      "resolved": "Noch keine geschlossenen Vorfälle"
+    },
+    "load_more": "Mehr anzeigen"
+  },
+  "incident": {
+    "severity": {
+      "critical": "kritisch",
+      "warning": "Warnung",
+      "info": "Hinweis"
+    },
+    "state": {
+      "open": "offen",
+      "acknowledged": "bestätigt",
+      "resolved": "geschlossen"
+    },
+    "family": {
+      "money": "Geld",
+      "checkout": "Weg zur Zahlung",
+      "checkout_payment": "Zahlungsversuche",
+      "integration": "Shop-Plugin"
+    },
+    "title": {
+      "MONEY_UNSUPPORTED": "Abgleich der Bestellung nicht möglich",
+      "MONEY_CAPTURE_MISSING": "Bestellung als bezahlt markiert, keine Abbuchung beim Anbieter gefunden",
+      "MONEY_CAPTURE_AMOUNT": "Abgebuchter Betrag weicht vom Bestellbetrag ab",
+      "MONEY_REFUND_MISSING": "Erstattung im Shop, beim Anbieter nicht gefunden",
+      "MONEY_REFUND_EXTRA": "Erstattung beim Anbieter, die der Shop nicht zeigt",
+      "MONEY_MULTIPLE_CAPTURES": "Mehrere verschiedene Abbuchungen für eine Bestellung",
+      "MONEY_CURRENCY_MISMATCH": "Währung der Abbuchung weicht von der Bestellwährung ab",
+      "MONEY_ORDER_CHANGED": "Bestellung nach der Abbuchung geändert",
+      "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung beim Anbieter keiner Bestellung zugeordnet",
+      "CHECKOUT_PAYMENTS_FAILING": "Zahlungen schlagen wiederholt fehl",
+      "CHECKOUT_FLOW_FAILED": "Die Prüfung hat das Zahlungsformular nicht erreicht",
+      "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Das Testprodukt für Prüfungen ist nicht verfügbar",
+      "CHECKOUT_MONITORING_BLOCKED": "Die Website blockiert die Prüfung",
+      "CHECKOUT_ADAPTER_UNSUPPORTED": "Der Checkout dieser Website wird von der Prüfung noch nicht unterstützt",
+      "INTEGRATION_STALE": "Das Shop-Plugin meldet sich nicht",
+      "INTEGRATION_DELIVERY_DELAYED": "Das Shop-Plugin übermittelt Daten verspätet",
+      "unknown": "Vorfall {code}"
+    },
+    "advice_title": "Was prüfen",
+    "advice": {
+      "MONEY_UNSUPPORTED": "Die Zahlungsart der Bestellung wird vom Abgleich nicht unterstützt. Prüfen Sie die Zahlung manuell im Dashboard des Zahlungsanbieters.",
+      "MONEY_CAPTURE_MISSING": "Suchen Sie die Transaktion im Anbieter-Dashboard und prüfen Sie den Bestellstatus. Lief die Zahlung unter einer anderen Referenz, ordnen Sie sie manuell zu. Eine nicht gefundene Abbuchung beweist nicht, dass das Geld fehlt.",
+      "MONEY_CAPTURE_AMOUNT": "Vergleichen Sie Bestellbetrag und Abbuchung beim Anbieter: Teilabbuchung, geänderte Bestellung oder ein Gateway-Fehler sind möglich.",
+      "MONEY_REFUND_MISSING": "Prüfen Sie, ob die Erstattung tatsächlich über den Anbieter ausgelöst und nicht nur im Shop markiert wurde.",
+      "MONEY_REFUND_EXTRA": "Prüfen Sie, wer die Erstattung im Anbieter-Dashboard ausgelöst hat und ob die Bestellung sie abbilden soll.",
+      "MONEY_MULTIPLE_CAPTURES": "Prüfen Sie, ob der Kunde doppelt belastet wurde. Erstatten Sie bei Bedarf.",
+      "MONEY_CURRENCY_MISMATCH": "Prüfen Sie die Währungseinstellungen von Shop und Zahlungs-Gateway.",
+      "MONEY_ORDER_CHANGED": "Die Bestellung wurde nach der Zahlung geändert. Stellen Sie sicher, dass Endbetrag und Abbuchung übereinstimmen.",
+      "MONEY_PAYMENT_WITHOUT_ORDER": "Suchen Sie die Zahlung im Anbieter-Dashboard und ermitteln Sie die zugehörige Bestellung. Eine Übereinstimmung nach Betrag und Zeit ist nur ein Hinweis.",
+      "CHECKOUT_PAYMENTS_FAILING": "Bezahlen Sie selbst mit dieser Zahlungsart und prüfen Sie das Log des Zahlungs-Plugins und das Anbieter-Dashboard.",
+      "CHECKOUT_FLOW_FAILED": "Öffnen Sie die Website und gehen Sie den Weg zur Zahlung: Produkt, Warenkorb, Kasse. Sehen Sie sich den Screenshot der Prüfung an. Ob die Abbuchung gelingt, prüft diese Prüfung nicht.",
+      "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Stellen Sie sicher, dass das Testprodukt veröffentlicht, vorrätig und in den Warenkorb legbar ist.",
+      "CHECKOUT_MONITORING_BLOCKED": "Der Website-Schutz (WAF, CAPTCHA) lässt die Prüfung nicht durch. Das ist kein Shop-Ausfall, aber der Shop kann gerade nicht geprüft werden.",
+      "CHECKOUT_ADAPTER_UNSUPPORTED": "Theme oder Checkout-Plugins werden noch nicht unterstützt. Das ist kein Shop-Ausfall; wir können diesen Weg nicht prüfen.",
+      "INTEGRATION_STALE": "Prüfen Sie, ob die Website läuft und das Plugin Business Watchdog aktiv ist. Das bedeutet keinen Verkaufsstopp, aber solange das Plugin schweigt, sieht der Dienst keine Bestellungen.",
+      "INTEGRATION_DELIVERY_DELAYED": "Das Plugin hängt mit der Übermittlung hinterher. Prüfen Sie, ob geplante Aufgaben auf der Website laufen (WP-Cron oder Action Scheduler).",
+      "unknown": "Öffnen Sie die Details unten und prüfen Sie den betroffenen Bereich des Shops."
+    },
+    "discrepancy_short": "Abweichung {amount}",
+    "last_seen": "zuletzt {time}",
+    "resolved_at": "geschlossen {time}",
+    "resolution": {
+      "auto_resolved_fresh_reconciliation_ok": "ein frischer Abgleich fand keine Abweichung",
+      "auto_resolved_successful_payment": "eine Zahlung war erfolgreich",
+      "auto_resolved_scheduled_checks_passed": "geplante Prüfungen laufen wieder durch",
+      "auto_resolved_check_passed": "die Prüfung war erfolgreich",
+      "auto_resolved_connector_fresh": "das Plugin meldet sich wieder"
+    },
+    "fields": {
+      "last_good": "Zuletzt in Ordnung",
+      "first_bad": "Erstmals festgestellt",
+      "last_seen": "Zuletzt beobachtet",
+      "discrepancy": "Bestätigte Abweichung",
+      "unknown": "unbekannt",
+      "no_amount": "Betrag nicht ermittelt",
+      "window_note": "Der Ausfall begann irgendwann zwischen diesen beiden Zeitpunkten; genauer lässt es sich nicht bestimmen.",
+      "resolved": "Geschlossen {time}"
+    },
+    "actions": {
+      "title": "Aktionen",
+      "read_only": "Sie haben nur Lesezugriff.",
+      "acknowledge": "Bestätigen",
+      "acknowledged_note": "Der Vorfall ist bestätigt: gesehen, aber noch nicht behoben.",
+      "resolve": "Schließen",
+      "resolve_reason": "Was getan wurde oder warum Sie schließen",
+      "resolve_note": "Die Überwachung läuft weiter: Tritt der Fehler erneut auf, wird der Vorfall wieder geöffnet.",
+      "resolve_confirm": "Vorfall schließen",
+      "snooze": "Benachrichtigungen stummschalten",
+      "snooze_for": "Wie lange",
+      "snooze_hours": {
+        "h1": "1 Stunde",
+        "h4": "4 Stunden",
+        "h24": "1 Tag",
+        "h72": "3 Tage",
+        "h168": "7 Tage"
+      },
+      "snooze_reason": "Grund",
+      "snooze_note": "Der Zustand des Vorfalls ändert sich nicht; bis zum Ablauf werden keine Benachrichtigungen dazu gesendet.",
+      "snooze_confirm": "Stummschalten",
+      "snoozed_until": "Benachrichtigungen stumm bis {time}.",
+      "unsnooze": "Stummschaltung aufheben",
+      "recheck_money": "Jetzt abgleichen",
+      "recheck_checkout": "Prüfung starten",
+      "recheck_money_done": "Abgleich ausgeführt, Daten aktualisiert.",
+      "recheck_check_done": "Prüfung gestartet. Das Ergebnis erscheint in wenigen Minuten.",
+      "resolved_note": "Der Vorfall ist geschlossen. Die Überwachung läuft weiter: Tritt der Fehler erneut auf, wird er wieder geöffnet."
+    },
+    "evidence": {
+      "title": "Fakten",
+      "findings": "Abgleichsergebnisse",
+      "check": "Prüfung",
+      "order": "Bestellung",
+      "expected": "Erwartet",
+      "actual": "Gefunden",
+      "difference": "Differenz",
+      "unknown": "unbekannt",
+      "no_order": "ohne Bestellung",
+      "order_unknown_number": "Nummer unbekannt",
+      "none": "Noch keine Details.",
+      "show_screenshot": "Screenshot der Prüfung anzeigen",
+      "screenshot_note": "Eingabefelder und Adressen sind im Screenshot geschwärzt.",
+      "no_screenshot": "Für diese Prüfung gibt es keinen Screenshot.",
+      "screenshot_alt": "Screenshot der Seite beim Schritt, an dem die Prüfung stoppte"
+    },
+    "signal_type": {
+      "reconciliation_finding": "Geldabgleich",
+      "payment_attempts": "Zahlungsversuche",
+      "connector_freshness": "Verbindung zum Plugin",
+      "browser_check": "Prüfung des Wegs zur Zahlung"
+    },
+    "confidence": {
+      "observed": "beobachtet",
+      "corroborated": "durch mehrere Quellen bestätigt",
+      "inferred": "indirekt abgeleitet",
+      "unknown": "Verlässlichkeit unbekannt"
+    },
+    "facts": {
+      "payment_streak": "Zahlungsart „{method}“: {n} fehlgeschlagene Versuche in Folge (Schwelle {threshold}).",
+      "last_success": "Letzte erfolgreiche Zahlung: {time}.",
+      "connector_state": "Plugin-Zustand: {state}.",
+      "connector_reason": {
+        "heartbeats_missed": "Das Plugin hat mehrere Signale in Folge ausgelassen.",
+        "no_heartbeat_since_pairing": "Seit der Verbindung kam kein Signal vom Plugin.",
+        "delivery_backlog": "Das Plugin hat einen Rückstand nicht gesendeter Ereignisse."
+      },
+      "last_heartbeat": "Letztes Signal: {time}.",
+      "backlog": "Nicht gesendete Ereignisse: {n}.",
+      "check_status": "Status der Prüfung: {status}.",
+      "check_error": {
+        "site_failure": "Die Website ließ die Prüfung nicht bis zum Zahlungsformular.",
+        "product_unavailable": "Das Testprodukt ist nicht verfügbar.",
+        "waf_challenge": "Die Website zeigte einen Bot-Schutz.",
+        "blocked_external_origin": "Die Seite rief eine Adresse auf, die die Prüfung nicht erlaubt.",
+        "forbidden_mutation": "Die Seite versuchte eine verbotene Aktion; die Prüfung wurde gestoppt.",
+        "selector_changed": "Ein Seitenelement wurde nicht gefunden: Das Theme hat sich eventuell geändert.",
+        "adapter_unsupported": "Der Checkout der Website wird von der Prüfung nicht unterstützt."
+      },
+      "failed_step": "Gestoppt bei Schritt: {step}.",
+      "step": {
+        "product": "Produktseite",
+        "add_to_cart": "In den Warenkorb",
+        "cart": "Warenkorb",
+        "checkout": "Kasse",
+        "shipping": "Versanddaten",
+        "payment_form": "Zahlungsformular"
+      },
+      "attempts": "Versuche: {n}."
+    },
+    "timeline": {
+      "title": "Verlauf",
+      "comment": "Kommentar für das Team",
+      "send": "Kommentar hinzufügen",
+      "suppressed_until": "bis {time}",
+      "actor": {
+        "system": "System",
+        "you": "Sie",
+        "member": "Teammitglied"
+      },
+      "kind": {
+        "created": "Geöffnet",
+        "signal_linked": "Neue Beobachtung",
+        "acknowledged": "Bestätigt",
+        "comment": "Kommentar",
+        "resolved": "Geschlossen",
+        "reopened": "Wieder geöffnet",
+        "severity_changed": "Schweregrad geändert",
+        "suppressed": "Benachrichtigungen stumm"
+      }
     }
   }
 }

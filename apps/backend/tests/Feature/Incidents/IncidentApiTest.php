@@ -57,7 +57,58 @@ class IncidentApiTest extends TestCase
             ->assertJsonPath('id', $incidentId)
             ->assertJsonCount(1, 'signals')
             ->assertJsonCount(1, 'activity')
-            ->assertJsonPath('activity.0.kind', 'created');
+            ->assertJsonPath('activity.0.kind', 'created')
+            ->assertJsonPath('currency', 'EUR')
+            ->assertJsonPath('currency_exponent', 2)
+            ->assertJsonPath('active_suppression', null)
+            ->assertJsonCount(1, 'findings')
+            ->assertJsonPath('findings.0.rule_code', 'MONEY_CAPTURE_MISSING')
+            ->assertJsonPath('findings.0.order_display_number', '#1001')
+            ->assertJsonPath('findings.0.expected_minor', '18400');
+    }
+
+    public function test_list_returns_newest_first_with_a_cursor_and_filters_several_states(): void
+    {
+        $context = $this->context('viewer');
+        $ids = [];
+
+        foreach (['resolved', 'open', 'acknowledged', 'open'] as $index => $state) {
+            $ids[] = Incident::query()->create([
+                'tenant_id' => $context['tenant']->id,
+                'store_id' => $context['store']->id,
+                'family' => 'integration',
+                'component' => 'connector',
+                'fingerprint' => "fp-{$index}",
+                'state' => $state,
+                'severity' => 'warning',
+                'title_code' => 'INTEGRATION_STALE',
+                'first_seen_at' => now(),
+                'last_seen_at' => now(),
+                'revision' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ])->id;
+        }
+
+        $request = $this->actingAs($context['user'])->withSession(['active_tenant_id' => $context['tenant']->id]);
+
+        $first = $request->getJson('/api/v1/incidents?limit=2')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $ids[3])
+            ->assertJsonPath('data.1.id', $ids[2]);
+
+        $request->getJson('/api/v1/incidents?limit=2&cursor='.urlencode((string) $first->json('next_cursor')))
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $ids[1])
+            ->assertJsonPath('data.1.id', $ids[0])
+            ->assertJsonPath('next_cursor', null);
+
+        $active = $request->getJson('/api/v1/incidents?state=open,acknowledged')->assertOk();
+
+        $this->assertSame([$ids[3], $ids[2], $ids[1]], array_column($active->json('data'), 'id'));
+
+        $request->getJson('/api/v1/incidents?state=open,closed')
+            ->assertUnprocessable();
     }
 
     public function test_operator_can_acknowledge_but_viewer_cannot(): void
@@ -153,10 +204,22 @@ class IncidentApiTest extends TestCase
 
         $this->actingAs($context['user'])
             ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->getJson("/api/v1/incidents/{$incidentId}")
+            ->assertOk()
+            ->assertJsonPath('active_suppression.id', $suppressionId)
+            ->assertJsonPath('state', Incident::STATE_OPEN);
+
+        $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
             ->postJson("/api/v1/suppressions/{$suppressionId}/revoke")
             ->assertOk()
             ->assertJsonPath('id', $suppressionId)
             ->assertJsonPath('revoked_at', fn ($value) => $value !== null);
+
+        $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->getJson("/api/v1/incidents/{$incidentId}")
+            ->assertJsonPath('active_suppression', null);
 
         $operatorContext = $this->context('operator', $context['tenant'], $context['store'], $context['integration']);
 

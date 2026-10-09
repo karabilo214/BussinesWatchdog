@@ -16,6 +16,8 @@ export function buildRouter(): Router {
       { path: '/overview', name: 'overview', component: () => import('@/views/OverviewView.vue') },
       { path: '/stores/new', name: 'store-create', component: () => import('@/views/StoreCreateView.vue') },
       { path: '/stores/:id', name: 'store', component: () => import('@/views/StoreView.vue'), props: true },
+      { path: '/incidents', name: 'incidents', component: () => import('@/views/IncidentsView.vue') },
+      { path: '/incidents/:id', name: 'incident', component: () => import('@/views/IncidentView.vue'), props: true },
       { path: '/:pathMatch(.*)*', redirect: { name: 'overview' } },
     ],
   });
