@@ -5,7 +5,7 @@ export PATH := $(DOCKER_APP_BIN):$(PATH)
 DOCKER ?= $(shell if command -v docker >/dev/null 2>&1; then command -v docker; elif [ -x $(DOCKER_APP_BIN)/docker ]; then printf '%s\n' $(DOCKER_APP_BIN)/docker; else printf '%s\n' docker; fi)
 COMPOSE ?= $(DOCKER) compose
 
-.PHONY: setup up down ps logs reset-infra check-tools backend-build backend-create backend-shell backend-up backend-logs backend-test backend-test-pgsql worker-test worker-e2e egress-test
+.PHONY: setup up down ps logs reset-infra check-tools backend-build backend-create backend-shell backend-up backend-logs backend-test backend-test-pgsql worker-test worker-e2e egress-test frontend-palette-check
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -66,3 +66,6 @@ worker-e2e: check-tools
 
 egress-test: check-tools
 	infra/scripts/egress-test.sh
+
+frontend-palette-check:
+	node apps/frontend/scripts/check-palette.mjs

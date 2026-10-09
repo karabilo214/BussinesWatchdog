@@ -52,7 +52,7 @@ WooCommerce-плагин (`plugins/woocommerce-watchdog`, Step 45): фундам
 
 ## Следующий шаг
 
-**Текущий план:** API подготовлен для кабинета (Step 55, ADR 0014): все маршруты описаны в `contracts/openapi.yaml` и сверяются тестом, у магазина есть честная сводка покрытия, `If-Match`/`ETag`, `X-Request-ID`. Следующее — минимальный кабинет (`apps/frontend`, Vue); нужно решение владельца по дизайну. Не реализовано из каталога (не блокирует пилот с одним владельцем): сброс пароля, подтверждение email, MFA, приглашения — список в `contracts/ui-api-catalog.md` §11.
+**Текущий план:** API подготовлен для кабинета (Step 55, ADR 0014): все маршруты описаны в `contracts/openapi.yaml` и сверяются тестом, у магазина есть честная сводка покрытия, `If-Match`/`ETag`, `X-Request-ID`. Дизайн: решение владельца — Tailwind CSS и корпоративная палитра, зафиксированная навсегда (ADR 0015): `apps/frontend/design/palette.json` → `src/styles/palette.css`, правила в `docs/design/palette.md`, проверка `make frontend-palette-check`; стандартные цвета Tailwind отключены, отдельный цвет `unknown` для «нет данных». Следующее — каркас кабинета (`apps/frontend`: Vue 3 + TypeScript + Vite + Tailwind v4, i18n ru/en/de, Sanctum-сессия) и первые экраны. Не реализовано из каталога (не блокирует пилот с одним владельцем): сброс пароля, подтверждение email, MFA, приглашения — список в `contracts/ui-api-catalog.md` §11.
 
 Прочие варианты (выбирает владелец):
 

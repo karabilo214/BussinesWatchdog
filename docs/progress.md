@@ -1241,3 +1241,13 @@ Added:
 Verification:
 
 - SQLite 309 passed + 4 skipped; PostgreSQL 18 313 passed.
+
+### Design: Corporate Palette (ADR 0015)
+
+Status: complete; palette frozen by owner decision
+
+Added:
+
+- Seven OKLCH-generated 11-step scales (brand, ink, success, warning, danger, info, unknown), every semantic text/background pair WCAG 2.1 AA.
+- `apps/frontend/design/palette.json` (source), `apps/frontend/src/styles/palette.css` (Tailwind v4 `@theme`, default colours disabled, semantic tokens), `docs/design/palette.md` (values, contrast, status mapping), `scripts/check-palette.mjs` + `make frontend-palette-check` (fingerprint, CSS drift, defaults disabled).
+- Preview page published for the owner.

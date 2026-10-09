@@ -1,6 +1,8 @@
 # Frontend
 
-Vue 3 + TypeScript frontend placeholder.
+Vue 3 + TypeScript + Tailwind CSS frontend (scaffold follows).
+
+Colours: the corporate palette is frozen (ADR 0015) — `design/palette.json`, `src/styles/palette.css`, rules in `docs/design/palette.md`; check with `make frontend-palette-check`. Tailwind's default colours are disabled; use the semantic tokens (`bg-primary`, `text-muted`, `bg-ok-soft text-ok`, `bg-unknown-soft text-unknown`, …).
 
 Planned surfaces:
 
