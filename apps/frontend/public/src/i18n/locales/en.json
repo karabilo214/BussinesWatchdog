@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "title": "Business Watchdog — payment monitoring for online stores",
+    "description": "We check the customer path to payment, watch real payment attempts and reconcile money with your payment provider. We tell you when customers stop paying successfully."
+  },
+  "nav": {
+    "sign_in": "Sign in",
+    "how": "How it works"
+  },
+  "hero": {
+    "eyebrow": "For WooCommerce stores",
+    "title": "Find out that payments broke before your customers do",
+    "lead": "Business Watchdog watches the customer path to the payment form, real payment attempts and whether the money arrived. When something stops working, you get an e-mail saying what happened and what to check."
+  },
+  "features": {
+    "title": "What we check",
+    "checkout_title": "Path to payment",
+    "checkout_body": "Every 15 minutes a browser walks product → cart → checkout → payment form. It never places an order or charges money.",
+    "attempts_title": "Real payment attempts",
+    "attempts_body": "The plugin sees the outcome of every payment attempt per payment method. Several failures in a row and you will know.",
+    "money_title": "Money reconciliation",
+    "money_body": "With Stripe or PayPal connected we reconcile paid orders and refunds with real captures.",
+    "data_title": "An honest \"no data\"",
+    "data_body": "If the plugin goes quiet or a source is not connected, we say so. Missing data never looks like \"all fine\"."
+  },
+  "limits": {
+    "title": "What we do not promise",
+    "body": "We cannot guarantee that every purchase goes through: only a real payment can prove that. We tell you when customers stop paying successfully or the payment page stops working."
+  },
+  "chooser": {
+    "title": "Choose your language"
+  },
+  "footer": {
+    "languages": "Languages"
+  }
+}

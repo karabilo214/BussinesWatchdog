@@ -1,0 +1,8 @@
+{
+  "name": "@bw/api-client",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/http.ts"
+  }
+}

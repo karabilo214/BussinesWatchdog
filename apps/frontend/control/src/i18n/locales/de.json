@@ -1,0 +1,16 @@
+{
+  "app": {
+    "name": "Business Watchdog Steuerung"
+  },
+  "nav": {
+    "main": "Hauptnavigation",
+    "owner": "Dienstinhaber",
+    "admin": "Support"
+  },
+  "section": {
+    "owner_title": "Panel des Dienstinhabers",
+    "owner_body": "Tarife, Kundenabos, Umsatz unseres Dienstes und Audit. Dieser Bereich kommt mit der Plattform-API.",
+    "admin_title": "Support-Panel",
+    "admin_body": "Dienstzustand, Datenzustellung der Kunden, Prüfungen und Zugriff mit Kundenfreigabe. Dieser Bereich kommt mit der Plattform-API."
+  }
+}

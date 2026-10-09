@@ -5,7 +5,7 @@ export PATH := $(DOCKER_APP_BIN):$(PATH)
 DOCKER ?= $(shell if command -v docker >/dev/null 2>&1; then command -v docker; elif [ -x $(DOCKER_APP_BIN)/docker ]; then printf '%s\n' $(DOCKER_APP_BIN)/docker; else printf '%s\n' docker; fi)
 COMPOSE ?= $(DOCKER) compose
 
-.PHONY: setup up down ps logs reset-infra check-tools backend-build backend-create backend-shell backend-up backend-logs backend-test backend-test-pgsql worker-test worker-e2e egress-test frontend-palette-check frontend-install frontend-dev frontend-check frontend-smoke
+.PHONY: setup up down ps logs reset-infra check-tools backend-build backend-create backend-shell backend-up backend-logs backend-test backend-test-pgsql worker-test worker-e2e egress-test frontend-palette-check frontend-install frontend-dev frontend-dev-control frontend-dev-public frontend-check frontend-smoke
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -68,7 +68,7 @@ egress-test: check-tools
 	infra/scripts/egress-test.sh
 
 frontend-palette-check:
-	node apps/frontend/scripts/check-palette.mjs
+	node apps/frontend/packages/design/scripts/check-palette.mjs
 
 FRONTEND_NODE ?= $(HOME)/.nvm/versions/node/v24.21.0/bin
 
@@ -76,10 +76,16 @@ frontend-install:
 	cd apps/frontend && PATH="$(FRONTEND_NODE):$$PATH" npm ci --no-audit --no-fund
 
 frontend-dev:
-	cd apps/frontend && PATH="$(FRONTEND_NODE):$$PATH" npx vite
+	cd apps/frontend && PATH="$(FRONTEND_NODE):$$PATH" npm run dev:customer
+
+frontend-dev-control:
+	cd apps/frontend && PATH="$(FRONTEND_NODE):$$PATH" npm run dev:control
+
+frontend-dev-public:
+	cd apps/frontend && PATH="$(FRONTEND_NODE):$$PATH" npm run dev:public
 
 frontend-check:
 	cd apps/frontend && PATH="$(FRONTEND_NODE):$$PATH" npm run check
 
 frontend-smoke: check-tools
-	apps/frontend/tests/e2e/run-smoke.sh
+	apps/frontend/customer/tests/e2e/run-smoke.sh

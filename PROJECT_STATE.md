@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-09 (Step 56)
+2026-10-09 (Step 57)
 
 ## Что это за проект
 
@@ -48,11 +48,11 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 WooCommerce-плагин (`plugins/woocommerce-watchdog`, Step 45): фундамент — слой совместимости по возможностям (HPOS/legacy, classic/blocks, Action Scheduler/WP-Cron), локальные таблицы, pairing, подписанный heartbeat с ротацией, публичный challenge. Нижняя граница по решению владельца: PHP 7.4 / WP 5.9 / WC 6.0 (ADR 0005). Docker-матрица из 6 целей (WC 6.0.2 … 11.2.0, legacy и HPOS) + e2e с бэкендом — всё зелёное; проверенные комбинации в `docs/compatibility.md`. С Step 46 плагин пишет снимки заказов/refund/удалений в локальный outbox с ревизиями (хуки только помечают заказ, снимок на shutdown; суммы строками в minor units); найденные различия версий WC задокументированы в `docs/compatibility.md`. С Step 47 плагин доставляет события в бэкенд (батчи, retry, dead letter, suspend), делает rescan 48ч каждые 15 мин, backfill 90 дней и шлёт capabilities/deployment события; e2e на всех 6 версиях WooCommerce доходит до проекций бэкенда.
 
-Кабинет `apps/frontend` (Step 56, ADR 0016): каркас Vue 3 + TypeScript + Vite 8 + Tailwind 4 на Node 24 LTS, сессия Sanctum с CSRF, i18n ru/en/de, вход и экран «Магазины» со сводкой покрытия; `make frontend-check` и `make frontend-smoke` (Chromium против реального бэкенда) зелёные.
+Кабинет `apps/frontend` (Step 56, ADR 0016): каркас Vue 3 + TypeScript + Vite 8 + Tailwind 4 на Node 24 LTS, сессия Sanctum с CSRF, i18n ru/en/de, вход и экран «Магазины» со сводкой покрытия; `make frontend-check` и `make frontend-smoke` (Chromium против реального бэкенда) зелёные. С Step 57 (ADR 0017) `apps/frontend` — npm workspace из трёх приложений: `customer` (`/app`), `control` (`/owner`, `/admin`, пока заглушки до платформенного API), `public` (публичный сайт ru/en/de с пререндером) и общие пакеты `packages/design|ui|i18n|api-client`. Вложенные вызовы npm в корневых скриптах — только через `node "$npm_execpath"` (голый `npm` находил старый npm 5 в `~/Sites/node_modules/.bin` и уходил в бесконечную рекурсию — из-за этого зависла машина).
 
 ## Следующий шаг
 
-**Текущий план:** API подготовлен для кабинета (Step 55, ADR 0014): все маршруты описаны в `contracts/openapi.yaml` и сверяются тестом, у магазина есть честная сводка покрытия, `If-Match`/`ETag`, `X-Request-ID`. Дизайн: решение владельца — Tailwind CSS и корпоративная палитра, зафиксированная навсегда (ADR 0015): `apps/frontend/design/palette.json` → `src/styles/palette.css`, правила в `docs/design/palette.md`, проверка `make frontend-palette-check`; стандартные цвета Tailwind отключены, отдельный цвет `unknown` для «нет данных». Каркас кабинета готов (Step 56). Следующее — экраны кабинета: магазин (добавление, подтверждение домена, код подключения плагина), инциденты (список, карточка, подтвердить/закрыть/комментарий), сверка, проверки со скриншотами, каналы уведомлений. Не реализовано из каталога (не блокирует пилот с одним владельцем): сброс пароля, подтверждение email, MFA, приглашения — список в `contracts/ui-api-catalog.md` §11.
+**Текущий план:** API подготовлен для кабинета (Step 55, ADR 0014): все маршруты описаны в `contracts/openapi.yaml` и сверяются тестом, у магазина есть честная сводка покрытия, `If-Match`/`ETag`, `X-Request-ID`. Дизайн: решение владельца — Tailwind CSS и корпоративная палитра, зафиксированная навсегда (ADR 0015): `apps/frontend/design/palette.json` → `src/styles/palette.css`, правила в `docs/design/palette.md`, проверка `make frontend-palette-check`; стандартные цвета Tailwind отключены, отдельный цвет `unknown` для «нет данных». Каркас кабинета готов (Step 56), фронтенд разделён на customer/control/public (Step 57). Следующее — экраны кабинета: магазин (добавление, подтверждение домена, код подключения плагина), инциденты (список, карточка, подтвердить/закрыть/комментарий), сверка, проверки со скриншотами, каналы уведомлений. Не реализовано из каталога (не блокирует пилот с одним владельцем): сброс пароля, подтверждение email, MFA, приглашения — список в `contracts/ui-api-catalog.md` §11.
 
 Прочие варианты (выбирает владелец):
 

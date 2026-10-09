@@ -1265,3 +1265,17 @@ Added:
 Verification:
 
 - `make frontend-check` green (12 tests, build); smoke 8/8 with screenshots inspected; backend suites green.
+
+### Step 57: Frontend Workspaces (ADR 0017)
+
+Status: complete
+
+Added:
+
+- `apps/frontend` as an npm workspace: `customer/` (`/app`, the Step 56 project), `control/` (`/owner`, `/admin` placeholders, `/platform-api` proxy), `public/` (vite-ssg prerendered site in ru/en/de), shared `packages/design|ui|i18n|api-client`.
+- Makefile targets `frontend-dev-control`, `frontend-dev-public`; palette check moved to `packages/design`.
+- Root npm scripts use `node "$npm_execpath"`: a bare nested `npm` resolved to an old npm 5 in an ancestor `node_modules/.bin`, which ignored `-w` and recursed until the machine froze (the previous session ended this way).
+
+Verification:
+
+- `make frontend-check` green (customer 11, control 2, public 3 tests, builds, prerender); customer smoke 8/8; backend SQLite 309 + 4 skipped.

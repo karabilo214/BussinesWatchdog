@@ -1,0 +1,17 @@
+{
+  "name": "@bw/design",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./palette.css": "./palette.css",
+    "./base.css": "./base.css",
+    "./palette.json": "./palette.json"
+  },
+  "scripts": {
+    "check:palette": "node scripts/check-palette.mjs"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/ibm-plex-sans": "5.3.0"
+  }
+}

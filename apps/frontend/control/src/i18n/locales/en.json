@@ -1,0 +1,16 @@
+{
+  "app": {
+    "name": "Business Watchdog Control"
+  },
+  "nav": {
+    "main": "Main navigation",
+    "owner": "Service owner",
+    "admin": "Support"
+  },
+  "section": {
+    "owner_title": "Service owner panel",
+    "owner_body": "Plans, customer subscriptions, our service revenue and audit. This section arrives with the platform API.",
+    "admin_title": "Support panel",
+    "admin_body": "Service health, customer data delivery, checks and access granted by customers. This section arrives with the platform API."
+  }
+}

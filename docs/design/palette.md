@@ -1,6 +1,6 @@
 # Корпоративная палитра Business Watchdog
 
-Статус: **зафиксирована 2026-10-09** (ADR 0015). Источник — `apps/frontend/design/palette.json`; токены Tailwind — `apps/frontend/src/styles/palette.css`; `make frontend-palette-check` падает при любом изменении. Менять палитру можно только решением владельца с новым ADR.
+Статус: **зафиксирована 2026-10-09** (ADR 0015). Источник — `apps/frontend/packages/design/palette.json`; токены Tailwind — `apps/frontend/packages/design/palette.css`; `make frontend-palette-check` падает при любом изменении. Менять палитру можно только решением владельца с новым ADR.
 
 ## Принципы
 

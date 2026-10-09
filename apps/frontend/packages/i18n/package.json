@@ -1,0 +1,13 @@
+{
+  "name": "@bw/i18n",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "peerDependencies": {
+    "vue": "3.5.43",
+    "vue-i18n": "11.4.12"
+  }
+}

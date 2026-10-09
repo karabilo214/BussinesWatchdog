@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "title": "Business Watchdog — Zahlungsüberwachung für Onlineshops",
+    "description": "Wir prüfen den Weg zur Zahlung, beobachten echte Zahlungsversuche und gleichen Geld mit Ihrem Zahlungsanbieter ab. Wir melden uns, wenn Kunden nicht mehr erfolgreich bezahlen."
+  },
+  "nav": {
+    "sign_in": "Anmelden",
+    "how": "So funktioniert es"
+  },
+  "hero": {
+    "eyebrow": "Für WooCommerce-Shops",
+    "title": "Erfahren Sie vor Ihren Kunden, dass die Zahlung nicht funktioniert",
+    "lead": "Business Watchdog überwacht den Weg bis zum Zahlungsformular, echte Zahlungsversuche und ob das Geld angekommen ist. Wenn etwas nicht mehr funktioniert, erhalten Sie eine E-Mail mit dem Befund und dem, was zu prüfen ist."
+  },
+  "features": {
+    "title": "Was wir prüfen",
+    "checkout_title": "Weg zur Zahlung",
+    "checkout_body": "Alle 15 Minuten geht ein Browser Produkt → Warenkorb → Kasse → Zahlungsformular durch. Er bestellt nichts und bucht kein Geld ab.",
+    "attempts_title": "Echte Zahlungsversuche",
+    "attempts_body": "Das Plugin sieht das Ergebnis jedes Zahlungsversuchs je Zahlungsart. Mehrere Fehlschläge hintereinander und Sie erfahren es.",
+    "money_title": "Zahlungsabgleich",
+    "money_body": "Mit verbundenem Stripe oder PayPal gleichen wir bezahlte Bestellungen und Erstattungen mit echten Abbuchungen ab.",
+    "data_title": "Ein ehrliches „keine Daten“",
+    "data_body": "Wenn das Plugin schweigt oder eine Quelle nicht verbunden ist, sagen wir das. Fehlende Daten sehen nie wie „alles in Ordnung“ aus."
+  },
+  "limits": {
+    "title": "Was wir nicht versprechen",
+    "body": "Wir können nicht garantieren, dass jeder Kauf klappt: das beweist nur eine echte Zahlung. Wir melden, wenn Kunden nicht mehr erfolgreich bezahlen oder die Zahlungsseite nicht mehr funktioniert."
+  },
+  "chooser": {
+    "title": "Sprache wählen"
+  },
+  "footer": {
+    "languages": "Sprachen"
+  }
+}

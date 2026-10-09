@@ -1,36 +1,21 @@
 {
-  "name": "business-watchdog-frontend",
+  "name": "business-watchdog-frontends",
   "private": true,
   "type": "module",
   "engines": {
     "node": "^22.22.2 || >=24.15.0"
   },
+  "workspaces": [
+    "packages/*",
+    "customer",
+    "control",
+    "public"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "typecheck": "vue-tsc --noEmit",
-    "test": "vitest run",
-    "check:palette": "node scripts/check-palette.mjs",
-    "check": "npm run check:palette && npm run typecheck && npm run test && vite build"
-  },
-  "dependencies": {
-    "@fontsource/ibm-plex-mono": "5.3.0",
-    "@fontsource/ibm-plex-sans": "5.3.0",
-    "vue": "3.5.43",
-    "vue-i18n": "11.4.12",
-    "vue-router": "4.6.4"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "4.3.3",
-    "@types/node": "24.13.6",
-    "@vitejs/plugin-vue": "6.0.9",
-    "@vue/test-utils": "2.5.1",
-    "@vue/tsconfig": "0.9.1",
-    "jsdom": "30.1.1",
-    "tailwindcss": "4.3.3",
-    "typescript": "5.9.3",
-    "vite": "8.3.1",
-    "vitest": "5.0.1",
-    "vue-tsc": "3.3.11"
+    "check:palette": "node \"$npm_execpath\" run check:palette -w @bw/design",
+    "check": "node \"$npm_execpath\" run check:palette -w @bw/design && node \"$npm_execpath\" run check --workspaces --if-present",
+    "dev:customer": "node \"$npm_execpath\" run dev -w @bw/customer",
+    "dev:control": "node \"$npm_execpath\" run dev -w @bw/control",
+    "dev:public": "node \"$npm_execpath\" run dev -w @bw/public"
   }
 }

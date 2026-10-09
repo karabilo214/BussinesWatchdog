@@ -1,0 +1,140 @@
+/*
+ * Business Watchdog corporate palette — FROZEN 2026-10-09 (docs/adr/0015-corporate-palette.md).
+ * Generated from palette.json; `make frontend-palette-check` (packages/design/scripts/check-palette.mjs) fails on any drift.
+ * Do not edit by hand. Tailwind's default colours are disabled: only these tokens exist.
+ */
+@theme {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-brand-50: #f2f7fe;
+  --color-brand-100: #e2eefe;
+  --color-brand-200: #c4ddfe;
+  --color-brand-300: #9bc5fe;
+  --color-brand-400: #6aa4f6;
+  --color-brand-500: #4885df;
+  --color-brand-600: #326abd;
+  --color-brand-700: #24549f;
+  --color-brand-800: #1b417f;
+  --color-brand-900: #143161;
+  --color-brand-950: #0b1f42;
+
+  --color-ink-50: #f5f7f9;
+  --color-ink-100: #eaedf2;
+  --color-ink-200: #d5dbe3;
+  --color-ink-300: #bac3cf;
+  --color-ink-400: #99a4b3;
+  --color-ink-500: #7b8797;
+  --color-ink-600: #626d7c;
+  --color-ink-700: #4e5865;
+  --color-ink-800: #3c444f;
+  --color-ink-900: #2d333c;
+  --color-ink-950: #1c2127;
+
+  --color-success-50: #eefbf1;
+  --color-success-100: #dbf5e1;
+  --color-success-200: #bae8c5;
+  --color-success-300: #8dd6a1;
+  --color-success-400: #59bb78;
+  --color-success-500: #259f56;
+  --color-success-600: #058141;
+  --color-success-700: #046833;
+  --color-success-800: #025227;
+  --color-success-900: #013e1c;
+  --color-success-950: #002910;
+
+  --color-warning-50: #fef6ea;
+  --color-warning-100: #fbead2;
+  --color-warning-200: #f5d5a9;
+  --color-warning-300: #eab973;
+  --color-warning-400: #d59430;
+  --color-warning-500: #b67702;
+  --color-warning-600: #945e00;
+  --color-warning-700: #794b01;
+  --color-warning-800: #603a00;
+  --color-warning-900: #492b01;
+  --color-warning-950: #311a00;
+
+  --color-danger-50: #fef4f3;
+  --color-danger-100: #fee7e5;
+  --color-danger-200: #ffcdc9;
+  --color-danger-300: #fea8a2;
+  --color-danger-400: #fc716c;
+  --color-danger-500: #e24948;
+  --color-danger-600: #bf2d2f;
+  --color-danger-700: #9f1a1e;
+  --color-danger-800: #7f1014;
+  --color-danger-900: #610c0d;
+  --color-danger-950: #420505;
+
+  --color-info-50: #edf9fe;
+  --color-info-100: #d9f2fc;
+  --color-info-200: #b5e3f6;
+  --color-info-300: #85cfec;
+  --color-info-400: #4ab1d6;
+  --color-info-500: #0994ba;
+  --color-info-600: #057797;
+  --color-info-700: #02607a;
+  --color-info-800: #044b60;
+  --color-info-900: #00394a;
+  --color-info-950: #012531;
+
+  --color-unknown-50: #f7f6fa;
+  --color-unknown-100: #edebf5;
+  --color-unknown-200: #dbd8e8;
+  --color-unknown-300: #c4bed7;
+  --color-unknown-400: #a59ebd;
+  --color-unknown-500: #8881a2;
+  --color-unknown-600: #6d6785;
+  --color-unknown-700: #58526d;
+  --color-unknown-800: #454056;
+  --color-unknown-900: #343041;
+  --color-unknown-950: #211e2b;
+}
+
+@theme inline {
+  /* Surfaces and text */
+  --color-canvas: var(--color-ink-50);
+  --color-surface: #ffffff;
+  --color-surface-muted: var(--color-ink-100);
+  --color-border: var(--color-ink-200);
+  --color-border-strong: var(--color-ink-300);
+  --color-text: var(--color-ink-950);
+  --color-text-muted: var(--color-ink-600);
+  --color-text-subtle: var(--color-ink-500);
+  --color-text-inverse: #ffffff;
+  /* Brand and actions */
+  --color-primary: var(--color-brand-700);
+  --color-primary-hover: var(--color-brand-800);
+  --color-primary-soft: var(--color-brand-50);
+  --color-link: var(--color-brand-600);
+  --color-focus: var(--color-brand-500);
+  /* Status: healthy / passed / ok */
+  --color-ok: var(--color-success-700);
+  --color-ok-soft: var(--color-success-50);
+  --color-ok-border: var(--color-success-200);
+  --color-ok-solid: var(--color-success-600);
+  /* Status: warning */
+  --color-warn: var(--color-warning-700);
+  --color-warn-soft: var(--color-warning-50);
+  --color-warn-border: var(--color-warning-200);
+  --color-warn-solid: var(--color-warning-600);
+  /* Status: critical / failed / site failure */
+  --color-crit: var(--color-danger-700);
+  --color-crit-soft: var(--color-danger-50);
+  --color-crit-border: var(--color-danger-200);
+  --color-crit-solid: var(--color-danger-600);
+  /* Status: information */
+  --color-note: var(--color-info-700);
+  --color-note-soft: var(--color-info-50);
+  --color-note-border: var(--color-info-200);
+  --color-note-solid: var(--color-info-600);
+  /* Status: unknown / no data / not connected — never green */
+  --color-unknown: var(--color-unknown-700);
+  --color-unknown-soft: var(--color-unknown-50);
+  --color-unknown-border: var(--color-unknown-200);
+  --color-unknown-solid: var(--color-unknown-600);
+}

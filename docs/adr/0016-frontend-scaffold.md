@@ -2,7 +2,7 @@
 
 Date: 2026-10-09
 
-Status: implemented in Step 56.
+Status: implemented in Step 56; project layout superseded by ADR 0017 (the project now lives in `apps/frontend/customer`).
 
 ## Decisions
 
