@@ -1042,3 +1042,21 @@ Added:
 Verification:
 
 - `docker pull` of pinned MinIO tags from both registries failed (denied/unauthorized). No code change; test suites unchanged (SQLite 259 + 4 skipped, PostgreSQL 263).
+
+### Step 45: WooCommerce Plugin Foundation And Compatibility Matrix
+
+Status: complete for the plugin foundation; owner chose the floor PHP 7.4 / WP 5.9 / WC 6.0
+
+Added:
+
+- `plugins/woocommerce-watchdog`: capability-detecting compat layer, local tables, secret storage, pairing (admin/REST/WP-CLI), signed heartbeat with rotation and suspension, public challenge endpoint, diagnostics, uninstall.
+- Docker matrix (6 pinned targets, legacy + HPOS, classic + blocks) with in-WordPress integration tests and an e2e against the backend.
+- `docs/compatibility.md` filled with executed combinations; `docs/adr/0005-woocommerce-plugin-compatibility.md`; `docs/implementation-step-45-checklist.md`.
+
+Verification:
+
+- PHP 7.4 lint; integration 8/8 and e2e pass on floor, wc7-legacy, wc7-hpos, wc8, wc9, latest. Backend suite green.
+
+Remaining:
+
+- Order/refund snapshots + revisions + outbox delivery (Step 46), rescan/backfill, capabilities/deployment events.

@@ -1,0 +1,32 @@
+services:
+  db:
+    image: mariadb:10.6.21
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: wordpress
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  wordpress:
+    image: ${WP_IMAGE}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_CONFIG_EXTRA: |
+        define('BW_ALLOW_INSECURE_ENDPOINT', true);
+        define('WP_ENVIRONMENT_TYPE', 'local');
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ../../:/var/www/html/wp-content/plugins/business-watchdog:ro
+      - ./.cache:/bw-cache:ro
