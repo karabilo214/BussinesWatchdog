@@ -34,6 +34,7 @@ class PairingCodeController extends Controller
             'pairing_code' => $code,
             'expires_at' => $pairingCode->expires_at->toJSON(),
             'saas_endpoint' => url('/api/v1/pairing/exchange'),
+            'service_url' => url('/'),
         ], 201);
     }
 }

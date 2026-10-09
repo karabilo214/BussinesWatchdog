@@ -140,7 +140,31 @@ class StoreVerificationApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('id', $latest->id)
             ->assertJsonPath('state', 'pending')
+            ->assertJsonPath('instructions.type', 'plugin_challenge')
             ->assertJsonMissingPath('challenge_hash');
+    }
+
+    public function test_pending_dns_instructions_survive_reload_and_disappear_once_settled(): void
+    {
+        [$user, $tenant, $store] = $this->userWithStore();
+
+        $started = $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->postJson("/api/v1/stores/{$store->id}/verify", ['method' => 'dns'])
+            ->assertAccepted();
+
+        $this->getJson("/api/v1/stores/{$store->id}/verification")
+            ->assertOk()
+            ->assertJsonPath('instructions.type', 'dns_txt')
+            ->assertJsonPath('instructions.record_name', '_bw-verify.shop.example.test')
+            ->assertJsonPath('instructions.txt_value', $started->json('challenge'));
+
+        StoreVerification::query()->whereKey($started->json('id'))->update(['status' => 'failed']);
+
+        $this->getJson("/api/v1/stores/{$store->id}/verification")
+            ->assertOk()
+            ->assertJsonPath('state', 'failed')
+            ->assertJsonMissingPath('instructions');
     }
 
     public function test_pending_verification_expires_when_read_after_expiration(): void

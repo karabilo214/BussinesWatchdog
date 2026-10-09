@@ -4,7 +4,10 @@ import { ApiError } from '@bw/api-client';
 import { listStores } from '@/api/stores';
 import type { Store } from '@/api/types';
 import StoreCard from '@/components/StoreCard.vue';
+import { useRole } from '@/composables/useRole';
 import AppLayout from '@/layouts/AppLayout.vue';
+
+const { canManageStores } = useRole();
 
 const stores = ref<Store[]>([]);
 const loading = ref(true);
@@ -29,9 +32,18 @@ onMounted(load);
 <template>
   <AppLayout>
     <div class="flex flex-col gap-6">
-      <div class="flex flex-col gap-1">
-        <h1 class="text-2xl font-semibold">{{ $t('overview.title') }}</h1>
-        <p class="max-w-3xl text-sm text-text-muted">{{ $t('overview.subtitle') }}</p>
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div class="flex flex-col gap-1">
+          <h1 class="text-2xl font-semibold">{{ $t('overview.title') }}</h1>
+          <p class="max-w-3xl text-sm text-text-muted">{{ $t('overview.subtitle') }}</p>
+        </div>
+        <RouterLink
+          v-if="canManageStores"
+          :to="{ name: 'store-create' }"
+          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover"
+        >
+          {{ $t('overview.add_store') }}
+        </RouterLink>
       </div>
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>

@@ -1279,3 +1279,22 @@ Added:
 Verification:
 
 - `make frontend-check` green (customer 11, control 2, public 3 tests, builds, prerender); customer smoke 8/8; backend SQLite 309 + 4 skipped.
+
+### Step 58: Dashboard Store Screens
+
+Status: complete
+
+Added:
+
+- Customer app: "Add store" form (`/app/stores/new`: name, HTTPS address, time zone, currency; locale from the UI) and the store page (`/app/stores/:id`): coverage summary, store plugin panel (connectors with status, last signal and version; one-time connection code with the service URL and WooCommerce steps, list refreshes until the plugin connects; disconnect with an explicit confirmation), domain confirmation (via the plugin — only when a connector exists — or a DNS TXT record; instructions, translated reason codes, polling while pending, "check now"), settings (name, time zone, currency with `If-Match`, a conflict reloads the store) and pause/resume monitoring.
+- Management actions are shown only to owner/admin of the active tenant (the backend still enforces roles); server texts are never shown, errors map from status/code to translations (ru/en/de).
+- Backend: while a verification is pending, `GET /stores/{id}/verification` and `.../verification/check` also return `instructions`, so DNS values survive a reload; `POST /stores/{id}/pairing-codes` returns `service_url`. OpenAPI and catalogue §11 updated.
+- `CoverageList` extracted from `StoreCard`; the store name on the overview links to the store page.
+
+Verification:
+
+- `make frontend-check` green (customer 21 tests, control 2, public 3, builds, palette).
+- `make frontend-smoke` 13/13 against the real backend: store page, DNS confirmation start, instructions after reload, manual check reason, connection code, adding a store and saving settings, German mobile layout without horizontal scroll; failed requests are now checked by URL (only the expected 401/422/404 are allowed). Screenshots inspected.
+- Backend: SQLite 310 + 4 skipped, PostgreSQL 18 314 passed.
+- Not tested: a real plugin pairing through the dashboard and a real DNS record (the smoke store uses a non-existent `.example` domain).
+

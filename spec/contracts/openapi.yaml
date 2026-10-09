@@ -414,13 +414,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [id, store_id, pairing_code, expires_at, saas_endpoint]
+                required: [id, store_id, pairing_code, expires_at, saas_endpoint, service_url]
                 properties:
                   id: {type: string, format: uuid}
                   store_id: {type: string, format: uuid}
                   pairing_code: {type: string}
                   expires_at: {type: string, format: date-time}
                   saas_endpoint: {type: string, format: uri}
+                  service_url: {type: string, format: uri, description: "Service URL the connector settings ask for (the exchange path is appended by the connector)."}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
@@ -2025,6 +2026,9 @@ components:
         reason_code: {type: [string, "null"]}
         attempts: {type: integer}
         last_checked_at: {type: [string, "null"], format: date-time}
+        instructions:
+          type: object
+          description: "Only while pending: DNS TXT name/value or the URL the connector must serve, so the instructions survive a page reload."
     IntegrationCredential:
       type: object
       required: [id, kind, key_id_suffix, status]

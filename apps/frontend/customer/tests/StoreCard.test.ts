@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { mount, RouterLinkStub } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import type { Store } from '@/api/types';
 import StoreCard from '@/components/StoreCard.vue';
@@ -33,7 +33,7 @@ function store(overrides: Partial<Store> = {}): Store {
 describe('StoreCard', () => {
   it('shows each coverage part with its own colour; missing money data is unknown, not fine', () => {
     setLocale('ru');
-    const wrapper = mount(StoreCard, { props: { store: store() }, global: { plugins: [localization] } });
+    const wrapper = mount(StoreCard, { props: { store: store() }, global: { plugins: [localization], stubs: { RouterLink: RouterLinkStub } } });
     const tone = (part: string) => wrapper.get(`[data-coverage="${part}"] [data-tone]`).attributes('data-tone');
 
     expect(tone('connector')).toBe('ok');
@@ -48,7 +48,7 @@ describe('StoreCard', () => {
 
   it('switches language without missing keys', () => {
     setLocale('de');
-    const wrapper = mount(StoreCard, { props: { store: store({ active_incident_count: 0 }) }, global: { plugins: [localization] } });
+    const wrapper = mount(StoreCard, { props: { store: store({ active_incident_count: 0 }) }, global: { plugins: [localization], stubs: { RouterLink: RouterLinkStub } } });
 
     expect(wrapper.text()).toContain('Keine aktiven Vorfälle');
     expect(wrapper.text()).toContain('kein Zahlungsanbieter verbunden');

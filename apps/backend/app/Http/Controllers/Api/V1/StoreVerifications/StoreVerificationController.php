@@ -48,7 +48,7 @@ class StoreVerificationController extends Controller
             $verification->forceFill(['status' => StoreVerification::STATUS_EXPIRED])->save();
         }
 
-        return response()->json($this->storeVerificationDto->toArray($verification->refresh()));
+        return response()->json($this->withPendingInstructions($verification->refresh(), $store));
     }
 
     public function check(Store $store, TenantContext $tenantContext): JsonResponse
@@ -61,7 +61,21 @@ class StoreVerificationController extends Controller
 
         abort_if($verification === null, 404);
 
-        return response()->json($this->storeVerificationDto->toArray($this->verifications->check($verification)->refresh()));
+        return response()->json($this->withPendingInstructions($this->verifications->check($verification)->refresh(), $store));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function withPendingInstructions(StoreVerification $verification, Store $store): array
+    {
+        $payload = $this->storeVerificationDto->toArray($verification);
+
+        if ($verification->status === StoreVerification::STATUS_PENDING) {
+            $payload['instructions'] = $this->verifications->instructions($verification, $store);
+        }
+
+        return $payload;
     }
 
     private function latest(string $tenantId, Store $store): ?StoreVerification

@@ -29,6 +29,7 @@ class PairingApiTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('store_id', $store->id)
             ->assertJsonPath('saas_endpoint', url('/api/v1/pairing/exchange'))
+            ->assertJsonPath('service_url', url('/'))
             ->assertJsonMissingPath('code_hash');
 
         $pairingCode = (string) $response->json('pairing_code');

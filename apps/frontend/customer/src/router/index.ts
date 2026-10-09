@@ -14,6 +14,8 @@ export function buildRouter(): Router {
       { path: '/', redirect: { name: 'overview' } },
       { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
       { path: '/overview', name: 'overview', component: () => import('@/views/OverviewView.vue') },
+      { path: '/stores/new', name: 'store-create', component: () => import('@/views/StoreCreateView.vue') },
+      { path: '/stores/:id', name: 'store', component: () => import('@/views/StoreView.vue'), props: true },
       { path: '/:pathMatch(.*)*', redirect: { name: 'overview' } },
     ],
   });

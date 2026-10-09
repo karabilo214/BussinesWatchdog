@@ -15,6 +15,10 @@ chmod 777 "$OUT"
 
 (cd apps/backend && env DB_HOST=127.0.0.1 "$PHP" artisan tinker --execute='
 use App\Models\{User,Tenant,Membership,Store,Integration};
+$extra = DB::table("stores")->where("name", "Smoke Neuer Shop")->pluck("id");
+DB::table("pairing_codes")->whereIn("store_id", $extra)->delete();
+DB::table("store_verifications")->whereIn("store_id", $extra)->delete();
+DB::table("stores")->whereIn("id", $extra)->delete();
 if (! User::query()->where("email", "smoke@example.test")->exists()) {
     $u = User::query()->create(["name" => "Smoke Owner", "email" => "smoke@example.test", "password_hash" => Hash::make("smoke-password-1234"), "locale" => "ru"]);
     $t = Tenant::query()->create(["name" => "Smoke GmbH", "timezone" => "Europe/Berlin"]);

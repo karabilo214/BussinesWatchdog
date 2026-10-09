@@ -14,7 +14,18 @@
     "error_network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Internetverbindung.",
     "request_id": "Anfrage-ID: {id}",
     "sign_out": "Abmelden",
-    "never": "noch nicht"
+    "never": "noch nicht",
+    "error_forbidden": "Dafür fehlen Ihnen die Rechte. Wenden Sie sich an den Kontoinhaber.",
+    "error_not_found": "Nicht gefunden. Möglicherweise gelöscht oder einem anderen Konto zugeordnet.",
+    "error_conflict": "Die Daten wurden in einem anderen Fenster geändert. Wir haben den aktuellen Stand geladen – bitte prüfen und erneut versuchen.",
+    "error_rate_limited": "Zu viele Anfragen. Bitte eine Minute warten und erneut versuchen.",
+    "error_validation": "Bitte prüfen Sie die markierten Felder.",
+    "copy": "Kopieren",
+    "copied": "Kopiert.",
+    "selected": "Text markiert – mit Strg+C (⌘C) kopieren.",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saved": "Gespeichert."
   },
   "auth": {
     "title": "Anmelden",
@@ -35,7 +46,8 @@
     "empty_body": "Hinzugefügte Shops erscheinen hier mit dem Status von Plugin, Zahlungsabgleich, Zahlungsversuchen und Checkout-Prüfungen.",
     "active_incidents": "Aktive Vorfälle: {n}",
     "no_incidents": "Keine aktiven Vorfälle",
-    "last_passed_check": "Letzte erfolgreiche Prüfung: {time}"
+    "last_passed_check": "Letzte erfolgreiche Prüfung: {time}",
+    "add_store": "Shop hinzufügen"
   },
   "store_status": {
     "onboarding": "Einrichtung",
@@ -82,6 +94,108 @@
       "disabled": "Prüfungen ausgeschaltet",
       "store_not_verified": "Domain nicht bestätigt",
       "detail_next": "nächste {time}"
+    }
+  },
+  "store": {
+    "coverage_title": "Was der Dienst gerade sieht",
+    "create": {
+      "title": "Neuer Shop",
+      "subtitle": "Geben Sie die Shop-Adresse an. Danach das Plugin verbinden und bestätigen, dass die Domain Ihnen gehört.",
+      "submit": "Shop hinzufügen",
+      "submitting": "Wird hinzugefügt…"
+    },
+    "form": {
+      "name": "Name",
+      "base_url": "Shop-Adresse",
+      "base_url_hint": "Öffentliche Adresse mit https://, ohne Benutzername, Passwort und Anker (#).",
+      "timezone": "Zeitzone des Shops",
+      "currency": "Hauptwährung",
+      "invalid": {
+        "name": "Bitte einen Namen mit bis zu 100 Zeichen angeben.",
+        "base_url": "Erforderlich ist eine öffentliche https://-Adresse ohne Benutzername, Passwort, Anker und Sonderport.",
+        "timezone": "Bitte eine Zeitzone aus der Liste wählen."
+      }
+    },
+    "errors": {
+      "store_not_verified": "Bitte zuerst die Shop-Domain bestätigen."
+    },
+    "connector": {
+      "title": "Shop-Plugin",
+      "subtitle": "Das Plugin übermittelt Bestellungen, Erstattungen und Zahlungsversuche. Ohne Plugin sieht der Dienst nicht, was im Shop passiert.",
+      "none": "Das Plugin ist noch nicht verbunden.",
+      "last_heartbeat": "letztes Signal: {time}",
+      "version": "Version {version}",
+      "status": {
+        "active": "verbunden",
+        "degraded": "mit Unterbrechungen",
+        "pending": "wartet auf Verbindung",
+        "revoked": "getrennt",
+        "disabled": "deaktiviert"
+      },
+      "revoke": "Trennen",
+      "revoke_warning": "Der Plugin-Schlüssel wird widerrufen, Shop-Daten kommen nicht mehr an. Für eine neue Verbindung brauchen Sie einen neuen Code.",
+      "revoke_confirm": "Ja, trennen",
+      "get_code": "Verbindungscode erhalten",
+      "new_code": "Neuen Code ausstellen",
+      "reconnect": "Code für erneute Verbindung",
+      "code_once": "Der Code wird nur einmal angezeigt und gilt 15 Minuten.",
+      "step_install": "Installieren und aktivieren Sie das Plugin Business Watchdog in WordPress.",
+      "step_open": "Öffnen Sie WooCommerce → Business Watchdog.",
+      "step_paste": "Fügen Sie Dienst-URL und Verbindungscode ein und klicken Sie auf „Connect“.",
+      "service_url": "Dienst-URL",
+      "pairing_code": "Verbindungscode",
+      "code_expires": "Gültig bis {time}.",
+      "waiting": "Warten auf die Verbindung des Plugins – die Liste aktualisiert sich selbst."
+    },
+    "verification": {
+      "title": "Domain-Bestätigung",
+      "subtitle": "Bestätigt, dass der Shop Ihnen gehört. Vorher laufen keine Checkout-Prüfungen.",
+      "verified_at": "bestätigt {time}",
+      "not_verified": "nicht bestätigt",
+      "state": {
+        "pending": "wartet auf Prüfung",
+        "verified": "bestätigt",
+        "failed": "fehlgeschlagen",
+        "expired": "abgelaufen"
+      },
+      "method": {
+        "plugin_challenge": "Über das Plugin",
+        "dns": "Über einen DNS-Eintrag"
+      },
+      "choose": "Bestätigungsweg",
+      "restart": "Mit einem anderen Weg neu beginnen",
+      "plugin_hint": "Am einfachsten: Das Plugin veröffentlicht den Prüfcode selbst auf Ihrer Website.",
+      "plugin_needs_connector": "Bitte zuerst das Plugin verbinden.",
+      "dns_hint": "Fügen Sie beim Domain-Registrar oder DNS-Anbieter einen TXT-Eintrag hinzu.",
+      "start": "Bestätigung starten",
+      "dns_help": "Fügen Sie im DNS Ihrer Domain einen TXT-Eintrag mit diesen Werten hinzu. DNS-Änderungen können einige Stunden dauern.",
+      "dns_name": "Name des Eintrags",
+      "dns_value": "Wert",
+      "plugin_help": "Das Plugin erhält den Code mit dem nächsten Signal (innerhalb von 5 Minuten) und veröffentlicht ihn auf Ihrer Website. Sie müssen nichts tun.",
+      "auto_check": "Automatische Prüfung jede Minute bis {time}.",
+      "last_checked": "Letzte Prüfung: {time}.",
+      "check_now": "Jetzt prüfen",
+      "reason": {
+        "dns_record_missing": "Der TXT-Eintrag wurde noch nicht gefunden. Wenn Sie ihn gerade angelegt haben, warten Sie auf die DNS-Aktualisierung.",
+        "challenge_mismatch": "Die Website antwortet, aber der Code stimmt nicht. Das Plugin hat den neuen Code eventuell noch nicht erhalten.",
+        "store_url_changed": "Die Shop-Adresse hat sich während der Prüfung geändert. Bitte die Bestätigung neu starten.",
+        "connection_failed": "Keine Verbindung zur Website möglich.",
+        "dns_failure": "Die Domain wurde im DNS nicht gefunden.",
+        "http_status_unexpected": "Die Website hat einen Fehler gemeldet. Prüfen Sie, ob das Plugin aktiv ist.",
+        "redirect_not_allowed": "Die Website leitet auf eine andere Adresse um. Prüfen Sie die Shop-Adresse.",
+        "response_too_large": "Die Website hat eine unerwartet große Antwort geliefert.",
+        "unsafe_destination": "Die Adresse zeigt in ein privates Netz und kann nicht geprüft werden.",
+        "other": "Die Prüfung war noch nicht erfolgreich."
+      }
+    },
+    "settings": {
+      "title": "Einstellungen",
+      "base_url": "Adresse: {url}",
+      "currency_note": "Ein Währungswechsel rechnet frühere Beträge nicht um.",
+      "pause": "Überwachung pausieren",
+      "resume": "Überwachung fortsetzen",
+      "pause_hint": "Die Pause stoppt geplante Checkout-Prüfungen und den nächtlichen Abgleich. Plugin-Daten kommen weiter an.",
+      "resume_hint": "Die Überwachung ist pausiert: geplante Prüfungen und der nächtliche Abgleich laufen nicht."
     }
   }
 }

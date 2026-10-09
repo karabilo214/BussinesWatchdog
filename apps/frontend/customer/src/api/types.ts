@@ -73,3 +73,58 @@ export interface Page<T> {
   data: T[];
   next_cursor: string | null;
 }
+
+export interface CreateStoreInput {
+  name: string;
+  base_url: string;
+  timezone: string;
+  locale: Locale;
+  default_currency: string;
+}
+
+export type UpdateStoreInput = Partial<Pick<Store, 'name' | 'timezone' | 'default_currency' | 'browser_enabled' | 'telemetry_enabled'>> & {
+  status?: 'active' | 'paused';
+};
+
+export type VerificationMethod = 'dns' | 'plugin_challenge';
+
+export type VerificationInstructions =
+  | { type: 'dns_txt'; record_name: string; txt_value: string }
+  | { type: 'plugin_challenge'; url: string; body: string };
+
+export interface StoreVerification {
+  id: string;
+  store_id: string;
+  method: VerificationMethod;
+  state: 'pending' | 'verified' | 'failed' | 'expired';
+  verified_origin: string | null;
+  expires_at: string | null;
+  verified_at: string | null;
+  reason_code: string | null;
+  attempts: number;
+  last_checked_at: string | null;
+  instructions?: VerificationInstructions;
+}
+
+export interface PairingCode {
+  id: string;
+  store_id: string;
+  pairing_code: string;
+  expires_at: string;
+  saas_endpoint: string;
+  service_url: string;
+}
+
+export type IntegrationStatus = 'pending' | 'active' | 'degraded' | 'revoked' | 'disabled';
+
+export interface Integration {
+  id: string;
+  store_id: string;
+  provider: string;
+  mode: 'live' | 'test';
+  source_authority: 'store_reported' | 'independent_provider';
+  status: IntegrationStatus;
+  connector_version: string | null;
+  last_heartbeat_at: string | null;
+  created_at: string;
+}

@@ -14,7 +14,18 @@
     "error_network": "The server cannot be reached. Check your internet connection.",
     "request_id": "Request ID: {id}",
     "sign_out": "Sign out",
-    "never": "not yet"
+    "never": "not yet",
+    "error_forbidden": "You don't have permission for this. Ask the account owner.",
+    "error_not_found": "Not found. It may have been deleted or belong to another account.",
+    "error_conflict": "This was changed in another window. We loaded the current version — check it and try again.",
+    "error_rate_limited": "Too many requests. Wait a minute and try again.",
+    "error_validation": "Please check the highlighted fields.",
+    "copy": "Copy",
+    "copied": "Copied.",
+    "selected": "Text selected — copy it with Ctrl+C (⌘C).",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saved": "Saved."
   },
   "auth": {
     "title": "Sign in",
@@ -35,7 +46,8 @@
     "empty_body": "Stores you add appear here with the state of the plugin, money reconciliation, payment attempts and checkout checks.",
     "active_incidents": "Active incidents: {n}",
     "no_incidents": "No active incidents",
-    "last_passed_check": "Last passed check: {time}"
+    "last_passed_check": "Last passed check: {time}",
+    "add_store": "Add store"
   },
   "store_status": {
     "onboarding": "Onboarding",
@@ -82,6 +94,108 @@
       "disabled": "checks turned off",
       "store_not_verified": "domain not verified",
       "detail_next": "next {time}"
+    }
+  },
+  "store": {
+    "coverage_title": "What the service sees now",
+    "create": {
+      "title": "New store",
+      "subtitle": "Enter the store address. Then connect the plugin and confirm that you own the domain.",
+      "submit": "Add store",
+      "submitting": "Adding…"
+    },
+    "form": {
+      "name": "Name",
+      "base_url": "Store address",
+      "base_url_hint": "Public address starting with https://, without login, password or anchor (#).",
+      "timezone": "Store time zone",
+      "currency": "Main currency",
+      "invalid": {
+        "name": "Enter a name of up to 100 characters.",
+        "base_url": "A public https:// address is required, without login, password, anchor or a non-standard port.",
+        "timezone": "Choose a time zone from the list."
+      }
+    },
+    "errors": {
+      "store_not_verified": "Confirm the store domain first."
+    },
+    "connector": {
+      "title": "Store plugin",
+      "subtitle": "The plugin sends orders, refunds and payment attempts. Without it the service cannot see what happens in the store.",
+      "none": "The plugin is not connected yet.",
+      "last_heartbeat": "last signal: {time}",
+      "version": "version {version}",
+      "status": {
+        "active": "connected",
+        "degraded": "interrupted",
+        "pending": "awaiting connection",
+        "revoked": "disconnected",
+        "disabled": "disabled"
+      },
+      "revoke": "Disconnect",
+      "revoke_warning": "The plugin key will be revoked and store data will stop arriving. To connect again you will need a new code.",
+      "revoke_confirm": "Yes, disconnect",
+      "get_code": "Get connection code",
+      "new_code": "Issue a new code",
+      "reconnect": "Code to reconnect",
+      "code_once": "The code is shown once and is valid for 15 minutes.",
+      "step_install": "Install and activate the Business Watchdog plugin in WordPress.",
+      "step_open": "Open WooCommerce → Business Watchdog.",
+      "step_paste": "Paste the service URL and the connection code, then click “Connect”.",
+      "service_url": "Service URL",
+      "pairing_code": "Connection code",
+      "code_expires": "Valid until {time}.",
+      "waiting": "Waiting for the plugin to connect — the list updates by itself."
+    },
+    "verification": {
+      "title": "Domain confirmation",
+      "subtitle": "Confirms the store is yours. Checkout checks do not run until the domain is confirmed.",
+      "verified_at": "confirmed {time}",
+      "not_verified": "not confirmed",
+      "state": {
+        "pending": "awaiting check",
+        "verified": "confirmed",
+        "failed": "failed",
+        "expired": "expired"
+      },
+      "method": {
+        "plugin_challenge": "Via the plugin",
+        "dns": "Via a DNS record"
+      },
+      "choose": "Confirmation method",
+      "restart": "Start over with another method",
+      "plugin_hint": "Easiest: the plugin publishes the confirmation code on your site by itself.",
+      "plugin_needs_connector": "Connect the plugin first.",
+      "dns_hint": "Add a TXT record at your domain registrar or DNS provider.",
+      "start": "Start confirmation",
+      "dns_help": "Add a TXT record with these values to your domain DNS. DNS updates can take a few hours.",
+      "dns_name": "Record name",
+      "dns_value": "Value",
+      "plugin_help": "The plugin receives the code with its next signal (within 5 minutes) and publishes it on your site. Nothing to do.",
+      "auto_check": "Checked automatically every minute until {time}.",
+      "last_checked": "Last check: {time}.",
+      "check_now": "Check now",
+      "reason": {
+        "dns_record_missing": "The TXT record was not found yet. If you just added it, wait for DNS to update.",
+        "challenge_mismatch": "The site responds, but the code does not match. The plugin may not have received the new code yet.",
+        "store_url_changed": "The store address changed during the check. Start the confirmation again.",
+        "connection_failed": "Could not connect to the site.",
+        "dns_failure": "The domain could not be found in DNS.",
+        "http_status_unexpected": "The site returned an error. Check that the plugin is active.",
+        "redirect_not_allowed": "The site redirects to another address. Check the store address.",
+        "response_too_large": "The site returned an unexpectedly large response.",
+        "unsafe_destination": "The address points into a private network and cannot be checked.",
+        "other": "The check has not passed yet."
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "base_url": "Address: {url}",
+      "currency_note": "Changing the currency does not convert past amounts.",
+      "pause": "Pause monitoring",
+      "resume": "Resume monitoring",
+      "pause_hint": "Pausing stops scheduled checkout checks and the nightly reconciliation. Plugin data keeps arriving.",
+      "resume_hint": "Monitoring is paused: scheduled checks and the nightly reconciliation do not run."
     }
   }
 }

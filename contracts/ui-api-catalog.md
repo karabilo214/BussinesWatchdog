@@ -170,6 +170,8 @@ Provider error message не подставляется в UI напрямую. T
 - `StoreDTO.coverage` — объект с состояниями `connector`, `money`, `payment_attempts`, `browser_checks` (схема `StoreCoverage`).
 - `POST /integrations/{id}/revoke` не принимает `reason` и отвечает IntegrationDTO (200), а не 204.
 - `/integrations` дополнительно доступен с фильтром `?store_id=`; `GET /stores/{id}/integrations` реализован по каталогу.
+- `GET /stores/{id}/verification` и `POST .../verification/check` пока проверка в состоянии `pending` дополнительно возвращают `instructions` (DNS TXT имя/значение или URL для коннектора), чтобы инструкции не терялись при перезагрузке кабинета (Step 58).
+- `POST /stores/{id}/pairing-codes` дополнительно возвращает `service_url` — адрес сервиса, который спрашивают настройки коннектора (Step 58).
 - Heartbeat коннектора (`/ingest/heartbeat`) отвечает 200 с флагом ротации и ожидающей проверкой домена; тело — самоотчёт плагина (`backlog_count`, `oldest_pending_at`, `plugin_version`).
 
 Ещё не реализовано из каталога (не блокирует пилот с одним владельцем): password reset, e-mail verification, MFA, `POST /tenants`, memberships/invitations/ownership transfer, Stripe/PayPal подключение и `sync`, exports, maintenance windows, rules, billing, privacy deletion, Telegram.

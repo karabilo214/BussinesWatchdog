@@ -22,6 +22,18 @@ const page = await browser.newPage({ locale: 'ru-RU', viewport: { width: 1280, h
 const consoleErrors = [];
 page.on('console', (message) => message.type() === 'error' && consoleErrors.push(message.text()));
 page.on('pageerror', (error) => consoleErrors.push(error.message));
+const failedResponses = [];
+const EXPECTED_FAILURES = [
+  [401, /\/api\/v1\/auth\/me$/],
+  [422, /\/api\/v1\/auth\/login$/],
+  [404, /\/api\/v1\/stores\/[0-9a-f-]+\/verification$/],
+];
+page.on('response', (response) => {
+  const url = new URL(response.url()).pathname;
+  if (response.status() >= 400 && !EXPECTED_FAILURES.some(([status, pattern]) => status === response.status() && pattern.test(url))) {
+    failedResponses.push(`${response.status()} ${url}`);
+  }
+});
 
 try {
   await step('unauthenticated visit redirects to login', async () => {
@@ -60,11 +72,68 @@ try {
     await page.getByRole('heading', { name: 'Магазины' }).waitFor();
   });
 
+  await step('store page shows the connector and starts DNS confirmation', async () => {
+    await page.getByRole('link', { name: 'Kaffeerösterei Lindner' }).click();
+    await page.waitForURL(/\/app\/stores\/[0-9a-f-]+$/);
+    await page.getByRole('heading', { name: 'Kaffeerösterei Lindner' }).waitFor();
+    await page.locator('[data-panel="connector"]').getByText('подключён', { exact: true }).waitFor();
+    await page.locator('[data-panel="verification"]').getByText('не подтверждён').waitFor();
+    await page.getByLabel('Через DNS-запись').check();
+    const started = page.waitForResponse((response) => response.url().endsWith('/verify') && response.status() === 202);
+    await page.getByRole('button', { name: 'Начать подтверждение' }).click();
+    const challenge = (await (await started).json()).challenge;
+    await page.locator('#dns-name').waitFor();
+    if ((await page.locator('#dns-value').inputValue()) !== challenge) throw new Error('TXT value is not the new challenge');
+    if ((await page.locator('#dns-name').inputValue()) !== '_bw-verify.kaffee-lindner.example') throw new Error('wrong DNS record name');
+  });
+
+  await step('pending DNS instructions survive a reload and a manual check explains the result', async () => {
+    const value = await page.locator('#dns-value').inputValue();
+    await page.reload();
+    await page.locator('#dns-value').waitFor();
+    if ((await page.locator('#dns-value').inputValue()) !== value) throw new Error('TXT value changed after reload');
+    await page.getByRole('button', { name: 'Проверить сейчас' }).click();
+    await page.locator('[data-reason]').waitFor({ timeout: 30000 });
+  });
+
+  await step('a one-time connection code is shown with the service URL', async () => {
+    await page.getByRole('button', { name: /код/i }).first().click();
+    await page.locator('#pairing-code').waitFor();
+    if (!(await page.locator('#pairing-code').inputValue()).startsWith('bwpc_')) throw new Error('pairing code missing');
+    if (!/^https?:\/\//.test(await page.locator('#pairing-service-url').inputValue())) throw new Error('service URL missing');
+    await page.screenshot({ path: `${shots}/store-ru.png`, fullPage: true });
+  });
+
+  await step('a new store can be added and its settings saved', async () => {
+    await page.getByRole('link', { name: '← Обзор' }).click();
+    await page.getByRole('link', { name: 'Добавить магазин' }).click();
+    await page.getByRole('heading', { name: 'Новый магазин' }).waitFor();
+    await page.getByLabel('Название').fill('Smoke Neuer Shop');
+    await page.getByLabel('Адрес магазина').fill('https://smoke-neuer-shop.example');
+    await page.getByRole('button', { name: 'Добавить магазин' }).click();
+    await page.getByRole('heading', { name: 'Smoke Neuer Shop' }).waitFor();
+    await page.getByText('Плагин ещё не подключён.').waitFor();
+    if (!(await page.getByLabel('Через плагин').isDisabled())) throw new Error('plugin method must wait for a connector');
+    await page.getByLabel('Основная валюта').selectOption('USD');
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await page.getByText('Сохранено.').waitFor();
+    await page.getByRole('link', { name: '← Обзор' }).click();
+    await page.getByRole('heading', { name: 'Магазины' }).waitFor();
+  });
+
   await step('language switch to German', async () => {
     await page.getByRole('combobox').first().selectOption('de');
     await page.getByRole('heading', { name: 'Shops' }).waitFor();
     await page.setViewportSize({ width: 375, height: 800 });
     await page.screenshot({ path: `${shots}/overview-de-mobile.png`, fullPage: true });
+  });
+
+  await step('store page in German at mobile width', async () => {
+    await page.getByRole('link', { name: 'Kaffeerösterei Lindner' }).click();
+    await page.getByRole('heading', { name: 'Domain-Bestätigung' }).waitFor();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    if (overflow) throw new Error('horizontal scroll on mobile');
+    await page.screenshot({ path: `${shots}/store-de-mobile.png`, fullPage: true });
   });
 
   await step('sign out ends the session', async () => {
@@ -75,8 +144,9 @@ try {
   });
 
   await step('no console errors', async () => {
-    const relevant = consoleErrors.filter((text) => !/Failed to load resource: the server responded with a status of (401|422)/.test(text));
+    const relevant = consoleErrors.filter((text) => !/^Failed to load resource: the server responded with a status of \d+/.test(text));
     if (relevant.length > 0) throw new Error(relevant.join(' | '));
+    if (failedResponses.length > 0) throw new Error(`unexpected failed requests: ${failedResponses.join(', ')}`);
   });
 } finally {
   console.log(steps.join('\n'));
