@@ -5,7 +5,7 @@ export PATH := $(DOCKER_APP_BIN):$(PATH)
 DOCKER ?= $(shell if command -v docker >/dev/null 2>&1; then command -v docker; elif [ -x $(DOCKER_APP_BIN)/docker ]; then printf '%s\n' $(DOCKER_APP_BIN)/docker; else printf '%s\n' docker; fi)
 COMPOSE ?= $(DOCKER) compose
 
-.PHONY: setup up down ps logs reset-infra check-tools backend-build backend-create backend-shell backend-up backend-logs backend-test backend-test-pgsql
+.PHONY: setup up down ps logs reset-infra check-tools backend-build backend-create backend-shell backend-up backend-logs backend-test backend-test-pgsql worker-test worker-e2e
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -57,3 +57,9 @@ backend-test:
 backend-test-pgsql: check-tools
 	@$(COMPOSE) exec -T postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -tc "SELECT 1 FROM pg_database WHERE datname = '"'"'$(PGSQL_TEST_DATABASE)'"'"'" | grep -q 1 || psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c "CREATE DATABASE $(PGSQL_TEST_DATABASE)"'
 	cd apps/backend && DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=$(PGSQL_TEST_DATABASE) $(PHP) artisan test
+
+worker-test:
+	cd apps/browser-worker && npm test
+
+worker-e2e: check-tools
+	plugins/woocommerce-watchdog/tests/matrix/browser-e2e.sh $(TARGETS)

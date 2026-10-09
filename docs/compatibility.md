@@ -44,6 +44,22 @@ Step 49 — payment attempt observation: 39 integration tests per target, and an
 
 Delivery fix found by the same e2e: events were re-encoded through PHP arrays before sending, so an empty JSON object (`failure_classes: {}`) became a list and the window was quarantined by the backend schema; events are now decoded as objects.
 
+## Browser worker (`apps/browser-worker`, Step 52)
+
+Verified on 2026-10-09 with `plugins/woocommerce-watchdog/tests/matrix/browser-e2e.sh`: the worker image (`mcr.microsoft.com/playwright:v1.55.0-noble`, Chromium 140, sandbox on, read-only root, all capabilities dropped) leases runs from the real backend and walks product → add to cart → cart → checkout → payment form against each WooCommerce target. After all runs the store has the same number of orders and payment attempts as before (no order was placed).
+
+| Target | Classic checkout | Blocks checkout | No payment methods |
+|---|---|---|---|
+| floor (WC 6.0.2) | passed | no block checkout page created by this version | `site_failure` at `payment_form` (`no_payment_methods`) |
+| wc7-legacy / wc7-hpos (WC 7.9.2) | passed | no block checkout page created | `site_failure` at `payment_form` (`payment_form_missing`) |
+| wc8 (WC 8.9.5) | passed | passed | `site_failure` at `payment_form` |
+| wc9 (WC 9.9.7) | passed | passed | `site_failure` at `payment_form` |
+| latest (WC 11.2.0) | passed | passed | `site_failure` at `payment_form` |
+
+Found by the matrix: WooCommerce's add-to-cart form is `multipart/form-data`, so the network policy parses multipart bodies; until it did, the policy blocked add-to-cart as an unknown mutation (safe, but it would have produced a false "cart empty" failure — failures right after the worker blocked an unknown mutation are now reported as unsupported, never as a store failure).
+
+Not verified: variable products, required shipping before the payment step, gateways that need an address before rendering, third-party gateway iframes (Stripe, PayPal), custom themes.
+
 Not verified: WooCommerce Stripe gateway versions, themes, multisite, PHP 7.4 with WooCommerce ≥ 7 (official WordPress images for newer WP versions no longer ship PHP 7.4), WP-Cron-only path (Action Scheduler is bundled in every WooCommerce ≥ 6.0 tested).
 
 ## Backend

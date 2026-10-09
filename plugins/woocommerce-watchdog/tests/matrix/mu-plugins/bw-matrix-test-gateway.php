@@ -34,6 +34,10 @@ add_action('plugins_loaded', static function () {
         }
     }
 
+    if (get_option('bw_matrix_decline_gateway') === 'no') {
+        return;
+    }
+
     add_filter('woocommerce_payment_gateways', static function ($gateways) {
         $gateways[] = 'BW_Matrix_Decline_Gateway';
 

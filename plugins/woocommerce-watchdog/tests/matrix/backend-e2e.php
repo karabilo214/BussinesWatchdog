@@ -97,4 +97,82 @@ if ($action === 'attempt-windows') {
     ];
 }
 
+if ($action === 'browser-setup') {
+    $tenant = Tenant::query()->create(['name' => 'Browser E2E', 'timezone' => 'Europe/Kyiv']);
+    $store = Store::query()->create(['tenant_id' => $tenant->id, 'name' => 'Browser E2E', 'base_url' => str_replace('http://', 'https://', getenv('BW_E2E_ORIGIN')), 'timezone' => 'Europe/Kyiv', 'default_currency' => 'EUR']);
+    $store->forceFill(['status' => 'active', 'verified_at' => now(), 'browser_enabled' => true])->save();
+    $scenario = \App\Models\CheckScenario::query()->create([
+        'tenant_id' => $tenant->id,
+        'store_id' => $store->id,
+        'name' => 'Payment form',
+        'mode' => 'payment_form',
+        'version' => 1,
+        'enabled' => true,
+        'adapter_version' => \App\Support\Browser\ScenarioDefinition::ADAPTER_VERSION,
+        'definition' => ['product_url' => getenv('BW_E2E_PRODUCT_URL'), 'cart_url' => getenv('BW_E2E_CART_URL'), 'checkout_url' => getenv('BW_E2E_CHECKOUT_URL')],
+        'interval_seconds' => 900,
+        'next_due_at' => now()->addDay(),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    $token = 'bwwk_'.bin2hex(random_bytes(32));
+    \App\Models\BrowserWorker::query()->create(['name' => 'e2e-'.Str::random(8), 'token_hash' => hash('sha256', $token), 'status' => 'active', 'created_at' => now()]);
+    $out = ['store_id' => $store->id, 'scenario_id' => $scenario->id, 'worker_token' => $token];
+}
+
+if ($action === 'browser-run') {
+    $scenario = \App\Models\CheckScenario::query()->findOrFail(getenv('BW_E2E_SCENARIO_ID'));
+    $definition = $scenario->definition;
+
+    if (getenv('BW_E2E_CHECKOUT_URL')) {
+        $definition['checkout_url'] = getenv('BW_E2E_CHECKOUT_URL');
+        $scenario->forceFill(['definition' => $definition, 'version' => $scenario->version + 1])->save();
+    }
+
+    \App\Models\CheckRun::query()
+        ->whereIn('store_id', Store::query()->where('name', 'Browser E2E')->select('id'))
+        ->whereIn('status', ['queued', 'running'])
+        ->update(['status' => 'cancelled', 'finished_at' => now()]);
+    \App\Models\CheckAttempt::query()
+        ->whereIn('store_id', Store::query()->where('name', 'Browser E2E')->select('id'))
+        ->where('status', 'running')
+        ->update(['status' => 'cancelled', 'finished_at' => now()]);
+    $run = \App\Models\CheckRun::query()->create([
+        'tenant_id' => $scenario->tenant_id,
+        'store_id' => $scenario->store_id,
+        'scenario_id' => $scenario->id,
+        'scenario_version' => $scenario->version,
+        'trigger' => 'manual',
+        'dedupe_key' => 'e2e:'.Str::uuid(),
+        'status' => 'queued',
+        'config_snapshot' => (function () use ($scenario): array {
+            $snapshot = app(\App\Support\Browser\ScenarioDefinition::class)->snapshot($scenario, Store::query()->findOrFail($scenario->store_id));
+            $local = str_replace('https://', 'http://', $snapshot['store_origin']);
+            $snapshot['store_origin'] = $local;
+            $snapshot['network_policy']['allowed_origins'] = [$local];
+
+            return $snapshot;
+        })(),
+        'scheduled_at' => now(),
+        'next_attempt_at' => now(),
+        'created_at' => now(),
+    ]);
+    $out = ['run_id' => $run->id];
+}
+
+if ($action === 'browser-status') {
+    $run = \App\Models\CheckRun::query()->findOrFail(getenv('BW_E2E_RUN_ID'));
+    $attempts = \App\Models\CheckAttempt::query()->where('run_id', $run->id)->orderBy('attempt_number')->with('steps')->get();
+    $out = [
+        'run_status' => $run->status,
+        'run_error' => $run->error_code,
+        'attempts' => $attempts->map(fn ($a) => [
+            'status' => $a->status,
+            'error_code' => $a->error_code,
+            'steps' => $a->steps->map(fn ($s) => $s->step_code.':'.$s->status.($s->error_code ? ':'.$s->error_code : '').(isset($s->assertions[0]['detail_code']) ? '('.$s->assertions[0]['detail_code'].')' : ''))->all(),
+            'errors' => collect($a->sanitized_error['relevant_errors'] ?? [])->map(fn ($e) => ($e['type'] ?? '?').':'.($e['message_code'] ?? $e['status'] ?? '').':'.($e['path'] ?? ''))->take(10)->all(),
+        ])->all(),
+    ];
+}
+
 echo 'BW_E2E_JSON='.json_encode($out).PHP_EOL;

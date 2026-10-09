@@ -1177,3 +1177,21 @@ Verification:
 Remaining:
 
 - Worker (Step 52); artifacts, synthetic marker, Blocks draft cleanup (Step 53).
+
+### Step 52: Browser Worker (Node + Playwright, ADR 0011)
+
+Status: complete; real browser checks reach the payment form on all six WooCommerce targets without placing an order
+
+Added:
+
+- `apps/browser-worker`: lease loop, WooCommerce adapter (Classic + Blocks), network policy (cart-only mutations, order/pay/capture/refund blocked), sanitized diagnostics, Docker image (sandbox on, read-only, no capabilities), Compose service, unit tests.
+- `tests/matrix/browser-e2e.sh` (`make worker-e2e`) with the real backend; the matrix mu-plugin can disable its test gateway for the no-payment-methods case.
+- `docs/adr/0011-browser-worker.md`, `docs/implementation-step-52-checklist.md`, compatibility table.
+
+Verification:
+
+- Worker unit tests 10/10; browser e2e PASS on all six targets with unchanged order counts; backend suites green.
+
+Remaining:
+
+- Egress proxy, artifacts, synthetic marker, Blocks draft cleanup (Step 53).

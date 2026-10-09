@@ -84,3 +84,4 @@ docker-compose.override.yml
 /artifacts/
 *.sqlite
 *.sqlite3
+apps/**/node_modules/

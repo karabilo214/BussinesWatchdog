@@ -120,6 +120,29 @@ services:
     networks:
       - bw-local
 
+  browser-worker:
+    build:
+      context: ./apps/browser-worker
+    profiles:
+      - browser
+    environment:
+      BW_API_URL: ${BW_WORKER_API_URL:-http://nginx}
+      BW_WORKER_TOKEN: ${BW_WORKER_TOKEN:-}
+      BW_WORKER_LOCATION: ${BW_WORKER_LOCATION:-local}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 512
+    restart: unless-stopped
+    networks:
+      - bw-local
+
   nginx:
     image: nginx:1.27-alpine
     profiles:
