@@ -32,6 +32,8 @@ Risk: current auth routes are not final production CSRF/Sanctum configuration.
 
 Return plan: install/configure Sanctum and restore proper same-origin CSRF flow before frontend auth work is considered complete.
 
+Resolution (Step 39, 2026-10-09): resolved. `laravel/sanctum` 4.3 with `statefulApi()`; the `api/*` CSRF exclusion is removed; session routes use `auth:sanctum` and reject non-SPA origins (`400 stateful_session_required` / `401`); `/sanctum/csrf-cookie` issues `XSRF-TOKEN`; login (5/min per email+IP) and signup (3/hour per IP) are throttled per `spec/contracts/ui-api-catalog.md`. Connector endpoints (HMAC) are unaffected.
+
 ### Test Migrations Use SQLite-Compatible Fallbacks
 
 Specification target: PostgreSQL 18 constraints and JSONB semantics.
@@ -55,6 +57,8 @@ Reason: early health endpoints ran before `sessions` table migrations were intro
 Risk: session behavior may differ from final DB-backed or Sanctum-backed setup.
 
 Return plan: decide session storage as part of auth hardening and update `.env.example`, tests, and deployment config together.
+
+Resolution (Step 39, 2026-10-09): resolved. `SESSION_DRIVER=database` (Laravel `sessions` table) in `.env.example` and local `.env`; tests keep the `array` driver. `SESSION_SECURE_COOKIE=false` is a local-only default and must be `true` in any HTTPS deployment.
 
 ### Store Verification API Issues Challenges Without External Proof Check
 

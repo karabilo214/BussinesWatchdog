@@ -19,8 +19,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly AuthSessionDto $authSessionDto,
-    ) {
-    }
+    ) {}
 
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -50,7 +49,7 @@ class AuthController extends Controller
 
         [$user, $tenant] = $result;
 
-        Auth::login($user);
+        Auth::guard('web')->login($user);
         $request->session()->regenerate();
         $request->session()->put('active_tenant_id', $tenant->id);
 
@@ -61,7 +60,7 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        if (! Auth::attempt([
+        if (! Auth::guard('web')->attempt([
             'email' => $validated['email'],
             'password' => $validated['password'],
         ], (bool) ($validated['remember'] ?? false))) {
@@ -103,5 +102,4 @@ class AuthController extends Controller
 
         return response()->json(null, 204);
     }
-
 }

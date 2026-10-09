@@ -91,6 +91,8 @@ class AuthApiTest extends TestCase
             ->postJson('/api/v1/auth/logout')
             ->assertNoContent();
 
+        $this->app['auth']->forgetGuards();
+
         $this->getJson('/api/v1/auth/me')->assertUnauthorized();
     }
 }

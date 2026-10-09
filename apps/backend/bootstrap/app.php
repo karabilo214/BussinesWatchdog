@@ -4,6 +4,7 @@ use App\Console\Commands\DeliverNotifications;
 use App\Console\Commands\DispatchDomainOutbox;
 use App\Console\Commands\ProcessDirtyReconciliation;
 use App\Console\Commands\RunNightlyReconciliationSweep;
+use App\Http\Middleware\Auth\RequireStatefulSession;
 use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
 use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
 use App\Http\Middleware\Tenancy\RequireTenantRole;
@@ -27,11 +28,10 @@ return Application::configure(basePath: dirname(__DIR__))
         RunNightlyReconciliationSweep::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->preventRequestForgery(except: [
-            'api/*',
-        ]);
+        $middleware->statefulApi();
         $middleware->alias([
             'idempotency' => EnsureIdempotencyKey::class,
+            'stateful.session' => RequireStatefulSession::class,
             'integration.hmac' => AuthenticateIntegrationHmac::class,
             'tenant.role' => RequireTenantRole::class,
             'tenant.session' => SetTenantContextFromSession::class,

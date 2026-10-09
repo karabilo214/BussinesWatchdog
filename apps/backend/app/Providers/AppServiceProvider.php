@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Support\Notifications\Channels\EmailNotificationSender;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
 use App\Support\Tenancy\TenantContext;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +28,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        RateLimiter::for('auth-login', fn (Request $request): Limit => Limit::perMinute((int) config('watchdog.rate_limits.login_per_minute'))
+            ->by(mb_strtolower(trim((string) $request->input('email'))).'|'.$request->ip()));
+
+        RateLimiter::for('auth-signup', fn (Request $request): Limit => Limit::perHour((int) config('watchdog.rate_limits.signup_per_hour'))
+            ->by((string) $request->ip()));
     }
 }

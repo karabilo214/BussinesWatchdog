@@ -12,12 +12,11 @@ class SetTenantContextFromSession
 {
     public function __construct(
         private readonly TenantContext $tenantContext,
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        $tenantId = $request->session()->get('active_tenant_id');
+        $tenantId = $request->hasSession() ? $request->session()->get('active_tenant_id') : null;
 
         if ($tenantId !== null && $this->userCanAccessTenant($request->user(), (string) $tenantId)) {
             $this->tenantContext->set((string) $tenantId, 'session');

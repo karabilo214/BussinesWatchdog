@@ -934,3 +934,23 @@ Verification:
 Remaining:
 
 - Per-tenant fairness and dead letter for dirty subjects, API rate limiting, stale-integration detection, cleanup jobs.
+
+### Step 39: Sanctum SPA Sessions, CSRF And Auth Throttling
+
+Status: complete; closes two ADR 0001 deviations (Sanctum, file sessions)
+
+Added:
+
+- `laravel/sanctum` ^4.3 with `statefulApi()`; removed the `api/*` CSRF exclusion; `auth:sanctum` on user routes; `RequireStatefulSession` middleware; explicit `web` guard in `AuthController`.
+- `auth-login` / `auth-signup` rate limiters from the spec's pilot defaults (`config/watchdog.php`).
+- `SESSION_DRIVER=database` and Sanctum/cookie settings in `.env.example`.
+- `docs/implementation-step-39-checklist.md`; ADR 0001 sections marked resolved.
+
+Verification:
+
+- `php artisan test` (PHP 8.4) passed: 235 tests.
+- Migration applied on local PostgreSQL 18; curl smoke of the real CSRF/session flow against `artisan serve` (419 without token, 201 with token, 401 from a foreign origin).
+
+Remaining:
+
+- Email verification, password reset, MFA; remaining ADR 0001 gaps (pairing hardening, JSON Schema ingest validation, store verification, projection composite FKs / PostgreSQL test run, MinIO).

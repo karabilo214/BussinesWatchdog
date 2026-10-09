@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-09 (Step 38)
+2026-10-09 (Step 39)
 
 ## Что это за проект
 
@@ -14,10 +14,10 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 Репозиторий сейчас в фазе **D1–D5 бэкенд-слайсов** (по внутренней нумерации шагов `docs/progress.md`, не всегда совпадает 1:1 с разделом 36 ТЗ). P0 pilot пока не достигнут — минимальный кабинет, браузерные проверки и email ещё не реализованы.
 
-Реализовано (backend, `apps/backend`, до Step 38 включительно):
+Реализовано (backend, `apps/backend`, до Step 39 включительно):
 
 - Локальный инфраструктурный bootstrap (Docker Compose: PostgreSQL 18, Redis, S3Mock вместо MinIO, Mailpit).
-- Auth/tenancy: регистрация, сессии (пока без Sanctum), membership/roles.
+- Auth/tenancy: регистрация, membership/roles; с Step 39 — Sanctum SPA-сессии (`statefulApi`), CSRF на `api/*`, сессии в БД, лимиты login 5/мин и signup 3/час.
 - Store pairing: pairing code, HMAC-подписанные credentials, store verification (challenge создаётся, но внешняя проверка DNS/connector ещё не выполняется).
 - Durable event ingestion: `event_inbox`, idempotency, обработка дублей/конфликтов revision, лимиты батча, quarantine невалидных событий.
 - Projections: orders/order_revisions/refunds/payments/financial_transactions из нормализованных событий.
@@ -34,20 +34,23 @@ Business Watchdog — SaaS для обнаружения финансовых р
 - Email-уведомления (раздел 23 ТЗ, P0-часть): таблицы `notification_channels`/`notification_deliveries`/`notification_channel_verifications`. Переход инцидента (open/reopen/auto-resolve) в той же транзакции пишет `incident.notification_requested` в outbox; outbox-диспетчер раскладывает его в delivery на каждый включённый и подтверждённый канал (фильтр магазинов, порог severity, recovery opt-out, quiet hours, suppression → `suppressed`). Worker `notifications:deliver`: retry 1м/5м/15м/1ч/6ч + Retry-After, dead letter после 24ч с health канала, timeout → `uncertain` без автоповтора. Шаблоны ru/en/de без PII. API: `/notification-channels` (создание с кодом подтверждения на email, PATCH, verify, test раз в минуту), `GET /notification-deliveries`. Telegram пока отклоняется (P1). Решения — `docs/adr/0002-notification-delivery-decisions.md` (владелец принял как есть 2026-10-09).
 - Фоновая обработка (Step 38): «грязные» заказы (`reconciliation_dirty_subjects`) помечаются в транзакции проекции события и при создании/отзыве allocation, коалесинг 30 с; `reconciliation:process-dirty` пересчитывает их и обновляет инциденты (а значит и уведомления) без ручного вызова API. Повторная проверка в момент окончания grace. Ночной sweep 90 дней раз в сутки (02:30 UTC) с уникальным окном в `scheduled_job_windows`. Laravel scheduler: outbox каждые 10 с, dirty и уведомления каждые 30 с; в Docker Compose добавлен сервис `scheduler`. Решения — `docs/adr/0003-scheduler-and-dirty-reconciliation.md`.
 
-228 тестов, 789 assertions проходят (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
+235 тестов проходят (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
 
-Известные зафиксированные отклонения от спеки — `docs/adr/0001-bootstrap-deviations.md` и `docs/adr/0002-notification-delivery-decisions.md` (S3Mock вместо MinIO, нет Sanctum, упрощённые FK в projection-таблицах, неполная JSON Schema валидация ingest, store verification без реальной внешней проверки, pairing без полного anti-abuse).
+Известные зафиксированные отклонения от спеки — `docs/adr/0001-bootstrap-deviations.md` и `docs/adr/0002-notification-delivery-decisions.md` (S3Mock вместо MinIO, упрощённые FK в projection-таблицах, неполная JSON Schema валидация ingest, store verification без реальной внешней проверки, pairing без полного anti-abuse).
 
 Пока пустые заглушки: `apps/frontend` (Vue), `apps/browser-worker` (Node/Playwright), `plugins/woocommerce-watchdog`. `docs/compatibility.md` не заполнен — D0 compatibility spike (точные версии WP/WooCommerce/Stripe gateway/Playwright) не проводился.
 
 ## Следующий шаг
 
-1. **Минимальный кабинет / P0 pilot-путь**: P0 требует кабинет, браузерные проверки и email. Email и фоновая сверка есть; следующий крупный пласт — либо frontend `apps/frontend` (обзор, инциденты, сверка, каналы уведомлений), либо Sanctum + закрытие gaps из ADR 0001 (DNS/connector верификация магазина, полная JSON Schema валидация ingest), которые нужны до P0 acceptance.
-2. Stale-integration detection (нет 3 heartbeat → stale/partial, ACC-14) и coverage-сигналы — естественное продолжение scheduler.
-3. Telegram-канал (P1, ACC-38), digest и 24ч reminders, повторное уведомление после revoke suppression, maintenance windows.
-4. Critical severity escalation (нужен ADR с порогом).
-5. Checkout/sales-drop incident families — нужен browser worker и metrics pipeline.
-6. Мелкие доработки: fairness и dead letter для dirty subjects, rate limiting API, cleanup jobs (`idempotency_keys`, старые `scheduled_job_windows`), `rule_configs`-версионирование, настоящий `dry_run`, подписанный cursor, автоматический matcher, nightly allocation audit, ручной resend uncertain/dead-letter, удаление канала, повторная отправка кода.
+Закрываем оставшиеся пробелы ADR 0001 (по решению владельца 2026-10-09), по одному шагу:
+
+1. Step 40 — pairing/connector hardening: rate limit pairing (20/час/IP), audit, draining ротированных ключей, keyring/key_version.
+2. Step 41 — полная JSON Schema (Draft 2020-12) валидация ingest по `contracts/event.schema.json`.
+3. Step 42 — реальная верификация домена магазина (DNS TXT / connector challenge) и правила активации.
+4. Step 43 — составные scoped FK в проекциях + прогон тестов на PostgreSQL (а не только SQLite).
+5. Step 44 — локальное S3-хранилище: MinIO vs S3Mock (ADR).
+
+После этого — минимальный кабинет (`apps/frontend`), stale-integration detection (ACC-14), Telegram, escalation, browser worker.
 
 ## Как возобновить работу
 
