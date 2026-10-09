@@ -1117,3 +1117,25 @@ Verification:
 Remaining:
 
 - Stripe read-only connector (ADR 0006 item 2), which will also requeue on connect.
+
+### Step 49: Payment Attempt Monitoring, Layer 1 (Spec §17.1, ADR 0007)
+
+Status: complete; real customer payment attempts are observed server-side and a payment method that stops working opens an incident
+
+Added:
+
+- Contract `checkout.payment_attempts` (aggregate `checkout`): closed 5-minute windows with per-method outcome counters, `trailing_failures` and failure classes; no customer data.
+- Plugin schema v3: `bw_payment_attempts`, `AttemptLog`, `AttemptHooks` (Classic + Store API/Blocks, outcomes from payment completion and status changes), `PaymentAttemptsJob` (60 s; re-check, 30-minute `pending_stuck`, once-per-window reporting in one transaction), WP-CLI `payment-attempts`.
+- Plugin fix: delivery re-encoded events through PHP arrays, turning `{}` into `[]` (would have quarantined windows without failures).
+- Backend: `payment_attempt_windows`, semantic validation, `PaymentAttemptsProjector`, `PaymentAttemptMonitor` (`CHECKOUT_PAYMENTS_FAILING`, family `checkout_payment`, open/attach/auto-resolve/reopen), family-aware notifications (ru/en/de).
+- Matrix e2e now places real HTTP checkouts (Classic and Store API) with a declining test gateway (`tests/matrix/mu-plugins`), an invalid e-mail and bank transfer, then checks the local attempts and the backend windows.
+- ADR 0007 records the outcome semantics and thresholds chosen for the owner to confirm; `docs/implementation-step-49-checklist.md`.
+
+Verification:
+
+- Backend SQLite 273 passed + 4 skipped; PostgreSQL 18 277 passed.
+- Plugin integration and e2e on the six WooCommerce targets — see `docs/compatibility.md`.
+
+Remaining:
+
+- Order-pay page, statistical success-rate rule, dashboard coverage, entitlement gating, layer 2 checkout script.

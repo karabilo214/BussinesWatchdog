@@ -26,6 +26,8 @@ class Signal extends Model
 
     public const TYPE_RECONCILIATION_FINDING = 'reconciliation_finding';
 
+    public const TYPE_PAYMENT_ATTEMPTS = 'payment_attempts';
+
     public $timestamps = false;
 
     protected $fillable = [

@@ -3,6 +3,7 @@
 namespace BusinessWatchdog\WooCommerce;
 
 use BusinessWatchdog\WooCommerce\Admin\SettingsPage;
+use BusinessWatchdog\WooCommerce\Attempts\AttemptHooks;
 use BusinessWatchdog\WooCommerce\Capture\OrderCapture;
 use BusinessWatchdog\WooCommerce\Capture\OrderHooks;
 use BusinessWatchdog\WooCommerce\Compat\Environment;
@@ -12,6 +13,7 @@ use BusinessWatchdog\WooCommerce\Jobs\BackfillJob;
 use BusinessWatchdog\WooCommerce\Jobs\DeliveryJob;
 use BusinessWatchdog\WooCommerce\Jobs\EnvironmentEvents;
 use BusinessWatchdog\WooCommerce\Jobs\HeartbeatJob;
+use BusinessWatchdog\WooCommerce\Jobs\PaymentAttemptsJob;
 use BusinessWatchdog\WooCommerce\Jobs\RescanJob;
 use BusinessWatchdog\WooCommerce\Rest\RestController;
 use BusinessWatchdog\WooCommerce\Storage\Schema;
@@ -25,6 +27,7 @@ final class Plugin
         RescanJob::HOOK => RescanJob::INTERVAL_SECONDS,
         BackfillJob::HOOK => BackfillJob::INTERVAL_SECONDS,
         BackfillJob::AUDIT_HOOK => BackfillJob::AUDIT_INTERVAL_SECONDS,
+        PaymentAttemptsJob::HOOK => PaymentAttemptsJob::INTERVAL_SECONDS,
     ];
 
     public static function activate(): void
@@ -56,12 +59,14 @@ final class Plugin
         }
 
         OrderHooks::register();
+        AttemptHooks::register();
         OrderCapture::onRecorded([self::class, 'scheduleDelivery']);
         add_action(HeartbeatJob::HOOK, [self::class, 'heartbeat']);
         add_action(DeliveryJob::HOOK, [DeliveryJob::class, 'run']);
         add_action(RescanJob::HOOK, [RescanJob::class, 'run']);
         add_action(BackfillJob::HOOK, [BackfillJob::class, 'run']);
         add_action(BackfillJob::AUDIT_HOOK, [BackfillJob::class, 'dailyAudit']);
+        add_action(PaymentAttemptsJob::HOOK, [self::class, 'reportPaymentAttempts']);
         add_action('upgrader_process_complete', [self::class, 'afterUpgrade'], 20, 0);
         add_action('rest_api_init', [RestController::class, 'register']);
         add_action('init', [self::class, 'ensureSchedules']);
@@ -82,6 +87,12 @@ final class Plugin
             \WP_CLI::add_command('business-watchdog heartbeat', [$command, 'heartbeat'], ['shortdesc' => 'Send a heartbeat now.']);
             \WP_CLI::add_command('business-watchdog diagnostics', [$command, 'diagnostics'], ['shortdesc' => 'Print diagnostics as JSON.']);
             \WP_CLI::add_command('business-watchdog deliver', [$command, 'deliver'], ['shortdesc' => 'Deliver pending outbox events now.']);
+            \WP_CLI::add_command('business-watchdog payment-attempts', [$command, 'paymentAttempts'], [
+                'shortdesc' => 'Resolve open payment attempts and report closed windows now.',
+                'synopsis' => [
+                    ['type' => 'assoc', 'name' => 'advance', 'optional' => true, 'description' => 'Evaluate as if this many seconds had passed (closes windows, expires pending attempts).'],
+                ],
+            ]);
             \WP_CLI::add_command('business-watchdog rescan', [$command, 'rescan'], ['shortdesc' => 'Rescan orders changed in the last 48 hours.']);
             \WP_CLI::add_command('business-watchdog backfill', [$command, 'backfill'], [
                 'shortdesc' => 'Run backfill pages (90-day window).',
@@ -107,6 +118,13 @@ final class Plugin
         EnvironmentEvents::capabilities();
         EnvironmentEvents::deployments();
         HeartbeatJob::run();
+    }
+
+    public static function reportPaymentAttempts(): void
+    {
+        if (PaymentAttemptsJob::run()['windows'] > 0) {
+            self::scheduleDelivery();
+        }
     }
 
     public static function afterUpgrade(): void

@@ -38,6 +38,8 @@ class EventInbox extends Model
 
     public const EVENT_FUNNEL_OBSERVED = 'funnel.observed';
 
+    public const EVENT_CHECKOUT_PAYMENT_ATTEMPTS = 'checkout.payment_attempts';
+
     public const AGGREGATE_ORDER = 'order';
 
     public const AGGREGATE_REFUND = 'refund';
@@ -52,6 +54,8 @@ class EventInbox extends Model
 
     public const AGGREGATE_SESSION = 'session';
 
+    public const AGGREGATE_CHECKOUT = 'checkout';
+
     public const EVENT_TYPES = [
         self::EVENT_ORDER_SNAPSHOT,
         self::EVENT_ORDER_DELETED,
@@ -62,6 +66,7 @@ class EventInbox extends Model
         self::EVENT_INTEGRATION_CAPABILITIES_CHANGED,
         self::EVENT_DEPLOYMENT_OBSERVED,
         self::EVENT_FUNNEL_OBSERVED,
+        self::EVENT_CHECKOUT_PAYMENT_ATTEMPTS,
     ];
 
     public const AGGREGATE_TYPES = [
@@ -72,6 +77,7 @@ class EventInbox extends Model
         self::AGGREGATE_INTEGRATION,
         self::AGGREGATE_DEPLOYMENT,
         self::AGGREGATE_SESSION,
+        self::AGGREGATE_CHECKOUT,
     ];
 
     public $timestamps = false;

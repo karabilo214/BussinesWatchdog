@@ -96,6 +96,41 @@ PY
         [ "$check" = "ok" ] || result="projection_unexpected(${check})"
     fi
 
+    if [ "$result" = "ok" ]; then
+        setup=$($W eval-file /var/www/html/wp-content/plugins/business-watchdog/tests/matrix/checkout-setup.php 2>/dev/null | sed -n 's/^BW_SETUP=//p')
+        checkout=$(docker compose -p "bwmatrix-${target}" -f docker-compose.yml exec -T wordpress php /var/www/html/wp-content/plugins/business-watchdog/tests/matrix/checkout-driver.php "shop-${target}.example.test" "$(json "$setup" "['product_id']")" "$(json "$setup" "['checkout_page_id']")" | sed -n 's/^BW_CHECKOUT=//p')
+        echo "  checkout: ${checkout}"
+        $W business-watchdog payment-attempts --advance=2100 >/dev/null
+        attempts=$($W eval 'global $wpdb; $rows = $wpdb->get_results("SELECT payment_method, outcome, failure_class FROM {$wpdb->prefix}bw_payment_attempts", ARRAY_A); $list = []; $totals = []; foreach ($rows as $r) { $list[] = $r["payment_method"] . ":" . ($r["outcome"] === null ? "open" : $r["outcome"]) . ":" . $r["failure_class"]; if ($r["outcome"] !== null) { $k = $r["payment_method"] . ":" . $r["outcome"]; $totals[$k] = ($totals[$k] ?? 0) + 1; } } sort($list); ksort($totals); echo wp_json_encode(["list" => $list, "totals" => (object) $totals]);')
+        echo "  attempts: $(json "$attempts" "['list']")"
+        $W business-watchdog deliver >/dev/null
+        windows=$(backend BW_E2E_ACTION=attempt-windows BW_E2E_STORE_ID="$store_id")
+        echo "  windows: ${windows}"
+        check=$(python3 - "$attempts" "$windows" <<'PY'
+import json, sys
+local = json.loads(sys.argv[1])
+remote = json.loads(sys.argv[2])
+problems = []
+items = local['list']
+if any(':open:' in item for item in items):
+    problems.append('open_attempts')
+for required in ['bacs:on_hold:', 'bw_test_decline:failed:gateway_error', 'bacs:rejected_before_order:validation']:
+    if required not in items:
+        problems.append('missing ' + required)
+if items.count('bacs:rejected_before_order:validation') != 2:
+    problems.append('rejections')
+if len(items) != 6:
+    problems.append('count=%d' % len(items))
+if remote['totals'] != local['totals']:
+    problems.append('backend_totals_differ')
+if set(remote['inbox']) != {'processed'}:
+    problems.append('inbox=%s' % remote['inbox'])
+print('ok' if not problems else ';'.join(problems))
+PY
+)
+        [ "$check" = "ok" ] || result="attempts_unexpected(${check})"
+    fi
+
     if [ "$result" = "ok" ]; then echo "PASS ${target} e2e"; else echo "FAIL ${target} e2e: ${result}"; STATUS=1; fi
     docker compose -p "bwmatrix-${target}" -f docker-compose.yml down -v >/dev/null 2>&1 || true
 done

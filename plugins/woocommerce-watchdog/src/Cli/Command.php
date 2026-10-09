@@ -6,6 +6,7 @@ use BusinessWatchdog\WooCommerce\Connection\PairingClient;
 use BusinessWatchdog\WooCommerce\Jobs\BackfillJob;
 use BusinessWatchdog\WooCommerce\Jobs\DeliveryJob;
 use BusinessWatchdog\WooCommerce\Jobs\HeartbeatJob;
+use BusinessWatchdog\WooCommerce\Jobs\PaymentAttemptsJob;
 use BusinessWatchdog\WooCommerce\Jobs\RescanJob;
 use BusinessWatchdog\WooCommerce\Rest\RestController;
 
@@ -40,6 +41,12 @@ final class Command
     public function rescan(): void
     {
         \WP_CLI::line((string) wp_json_encode(RescanJob::run()));
+    }
+
+    public function paymentAttempts(array $args, array $assoc): void
+    {
+        $now = isset($assoc['advance']) ? time() + max(0, (int) $assoc['advance']) : null;
+        \WP_CLI::line((string) wp_json_encode(PaymentAttemptsJob::run($now)));
     }
 
     public function backfill(array $args, array $assoc): void

@@ -30,3 +30,4 @@ services:
     volumes:
       - ../../:/var/www/html/wp-content/plugins/business-watchdog:ro
       - ./.cache:/bw-cache:ro
+      - ./mu-plugins:/var/www/html/wp-content/mu-plugins:ro

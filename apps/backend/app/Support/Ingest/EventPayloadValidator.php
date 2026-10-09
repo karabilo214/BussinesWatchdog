@@ -169,6 +169,9 @@ class EventPayloadValidator
                 && Str::isUuid($data['session_id'])
                 && $this->isRequiredEnum($data, 'consent_scope', ['analytics_opt_in', 'server_transactional'])
                 && $this->isOptionalString($data, 'order_id', nullable: true),
+            EventInbox::EVENT_CHECKOUT_PAYMENT_ATTEMPTS => $event['aggregate_type'] === EventInbox::AGGREGATE_CHECKOUT
+                && array_key_exists('aggregate_revision', $event)
+                && $this->isPaymentAttemptsData($data),
             default => false,
         };
     }
@@ -270,6 +273,64 @@ class EventPayloadValidator
     private function isOptionalBoolean(array $data, string $key): bool
     {
         return ! array_key_exists($key, $data) || is_bool($data[$key]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function isPaymentAttemptsData(array $data): bool
+    {
+        if (! $this->hasOnlyKeys($data, ['window_start', 'window_end', 'methods'])
+            || ! is_string($data['window_start'] ?? null)
+            || ! is_string($data['window_end'] ?? null)
+            || ! $this->isDateTime($data['window_start'])
+            || ! $this->isDateTime($data['window_end'])
+            || strtotime($data['window_end']) <= strtotime($data['window_start'])
+            || ! is_array($data['methods'] ?? null)
+            || ! array_is_list($data['methods'])
+            || count($data['methods']) > 100) {
+            return false;
+        }
+
+        $seen = [];
+
+        foreach ($data['methods'] as $method) {
+            if (! is_array($method)
+                || ! $this->hasOnlyKeys($method, ['payment_method', 'paid', 'on_hold', 'failed', 'pending_stuck', 'late_success', 'rejected_before_order', 'trailing_failures', 'failure_classes'])
+                || ! is_string($method['payment_method'] ?? null)
+                || $method['payment_method'] === ''
+                || mb_strlen($method['payment_method']) > 100
+                || isset($seen[$method['payment_method']])) {
+                return false;
+            }
+
+            foreach (['paid', 'on_hold', 'failed', 'pending_stuck', 'late_success', 'rejected_before_order', 'trailing_failures'] as $counter) {
+                if (! $this->isCount($method[$counter] ?? null)) {
+                    return false;
+                }
+            }
+
+            if ($method['trailing_failures'] > $method['failed'] + $method['pending_stuck']
+                || ! is_array($method['failure_classes'] ?? null)
+                || count($method['failure_classes']) > 20) {
+                return false;
+            }
+
+            foreach ($method['failure_classes'] as $class => $count) {
+                if (! is_string($class) || preg_match('/^[a-z][a-z0-9_]{0,39}$/', $class) !== 1 || ! $this->isCount($count)) {
+                    return false;
+                }
+            }
+
+            $seen[$method['payment_method']] = true;
+        }
+
+        return true;
+    }
+
+    private function isCount(mixed $value): bool
+    {
+        return is_int($value) && $value >= 0 && $value <= 1000000;
     }
 
     private function isDateTime(mixed $value): bool

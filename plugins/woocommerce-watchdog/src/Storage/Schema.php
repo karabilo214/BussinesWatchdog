@@ -4,7 +4,7 @@ namespace BusinessWatchdog\WooCommerce\Storage;
 
 final class Schema
 {
-    public const VERSION = 2;
+    public const VERSION = 3;
 
     public const OPTION = 'bw_schema_version';
 
@@ -29,6 +29,13 @@ final class Schema
         return $wpdb->prefix . 'bw_state';
     }
 
+    public static function attemptsTable(): string
+    {
+        global $wpdb;
+
+        return $wpdb->prefix . 'bw_payment_attempts';
+    }
+
     public static function isCurrent(): bool
     {
         return (int) get_option(self::OPTION, 0) >= self::VERSION;
@@ -44,6 +51,7 @@ final class Schema
         $outbox = self::outboxTable();
         $revisions = self::revisionsTable();
         $state = self::stateTable();
+        $attempts = self::attemptsTable();
 
         dbDelta("CREATE TABLE {$outbox} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -83,6 +91,21 @@ final class Schema
   PRIMARY KEY  (name)
 ) ENGINE=InnoDB {$charsetCollate};");
 
+        dbDelta("CREATE TABLE {$attempts} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  order_id bigint(20) unsigned NULL,
+  payment_method varchar(100) NOT NULL,
+  outcome varchar(32) NULL,
+  failure_class varchar(40) NULL,
+  attempted_at datetime NOT NULL,
+  resolved_at datetime NULL,
+  reported tinyint(1) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY  (id),
+  KEY order_outcome (order_id,outcome),
+  KEY open_attempts (outcome,attempted_at),
+  KEY unreported (reported,resolved_at)
+) ENGINE=InnoDB {$charsetCollate};");
+
         update_option(self::OPTION, self::VERSION, false);
     }
 
@@ -90,7 +113,7 @@ final class Schema
     {
         global $wpdb;
 
-        foreach ([self::outboxTable(), self::revisionsTable(), self::stateTable()] as $table) {
+        foreach ([self::outboxTable(), self::revisionsTable(), self::stateTable(), self::attemptsTable()] as $table) {
             $wpdb->query("DROP TABLE IF EXISTS {$table}");
         }
 

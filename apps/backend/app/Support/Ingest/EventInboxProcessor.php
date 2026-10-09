@@ -6,6 +6,7 @@ use App\Models\EventInbox;
 use App\Support\Projections\FinancialTransactionProjector;
 use App\Support\Projections\OrderDeletedProjector;
 use App\Support\Projections\OrderSnapshotProjector;
+use App\Support\Projections\PaymentAttemptsProjector;
 use App\Support\Projections\PaymentSnapshotProjector;
 use App\Support\Projections\RefundSnapshotProjector;
 use App\Support\Reconciliation\EventDirtyMarker;
@@ -21,6 +22,7 @@ class EventInboxProcessor
         private readonly RefundSnapshotProjector $refundSnapshotProjector,
         private readonly PaymentSnapshotProjector $paymentSnapshotProjector,
         private readonly FinancialTransactionProjector $financialTransactionProjector,
+        private readonly PaymentAttemptsProjector $paymentAttemptsProjector,
         private readonly EventDirtyMarker $dirtyMarker,
     ) {}
 
@@ -64,6 +66,10 @@ class EventInboxProcessor
             }
 
             if (! $this->recordProjectionResult($this->financialTransactionProjector->project($event))) {
+                return false;
+            }
+
+            if (! $this->recordProjectionResult($this->paymentAttemptsProjector->project($event))) {
                 return false;
             }
 

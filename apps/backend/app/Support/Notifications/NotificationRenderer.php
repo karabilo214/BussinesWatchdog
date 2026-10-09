@@ -74,9 +74,10 @@ class NotificationRenderer
         $subjectKey = $content['kind'] === NotificationDelivery::KIND_INCIDENT_REOPENED
             ? 'subject.reopened'
             : 'subject.opened';
+        $subjectReplace = ['store' => $content['store_name'], 'severity' => $severity];
 
         return new RenderedNotification(
-            $this->t($subjectKey, ['store' => $content['store_name'], 'severity' => $severity], $locale),
+            $this->familyText($content, $subjectKey, $subjectReplace, $locale),
             implode("\n", $lines),
         );
     }
@@ -95,15 +96,15 @@ class NotificationRenderer
         $lines = [
             $this->t('store', ['store' => $content['store_name']], $locale),
             '',
-            $this->t('recovery.fact', ['order' => $order], $locale),
+            $this->familyText($content, 'recovery.fact', $this->factReplace($content, $order), $locale),
             $this->t('recovery.duration', ['from' => $from, 'to' => $to], $locale),
-            $this->t('recovery.restored', [], $locale),
+            $this->familyText($content, 'recovery.restored', [], $locale),
             '',
             $this->t('link', ['link' => $content['link']], $locale),
         ];
 
         return new RenderedNotification(
-            $this->t('subject.recovered', ['store' => $content['store_name']], $locale),
+            $this->familyText($content, 'subject.recovered', ['store' => $content['store_name']], $locale),
             implode("\n", $lines),
         );
     }
@@ -113,7 +114,35 @@ class NotificationRenderer
      */
     private function fact(array $content, string $order, string $locale): string
     {
-        return $this->t('fact.'.$content['rule_code'], ['order' => $order], $locale, 'fact.default');
+        return $this->t('fact.'.$content['rule_code'], $this->factReplace($content, $order), $locale, 'fact.default');
+    }
+
+    /**
+     * @param  array<string, mixed>  $content
+     * @return array<string, string>
+     */
+    private function factReplace(array $content, string $order): array
+    {
+        return [
+            'order' => $order,
+            'method' => (string) ($content['payment_method'] ?? '—'),
+            'count' => (string) ($content['failure_streak'] ?? '—'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $content
+     * @param  array<string, string>  $replace
+     */
+    private function familyText(array $content, string $key, array $replace, string $locale): string
+    {
+        $family = $content['family'] ?? null;
+
+        if (is_string($family) && $family !== '' && $family !== 'money') {
+            return $this->t('family.'.$family.'.'.$key, $replace, $locale, $key);
+        }
+
+        return $this->t($key, $replace, $locale);
     }
 
     /**

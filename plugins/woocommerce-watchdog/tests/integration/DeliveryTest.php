@@ -32,7 +32,7 @@ function bw_fake_backend(callable $responder): array
         }
 
         $body = json_decode((string) $args['body'], true);
-        $calls[] = ['url' => $url, 'headers' => $args['headers'], 'body' => $body];
+        $calls[] = ['url' => $url, 'headers' => $args['headers'], 'body' => $body, 'raw' => (string) $args['body']];
         [$status, $json, $headers] = array_pad($responder($body, count($calls)), 3, []);
 
         return [
@@ -83,6 +83,23 @@ bw_test('accepted batch is signed and removed from the outbox', function () {
     bw_assert(substr($call['url'], -strlen('/api/v1/ingest/events')) === '/api/v1/ingest/events', 'wrong url');
     bw_assert(isset($call['headers']['X-BW-Signature'], $call['headers']['X-BW-Nonce']) && $call['headers']['X-BW-Signature-Version'] === '1', 'missing signature headers');
     bw_assert(count($call['body']['events']) === 3, 'batch size wrong');
+});
+
+bw_test('delivery keeps empty JSON objects as objects', function () {
+    bw_reset_outbox();
+    $envelope = \BusinessWatchdog\WooCommerce\Capture\EventFactory::envelope('checkout.payment_attempts', 'checkout', '2026-10-09T10:00:00Z', 1, null, [
+        'window_start' => '2026-10-09T10:00:00Z',
+        'window_end' => '2026-10-09T10:05:00Z',
+        'methods' => [['payment_method' => 'bacs', 'failure_classes' => (object) []]],
+    ]);
+    Outbox::enqueue($envelope, 'payment_attempts:test');
+    [$calls, $filter] = bw_fake_backend(static function ($body) {
+        return [202, ['results' => bw_all_results($body)]];
+    });
+    DeliveryJob::run();
+    remove_filter('pre_http_request', $filter, 10);
+
+    bw_assert(strpos($calls[0]['raw'], '"failure_classes":{}') !== false, 'empty object re-encoded as a list: ' . $calls[0]['raw']);
 });
 
 bw_test('per-event results keep accepted and dead-letter rejected events', function () {

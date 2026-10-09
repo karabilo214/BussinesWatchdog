@@ -240,6 +240,40 @@ class IngestEventsApiTest extends TestCase
         $this->assertSame(1, DomainOutbox::query()->count());
     }
 
+    public function test_payment_attempt_windows_pass_the_json_schema(): void
+    {
+        [, $credential, $secret] = $this->integrationCredential();
+        $start = now()->subMinutes(10)->startOfMinute();
+        $event = [
+            'schema_version' => '1.0',
+            'event_id' => '66666666-6666-4666-8666-666666666661',
+            'type' => EventInbox::EVENT_CHECKOUT_PAYMENT_ATTEMPTS,
+            'aggregate_type' => EventInbox::AGGREGATE_CHECKOUT,
+            'aggregate_id' => $start->toJSON(),
+            'aggregate_revision' => 1,
+            'occurred_at' => $start->copy()->addMinutes(5)->toJSON(),
+            'observed_at' => $start->copy()->addMinutes(6)->toJSON(),
+            'is_synthetic' => false,
+            'data' => [
+                'window_start' => $start->toJSON(),
+                'window_end' => $start->copy()->addMinutes(5)->toJSON(),
+                'methods' => [
+                    ['payment_method' => 'stripe', 'paid' => 1, 'on_hold' => 0, 'failed' => 1, 'pending_stuck' => 0, 'late_success' => 0, 'rejected_before_order' => 0, 'trailing_failures' => 1, 'failure_classes' => ['gateway_error' => 1]],
+                    ['payment_method' => 'bacs', 'paid' => 0, 'on_hold' => 1, 'failed' => 0, 'pending_stuck' => 0, 'late_success' => 0, 'rejected_before_order' => 2, 'trailing_failures' => 0, 'failure_classes' => new \stdClass],
+                ],
+            ],
+        ];
+        $listClasses = $event;
+        $listClasses['event_id'] = '66666666-6666-4666-8666-666666666662';
+        $listClasses['data']['methods'][1]['failure_classes'] = [];
+        $body = json_encode(['events' => [$event, $listClasses]], JSON_THROW_ON_ERROR);
+
+        $this->callSignedEvents($credential->key_id, $secret, $body)
+            ->assertStatus(207)
+            ->assertJsonPath('results.0.status', EventsController::RESULT_ACCEPTED)
+            ->assertJsonPath('results.1.status', EventsController::RESULT_QUARANTINED);
+    }
+
     public function test_backend_schema_copy_matches_the_contract(): void
     {
         $contract = base_path('../../contracts/event.schema.json');

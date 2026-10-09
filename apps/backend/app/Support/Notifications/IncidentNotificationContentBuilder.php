@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\ReconciliationFinding;
 use App\Models\Signal;
 use App\Models\Store;
+use App\Support\Checkout\PaymentAttemptMonitor;
 
 class IncidentNotificationContentBuilder
 {
@@ -21,6 +22,10 @@ class IncidentNotificationContentBuilder
      */
     public function forIncident(Incident $incident, Store $store, string $kind, NotificationPreferences $preferences): array
     {
+        if ($incident->family === PaymentAttemptMonitor::FAMILY) {
+            return $this->forPaymentAttempts($incident, $store, $kind, $preferences);
+        }
+
         $finding = $this->latestMismatchFinding($incident);
         $orderNumber = null;
 
@@ -71,6 +76,52 @@ class IncidentNotificationContentBuilder
             'locale' => $preferences->locale,
             'timezone' => $preferences->timezone,
             'channel_label' => $label,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function forPaymentAttempts(Incident $incident, Store $store, string $kind, NotificationPreferences $preferences): array
+    {
+        $evidence = Signal::query()
+            ->where('tenant_id', $incident->tenant_id)
+            ->where('store_id', $incident->store_id)
+            ->where('signal_type', Signal::TYPE_PAYMENT_ATTEMPTS)
+            ->whereIn('id', IncidentSignal::query()
+                ->where('incident_id', $incident->id)
+                ->select('signal_id'))
+            ->where('severity', '!=', Signal::SEVERITY_INFO)
+            ->orderByDesc('detected_at')
+            ->value('evidence') ?? [];
+
+        if (is_string($evidence)) {
+            $evidence = json_decode($evidence, true) ?: [];
+        }
+
+        return [
+            'kind' => $kind,
+            'locale' => $preferences->locale,
+            'timezone' => $preferences->timezone,
+            'store_name' => $store->name,
+            'severity' => $incident->severity,
+            'family' => $incident->family,
+            'component' => $incident->component,
+            'rule_code' => $incident->title_code,
+            'order_number' => null,
+            'payment_method' => is_string($evidence['payment_method'] ?? null) ? $evidence['payment_method'] : null,
+            'failure_streak' => is_int($evidence['failure_streak'] ?? null) ? $evidence['failure_streak'] : null,
+            'currency' => null,
+            'amount_minor' => null,
+            'currency_exponent' => null,
+            'possible_start_from' => $incident->last_good_at?->toJSON(),
+            'possible_start_to' => ($incident->first_bad_at ?? $incident->first_seen_at)?->toJSON(),
+            'recovered_at' => $kind === NotificationDelivery::KIND_INCIDENT_RECOVERED
+                ? $incident->resolved_at?->toJSON()
+                : null,
+            'source' => 'payment_attempts',
+            'checked_steps' => ['store_checkout_attempts'],
+            'link' => $this->incidentLink($incident),
         ];
     }
 

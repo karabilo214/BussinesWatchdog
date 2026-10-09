@@ -31,6 +31,19 @@ Scope of this verification: Step 45 — activation, schema install/re-install, e
 | `checkout-draft` status exists | no | yes | yes | yes | yes | yes | drafts skipped where the status exists |
 | Refund deletion via generic `woocommerce_delete_order` with the refund id | n/a | n/a | no hook | yes | yes | yes | refund ids recognised in generic order-deletion hooks |
 
+Step 49 — payment attempt observation: 39 integration tests per target, and an e2e that places real HTTP checkouts against each WooCommerce version — Classic (`?wc-ajax=checkout` with the form nonce) and Store API (`/wc/store[/v1]/checkout`) — with a declining test gateway (`tests/matrix/mu-plugins`), an invalid e-mail and bank transfer, advances the plugin clock past the 30-minute pending timeout, delivers the windows and checks that the backend `payment_attempt_windows` totals equal the plugin's local outcomes.
+
+### Version differences found by the matrix (Step 49)
+
+| Behaviour | WC 6.0 legacy | WC 7.9 legacy/HPOS | WC 8.9 HPOS | WC 9.9 HPOS | WC 11.2 HPOS | Plugin handling |
+|---|---|---|---|---|---|---|
+| Store API namespace | `/wc/store` | `/wc/store/v1` | `/wc/store/v1` | `/wc/store/v1` | `/wc/store/v1` | route matched with an optional version segment |
+| Store API checkout with a legacy (non-blocks) gateway | **200, empty `payment_status`, payment not processed, order stays pending** | processed | processed | processed | processed | attempt stays open and becomes `pending_stuck` after 30 min — the customer could not pay |
+| Store API error when the gateway declines | — | non-payment error code → `checkout_error` | same as 7.9 | `woocommerce_rest_checkout_process_payment_error` → `payment_error` | same as 9.9 | both classes count as failures |
+| Classic decline (error notice after the order exists) | `gateway_error` | `gateway_error` | `gateway_error` | `gateway_error` | `gateway_error` | — |
+
+Delivery fix found by the same e2e: events were re-encoded through PHP arrays before sending, so an empty JSON object (`failure_classes: {}`) became a list and the window was quarantined by the backend schema; events are now decoded as objects.
+
 Not verified: WooCommerce Stripe gateway versions, themes, multisite, PHP 7.4 with WooCommerce ≥ 7 (official WordPress images for newer WP versions no longer ship PHP 7.4), WP-Cron-only path (Action Scheduler is bundled in every WooCommerce ≥ 6.0 tested).
 
 ## Backend

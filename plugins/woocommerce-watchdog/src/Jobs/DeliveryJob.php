@@ -71,7 +71,7 @@ final class DeliveryJob
     private static function sendBatch(Connection $connection, array $rows): array
     {
         $events = array_map(static function (array $row) {
-            return json_decode((string) $row['payload'], true);
+            return json_decode((string) $row['payload']);
         }, $rows);
 
         $response = (new SignedClient($connection))->post('/api/v1/ingest/events', ['events' => $events]);

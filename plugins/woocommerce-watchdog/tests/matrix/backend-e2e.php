@@ -75,4 +75,26 @@ if ($action === 'projection-status') {
     ];
 }
 
+if ($action === 'attempt-windows') {
+    $storeId = getenv('BW_E2E_STORE_ID');
+    \Illuminate\Support\Facades\Artisan::call('outbox:dispatch', ['--limit' => 100]);
+    \Illuminate\Support\Facades\Artisan::call('outbox:dispatch', ['--limit' => 100]);
+    $totals = [];
+
+    foreach (\App\Models\PaymentAttemptWindow::query()->where('store_id', $storeId)->get() as $window) {
+        foreach (\App\Models\PaymentAttemptWindow::OUTCOME_COUNTERS as $counter) {
+            if ($window->{$counter} > 0) {
+                $key = $window->payment_method.':'.$counter;
+                $totals[$key] = ($totals[$key] ?? 0) + $window->{$counter};
+            }
+        }
+    }
+
+    ksort($totals);
+    $out = [
+        'inbox' => \App\Models\EventInbox::query()->where('store_id', $storeId)->get()->groupBy('status')->map->count()->all(),
+        'totals' => $totals,
+    ];
+}
+
 echo 'BW_E2E_JSON='.json_encode($out).PHP_EOL;

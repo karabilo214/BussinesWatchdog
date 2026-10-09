@@ -24,6 +24,7 @@ return [
         'MONEY_CURRENCY_MISMATCH' => 'The currency of the confirmed capture for order :order does not match the order currency.',
         'MONEY_ORDER_CHANGED' => 'Order :order was changed after a confirmed capture.',
         'MONEY_PAYMENT_WITHOUT_ORDER' => 'The payment provider has a confirmed capture that is not matched to any store order.',
+        'CHECKOUT_PAYMENTS_FAILING' => 'The last :count payment attempts with “:method” in a row did not end in a successful payment. This may be a broken payment flow or a series of bank declines — store data cannot always tell them apart.',
         'default' => 'A payment data discrepancy was found for order :order.',
     ],
     'amount' => 'Discrepancy: :amount :currency.',
@@ -33,17 +34,20 @@ return [
     ],
     'source' => [
         'reconciliation' => 'Source: reconciliation of store data against the connected payment provider.',
+        'payment_attempts' => 'Source: payment attempts on the store website (store plugin data).',
     ],
     'checked_steps' => 'Checked: :steps.',
     'step' => [
         'store_order_data' => 'store order data',
         'provider_transactions' => 'payment provider transactions',
         'payment_allocations' => 'payment-to-order links',
+        'store_checkout_attempts' => 'payment attempts at checkout',
     ],
     'what_to_check' => [
         'capture' => 'What to check: the transaction in the payment provider and the order payment status.',
         'refund' => 'What to check: the refund in the payment provider and in the store.',
         'payment_without_order' => 'What to check: which order the payment belongs to, and link it manually if needed.',
+        'payment_method' => 'What to check: place a test order with this payment method, check the payment plugin settings and log, and the payment provider status.',
         'default' => 'What to check: payment provider transactions and the store order.',
     ],
     'link' => 'Open incident: :link',
@@ -51,6 +55,19 @@ return [
         'fact' => 'A fresh reconciliation for order :order found no discrepancy.',
         'duration' => 'Discrepancy period: from :from to :to.',
         'restored' => 'Restored: order reconciliation against the payment provider.',
+    ],
+    'family' => [
+        'checkout_payment' => [
+            'subject' => [
+                'opened' => '[:store] :severity: payments are not going through',
+                'reopened' => '[:store] :severity: payments are failing again',
+                'recovered' => '[:store] Payments are going through again',
+            ],
+            'recovery' => [
+                'fact' => 'After a series of failed attempts a successful payment with “:method” is observed again.',
+                'restored' => 'Restored: successful payments on the store website.',
+            ],
+        ],
     ],
     'test' => [
         'subject' => 'Business Watchdog: test notification',

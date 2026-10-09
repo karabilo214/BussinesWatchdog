@@ -34,7 +34,8 @@
         "integration.heartbeat",
         "integration.capabilities_changed",
         "deployment.observed",
-        "funnel.observed"
+        "funnel.observed",
+        "checkout.payment_attempts"
       ]
     },
     "aggregate_type": {
@@ -45,7 +46,8 @@
         "transaction",
         "integration",
         "deployment",
-        "session"
+        "session",
+        "checkout"
       ]
     },
     "aggregate_id": {
@@ -490,6 +492,100 @@
           "maxLength": 255
         }
       }
+    },
+    "payment_attempts": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Server-side payment attempt outcomes per payment method for one closed aggregation window (spec 17.1 layer 1). No customer data, no error texts.",
+      "required": [
+        "window_start",
+        "window_end",
+        "methods"
+      ],
+      "properties": {
+        "window_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "methods": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "payment_method",
+              "paid",
+              "on_hold",
+              "failed",
+              "pending_stuck",
+              "late_success",
+              "rejected_before_order",
+              "trailing_failures",
+              "failure_classes"
+            ],
+            "properties": {
+              "payment_method": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "paid": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "on_hold": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "failed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "pending_stuck": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "late_success": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "rejected_before_order": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "trailing_failures": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Non-successful outcomes (failed, pending_stuck) after the last success in this window, in outcome order."
+              },
+              "failure_classes": {
+                "type": "object",
+                "maxProperties": 20,
+                "propertyNames": {
+                  "pattern": "^[a-z][a-z0-9_]{0,39}$"
+                },
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "allOf": [
@@ -698,6 +794,31 @@
             "$ref": "#/$defs/funnel"
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "checkout.payment_attempts"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "checkout"
+          },
+          "data": {
+            "$ref": "#/$defs/payment_attempts"
+          }
+        },
+        "required": [
+          "aggregate_revision"
+        ]
       }
     }
   ]
