@@ -973,3 +973,21 @@ Verification:
 Remaining:
 
 - Plugin-side rotation client, Stripe credential rotation; remaining ADR 0001 gaps (JSON Schema ingest validation, store verification, projection composite FKs / PostgreSQL test run, MinIO).
+
+### Step 41: Full JSON Schema Validation Of Ingested Events
+
+Status: complete; closes the ADR 0001 ingest-validation deviation
+
+Added:
+
+- `opis/json-schema` 2.6; `EventSchemaValidator` against a backend copy of `contracts/event.schema.json` (sync test).
+- Every ingested event is validated against the Draft 2020-12 schema; violations are quarantined as `schema_invalid`. Non-object bodies return 422 instead of 500.
+- `docs/implementation-step-41-checklist.md`; ADR 0001 section marked resolved.
+
+Verification:
+
+- `php artisan test` (PHP 8.4) passed: 249 tests.
+
+Remaining:
+
+- ADR 0001: store verification, projection composite FKs / PostgreSQL test run, MinIO.

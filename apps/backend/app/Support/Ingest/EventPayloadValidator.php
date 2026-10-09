@@ -9,10 +9,14 @@ class EventPayloadValidator
 {
     private const MAX_SIGNED_BIGINT = '9223372036854775807';
 
+    public function __construct(
+        private readonly EventSchemaValidator $schemaValidator,
+    ) {}
+
     /**
-     * @param array<string, mixed> $event
+     * @param  array<string, mixed>  $event
      */
-    public function validate(array $event): EventValidationResult
+    public function validate(array $event, mixed $rawEvent = null): EventValidationResult
     {
         foreach (['schema_version', 'event_id', 'type', 'aggregate_type', 'aggregate_id', 'occurred_at', 'observed_at', 'is_synthetic', 'data'] as $field) {
             if (! array_key_exists($field, $event)) {
@@ -60,11 +64,15 @@ class EventPayloadValidator
             return EventValidationResult::invalid(EventValidationResult::ERROR_SCHEMA_INVALID, true);
         }
 
+        if ($rawEvent !== null && ! $this->schemaValidator->isValid($rawEvent)) {
+            return EventValidationResult::invalid(EventValidationResult::ERROR_SCHEMA_INVALID, true);
+        }
+
         return EventValidationResult::ok();
     }
 
     /**
-     * @param array<string, mixed> $event
+     * @param  array<string, mixed>  $event
      */
     private function hasPersistableIdentity(array $event): bool
     {
@@ -78,7 +86,7 @@ class EventPayloadValidator
     }
 
     /**
-     * @param array<string, mixed> $event
+     * @param  array<string, mixed>  $event
      */
     private function matchesTypeContract(array $event): bool
     {
@@ -166,8 +174,8 @@ class EventPayloadValidator
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param list<string> $keys
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $keys
      */
     private function hasOnlyKeys(array $data, array $keys): bool
     {
@@ -175,7 +183,7 @@ class EventPayloadValidator
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function isCurrencyData(array $data): bool
     {
@@ -197,7 +205,7 @@ class EventPayloadValidator
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function isRequiredString(array $data, string $key): bool
     {
@@ -207,7 +215,7 @@ class EventPayloadValidator
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function isOptionalString(array $data, string $key, bool $nullable = false): bool
     {
@@ -223,8 +231,8 @@ class EventPayloadValidator
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param list<string> $values
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $values
      */
     private function isRequiredEnum(array $data, string $key, array $values): bool
     {
@@ -232,8 +240,8 @@ class EventPayloadValidator
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param list<string> $values
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $values
      */
     private function isOptionalEnum(array $data, string $key, array $values): bool
     {
@@ -241,7 +249,7 @@ class EventPayloadValidator
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function isOptionalDateTime(array $data, string $key, bool $nullable = false): bool
     {
@@ -257,7 +265,7 @@ class EventPayloadValidator
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function isOptionalBoolean(array $data, string $key): bool
     {

@@ -102,6 +102,8 @@ Risk: some structurally invalid event `data` payloads may be accepted until full
 
 Return plan: add a JSON Schema validator dependency or generated validator, request-size limit enforcement, quarantine persistence, and projection/outbox worker before using ingress for production data.
 
+Resolution (Step 41, 2026-10-09): resolved. The 1 MiB limit, quarantine persistence and projection/outbox processing were already added in Steps 15–23. Step 41 adds full JSON Schema Draft 2020-12 validation of every event with `opis/json-schema` 2.6 against `apps/backend/resources/contracts/event.schema.json` — a copy of `contracts/event.schema.json` (the Docker backend only mounts `apps/backend`); a test fails if the two diverge. Violations are quarantined as `schema_invalid`. The hand-written semantic checks remain for what the schema cannot express (bigint upper bound, clock skew).
+
 ### Projection Event FKs Are Simplified During Bootstrap
 
 Specification target: projection tables reference `event_inbox` through tenant/store scoped composite keys where applicable.

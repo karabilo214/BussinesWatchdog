@@ -35,8 +35,7 @@ class EventsController extends Controller
 
     public function __construct(
         private readonly EventPayloadValidator $validator,
-    ) {
-    }
+    ) {}
 
     public function store(Request $request): JsonResponse
     {
@@ -51,6 +50,8 @@ class EventsController extends Controller
 
         try {
             $body = json_decode($rawBody, true, flags: JSON_THROW_ON_ERROR);
+            $decoded = json_decode($rawBody, false, flags: JSON_THROW_ON_ERROR);
+            $rawEvents = is_object($decoded) ? ($decoded->events ?? null) : null;
         } catch (\JsonException) {
             return $this->problem(self::ERROR_MALFORMED_JSON, 'The request body is not valid JSON.', 400, $requestId);
         }
@@ -63,21 +64,23 @@ class EventsController extends Controller
             return $this->problem(EventValidationResult::ERROR_SCHEMA_INVALID, 'The events batch size is invalid.', 422, $requestId);
         }
 
-        $results = DB::transaction(function () use ($body, $integration, $requestId): array {
+        $results = DB::transaction(function () use ($body, $rawEvents, $integration, $requestId): array {
             $results = [];
 
             foreach (array_values($body['events']) as $index => $event) {
                 if (! is_array($event)) {
                     $results[] = $this->recordResult($index, null, null, self::RESULT_INVALID, EventValidationResult::ERROR_SCHEMA_INVALID);
+
                     continue;
                 }
 
-                $validation = $this->validator->validate($event);
+                $validation = $this->validator->validate($event, is_array($rawEvents) ? ($rawEvents[$index] ?? null) : null);
                 $eventId = is_string($event['event_id'] ?? null) ? $event['event_id'] : null;
                 $payloadHash = $this->payloadHash($event);
 
                 if (! $validation->valid && ! $validation->quarantinable) {
                     $results[] = $this->recordResult($index, $eventId, null, self::RESULT_INVALID, $validation->errorCode);
+
                     continue;
                 }
 

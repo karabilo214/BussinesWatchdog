@@ -2,17 +2,21 @@
 
 namespace Tests\Feature\Ingest;
 
+use App\Http\Controllers\Api\V1\Ingest\EventsController;
+use App\Models\DomainOutbox;
+use App\Models\EventInbox;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
-use App\Models\EventInbox;
 use App\Models\Store;
 use App\Models\Tenant;
-use App\Http\Controllers\Api\V1\Ingest\EventsController;
+use App\Support\Ingest\EventSchemaValidator;
 use App\Support\Ingest\EventValidationResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class IngestEventsApiTest extends TestCase
@@ -68,8 +72,8 @@ class IngestEventsApiTest extends TestCase
             ->assertAccepted()
             ->assertJsonPath('results.0.status', EventsController::RESULT_DUPLICATE);
 
-        $this->assertSame(1, \App\Models\EventInbox::query()->count());
-        $this->assertSame(1, \App\Models\DomainOutbox::query()->count());
+        $this->assertSame(1, EventInbox::query()->count());
+        $this->assertSame(1, DomainOutbox::query()->count());
     }
 
     public function test_same_event_id_with_different_payload_is_conflict(): void
@@ -100,8 +104,8 @@ class IngestEventsApiTest extends TestCase
             ->assertJsonPath('results.1.status', EventsController::RESULT_INVALID)
             ->assertJsonPath('results.1.code', EventValidationResult::ERROR_SCHEMA_INVALID);
 
-        $this->assertSame(1, \App\Models\EventInbox::query()->count());
-        $this->assertSame(1, \App\Models\DomainOutbox::query()->count());
+        $this->assertSame(1, EventInbox::query()->count());
+        $this->assertSame(1, DomainOutbox::query()->count());
     }
 
     public function test_invalid_batch_envelope_rejects_without_commit(): void
@@ -113,7 +117,7 @@ class IngestEventsApiTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('code', EventValidationResult::ERROR_SCHEMA_INVALID);
 
-        $this->assertSame(0, \App\Models\EventInbox::query()->count());
+        $this->assertSame(0, EventInbox::query()->count());
     }
 
     public function test_malformed_json_rejects_without_commit(): void
@@ -125,7 +129,7 @@ class IngestEventsApiTest extends TestCase
             ->assertBadRequest()
             ->assertJsonPath('code', EventsController::ERROR_MALFORMED_JSON);
 
-        $this->assertSame(0, \App\Models\EventInbox::query()->count());
+        $this->assertSame(0, EventInbox::query()->count());
     }
 
     public function test_oversized_batch_rejects_without_commit(): void
@@ -140,7 +144,7 @@ class IngestEventsApiTest extends TestCase
             ->assertStatus(413)
             ->assertJsonPath('code', EventsController::ERROR_REQUEST_TOO_LARGE);
 
-        $this->assertSame(0, \App\Models\EventInbox::query()->count());
+        $this->assertSame(0, EventInbox::query()->count());
     }
 
     public function test_unsupported_schema_version_is_quarantined_without_outbox(): void
@@ -160,7 +164,7 @@ class IngestEventsApiTest extends TestCase
             'status' => EventInbox::STATUS_QUARANTINED,
             'error_code' => EventValidationResult::ERROR_SCHEMA_UNSUPPORTED,
         ]);
-        $this->assertSame(0, \App\Models\DomainOutbox::query()->count());
+        $this->assertSame(0, DomainOutbox::query()->count());
     }
 
     public function test_event_data_contract_violation_is_quarantined_without_outbox(): void
@@ -180,7 +184,54 @@ class IngestEventsApiTest extends TestCase
             'status' => EventInbox::STATUS_QUARANTINED,
             'error_code' => EventValidationResult::ERROR_SCHEMA_INVALID,
         ]);
-        $this->assertSame(0, \App\Models\DomainOutbox::query()->count());
+        $this->assertSame(0, DomainOutbox::query()->count());
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: mixed}>
+     */
+    public static function schemaOnlyViolations(): array
+    {
+        return [
+            'empty display number' => ['display_number', ''],
+            'date without time' => ['source_created_at', '2026-10-09'],
+        ];
+    }
+
+    #[DataProvider('schemaOnlyViolations')]
+    public function test_json_schema_violations_are_quarantined(string $field, mixed $value): void
+    {
+        [, $credential, $secret] = $this->integrationCredential();
+        $event = $this->event('44444444-4444-4444-8444-444444444444');
+        $event['data'][$field] = $value;
+        $body = json_encode(['events' => [$event]], JSON_THROW_ON_ERROR);
+
+        $this->callSignedEvents($credential->key_id, $secret, $body)
+            ->assertStatus(207)
+            ->assertJsonPath('results.0.status', EventsController::RESULT_QUARANTINED)
+            ->assertJsonPath('results.0.code', EventValidationResult::ERROR_SCHEMA_INVALID);
+
+        $this->assertSame(0, DomainOutbox::query()->count());
+    }
+
+    public function test_non_object_json_body_is_rejected_without_a_server_error(): void
+    {
+        [, $credential, $secret] = $this->integrationCredential();
+
+        $this->callSignedEvents($credential->key_id, $secret, '[1,2,3]')
+            ->assertUnprocessable()
+            ->assertJsonPath('code', EventValidationResult::ERROR_SCHEMA_INVALID);
+    }
+
+    public function test_backend_schema_copy_matches_the_contract(): void
+    {
+        $contract = base_path('../../contracts/event.schema.json');
+
+        if (! is_file($contract)) {
+            $this->markTestSkipped('Repository contracts directory is not mounted.');
+        }
+
+        $this->assertJsonFileEqualsJsonFile($contract, EventSchemaValidator::schemaPath());
     }
 
     /**
@@ -258,7 +309,7 @@ class IngestEventsApiTest extends TestCase
         string $body,
         ?string $timestamp = null,
         ?string $nonce = null,
-    ): \Illuminate\Testing\TestResponse {
+    ): TestResponse {
         $timestamp ??= (string) time();
         $nonce ??= (string) Str::uuid();
 
