@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Browser;
 
+use App\Models\Artifact;
 use App\Models\BrowserWorker;
 use App\Models\CheckAttempt;
 use App\Models\CheckRun;
@@ -11,6 +12,9 @@ use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\NotificationDelivery;
 use App\Models\Store;
+use App\Models\Tenant;
+use App\Models\User;
+use App\Support\Browser\ArtifactStore;
 use App\Support\Browser\BrowserLeaseService;
 use App\Support\Browser\CheckOutcomeEvaluator;
 use App\Support\Browser\CheckScheduler;
@@ -22,6 +26,7 @@ use App\Support\Outbox\DomainOutboxDispatcher;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\Feature\Notifications\FakeNotificationSender;
@@ -359,10 +364,78 @@ class BrowserChecksTest extends TestCase
         $this->assertSame(NotificationDelivery::STATUS_SENT, NotificationDelivery::query()->sole()->status);
     }
 
+    public function test_a_redacted_screenshot_is_stored_privately_and_linked_to_the_result(): void
+    {
+        $disk = Storage::fake('artifacts');
+        $disk->buildTemporaryUrlsUsing(fn (string $path, $expiration): string => 'https://objects.example.test/'.$path.'?expires='.$expiration->getTimestamp());
+        $lease = $this->leasedAttempt();
+        $jpeg = $this->jpeg();
+
+        $upload = $this->uploadArtifact($lease, $jpeg)->assertCreated();
+        $artifact = Artifact::query()->sole();
+        $this->assertSame($upload->json('artifact_id'), $artifact->id);
+        $this->assertSame(Artifact::STATE_READY, $artifact->state);
+        $this->assertStringStartsWith('tenants/'.$artifact->tenant_id.'/stores/'.$artifact->store_id.'/checks/', $artifact->object_key);
+        $disk->assertExists($artifact->object_key);
+        $this->assertTrue($artifact->expires_at->equalTo(now()->addDays(30)));
+
+        $this->submit($lease, array_merge($this->resultBody(1, 'failed', 'site_failure', failedStep: 'payment_form'), ['artifact_ids' => [$artifact->id]]))->assertOk();
+
+        $context = ['user' => User::query()->firstOrFail(), 'tenant' => Tenant::query()->firstOrFail()];
+        $run = CheckRun::query()->sole();
+        $detail = $this->asOwner($context)->getJson("/api/v1/check-runs/{$run->id}")->assertOk();
+        $this->assertSame($artifact->id, $detail->json('attempts.0.artifacts.0.id'));
+        $this->assertArrayNotHasKey('object_key', $detail->json('attempts.0.artifacts.0'));
+
+        $url = $this->asOwner($context)->getJson("/api/v1/artifacts/{$artifact->id}/url")->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+        $this->assertStringContainsString('expires='.now()->addSeconds(60)->getTimestamp(), $url->json('url'));
+
+        $stranger = $this->context();
+        $this->asOwner($stranger)->getJson("/api/v1/artifacts/{$artifact->id}/url")->assertNotFound();
+    }
+
+    public function test_screenshots_are_rejected_unless_they_match_type_size_checksum_and_a_live_lease(): void
+    {
+        Storage::fake('artifacts');
+        $lease = $this->leasedAttempt();
+        $jpeg = $this->jpeg();
+
+        $this->uploadArtifact($lease, $jpeg, sha256: str_repeat('0', 64))->assertStatus(422)->assertJsonPath('code', ArtifactStore::ERROR_CHECKSUM_MISMATCH);
+        $this->uploadArtifact($lease, '<html>not an image</html>')->assertStatus(422)->assertJsonPath('code', ArtifactStore::ERROR_TYPE_INVALID);
+        $this->uploadArtifact($lease, "\xFF\xD8\xFF".str_repeat('a', 2 * 1024 * 1024))->assertStatus(413);
+        $this->uploadArtifact(array_merge($lease, ['lease_token' => str_repeat('b', 64)]), $jpeg)->assertStatus(409);
+
+        foreach (range(1, 3) as $i) {
+            $this->uploadArtifact($lease, $jpeg)->assertCreated();
+        }
+
+        $this->uploadArtifact($lease, $jpeg)->assertStatus(409)->assertJsonPath('code', ArtifactStore::ERROR_LIMIT_REACHED);
+        $this->submit($lease, array_merge($this->resultBody(1, 'passed'), ['artifact_ids' => [(string) Str::uuid()]]))
+            ->assertStatus(422)->assertJsonPath('code', BrowserLeaseService::ERROR_ARTIFACT_UNKNOWN);
+
+        $this->submit($lease, $this->resultBody(1, 'passed'))->assertOk();
+        $this->uploadArtifact($lease, $jpeg)->assertStatus(409)->assertJsonPath('code', BrowserLeaseService::ERROR_LEASE_EXPIRED);
+    }
+
+    public function test_expired_artifacts_are_purged_from_storage(): void
+    {
+        $disk = Storage::fake('artifacts');
+        $lease = $this->leasedAttempt();
+        $this->uploadArtifact($lease, $this->jpeg())->assertCreated();
+        $artifact = Artifact::query()->sole();
+
+        Carbon::setTestNow(now()->addDays(31));
+        $this->artisan('artifacts:purge')->assertSuccessful();
+
+        $disk->assertMissing($artifact->object_key);
+        $this->assertSame(Artifact::STATE_DELETED, $artifact->fresh()->state);
+    }
+
     public function test_commands_are_registered_and_scheduled(): void
     {
         $this->artisan('browser:schedule')->assertSuccessful();
         $this->artisan('browser:worker-create', ['name' => 'worker-2'])->assertSuccessful();
+        $this->artisan('artifacts:purge')->assertSuccessful();
         $this->assertSame(2, BrowserWorker::query()->count());
 
         $event = collect(app(Schedule::class)->events())->first(fn ($event) => str_contains($event->command ?? '', 'browser:schedule'));
@@ -482,6 +555,27 @@ class BrowserChecksTest extends TestCase
                 'relevant_errors' => $errorCode === null ? [] : [['type' => 'response', 'party' => 'first', 'origin' => 'https://shop.example.test', 'path' => '/checkout/', 'status' => 500, 'step_code' => $failedStep ?? 'checkout']],
             ],
         ];
+    }
+
+    private function jpeg(): string
+    {
+        return "\xFF\xD8\xFF\xE0".random_bytes(256)."\xFF\xD9";
+    }
+
+    /**
+     * @param  array<string, mixed>  $lease
+     */
+    private function uploadArtifact(array $lease, string $body, ?string $sha256 = null): TestResponse
+    {
+        return $this->call('POST', '/internal/v1/browser/attempts/'.$lease['attempt_id'].'/artifacts', [], [], [], [
+            'CONTENT_TYPE' => 'image/jpeg',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_AUTHORIZATION' => 'Bearer '.$this->workerToken,
+            'HTTP_X_BW_LEASE_TOKEN' => $lease['lease_token'],
+            'HTTP_X_BW_FENCING_TOKEN' => (string) $lease['fencing_token'],
+            'HTTP_X_BW_SHA256' => $sha256 ?? hash('sha256', $body),
+            'HTTP_X_BW_REDACTION_VERSION' => 'r1',
+        ], $body);
     }
 
     private function lease(): TestResponse

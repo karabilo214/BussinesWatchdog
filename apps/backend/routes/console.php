@@ -37,3 +37,9 @@ Schedule::command('browser:schedule')
     ->everyMinute()
     ->withoutOverlapping(5)
     ->onOneServer();
+
+Schedule::command('artifacts:purge')
+    ->dailyAt('03:15')
+    ->timezone('UTC')
+    ->withoutOverlapping(60)
+    ->onOneServer();

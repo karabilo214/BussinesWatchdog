@@ -43,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('browser-worker', fn (Request $request): Limit => Limit::perMinute(600)
             ->by((string) ($request->attributes->get('browser_worker')?->id ?? $request->ip())));
 
+        RateLimiter::for('artifact-url', fn (Request $request): Limit => Limit::perMinute(60)
+            ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         RateLimiter::for('auth-signup', fn (Request $request): Limit => Limit::perHour((int) config('watchdog.rate_limits.signup_per_hour'))
             ->by((string) $request->ip()));
     }

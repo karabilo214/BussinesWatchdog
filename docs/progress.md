@@ -1213,3 +1213,17 @@ Verification:
 Remaining:
 
 - Screenshots/artifacts (Step 54).
+
+### Step 54: Check Artifacts — Redacted Screenshots (ADR 0013)
+
+Status: complete; browser checks P0 done (Steps 51–54)
+
+Added:
+
+- `artifacts` table and private S3 disk; lease-bound internal upload with size/signature/SHA-256 checks; 60-second user links; daily purge; OpenAPI.
+- Worker: masked viewport screenshot on failures, focused on the failing step.
+- `docs/adr/0013-check-artifacts.md`, `docs/implementation-step-54-checklist.md`.
+
+Verification:
+
+- Backend SQLite 302 + 4 skipped, PostgreSQL 306; worker 13/13; browser e2e on six targets with S3Mock; screenshot inspected.

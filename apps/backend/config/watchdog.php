@@ -39,4 +39,12 @@ return [
         'schedule_jitter' => 0.1,
         'default_interval_seconds' => 900,
     ],
+
+    'artifacts' => [
+        'disk' => env('WATCHDOG_ARTIFACTS_DISK', 'artifacts'),
+        'retention_days' => (int) env('WATCHDOG_ARTIFACTS_RETENTION_DAYS', 30),
+        'max_bytes' => 2 * 1024 * 1024,
+        'max_per_attempt' => 3,
+        'download_ttl_seconds' => 60,
+    ],
 ];

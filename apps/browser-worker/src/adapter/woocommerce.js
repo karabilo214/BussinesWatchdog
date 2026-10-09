@@ -24,7 +24,7 @@ const SELECTORS = {
   classicCheckout: 'form.checkout.woocommerce-checkout',
   blocksCheckout: '.wc-block-checkout, .wp-block-woocommerce-checkout .wc-block-components-form',
   classicPaymentMethod: '#payment ul.payment_methods li input[name="payment_method"], #payment ul.payment_methods li.wc_payment_method',
-  classicNoPaymentMethods: '#payment .woocommerce-notice--info, #payment li.woocommerce-notice',
+  classicNoPaymentMethods: '#payment .woocommerce-notice--info, #payment li.woocommerce-notice, #payment .woocommerce-info',
   blocksPaymentMethod: '.wc-block-checkout__payment-method .wc-block-components-radio-control__option, .wc-block-checkout__payment-method .wc-block-components-payment-method-label, .wc-block-checkout__payment-method .wc-block-components-checkout-step__content > *',
   blocksNoPaymentMethods: '.wc-block-checkout__no-payment-methods-notice, .wc-block-checkout__payment-method .wc-block-components-notice-banner.is-error',
 };

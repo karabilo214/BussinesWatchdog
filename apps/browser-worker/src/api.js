@@ -44,6 +44,29 @@ export function createApi({ apiUrl, token, fetchImpl = fetch }) {
     heartbeat(lease) {
       return call(`/internal/v1/browser/attempts/${lease.attempt_id}/heartbeat`, { fencing_token: lease.fencing_token }, { 'X-BW-Lease-Token': lease.lease_token });
     },
+    async artifact(lease, bytes, sha256) {
+      const response = await fetchImpl(`${apiUrl}/internal/v1/browser/attempts/${lease.attempt_id}/artifacts`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'image/jpeg',
+          Authorization: `Bearer ${token}`,
+          'X-BW-Lease-Token': lease.lease_token,
+          'X-BW-Fencing-Token': String(lease.fencing_token),
+          'X-BW-Sha256': sha256,
+          'X-BW-Redaction-Version': 'r1',
+        },
+        body: bytes,
+        signal: AbortSignal.timeout(20000),
+      });
+      const json = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new ApiError(response.status, json?.code);
+      }
+
+      return json.artifact_id;
+    },
     result(lease, result) {
       return call(`/internal/v1/browser/attempts/${lease.attempt_id}/result`, { fencing_token: lease.fencing_token, ...result }, { 'X-BW-Lease-Token': lease.lease_token });
     },

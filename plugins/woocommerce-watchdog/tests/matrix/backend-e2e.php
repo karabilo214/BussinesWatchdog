@@ -174,6 +174,16 @@ if ($action === 'browser-status') {
             'status' => $a->status,
             'error_code' => $a->error_code,
             'steps' => $a->steps->map(fn ($s) => $s->step_code.':'.$s->status.($s->error_code ? ':'.$s->error_code : '').(isset($s->assertions[0]['detail_code']) ? '('.$s->assertions[0]['detail_code'].')' : ''))->all(),
+            'artifacts' => \App\Models\Artifact::query()->where('attempt_id', $a->id)->where('state', 'ready')->get()->map(function ($artifact) {
+                $disk = \Illuminate\Support\Facades\Storage::disk('artifacts');
+                $bytes = $disk->exists($artifact->object_key) ? $disk->get($artifact->object_key) : '';
+
+                if ($bytes !== '' && getenv('BW_E2E_ARTIFACT_DIR')) {
+                    file_put_contents(getenv('BW_E2E_ARTIFACT_DIR').'/'.$artifact->id.'.jpg', $bytes);
+                }
+
+                return $artifact->content_type.':'.($bytes !== '' && hash('sha256', $bytes) === $artifact->sha256 ? 'stored' : 'missing');
+            })->all(),
             'errors' => collect($a->sanitized_error['relevant_errors'] ?? [])->map(fn ($e) => ($e['type'] ?? '?').':'.($e['message_code'] ?? $e['status'] ?? '').':'.($e['path'] ?? ''))->take(10)->all(),
         ])->all(),
     ];

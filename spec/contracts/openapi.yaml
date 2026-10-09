@@ -330,6 +330,31 @@ paths:
                 properties:
                   data: {type: array, items: {$ref: '#/components/schemas/CheckRun'}}
                   next_cursor: {type: [string, 'null']}
+  /api/v1/artifacts/{artifact_id}/url:
+    get:
+      tags: [Checks]
+      operationId: getArtifactUrl
+      security:
+        - UserSession: []
+      parameters:
+        - name: artifact_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      description: Tenant-authorised, 60-second link to a ready artifact; never cached or logged.
+      responses:
+        '200':
+          description: Short-lived link
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url, expires_at]
+                properties:
+                  url: {type: string, format: uri}
+                  expires_at: {type: string, format: date-time}
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/v1/check-runs/{run_id}:
     get:
       tags: [Checks]
@@ -416,6 +441,47 @@ paths:
                   lease_until: {type: string, format: date-time}
                   absolute_deadline_at: {type: string, format: date-time}
         '409':
+          $ref: '#/components/responses/Problem'
+  /internal/v1/browser/attempts/{attempt_id}/artifacts:
+    post:
+      tags: [BrowserInternal]
+      operationId: uploadBrowserArtifact
+      security:
+        - WorkerToken: []
+      parameters:
+        - $ref: '#/components/parameters/AttemptId'
+        - $ref: '#/components/parameters/LeaseToken'
+        - {name: X-BW-Fencing-Token, in: header, required: true, schema: {type: integer, minimum: 1}}
+        - {name: X-BW-Sha256, in: header, required: true, schema: {type: string, pattern: '^[0-9a-f]{64}$'}}
+        - {name: X-BW-Redaction-Version, in: header, required: true, schema: {type: string, maxLength: 32}}
+      description: |
+        Redacted screenshot of a live attempt (deviation from a presigned upload URL, ADR 0013):
+        the worker never receives storage credentials or URLs. The backend chooses the private
+        object key, checks size (≤ 2 MiB), image signature and SHA-256, stores the object and
+        records it as ready. At most 3 per attempt. Reference the id in the result's artifact_ids.
+      requestBody:
+        required: true
+        content:
+          image/jpeg: {schema: {type: string, format: binary}}
+          image/png: {schema: {type: string, format: binary}}
+      responses:
+        '201':
+          description: Stored
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [artifact_id, state]
+                properties:
+                  artifact_id: {type: string, format: uuid}
+                  state: {const: ready}
+        '409':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
           $ref: '#/components/responses/Problem'
   /internal/v1/browser/attempts/{attempt_id}/result:
     post:

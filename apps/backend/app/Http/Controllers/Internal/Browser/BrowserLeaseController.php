@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Internal\Browser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Browser\CompleteAttemptRequest;
 use App\Models\BrowserWorker;
+use App\Support\Browser\ArtifactStore;
 use App\Support\Browser\BrowserLeaseService;
 use App\Support\Browser\LeaseConflict;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +51,26 @@ class BrowserLeaseController extends Controller
         }
 
         return response()->json(['request_id' => (string) Str::uuid(), 'accepted' => true]);
+    }
+
+    public function artifact(Request $request, string $attemptId, ArtifactStore $artifacts): JsonResponse
+    {
+        try {
+            $artifact = $artifacts->storeScreenshot(
+                $this->worker($request),
+                $attemptId,
+                $this->leaseToken($request),
+                (int) $request->header('X-BW-Fencing-Token', '0'),
+                strtolower(trim(explode(';', (string) $request->header('Content-Type', ''))[0])),
+                strtolower((string) $request->header('X-BW-Sha256', '')),
+                (string) $request->header('X-BW-Redaction-Version', ''),
+                (string) $request->getContent(),
+            );
+        } catch (LeaseConflict $conflict) {
+            return $this->problem($conflict);
+        }
+
+        return response()->json(['artifact_id' => $artifact->id, 'state' => $artifact->state], 201);
     }
 
     private function worker(Request $request): BrowserWorker

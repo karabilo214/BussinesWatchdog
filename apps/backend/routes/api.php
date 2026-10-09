@@ -73,6 +73,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::get('/check-runs/{checkRun}', [CheckScenarioController::class, 'showRun'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+    Route::get('/artifacts/{artifact}/url', [CheckScenarioController::class, 'artifactUrl'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::storeRead()), 'throttle:artifact-url']);
 
     Route::post('/payment-allocations', [PaymentAllocationController::class, 'store'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::allocationManage()), 'idempotency']);

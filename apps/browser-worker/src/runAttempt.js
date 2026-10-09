@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createWooCommerceAdapter, StepOutcome } from './adapter/woocommerce.js';
 import { createNetworkPolicy } from './networkPolicy.js';
 import { REDACTION_VERSION, errorName, failureCode, redactUrl } from './redact.js';
@@ -6,6 +7,35 @@ const MAX_ERRORS = 100;
 const MAX_NETWORK_PER_STEP = 50;
 const WAF_MARKERS = /cf-chl|challenge-platform|captcha|just a moment|attention required|access denied|ddos protection/i;
 const RESULT_STATUSES = ['failed', 'blocked', 'inconclusive'];
+
+/**
+ * Everything a customer could type or a gateway could render is painted over before the
+ * screenshot leaves the browser: form fields, editable areas, iframes (card fields) and
+ * address blocks.
+ */
+export const SCREENSHOT_MASK = [
+  'input',
+  'textarea',
+  'select',
+  'iframe',
+  '[contenteditable="true"]',
+  'address',
+  '.woocommerce-customer-details',
+  '.woocommerce-order-details',
+  '.wc-block-components-address-card',
+  '.wc-block-components-address-form',
+  '.wc-block-components-text-input',
+  '.select2-container',
+  '.wc-block-components-combobox',
+];
+
+const FOCUS = {
+  product: 'form.cart, .product',
+  add_to_cart: '.woocommerce-error, .woocommerce-notices-wrapper, form.cart',
+  cart: '.woocommerce-cart-form, .wp-block-woocommerce-cart, .cart-empty',
+  checkout: 'form.checkout, .wp-block-woocommerce-checkout, .woocommerce-error',
+  payment_form: '#payment, .wc-block-checkout__payment-method, .wc-block-checkout__no-payment-methods-notice',
+};
 
 export function createErrorLog() {
   const entries = new Map();
@@ -32,7 +62,7 @@ export function createErrorLog() {
  * Never places an order: navigation and mutations go through the network policy, and the
  * adapter only reads the payment form.
  */
-export async function runAttempt({ browser, lease, insecureLocal = false, now = () => new Date() }) {
+export async function runAttempt({ browser, lease, insecureLocal = false, now = () => new Date(), uploadScreenshot = null }) {
   const scenario = lease.scenario;
   const policy = createNetworkPolicy({
     allowedOrigins: lease.network_policy.allowed_origins,
@@ -217,7 +247,34 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       }
     }
 
+    const artifactIds = [];
+
+    if (final !== null && uploadScreenshot !== null && deadline - Date.now() > 8000) {
+      try {
+        const focus = FOCUS[steps.find((step) => step.status !== 'passed' && step.status !== 'skipped')?.code];
+
+        if (focus) {
+          await page.locator(focus).first().scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => null);
+        }
+
+        const bytes = await page.screenshot({
+          type: 'jpeg',
+          quality: 60,
+          fullPage: false,
+          animations: 'disabled',
+          caret: 'hide',
+          mask: SCREENSHOT_MASK.map((selector) => page.locator(selector)),
+          maskColor: '#7f7f7f',
+          timeout: 5000,
+        });
+        artifactIds.push(await uploadScreenshot(bytes, createHash('sha256').update(bytes).digest('hex')));
+      } catch (error) {
+        errors.add({ type: 'artifact_failed', party: 'first', step_code: 'artifact', message_code: error?.code ?? errorName(error) });
+      }
+    }
+
     return {
+      ...(artifactIds.length > 0 ? { artifact_ids: artifactIds } : {}),
       status: final?.status ?? 'passed',
       error_code: final?.error_code ?? null,
       finished_at: now().toISOString(),

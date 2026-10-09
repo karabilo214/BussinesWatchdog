@@ -2,6 +2,7 @@
 
 namespace App\Support\Browser;
 
+use App\Models\Artifact;
 use App\Models\BrowserWorker;
 use App\Models\CheckAttempt;
 use App\Models\CheckRun;
@@ -25,6 +26,8 @@ class BrowserLeaseService
     public const ERROR_INFRA_TIMEOUT = 'infra_timeout';
 
     public const ERROR_RUN_CANCELLED = 'run_cancelled';
+
+    public const ERROR_ARTIFACT_UNKNOWN = 'artifact_unknown';
 
     public function __construct(
         private readonly CheckScheduler $scheduler,
@@ -178,6 +181,16 @@ class BrowserLeaseService
                 throw new LeaseConflict(self::ERROR_STALE_FENCING_TOKEN);
             }
 
+            $artifactIds = array_values(array_unique($result['artifact_ids'] ?? []));
+
+            if ($artifactIds !== [] && Artifact::query()
+                ->where('attempt_id', $attempt->id)
+                ->where('state', Artifact::STATE_READY)
+                ->whereIn('id', $artifactIds)
+                ->count() !== count($artifactIds)) {
+                throw new LeaseConflict(self::ERROR_ARTIFACT_UNKNOWN, 422);
+            }
+
             foreach ($result['steps'] as $step) {
                 CheckStep::query()->create([
                     'tenant_id' => $attempt->tenant_id,
@@ -259,6 +272,20 @@ class BrowserLeaseService
         }
 
         return $expiredIds->count();
+    }
+
+    /**
+     * A running, unexpired, current-fenced attempt of this worker, locked for update.
+     */
+    public function activeAttempt(BrowserWorker $worker, string $attemptId, string $leaseToken, int $fencingToken): CheckAttempt
+    {
+        $attempt = $this->lockedAttempt($worker, $attemptId, $leaseToken, $fencingToken);
+
+        if ($attempt->status !== CheckAttempt::STATUS_RUNNING || $attempt->result_hash !== null || $attempt->lease_until->lessThan(Carbon::now())) {
+            throw new LeaseConflict(self::ERROR_LEASE_EXPIRED);
+        }
+
+        return $attempt;
     }
 
     private function lockedAttempt(BrowserWorker $worker, string $attemptId, string $leaseToken, int $fencingToken): CheckAttempt

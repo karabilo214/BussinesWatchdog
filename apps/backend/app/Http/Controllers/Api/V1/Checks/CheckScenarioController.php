@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1\Checks;
 
 use App\Http\Controllers\Controller;
+use App\Models\Artifact;
 use App\Models\CheckAttempt;
 use App\Models\CheckRun;
 use App\Models\CheckScenario;
 use App\Models\Store;
 use App\Rules\PublicHttpsUrl;
 use App\Support\Api\UuidCursor;
+use App\Support\Browser\ArtifactStore;
 use App\Support\Browser\CheckScheduler;
 use App\Support\Browser\ScenarioDefinition;
 use App\Support\Tenancy\TenantContext;
@@ -179,6 +181,20 @@ class CheckScenarioController extends Controller
                 'started_at' => $attempt->started_at->toJSON(),
                 'finished_at' => $attempt->finished_at?->toJSON(),
                 'diagnostics' => $attempt->sanitized_error,
+                'artifacts' => Artifact::query()
+                    ->where('tenant_id', $attempt->tenant_id)
+                    ->where('attempt_id', $attempt->id)
+                    ->where('state', Artifact::STATE_READY)
+                    ->orderBy('created_at')
+                    ->get()
+                    ->map(fn (Artifact $artifact): array => [
+                        'id' => $artifact->id,
+                        'kind' => $artifact->kind,
+                        'content_type' => $artifact->content_type,
+                        'size_bytes' => $artifact->size_bytes,
+                        'redaction_version' => $artifact->redaction_version,
+                        'expires_at' => $artifact->expires_at->toJSON(),
+                    ])->values()->all(),
                 'steps' => $attempt->steps->map(fn ($step): array => [
                     'index' => $step->step_index,
                     'code' => $step->step_code,
@@ -191,6 +207,14 @@ class CheckScenarioController extends Controller
                 ])->values()->all(),
             ])->values()->all(),
         ]));
+    }
+
+    public function artifactUrl(Artifact $artifact, TenantContext $tenantContext, ArtifactStore $artifacts): JsonResponse
+    {
+        abort_unless($artifact->tenant_id === $tenantContext->requireTenantId('read artifact'), 404);
+        abort_unless($artifact->state === Artifact::STATE_READY && $artifact->expires_at->isFuture(), 404);
+
+        return response()->json($artifacts->temporaryUrl($artifact))->header('Cache-Control', 'no-store');
     }
 
     private function authorizeStore(Store $store, TenantContext $tenantContext): void

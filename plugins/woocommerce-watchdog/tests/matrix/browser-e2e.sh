@@ -17,15 +17,20 @@ TARGETS="${*:-$(cut -d= -f1 targets.env | tr '\n' ' ')}"
 STATUS=0
 ORIGIN="http://wordpress"
 
+S3_ENV="AWS_ENDPOINT=http://127.0.0.1:${S3_PORT:-9090} AWS_USE_PATH_STYLE_ENDPOINT=true"
+ARTIFACT_DIR="$(pwd)/.cache/artifacts"
+mkdir -p "$ARTIFACT_DIR"
+
 backend() {
-    (cd "$BACKEND_DIR" && env DB_HOST=127.0.0.1 "$@" "$PHP" artisan tinker --execute="require '${HELPER}';" 2>/dev/null) | sed -n 's/^BW_E2E_JSON=//p'
+    (cd "$BACKEND_DIR" && env DB_HOST=127.0.0.1 $S3_ENV BW_E2E_ARTIFACT_DIR="$ARTIFACT_DIR" "$@" "$PHP" artisan tinker --execute="require '${HELPER}';" 2>/dev/null) | sed -n 's/^BW_E2E_JSON=//p'
 }
 
 json() { python3 -c "import json,sys; print(json.loads(sys.argv[1])$2)" "$1"; }
 
 docker build -q -t bw-browser-worker:e2e "$WORKER_DIR" >/dev/null
+(cd ../../../.. && docker compose up -d s3 >/dev/null)
 
-(cd "$BACKEND_DIR" && DB_HOST=127.0.0.1 CACHE_STORE=database "$PHP" artisan serve --host=0.0.0.0 --port="$PORT" > "$SERVE_LOG" 2>&1) &
+(cd "$BACKEND_DIR" && env DB_HOST=127.0.0.1 CACHE_STORE=database $S3_ENV "$PHP" artisan serve --host=0.0.0.0 --port="$PORT" > "$SERVE_LOG" 2>&1) &
 SERVE_PID=$!
 trap 'kill $SERVE_PID 2>/dev/null; pkill -f "artisan serve --host=0.0.0.0 --port=${PORT}" 2>/dev/null || true' EXIT
 sleep 2
@@ -81,7 +86,7 @@ elif expect.startswith('passed:'):
     ok = state['run_status'] == 'passed' and attempt['steps'][-1].startswith('payment_form:passed') and any('checkout:passed(' + mode + ')' == s for s in attempt['steps'])
     print('ok' if ok else 'unexpected')
 else:
-    ok = attempt['status'] == 'failed' and attempt['error_code'] == 'site_failure' and any(s.startswith('payment_form:failed:site_failure') for s in attempt['steps']) and state['run_status'] == 'queued'
+    ok = attempt['status'] == 'failed' and attempt['error_code'] == 'site_failure' and any(s.startswith('payment_form:failed:site_failure') for s in attempt['steps']) and state['run_status'] == 'queued' and attempt['artifacts'] == ['image/jpeg:stored']
     print('ok' if ok else 'unexpected')
 PY
 )

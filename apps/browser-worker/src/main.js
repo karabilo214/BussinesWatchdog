@@ -83,7 +83,12 @@ async function main() {
       let result;
 
       try {
-        result = await runAttempt({ browser, lease, insecureLocal: config.insecureLocal });
+        result = await runAttempt({
+          browser,
+          lease,
+          insecureLocal: config.insecureLocal,
+          uploadScreenshot: (bytes, sha256) => api.artifact(lease, bytes, sha256),
+        });
       } catch (error) {
         result = {
           status: 'inconclusive',
