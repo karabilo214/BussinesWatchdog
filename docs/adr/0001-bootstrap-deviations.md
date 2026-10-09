@@ -46,6 +46,8 @@ Risk: fast tests do not prove PostgreSQL constraint behavior.
 
 Return plan: keep PostgreSQL migration verification in local Docker and add PostgreSQL integration tests before relying on DB constraints for acceptance.
 
+Resolution (Step 43, 2026-10-09): resolved. The whole suite now also runs on PostgreSQL 18 (`make backend-test-pgsql`, database `business_watchdog_test`), and `PostgresConstraintsTest` covers scoped FKs, `SET NULL (column)`, CHECK constraints and the partial unique active-incident index (skipped on SQLite). The first PostgreSQL run exposed a real bug hidden by SQLite: `EnsureIdempotencyKey` caught a unique violation inside the request transaction, which aborts a PostgreSQL transaction, so a replay returned 500; reservation now uses `INSERT … ON CONFLICT DO NOTHING`. SQLite remains the fast default; PostgreSQL runs are required before commits touching migrations or transactional code.
+
 ### Backend Uses File Sessions Until Session/Auth Migration Strategy Is Final
 
 Specification target: same-origin sessions with Laravel auth/session tables.
@@ -123,6 +125,8 @@ Reason: the reference composite FK uses `ON DELETE SET NULL (event_id)` semantic
 Risk: the database does not independently prove that projection `tenant_id/store_id` values match the referenced inbox event; application code currently writes scoped values from the same `EventInbox` row.
 
 Return plan: replace the simplified FK with PostgreSQL-specific DDL for the exact composite constraint, or make the scoped event reference enforceable through an additional nullable scoped key design, before projection tables are considered production-complete.
+
+Resolution (Step 43, 2026-10-09): resolved on PostgreSQL. Migration `2026_10_09_140000_scope_projection_event_foreign_keys` replaces both single-column FKs with `FOREIGN KEY (tenant_id, store_id, event_id|source_event_id) REFERENCES event_inbox(tenant_id, store_id, id) ON DELETE SET NULL (column)`, exactly as in `spec/database/schema.sql`. SQLite keeps the simplified FK (test-only).
 
 ## Tracking
 

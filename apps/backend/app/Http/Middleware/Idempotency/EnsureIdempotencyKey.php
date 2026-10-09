@@ -5,9 +5,9 @@ namespace App\Http\Middleware\Idempotency;
 use App\Models\IdempotencyKey;
 use App\Support\Tenancy\TenantContext;
 use Closure;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureIdempotencyKey
@@ -28,21 +28,26 @@ class EnsureIdempotencyKey
         $requestHash = hash('sha256', (string) $request->getContent());
 
         return DB::transaction(function () use ($request, $next, $tenantId, $actorId, $route, $key, $requestHash): Response {
-            try {
-                $reservation = IdempotencyKey::query()->create([
-                    'tenant_id' => $tenantId,
-                    'actor_user_id' => $actorId,
-                    'route' => $route,
-                    'idempotency_key' => $key,
-                    'request_hash' => $requestHash,
-                    'response_status' => null,
-                    'response_body' => null,
-                    'created_at' => now(),
-                    'expires_at' => now()->addHours(IdempotencyKey::TTL_HOURS),
-                ]);
-            } catch (UniqueConstraintViolationException) {
+            $reservationId = (string) Str::uuid7();
+            $reserved = IdempotencyKey::query()->insertOrIgnore([
+                'id' => $reservationId,
+                'tenant_id' => $tenantId,
+                'actor_user_id' => $actorId,
+                'route' => $route,
+                'idempotency_key' => $key,
+                'request_hash' => $requestHash,
+                'response_status' => null,
+                'response_body' => null,
+                'created_at' => now(),
+                'expires_at' => now()->addHours(IdempotencyKey::TTL_HOURS),
+            ]);
+
+            if ($reserved === 0) {
                 return $this->replayOrConflict($tenantId, $route, $key, $requestHash);
             }
+
+            /** @var IdempotencyKey $reservation */
+            $reservation = IdempotencyKey::query()->whereKey($reservationId)->firstOrFail();
 
             $response = $next($request);
 

@@ -1010,3 +1010,22 @@ Verification:
 Remaining:
 
 - ADR 0001: projection composite FKs / PostgreSQL test run, MinIO; network-level egress proxy for browser checks.
+
+### Step 43: Scoped Projection FKs And PostgreSQL Test Runs
+
+Status: complete; closes two ADR 0001 deviations (SQLite-only tests, simplified projection FKs)
+
+Added:
+
+- Full suite on PostgreSQL 18 via `make backend-test-pgsql`; PG-only constraint tests.
+- Scoped composite event FKs with `ON DELETE SET NULL (column)` on `order_revisions` and `financial_transactions`.
+- Fix: idempotency reservation no longer aborts the PostgreSQL transaction on a repeated key (was 500 on replay; hidden by SQLite).
+- `docs/implementation-step-43-checklist.md`; ADR 0001 sections marked resolved.
+
+Verification:
+
+- SQLite 259 passed + 4 PG-only skipped; PostgreSQL 263 passed.
+
+Remaining:
+
+- ADR 0001: local S3 storage (MinIO vs S3Mock). CI for both databases.

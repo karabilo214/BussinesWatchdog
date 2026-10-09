@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-09 (Step 42)
+2026-10-09 (Step 43)
 
 ## Что это за проект
 
@@ -14,7 +14,7 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 Репозиторий сейчас в фазе **D1–D5 бэкенд-слайсов** (по внутренней нумерации шагов `docs/progress.md`, не всегда совпадает 1:1 с разделом 36 ТЗ). P0 pilot пока не достигнут — минимальный кабинет, браузерные проверки и email ещё не реализованы.
 
-Реализовано (backend, `apps/backend`, до Step 42 включительно):
+Реализовано (backend, `apps/backend`, до Step 43 включительно):
 
 - Локальный инфраструктурный bootstrap (Docker Compose: PostgreSQL 18, Redis, S3Mock вместо MinIO, Mailpit).
 - Auth/tenancy: регистрация, membership/roles; с Step 39 — Sanctum SPA-сессии (`statefulApi`), CSRF на `api/*`, сессии в БД, лимиты login 5/мин и signup 3/час.
@@ -34,9 +34,9 @@ Business Watchdog — SaaS для обнаружения финансовых р
 - Email-уведомления (раздел 23 ТЗ, P0-часть): таблицы `notification_channels`/`notification_deliveries`/`notification_channel_verifications`. Переход инцидента (open/reopen/auto-resolve) в той же транзакции пишет `incident.notification_requested` в outbox; outbox-диспетчер раскладывает его в delivery на каждый включённый и подтверждённый канал (фильтр магазинов, порог severity, recovery opt-out, quiet hours, suppression → `suppressed`). Worker `notifications:deliver`: retry 1м/5м/15м/1ч/6ч + Retry-After, dead letter после 24ч с health канала, timeout → `uncertain` без автоповтора. Шаблоны ru/en/de без PII. API: `/notification-channels` (создание с кодом подтверждения на email, PATCH, verify, test раз в минуту), `GET /notification-deliveries`. Telegram пока отклоняется (P1). Решения — `docs/adr/0002-notification-delivery-decisions.md` (владелец принял как есть 2026-10-09).
 - Фоновая обработка (Step 38): «грязные» заказы (`reconciliation_dirty_subjects`) помечаются в транзакции проекции события и при создании/отзыве allocation, коалесинг 30 с; `reconciliation:process-dirty` пересчитывает их и обновляет инциденты (а значит и уведомления) без ручного вызова API. Повторная проверка в момент окончания grace. Ночной sweep 90 дней раз в сутки (02:30 UTC) с уникальным окном в `scheduled_job_windows`. Laravel scheduler: outbox каждые 10 с, dirty и уведомления каждые 30 с; в Docker Compose добавлен сервис `scheduler`. Решения — `docs/adr/0003-scheduler-and-dirty-reconciliation.md`.
 
-259 тестов проходят (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
+263 теста: на SQLite 259 проходят + 4 PostgreSQL-only пропускаются; на PostgreSQL 18 (`make backend-test-pgsql`) проходят все 263 (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
 
-Известные зафиксированные отклонения от спеки — `docs/adr/0001-bootstrap-deviations.md` и `docs/adr/0002-notification-delivery-decisions.md` (S3Mock вместо MinIO, упрощённые FK в projection-таблицах, неполная JSON Schema валидация ingest, pairing без полного anti-abuse).
+Известные зафиксированные отклонения от спеки — `docs/adr/0001-bootstrap-deviations.md` и `docs/adr/0002-notification-delivery-decisions.md` (S3Mock вместо MinIO, неполная JSON Schema валидация ingest, pairing без полного anti-abuse).
 
 Пока пустые заглушки: `apps/frontend` (Vue), `apps/browser-worker` (Node/Playwright), `plugins/woocommerce-watchdog`. `docs/compatibility.md` не заполнен — D0 compatibility spike (точные версии WP/WooCommerce/Stripe gateway/Playwright) не проводился.
 
@@ -44,8 +44,7 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 Закрываем оставшиеся пробелы ADR 0001 (по решению владельца 2026-10-09), по одному шагу:
 
-1. Step 43 — составные scoped FK в проекциях + прогон тестов на PostgreSQL (а не только SQLite).
-2. Step 44 — локальное S3-хранилище: MinIO vs S3Mock (ADR).
+1. Step 44 — локальное S3-хранилище: MinIO vs S3Mock (ADR).
 
 После этого — минимальный кабинет (`apps/frontend`), stale-integration detection (ACC-14), Telegram, escalation, browser worker.
 
