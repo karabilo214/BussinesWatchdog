@@ -2,7 +2,7 @@
 
 Date: 2026-10-08
 
-Status: accepted for local bootstrap; must be revisited before P0/P1 acceptance.
+Status: all deviations resolved or formalized as of 2026-10-09 (Steps 39–44); see the Resolution notes under each item.
 
 This ADR records temporary implementation deviations made to keep D1 bootstrap moving. Each item must either be reverted, formalized in a later ADR, or proven equivalent before the relevant acceptance gate.
 
@@ -19,6 +19,8 @@ Reason: the official `minio/minio` Docker image was not pullable from Docker Hub
 Risk: S3Mock behavior may differ from MinIO and production S3-compatible storage.
 
 Return plan: choose and pin the local object-storage emulator in a D0 infra ADR before storage-sensitive features or artifact retention are implemented.
+
+Resolution (Step 44, 2026-10-09): formalized in `docs/adr/0004-local-object-storage.md`. MinIO public images are no longer available (Docker Hub denied, quay.io unauthorized); S3Mock 5.2.2 stays pinned for local use, application code is restricted to portable S3 API features, and the choice is revisited with the artifact feature.
 
 ### Auth API Uses Session Middleware Without Sanctum Package
 

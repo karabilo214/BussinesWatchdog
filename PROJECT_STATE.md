@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-09 (Step 43)
+2026-10-09 (Step 44)
 
 ## Что это за проект
 
@@ -14,7 +14,7 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 Репозиторий сейчас в фазе **D1–D5 бэкенд-слайсов** (по внутренней нумерации шагов `docs/progress.md`, не всегда совпадает 1:1 с разделом 36 ТЗ). P0 pilot пока не достигнут — минимальный кабинет, браузерные проверки и email ещё не реализованы.
 
-Реализовано (backend, `apps/backend`, до Step 43 включительно):
+Реализовано (backend, `apps/backend`, до Step 44 включительно):
 
 - Локальный инфраструктурный bootstrap (Docker Compose: PostgreSQL 18, Redis, S3Mock вместо MinIO, Mailpit).
 - Auth/tenancy: регистрация, membership/roles; с Step 39 — Sanctum SPA-сессии (`statefulApi`), CSRF на `api/*`, сессии в БД, лимиты login 5/мин и signup 3/час.
@@ -36,17 +36,18 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 263 теста: на SQLite 259 проходят + 4 PostgreSQL-only пропускаются; на PostgreSQL 18 (`make backend-test-pgsql`) проходят все 263 (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
 
-Известные зафиксированные отклонения от спеки — `docs/adr/0001-bootstrap-deviations.md` и `docs/adr/0002-notification-delivery-decisions.md` (S3Mock вместо MinIO, неполная JSON Schema валидация ingest, pairing без полного anti-abuse).
+Отклонения из ADR 0001 закрыты или формализованы в Steps 39–44 (у каждого пункта есть Resolution); локальное S3 — `docs/adr/0004-local-object-storage.md` (MinIO больше не раздаётся публично, остаётся S3Mock). Остальные решения — ADR 0002 (уведомления), ADR 0003 (scheduler).
 
 Пока пустые заглушки: `apps/frontend` (Vue), `apps/browser-worker` (Node/Playwright), `plugins/woocommerce-watchdog`. `docs/compatibility.md` не заполнен — D0 compatibility spike (точные версии WP/WooCommerce/Stripe gateway/Playwright) не проводился.
 
 ## Следующий шаг
 
-Закрываем оставшиеся пробелы ADR 0001 (по решению владельца 2026-10-09), по одному шагу:
+Пробелы ADR 0001 закрыты. Варианты следующего крупного шага (выбирает владелец):
 
-1. Step 44 — локальное S3-хранилище: MinIO vs S3Mock (ADR).
-
-После этого — минимальный кабинет (`apps/frontend`), stale-integration detection (ACC-14), Telegram, escalation, browser worker.
+1. **Минимальный кабинет** (`apps/frontend`, Vue 3 + TS + Sanctum SPA): вход, магазины и верификация, интеграции, инциденты, сверка, каналы уведомлений.
+2. **Stale-integration detection** (нет 3 heartbeat → stale/partial, ACC-14) и coverage-сигналы.
+3. **WooCommerce-плагин** (`plugins/woocommerce-watchdog`): pairing, heartbeat, события, challenge endpoint, ротация ключа — сейчас бэкенд готов к нему, но плагина нет.
+4. Остальное: email verification / password reset / MFA, Telegram (P1), critical escalation (ADR), browser worker и checkout-инциденты, CI для SQLite + PostgreSQL.
 
 ## Как возобновить работу
 

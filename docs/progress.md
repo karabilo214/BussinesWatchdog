@@ -1029,3 +1029,16 @@ Verification:
 Remaining:
 
 - ADR 0001: local S3 storage (MinIO vs S3Mock). CI for both databases.
+
+### Step 44: Local Object Storage Decision
+
+Status: complete; formalizes the last ADR 0001 deviation
+
+Added:
+
+- `docs/adr/0004-local-object-storage.md`: MinIO images are no longer publicly pullable (checked Docker Hub and quay.io with a pinned tag); S3Mock 5.2.2 stays the pinned local S3 endpoint; application code limited to portable S3 features; revisit with the artifact feature.
+- ADR 0001 status updated: every deviation now has a Resolution note (Steps 39–44).
+
+Verification:
+
+- `docker pull` of pinned MinIO tags from both registries failed (denied/unauthorized). No code change; test suites unchanged (SQLite 259 + 4 skipped, PostgreSQL 263).
