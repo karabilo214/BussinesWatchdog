@@ -15,11 +15,34 @@ final class OrderCapture
 
     private static bool $shutdownRegistered = false;
 
+    private static ?bool $capturing = null;
+
+    private static $afterFlush = null;
+
+    public static function onRecorded(callable $callback): void
+    {
+        self::$afterFlush = $callback;
+    }
+
+    public static function capturing(): bool
+    {
+        if (self::$capturing === null) {
+            self::$capturing = \BusinessWatchdog\WooCommerce\Connection\Connection::current() !== null;
+        }
+
+        return self::$capturing;
+    }
+
+    public static function resetCapturingCache(): void
+    {
+        self::$capturing = null;
+    }
+
     public static function markDirty($orderId): void
     {
         $orderId = (int) $orderId;
 
-        if ($orderId <= 0) {
+        if ($orderId <= 0 || ! self::capturing()) {
             return;
         }
 
@@ -48,6 +71,10 @@ final class OrderCapture
             } catch (\Throwable $exception) {
                 self::recordError($id, $exception);
             }
+        }
+
+        if ($recorded > 0 && self::$afterFlush !== null) {
+            (self::$afterFlush)();
         }
 
         return $recorded;
@@ -111,7 +138,7 @@ final class OrderCapture
     {
         $orderId = (int) $orderId;
 
-        if ($orderId <= 0 || Revisions::find(self::orderKey($orderId)) === null) {
+        if ($orderId <= 0 || ! self::capturing() || Revisions::find(self::orderKey($orderId)) === null) {
             return 0;
         }
 
@@ -167,6 +194,11 @@ final class OrderCapture
         Outbox::enqueue(EventFactory::envelope($type, $aggregateType, $aggregateId, $revision, null, $data), $key);
 
         return 1;
+    }
+
+    public static function reportError(int $orderId, \Throwable $exception): void
+    {
+        self::recordError($orderId, $exception);
     }
 
     private static function recordError(int $orderId, \Throwable $exception): void

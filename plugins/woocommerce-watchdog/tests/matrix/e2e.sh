@@ -22,7 +22,7 @@ backend() {
 
 json() { python3 -c "import json,sys; print(json.loads(sys.argv[1])$2)" "$1"; }
 
-(cd "$BACKEND_DIR" && DB_HOST=127.0.0.1 CACHE_STORE=database "$PHP" artisan serve --host=0.0.0.0 --port="$PORT" > "$SERVE_LOG" 2>&1) &
+(cd "$BACKEND_DIR" && DB_HOST=127.0.0.1 CACHE_STORE=database WATCHDOG_RATE_PAIRING_PER_HOUR=10000 "$PHP" artisan serve --host=0.0.0.0 --port="$PORT" > "$SERVE_LOG" 2>&1) &
 SERVE_PID=$!
 trap 'kill $SERVE_PID 2>/dev/null; pkill -f "artisan serve --host=0.0.0.0 --port=${PORT}" 2>/dev/null || true' EXIT
 sleep 2
@@ -67,6 +67,33 @@ for target in $TARGETS; do
         for expected in order.snapshot:processing refund.snapshot:recorded refund.snapshot:deleted order.snapshot:on-hold order.deleted; do
             echo "$(json "$validation" "['types']")" | grep -q "'${expected}'" || result="missing_event(${expected})"
         done
+    fi
+
+    if [ "$result" = "ok" ]; then
+        delivered=$($W business-watchdog deliver)
+        remaining=$($W eval 'global $wpdb; echo (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}bw_outbox");')
+        projection=$(backend BW_E2E_ACTION=projection-status BW_E2E_STORE_ID="$store_id")
+        echo "  delivery: ${delivered} remaining=${remaining}"
+        echo "  backend: ${projection}"
+        [ "$remaining" = "0" ] || result="outbox_not_drained(${remaining})"
+        check=$(python3 - "$projection" <<'PY'
+import json, sys
+d = json.loads(sys.argv[1])
+problems = []
+if d['inbox'].get('processed', 0) == 0 or set(d['inbox']) != {'processed'}:
+    problems.append('inbox=%s' % d['inbox'])
+if d['refunds'] != [['5000', 'deleted']]:
+    problems.append('refunds=%s' % d['refunds'])
+eur = [o for o in d['orders'] if o[0] == 'EUR']
+jpy = [o for o in d['orders'] if o[0] == 'JPY']
+if not eur or eur[0][1:] != ['18400', 'processing', False, 'supported']:
+    problems.append('eur=%s' % eur)
+if not jpy or jpy[0][1] != '1500' or jpy[0][3] is not True or jpy[0][4] != 'unsupported':
+    problems.append('jpy=%s' % jpy)
+print('ok' if not problems else ';'.join(problems))
+PY
+)
+        [ "$check" = "ok" ] || result="projection_unexpected(${check})"
     fi
 
     if [ "$result" = "ok" ]; then echo "PASS ${target} e2e"; else echo "FAIL ${target} e2e: ${result}"; STATUS=1; fi

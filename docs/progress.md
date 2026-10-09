@@ -1078,3 +1078,22 @@ Verification:
 Remaining:
 
 - Outbox delivery, rescan/backfill, capabilities/deployment events (Step 47).
+
+### Step 47: Plugin Delivery, Rescan, Backfill And Environment Events
+
+Status: complete; the WooCommerce plugin now delivers end-to-end to the backend
+
+Added:
+
+- Signed batch delivery with per-event results, dead letter, suspension, Retry-After and jittered backoff; atomic delivery lock.
+- 48 h rescan every 15 min, 90-day resumable backfill after pairing and daily, capture gated on connection.
+- Capabilities and deployment events; WP-CLI deliver/rescan/backfill; diagnostics.
+- `docs/implementation-step-47-checklist.md`.
+
+Verification:
+
+- Integration 29/29 and e2e with real delivery + backend projections on all six WooCommerce targets; PHP 7.4 lint; backend suite green.
+
+Remaining:
+
+- Backlog degradation flag/limits, diagnostics download, browser-check support, telemetry (P2).

@@ -21,7 +21,16 @@ Supported floor: PHP 7.4+, WordPress 5.9+, WooCommerce 6.0+ (see `docs/compatibi
 - Deleted refunds are detected by comparing current refunds with previously sent ones (works on every version, including WC 7.9 HPOS which fires no hook); order deletion → `order.deleted`; trash → snapshot with status `trash`; Blocks drafts skipped.
 - Stripe gateways (`stripe`, `stripe_*`) → `financial_support: supported`; other gateways `unsupported`; no gateway `unknown`.
 
-Not yet: outbox delivery, rescan/backfill, capabilities/deployment events.
+## Implemented (Step 47)
+
+- Delivery every minute and right after new events (async): batches of ≤100 events / 1 MiB, signed; `accepted`/`duplicate` removed, `quarantined`/`invalid`/`conflict` moved to dead letter, 401 credential_revoked / signature_invalid / 403 suspend the connection (backlog kept), 429 honours `Retry-After`, other failures back off 30 s → 2 min → 10 min → 1 h → 6 h (±20 %). Atomic run lock in `bw_state`.
+- Capture only while a connection exists; history is covered by the backfill.
+- Rescan of orders modified in the last 48 h every 15 min (also catches refund deletions on WooCommerce versions that fire no hook).
+- Backfill of the last 90 days after pairing and as a daily audit: resumable page cursor, ≤1 page/s.
+- `integration.capabilities_changed` (HPOS, checkout mode) and `deployment.observed` (WordPress, WooCommerce, theme, active plugin version changes; version scan on heartbeat, explicit hook after upgrades).
+- WP-CLI: `wp business-watchdog deliver|rescan|backfill [--start] [--pages=N]`.
+
+Not yet: browser-check support (test product, synthetic marker), telemetry, diagnostics download, 7-day backlog degradation flag.
 
 ## Tests
 

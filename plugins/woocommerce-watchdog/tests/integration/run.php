@@ -16,6 +16,8 @@ function bw_assert(bool $condition, string $message): void
     }
 }
 
+\BusinessWatchdog\WooCommerce\Connection\Connection::store('https://bw.example.invalid', wp_generate_uuid4(), 'bwk_integration_test', base64_encode(random_bytes(32)));
+
 foreach (glob(__DIR__ . '/*Test.php') as $file) {
     require $file;
 }

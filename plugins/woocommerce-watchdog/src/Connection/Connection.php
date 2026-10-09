@@ -38,6 +38,7 @@ final class Connection
             'connected_at' => gmdate('c'),
         ];
         State::set(self::STATE_KEY, $data);
+        \BusinessWatchdog\WooCommerce\Capture\OrderCapture::resetCapturingCache();
 
         return new self($data);
     }
@@ -45,6 +46,7 @@ final class Connection
     public static function forget(): void
     {
         State::delete(self::STATE_KEY);
+        \BusinessWatchdog\WooCommerce\Capture\OrderCapture::resetCapturingCache();
     }
 
     public function endpoint(): string

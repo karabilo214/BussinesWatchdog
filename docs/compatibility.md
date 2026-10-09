@@ -19,7 +19,7 @@ Verified on 2026-10-09 with `plugins/woocommerce-watchdog/tests/matrix/run.sh` (
 
 Database for all targets: `mariadb:10.6.21`. WP-CLI 2.11.0.
 
-Scope of this verification: Step 45 — activation, schema install/re-install, environment detection, scheduling, secret storage, REST permissions, public challenge endpoint, pairing, signed heartbeat, rotation. Step 46 — order/refund/deletion capture (20 integration tests per target) and backend validation (JSON Schema + semantic) of the events produced by each real WooCommerce version.
+Scope of this verification: Step 45 — activation, schema install/re-install, environment detection, scheduling, secret storage, REST permissions, public challenge endpoint, pairing, signed heartbeat, rotation. Step 46 — order/refund/deletion capture and backend validation (JSON Schema + semantic) of the events produced by each real WooCommerce version. Step 47 — outbox delivery (202/207/401/429/5xx handling, batching, locking), 48 h rescan, 90-day backfill, capabilities and deployment events: 29 integration tests per target, and an e2e in which the plugin delivers to `/api/v1/ingest/events` and the backend projects orders, refunds and deletions correctly.
 
 ### Version differences found by the matrix (Step 46)
 

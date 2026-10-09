@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-09 (Step 46)
+2026-10-09 (Step 47)
 
 ## Что это за проект
 
@@ -38,18 +38,18 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 Отклонения из ADR 0001 закрыты или формализованы в Steps 39–44 (у каждого пункта есть Resolution); локальное S3 — `docs/adr/0004-local-object-storage.md` (MinIO больше не раздаётся публично, остаётся S3Mock). Остальные решения — ADR 0002 (уведомления), ADR 0003 (scheduler).
 
-WooCommerce-плагин (`plugins/woocommerce-watchdog`, Step 45): фундамент — слой совместимости по возможностям (HPOS/legacy, classic/blocks, Action Scheduler/WP-Cron), локальные таблицы, pairing, подписанный heartbeat с ротацией, публичный challenge. Нижняя граница по решению владельца: PHP 7.4 / WP 5.9 / WC 6.0 (ADR 0005). Docker-матрица из 6 целей (WC 6.0.2 … 11.2.0, legacy и HPOS) + e2e с бэкендом — всё зелёное; проверенные комбинации в `docs/compatibility.md`. С Step 46 плагин пишет снимки заказов/refund/удалений в локальный outbox с ревизиями (хуки только помечают заказ, снимок на shutdown; суммы строками в minor units); найденные различия версий WC задокументированы в `docs/compatibility.md`. Доставки outbox в бэкенд и rescan ещё нет.
+WooCommerce-плагин (`plugins/woocommerce-watchdog`, Step 45): фундамент — слой совместимости по возможностям (HPOS/legacy, classic/blocks, Action Scheduler/WP-Cron), локальные таблицы, pairing, подписанный heartbeat с ротацией, публичный challenge. Нижняя граница по решению владельца: PHP 7.4 / WP 5.9 / WC 6.0 (ADR 0005). Docker-матрица из 6 целей (WC 6.0.2 … 11.2.0, legacy и HPOS) + e2e с бэкендом — всё зелёное; проверенные комбинации в `docs/compatibility.md`. С Step 46 плагин пишет снимки заказов/refund/удалений в локальный outbox с ревизиями (хуки только помечают заказ, снимок на shutdown; суммы строками в minor units); найденные различия версий WC задокументированы в `docs/compatibility.md`. С Step 47 плагин доставляет события в бэкенд (батчи, retry, dead letter, suspend), делает rescan 48ч каждые 15 мин, backfill 90 дней и шлёт capabilities/deployment события; e2e на всех 6 версиях WooCommerce доходит до проекций бэкенда.
 
 Пока пустые заглушки: `apps/frontend` (Vue), `apps/browser-worker` (Node/Playwright).
 
 ## Следующий шаг
 
-Продолжение WooCommerce-плагина (решение владельца 2026-10-09):
+WooCommerce-плагин работает сквозь всю цепочку (P0-часть коннектора). Варианты дальше (выбирает владелец):
 
-1. **Step 47** — доставка outbox батчами (≤100 событий / 1 MiB, retry 30с/2м/10м/1ч/6ч ±20%, 401/403 → suspend, 422 → dead letter, 429 Retry-After), rescan изменённых заказов каждые 15 мин с 48ч overlap (обязателен: на WC 7.9 HPOS удаление refund не вызывает хуков), backfill 90 дней, события capabilities/deployment.
-2. Потом: минимальный кабинет, stale-integration detection (ACC-14), Telegram, escalation, browser worker.
-
-MinIO — владелец разберётся сам (ADR 0004 остаётся как есть).
+1. **Минимальный кабинет** (`apps/frontend`): вход, магазины + верификация + pairing code, интеграции, инциденты, сверка, каналы уведомлений.
+2. **Stale-integration detection** на бэкенде (нет 3 heartbeat → stale/partial, ACC-14) и coverage-сигналы — данные от плагина теперь есть.
+3. **Stripe read-only коннектор** (P1) — без него сверка видит только данные магазина, а captures/refunds провайдера не приходят.
+4. Доработки плагина: флаг деградации при backlog > 7 дней и лимит 100 000, отчёт «disabled» при деактивации, выгрузка диагностики, поиск пропавших заказов в ежедневном аудите.
 
 ## Как возобновить работу
 

@@ -63,4 +63,16 @@ if ($action === 'validate-events') {
     $out = ['count' => count($events), 'types' => $types, 'failures' => $failures];
 }
 
+if ($action === 'projection-status') {
+    $storeId = getenv('BW_E2E_STORE_ID');
+    \Illuminate\Support\Facades\Artisan::call('outbox:dispatch', ['--limit' => 100]);
+    \Illuminate\Support\Facades\Artisan::call('outbox:dispatch', ['--limit' => 100]);
+    $out = [
+        'inbox' => \App\Models\EventInbox::query()->where('store_id', $storeId)->get()->groupBy('status')->map->count()->all(),
+        'inbox_types' => \App\Models\EventInbox::query()->where('store_id', $storeId)->pluck('event_type')->countBy()->all(),
+        'orders' => \App\Models\Order::query()->where('store_id', $storeId)->orderBy('created_at')->get(['currency', 'total_minor', 'status', 'deleted_at', 'financial_support'])->map(fn ($o) => [$o->currency, (string) $o->total_minor, $o->status, $o->deleted_at !== null, $o->financial_support])->all(),
+        'refunds' => \App\Models\Refund::query()->where('store_id', $storeId)->get(['amount_minor', 'status'])->map(fn ($r) => [(string) $r->amount_minor, $r->status])->all(),
+    ];
+}
+
 echo 'BW_E2E_JSON='.json_encode($out).PHP_EOL;

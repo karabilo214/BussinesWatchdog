@@ -52,4 +52,40 @@ final class State
 
         return $installId;
     }
+
+    public static function acquireLock(string $name, int $ttlSeconds): bool
+    {
+        global $wpdb;
+
+        $table = Schema::stateTable();
+        $now = time();
+        $key = 'lock:' . $name;
+        $inserted = $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO {$table} (name, value, updated_at) VALUES (%s, %s, %s)",
+            $key,
+            (string) ($now + $ttlSeconds),
+            gmdate('Y-m-d H:i:s')
+        ));
+
+        if ((int) $inserted === 1) {
+            return true;
+        }
+
+        $takenOver = $wpdb->query($wpdb->prepare(
+            "UPDATE {$table} SET value = %s, updated_at = %s WHERE name = %s AND CAST(value AS UNSIGNED) <= %d",
+            (string) ($now + $ttlSeconds),
+            gmdate('Y-m-d H:i:s'),
+            $key,
+            $now
+        ));
+
+        return (int) $takenOver === 1;
+    }
+
+    public static function releaseLock(string $name): void
+    {
+        global $wpdb;
+
+        $wpdb->delete(Schema::stateTable(), ['name' => 'lock:' . $name], ['%s']);
+    }
 }

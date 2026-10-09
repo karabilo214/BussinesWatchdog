@@ -44,6 +44,7 @@ final class PairingClient
         }
 
         Connection::store($endpoint, (string) $json['integration_id'], (string) $json['key_id'], (string) $json['secret']);
+        \BusinessWatchdog\WooCommerce\Plugin::onPaired();
 
         return ['ok' => true, 'code' => null];
     }

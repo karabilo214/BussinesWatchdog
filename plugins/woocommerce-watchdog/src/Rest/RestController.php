@@ -124,6 +124,9 @@ final class RestController
                 'oldest_pending_at' => OutboxStats::oldestPendingAt(),
                 'dead_letter_count' => OutboxStats::deadLetterCount(),
             ],
+            'last_delivery' => State::get(\BusinessWatchdog\WooCommerce\Jobs\DeliveryJob::STATE_LAST),
+            'last_rescan' => State::get(\BusinessWatchdog\WooCommerce\Jobs\RescanJob::STATE_LAST),
+            'backfill' => State::get(\BusinessWatchdog\WooCommerce\Jobs\BackfillJob::STATE),
             'last_capture_error' => State::get(\BusinessWatchdog\WooCommerce\Capture\OrderCapture::STATE_LAST_ERROR),
             'site_base_url' => PairingClient::siteBaseUrl(),
         ];

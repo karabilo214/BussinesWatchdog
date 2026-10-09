@@ -8,7 +8,7 @@ final class WpCronAdapter implements Scheduler
 
     public static function registerSchedules(array $schedules): array
     {
-        foreach ([60, 300, 900] as $seconds) {
+        foreach ([60, 300, 900, 86400] as $seconds) {
             $schedules[self::SCHEDULE_PREFIX . $seconds] = [
                 'interval' => $seconds,
                 'display' => sprintf('Business Watchdog every %d seconds', $seconds),
