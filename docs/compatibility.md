@@ -58,6 +58,8 @@ Verified on 2026-10-09 with `plugins/woocommerce-watchdog/tests/matrix/browser-e
 
 Found by the matrix: WooCommerce's add-to-cart form is `multipart/form-data`, so the network policy parses multipart bodies; until it did, the policy blocked add-to-cart as an unknown mutation (safe, but it would have produced a false "cart empty" failure — failures right after the worker blocked an unknown mutation are now reported as unsupported, never as a store failure).
 
+Step 53 (plugin paired, synthetic marker on): the plugin verified the marker for every run; the Blocks check created one checkout draft on WC 8.9.5 and 9.9.7 (marked, then removed by the cleanup) and none on 11.2.0; a customer draft was kept on every target; no orders and no payment attempts were recorded.
+
 Not verified: variable products, required shipping before the payment step, gateways that need an address before rendering, third-party gateway iframes (Stripe, PayPal), custom themes.
 
 Not verified: WooCommerce Stripe gateway versions, themes, multisite, PHP 7.4 with WooCommerce ≥ 7 (official WordPress images for newer WP versions no longer ship PHP 7.4), WP-Cron-only path (Action Scheduler is bundled in every WooCommerce ≥ 6.0 tested).

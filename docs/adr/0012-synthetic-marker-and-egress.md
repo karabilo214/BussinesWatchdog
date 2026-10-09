@@ -14,7 +14,7 @@ Status: implemented in Step 53.
 ## Blocks draft cleanup
 
 - Every 15 minutes the plugin deletes, through WooCommerce (`$order->delete(true)`), only orders that are still `checkout-draft`, carry the synthetic mark and are older than 10 minutes. Customer drafts and any non-draft order are never touched (integration test + matrix e2e). Deleting a draft the backend never saw sends no event.
-- Matrix finding: on WooCommerce 8.9–11.2 opening the Blocks checkout for a virtual product during the check created no draft order at all; the cleanup path is covered by integration tests and stays as a safety net for stores and versions that do create drafts.
+- Matrix finding (Step 53 run): the Blocks check created one checkout draft on WooCommerce 8.9 and 9.9 — it was marked with the run id and removed by the cleanup while the customer draft stayed; WooCommerce 11.2 created no draft during the check; 6.0 and 7.9 have no Blocks checkout page in the matrix.
 
 ## Egress proxy (spec §19)
 
