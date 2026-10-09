@@ -1251,3 +1251,17 @@ Added:
 - Seven OKLCH-generated 11-step scales (brand, ink, success, warning, danger, info, unknown), every semantic text/background pair WCAG 2.1 AA.
 - `apps/frontend/design/palette.json` (source), `apps/frontend/src/styles/palette.css` (Tailwind v4 `@theme`, default colours disabled, semantic tokens), `docs/design/palette.md` (values, contrast, status mapping), `scripts/check-palette.mjs` + `make frontend-palette-check` (fingerprint, CSS drift, defaults disabled).
 - Preview page published for the owner.
+
+### Step 56: Dashboard Scaffold (ADR 0016)
+
+Status: complete
+
+Added:
+
+- `apps/frontend`: Vue 3 + TypeScript + Vite 8 + Tailwind 4 (pinned, Node 24 LTS), Sanctum session client, i18n ru/en/de, router with auth guard, layout, login, store overview with coverage cards.
+- Tests: contract states ↔ colours/labels, translation parity, API client (CSRF, headers, errors, 401), store card; Chromium smoke against the real backend (`make frontend-smoke`).
+- Makefile targets `frontend-install/dev/check/smoke`.
+
+Verification:
+
+- `make frontend-check` green (12 tests, build); smoke 8/8 with screenshots inspected; backend suites green.

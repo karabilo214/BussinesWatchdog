@@ -1,0 +1,88 @@
+{
+  "app": {
+    "name": "Business Watchdog",
+    "tagline": "Monitoring for store sales and payments"
+  },
+  "nav": {
+    "main": "Main navigation",
+    "overview": "Overview"
+  },
+  "common": {
+    "loading": "Loading…",
+    "retry": "Try again",
+    "error_generic": "The data could not be loaded. Try again; if it keeps failing, send us the request ID.",
+    "error_network": "The server cannot be reached. Check your internet connection.",
+    "request_id": "Request ID: {id}",
+    "sign_out": "Sign out",
+    "language": "Language",
+    "never": "not yet"
+  },
+  "auth": {
+    "title": "Sign in",
+    "subtitle": "Use the e-mail and password you registered with.",
+    "email": "E-mail",
+    "password": "Password",
+    "remember": "Keep me signed in on this device",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "failed": "Wrong e-mail or password.",
+    "rate_limited": "Too many attempts. Wait a minute and try again.",
+    "session_expired": "Your session has ended. Sign in again."
+  },
+  "overview": {
+    "title": "Stores",
+    "subtitle": "What the service can currently see for each store. \"No data\" does not mean everything is fine.",
+    "empty_title": "No stores yet",
+    "empty_body": "Stores you add appear here with the state of the plugin, money reconciliation, payment attempts and checkout checks.",
+    "active_incidents": "Active incidents: {n}",
+    "no_incidents": "No active incidents",
+    "last_passed_check": "Last passed check: {time}"
+  },
+  "store_status": {
+    "onboarding": "Onboarding",
+    "active": "Active",
+    "paused": "Paused",
+    "degraded": "Degraded",
+    "deleted": "Deleted"
+  },
+  "coverage": {
+    "connector": {
+      "label": "Store plugin",
+      "fresh": "connected",
+      "partial": "delivery delayed",
+      "stale": "not checking in",
+      "warming_up": "waiting for first signal",
+      "not_connected": "not connected",
+      "detail_heartbeat": "last signal {time}"
+    },
+    "money": {
+      "label": "Money reconciliation",
+      "reconciling": "reconciling",
+      "provider_not_connected": "no payment provider connected",
+      "store_not_connected": "store not connected",
+      "store_data_stale": "store data out of date",
+      "detail_provider": "connect Stripe or PayPal to reconcile"
+    },
+    "payment_attempts": {
+      "label": "Payment attempts",
+      "observing": "observed",
+      "no_recent_attempts": "no attempts in 24 h",
+      "no_attempts_seen": "no attempts seen yet",
+      "store_data_stale": "store data out of date",
+      "store_not_connected": "store not connected",
+      "detail_window": "last window {time}"
+    },
+    "browser_checks": {
+      "label": "Checkout path",
+      "passing": "passing",
+      "failing": "failing",
+      "not_conclusive": "inconclusive",
+      "scheduled": "first check scheduled",
+      "scenario_disabled": "check turned off",
+      "not_configured": "check not set up",
+      "disabled": "checks turned off",
+      "store_not_verified": "domain not verified",
+      "detail_next": "next {time}"
+    }
+  }
+}

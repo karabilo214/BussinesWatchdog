@@ -1,15 +1,24 @@
 # Frontend
 
-Vue 3 + TypeScript + Tailwind CSS frontend (scaffold follows).
+Customer dashboard (`/app/`): Vue 3 + TypeScript + Vite + Tailwind CSS 4, session auth via Sanctum (ADR 0016).
 
-Colours: the corporate palette is frozen (ADR 0015) — `design/palette.json`, `src/styles/palette.css`, rules in `docs/design/palette.md`; check with `make frontend-palette-check`. Tailwind's default colours are disabled; use the semantic tokens (`bg-primary`, `text-muted`, `bg-ok-soft text-ok`, `bg-unknown-soft text-unknown`, …).
+Planned surfaces: `/app` customer workspace (in progress), `/owner` platform owner, `/admin` platform staff, public pages per `spec/panels/PUBLIC-SUBSCRIPTION-FRONTEND.md`. The frontend uses backend authorization results and never duplicates financial, tenant isolation or entitlement rules.
 
-Planned surfaces:
+## Setup
 
-- `/app` — customer tenant workspace.
-- `/owner` — platform owner control surface.
-- `/admin` — platform staff operations.
-- Public pages and billing flow per `spec/panels/PUBLIC-SUBSCRIPTION-FRONTEND.md`.
+Node 24 LTS (`.nvmrc`). From the repository root:
 
-Frontend must use backend authorization results and must not duplicate financial, tenant isolation, or entitlement rules.
+```sh
+make frontend-install   # npm ci
+make frontend-dev       # Vite on http://localhost:5173/app/, proxies /api and /sanctum to http://127.0.0.1:8000
+make frontend-check     # palette, vue-tsc, Vitest, production build
+make frontend-smoke     # backend + Vite + Chromium end-to-end smoke
+```
 
+Run the backend with `php artisan serve --port=8000` (with `DB_HOST=127.0.0.1` and, without phpredis, `CACHE_STORE=database`). `BW_BACKEND_URL` overrides the proxy target.
+
+## Conventions
+
+- Colours: only the frozen palette (ADR 0015, `docs/design/palette.md`). Tailwind's default colours are disabled; use semantic tokens (`bg-primary`, `text-muted`, `bg-ok-soft text-ok`, `bg-unknown-soft text-unknown`, …). "Unknown" never renders green.
+- Text: every user-facing string is a translation key in `src/i18n/locales/{ru,en,de}.json`; `tests/i18n.test.ts` keeps them in sync.
+- API: `src/api/http.ts` (CSRF, `If-Match`, `Idempotency-Key`, request IDs); types in `src/api/types.ts` mirror `contracts/openapi.yaml`.
