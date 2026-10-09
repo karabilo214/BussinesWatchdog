@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-09 (Step 47)
+2026-10-09 (Step 48)
 
 ## Что это за проект
 
@@ -34,7 +34,9 @@ Business Watchdog — SaaS для обнаружения финансовых р
 - Email-уведомления (раздел 23 ТЗ, P0-часть): таблицы `notification_channels`/`notification_deliveries`/`notification_channel_verifications`. Переход инцидента (open/reopen/auto-resolve) в той же транзакции пишет `incident.notification_requested` в outbox; outbox-диспетчер раскладывает его в delivery на каждый включённый и подтверждённый канал (фильтр магазинов, порог severity, recovery opt-out, quiet hours, suppression → `suppressed`). Worker `notifications:deliver`: retry 1м/5м/15м/1ч/6ч + Retry-After, dead letter после 24ч с health канала, timeout → `uncertain` без автоповтора. Шаблоны ru/en/de без PII. API: `/notification-channels` (создание с кодом подтверждения на email, PATCH, verify, test раз в минуту), `GET /notification-deliveries`. Telegram пока отклоняется (P1). Решения — `docs/adr/0002-notification-delivery-decisions.md` (владелец принял как есть 2026-10-09).
 - Фоновая обработка (Step 38): «грязные» заказы (`reconciliation_dirty_subjects`) помечаются в транзакции проекции события и при создании/отзыве allocation, коалесинг 30 с; `reconciliation:process-dirty` пересчитывает их и обновляет инциденты (а значит и уведомления) без ручного вызова API. Повторная проверка в момент окончания grace. Ночной sweep 90 дней раз в сутки (02:30 UTC) с уникальным окном в `scheduled_job_windows`. Laravel scheduler: outbox каждые 10 с, dirty и уведомления каждые 30 с; в Docker Compose добавлен сервис `scheduler`. Решения — `docs/adr/0003-scheduler-and-dirty-reconciliation.md`.
 
-263 теста: на SQLite 259 проходят + 4 PostgreSQL-only пропускаются; на PostgreSQL 18 (`make backend-test-pgsql`) проходят все 263 (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
+- Шлюз покрытия провайдером (Step 48, ADR 0006 п.1): без активной интеграции `independent_provider` сверка заказа даёт `MONEY_UNSUPPORTED` / `unknown` / `provider_not_connected` и не открывает инцидентов; сканер платежей без заказа и allocation работают только с данными независимого провайдера; приём событий отклоняет `independent_provider` от ключа плагина (`source_authority_not_permitted`); отзыв провайдера ставит окно 90 дней магазина на пересчёт.
+
+268 тестов: на SQLite 264 проходят + 4 PostgreSQL-only пропускаются; на PostgreSQL 18 (`make backend-test-pgsql`) проходят все 268 (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
 
 Отклонения из ADR 0001 закрыты или формализованы в Steps 39–44 (у каждого пункта есть Resolution); локальное S3 — `docs/adr/0004-local-object-storage.md` (MinIO больше не раздаётся публично, остаётся S3Mock). Остальные решения — ADR 0002 (уведомления), ADR 0003 (scheduler).
 
@@ -49,7 +51,7 @@ WooCommerce-плагин работает сквозь всю цепочку (P0
 1. **Минимальный кабинет** (`apps/frontend`): вход, магазины + верификация + pairing code, интеграции, инциденты, сверка, каналы уведомлений.
 2. **Stale-integration detection** на бэкенде (нет 3 heartbeat → stale/partial, ACC-14) и coverage-сигналы — данные от плагина теперь есть.
 3. **Stripe read-only коннектор** (P1) — без него сверка видит только данные магазина, а captures/refunds провайдера не приходят.
-4. Решено, отложено (ADR 0006, ТЗ §10.1): Stripe опционален, ключ вводится в кабинете; без Stripe сверка денег → `unknown/provider_not_connected` без инцидентов; события `independent_provider` только от ключа провайдера. Реализовать до первого реального запуска сверки.
+4. ~~Шлюз «провайдер не подключён»~~ — сделано в Step 48 (ADR 0006 п.1). Осталось: Stripe-коннектор (п.3), при подключении вызывать `StoreReconciliationRequeue`.
 5. Решено, отложено (ADR 0007, ТЗ §17.1 и §2): наблюдение реальных попыток оплаты — слой 1 серверный в плагине (P0), слой 2 скрипт на checkout (P1) с устойчивостью к поломке JS (сравнение отданных страниц checkout с сигналами скрипта, молчание ≠ здоров). Приоритетно перед P0 pilot.
 6. Дополнение 1.2 (контроль исполнения оплаченных заказов) включено в ТЗ, §43 + `spec/Business-Watchdog-Market-Research-and-Product-Addendum-RU.md`. Решено: входит в P1, но только для отдельных тарифов (ADR 0008, ТЗ §29.1 — функциональные пакеты тарифов, feature codes, проверка только на backend, один плагин для всех тарифов). Подписок ещё нет, но новые функции строить сразу за feature code и проверкой entitlement. Платёжные адаптеры P1: Stripe и PayPal (ТЗ §10.2, PayPal — spike по минимальным правам и плагину PayPal Payments); easyCredit — кандидат, нужна проверка API и семантики рассрочки (§10.3). Открыто (§43.4): распределение функций по тарифам и цены, адаптеры исполнения/почты (Sendcloud, Postmark), ADR о записи во внешние системы. Frontend — после готовности backend.
 7. Доработки плагина: флаг деградации при backlog > 7 дней и лимит 100 000, отчёт «disabled» при деактивации, выгрузка диагностики, поиск пропавших заказов в ежедневном аудите.

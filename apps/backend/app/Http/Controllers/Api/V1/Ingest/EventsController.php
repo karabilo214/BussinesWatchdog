@@ -23,6 +23,8 @@ class EventsController extends Controller
 
     public const ERROR_EVENT_ID_CONFLICT = 'event_id_conflict';
 
+    public const ERROR_SOURCE_AUTHORITY_NOT_PERMITTED = 'source_authority_not_permitted';
+
     public const RESULT_ACCEPTED = 'accepted';
 
     public const RESULT_DUPLICATE = 'duplicate';
@@ -80,6 +82,12 @@ class EventsController extends Controller
 
                 if (! $validation->valid && ! $validation->quarantinable) {
                     $results[] = $this->recordResult($index, $eventId, null, self::RESULT_INVALID, $validation->errorCode);
+
+                    continue;
+                }
+
+                if (! $this->authorityPermitted($event, $integration)) {
+                    $results[] = $this->recordResult($index, $eventId, null, self::RESULT_INVALID, self::ERROR_SOURCE_AUTHORITY_NOT_PERMITTED);
 
                     continue;
                 }
@@ -163,6 +171,17 @@ class EventsController extends Controller
         ], $status);
     }
 
+    private function authorityPermitted(array $event, Integration $integration): bool
+    {
+        $authority = is_array($event['data'] ?? null) ? ($event['data']['source_authority'] ?? null) : null;
+
+        return $authority !== Integration::SOURCE_INDEPENDENT_PROVIDER
+            || $integration->source_authority === Integration::SOURCE_INDEPENDENT_PROVIDER;
+    }
+
+    /**
+     * @param  array<string, mixed>  $event
+     */
     private function payloadHash(array $event): string
     {
         $canonical = $this->canonicalize($event);

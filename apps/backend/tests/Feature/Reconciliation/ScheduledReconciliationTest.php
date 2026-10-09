@@ -13,6 +13,7 @@ use App\Models\ReconciliationDirtySubject;
 use App\Models\ReconciliationRun;
 use App\Models\ScheduledJobWindow;
 use App\Support\Incidents\MoneyIncidentCorrelator;
+use App\Support\Integrations\ProviderCoverage;
 use App\Support\Notifications\IncidentNotificationRequester;
 use App\Support\Payments\PaymentAllocationService;
 use App\Support\Reconciliation\DirtySubjectMarker;
@@ -149,7 +150,7 @@ class ScheduledReconciliationTest extends TestCase
         $context = $this->context();
         $order = $this->order($context);
         app(DirtySubjectMarker::class)->markOrder($context['tenant']->id, $context['store']->id, $order->id, ReconciliationDirtySubject::REASON_ORDER_EVENT, now());
-        $this->app->bind(OrderReconciliationService::class, fn () => new class extends OrderReconciliationService
+        $this->app->bind(OrderReconciliationService::class, fn () => new class(new ProviderCoverage) extends OrderReconciliationService
         {
             public function evaluate(Order $order, string $trigger = 'manual'): ReconciliationRun
             {

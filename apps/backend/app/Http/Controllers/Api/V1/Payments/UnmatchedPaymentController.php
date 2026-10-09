@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Payments;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payments\ListUnmatchedPaymentsRequest;
 use App\Models\FinancialTransaction;
+use App\Models\Integration;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
@@ -35,6 +36,7 @@ class UnmatchedPaymentController extends Controller
         $query = FinancialTransaction::query()
             ->where('tenant_id', $tenantId)
             ->where('store_id', $store->id)
+            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
             ->where('kind', 'capture')
             ->where('status', 'succeeded')
             ->whereNotIn('id', $allocatedCaptureIds);

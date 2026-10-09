@@ -25,6 +25,8 @@ class ReconciliationDirtySubject extends Model
 
     public const REASON_NIGHTLY_SWEEP = 'nightly_sweep';
 
+    public const REASON_PROVIDER_COVERAGE_CHANGED = 'provider_coverage_changed';
+
     public $timestamps = false;
 
     protected $fillable = [

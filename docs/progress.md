@@ -1097,3 +1097,23 @@ Verification:
 Remaining:
 
 - Backlog degradation flag/limits, diagnostics download, browser-check support, telemetry (P2).
+
+### Step 48: Provider Coverage Gating (ADR 0006, item 1)
+
+Status: complete; without a connected independent provider money reconciliation no longer produces false incidents
+
+Added:
+
+- `ProviderCoverage` (active `independent_provider` integration), gating in `OrderReconciliationService` (`MONEY_UNSUPPORTED` / `unknown` / `provider_not_connected`), `UnmatchedPaymentScanner` and the unmatched-payments endpoint (independent captures only).
+- Allocation of non-independent capture/refund transactions is rejected (`allocation_source_not_independent`) — store-reported data can never stand in for a provider capture.
+- Ingest rejects `independent_provider` evidence from `store_reported` credentials (`source_authority_not_permitted`).
+- `StoreReconciliationRequeue` (shared with the nightly sweep); revoking a provider integration requeues the store's 90-day window.
+- `docs/implementation-step-48-checklist.md`; ADR 0006 updated.
+
+Verification:
+
+- SQLite 264 passed + 4 skipped; PostgreSQL 18 268 passed.
+
+Remaining:
+
+- Stripe read-only connector (ADR 0006 item 2), which will also requeue on connect.

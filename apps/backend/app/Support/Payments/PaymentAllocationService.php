@@ -5,6 +5,7 @@ namespace App\Support\Payments;
 use App\Exceptions\Payments\AllocationRejected;
 use App\Models\AuditLog;
 use App\Models\FinancialTransaction;
+use App\Models\Integration;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
@@ -41,6 +42,8 @@ class PaymentAllocationService
 
     public const ERROR_ORDER_MISMATCH = 'allocation_order_mismatch';
 
+    public const ERROR_SOURCE_NOT_INDEPENDENT = 'allocation_source_not_independent';
+
     /**
      * @param  array<string, mixed>  $evidence
      */
@@ -67,6 +70,10 @@ class PaymentAllocationService
                 || $lockedCapture->kind !== 'capture'
                 || $lockedCapture->status !== 'succeeded') {
                 throw new AllocationRejected(self::ERROR_CAPTURE_INVALID);
+            }
+
+            if ($lockedCapture->source_authority !== Integration::SOURCE_INDEPENDENT_PROVIDER) {
+                throw new AllocationRejected(self::ERROR_SOURCE_NOT_INDEPENDENT);
             }
 
             if ($lockedPayment->currency !== $lockedCapture->currency || $lockedOrder->currency !== $lockedCapture->currency) {
@@ -130,6 +137,10 @@ class PaymentAllocationService
 
             if ($lockedRefundTransaction->kind !== 'refund' || $lockedRefundTransaction->status !== 'succeeded') {
                 throw new AllocationRejected(self::ERROR_REFUND_INVALID);
+            }
+
+            if ($lockedRefundTransaction->source_authority !== Integration::SOURCE_INDEPENDENT_PROVIDER) {
+                throw new AllocationRejected(self::ERROR_SOURCE_NOT_INDEPENDENT);
             }
 
             if ($lockedRefund->currency !== $lockedRefundTransaction->currency || $lockedPaymentAllocation->currency !== $lockedRefundTransaction->currency) {

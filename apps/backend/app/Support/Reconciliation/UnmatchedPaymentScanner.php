@@ -3,10 +3,12 @@
 namespace App\Support\Reconciliation;
 
 use App\Models\FinancialTransaction;
+use App\Models\Integration;
 use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Store;
+use App\Support\Integrations\ProviderCoverage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -20,10 +22,15 @@ class UnmatchedPaymentScanner
 
     public const MAX_FINDINGS_PER_RUN = 100;
 
+    public function __construct(
+        private readonly ProviderCoverage $coverage,
+    ) {}
+
     public function scan(Store $store, string $trigger = 'manual'): ReconciliationRun
     {
         return DB::transaction(function () use ($store, $trigger): ReconciliationRun {
             $now = Carbon::now();
+            $providerConnected = $this->coverage->isConnected($store->tenant_id, $store->id);
 
             $run = ReconciliationRun::query()->create([
                 'tenant_id' => $store->tenant_id,
@@ -33,7 +40,7 @@ class UnmatchedPaymentScanner
                 'config_version' => self::CONFIG_VERSION,
                 'currency' => null,
                 'scope' => ['store_id' => $store->id, 'trigger' => $trigger, 'rule_code' => ReconciliationFinding::RULE_PAYMENT_WITHOUT_ORDER],
-                'coverage_snapshot' => [],
+                'coverage_snapshot' => ['provider_connected' => $providerConnected],
                 'counters' => [],
                 'started_at' => $now,
                 'created_at' => $now,
@@ -46,9 +53,10 @@ class UnmatchedPaymentScanner
                 ->whereNull('revoked_at')
                 ->pluck('capture_transaction_id');
 
-            $orphanCaptures = FinancialTransaction::query()
+            $orphanCaptures = ! $providerConnected ? collect() : FinancialTransaction::query()
                 ->where('tenant_id', $store->tenant_id)
                 ->where('store_id', $store->id)
+                ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
                 ->where('kind', 'capture')
                 ->where('status', 'succeeded')
                 ->where('occurred_at', '<=', $graceDeadline)

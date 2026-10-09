@@ -223,6 +223,23 @@ class IngestEventsApiTest extends TestCase
             ->assertJsonPath('code', EventValidationResult::ERROR_SCHEMA_INVALID);
     }
 
+    public function test_connector_credentials_cannot_submit_independent_provider_evidence(): void
+    {
+        [, $credential, $secret] = $this->integrationCredential();
+        $independent = $this->paymentEvent('44444444-4444-4444-8444-444444444441', 'independent_provider');
+        $storeReported = $this->paymentEvent('44444444-4444-4444-8444-444444444442', 'store_reported');
+        $body = json_encode(['events' => [$independent, $storeReported]], JSON_THROW_ON_ERROR);
+
+        $this->callSignedEvents($credential->key_id, $secret, $body)
+            ->assertStatus(207)
+            ->assertJsonPath('results.0.status', EventsController::RESULT_INVALID)
+            ->assertJsonPath('results.0.code', EventsController::ERROR_SOURCE_AUTHORITY_NOT_PERMITTED)
+            ->assertJsonPath('results.1.status', EventsController::RESULT_ACCEPTED);
+
+        $this->assertDatabaseMissing('event_inbox', ['provider_event_id' => '44444444-4444-4444-8444-444444444441']);
+        $this->assertSame(1, DomainOutbox::query()->count());
+    }
+
     public function test_backend_schema_copy_matches_the_contract(): void
     {
         $contract = base_path('../../contracts/event.schema.json');
@@ -299,6 +316,33 @@ class IngestEventsApiTest extends TestCase
                 'currency_exponent' => 2,
                 'total_minor' => '18400',
                 'payment_expected' => true,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function paymentEvent(string $eventId, string $authority): array
+    {
+        return [
+            'schema_version' => '1.0',
+            'event_id' => $eventId,
+            'type' => EventInbox::EVENT_PAYMENT_SNAPSHOT,
+            'aggregate_type' => EventInbox::AGGREGATE_PAYMENT,
+            'aggregate_id' => 'payment-'.$eventId,
+            'occurred_at' => now()->subMinutes(2)->toJSON(),
+            'observed_at' => now()->subMinute()->toJSON(),
+            'is_synthetic' => false,
+            'data' => [
+                'intent_ref' => 'pi_demo_1001',
+                'charge_ref' => null,
+                'mode' => 'live',
+                'currency' => 'EUR',
+                'currency_exponent' => 2,
+                'status' => 'captured',
+                'source_updated_at' => now()->subMinute()->toJSON(),
+                'source_authority' => $authority,
             ],
         ];
     }

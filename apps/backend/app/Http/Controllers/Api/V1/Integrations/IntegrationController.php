@@ -7,7 +7,9 @@ use App\Http\Dto\Integrations\IntegrationDto;
 use App\Models\AuditLog;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
+use App\Models\ReconciliationDirtySubject;
 use App\Support\Integrations\IntegrationCredentialService;
+use App\Support\Reconciliation\StoreReconciliationRequeue;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,13 +55,13 @@ class IntegrationController extends Controller
         return response()->json($this->integrationDto->toArray($integration));
     }
 
-    public function revoke(Request $request, Integration $integration, TenantContext $tenantContext): JsonResponse
+    public function revoke(Request $request, Integration $integration, TenantContext $tenantContext, StoreReconciliationRequeue $requeue): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('revoke integration');
 
         abort_unless($integration->tenant_id === $tenantId, 404);
 
-        $revoked = DB::transaction(function () use ($request, $integration): Integration {
+        $revoked = DB::transaction(function () use ($request, $integration, $requeue): Integration {
             /** @var Integration $locked */
             $locked = Integration::query()
                 ->whereKey($integration->id)
@@ -84,6 +86,10 @@ class IntegrationController extends Controller
                         'status' => IntegrationCredential::STATUS_REVOKED,
                         'rotated_at' => now(),
                     ]);
+
+                if ($locked->source_authority === Integration::SOURCE_INDEPENDENT_PROVIDER) {
+                    $requeue->requeue($locked->tenant_id, $locked->store_id, ReconciliationDirtySubject::REASON_PROVIDER_COVERAGE_CHANGED);
+                }
             }
 
             AuditLog::query()->create([

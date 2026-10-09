@@ -11,6 +11,7 @@ use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Refund;
 use App\Models\RefundAllocation;
+use App\Support\Integrations\ProviderCoverage;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,10 @@ class OrderReconciliationService
 
     public const GRACE_REFUND_MINUTES = 60;
 
+    public function __construct(
+        private readonly ProviderCoverage $coverage,
+    ) {}
+
     public function evaluate(Order $order, string $trigger = 'manual'): ReconciliationRun
     {
         return DB::transaction(function () use ($order, $trigger): ReconciliationRun {
@@ -34,6 +39,7 @@ class OrderReconciliationService
             $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
             $now = Carbon::now();
+            $providerConnected = $this->coverage->isConnected($lockedOrder->tenant_id, $lockedOrder->store_id);
 
             $run = ReconciliationRun::query()->create([
                 'tenant_id' => $lockedOrder->tenant_id,
@@ -43,7 +49,10 @@ class OrderReconciliationService
                 'config_version' => self::CONFIG_VERSION,
                 'currency' => $lockedOrder->currency,
                 'scope' => ['order_id' => $lockedOrder->id, 'trigger' => $trigger],
-                'coverage_snapshot' => ['financial_support' => $lockedOrder->financial_support],
+                'coverage_snapshot' => [
+                    'financial_support' => $lockedOrder->financial_support,
+                    'provider_connected' => $providerConnected,
+                ],
                 'counters' => [],
                 'started_at' => $now,
                 'created_at' => $now,
@@ -55,6 +64,12 @@ class OrderReconciliationService
                 $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
                     'status' => ReconciliationFinding::STATUS_UNSUPPORTED,
                     'reason_code' => 'gateway_unsupported',
+                    'evidence' => ['financial_support' => $lockedOrder->financial_support],
+                ], $now);
+            } elseif (! $providerConnected) {
+                $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
+                    'status' => ReconciliationFinding::STATUS_UNKNOWN,
+                    'reason_code' => ProviderCoverage::REASON_NOT_CONNECTED,
                     'evidence' => ['financial_support' => $lockedOrder->financial_support],
                 ], $now);
             } else {
