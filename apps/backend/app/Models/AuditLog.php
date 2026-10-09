@@ -35,6 +35,10 @@ class AuditLog extends Model
 
     public const ENTITY_PAIRING_CODE = 'pairing_code';
 
+    public const ENTITY_STORE = 'store';
+
+    public const ACTION_STORE_VERIFIED = 'store.verified';
+
     public const ACTION_PAYMENT_ALLOCATION_CREATED = 'payment_allocation.created';
 
     public const ACTION_PAYMENT_ALLOCATION_REVOKED = 'payment_allocation.revoked';

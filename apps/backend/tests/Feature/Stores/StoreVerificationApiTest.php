@@ -32,7 +32,7 @@ class StoreVerificationApiTest extends TestCase
             ->assertJsonPath('state', 'pending')
             ->assertJsonPath('verified_origin', 'https://shop.example.test')
             ->assertJsonPath('instructions.type', 'dns_txt')
-            ->assertJsonPath('instructions.host', 'shop.example.test')
+            ->assertJsonPath('instructions.record_name', '_bw-verify.shop.example.test')
             ->assertJsonMissingPath('challenge_hash');
 
         $challenge = (string) $response->json('challenge');
@@ -59,7 +59,7 @@ class StoreVerificationApiTest extends TestCase
             ->assertAccepted()
             ->assertJsonPath('method', 'plugin_challenge')
             ->assertJsonPath('instructions.type', 'plugin_challenge')
-            ->assertJsonPath('instructions.path', '/.well-known/business-watchdog-verification.txt');
+            ->assertJsonPath('instructions.url', fn (string $url): bool => str_starts_with($url, 'https://shop.example.test/.well-known/business-watchdog/challenge/'));
     }
 
     public function test_verification_method_is_validated(): void

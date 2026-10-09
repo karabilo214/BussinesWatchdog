@@ -134,6 +134,7 @@ class StoreApiTest extends TestCase
             'base_url' => 'https://old.example.test',
             'timezone' => 'Europe/Kyiv',
             'default_currency' => 'EUR',
+            'verified_at' => now(),
         ]);
 
         $this->actingAs($user)

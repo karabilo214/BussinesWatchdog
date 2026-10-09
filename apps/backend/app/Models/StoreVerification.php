@@ -34,6 +34,9 @@ class StoreVerification extends Model
         'expires_at',
         'verified_at',
         'created_at',
+        'attempts',
+        'last_checked_at',
+        'last_error_code',
     ];
 
     protected function casts(): array
@@ -42,6 +45,8 @@ class StoreVerification extends Model
             'expires_at' => 'datetime',
             'verified_at' => 'datetime',
             'created_at' => 'datetime',
+            'attempts' => 'integer',
+            'last_checked_at' => 'datetime',
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Stores;
 
+use App\Rules\PublicHttpsUrl;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateStoreRequest extends FormRequest
@@ -18,7 +19,7 @@ class UpdateStoreRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'min:1', 'max:100'],
-            'base_url' => ['sometimes', 'url', 'max:2048', 'starts_with:https://', function (string $attribute, mixed $value, \Closure $fail): void {
+            'base_url' => ['sometimes', 'url', 'max:2048', 'starts_with:https://', new PublicHttpsUrl, function (string $attribute, mixed $value, \Closure $fail): void {
                 $parts = parse_url((string) $value);
 
                 if (($parts['user'] ?? null) !== null || ($parts['pass'] ?? null) !== null) {

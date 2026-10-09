@@ -49,6 +49,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
     Route::get('/stores/{store}/verification', [StoreVerificationController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+    Route::post('/stores/{store}/verification/check', [StoreVerificationController::class, 'check'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::storeManage()), 'throttle:store-verification-check']);
     Route::post('/stores/{store}/pairing-codes', [PairingCodeController::class, 'store'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
     Route::get('/integrations', [IntegrationController::class, 'index'])

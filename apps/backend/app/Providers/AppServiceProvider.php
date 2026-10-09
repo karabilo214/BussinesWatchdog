@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Support\Network\DnsClient;
+use App\Support\Network\SystemDnsClient;
 use App\Support\Notifications\Channels\EmailNotificationSender;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
 use App\Support\Tenancy\TenantContext;
@@ -18,6 +20,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(TenantContext::class);
+        $this->app->bind(DnsClient::class, SystemDnsClient::class);
         $this->app->singleton(NotificationSenderRegistry::class, fn ($app): NotificationSenderRegistry => new NotificationSenderRegistry([
             $app->make(EmailNotificationSender::class),
         ]));
@@ -33,6 +36,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('pairing-exchange', fn (Request $request): Limit => Limit::perHour((int) config('watchdog.rate_limits.pairing_per_hour'))
             ->by((string) $request->ip()));
+
+        RateLimiter::for('store-verification-check', fn (Request $request): Limit => Limit::perMinute(6)
+            ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         RateLimiter::for('auth-signup', fn (Request $request): Limit => Limit::perHour((int) config('watchdog.rate_limits.signup_per_hour'))
             ->by((string) $request->ip()));

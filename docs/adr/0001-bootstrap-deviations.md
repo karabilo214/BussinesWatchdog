@@ -72,6 +72,14 @@ Risk: the current endpoint must not be interpreted as proof of domain ownership.
 
 Return plan: add DNS/connector external checks, explicit failure reason codes, and store activation rules before enabling browser checks or integrations.
 
+Resolution (Step 42, 2026-10-09): resolved.
+- Challenge = `bw-` + HMAC(APP_KEY, verification id); only its SHA-256 is stored. DNS method: TXT record `_bw-verify.<exact host>`; connector method: GET `<base_url><path>` where the path is `/wp-json/business-watchdog/v1/challenge/{id}` for a paired `woocommerce` connector and `/.well-known/business-watchdog/challenge/{id}` otherwise. The connector also receives the pending challenge in its signed heartbeat response.
+- The fetch goes through `SafeHttpFetcher`: HTTPS and port 443 only, every resolved IP must be public (RFC1918, loopback, link-local/metadata, CGNAT, documentation ranges, IPv6 local/ULA, IPv4-mapped all rejected), the checked IP is pinned with `CURLOPT_RESOLVE` (DNS rebinding), no redirects, 5 s timeout, 4 KiB body.
+- `POST /stores/{id}/verification/check` (admin, 6/min) and `stores:check-verifications` (scheduler, every minute, per-verification 60 s recheck) record `attempts`, `last_checked_at`, `last_error_code` (new columns; exposed as `reason_code`). Plugin challenges expire after 30 min, DNS after 24 h.
+- Success sets `stores.verified_at`, moves `onboarding` → `active`, expires other pending verifications and writes `store.verified` audit. A store URL change fails pending verifications (`store_url_changed`).
+- `browser_enabled = true` and `status = active` are rejected with `store_not_verified` until verified. Store URLs are statically rejected at create/update when they target localhost, private/reserved IP literals, internal suffixes or non-443 ports (no network request at that point).
+- This is not yet the egress-proxy/network-level SSRF control the browser worker requires (section 20); that remains a D0/D4 item.
+
 ### Pairing Exchange Does Not Yet Include Full Abuse And Keyring Controls
 
 Specification target: pairing has code attempt limits, IP-level rate limiting, audit trail, production keyring-backed credential encryption, and HMAC/nonce verification before accepting connector traffic.

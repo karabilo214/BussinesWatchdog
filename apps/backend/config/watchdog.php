@@ -13,6 +13,17 @@ return [
         'additional_keys' => env('WATCHDOG_KEYRING_KEYS', ''),
     ],
 
+    'store_verification' => [
+        'plugin_ttl_minutes' => (int) env('WATCHDOG_VERIFICATION_PLUGIN_TTL_MINUTES', 30),
+        'dns_ttl_hours' => (int) env('WATCHDOG_VERIFICATION_DNS_TTL_HOURS', 24),
+        'dns_record_prefix' => '_bw-verify',
+        'recheck_seconds' => 60,
+        'challenge_paths' => [
+            'woocommerce' => '/wp-json/business-watchdog/v1/challenge/{id}',
+            'default' => '/.well-known/business-watchdog/challenge/{id}',
+        ],
+    ],
+
     'credentials' => [
         'draining_hours' => (int) env('WATCHDOG_CREDENTIAL_DRAINING_HOURS', 24),
     ],

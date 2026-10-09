@@ -22,3 +22,8 @@ Schedule::command('reconciliation:nightly-sweep')
     ->timezone('UTC')
     ->withoutOverlapping(120)
     ->onOneServer();
+
+Schedule::command('stores:check-verifications')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->onOneServer();

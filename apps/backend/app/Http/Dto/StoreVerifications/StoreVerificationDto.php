@@ -19,7 +19,9 @@ class StoreVerificationDto
             'verified_origin' => $verification->verified_origin,
             'expires_at' => $verification->expires_at->toJSON(),
             'verified_at' => $verification->verified_at?->toJSON(),
-            'reason_code' => null,
+            'reason_code' => $verification->last_error_code,
+            'attempts' => $verification->attempts ?? 0,
+            'last_checked_at' => $verification->last_checked_at?->toJSON(),
         ];
     }
 }

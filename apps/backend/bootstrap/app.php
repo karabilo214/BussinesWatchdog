@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\CheckStoreVerifications;
 use App\Console\Commands\DeliverNotifications;
 use App\Console\Commands\DispatchDomainOutbox;
 use App\Console\Commands\ProcessDirtyReconciliation;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ProcessDirtyReconciliation::class,
         RunNightlyReconciliationSweep::class,
         ReencryptSecrets::class,
+        CheckStoreVerifications::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();

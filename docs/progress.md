@@ -991,3 +991,22 @@ Verification:
 Remaining:
 
 - ADR 0001: store verification, projection composite FKs / PostgreSQL test run, MinIO.
+
+### Step 42: Store Domain Verification
+
+Status: complete; closes the ADR 0001 store-verification deviation
+
+Added:
+
+- DNS TXT (`_bw-verify.<host>`) and connector challenge verification with HMAC-derived challenges, SSRF-safe fetcher (public IPs only, IP pinning, no redirects, timeout, size cap), on-demand check endpoint and scheduled `stores:check-verifications`.
+- Successful verification sets `verified_at`, activates onboarding stores, audits `store.verified`; unverified stores cannot enable browser checks or become active; private/non-standard store URLs are rejected.
+- Heartbeat delivers the pending challenge to the connector.
+- `docs/implementation-step-42-checklist.md`; ADR 0001 section marked resolved.
+
+Verification:
+
+- `php artisan test` (PHP 8.4) passed: 259 tests. Migration applied on local PostgreSQL 18. Real-network smoke of DNS + safe fetcher (caught and fixed a Guzzle option bug).
+
+Remaining:
+
+- ADR 0001: projection composite FKs / PostgreSQL test run, MinIO; network-level egress proxy for browser checks.

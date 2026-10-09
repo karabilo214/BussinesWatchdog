@@ -16,8 +16,7 @@ class StoreController extends Controller
 {
     public function __construct(
         private readonly StoreDto $storeDto,
-    ) {
-    }
+    ) {}
 
     public function index(TenantContext $tenantContext): JsonResponse
     {
@@ -70,7 +69,7 @@ class StoreController extends Controller
         $expectedVersion = $this->expectedVersion($request);
         $validated = $request->validated();
 
-        $updated = DB::transaction(function () use ($store, $validated, $expectedVersion): ?Store {
+        $updated = DB::transaction(function () use ($store, $validated, $expectedVersion): Store|string|null {
             /** @var Store $locked */
             $locked = Store::query()
                 ->whereKey($store->id)
@@ -91,6 +90,10 @@ class StoreController extends Controller
                 $locked->browser_enabled = false;
             }
 
+            if ($locked->verified_at === null && ($locked->browser_enabled || ($validated['status'] ?? null) === 'active')) {
+                return 'store_not_verified';
+            }
+
             $locked->config_version++;
             $locked->save();
 
@@ -102,6 +105,13 @@ class StoreController extends Controller
                 'code' => 'version_conflict',
                 'message' => 'Resource version conflict.',
             ], 409);
+        }
+
+        if ($updated === 'store_not_verified') {
+            return response()->json([
+                'code' => 'store_not_verified',
+                'message' => 'Browser checks and activation require a verified store domain.',
+            ], 422);
         }
 
         return response()->json($this->storeDto->toArray($updated));
@@ -119,5 +129,4 @@ class StoreController extends Controller
 
         return (int) $matches[1];
     }
-
 }

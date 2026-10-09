@@ -7,16 +7,16 @@ use App\Http\Dto\StoreVerifications\StoreVerificationDto;
 use App\Http\Requests\StoreVerifications\CreateStoreVerificationRequest;
 use App\Models\Store;
 use App\Models\StoreVerification;
+use App\Support\Stores\StoreVerificationService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
 
 class StoreVerificationController extends Controller
 {
     public function __construct(
         private readonly StoreVerificationDto $storeVerificationDto,
-    ) {
-    }
+        private readonly StoreVerificationService $verifications,
+    ) {}
 
     public function store(CreateStoreVerificationRequest $request, Store $store, TenantContext $tenantContext): JsonResponse
     {
@@ -24,24 +24,13 @@ class StoreVerificationController extends Controller
 
         abort_unless($store->tenant_id === $tenantId, 404);
 
-        $validated = $request->validated();
-        $method = $validated['method'];
-        $challenge = 'bw-'.Str::lower(Str::random(32));
-        $verification = StoreVerification::query()->create([
-            'tenant_id' => $tenantId,
-            'store_id' => $store->id,
-            'method' => $method,
-            'challenge_hash' => hash('sha256', $challenge),
-            'verified_origin' => $store->base_url,
-            'status' => StoreVerification::STATUS_PENDING,
-            'expires_at' => now()->addMinutes(30),
-            'created_at' => now(),
-        ]);
+        $verification = $this->verifications->start($store, $request->validated()['method']);
+        $instructions = $this->verifications->instructions($verification, $store);
 
         return response()->json([
             ...$this->storeVerificationDto->toArray($verification),
-            'challenge' => $challenge,
-            'instructions' => $this->instructions($method, $challenge, $store),
+            'challenge' => $this->verifications->challenge($verification->id),
+            'instructions' => $instructions,
         ], 202);
     }
 
@@ -51,12 +40,7 @@ class StoreVerificationController extends Controller
 
         abort_unless($store->tenant_id === $tenantId, 404);
 
-        $verification = StoreVerification::query()
-            ->where('tenant_id', $tenantId)
-            ->where('store_id', $store->id)
-            ->latest('created_at')
-            ->latest('id')
-            ->first();
+        $verification = $this->latest($tenantId, $store);
 
         abort_if($verification === null, 404);
 
@@ -67,23 +51,26 @@ class StoreVerificationController extends Controller
         return response()->json($this->storeVerificationDto->toArray($verification->refresh()));
     }
 
-    /**
-     * @return array<string, string>
-     */
-    private function instructions(string $method, string $challenge, Store $store): array
+    public function check(Store $store, TenantContext $tenantContext): JsonResponse
     {
-        if ($method === StoreVerification::METHOD_DNS) {
-            return [
-                'type' => 'dns_txt',
-                'host' => parse_url($store->base_url, PHP_URL_HOST) ?: '',
-                'txt_value' => $challenge,
-            ];
-        }
+        $tenantId = $tenantContext->requireTenantId('check store verification');
 
-        return [
-            'type' => 'plugin_challenge',
-            'path' => '/.well-known/business-watchdog-verification.txt',
-            'body' => $challenge,
-        ];
+        abort_unless($store->tenant_id === $tenantId, 404);
+
+        $verification = $this->latest($tenantId, $store);
+
+        abort_if($verification === null, 404);
+
+        return response()->json($this->storeVerificationDto->toArray($this->verifications->check($verification)->refresh()));
+    }
+
+    private function latest(string $tenantId, Store $store): ?StoreVerification
+    {
+        return StoreVerification::query()
+            ->where('tenant_id', $tenantId)
+            ->where('store_id', $store->id)
+            ->latest('created_at')
+            ->latest('id')
+            ->first();
     }
 }
