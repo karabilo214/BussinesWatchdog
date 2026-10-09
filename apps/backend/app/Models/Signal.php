@@ -30,6 +30,8 @@ class Signal extends Model
 
     public const TYPE_CONNECTOR_FRESHNESS = 'connector_freshness';
 
+    public const TYPE_BROWSER_CHECK = 'browser_check';
+
     public $timestamps = false;
 
     protected $fillable = [

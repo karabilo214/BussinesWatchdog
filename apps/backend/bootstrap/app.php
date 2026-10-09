@@ -7,6 +7,7 @@ use App\Console\Commands\ProcessDirtyReconciliation;
 use App\Console\Commands\ReencryptSecrets;
 use App\Console\Commands\RunNightlyReconciliationSweep;
 use App\Http\Middleware\Auth\RequireStatefulSession;
+use App\Http\Middleware\Browser\AuthenticateBrowserWorker;
 use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
 use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
 use App\Http\Middleware\Tenancy\RequireTenantRole;
@@ -15,6 +16,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function (): void {
+            Route::middleware([])->group(__DIR__.'/../routes/internal.php');
+        },
     )
     ->withCommands([
         DispatchDomainOutbox::class,
@@ -34,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         $middleware->alias([
+            'browser.worker' => AuthenticateBrowserWorker::class,
             'idempotency' => EnsureIdempotencyKey::class,
             'stateful.session' => RequireStatefulSession::class,
             'integration.hmac' => AuthenticateIntegrationHmac::class,
@@ -43,6 +49,6 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*') || $request->is('internal/*') || $request->expectsJson(),
         );
     })->create();

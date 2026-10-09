@@ -1158,3 +1158,22 @@ Verification:
 Remaining:
 
 - Plugin backlog flag/limits, deactivation report, dashboard coverage.
+
+### Step 51: Browser Check Backend (Spec §18–20, ADR 0010)
+
+Status: complete for the backend; the worker follows in Step 52
+
+Added:
+
+- Browser check tables, worker credentials, `browser:schedule`, internal lease/heartbeat/result API with fencing and expiry recovery.
+- Outcome policy (two site failures confirm; worker problems never do), checkout and coverage incidents with scheduled-pass recovery, notifications (ru/en/de).
+- Strict validation of sanitized worker results; user API for the scenario, manual runs and run history; OpenAPI updated.
+- `docs/adr/0010-browser-check-backend.md`, `docs/implementation-step-51-checklist.md`.
+
+Verification:
+
+- SQLite 298 passed + 4 skipped; PostgreSQL 18 302 passed.
+
+Remaining:
+
+- Worker (Step 52); artifacts, synthetic marker, Blocks draft cleanup (Step 53).

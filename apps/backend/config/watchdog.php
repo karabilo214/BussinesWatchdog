@@ -27,4 +27,16 @@ return [
     'credentials' => [
         'draining_hours' => (int) env('WATCHDOG_CREDENTIAL_DRAINING_HOURS', 24),
     ],
+
+    'browser' => [
+        'lease_seconds' => 150,
+        'heartbeat_seconds' => 15,
+        'absolute_run_seconds' => 120,
+        'result_grace_seconds' => 30,
+        'retry_delay_seconds' => 60,
+        'max_attempts' => 3,
+        'manual_runs_per_minute' => 1,
+        'schedule_jitter' => 0.1,
+        'default_interval_seconds' => 900,
+    ],
 ];

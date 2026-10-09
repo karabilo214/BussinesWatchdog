@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-09 (Step 50)
+2026-10-09 (Step 51)
 
 ## Что это за проект
 
@@ -40,17 +40,21 @@ Business Watchdog — SaaS для обнаружения финансовых р
 
 - Свежесть коннектора (Step 50, ACC-14, ADR 0009): heartbeat сохраняет самоотчёт плагина (backlog, самое старое неотправленное событие, версия); `integrations:check-freshness` раз в минуту помечает коннектор `stale` (3 пропущенных heartbeat) или `partial` (отставание доставки > 1 ч), переводит интеграцию в `degraded` и открывает инцидент «нет данных от плагина — это не остановка продаж». Пока данные магазина неполные, сверка денег даёт `unknown/store_data_stale`; при восстановлении инцидент закрывается и окно заказов пересчитывается. Общий `IncidentRecorder` для не-денежных инцидентов.
 
-286 тестов: на SQLite 282 проходят + 4 PostgreSQL-only пропускаются; на PostgreSQL 18 (`make backend-test-pgsql`) проходят все 286 (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
+- Браузерные проверки — бэкенд (Step 51, ТЗ §18–20, ADR 0010): сценарий `payment_form` на магазин, планировщик `browser:schedule` (15 мин ±10 %, один активный запуск), внутренний протокол для воркера `/internal/v1/browser` (lease с `SKIP LOCKED`, fencing, heartbeat с абсолютным дедлайном, идемпотентный result, восстановление истёкших), политика исходов (сбой подтверждают только 2 `site_failure`, ошибки воркера — `inconclusive`), инциденты семейства `checkout` и инциденты покрытия, API сценария и ручного запуска. Воркер — Step 52.
+
+302 теста: на SQLite 298 проходят + 4 PostgreSQL-only пропускаются; на PostgreSQL 18 (`make backend-test-pgsql`) проходят все 302 (`php artisan test` на PHP 8.4). Все новые миграции (reconciliation, idempotency_keys, incident engine, notifications, scheduler) проверены и накатаны на реальной PostgreSQL 18 в локальном Docker. Email проверен только через `Mail::fake`/тестовый sender, не через реальный SMTP.
 
 Отклонения из ADR 0001 закрыты или формализованы в Steps 39–44 (у каждого пункта есть Resolution); локальное S3 — `docs/adr/0004-local-object-storage.md` (MinIO больше не раздаётся публично, остаётся S3Mock). Остальные решения — ADR 0002 (уведомления), ADR 0003 (scheduler).
 
 WooCommerce-плагин (`plugins/woocommerce-watchdog`, Step 45): фундамент — слой совместимости по возможностям (HPOS/legacy, classic/blocks, Action Scheduler/WP-Cron), локальные таблицы, pairing, подписанный heartbeat с ротацией, публичный challenge. Нижняя граница по решению владельца: PHP 7.4 / WP 5.9 / WC 6.0 (ADR 0005). Docker-матрица из 6 целей (WC 6.0.2 … 11.2.0, legacy и HPOS) + e2e с бэкендом — всё зелёное; проверенные комбинации в `docs/compatibility.md`. С Step 46 плагин пишет снимки заказов/refund/удалений в локальный outbox с ревизиями (хуки только помечают заказ, снимок на shutdown; суммы строками в minor units); найденные различия версий WC задокументированы в `docs/compatibility.md`. С Step 47 плагин доставляет события в бэкенд (батчи, retry, dead letter, suspend), делает rescan 48ч каждые 15 мин, backfill 90 дней и шлёт capabilities/deployment события; e2e на всех 6 версиях WooCommerce доходит до проекций бэкенда.
 
-Пока пустые заглушки: `apps/frontend` (Vue), `apps/browser-worker` (Node/Playwright).
+Пока пустые заглушки: `apps/frontend` (Vue), `apps/browser-worker` (Node/Playwright — Step 52).
 
 ## Следующий шаг
 
-WooCommerce-плагин работает сквозь всю цепочку (P0-часть коннектора). Варианты дальше (выбирает владелец):
+**Текущий план:** браузерные проверки — Step 52 Node/Playwright-воркер (`apps/browser-worker`: lease-цикл, адаптер WooCommerce Classic/Blocks, сетевая политика и блокировка мутаций, проверка на матрице), Step 53 скриншоты/артефакты, synthetic-маркер и очистка черновиков Blocks. Затем — минимальный кабинет.
+
+Прочие варианты (выбирает владелец):
 
 1. **Минимальный кабинет** (`apps/frontend`): вход, магазины + верификация + pairing code, интеграции, инциденты, сверка, каналы уведомлений.
 2. ~~Stale-integration detection~~ — сделано в Step 50 (ADR 0009). Осталось: показ покрытия в кабинете.

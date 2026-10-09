@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\ReconciliationFinding;
 use App\Models\Signal;
 use App\Models\Store;
+use App\Support\Browser\CheckOutcomeEvaluator;
 use App\Support\Checkout\PaymentAttemptMonitor;
 use App\Support\Integrations\ConnectorFreshness;
 
@@ -25,6 +26,10 @@ class IncidentNotificationContentBuilder
     {
         if ($incident->family === PaymentAttemptMonitor::FAMILY) {
             return $this->forPaymentAttempts($incident, $store, $kind, $preferences);
+        }
+
+        if ($incident->family === CheckOutcomeEvaluator::FAMILY) {
+            return $this->forBrowserCheck($incident, $store, $kind, $preferences);
         }
 
         if ($incident->family === ConnectorFreshness::FAMILY) {
@@ -148,6 +153,41 @@ class IncidentNotificationContentBuilder
                 : null,
             'source' => 'connector_heartbeat',
             'checked_steps' => ['connector_heartbeat', 'connector_delivery'],
+            'link' => $this->incidentLink($incident),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function forBrowserCheck(Incident $incident, Store $store, string $kind, NotificationPreferences $preferences): array
+    {
+        $evidence = $this->latestProblemEvidence($incident, Signal::TYPE_BROWSER_CHECK);
+        $step = is_string($evidence['failed_step'] ?? null) ? $evidence['failed_step'] : null;
+        $stepKey = 'notifications.check_step.'.($step ?? 'unknown');
+        $stepLabel = trans($stepKey, [], $preferences->locale);
+
+        return [
+            'kind' => $kind,
+            'locale' => $preferences->locale,
+            'timezone' => $preferences->timezone,
+            'store_name' => $store->name,
+            'severity' => $incident->severity,
+            'family' => $incident->family,
+            'component' => $incident->component,
+            'rule_code' => $incident->title_code,
+            'order_number' => null,
+            'fact_params' => ['step' => $stepLabel === $stepKey ? (string) $step : $stepLabel],
+            'currency' => null,
+            'amount_minor' => null,
+            'currency_exponent' => null,
+            'possible_start_from' => $incident->last_good_at?->toJSON(),
+            'possible_start_to' => ($incident->first_bad_at ?? $incident->first_seen_at)?->toJSON(),
+            'recovered_at' => $kind === NotificationDelivery::KIND_INCIDENT_RECOVERED
+                ? $incident->resolved_at?->toJSON()
+                : null,
+            'source' => 'browser_check',
+            'checked_steps' => ['check_product', 'check_cart', 'check_checkout', 'check_payment_form'],
             'link' => $this->incidentLink($incident),
         ];
     }

@@ -188,6 +188,7 @@ class ConnectorFreshnessTest extends TestCase
 
         $this->assertNotNull($event);
         $this->assertSame('* * * * *', $event->expression);
+        $this->artisan('integrations:check-freshness')->assertSuccessful();
     }
 
     private function check(): void

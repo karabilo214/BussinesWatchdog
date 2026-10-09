@@ -239,9 +239,120 @@ paths:
                 properties:
                   run_id: {type: string, format: uuid}
                   status: {const: queued}
+        '404':
+          $ref: '#/components/responses/Problem'
         '409':
           $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+  /api/v1/stores/{store_id}/check-scenario:
+    parameters:
+      - name: store_id
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    get:
+      tags: [Checks]
+      operationId: getCheckScenario
+      security:
+        - UserSession: []
+      responses:
+        '200':
+          description: The store payment_form scenario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckScenario'
+        '404':
+          $ref: '#/components/responses/Problem'
+    put:
+      tags: [Checks]
+      operationId: upsertCheckScenario
+      security:
+        - UserSession: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      description: Owner/admin. URLs must be HTTPS on the store origin; enabling requires a verified store. Every change creates a new scenario version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [product_url]
+              properties:
+                product_url: {type: string, format: uri}
+                cart_url: {type: [string, 'null'], format: uri}
+                checkout_url: {type: [string, 'null'], format: uri}
+                product_external_id: {type: [string, 'null'], maxLength: 255}
+                interval_seconds: {type: integer, minimum: 300, maximum: 86400}
+                enabled: {type: boolean}
+                extra_allowed_origins: {type: array, maxItems: 10, items: {type: string, format: uri}}
+                synthetic_location:
+                  type: [object, 'null']
+                  required: [country]
+                  properties:
+                    country: {type: string, pattern: '^[A-Za-z]{2}$'}
+                    postcode: {type: [string, 'null'], maxLength: 16}
+      responses:
+        '200':
+          description: Scenario saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckScenario'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /api/v1/stores/{store_id}/check-runs:
+    get:
+      tags: [Checks]
+      operationId: listCheckRuns
+      security:
+        - UserSession: []
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {name: cursor, in: query, schema: {type: string}}
+      responses:
+        '200':
+          description: Runs, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data: {type: array, items: {$ref: '#/components/schemas/CheckRun'}}
+                  next_cursor: {type: [string, 'null']}
+  /api/v1/check-runs/{run_id}:
+    get:
+      tags: [Checks]
+      operationId: getCheckRun
+      security:
+        - UserSession: []
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Run with attempts and sanitized steps
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CheckRun'
+                  - type: object
+                    properties:
+                      attempts: {type: array, items: {type: object}}
+        '404':
           $ref: '#/components/responses/Problem'
   /internal/v1/browser/leases:
     post:
@@ -509,6 +620,34 @@ components:
             properties:
               type: {enum: [finding, check_run, signal, artifact]}
               id: {type: string, format: uuid}
+    CheckScenario:
+      type: object
+      required: [id, store_id, mode, version, enabled, adapter_version, interval_seconds, definition]
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        mode: {const: payment_form}
+        version: {type: integer, minimum: 1}
+        enabled: {type: boolean}
+        adapter_version: {type: string}
+        interval_seconds: {type: integer}
+        product_external_id: {type: [string, 'null']}
+        definition: {type: object}
+        next_due_at: {type: [string, 'null'], format: date-time}
+    CheckRun:
+      type: object
+      required: [id, store_id, scenario_id, scenario_version, trigger, status, scheduled_at]
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        scenario_id: {type: string, format: uuid}
+        scenario_version: {type: integer}
+        trigger: {enum: [scheduled, manual, incident]}
+        status: {enum: [queued, running, passed, failed, inconclusive, blocked, unsupported, cancelled]}
+        error_code: {type: [string, 'null']}
+        scheduled_at: {type: string, format: date-time}
+        started_at: {type: [string, 'null'], format: date-time}
+        finished_at: {type: [string, 'null'], format: date-time}
     BrowserLease:
       type: object
       additionalProperties: false
@@ -533,6 +672,11 @@ components:
             cart_url: {type: string, format: uri}
             checkout_url: {type: string, format: uri}
             synthetic_token: {type: string, description: Short-lived store and run bound signed token, never logged.}
+            synthetic_location:
+              type: [object, 'null']
+              properties:
+                country: {type: string, pattern: '^[A-Z]{2}$'}
+                postcode: {type: [string, 'null'], maxLength: 16}
             steps:
               type: array
               minItems: 1
@@ -543,6 +687,7 @@ components:
                 properties:
                   code: {type: string}
                   action: {enum: [goto, click_safe, fill_synthetic, select, assert_visible, assert_cart, wait_response]}
+                  target: {enum: [product_url, cart_url, checkout_url], description: Scenario URL the step navigates to; selectors live in the versioned worker adapter.}
                   selector: {type: string, maxLength: 1000}
                   timeout_ms: {type: integer, minimum: 1000, maximum: 30000}
         network_policy:
@@ -574,15 +719,54 @@ components:
               status: {enum: [passed, failed, skipped, inconclusive, blocked]}
               started_at: {type: string, format: date-time}
               finished_at: {type: string, format: date-time}
-              assertions: {type: array, items: {type: object}}
+              assertions:
+                type: array
+                maxItems: 20
+                items:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    code: {type: string}
+                    passed: {type: boolean}
+                    detail_code: {type: string}
+              network_summary:
+                type: array
+                maxItems: 50
+                items:
+                  type: object
+                  additionalProperties: false
+                  description: Path without query string or fragment; no headers or bodies.
+                  properties:
+                    method: {type: string}
+                    origin: {type: string}
+                    path: {type: string, pattern: '^[^?#@]*$'}
+                    status: {type: [integer, 'null']}
+                    duration_ms: {type: integer}
+                    party: {enum: [first, gateway, third]}
+                    failure: {type: string}
               error_code: {type: [string, 'null']}
         diagnostics:
           type: object
+          additionalProperties: false
           description: Sanitized metadata only, no response bodies, secrets, cookies or full headers.
           required: [redaction_version, relevant_errors]
           properties:
             redaction_version: {type: string}
-            relevant_errors: {type: array, maxItems: 100, items: {type: object}}
+            relevant_errors:
+              type: array
+              maxItems: 100
+              items:
+                type: object
+                additionalProperties: false
+                properties:
+                  type: {type: string}
+                  party: {enum: [first, gateway, third]}
+                  origin: {type: string}
+                  path: {type: string, pattern: '^[^?#@]*$'}
+                  status: {type: [integer, 'null']}
+                  step_code: {type: string}
+                  message_code: {type: string}
+                  count: {type: integer}
         artifact_ids:
           type: array
           maxItems: 10

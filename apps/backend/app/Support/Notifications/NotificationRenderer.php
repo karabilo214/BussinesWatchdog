@@ -147,7 +147,11 @@ class NotificationRenderer
         $family = $content['family'] ?? null;
 
         if (is_string($family) && $family !== '' && $family !== 'money') {
-            return $this->t('family.'.$family.'.'.$key, $replace, $locale, $key);
+            $component = (string) ($content['component'] ?? '');
+            $familyKey = 'family.'.$family.'.'.$key;
+            $componentKey = 'family.'.$family.'.components.'.$component.'.'.$key;
+
+            return $this->t($componentKey, $replace, $locale, trans('notifications.'.$familyKey, [], $locale) === 'notifications.'.$familyKey ? $key : $familyKey);
         }
 
         return $this->t($key, $replace, $locale);

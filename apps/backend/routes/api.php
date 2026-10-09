@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Checks\CheckScenarioController;
 use App\Http\Controllers\Api\V1\Incidents\IncidentController;
 use App\Http\Controllers\Api\V1\Incidents\SuppressionController;
 use App\Http\Controllers\Api\V1\Ingest\CredentialRotationController;
@@ -61,6 +62,17 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::post('/integrations/{integration}/rotate', [IntegrationController::class, 'rotate'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationManage()), 'idempotency']);
+
+    Route::get('/stores/{store}/check-scenario', [CheckScenarioController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+    Route::put('/stores/{store}/check-scenario', [CheckScenarioController::class, 'upsert'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+    Route::post('/stores/{store}/checks', [CheckScenarioController::class, 'runNow'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::storeManage()), 'idempotency']);
+    Route::get('/stores/{store}/check-runs', [CheckScenarioController::class, 'runs'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+    Route::get('/check-runs/{checkRun}', [CheckScenarioController::class, 'showRun'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
 
     Route::post('/payment-allocations', [PaymentAllocationController::class, 'store'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::allocationManage()), 'idempotency']);

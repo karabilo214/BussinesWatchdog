@@ -32,3 +32,8 @@ Schedule::command('integrations:check-freshness')
     ->everyMinute()
     ->withoutOverlapping(5)
     ->onOneServer();
+
+Schedule::command('browser:schedule')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->onOneServer();
