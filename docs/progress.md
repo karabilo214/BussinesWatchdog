@@ -954,3 +954,22 @@ Verification:
 Remaining:
 
 - Email verification, password reset, MFA; remaining ADR 0001 gaps (pairing hardening, JSON Schema ingest validation, store verification, projection composite FKs / PostgreSQL test run, MinIO).
+
+### Step 40: Pairing And Connector Credential Hardening
+
+Status: complete; closes the ADR 0001 pairing/keyring deviation for plugin HMAC credentials
+
+Added:
+
+- Pairing exchange throttle (20/hour/IP) and `integration.pairing_failed` audit.
+- `Keyring` versioned encryption for integration secrets and notification destinations; `security:reencrypt-secrets`; keyring readiness check.
+- Credential rotation: user request → heartbeat flag → signed plugin provisioning route → old key draining 24 h → revoked on first use of the new key; audit for each transition.
+- `docs/implementation-step-40-checklist.md`; ADR 0001 section marked resolved.
+
+Verification:
+
+- `php artisan test` (PHP 8.4) passed: 245 tests.
+
+Remaining:
+
+- Plugin-side rotation client, Stripe credential rotation; remaining ADR 0001 gaps (JSON Schema ingest validation, store verification, projection composite FKs / PostgreSQL test run, MinIO).

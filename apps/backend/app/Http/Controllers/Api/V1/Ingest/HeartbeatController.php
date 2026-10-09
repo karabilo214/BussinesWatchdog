@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Ingest;
 
 use App\Http\Controllers\Controller;
 use App\Models\Integration;
+use App\Support\Integrations\IntegrationCredentialService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,6 +19,7 @@ class HeartbeatController extends Controller
         return response()->json([
             'status' => 'ok',
             'integration_id' => $integration->id,
+            'credential_rotation_requested' => isset($integration->health[IntegrationCredentialService::HEALTH_ROTATION_REQUESTED_AT]),
         ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Health;
 
 use App\Support\Health\ReadinessChecks;
+use App\Support\Security\Keyring;
 use Tests\TestCase;
 
 class HealthEndpointTest extends TestCase
@@ -17,7 +18,7 @@ class HealthEndpointTest extends TestCase
 
     public function test_ready_endpoint_returns_ok_when_all_checks_pass(): void
     {
-        $this->app->instance(ReadinessChecks::class, new class extends ReadinessChecks
+        $this->app->instance(ReadinessChecks::class, new class(app(Keyring::class)) extends ReadinessChecks
         {
             public function all(): array
             {
@@ -39,7 +40,7 @@ class HealthEndpointTest extends TestCase
 
     public function test_ready_endpoint_returns_unavailable_when_a_check_fails(): void
     {
-        $this->app->instance(ReadinessChecks::class, new class extends ReadinessChecks
+        $this->app->instance(ReadinessChecks::class, new class(app(Keyring::class)) extends ReadinessChecks
         {
             public function all(): array
             {

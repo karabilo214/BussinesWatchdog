@@ -4,11 +4,12 @@ namespace App\Http\Middleware\Integrations;
 
 use App\Exceptions\Integrations\InvalidIntegrationCredentialSecret;
 use App\Models\IntegrationCredential;
+use App\Support\Integrations\IntegrationCredentialService;
 use Closure;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthenticateIntegrationHmac
@@ -16,6 +17,10 @@ class AuthenticateIntegrationHmac
     private const TIMESTAMP_TOLERANCE_SECONDS = 300;
 
     private const NONCE_TTL_SECONDS = 600;
+
+    public function __construct(
+        private readonly IntegrationCredentialService $credentials,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -35,7 +40,7 @@ class AuthenticateIntegrationHmac
 
         $timestamp = (int) $headers['timestamp'];
 
-        if (abs(time() - $timestamp) > self::TIMESTAMP_TOLERANCE_SECONDS) {
+        if (abs(now()->getTimestamp() - $timestamp) > self::TIMESTAMP_TOLERANCE_SECONDS) {
             return $this->unauthorized('timestamp_out_of_range', 'Integration signature timestamp is outside the allowed window.');
         }
 
@@ -54,7 +59,7 @@ class AuthenticateIntegrationHmac
             return $this->unauthorized('signature_invalid', 'Integration credential was not found.');
         }
 
-        if ($credential->status !== IntegrationCredential::STATUS_ACTIVE) {
+        if (! $this->isUsable($credential)) {
             return $this->unauthorized('credential_revoked', 'Integration credential is not active.');
         }
 
@@ -75,6 +80,8 @@ class AuthenticateIntegrationHmac
         if (! Cache::add($nonceKey, true, self::NONCE_TTL_SECONDS)) {
             return $this->unauthorized('nonce_replayed', 'Integration signature nonce was already used.');
         }
+
+        $this->credentials->confirmActiveCredential($credential);
 
         $request->attributes->set('integration', $credential->integration);
         $request->attributes->set('integration_credential', $credential);
@@ -110,7 +117,7 @@ class AuthenticateIntegrationHmac
     }
 
     /**
-     * @param array{key_id: string, timestamp: string, nonce: string, signature: string} $headers
+     * @param  array{key_id: string, timestamp: string, nonce: string, signature: string}  $headers
      */
     private function canonicalString(Request $request, array $headers): string
     {
@@ -127,18 +134,29 @@ class AuthenticateIntegrationHmac
     private function credentialSecret(IntegrationCredential $credential): string
     {
         try {
-            $secretBase64 = Crypt::decryptString($credential->ciphertext);
-        } catch (\Illuminate\Contracts\Encryption\DecryptException $exception) {
+            $secretBase64 = $this->credentials->secretFor($credential);
+        } catch (DecryptException $exception) {
             throw new InvalidIntegrationCredentialSecret(previous: $exception);
         }
 
         $secret = base64_decode($secretBase64, true);
 
         if ($secret === false || strlen($secret) !== 32) {
-            throw new InvalidIntegrationCredentialSecret();
+            throw new InvalidIntegrationCredentialSecret;
         }
 
         return $secret;
+    }
+
+    private function isUsable(IntegrationCredential $credential): bool
+    {
+        if ($credential->status === IntegrationCredential::STATUS_ACTIVE) {
+            return true;
+        }
+
+        return $credential->status === IntegrationCredential::STATUS_DRAINING
+            && $credential->expires_at !== null
+            && $credential->expires_at->isFuture();
     }
 
     private function unauthorized(string $code, string $message): JsonResponse

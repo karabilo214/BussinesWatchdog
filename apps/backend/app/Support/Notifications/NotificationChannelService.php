@@ -10,8 +10,8 @@ use App\Models\NotificationChannelVerification;
 use App\Models\NotificationDelivery;
 use App\Models\Store;
 use App\Models\Tenant;
+use App\Support\Security\Keyring;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -21,6 +21,7 @@ class NotificationChannelService
     public function __construct(
         private readonly NotificationRenderer $renderer,
         private readonly IncidentNotificationContentBuilder $contentBuilder,
+        private readonly Keyring $keyring,
     ) {}
 
     /**
@@ -31,12 +32,14 @@ class NotificationChannelService
         $preferences = $this->normalizePreferences($tenant->id, $preferences);
         $now = Carbon::now();
 
-        [$channel, $code] = DB::transaction(function () use ($tenant, $label, $email, $preferences, $actorId, $now): array {
+        $encrypted = $this->keyring->encrypt($email);
+
+        [$channel, $code] = DB::transaction(function () use ($tenant, $label, $encrypted, $preferences, $actorId, $now): array {
             $channel = NotificationChannel::query()->create([
                 'tenant_id' => $tenant->id,
                 'kind' => NotificationChannel::KIND_EMAIL,
-                'destination_ciphertext' => Crypt::encryptString($email),
-                'key_version' => 1,
+                'destination_ciphertext' => $encrypted['ciphertext'],
+                'key_version' => $encrypted['key_version'],
                 'label' => $label,
                 'enabled' => false,
                 'preferences' => $preferences,
@@ -90,7 +93,9 @@ class NotificationChannelService
             }
 
             if (is_string($newEmail)) {
-                $locked->destination_ciphertext = Crypt::encryptString($newEmail);
+                $encrypted = $this->keyring->encrypt($newEmail);
+                $locked->destination_ciphertext = $encrypted['ciphertext'];
+                $locked->key_version = $encrypted['key_version'];
                 $locked->verified_at = null;
                 $locked->enabled = false;
                 $audit['destination'] = 'replaced_requires_verification';
@@ -220,7 +225,7 @@ class NotificationChannelService
     public static function maskDestination(NotificationChannel $channel): ?string
     {
         try {
-            $destination = Crypt::decryptString($channel->destination_ciphertext);
+            $destination = app(Keyring::class)->decrypt($channel->destination_ciphertext, $channel->key_version);
         } catch (\Throwable) {
             return null;
         }

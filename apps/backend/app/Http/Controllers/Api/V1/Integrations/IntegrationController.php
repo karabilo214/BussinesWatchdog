@@ -7,6 +7,7 @@ use App\Http\Dto\Integrations\IntegrationDto;
 use App\Models\AuditLog;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
+use App\Support\Integrations\IntegrationCredentialService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,8 +18,7 @@ class IntegrationController extends Controller
 {
     public function __construct(
         private readonly IntegrationDto $integrationDto,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request, TenantContext $tenantContext): JsonResponse
     {
@@ -111,5 +111,37 @@ class IntegrationController extends Controller
         });
 
         return response()->json($this->integrationDto->toArray($revoked));
+    }
+
+    public function rotate(Request $request, Integration $integration, TenantContext $tenantContext, IntegrationCredentialService $credentials): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('rotate integration credential');
+
+        abort_unless($integration->tenant_id === $tenantId, 404);
+
+        $validated = $request->validate([
+            'kind' => ['required', 'string', 'in:plugin_hmac,stripe_api,stripe_webhook'],
+        ]);
+
+        if ($validated['kind'] !== IntegrationCredential::KIND_PLUGIN_HMAC) {
+            return response()->json([
+                'code' => 'credential_kind_not_supported_yet',
+                'message' => 'Only plugin_hmac rotation is supported.',
+            ], 422);
+        }
+
+        if ($integration->status === Integration::STATUS_REVOKED) {
+            return response()->json([
+                'code' => 'credential_revoked',
+                'message' => 'A revoked integration cannot rotate credentials.',
+            ], 409);
+        }
+
+        $requested = $credentials->requestRotation($integration, $request->user()?->id);
+
+        return response()->json(array_merge(
+            $this->integrationDto->toArray($requested->load('credentials')),
+            ['rotation' => ['status' => 'requested', 'delivery' => 'plugin_provisioning_route']],
+        ), 202);
     }
 }

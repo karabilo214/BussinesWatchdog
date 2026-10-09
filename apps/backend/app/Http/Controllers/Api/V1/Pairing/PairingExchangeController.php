@@ -6,15 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Pairing\ExchangePairingCodeRequest;
 use App\Models\AuditLog;
 use App\Models\Integration;
-use App\Models\IntegrationCredential;
 use App\Models\PairingCode;
+use App\Support\Integrations\IntegrationCredentialService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PairingExchangeController extends Controller
 {
+    public function __construct(
+        private readonly IntegrationCredentialService $credentials,
+    ) {}
+
     public function store(ExchangePairingCodeRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -32,14 +35,20 @@ class PairingExchangeController extends Controller
             }
 
             if ($pairingCode->consumed_at !== null) {
+                $this->auditFailure($pairingCode, 'pairing_consumed');
+
                 return ['error' => ['code' => 'pairing_consumed', 'message' => 'Pairing code was already consumed.', 'status' => 409]];
             }
 
             if ($pairingCode->expires_at->isPast()) {
+                $this->auditFailure($pairingCode, 'pairing_expired');
+
                 return ['error' => ['code' => 'pairing_expired', 'message' => 'Pairing code has expired.', 'status' => 410]];
             }
 
             if ($pairingCode->attempt_count >= PairingCode::MAX_ATTEMPTS) {
+                $this->auditFailure($pairingCode, 'pairing_attempts_exceeded');
+
                 return ['error' => ['code' => 'pairing_attempts_exceeded', 'message' => 'Pairing code attempt limit exceeded.', 'status' => 429]];
             }
 
@@ -48,6 +57,8 @@ class PairingExchangeController extends Controller
             $store = $pairingCode->store()->lockForUpdate()->firstOrFail();
 
             if ($validated['base_url'] !== $store->base_url) {
+                $this->auditFailure($pairingCode, 'pairing_base_url_mismatch');
+
                 return ['error' => ['code' => 'pairing_base_url_mismatch', 'message' => 'Pairing base URL does not match the store.', 'status' => 422]];
             }
 
@@ -64,20 +75,7 @@ class PairingExchangeController extends Controller
                 'health' => [],
             ]);
 
-            $secret = random_bytes(32);
-            $secretBase64 = base64_encode($secret);
-            $credential = IntegrationCredential::query()->create([
-                'tenant_id' => $pairingCode->tenant_id,
-                'store_id' => $pairingCode->store_id,
-                'integration_id' => $integration->id,
-                'kind' => IntegrationCredential::KIND_PLUGIN_HMAC,
-                'key_id' => 'bwk_'.Str::lower(Str::random(32)),
-                'ciphertext' => Crypt::encryptString($secretBase64),
-                'key_version' => 1,
-                'fingerprint' => hash('sha256', $secret),
-                'status' => IntegrationCredential::STATUS_ACTIVE,
-                'created_at' => now(),
-            ]);
+            ['credential' => $credential, 'secret' => $secretBase64] = $this->credentials->issuePluginCredential($integration);
 
             $pairingCode->forceFill(['consumed_at' => now()])->save();
 
@@ -118,5 +116,24 @@ class PairingExchangeController extends Controller
         }
 
         return response()->json($result['payload'], 201);
+    }
+
+    private function auditFailure(PairingCode $pairingCode, string $reasonCode): void
+    {
+        AuditLog::query()->create([
+            'tenant_id' => $pairingCode->tenant_id,
+            'store_id' => $pairingCode->store_id,
+            'actor_user_id' => null,
+            'actor_type' => AuditLog::ACTOR_CONNECTOR,
+            'action' => AuditLog::ACTION_INTEGRATION_PAIRING_FAILED,
+            'entity_type' => AuditLog::ENTITY_PAIRING_CODE,
+            'entity_id' => $pairingCode->id,
+            'changes' => [
+                'reason_code' => $reasonCode,
+                'attempt_count' => $pairingCode->attempt_count,
+            ],
+            'request_id' => (string) Str::uuid(),
+            'created_at' => now(),
+        ]);
     }
 }

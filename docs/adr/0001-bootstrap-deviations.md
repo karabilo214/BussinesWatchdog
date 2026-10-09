@@ -84,6 +84,12 @@ Risk: the exchange and signed heartbeat endpoints are not yet production-hardene
 
 Return plan: add route throttle policies, audit logging, deployment keyring design, rotated-key draining, and durable event ingestion before enabling connector ingestion beyond local bootstrap.
 
+Resolution (Step 40, 2026-10-09): resolved for the plugin HMAC credential.
+- `POST /pairing/exchange` throttled at 20/hour per IP (`pairing-exchange` limiter); per-code 5 attempts unchanged. Failed exchanges for a known code (consumed/expired/attempts exceeded/base URL mismatch) write `integration.pairing_failed` audit rows without the code itself.
+- Keyring: `App\Support\Security\Keyring` encrypts with `WATCHDOG_KEYRING_CURRENT` and decrypts by the stored `key_version`. Version 1 is `APP_KEY` with the app cipher (keeps existing ciphertexts readable); versions ≥2 come from `WATCHDOG_KEYRING_KEYS` and use AES-256-GCM. Key material stays in the environment, never in the DB. `security:reencrypt-secrets` moves credentials and notification destinations to the current version; `/health/ready` reports `keyring`.
+- Rotation: `POST /integrations/{id}/rotate` (admin, Idempotency-Key) only flags the request; the heartbeat response then carries `credential_rotation_requested: true`; the plugin calls signed `POST /ingest/credentials/rotate` and receives the new secret once. The signing key becomes `draining` for 24 h, any never-used active key is revoked, and the first request signed with the new key revokes the draining key (`integration.credential_drained`).
+- Still open: the plugin-side implementation (plugin is a placeholder), Stripe API/webhook credential rotation, nonce store fail-closed behaviour has no dedicated test.
+
 ### Event Ingress Uses Envelope Validation Before Full JSON Schema Validation
 
 Specification target: `/api/v1/ingest/events` validates signed raw body, batch limits, event schema, semantic rules, and persists invalid semantic records to the correct durable state.

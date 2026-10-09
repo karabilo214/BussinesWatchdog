@@ -3,6 +3,7 @@
 use App\Console\Commands\DeliverNotifications;
 use App\Console\Commands\DispatchDomainOutbox;
 use App\Console\Commands\ProcessDirtyReconciliation;
+use App\Console\Commands\ReencryptSecrets;
 use App\Console\Commands\RunNightlyReconciliationSweep;
 use App\Http\Middleware\Auth\RequireStatefulSession;
 use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         DeliverNotifications::class,
         ProcessDirtyReconciliation::class,
         RunNightlyReconciliationSweep::class,
+        ReencryptSecrets::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();

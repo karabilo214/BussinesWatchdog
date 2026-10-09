@@ -6,10 +6,10 @@ use App\Models\NotificationChannel;
 use App\Models\NotificationDelivery;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
 use App\Support\Notifications\Channels\SendResult;
+use App\Support\Security\Keyring;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 
 class NotificationDeliveryWorker
@@ -31,6 +31,7 @@ class NotificationDeliveryWorker
     public function __construct(
         private readonly NotificationSenderRegistry $senders,
         private readonly NotificationRenderer $renderer,
+        private readonly Keyring $keyring,
     ) {}
 
     /**
@@ -121,7 +122,7 @@ class NotificationDeliveryWorker
         }
 
         try {
-            $destination = Crypt::decryptString($channel->destination_ciphertext);
+            $destination = $this->keyring->decrypt($channel->destination_ciphertext, $channel->key_version);
         } catch (DecryptException) {
             return $this->finish($delivery, NotificationDelivery::STATUS_DEAD_LETTER, self::ERROR_DESTINATION_UNREADABLE, $channel);
         }

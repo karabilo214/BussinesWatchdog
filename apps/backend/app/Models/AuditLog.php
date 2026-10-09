@@ -25,6 +25,16 @@ class AuditLog extends Model
 
     public const ACTION_INTEGRATION_REVOKED = 'integration.revoked';
 
+    public const ACTION_INTEGRATION_PAIRING_FAILED = 'integration.pairing_failed';
+
+    public const ACTION_INTEGRATION_CREDENTIAL_ROTATION_REQUESTED = 'integration.credential_rotation_requested';
+
+    public const ACTION_INTEGRATION_CREDENTIAL_ROTATED = 'integration.credential_rotated';
+
+    public const ACTION_INTEGRATION_CREDENTIAL_DRAINED = 'integration.credential_drained';
+
+    public const ENTITY_PAIRING_CODE = 'pairing_code';
+
     public const ACTION_PAYMENT_ALLOCATION_CREATED = 'payment_allocation.created';
 
     public const ACTION_PAYMENT_ALLOCATION_REVOKED = 'payment_allocation.revoked';

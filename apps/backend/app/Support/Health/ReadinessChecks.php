@@ -2,6 +2,7 @@
 
 namespace App\Support\Health;
 
+use App\Support\Security\Keyring;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,10 @@ use RedisException;
 
 class ReadinessChecks
 {
+    public function __construct(
+        private readonly Keyring $keyring,
+    ) {}
+
     /**
      * @return array<string, array{ok: bool}>
      */
@@ -22,6 +27,7 @@ class ReadinessChecks
             'database' => $this->database(),
             'redis' => $this->redis(),
             'cache' => $this->cache(),
+            'keyring' => $this->keyring->isReady() ? $this->ok() : $this->failed(),
         ];
     }
 

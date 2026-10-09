@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Incidents\IncidentController;
 use App\Http\Controllers\Api\V1\Incidents\SuppressionController;
+use App\Http\Controllers\Api\V1\Ingest\CredentialRotationController;
 use App\Http\Controllers\Api\V1\Ingest\EventsController;
 use App\Http\Controllers\Api\V1\Ingest\HeartbeatController;
 use App\Http\Controllers\Api\V1\Integrations\IntegrationController;
@@ -56,6 +57,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
     Route::post('/integrations/{integration}/revoke', [IntegrationController::class, 'revoke'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+    Route::post('/integrations/{integration}/rotate', [IntegrationController::class, 'rotate'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationManage()), 'idempotency']);
 
     Route::post('/payment-allocations', [PaymentAllocationController::class, 'store'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::allocationManage()), 'idempotency']);
@@ -107,8 +110,11 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::notificationDeliveryRead()));
 });
 
-Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store']);
+Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store'])
+    ->middleware('throttle:pairing-exchange');
 Route::post('/v1/ingest/heartbeat', [HeartbeatController::class, 'store'])
     ->middleware('integration.hmac');
 Route::post('/v1/ingest/events', [EventsController::class, 'store'])
+    ->middleware('integration.hmac');
+Route::post('/v1/ingest/credentials/rotate', [CredentialRotationController::class, 'store'])
     ->middleware('integration.hmac');
