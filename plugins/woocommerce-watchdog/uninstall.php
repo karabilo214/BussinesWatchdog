@@ -8,7 +8,7 @@ require_once __DIR__ . '/src/Autoloader.php';
 
 \BusinessWatchdog\WooCommerce\Autoloader::register(__DIR__ . '/src');
 
-foreach (['bw_heartbeat', 'bw_deliver_outbox', 'bw_rescan_recent', 'bw_backfill', 'bw_daily_audit', 'bw_payment_attempts'] as $hook) {
+foreach (['bw_heartbeat', 'bw_deliver_outbox', 'bw_rescan_recent', 'bw_backfill', 'bw_daily_audit', 'bw_payment_attempts', 'bw_synthetic_cleanup'] as $hook) {
     wp_clear_scheduled_hook($hook);
 
     if (function_exists('as_unschedule_all_actions')) {

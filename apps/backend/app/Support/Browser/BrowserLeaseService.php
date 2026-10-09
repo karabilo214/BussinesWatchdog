@@ -30,6 +30,7 @@ class BrowserLeaseService
         private readonly CheckScheduler $scheduler,
         private readonly CheckOutcomePolicy $policy,
         private readonly CheckOutcomeEvaluator $evaluator,
+        private readonly SyntheticMarker $marker,
     ) {}
 
     /**
@@ -91,6 +92,11 @@ class BrowserLeaseService
                 $snapshot = $run->config_snapshot;
                 $networkPolicy = $snapshot['network_policy'];
                 unset($snapshot['network_policy']);
+                $syntheticToken = $this->marker->issue($run, $deadline->copy()->addSeconds(60));
+
+                if ($syntheticToken !== null) {
+                    $snapshot['synthetic_token'] = $syntheticToken;
+                }
 
                 return [
                     'attempt_id' => $attempt->id,

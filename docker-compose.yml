@@ -126,9 +126,11 @@ services:
     profiles:
       - browser
     environment:
+      NODE_ENV: production
       BW_API_URL: ${BW_WORKER_API_URL:-http://nginx}
       BW_WORKER_TOKEN: ${BW_WORKER_TOKEN:-}
       BW_WORKER_LOCATION: ${BW_WORKER_LOCATION:-local}
+      BW_EGRESS_PROXY: http://browser-egress:3128
     read_only: true
     tmpfs:
       - /tmp
@@ -140,8 +142,29 @@ services:
     cpus: 1.0
     pids_limit: 512
     restart: unless-stopped
+    depends_on:
+      - browser-egress
     networks:
-      - bw-local
+      - browser-api
+      - browser-egress
+
+  browser-egress:
+    build:
+      context: ./infra/docker/egress
+    profiles:
+      - browser
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - browser-egress
+      - browser-internet
 
   nginx:
     image: nginx:1.27-alpine
@@ -156,9 +179,18 @@ services:
       - backend
     networks:
       - bw-local
+      - browser-api
 
 networks:
   bw-local:
+    driver: bridge
+  browser-api:
+    driver: bridge
+    internal: true
+  browser-egress:
+    driver: bridge
+    internal: true
+  browser-internet:
     driver: bridge
 
 volumes:

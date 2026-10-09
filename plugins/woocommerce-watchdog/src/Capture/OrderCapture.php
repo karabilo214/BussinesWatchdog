@@ -107,7 +107,7 @@ final class OrderCapture
 
         $orderKey = self::orderKey($order->get_id());
         $data = OrderSnapshotBuilder::build($order);
-        $recorded = self::record('order.snapshot', 'order', (string) $order->get_id(), $orderKey, null, $data, $data['source_updated_at'] ?? null);
+        $recorded = self::record('order.snapshot', 'order', (string) $order->get_id(), $orderKey, null, $data, $data['source_updated_at'] ?? null, \BusinessWatchdog\WooCommerce\Synthetic\SyntheticOrders::isSynthetic($order));
 
         $seenRefundKeys = [];
 
@@ -170,7 +170,7 @@ final class OrderCapture
         return 'refund:' . $refundId;
     }
 
-    private static function record(string $type, string $aggregateType, string $aggregateId, string $key, ?string $parentKey, array $data, ?string $occurredAt): int
+    private static function record(string $type, string $aggregateType, string $aggregateId, string $key, ?string $parentKey, array $data, ?string $occurredAt, bool $synthetic = false): int
     {
         $revision = Revisions::observe($key, hash('sha256', (string) wp_json_encode($data)), $parentKey, $data);
 
@@ -178,7 +178,7 @@ final class OrderCapture
             return 0;
         }
 
-        Outbox::enqueue(EventFactory::envelope($type, $aggregateType, $aggregateId, $revision, $occurredAt, $data), $key);
+        Outbox::enqueue(EventFactory::envelope($type, $aggregateType, $aggregateId, $revision, $occurredAt, $data, $synthetic), $key);
 
         return 1;
     }

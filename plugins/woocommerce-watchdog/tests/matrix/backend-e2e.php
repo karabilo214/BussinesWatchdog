@@ -99,7 +99,7 @@ if ($action === 'attempt-windows') {
 
 if ($action === 'browser-setup') {
     $tenant = Tenant::query()->create(['name' => 'Browser E2E', 'timezone' => 'Europe/Kyiv']);
-    $store = Store::query()->create(['tenant_id' => $tenant->id, 'name' => 'Browser E2E', 'base_url' => str_replace('http://', 'https://', getenv('BW_E2E_ORIGIN')), 'timezone' => 'Europe/Kyiv', 'default_currency' => 'EUR']);
+    $store = Store::query()->create(['tenant_id' => $tenant->id, 'name' => 'Browser E2E', 'base_url' => getenv('BW_E2E_BASE_URL'), 'timezone' => 'Europe/Kyiv', 'default_currency' => 'EUR']);
     $store->forceFill(['status' => 'active', 'verified_at' => now(), 'browser_enabled' => true])->save();
     $scenario = \App\Models\CheckScenario::query()->create([
         'tenant_id' => $tenant->id,
@@ -117,7 +117,11 @@ if ($action === 'browser-setup') {
     ]);
     $token = 'bwwk_'.bin2hex(random_bytes(32));
     \App\Models\BrowserWorker::query()->create(['name' => 'e2e-'.Str::random(8), 'token_hash' => hash('sha256', $token), 'status' => 'active', 'created_at' => now()]);
-    $out = ['store_id' => $store->id, 'scenario_id' => $scenario->id, 'worker_token' => $token];
+    $user = User::query()->create(['name' => 'Browser E2E', 'email' => 'browser-e2e-'.Str::random(10).'@example.test', 'password_hash' => Hash::make(Str::random(32)), 'locale' => 'en']);
+    Membership::query()->create(['tenant_id' => $tenant->id, 'user_id' => $user->id, 'role' => 'owner']);
+    $code = 'bwpc_'.Str::random(32);
+    PairingCode::query()->create(['tenant_id' => $tenant->id, 'store_id' => $store->id, 'code_hash' => hash('sha256', $code), 'created_by' => $user->id, 'expires_at' => now()->addMinutes(15), 'created_at' => now()]);
+    $out = ['store_id' => $store->id, 'scenario_id' => $scenario->id, 'worker_token' => $token, 'pairing_code' => $code];
 }
 
 if ($action === 'browser-run') {
@@ -147,7 +151,7 @@ if ($action === 'browser-run') {
         'status' => 'queued',
         'config_snapshot' => (function () use ($scenario): array {
             $snapshot = app(\App\Support\Browser\ScenarioDefinition::class)->snapshot($scenario, Store::query()->findOrFail($scenario->store_id));
-            $local = str_replace('https://', 'http://', $snapshot['store_origin']);
+            $local = app(\App\Support\Browser\ScenarioDefinition::class)->origin($snapshot['product_url']);
             $snapshot['store_origin'] = $local;
             $snapshot['network_policy']['allowed_origins'] = [$local];
 

@@ -25,8 +25,9 @@ Create a token with `php artisan browser:worker-create <name>` (printed once).
 | `BW_WORKER_LOCATION` | `local` | Reported location label |
 | `BW_CHROMIUM_SANDBOX` | `1` | Chromium sandbox; set `0` only where user namespaces are unavailable |
 | `BW_RUN_ONCE` | `0` | Exit after one attempt or when no work is queued (tests) |
+| `BW_EGRESS_PROXY` | — | Egress proxy for all browser traffic (required with `NODE_ENV=production`), e.g. `http://browser-egress:3128` |
 | `BW_WORKER_INSECURE_LOCAL` | `0` | Allow http and private hosts for the local test matrix; refused when `NODE_ENV=production` |
 
 End-to-end against real WooCommerce versions: `plugins/woocommerce-watchdog/tests/matrix/browser-e2e.sh [target...]` (`make worker-e2e`).
 
-Not yet in place: the network-level egress proxy required by spec §19 (the in-browser policy alone is not sufficient for production), screenshots/artifacts and the signed synthetic marker.
+The signed synthetic marker (`X-BW-Synthetic`) is sent to the store origin only; the egress proxy is `infra/docker/egress` (ADR 0012). Not yet in place: screenshots/artifacts.

@@ -8,12 +8,14 @@ use App\Models\CheckRun;
 use App\Models\CheckScenario;
 use App\Models\DomainOutbox;
 use App\Models\Incident;
+use App\Models\Integration;
 use App\Models\NotificationDelivery;
 use App\Models\Store;
 use App\Support\Browser\BrowserLeaseService;
 use App\Support\Browser\CheckOutcomeEvaluator;
 use App\Support\Browser\CheckScheduler;
 use App\Support\Browser\ScenarioDefinition;
+use App\Support\Integrations\IntegrationCredentialService;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
 use App\Support\Notifications\NotificationDeliveryWorker;
 use App\Support\Outbox\DomainOutboxDispatcher;
@@ -115,6 +117,44 @@ class BrowserChecksTest extends TestCase
         $this->assertStringNotContainsString($lease->json('lease_token'), json_encode($attempt->toArray()));
         $this->assertSame(CheckRun::STATUS_RUNNING, CheckRun::query()->sole()->status);
         $this->lease()->assertNoContent();
+    }
+
+    public function test_the_lease_carries_a_synthetic_marker_only_the_store_connector_can_verify(): void
+    {
+        $context = $this->checkContext();
+        $this->scenario($context);
+        app(CheckScheduler::class)->scheduleDue();
+        $this->assertArrayNotHasKey('synthetic_token', $this->lease()->assertOk()->json('scenario'));
+
+        CheckRun::query()->update(['status' => CheckRun::STATUS_CANCELLED]);
+        $connector = Integration::query()->create([
+            'tenant_id' => $context['tenant']->id,
+            'store_id' => $context['store']->id,
+            'provider' => 'woocommerce',
+            'install_id' => fake()->uuid(),
+            'mode' => 'live',
+            'source_authority' => Integration::SOURCE_STORE_REPORTED,
+            'status' => Integration::STATUS_ACTIVE,
+            'capabilities' => [],
+            'connector_version' => '0.5.0',
+            'health' => [],
+        ]);
+        $secret = base64_decode(app(IntegrationCredentialService::class)->issuePluginCredential($connector)['secret'], true);
+        Carbon::setTestNow(now()->addMinute());
+        CheckScenario::query()->update(['next_due_at' => now()]);
+        app(CheckScheduler::class)->scheduleDue();
+
+        $lease = $this->lease()->assertOk();
+        [$version, $payload, $signature] = explode('.', $lease->json('scenario.synthetic_token'));
+        $key = hash_hmac('sha256', 'bw-synthetic-v1', $secret, true);
+        $claims = json_decode(base64_decode(strtr($payload, '-_', '+/')), true);
+
+        $this->assertSame('v1', $version);
+        $this->assertTrue(hash_equals(hash_hmac('sha256', 'v1.'.$payload, $key), $signature));
+        $this->assertSame($connector->id, $claims['i']);
+        $this->assertSame($lease->json('run_id'), $claims['r']);
+        $this->assertSame(Carbon::parse($lease->json('absolute_deadline_at'))->addSeconds(60)->getTimestamp(), $claims['e']);
+        $this->assertStringNotContainsString($lease->json('scenario.synthetic_token'), json_encode(CheckRun::query()->findOrFail($lease->json('run_id'))->toArray()));
     }
 
     public function test_heartbeats_extend_the_lease_but_never_past_the_absolute_deadline(): void

@@ -79,7 +79,11 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       const decision = policy.decide({ url: request.url(), method: request.method(), postData: request.postData() });
 
       if (decision.allow) {
-        await route.continue();
+        if (scenario.synthetic_token && policy.party(request.url()) === 'first') {
+          await route.continue({ headers: { ...request.headers(), 'x-bw-synthetic': scenario.synthetic_token } });
+        } else {
+          await route.continue();
+        }
 
         return;
       }

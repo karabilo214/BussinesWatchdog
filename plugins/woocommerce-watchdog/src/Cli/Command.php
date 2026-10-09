@@ -49,6 +49,12 @@ final class Command
         \WP_CLI::line((string) wp_json_encode(PaymentAttemptsJob::run($now)));
     }
 
+    public function cleanupSynthetic(array $args, array $assoc): void
+    {
+        $now = isset($assoc['advance']) ? time() + max(0, (int) $assoc['advance']) : null;
+        \WP_CLI::line((string) wp_json_encode(['deleted' => \BusinessWatchdog\WooCommerce\Synthetic\SyntheticOrders::cleanup($now)]));
+    }
+
     public function backfill(array $args, array $assoc): void
     {
         if (isset($assoc['start'])) {

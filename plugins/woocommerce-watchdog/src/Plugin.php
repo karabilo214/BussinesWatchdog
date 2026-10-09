@@ -17,6 +17,7 @@ use BusinessWatchdog\WooCommerce\Jobs\PaymentAttemptsJob;
 use BusinessWatchdog\WooCommerce\Jobs\RescanJob;
 use BusinessWatchdog\WooCommerce\Rest\RestController;
 use BusinessWatchdog\WooCommerce\Storage\Schema;
+use BusinessWatchdog\WooCommerce\Synthetic\SyntheticOrders;
 use BusinessWatchdog\WooCommerce\Storage\State;
 
 final class Plugin
@@ -28,6 +29,7 @@ final class Plugin
         BackfillJob::HOOK => BackfillJob::INTERVAL_SECONDS,
         BackfillJob::AUDIT_HOOK => BackfillJob::AUDIT_INTERVAL_SECONDS,
         PaymentAttemptsJob::HOOK => PaymentAttemptsJob::INTERVAL_SECONDS,
+        SyntheticOrders::CLEANUP_HOOK => SyntheticOrders::CLEANUP_INTERVAL_SECONDS,
     ];
 
     public static function activate(): void
@@ -60,6 +62,7 @@ final class Plugin
 
         OrderHooks::register();
         AttemptHooks::register();
+        SyntheticOrders::register();
         OrderCapture::onRecorded([self::class, 'scheduleDelivery']);
         add_action(HeartbeatJob::HOOK, [self::class, 'heartbeat']);
         add_action(DeliveryJob::HOOK, [DeliveryJob::class, 'run']);
@@ -67,6 +70,7 @@ final class Plugin
         add_action(BackfillJob::HOOK, [BackfillJob::class, 'run']);
         add_action(BackfillJob::AUDIT_HOOK, [BackfillJob::class, 'dailyAudit']);
         add_action(PaymentAttemptsJob::HOOK, [self::class, 'reportPaymentAttempts']);
+        add_action(SyntheticOrders::CLEANUP_HOOK, [SyntheticOrders::class, 'cleanup'], 10, 0);
         add_action('upgrader_process_complete', [self::class, 'afterUpgrade'], 20, 0);
         add_action('rest_api_init', [RestController::class, 'register']);
         add_action('init', [self::class, 'ensureSchedules']);
@@ -91,6 +95,12 @@ final class Plugin
                 'shortdesc' => 'Resolve open payment attempts and report closed windows now.',
                 'synopsis' => [
                     ['type' => 'assoc', 'name' => 'advance', 'optional' => true, 'description' => 'Evaluate as if this many seconds had passed (closes windows, expires pending attempts).'],
+                ],
+            ]);
+            \WP_CLI::add_command('business-watchdog cleanup-synthetic', [$command, 'cleanupSynthetic'], [
+                'shortdesc' => 'Delete checkout drafts created by verified browser checks.',
+                'synopsis' => [
+                    ['type' => 'assoc', 'name' => 'advance', 'optional' => true, 'description' => 'Evaluate as if this many seconds had passed.'],
                 ],
             ]);
             \WP_CLI::add_command('business-watchdog rescan', [$command, 'rescan'], ['shortdesc' => 'Rescan orders changed in the last 48 hours.']);

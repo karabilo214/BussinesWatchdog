@@ -1195,3 +1195,21 @@ Verification:
 Remaining:
 
 - Egress proxy, artifacts, synthetic marker, Blocks draft cleanup (Step 53).
+
+### Step 53: Synthetic Marker, Blocks Draft Cleanup, Egress Proxy (ADR 0012)
+
+Status: complete
+
+Added:
+
+- Backend synthetic marker in the lease; worker sends it to the store origin only; plugin verifies it, marks orders, flags synthetic events, skips payment-attempt monitoring and cleans only its own old checkout drafts.
+- Squid egress proxy (`infra/docker/egress`), Compose isolation of the worker, `make egress-test`; the worker refuses production without the proxy.
+- `docs/adr/0012-synthetic-marker-and-egress.md`, `docs/implementation-step-53-checklist.md`.
+
+Verification:
+
+- Backend SQLite 299 + 4 skipped, PostgreSQL 303; worker 13/13; plugin integration and browser e2e on all six targets (marker verified per run, no orders, no payment attempts); egress 7/7.
+
+Remaining:
+
+- Screenshots/artifacts (Step 54).

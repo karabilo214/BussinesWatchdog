@@ -129,6 +129,7 @@ final class RestController
             'backfill' => State::get(\BusinessWatchdog\WooCommerce\Jobs\BackfillJob::STATE),
             'last_capture_error' => State::get(\BusinessWatchdog\WooCommerce\Capture\OrderCapture::STATE_LAST_ERROR),
             'site_base_url' => PairingClient::siteBaseUrl(),
+            'last_synthetic_check' => State::get(\BusinessWatchdog\WooCommerce\Synthetic\SyntheticOrders::STATE_LAST),
         ];
     }
 }

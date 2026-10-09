@@ -2,7 +2,7 @@
 
 Date: 2026-10-09
 
-Status: backend implemented in Step 51; the Node/Playwright worker follows in Step 52. Decisions marked "owner" need confirmation.
+Status: implemented in Step 51; decisions confirmed by the owner on 2026-10-09 (two site failures confirm, two spaced scheduled passes resolve, warning until corroborated, manual run once per minute).
 
 ## Decisions
 

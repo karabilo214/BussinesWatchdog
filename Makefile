@@ -5,7 +5,7 @@ export PATH := $(DOCKER_APP_BIN):$(PATH)
 DOCKER ?= $(shell if command -v docker >/dev/null 2>&1; then command -v docker; elif [ -x $(DOCKER_APP_BIN)/docker ]; then printf '%s\n' $(DOCKER_APP_BIN)/docker; else printf '%s\n' docker; fi)
 COMPOSE ?= $(DOCKER) compose
 
-.PHONY: setup up down ps logs reset-infra check-tools backend-build backend-create backend-shell backend-up backend-logs backend-test backend-test-pgsql worker-test worker-e2e
+.PHONY: setup up down ps logs reset-infra check-tools backend-build backend-create backend-shell backend-up backend-logs backend-test backend-test-pgsql worker-test worker-e2e egress-test
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -63,3 +63,6 @@ worker-test:
 
 worker-e2e: check-tools
 	plugins/woocommerce-watchdog/tests/matrix/browser-e2e.sh $(TARGETS)
+
+egress-test: check-tools
+	infra/scripts/egress-test.sh

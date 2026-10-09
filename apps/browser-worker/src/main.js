@@ -37,10 +37,14 @@ async function submit(lease, result) {
 }
 
 async function main() {
-  const browser = await chromium.launch({ headless: true, chromiumSandbox: config.chromiumSandbox });
+  const browser = await chromium.launch({
+    headless: true,
+    chromiumSandbox: config.chromiumSandbox,
+    ...(config.egressProxy ? { proxy: { server: config.egressProxy, bypass: '<-loopback>' } } : {}),
+  });
   const browserVersion = `chromium-${browser.version()}`;
   let idle = config.idleMinMs;
-  log('worker_started', { browser_version: browserVersion, location: config.location, sandbox: config.chromiumSandbox });
+  log('worker_started', { browser_version: browserVersion, location: config.location, sandbox: config.chromiumSandbox, egress_proxy: config.egressProxy !== null });
 
   try {
     while (!stopping) {

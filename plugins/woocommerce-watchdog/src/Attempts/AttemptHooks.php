@@ -3,6 +3,7 @@
 namespace BusinessWatchdog\WooCommerce\Attempts;
 
 use BusinessWatchdog\WooCommerce\Capture\OrderCapture;
+use BusinessWatchdog\WooCommerce\Synthetic\SyntheticRequest;
 
 final class AttemptHooks
 {
@@ -29,7 +30,7 @@ final class AttemptHooks
 
     public static function onClassicCheckout(): void
     {
-        if (! OrderCapture::capturing() || ! empty($_POST['woocommerce_checkout_update_totals'])) {
+        if (! OrderCapture::capturing() || SyntheticRequest::current() !== null || ! empty($_POST['woocommerce_checkout_update_totals'])) {
             return;
         }
 
@@ -57,6 +58,7 @@ final class AttemptHooks
     {
         try {
             if (! $request instanceof \WP_REST_Request
+                || SyntheticRequest::current() !== null
                 || strtoupper($request->get_method()) !== 'POST'
                 || ! preg_match(self::STORE_API_CHECKOUT_ROUTE, (string) $request->get_route())
                 || ! OrderCapture::capturing()) {
@@ -141,7 +143,7 @@ final class AttemptHooks
 
     private static function start($order): void
     {
-        if (! $order instanceof \WC_Order || $order instanceof \WC_Order_Refund || ! OrderCapture::capturing()) {
+        if (! $order instanceof \WC_Order || $order instanceof \WC_Order_Refund || ! OrderCapture::capturing() || SyntheticRequest::current() !== null) {
             return;
         }
 

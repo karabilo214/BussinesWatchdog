@@ -2,7 +2,7 @@
 
 Date: 2026-10-09
 
-Status: implemented in Step 52. The network-level egress proxy is still required before production.
+Status: implemented in Step 52; confirmed by the owner on 2026-10-09. The network-level egress proxy follows in Step 53.
 
 ## Decisions
 
