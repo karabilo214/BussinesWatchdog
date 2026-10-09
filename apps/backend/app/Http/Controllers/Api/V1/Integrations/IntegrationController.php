@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
 use App\Models\ReconciliationDirtySubject;
+use App\Models\Store;
 use App\Support\Integrations\IntegrationCredentialService;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use App\Support\Tenancy\TenantContext;
@@ -36,6 +37,24 @@ class IntegrationController extends Controller
         }
 
         $integrations = $query
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        return response()->json([
+            'data' => $this->integrationDto->collection($integrations),
+            'next_cursor' => null,
+        ]);
+    }
+
+    public function forStore(Store $store, TenantContext $tenantContext): JsonResponse
+    {
+        abort_unless($store->tenant_id === $tenantContext->requireTenantId('list store integrations'), 404);
+
+        $integrations = Integration::query()
+            ->with('credentials')
+            ->where('tenant_id', $store->tenant_id)
+            ->where('store_id', $store->id)
             ->orderBy('created_at')
             ->orderBy('id')
             ->get();

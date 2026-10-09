@@ -71,58 +71,134 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-  /api/v1/ingest/heartbeat:
+  /api/v1/auth/register:
     post:
-      tags: [Ingestion]
-      operationId: ingestHeartbeat
-      security:
-        - IntegrationKeyId: []
-      parameters:
-        - $ref: '#/components/parameters/SignatureTimestamp'
-        - $ref: '#/components/parameters/SignatureNonce'
-        - $ref: '#/components/parameters/Signature'
-        - $ref: '#/components/parameters/SignatureVersion'
+      tags: [Auth]
+      operationId: register
+      description: Rate-limited (signup per hour per IP). CSRF cookie required (Sanctum SPA).
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Heartbeat'
+              type: object
+              required: [name, email, password, password_confirmation, organization_name, timezone]
+              properties:
+                name: {type: string, minLength: 1, maxLength: 100}
+                email: {type: string, format: email, maxLength: 255}
+                password: {type: string, minLength: 12, maxLength: 128}
+                password_confirmation: {type: string}
+                organization_name: {type: string, minLength: 1, maxLength: 100}
+                timezone: {type: string}
+                locale: {enum: [ru, en, de]}
       responses:
-        '202':
-          description: Health snapshot persisted; does not imply complete sales coverage
+        "201":
+          description: Registered; owner of a new tenant; session started
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AuthSession"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      description: Generic failure that does not reveal whether the e-mail exists; 5 per minute per e-mail+IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: {type: string, format: email}
+                password: {type: string}
+                remember: {type: boolean}
+      responses:
+        "200":
+          description: Session started
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AuthSession"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      security:
+        - {UserSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "204": {description: Session revoked}
+        "401": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      operationId: me
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: "Current user, active tenant and memberships"
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AuthSession"}
+        "401": {$ref: "#/components/responses/Problem"}
+  /api/v1/tenants/{tenant_id}/activate:
+    post:
+      tags: [Tenancy]
+      operationId: activateTenant
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: Active tenant switched
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Accepted'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-  /api/v1/incidents:
+                type: object
+                required: [active_tenant_id]
+                properties:
+                  active_tenant_id: {type: string, format: uuid}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/tenants/context:
     get:
-      tags: [Incidents]
-      operationId: listIncidents
+      tags: [Tenancy]
+      operationId: tenantContext
       security:
-        - UserSession: []
-      parameters:
-        - name: store_id
-          in: query
-          schema: {type: string, format: uuid}
-        - name: state
-          in: query
-          schema: {type: string, enum: [open, acknowledged, resolved]}
-        - name: limit
-          in: query
-          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
-        - name: cursor
-          in: query
-          schema: {type: string, maxLength: 2048}
+        - {UserSession: []}
       responses:
-        '200':
-          description: Tenant-scoped stable cursor page
+        "200":
+          description: Resolved tenant context
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active_tenant_id: {type: [string, "null"], format: uuid}
+                  tenant_context_id: {type: [string, "null"], format: uuid}
+                  tenant_context_source: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores:
+    get:
+      tags: [Stores]
+      operationId: listStores
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Stores of the active tenant with coverage
           content:
             application/json:
               schema:
@@ -131,59 +207,625 @@ paths:
                 properties:
                   data:
                     type: array
-                    items:
-                      $ref: '#/components/schemas/Incident'
-                  next_cursor: {type: [string, 'null']}
-        '401':
-          $ref: '#/components/responses/Problem'
-  /api/v1/incidents/{incident_id}:
+                    items: {$ref: "#/components/schemas/Store"}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Stores]
+      operationId: createStore
+      security:
+        - {UserSession: []}
+      description: Owner/admin.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, base_url, timezone, default_currency]
+              properties:
+                name: {type: string, minLength: 1, maxLength: 100}
+                base_url:
+                  type: string
+                  format: uri
+                  description: "Public HTTPS origin; private destinations, credentials, fragments and non-standard ports are rejected."
+                timezone: {type: string}
+                locale: {enum: [ru, en, de]}
+                default_currency: {type: string, pattern: "^[A-Z]{3}$"}
+      responses:
+        "201":
+          description: "Created (onboarding, unverified)"
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Store"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}:
     get:
-      tags: [Incidents]
-      operationId: getIncident
+      tags: [Stores]
+      operationId: getStore
       security:
-        - UserSession: []
+        - {UserSession: []}
       parameters:
-        - $ref: '#/components/parameters/IncidentId'
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
       responses:
-        '200':
-          description: Incident with sanitized facts and evidence
+        "200":
+          description: Store with coverage summary
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Store"}
+          headers:
+            ETag:
+              description: Quoted version for If-Match
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+    patch:
+      tags: [Stores]
+      operationId: updateStore
+      security:
+        - {UserSession: []}
+      description: Owner/admin; If-Match carries config_version. Activation and browser checks require a verified domain (422 store_not_verified).
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IfMatch"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: {type: string, minLength: 1, maxLength: 100}
+                base_url: {type: string, format: uri, description: Changing it clears verification and browser checks.}
+                timezone: {type: string}
+                locale: {enum: [ru, en, de]}
+                default_currency: {type: string, pattern: "^[A-Z]{3}$"}
+                status: {enum: [paused, active]}
+                browser_enabled: {type: boolean}
+                telemetry_enabled: {type: boolean}
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Store"}
+          headers:
+            ETag:
+              description: Quoted version for If-Match
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "428": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/verify:
+    post:
+      tags: [Stores]
+      operationId: startStoreVerification
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [method]
+              properties:
+                method: {enum: [dns, plugin_challenge]}
+      responses:
+        "202":
+          description: Verification started
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Incident'
-        '404':
-          $ref: '#/components/responses/Problem'
-  /api/v1/incidents/{incident_id}/acknowledge:
-    post:
-      tags: [Incidents]
-      operationId: acknowledgeIncident
+                type: object
+                required: [id, method, instructions]
+                properties:
+                  id: {type: string, format: uuid}
+                  method: {enum: [dns, plugin_challenge]}
+                  challenge: {type: string}
+                  instructions: {type: object, description: DNS TXT name/value or the URL the connector must serve.}
+                  expires_at: {type: string, format: date-time}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/verification:
+    get:
+      tags: [Stores]
+      operationId: getStoreVerification
       security:
-        - UserSession: []
+        - {UserSession: []}
       parameters:
-        - $ref: '#/components/parameters/IncidentId'
-        - $ref: '#/components/parameters/IfMatch'
-        - $ref: '#/components/parameters/CsrfToken'
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
       responses:
-        '200':
-          description: Updated incident; duplicate acknowledge by same actor is harmless
+        "200":
+          description: Latest verification
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/StoreVerification"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/verification/check:
+    post:
+      tags: [Stores]
+      operationId: checkStoreVerification
+      security:
+        - {UserSession: []}
+      description: SSRF-safe DNS/HTTP check; rate-limited.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: Checked now
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/StoreVerification"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/pairing-codes:
+    post:
+      tags: [Stores]
+      operationId: createPairingCode
+      security:
+        - {UserSession: []}
+      description: Owner/admin.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "201":
+          description: "One-time code (15 min), shown once, never logged"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Incident'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-  /api/v1/incidents/{incident_id}/resolve:
-    post:
-      tags: [Incidents]
-      operationId: resolveIncident
+                type: object
+                required: [id, store_id, pairing_code, expires_at, saas_endpoint]
+                properties:
+                  id: {type: string, format: uuid}
+                  store_id: {type: string, format: uuid}
+                  pairing_code: {type: string}
+                  expires_at: {type: string, format: date-time}
+                  saas_endpoint: {type: string, format: uri}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/integrations:
+    get:
+      tags: [Integrations]
+      operationId: listStoreIntegrations
       security:
-        - UserSession: []
+        - {UserSession: []}
       parameters:
-        - $ref: '#/components/parameters/IncidentId'
-        - $ref: '#/components/parameters/IfMatch'
-        - $ref: '#/components/parameters/CsrfToken'
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Integrations of the store
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Integration"}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/pairing/exchange:
+    post:
+      tags: [Pairing]
+      operationId: exchangePairingCode
+      description: Called by the store connector; base_url must equal the store base URL. Rate-limited per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [pairing_code, install_id, connector_code, plugin_version, base_url]
+              properties:
+                pairing_code: {type: string, minLength: 16, maxLength: 128}
+                install_id: {type: string, format: uuid}
+                connector_code: {type: string, pattern: "^[a-z][a-z0-9_]{1,63}$"}
+                plugin_version: {type: string, maxLength: 100}
+                base_url: {type: string, format: uri}
+      responses:
+        "201":
+          description: Credential issued once (at-most-once exchange)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [integration_id, key_id, secret, secret_encoding, signature_version]
+                properties:
+                  integration_id: {type: string, format: uuid}
+                  key_id: {type: string}
+                  secret: {type: string}
+                  secret_encoding: {const: base64}
+                  signature_version: {const: "1"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "410": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/integrations:
+    get:
+      tags: [Integrations]
+      operationId: listIntegrations
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: store_id
+          in: query
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Integrations of the active tenant
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Integration"}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+  /api/v1/integrations/{integration_id}:
+    get:
+      tags: [Integrations]
+      operationId: getIntegration
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: integration_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Integration
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Integration"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/integrations/{integration_id}/revoke:
+    post:
+      tags: [Integrations]
+      operationId: revokeIntegration
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: integration_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: Revoked with credentials; provider revocation requeues the store reconciliation
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Integration"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/integrations/{integration_id}/rotate:
+    post:
+      tags: [Integrations]
+      operationId: requestCredentialRotation
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: integration_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IdempotencyKey"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "202":
+          description: Rotation requested; the connector picks it up on its next heartbeat
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Integration"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/findings:
+    get:
+      tags: [Money]
+      operationId: listFindings
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: from
+          in: query
+          schema: {type: string, format: date-time}
+        - name: to
+          in: query
+          schema: {type: string, format: date-time}
+        - name: status
+          in: query
+          schema: {enum: [ok, pending, mismatch, unsupported, unknown]}
+        - name: rule_code
+          in: query
+          schema: {type: string}
+        - name: currency
+          in: query
+          schema: {type: string, pattern: "^[A-Z]{3}$"}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: cursor
+          in: query
+          schema: {type: string, maxLength: 2048}
+      responses:
+        "200":
+          description: "Findings, newest first; null amounts are unknown, not zero"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Finding"}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/reconciliations:
+    post:
+      tags: [Money]
+      operationId: triggerReconciliation
+      security:
+        - {UserSession: []}
+      description: Without order_ids runs the store-wide unmatched-payment scan.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IdempotencyKey"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                order_ids:
+                  type: array
+                  maxItems: 100
+                  items: {type: string, format: uuid}
+                currency: {type: string, pattern: "^[A-Z]{3}$"}
+                dry_run: {type: boolean, description: Not supported yet (422).}
+      responses:
+        "202":
+          description: Runs evaluated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/ReconciliationRunSummary"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/unmatched-payments:
+    get:
+      tags: [Money]
+      operationId: listUnmatchedPayments
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: cursor
+          in: query
+          schema: {type: string, maxLength: 2048}
+      responses:
+        "200":
+          description: Unallocated provider captures with suggestions (read-only)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/UnmatchedPayment"}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/orders/{order_id}:
+    get:
+      tags: [Money]
+      operationId: getOrder
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Order with latest finding per rule and money operations; no customer data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/Order"}
+                  - type: object
+                    required: [findings, captures, refunds, refund_transactions, allocations, refund_allocations, revisions]
+                    properties:
+                      findings:
+                        type: array
+                        items: {$ref: "#/components/schemas/Finding"}
+                      captures:
+                        type: array
+                        items: {$ref: "#/components/schemas/FinancialTransaction"}
+                      refunds:
+                        type: array
+                        items: {$ref: "#/components/schemas/Refund"}
+                      refund_transactions:
+                        type: array
+                        items: {$ref: "#/components/schemas/FinancialTransaction"}
+                      allocations:
+                        type: array
+                        items: {$ref: "#/components/schemas/PaymentAllocation"}
+                      refund_allocations:
+                        type: array
+                        items: {$ref: "#/components/schemas/RefundAllocation"}
+                      revisions:
+                        type: array
+                        items: {$ref: "#/components/schemas/OrderRevision"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/payments/{payment_id}:
+    get:
+      tags: [Money]
+      operationId: getPayment
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Payment with transactions and allocations
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/Payment"}
+                  - type: object
+                    required: [findings, transactions, allocations, refund_allocations]
+                    properties:
+                      findings:
+                        type: array
+                        items: {$ref: "#/components/schemas/Finding"}
+                      transactions:
+                        type: array
+                        items: {$ref: "#/components/schemas/FinancialTransaction"}
+                      allocations:
+                        type: array
+                        items: {$ref: "#/components/schemas/PaymentAllocation"}
+                      refund_allocations:
+                        type: array
+                        items: {$ref: "#/components/schemas/RefundAllocation"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/payment-allocations:
+    post:
+      tags: [Money]
+      operationId: createPaymentAllocation
+      security:
+        - {UserSession: []}
+      description: Only independent-provider captures can be allocated (allocation_source_not_independent).
+      parameters:
+        - {$ref: "#/components/parameters/IdempotencyKey"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [order_id, payment_id, capture_transaction_id, amount_minor, currency, reason]
+              properties:
+                order_id: {type: string, format: uuid}
+                payment_id: {type: string, format: uuid}
+                capture_transaction_id: {type: string, format: uuid}
+                amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+                currency: {type: string, pattern: "^[A-Z]{3}$"}
+                reason: {type: string, minLength: 5, maxLength: 1000}
+      responses:
+        "201":
+          description: Manual allocation (audited)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PaymentAllocation"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/payment-allocations/{allocation_id}/revoke:
+    post:
+      tags: [Money]
+      operationId: revokePaymentAllocation
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: allocation_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
       requestBody:
         required: true
         content:
@@ -193,31 +835,646 @@ paths:
               additionalProperties: false
               required: [reason]
               properties:
-                reason: {type: string, minLength: 5, maxLength: 2000}
+                reason: {type: string, minLength: 5, maxLength: 1000}
       responses:
-        '200':
-          description: Manually resolved with audit; detectors remain enabled
+        "204": {description: "Revoked (audited, immutable)"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/refund-allocations:
+    post:
+      tags: [Money]
+      operationId: createRefundAllocation
+      security:
+        - {UserSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/IdempotencyKey"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [refund_id, refund_transaction_id, payment_allocation_id, amount_minor, currency, reason]
+              properties:
+                refund_id: {type: string, format: uuid}
+                refund_transaction_id: {type: string, format: uuid}
+                payment_allocation_id: {type: string, format: uuid}
+                amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+                currency: {type: string, pattern: "^[A-Z]{3}$"}
+                reason: {type: string, minLength: 5, maxLength: 1000}
+      responses:
+        "201":
+          description: Manual refund allocation (audited)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RefundAllocation"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/refund-allocations/{allocation_id}/revoke:
+    post:
+      tags: [Money]
+      operationId: revokeRefundAllocation
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: allocation_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 5, maxLength: 1000}
+      responses:
+        "204": {description: "Revoked (audited, immutable)"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/incidents:
+    get:
+      tags: [Incidents]
+      operationId: listIncidents
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: store_id
+          in: query
+          schema: {type: string, format: uuid}
+        - name: state
+          in: query
+          schema: {enum: [open, acknowledged, resolved]}
+        - name: severity
+          in: query
+          schema: {enum: [info, warning, critical]}
+        - name: family
+          in: query
+          schema: {type: string}
+        - name: currency
+          in: query
+          schema: {type: string, pattern: "^[A-Z]{3}$"}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: cursor
+          in: query
+          schema: {type: string, maxLength: 2048}
+      responses:
+        "200":
+          description: Tenant-scoped stable cursor page
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Incident'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-  /api/v1/stores/{store_id}/checks:
-    post:
-      tags: [Checks]
-      operationId: createManualCheck
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Incident"}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+  /api/v1/incidents/{incident_id}:
+    get:
+      tags: [Incidents]
+      operationId: getIncident
       security:
-        - UserSession: []
+        - {UserSession: []}
+      parameters:
+        - name: incident_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Incident with signals and activity
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/IncidentDetail"}
+          headers:
+            ETag:
+              description: Quoted version for If-Match
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/incidents/{incident_id}/acknowledge:
+    post:
+      tags: [Incidents]
+      operationId: acknowledgeIncident
+      security:
+        - {UserSession: []}
+      description: If-Match carries the incident revision; a newer revision answers 409 version_conflict.
+      parameters:
+        - name: incident_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IfMatch"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: "Acknowledged (seen, not fixed); repeating it is harmless"
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Incident"}
+          headers:
+            ETag:
+              description: Quoted version for If-Match
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "428": {$ref: "#/components/responses/Problem"}
+  /api/v1/incidents/{incident_id}/resolve:
+    post:
+      tags: [Incidents]
+      operationId: resolveIncident
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: incident_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IfMatch"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 5, maxLength: 1000}
+      responses:
+        "200":
+          description: Manually resolved with audit; detectors stay enabled
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Incident"}
+          headers:
+            ETag:
+              description: Quoted version for If-Match
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "428": {$ref: "#/components/responses/Problem"}
+  /api/v1/incidents/{incident_id}/comments:
+    post:
+      tags: [Incidents]
+      operationId: commentIncident
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: incident_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [text]
+              properties:
+                text: {type: string, minLength: 1, maxLength: 4000}
+      responses:
+        "201":
+          description: "Comment added (plain text, escaped by the UI)"
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/IncidentActivity"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/incidents/{incident_id}/snooze:
+    post:
+      tags: [Incidents]
+      operationId: snoozeIncident
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: incident_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [until, reason]
+              properties:
+                until: {type: string, format: date-time}
+                reason: {type: string, minLength: 5, maxLength: 1000}
+      responses:
+        "201":
+          description: Suppression created; incident state unchanged
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Suppression"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/suppressions/{suppression_id}/revoke:
+    post:
+      tags: [Incidents]
+      operationId: revokeSuppression
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: suppression_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: Suppression ended now
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Suppression"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/notification-channels:
+    get:
+      tags: [Notifications]
+      operationId: listNotificationChannels
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Channels with masked destinations
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/NotificationChannel"}
+        "401": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Notifications]
+      operationId: createNotificationChannel
+      security:
+        - {UserSession: []}
+      description: Telegram is rejected until P1.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [kind, label]
+              properties:
+                kind: {enum: [email]}
+                label: {type: string, minLength: 1, maxLength: 100}
+                destination_email: {type: string, format: email, maxLength: 254}
+                preferences: {$ref: "#/components/schemas/NotificationPreferences"}
+      responses:
+        "201":
+          description: Created; a 6-digit code was sent to the address
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/NotificationChannel"}
+                  - type: object
+                    required: [verification]
+                    properties:
+                      verification:
+                        type: object
+                        required: [method, expires_in_seconds]
+                        properties:
+                          method: {const: email_code}
+                          expires_in_seconds: {type: integer}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/notification-channels/{channel_id}:
+    patch:
+      tags: [Notifications]
+      operationId: updateNotificationChannel
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                label: {type: string, minLength: 1, maxLength: 100}
+                enabled: {type: boolean}
+                destination_email: {type: string, format: email, maxLength: 254}
+                preferences: {$ref: "#/components/schemas/NotificationPreferences"}
+      responses:
+        "200":
+          description: Updated; a new address requires verification again
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationChannel"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/notification-channels/{channel_id}/verify:
+    post:
+      tags: [Notifications]
+      operationId: verifyNotificationChannel
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: {type: string, pattern: "^[0-9]{6}$"}
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationChannel"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/notification-channels/{channel_id}/test:
+    post:
+      tags: [Notifications]
+      operationId: testNotificationChannel
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "202":
+          description: Test delivery queued (once per minute)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationDelivery"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/notification-deliveries:
+    get:
+      tags: [Notifications]
+      operationId: listNotificationDeliveries
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: incident_id
+          in: query
+          schema: {type: string, format: uuid}
+        - name: channel_id
+          in: query
+          schema: {type: string, format: uuid}
+        - name: status
+          in: query
+          schema: {enum: [queued, sending, sent, uncertain, failed, dead_letter, suppressed]}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: cursor
+          in: query
+          schema: {type: string, maxLength: 2048}
+      responses:
+        "200":
+          description: Delivery log
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/NotificationDelivery"}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/scenarios:
+    get:
+      tags: [Checks]
+      operationId: listCheckScenarios
+      security:
+        - {UserSession: []}
       parameters:
         - name: store_id
           in: path
           required: true
           schema: {type: string, format: uuid}
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        "200":
+          description: Scenarios of the store (one payment_form scenario in P0)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/CheckScenario"}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Checks]
+      operationId: createCheckScenario
+      security:
+        - {UserSession: []}
+      description: "Owner/admin. Deviation from the catalogue until the plugin manifest exists: the product URL is given directly (HTTPS, store origin). 409 scenario_exists."
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - {$ref: "#/components/schemas/CheckScenarioInput"}
+                - {required: [product_url]}
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CheckScenario"}
+          headers:
+            ETag:
+              description: Quoted version for If-Match
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/scenarios/{scenario_id}:
+    get:
+      tags: [Checks]
+      operationId: getCheckScenario
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Scenario
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CheckScenario"}
+          headers:
+            ETag:
+              description: Quoted version for If-Match
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+    patch:
+      tags: [Checks]
+      operationId: updateCheckScenario
+      security:
+        - {UserSession: []}
+      description: Owner/admin; If-Match carries the scenario version.
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IfMatch"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CheckScenarioInput"}
+      responses:
+        "200":
+          description: New scenario version
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CheckScenario"}
+          headers:
+            ETag:
+              description: Quoted version for If-Match
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "428": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/checks:
+    get:
+      tags: [Checks]
+      operationId: listCheckRuns
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: cursor
+          in: query
+          schema: {type: string, maxLength: 2048}
+      responses:
+        "200":
+          description: "Runs, newest first"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/CheckRun"}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Checks]
+      operationId: createManualCheck
+      security:
+        - {UserSession: []}
+      description: Owner/admin; one manual run per minute per store (429); 409 while a run is active; 422 if the store is not eligible.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IdempotencyKey"}
+        - {$ref: "#/components/parameters/CsrfToken"}
       requestBody:
         required: true
         content:
@@ -229,52 +1486,54 @@ paths:
               properties:
                 scenario_id: {type: string, format: uuid}
       responses:
-        '202':
+        "202":
           description: Durable logical run created
           content:
             application/json:
               schema:
-                type: object
-                required: [run_id, status]
-                properties:
-                  run_id: {type: string, format: uuid}
-                  status: {const: queued}
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-  /api/v1/stores/{store_id}/check-scenario:
-    parameters:
-      - name: store_id
-        in: path
-        required: true
-        schema: {type: string, format: uuid}
+                allOf:
+                  - type: object
+                    required: [run_id]
+                    properties:
+                      run_id: {type: string, format: uuid}
+                  - {$ref: "#/components/schemas/CheckRun"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/checks/{run_id}:
     get:
       tags: [Checks]
-      operationId: getCheckScenario
+      operationId: getCheckRun
       security:
-        - UserSession: []
+        - {UserSession: []}
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
       responses:
-        '200':
-          description: The store payment_form scenario
+        "200":
+          description: "Run with attempts, sanitized steps and ready artifacts"
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/CheckScenario'
-        '404':
-          $ref: '#/components/responses/Problem'
-    put:
+              schema: {$ref: "#/components/schemas/CheckRunDetail"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/checks/{run_id}/cancel:
+    post:
       tags: [Checks]
-      operationId: upsertCheckScenario
+      operationId: cancelCheckRun
       security:
-        - UserSession: []
+        - {UserSession: []}
       parameters:
-        - $ref: '#/components/parameters/CsrfToken'
-      description: Owner/admin. URLs must be HTTPS on the store origin; enabling requires a verified store. Every change creates a new scenario version.
+        - name: run_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
       requestBody:
         required: true
         content:
@@ -282,103 +1541,115 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [product_url]
+              required: [reason]
               properties:
-                product_url: {type: string, format: uri}
-                cart_url: {type: [string, 'null'], format: uri}
-                checkout_url: {type: [string, 'null'], format: uri}
-                product_external_id: {type: [string, 'null'], maxLength: 255}
-                interval_seconds: {type: integer, minimum: 300, maximum: 86400}
-                enabled: {type: boolean}
-                extra_allowed_origins: {type: array, maxItems: 10, items: {type: string, format: uri}}
-                synthetic_location:
-                  type: [object, 'null']
-                  required: [country]
-                  properties:
-                    country: {type: string, pattern: '^[A-Za-z]{2}$'}
-                    postcode: {type: [string, 'null'], maxLength: 16}
+                reason: {type: string, minLength: 5, maxLength: 500}
       responses:
-        '200':
-          description: Scenario saved
+        "200":
+          description: Cancelled; the active attempt is fenced out; not a site failure
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/CheckScenario'
-        '422':
-          $ref: '#/components/responses/Problem'
-  /api/v1/stores/{store_id}/check-runs:
+              schema: {$ref: "#/components/schemas/CheckRun"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/artifacts/{artifact_id}/download:
     get:
       tags: [Checks]
-      operationId: listCheckRuns
+      operationId: downloadArtifact
       security:
-        - UserSession: []
-      parameters:
-        - name: store_id
-          in: path
-          required: true
-          schema: {type: string, format: uuid}
-        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100}}
-        - {name: cursor, in: query, schema: {type: string}}
-      responses:
-        '200':
-          description: Runs, newest first
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [data, next_cursor]
-                properties:
-                  data: {type: array, items: {$ref: '#/components/schemas/CheckRun'}}
-                  next_cursor: {type: [string, 'null']}
-  /api/v1/artifacts/{artifact_id}/url:
-    get:
-      tags: [Checks]
-      operationId: getArtifactUrl
-      security:
-        - UserSession: []
+        - {UserSession: []}
+      description: Rate-limited; authorisation at issuance plus a private object.
       parameters:
         - name: artifact_id
           in: path
           required: true
           schema: {type: string, format: uuid}
-      description: Tenant-authorised, 60-second link to a ready artifact; never cached or logged.
       responses:
-        '200':
-          description: Short-lived link
+        "200":
+          description: "60-second link; Cache-Control: no-store"
           content:
             application/json:
               schema:
                 type: object
-                required: [url, expires_at]
+                required: [url, expires_at, content_type, size_bytes]
                 properties:
                   url: {type: string, format: uri}
                   expires_at: {type: string, format: date-time}
-        '404':
-          $ref: '#/components/responses/Problem'
-  /api/v1/check-runs/{run_id}:
-    get:
-      tags: [Checks]
-      operationId: getCheckRun
-      security:
-        - UserSession: []
+                  content_type: {type: string}
+                  size_bytes: {type: integer}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/ingest/heartbeat:
+    post:
+      tags: [Ingestion]
+      operationId: ingestHeartbeat
+      description: Every 5 minutes. Three missing heartbeats mark the connector stale; an old oldest_pending_at marks it partial (ADR 0009).
       parameters:
-        - name: run_id
-          in: path
-          required: true
-          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/SignatureTimestamp"}
+        - {$ref: "#/components/parameters/SignatureNonce"}
+        - {$ref: "#/components/parameters/Signature"}
+        - {$ref: "#/components/parameters/SignatureVersion"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Heartbeat"}
       responses:
-        '200':
-          description: Run with attempts and sanitized steps
+        "200":
+          description: Self-report stored; a heartbeat does not prove complete order coverage
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/CheckRun'
-                  - type: object
+                type: object
+                required: [status, integration_id, credential_rotation_requested, store_verification]
+                properties:
+                  status: {const: ok}
+                  integration_id: {type: string, format: uuid}
+                  credential_rotation_requested: {type: boolean}
+                  store_verification:
+                    type: [object, "null"]
+                    description: Pending plugin challenge the connector must serve publicly.
                     properties:
-                      attempts: {type: array, items: {type: object}}
-        '404':
-          $ref: '#/components/responses/Problem'
+                      id: {type: string, format: uuid}
+                      challenge: {type: string}
+                      url: {type: string, format: uri}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+      security:
+        - {IntegrationKeyId: []}
+  /api/v1/ingest/credentials/rotate:
+    post:
+      tags: [Ingestion]
+      operationId: rotateConnectorCredential
+      description: Called by the connector after the heartbeat reports credential_rotation_requested.
+      parameters:
+        - {$ref: "#/components/parameters/SignatureTimestamp"}
+        - {$ref: "#/components/parameters/SignatureNonce"}
+        - {$ref: "#/components/parameters/Signature"}
+        - {$ref: "#/components/parameters/SignatureVersion"}
+      responses:
+        "201":
+          description: New credential issued once; the previous key drains
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [integration_id, key_id, secret, secret_encoding, signature_version]
+                properties:
+                  integration_id: {type: string, format: uuid}
+                  key_id: {type: string}
+                  secret: {type: string}
+                  secret_encoding: {const: base64}
+                  signature_version: {const: 1}
+                  previous_key_draining_until: {type: [string, "null"], format: date-time}
+        "401": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+      security:
+        - {IntegrationKeyId: []}
   /internal/v1/browser/leases:
     post:
       tags: [BrowserInternal]
@@ -629,77 +1900,566 @@ components:
               inbox_id: {type: [string, 'null'], format: uuid}
               status: {type: string, enum: [accepted, duplicate, invalid, conflict, temporarily_rejected]}
               code: {type: string}
-    Heartbeat:
+    User:
       type: object
-      additionalProperties: false
-      required: [install_id, plugin_version, observed_at, backlog_count, capabilities]
+      required: [id, name, email, locale, email_verified, mfa_enabled]
       properties:
-        install_id: {type: string, format: uuid}
-        plugin_version: {type: string, minLength: 1, maxLength: 32}
-        wordpress_version: {type: string, maxLength: 32}
-        woocommerce_version: {type: string, maxLength: 32}
-        observed_at: {type: string, format: date-time}
-        backlog_count: {type: integer, minimum: 0}
-        oldest_pending_at: {type: [string, 'null'], format: date-time}
-        last_successful_delivery_at: {type: [string, 'null'], format: date-time}
-        last_rescan_at: {type: [string, 'null'], format: date-time}
-        capabilities:
-          type: object
-          additionalProperties: false
-          required: [hpos, checkout_mode, order_snapshots]
-          properties:
-            hpos: {type: boolean}
-            checkout_mode: {type: string, enum: [classic, blocks, custom, unknown]}
-            order_snapshots: {type: boolean}
-            refund_snapshots: {type: boolean}
-            payment_form_check: {type: boolean}
-            funnel_telemetry: {type: boolean}
-        errors:
-          type: array
-          maxItems: 20
-          items: {type: string, maxLength: 128}
-    Incident:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        email: {type: string, format: email}
+        locale: {enum: [ru, en, de]}
+        email_verified: {type: boolean}
+        mfa_enabled: {type: boolean}
+    Membership:
       type: object
-      required: [id, store_id, family, state, severity, revision, first_seen_at, last_seen_at, facts]
+      required: [tenant_id, role, created_at]
+      properties:
+        tenant_id: {type: string, format: uuid}
+        role: {enum: [owner, admin, operator, viewer]}
+        created_at: {type: string, format: date-time}
+    AuthSession:
+      type: object
+      required: [user, active_tenant_id, memberships]
+      properties:
+        user: {$ref: "#/components/schemas/User"}
+        active_tenant_id: {type: [string, "null"], format: uuid}
+        memberships:
+          type: array
+          items: {$ref: "#/components/schemas/Membership"}
+    StoreCoverage:
+      type: object
+      required: [connector, money, payment_attempts, browser_checks]
+      properties:
+        connector:
+          type: object
+          required: [state]
+          properties:
+            state: {enum: [not_connected, warming_up, fresh, stale, partial]}
+            provider: {type: [string, "null"]}
+            last_heartbeat_at: {type: [string, "null"], format: date-time}
+            plugin_version: {type: [string, "null"]}
+        money:
+          type: object
+          required: [state, providers]
+          properties:
+            state:
+              enum: [provider_not_connected, store_not_connected, store_data_stale, reconciling]
+              description: "Money is reconciled only with a connected independent provider and fresh store data; otherwise results are unknown, never \"fine\"."
+            providers:
+              type: array
+              items:
+                type: object
+                required: [provider, status]
+                properties:
+                  provider: {type: string}
+                  status: {type: string}
+        payment_attempts:
+          type: object
+          required: [state]
+          properties:
+            state: {enum: [store_not_connected, store_data_stale, no_attempts_seen, no_recent_attempts, observing]}
+            last_window_end_at: {type: [string, "null"], format: date-time}
+        browser_checks:
+          type: object
+          required: [state]
+          properties:
+            state:
+              enum:
+                - store_not_verified
+                - disabled
+                - not_configured
+                - scenario_disabled
+                - scheduled
+                - passing
+                - failing
+                - not_conclusive
+            last_run_status: {type: [string, "null"]}
+            last_run_error_code: {type: [string, "null"]}
+            last_run_finished_at: {type: [string, "null"], format: date-time}
+            next_due_at: {type: [string, "null"], format: date-time}
+    Store:
+      type: object
+      required:
+        - id
+        - name
+        - base_url
+        - platform
+        - timezone
+        - locale
+        - default_currency
+        - status
+        - verified_at
+        - browser_enabled
+        - telemetry_enabled
+        - config_version
+        - coverage
+        - last_successful_check_at
+        - active_incident_count
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        base_url: {type: string, format: uri}
+        platform: {type: string}
+        timezone: {type: string}
+        locale: {enum: [ru, en, de]}
+        default_currency: {type: string, pattern: "^[A-Z]{3}$"}
+        status: {enum: [onboarding, active, paused, degraded, deleted]}
+        verified_at: {type: [string, "null"], format: date-time}
+        browser_enabled: {type: boolean}
+        telemetry_enabled: {type: boolean}
+        config_version: {type: integer, minimum: 1}
+        coverage: {$ref: "#/components/schemas/StoreCoverage"}
+        last_successful_check_at: {type: [string, "null"], format: date-time}
+        active_incident_count: {type: integer, minimum: 0}
+    StoreVerification:
+      type: object
+      required: [id, store_id, method, state]
       properties:
         id: {type: string, format: uuid}
         store_id: {type: string, format: uuid}
-        family: {type: string}
-        state: {type: string, enum: [open, acknowledged, resolved]}
-        severity: {type: string, enum: [info, warning, critical]}
-        revision: {type: integer, minimum: 1}
-        first_seen_at: {type: string, format: date-time}
-        last_seen_at: {type: string, format: date-time}
-        last_good_at: {type: [string, 'null'], format: date-time}
-        first_bad_at: {type: [string, 'null'], format: date-time}
-        currency: {type: [string, 'null'], pattern: '^[A-Z]{3}$'}
-        verified_discrepancy_minor:
-          oneOf:
-            - $ref: '#/components/schemas/MoneyMinor'
-            - type: 'null'
-        facts: {type: object}
-        evidence_refs:
+        method: {enum: [dns, plugin_challenge]}
+        state: {enum: [pending, verified, failed, expired]}
+        verified_origin: {type: [string, "null"]}
+        expires_at: {type: [string, "null"], format: date-time}
+        verified_at: {type: [string, "null"], format: date-time}
+        reason_code: {type: [string, "null"]}
+        attempts: {type: integer}
+        last_checked_at: {type: [string, "null"], format: date-time}
+    IntegrationCredential:
+      type: object
+      required: [id, kind, key_id_suffix, status]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {type: string}
+        key_id_suffix: {type: string}
+        key_version: {type: integer}
+        status: {enum: [active, draining, revoked]}
+        expires_at: {type: [string, "null"], format: date-time}
+        rotated_at: {type: [string, "null"], format: date-time}
+        created_at: {type: string, format: date-time}
+    Integration:
+      type: object
+      required: [id, store_id, provider, mode, source_authority, status, capabilities, health, credentials]
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        provider: {type: string}
+        external_account_id: {type: [string, "null"]}
+        install_id: {type: [string, "null"], format: uuid}
+        mode: {enum: [live, test]}
+        source_authority: {enum: [store_reported, independent_provider]}
+        status: {enum: [pending, active, degraded, revoked, disabled]}
+        capabilities: {type: object}
+        api_version: {type: [string, "null"]}
+        connector_version: {type: [string, "null"]}
+        last_heartbeat_at: {type: [string, "null"], format: date-time}
+        last_successful_sync_at: {type: [string, "null"], format: date-time}
+        health:
+          type: object
+          description: "Freshness (state, reason, since), last heartbeat self-report, rotation flags. No secrets."
+        credentials:
           type: array
+          items: {$ref: "#/components/schemas/IntegrationCredential"}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    Finding:
+      type: object
+      required: [id, run_id, rule_code, status, currency, evaluated_at]
+      properties:
+        id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        order_id: {type: [string, "null"], format: uuid}
+        payment_id: {type: [string, "null"], format: uuid}
+        rule_code: {type: string}
+        status: {enum: [ok, pending, mismatch, unsupported, unknown]}
+        reason_code: {type: [string, "null"]}
+        currency: {type: [string, "null"], pattern: "^[A-Z]{3}$"}
+        currency_exponent: {type: [integer, "null"]}
+        expected_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+        actual_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+        difference_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+        gross_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+        captured_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+        refund_expected_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+        refund_actual_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+        evidence: {type: object}
+        evaluated_at: {type: string, format: date-time}
+    ReconciliationRunSummary:
+      type: object
+      required: [run_id, store_id, status, findings_count]
+      properties:
+        run_id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        order_id: {type: [string, "null"], format: uuid}
+        status: {type: string}
+        algorithm_version: {type: string}
+        config_version: {type: integer}
+        findings_count: {type: integer}
+        started_at: {type: [string, "null"], format: date-time}
+        finished_at: {type: [string, "null"], format: date-time}
+    Order:
+      type: object
+      required: [id, store_id, external_id, status, currency, currency_exponent, total_minor, financial_support]
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        integration_id: {type: string, format: uuid}
+        external_id: {type: string}
+        display_number: {type: [string, "null"]}
+        status: {type: string}
+        gateway: {type: [string, "null"]}
+        mode: {enum: [live, test]}
+        currency: {type: string, pattern: "^[A-Z]{3}$"}
+        currency_exponent: {type: integer}
+        total_minor: {$ref: "#/components/schemas/MoneyMinor"}
+        payment_expected: {type: boolean}
+        paid_marked_at: {type: [string, "null"], format: date-time}
+        transaction_ref: {type: [string, "null"]}
+        financial_support: {enum: [supported, unsupported, unknown]}
+        is_synthetic: {type: boolean}
+        source_created_at: {type: [string, "null"], format: date-time}
+        source_updated_at: {type: [string, "null"], format: date-time}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    FinancialTransaction:
+      type: object
+      required: [id, payment_id, kind, status, currency, amount_minor]
+      properties:
+        id: {type: string, format: uuid}
+        payment_id: {type: [string, "null"], format: uuid}
+        external_operation_id: {type: string}
+        kind: {enum: [capture, refund, fee, dispute_debit, dispute_credit, adjustment]}
+        status: {enum: [pending, succeeded, failed, cancelled]}
+        currency: {type: string, pattern: "^[A-Z]{3}$"}
+        currency_exponent: {type: integer}
+        amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+        occurred_at: {type: [string, "null"], format: date-time}
+    Refund:
+      type: object
+      required: [id, order_id, currency, amount_minor, status]
+      properties:
+        id: {type: string, format: uuid}
+        order_id: {type: string, format: uuid}
+        external_id: {type: string}
+        currency: {type: string, pattern: "^[A-Z]{3}$"}
+        currency_exponent: {type: integer}
+        amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+        external_required: {type: [boolean, "null"]}
+        provider_ref: {type: [string, "null"]}
+        status: {enum: [requested, recorded, cancelled, deleted]}
+        occurred_at: {type: [string, "null"], format: date-time}
+        updated_at: {type: [string, "null"], format: date-time}
+    OrderRevision:
+      type: object
+      required: [source_revision]
+      properties:
+        source_revision: {type: integer}
+        status: {type: [string, "null"]}
+        total_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+        observed_at: {type: [string, "null"], format: date-time}
+    PaymentAllocation:
+      type: object
+      required: [id, order_id, payment_id, capture_transaction_id, currency, amount_minor, strategy]
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        order_id: {type: string, format: uuid}
+        payment_id: {type: string, format: uuid}
+        capture_transaction_id: {type: string, format: uuid}
+        currency: {type: string, pattern: "^[A-Z]{3}$"}
+        amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+        strategy: {type: string}
+        evidence: {type: object}
+        created_by: {type: [string, "null"], format: uuid}
+        revoked_at: {type: [string, "null"], format: date-time}
+        created_at: {type: string, format: date-time}
+    RefundAllocation:
+      type: object
+      required: [id, refund_id, refund_transaction_id, payment_allocation_id, currency, amount_minor]
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        refund_id: {type: string, format: uuid}
+        refund_transaction_id: {type: string, format: uuid}
+        payment_allocation_id: {type: string, format: uuid}
+        currency: {type: string, pattern: "^[A-Z]{3}$"}
+        amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+        strategy: {type: string}
+        evidence: {type: object}
+        created_by: {type: [string, "null"], format: uuid}
+        revoked_at: {type: [string, "null"], format: date-time}
+        created_at: {type: string, format: date-time}
+    Payment:
+      type: object
+      required: [id, store_id, mode, currency, status, source_authority]
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        integration_id: {type: string, format: uuid}
+        external_id: {type: string}
+        intent_ref: {type: [string, "null"]}
+        charge_ref: {type: [string, "null"]}
+        mode: {enum: [live, test]}
+        currency: {type: string, pattern: "^[A-Z]{3}$"}
+        currency_exponent: {type: integer}
+        status: {enum: [pending, authorized, captured, failed, cancelled, unknown]}
+        source_authority: {enum: [store_reported, independent_provider]}
+        source_updated_at: {type: [string, "null"], format: date-time}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    UnmatchedPayment:
+      type: object
+      required: [capture_transaction_id, currency, amount_minor, reason, candidates]
+      properties:
+        payment_id: {type: [string, "null"], format: uuid}
+        capture_transaction_id: {type: string, format: uuid}
+        currency: {type: string, pattern: "^[A-Z]{3}$"}
+        amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+        mode: {type: [string, "null"]}
+        occurred_at: {type: [string, "null"], format: date-time}
+        reason: {enum: [no_candidate_found, review_required]}
+        candidates:
+          type: array
+          description: "Suggestions only, never an allocation."
           items:
             type: object
-            required: [type, id]
+            required: [order_id, confidence]
             properties:
-              type: {enum: [finding, check_run, signal, artifact]}
-              id: {type: string, format: uuid}
-    CheckScenario:
+              order_id: {type: string, format: uuid}
+              confidence: {enum: [exact_candidate, manual_review]}
+              provider_ref: {type: [string, "null"]}
+              amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+              currency: {type: string, pattern: "^[A-Z]{3}$"}
+              mode: {type: [string, "null"]}
+    Incident:
       type: object
-      required: [id, store_id, mode, version, enabled, adapter_version, interval_seconds, definition]
+      required:
+        - id
+        - store_id
+        - family
+        - component
+        - state
+        - severity
+        - title_code
+        - revision
+        - first_seen_at
+        - last_seen_at
       properties:
         id: {type: string, format: uuid}
         store_id: {type: string, format: uuid}
+        family: {enum: [money, checkout, checkout_payment, integration]}
+        component: {type: string}
+        state: {enum: [open, acknowledged, resolved]}
+        severity: {enum: [info, warning, critical]}
+        title_code: {type: string, description: Stable code; the UI translates it (ru/en/de).}
+        currency: {type: [string, "null"], pattern: "^[A-Z]{3}$"}
+        verified_discrepancy_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+        first_seen_at: {type: string, format: date-time}
+        last_seen_at: {type: string, format: date-time}
+        last_good_at: {type: [string, "null"], format: date-time}
+        first_bad_at: {type: [string, "null"], format: date-time}
+        acknowledged_by: {type: [string, "null"], format: uuid}
+        acknowledged_at: {type: [string, "null"], format: date-time}
+        resolved_at: {type: [string, "null"], format: date-time}
+        resolution_reason: {type: [string, "null"]}
+        revision: {type: integer, minimum: 1}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    Signal:
+      type: object
+      required: [id, signal_type, family, severity, confidence, detected_at]
+      properties:
+        id: {type: string, format: uuid}
+        signal_type: {enum: [reconciliation_finding, payment_attempts, connector_freshness, browser_check]}
+        family: {type: string}
+        component: {type: string}
+        severity: {enum: [info, warning, critical]}
+        confidence: {enum: [observed, corroborated, inferred, unknown]}
+        rule_version: {type: string}
+        config_version: {type: integer}
+        currency: {type: [string, "null"], pattern: "^[A-Z]{3}$"}
+        finding_id: {type: [string, "null"], format: uuid}
+        evidence: {type: object, description: Sanitized facts; no customer data.}
+        detected_at: {type: string, format: date-time}
+    IncidentActivity:
+      type: object
+      required: [id, incident_id, kind, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        incident_id: {type: string, format: uuid}
+        kind:
+          enum: [created, signal_linked, acknowledged, comment, resolved, reopened, severity_changed, suppressed]
+        actor_id: {type: [string, "null"], format: uuid}
+        incident_revision: {type: integer}
+        data: {type: object}
+        created_at: {type: string, format: date-time}
+    IncidentDetail:
+      allOf:
+        - {$ref: "#/components/schemas/Incident"}
+        - type: object
+          required: [signals, activity]
+          properties:
+            signals:
+              type: array
+              items: {$ref: "#/components/schemas/Signal"}
+            activity:
+              type: array
+              items: {$ref: "#/components/schemas/IncidentActivity"}
+    Suppression:
+      type: object
+      required: [id, incident_id, reason, starts_at, ends_at]
+      properties:
+        id: {type: string, format: uuid}
+        incident_id: {type: string, format: uuid}
+        reason: {type: string}
+        created_by: {type: [string, "null"], format: uuid}
+        starts_at: {type: string, format: date-time}
+        ends_at: {type: string, format: date-time}
+        revoked_at: {type: [string, "null"], format: date-time}
+        created_at: {type: string, format: date-time}
+    NotificationPreferences:
+      type: object
+      additionalProperties: false
+      properties:
+        min_severity: {enum: [info, warning, critical]}
+        locale: {enum: [ru, en, de]}
+        timezone: {type: string}
+        quiet_hours:
+          type: [object, "null"]
+          required: [start, end]
+          properties:
+            start: {type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$"}
+            end: {type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$"}
+        critical_bypasses_quiet_hours: {type: boolean}
+        notify_recovery: {type: boolean}
+        store_ids:
+          type: [array, "null"]
+          maxItems: 100
+          items: {type: string, format: uuid}
+    NotificationChannel:
+      type: object
+      required: [id, kind, label, destination_masked, enabled, preferences, effective_preferences, health]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {enum: [email, telegram]}
+        label: {type: string}
+        destination_masked: {type: string}
+        enabled: {type: boolean}
+        verified_at: {type: [string, "null"], format: date-time}
+        preferences: {$ref: "#/components/schemas/NotificationPreferences"}
+        effective_preferences: {$ref: "#/components/schemas/NotificationPreferences"}
+        health: {type: object}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    NotificationDelivery:
+      type: object
+      required: [id, channel_id, notification_kind, status, attempts]
+      properties:
+        id: {type: string, format: uuid}
+        incident_id: {type: [string, "null"], format: uuid}
+        channel_id: {type: string, format: uuid}
+        notification_kind: {enum: [incident_opened, incident_reopened, incident_recovered, test]}
+        incident_revision: {type: [integer, "null"]}
+        template_version: {type: string}
+        status: {enum: [queued, sending, sent, uncertain, failed, dead_letter, suppressed]}
+        delivery_uncertain: {type: boolean}
+        attempts: {type: integer}
+        next_attempt_at: {type: [string, "null"], format: date-time}
+        sent_at: {type: [string, "null"], format: date-time}
+        error_code: {type: [string, "null"]}
+        content: {type: object, description: "Sanitized template input, no PII."}
+        created_at: {type: string, format: date-time}
+    CheckScenario:
+      type: object
+      required:
+        - id
+        - store_id
+        - name
+        - mode
+        - version
+        - enabled
+        - adapter_version
+        - interval_seconds
+        - supported_steps
+        - untested_components
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        name: {type: string}
         mode: {const: payment_form}
         version: {type: integer, minimum: 1}
         enabled: {type: boolean}
         adapter_version: {type: string}
-        interval_seconds: {type: integer}
-        product_external_id: {type: [string, 'null']}
-        definition: {type: object}
-        next_due_at: {type: [string, 'null'], format: date-time}
+        product_external_id: {type: [string, "null"]}
+        product_url: {type: [string, "null"], format: uri}
+        cart_url: {type: [string, "null"], format: uri}
+        checkout_url: {type: [string, "null"], format: uri}
+        extra_allowed_origins:
+          type: array
+          items: {type: string, format: uri}
+        synthetic_location:
+          type: [object, "null"]
+          properties:
+            country: {type: string, pattern: "^[A-Z]{2}$"}
+            postcode: {type: [string, "null"]}
+        interval_seconds: {type: integer, minimum: 300, maximum: 86400}
+        next_due_at: {type: [string, "null"], format: date-time}
+        supported_steps:
+          type: array
+          items: {type: string}
+        untested_components:
+          type: array
+          items: {type: string}
+    CheckScenarioInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string, minLength: 1, maxLength: 100}
+        product_url: {type: string, format: uri, description: HTTPS on the store origin.}
+        cart_url: {type: [string, "null"], format: uri}
+        checkout_url: {type: [string, "null"], format: uri}
+        product_external_id: {type: [string, "null"], maxLength: 255}
+        interval_seconds: {type: integer, minimum: 300, maximum: 86400}
+        enabled: {type: boolean, description: Requires a verified store.}
+        extra_allowed_origins:
+          type: array
+          maxItems: 10
+          items: {type: string, format: uri}
+          description: Public HTTPS gateway/CDN origins the check may load.
+        synthetic_location:
+          type: [object, "null"]
+          additionalProperties: false
+          required: [country]
+          properties:
+            country: {type: string, pattern: "^[A-Za-z]{2}$"}
+            postcode: {type: [string, "null"], maxLength: 16}
     CheckRun:
       type: object
       required: [id, store_id, scenario_id, scenario_version, trigger, status, scheduled_at]
@@ -710,10 +2470,69 @@ components:
         scenario_version: {type: integer}
         trigger: {enum: [scheduled, manual, incident]}
         status: {enum: [queued, running, passed, failed, inconclusive, blocked, unsupported, cancelled]}
-        error_code: {type: [string, 'null']}
+        error_code: {type: [string, "null"]}
         scheduled_at: {type: string, format: date-time}
-        started_at: {type: [string, 'null'], format: date-time}
-        finished_at: {type: [string, 'null'], format: date-time}
+        started_at: {type: [string, "null"], format: date-time}
+        finished_at: {type: [string, "null"], format: date-time}
+    CheckArtifact:
+      type: object
+      required: [id, kind, content_type, size_bytes, expires_at]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {enum: [screenshot]}
+        content_type: {enum: [image/jpeg, image/png]}
+        size_bytes: {type: integer}
+        redaction_version: {type: string}
+        expires_at: {type: string, format: date-time}
+    CheckRunDetail:
+      allOf:
+        - {$ref: "#/components/schemas/CheckRun"}
+        - type: object
+          required: [attempts]
+          properties:
+            attempts:
+              type: array
+              items:
+                type: object
+                required: [id, attempt_number, status, steps, artifacts]
+                properties:
+                  id: {type: string, format: uuid}
+                  attempt_number: {type: integer}
+                  status: {enum: [running, passed, failed, inconclusive, blocked, unsupported, cancelled, expired]}
+                  error_code: {type: [string, "null"]}
+                  location: {type: string}
+                  browser_version: {type: string}
+                  started_at: {type: string, format: date-time}
+                  finished_at: {type: [string, "null"], format: date-time}
+                  diagnostics: {type: [object, "null"], description: redaction_version and relevant_errors (sanitized metadata).}
+                  artifacts:
+                    type: array
+                    items: {$ref: "#/components/schemas/CheckArtifact"}
+                  steps:
+                    type: array
+                    items:
+                      type: object
+                      required: [index, code, status]
+                      properties:
+                        index: {type: integer}
+                        code: {type: string}
+                        status: {enum: [passed, failed, skipped, inconclusive, blocked]}
+                        error_code: {type: [string, "null"]}
+                        started_at: {type: string, format: date-time}
+                        finished_at: {type: string, format: date-time}
+                        assertions:
+                          type: array
+                          items: {type: object}
+                        network_summary:
+                          type: array
+                          items: {type: object}
+    Heartbeat:
+      type: object
+      additionalProperties: false
+      properties:
+        backlog_count: {type: integer, minimum: 0}
+        oldest_pending_at: {type: [string, "null"], format: date-time}
+        plugin_version: {type: string, maxLength: 64}
     BrowserLease:
       type: object
       additionalProperties: false

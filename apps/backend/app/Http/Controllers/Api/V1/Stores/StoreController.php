@@ -57,7 +57,7 @@ class StoreController extends Controller
 
         abort_unless($store->tenant_id === $tenantId, 404);
 
-        return response()->json($this->storeDto->toArray($store));
+        return response()->json($this->storeDto->toArray($store))->setEtag((string) $store->config_version);
     }
 
     public function update(UpdateStoreRequest $request, Store $store, TenantContext $tenantContext): JsonResponse
@@ -114,7 +114,7 @@ class StoreController extends Controller
             ], 422);
         }
 
-        return response()->json($this->storeDto->toArray($updated));
+        return response()->json($this->storeDto->toArray($updated))->setEtag((string) $updated->config_version);
     }
 
     private function expectedVersion(Request $request): int

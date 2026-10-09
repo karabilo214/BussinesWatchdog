@@ -10,6 +10,7 @@ class IncidentActionRejected extends RuntimeException
         'incident_already_resolved',
         'incident_resolved_cannot_acknowledge',
         'suppression_already_revoked',
+        'version_conflict',
     ];
 
     public function __construct(

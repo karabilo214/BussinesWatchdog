@@ -67,6 +67,7 @@ class IncidentApiTest extends TestCase
 
         $this->actingAs($context['user'])
             ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->withHeader('If-Match', '"1"')
             ->postJson("/api/v1/incidents/{$incidentId}/acknowledge")
             ->assertOk()
             ->assertJsonPath('state', Incident::STATE_ACKNOWLEDGED);
@@ -75,6 +76,7 @@ class IncidentApiTest extends TestCase
 
         $this->actingAs($viewerContext['user'])
             ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->withHeader('If-Match', '"2"')
             ->postJson("/api/v1/incidents/{$incidentId}/acknowledge")
             ->assertForbidden();
     }
@@ -89,12 +91,31 @@ class IncidentApiTest extends TestCase
             ->postJson("/api/v1/incidents/{$incidentId}/resolve", [
                 'reason' => 'Matched the capture manually.',
             ])
+            ->assertStatus(428);
+
+        $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->withHeader('If-Match', '"5"')
+            ->postJson("/api/v1/incidents/{$incidentId}/resolve", [
+                'reason' => 'Matched the capture manually.',
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'version_conflict');
+
+        $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->withHeader('If-Match', '"1"')
+            ->postJson("/api/v1/incidents/{$incidentId}/resolve", [
+                'reason' => 'Matched the capture manually.',
+            ])
             ->assertOk()
+            ->assertHeader('ETag', '"2"')
             ->assertJsonPath('state', Incident::STATE_RESOLVED)
             ->assertJsonPath('resolution_reason', 'Matched the capture manually.');
 
         $this->actingAs($context['user'])
             ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->withHeader('If-Match', '"2"')
             ->postJson("/api/v1/incidents/{$incidentId}/resolve", [
                 'reason' => 'Trying again.',
             ])
@@ -161,6 +182,7 @@ class IncidentApiTest extends TestCase
 
         $this->actingAs($foreignContext['user'])
             ->withSession(['active_tenant_id' => $foreignContext['tenant']->id])
+            ->withHeader('If-Match', '"1"')
             ->postJson("/api/v1/incidents/{$incidentId}/acknowledge")
             ->assertNotFound();
     }

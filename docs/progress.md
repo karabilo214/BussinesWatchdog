@@ -1227,3 +1227,17 @@ Added:
 Verification:
 
 - Backend SQLite 302 + 4 skipped, PostgreSQL 306; worker 13/13; browser e2e on six targets with S3Mock; screenshot inspected.
+
+### Step 55: API Readiness for the Dashboard (ADR 0014)
+
+Status: complete; the API the minimal dashboard needs is contract-described and enforced
+
+Added:
+
+- Real store coverage summary (connector, money, payment attempts, browser checks, last passed check, active incidents) instead of placeholders.
+- Catalogue routes for scenarios, check runs, cancel, artifact download, store integrations; `If-Match`/`ETag`; `X-Request-ID`.
+- OpenAPI for all user endpoints (generated from one description), heartbeat/rotation documented as implemented; `OpenApiRoutesTest`; catalogue §11 with deviations and gaps.
+
+Verification:
+
+- SQLite 309 passed + 4 skipped; PostgreSQL 18 313 passed.

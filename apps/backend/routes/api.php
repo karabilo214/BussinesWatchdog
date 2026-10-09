@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Checks\CheckRunController;
 use App\Http\Controllers\Api\V1\Checks\CheckScenarioController;
 use App\Http\Controllers\Api\V1\Incidents\IncidentController;
 use App\Http\Controllers\Api\V1\Incidents\SuppressionController;
@@ -63,18 +64,26 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::post('/integrations/{integration}/rotate', [IntegrationController::class, 'rotate'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationManage()), 'idempotency']);
 
-    Route::get('/stores/{store}/check-scenario', [CheckScenarioController::class, 'show'])
+    Route::get('/stores/{store}/scenarios', [CheckScenarioController::class, 'index'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
-    Route::put('/stores/{store}/check-scenario', [CheckScenarioController::class, 'upsert'])
+    Route::post('/stores/{store}/scenarios', [CheckScenarioController::class, 'store'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
-    Route::post('/stores/{store}/checks', [CheckScenarioController::class, 'runNow'])
+    Route::get('/scenarios/{scenario}', [CheckScenarioController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+    Route::patch('/scenarios/{scenario}', [CheckScenarioController::class, 'update'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+    Route::get('/stores/{store}/checks', [CheckRunController::class, 'index'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+    Route::post('/stores/{store}/checks', [CheckRunController::class, 'store'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::storeManage()), 'idempotency']);
-    Route::get('/stores/{store}/check-runs', [CheckScenarioController::class, 'runs'])
+    Route::get('/checks/{checkRun}', [CheckRunController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
-    Route::get('/check-runs/{checkRun}', [CheckScenarioController::class, 'showRun'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
-    Route::get('/artifacts/{artifact}/url', [CheckScenarioController::class, 'artifactUrl'])
+    Route::post('/checks/{checkRun}/cancel', [CheckRunController::class, 'cancel'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+    Route::get('/artifacts/{artifact}/download', [CheckRunController::class, 'download'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::storeRead()), 'throttle:artifact-url']);
+    Route::get('/stores/{store}/integrations', [IntegrationController::class, 'forStore'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
 
     Route::post('/payment-allocations', [PaymentAllocationController::class, 'store'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::allocationManage()), 'idempotency']);

@@ -6,6 +6,7 @@ use App\Console\Commands\DispatchDomainOutbox;
 use App\Console\Commands\ProcessDirtyReconciliation;
 use App\Console\Commands\ReencryptSecrets;
 use App\Console\Commands\RunNightlyReconciliationSweep;
+use App\Http\Middleware\Api\AssignRequestId;
 use App\Http\Middleware\Auth\RequireStatefulSession;
 use App\Http\Middleware\Browser\AuthenticateBrowserWorker;
 use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
@@ -38,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+        $middleware->api(prepend: [AssignRequestId::class]);
         $middleware->alias([
             'browser.worker' => AuthenticateBrowserWorker::class,
             'idempotency' => EnsureIdempotencyKey::class,

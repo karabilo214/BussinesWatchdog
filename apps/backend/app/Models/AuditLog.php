@@ -53,6 +53,14 @@ class AuditLog extends Model
 
     public const ACTION_NOTIFICATION_CHANNEL_VERIFIED = 'notification_channel.verified';
 
+    public const ACTION_CHECK_SCENARIO_SAVED = 'check_scenario.saved';
+
+    public const ACTION_CHECK_RUN_CANCELLED = 'check_run.cancelled';
+
+    public const ENTITY_CHECK_SCENARIO = 'check_scenario';
+
+    public const ENTITY_CHECK_RUN = 'check_run';
+
     public $timestamps = false;
 
     protected $table = 'audit_log';

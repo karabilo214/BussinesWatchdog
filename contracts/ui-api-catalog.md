@@ -158,3 +158,18 @@ ManifestDTO: install_id, schema_version, platform versions, checkout_mode, hpos,
 Provider error message не подставляется в UI напрямую. Translation key привязан к stable code, подробности sanitized. HTTP status и machine code имеют разные функции: 409 может быть stale version либо event conflict; клиент использует code.
 
 Все user-facing DTO/message fields, validation errors, notification templates, export headers and public/portal content MUST support `ru`, `en`, `de`. API `code` values remain stable English machine identifiers; localized text is selected by active user/tenant locale or explicit `locale` parameter.
+
+## 11 Состояние реализации (Step 55, 2026-10-09)
+
+Все реализованные маршруты `/api/v1` и `/internal/v1` описаны в `openapi.yaml`; тест `OpenApiRoutesTest` проверяет совпадение маршрутов и контракта в обе стороны и идентичность копии в `spec/contracts`.
+
+Отклонения от каталога (ADR 0014):
+
+- `POST /stores/{id}/scenarios` принимает `product_url` (HTTPS, origin магазина) вместо выбора товара из manifest плагина — manifest ещё не реализован.
+- Загрузка скриншота воркером идёт через `POST /internal/v1/browser/attempts/{id}/artifacts` с телом изображения, а не по presigned URL с finalize (ADR 0013).
+- `StoreDTO.coverage` — объект с состояниями `connector`, `money`, `payment_attempts`, `browser_checks` (схема `StoreCoverage`).
+- `POST /integrations/{id}/revoke` не принимает `reason` и отвечает IntegrationDTO (200), а не 204.
+- `/integrations` дополнительно доступен с фильтром `?store_id=`; `GET /stores/{id}/integrations` реализован по каталогу.
+- Heartbeat коннектора (`/ingest/heartbeat`) отвечает 200 с флагом ротации и ожидающей проверкой домена; тело — самоотчёт плагина (`backlog_count`, `oldest_pending_at`, `plugin_version`).
+
+Ещё не реализовано из каталога (не блокирует пилот с одним владельцем): password reset, e-mail verification, MFA, `POST /tenants`, memberships/invitations/ownership transfer, Stripe/PayPal подключение и `sync`, exports, maintenance windows, rules, billing, privacy deletion, Telegram.

@@ -59,20 +59,29 @@ class BrowserChecksTest extends TestCase
     public function test_scenario_urls_must_stay_on_the_store_origin_and_enabling_needs_verification(): void
     {
         $context = $this->checkContext(verified: false);
-        $url = "/api/v1/stores/{$context['store']->id}/check-scenario";
+        $url = "/api/v1/stores/{$context['store']->id}/scenarios";
 
-        $this->asOwner($context)->putJson($url, ['product_url' => 'https://evil.example.test/product/x'])
+        $this->asOwner($context)->postJson($url, ['product_url' => 'https://evil.example.test/product/x'])
             ->assertStatus(422)->assertJsonPath('code', 'url_outside_store_origin');
-        $this->asOwner($context)->putJson($url, ['product_url' => 'https://shop.example.test/product/x', 'enabled' => true])
+        $this->asOwner($context)->postJson($url, ['product_url' => 'https://shop.example.test/product/x', 'enabled' => true])
             ->assertStatus(422)->assertJsonPath('code', 'store_not_verified');
 
-        $created = $this->asOwner($context)->putJson($url, ['product_url' => 'https://shop.example.test/product/x', 'extra_allowed_origins' => ['https://js.stripe.com/v3/']])
-            ->assertOk()->assertJsonPath('version', 1)->assertJsonPath('enabled', false);
-        $this->assertSame(['https://js.stripe.com'], $created->json('definition.extra_allowed_origins'));
+        $created = $this->asOwner($context)->postJson($url, ['product_url' => 'https://shop.example.test/product/x', 'extra_allowed_origins' => ['https://js.stripe.com/v3/']])
+            ->assertCreated()->assertJsonPath('version', 1)->assertJsonPath('enabled', false)->assertHeader('ETag', '"1"');
+        $this->assertSame(['https://js.stripe.com'], $created->json('extra_allowed_origins'));
+        $this->assertContains('payment_form', $created->json('supported_steps'));
+        $this->asOwner($context)->postJson($url, ['product_url' => 'https://shop.example.test/product/x'])
+            ->assertStatus(409)->assertJsonPath('code', 'scenario_exists');
 
-        $this->asOwner($context)->putJson($url, ['product_url' => 'https://shop.example.test/product/y', 'interval_seconds' => 600])
-            ->assertOk()->assertJsonPath('version', 2)->assertJsonPath('interval_seconds', 600);
-        $this->asOwner($context)->getJson($url)->assertOk()->assertJsonPath('definition.product_url', 'https://shop.example.test/product/y');
+        $scenarioUrl = '/api/v1/scenarios/'.$created->json('id');
+        $this->asOwner($context)->patchJson($scenarioUrl, ['interval_seconds' => 600])->assertStatus(428);
+        $this->asOwner($context)->withHeader('If-Match', '"7"')->patchJson($scenarioUrl, ['interval_seconds' => 600])
+            ->assertStatus(409)->assertJsonPath('code', 'version_conflict');
+        $this->asOwner($context)->withHeader('If-Match', '"1"')->patchJson($scenarioUrl, ['product_url' => 'https://shop.example.test/product/y', 'interval_seconds' => 600])
+            ->assertOk()->assertJsonPath('version', 2)->assertJsonPath('interval_seconds', 600)->assertHeader('ETag', '"2"');
+        $this->asOwner($context)->getJson($scenarioUrl)->assertOk()->assertJsonPath('product_url', 'https://shop.example.test/product/y');
+        $this->asOwner($context)->getJson($url)->assertOk()->assertJsonCount(1, 'data');
+        $this->asOwner($this->context())->getJson($scenarioUrl)->assertNotFound();
     }
 
     public function test_due_scenarios_on_eligible_stores_get_exactly_one_active_run(): void
@@ -342,8 +351,8 @@ class BrowserChecksTest extends TestCase
             ->assertStatus(409)->assertJsonPath('code', CheckScheduler::ERROR_RUN_ACTIVE);
 
         $run = CheckRun::query()->sole();
-        $this->asOwner($context)->getJson("/api/v1/check-runs/{$run->id}")->assertOk()->assertJsonPath('status', 'queued');
-        $this->asOwner($context)->getJson("/api/v1/stores/{$context['store']->id}/check-runs")->assertOk()->assertJsonCount(1, 'data');
+        $this->asOwner($context)->getJson("/api/v1/checks/{$run->id}")->assertOk()->assertJsonPath('status', 'queued');
+        $this->asOwner($context)->getJson("/api/v1/stores/{$context['store']->id}/checks")->assertOk()->assertJsonCount(1, 'data');
     }
 
     public function test_the_flow_failure_notification_names_the_step_and_says_no_order_was_created(): void
@@ -383,15 +392,17 @@ class BrowserChecksTest extends TestCase
 
         $context = ['user' => User::query()->firstOrFail(), 'tenant' => Tenant::query()->firstOrFail()];
         $run = CheckRun::query()->sole();
-        $detail = $this->asOwner($context)->getJson("/api/v1/check-runs/{$run->id}")->assertOk();
+        $detail = $this->asOwner($context)->getJson("/api/v1/checks/{$run->id}")->assertOk();
         $this->assertSame($artifact->id, $detail->json('attempts.0.artifacts.0.id'));
         $this->assertArrayNotHasKey('object_key', $detail->json('attempts.0.artifacts.0'));
 
-        $url = $this->asOwner($context)->getJson("/api/v1/artifacts/{$artifact->id}/url")->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+        $url = $this->asOwner($context)->getJson("/api/v1/artifacts/{$artifact->id}/download")->assertOk()->assertHeader('Cache-Control', 'no-store, private');
         $this->assertStringContainsString('expires='.now()->addSeconds(60)->getTimestamp(), $url->json('url'));
+        $this->assertSame('image/jpeg', $url->json('content_type'));
+        $this->assertSame($artifact->size_bytes, $url->json('size_bytes'));
 
         $stranger = $this->context();
-        $this->asOwner($stranger)->getJson("/api/v1/artifacts/{$artifact->id}/url")->assertNotFound();
+        $this->asOwner($stranger)->getJson("/api/v1/artifacts/{$artifact->id}/download")->assertNotFound();
     }
 
     public function test_screenshots_are_rejected_unless_they_match_type_size_checksum_and_a_live_lease(): void
@@ -429,6 +440,23 @@ class BrowserChecksTest extends TestCase
 
         $disk->assertMissing($artifact->object_key);
         $this->assertSame(Artifact::STATE_DELETED, $artifact->fresh()->state);
+    }
+
+    public function test_cancelling_a_running_check_fences_out_the_worker(): void
+    {
+        $lease = $this->leasedAttempt();
+        $run = CheckRun::query()->sole();
+        $context = ['user' => User::query()->firstOrFail(), 'tenant' => Tenant::query()->firstOrFail()];
+
+        $this->asOwner($context)->postJson("/api/v1/checks/{$run->id}/cancel", ['reason' => 'x'])->assertUnprocessable();
+        $this->asOwner($context)->postJson("/api/v1/checks/{$run->id}/cancel", ['reason' => 'Theme update in progress'])
+            ->assertOk()->assertJsonPath('status', CheckRun::STATUS_CANCELLED)->assertJsonPath('error_code', 'cancelled_by_user');
+
+        $this->submit($lease, $this->resultBody(1, 'failed', 'site_failure'))->assertStatus(409);
+        $this->assertSame(CheckRun::STATUS_CANCELLED, $run->fresh()->status);
+        $this->assertSame(0, Incident::query()->count());
+        $this->asOwner($context)->postJson("/api/v1/checks/{$run->id}/cancel", ['reason' => 'Theme update in progress'])
+            ->assertStatus(409)->assertJsonPath('code', 'check_run_not_active');
     }
 
     public function test_commands_are_registered_and_scheduled(): void

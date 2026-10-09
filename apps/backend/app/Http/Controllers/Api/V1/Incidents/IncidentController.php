@@ -95,7 +95,7 @@ class IncidentController extends Controller
         return response()->json(array_merge($this->incidentDto->toArray($incident), [
             'signals' => $this->signalDto->collection($signals),
             'activity' => $this->activityDto->collection($incident->activity),
-        ]));
+        ]))->setEtag((string) $incident->revision);
     }
 
     public function acknowledge(Request $request, Incident $incident, TenantContext $tenantContext): JsonResponse
@@ -105,12 +105,12 @@ class IncidentController extends Controller
         abort_unless($incident->tenant_id === $tenantId, 404);
 
         try {
-            $acknowledged = $this->lifecycle->acknowledge($incident, $request->user()?->id);
+            $acknowledged = $this->lifecycle->acknowledge($incident, $request->user()?->id, $this->expectedRevision($request));
         } catch (IncidentActionRejected $exception) {
             return $this->rejectedResponse($exception);
         }
 
-        return response()->json($this->incidentDto->toArray($acknowledged));
+        return response()->json($this->incidentDto->toArray($acknowledged))->setEtag((string) $acknowledged->revision);
     }
 
     public function resolve(ResolveIncidentRequest $request, Incident $incident, TenantContext $tenantContext): JsonResponse
@@ -120,12 +120,12 @@ class IncidentController extends Controller
         abort_unless($incident->tenant_id === $tenantId, 404);
 
         try {
-            $resolved = $this->lifecycle->resolve($incident, $request->validated()['reason'], $request->user()?->id);
+            $resolved = $this->lifecycle->resolve($incident, $request->validated()['reason'], $request->user()?->id, $this->expectedRevision($request));
         } catch (IncidentActionRejected $exception) {
             return $this->rejectedResponse($exception);
         }
 
-        return response()->json($this->incidentDto->toArray($resolved));
+        return response()->json($this->incidentDto->toArray($resolved))->setEtag((string) $resolved->revision);
     }
 
     public function comment(CommentIncidentRequest $request, Incident $incident, TenantContext $tenantContext): JsonResponse
@@ -163,6 +163,19 @@ class IncidentController extends Controller
         }
 
         return response()->json($this->suppressionDto->toArray($suppression), 201);
+    }
+
+    private function expectedRevision(Request $request): int
+    {
+        $header = $request->header('If-Match');
+
+        abort_if($header === null, 428, 'If-Match header is required.');
+
+        if (! preg_match('/^"?([1-9][0-9]*)"?$/', $header, $matches)) {
+            abort(400, 'Invalid If-Match header.');
+        }
+
+        return (int) $matches[1];
     }
 
     private function rejectedResponse(IncidentActionRejected $exception): JsonResponse

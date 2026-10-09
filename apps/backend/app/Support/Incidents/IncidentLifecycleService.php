@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 class IncidentLifecycleService
 {
-    public function acknowledge(Incident $incident, ?string $actorId): Incident
+    public function acknowledge(Incident $incident, ?string $actorId, ?int $expectedRevision = null): Incident
     {
-        return DB::transaction(function () use ($incident, $actorId): Incident {
+        return DB::transaction(function () use ($incident, $actorId, $expectedRevision): Incident {
             /** @var Incident $locked */
             $locked = Incident::query()->whereKey($incident->id)->lockForUpdate()->firstOrFail();
 
@@ -25,6 +25,8 @@ class IncidentLifecycleService
             if ($locked->state === Incident::STATE_ACKNOWLEDGED) {
                 return $locked;
             }
+
+            $this->assertRevision($locked, $expectedRevision);
 
             $now = Carbon::now();
             $locked->forceFill([
@@ -41,9 +43,9 @@ class IncidentLifecycleService
         });
     }
 
-    public function resolve(Incident $incident, string $reason, ?string $actorId): Incident
+    public function resolve(Incident $incident, string $reason, ?string $actorId, ?int $expectedRevision = null): Incident
     {
-        return DB::transaction(function () use ($incident, $reason, $actorId): Incident {
+        return DB::transaction(function () use ($incident, $reason, $actorId, $expectedRevision): Incident {
             $this->assertNonEmpty($reason, 'incident_reason_required');
 
             /** @var Incident $locked */
@@ -52,6 +54,8 @@ class IncidentLifecycleService
             if ($locked->state === Incident::STATE_RESOLVED) {
                 throw new IncidentActionRejected('incident_already_resolved');
             }
+
+            $this->assertRevision($locked, $expectedRevision);
 
             $now = Carbon::now();
             $locked->forceFill([
@@ -165,5 +169,16 @@ class IncidentLifecycleService
             'sanitized_data' => $extra,
             'created_at' => Carbon::now(),
         ]);
+    }
+
+    /**
+     * The caller acted on the revision it last saw; a newer revision (another operator, an
+     * automatic transition) means the decision may be based on stale facts.
+     */
+    private function assertRevision(Incident $incident, ?int $expectedRevision): void
+    {
+        if ($expectedRevision !== null && $incident->revision !== $expectedRevision) {
+            throw new IncidentActionRejected('version_conflict');
+        }
     }
 }
