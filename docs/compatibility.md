@@ -76,3 +76,19 @@ Not verified: WooCommerce Stripe gateway versions, themes, multisite, PHP 7.4 wi
 
 One-run chain (plugin → backend → real Stripe test account → links → reconciliation), `tests/matrix/stripe-chain-e2e.sh latest`: capture and refund linked by exact reference, reconciliation ok (2026-10-10).
 
+
+## WooCommerce PayPal Payments (spike part 0: source reading only, not run)
+
+Read from the source of WooCommerce PayPal Payments 4.1.3 (wordpress.org, 2026-10-10); nothing here was executed against PayPal yet.
+
+| What | Where the plugin keeps it |
+|---|---|
+| PayPal order id | order meta `_ppcp_paypal_order_id` |
+| Order transaction id | `set_transaction_id()` with the **capture id** of the first purchase unit; for intent AUTHORIZE the **authorization id** (later replaced on capture) |
+| Intent | order meta `_ppcp_paypal_intent` (`CAPTURE` / `AUTHORIZE`) |
+| Sandbox or live | order meta `_ppcp_paypal_payment_mode` (`sandbox` / `live`), set when the PayPal meta is added |
+| Refund ids | a list on the **order** in `_ppcp_refunds` (admin refunds and refund webhooks); nothing is stored on the WooCommerce refund object |
+| Fees | `_ppcp_paypal_fees`, `_ppcp_paypal_refund_fees` |
+| What PayPal receives | purchase unit `custom_id` = WooCommerce order id, `invoice_id` = configured prefix + order number |
+
+Consequences to verify with a real sandbox: refunds cannot be linked per WooCommerce refund from the plugin data alone (only the order-level list); the order id travels to PayPal as `custom_id`, which is a stable metadata key like Stripe `order_id`.
