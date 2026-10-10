@@ -136,6 +136,7 @@ void load();
         {{ $t('provider.last_error', { time: dateTime(integration.health.last_error.at) }) }} {{ $te(`errors.${integration.health.last_error.code}`) ? $t(`errors.${integration.health.last_error.code}`) : integration.health.last_error.code }}
       </p>
       <p class="text-[13px] text-text-muted">{{ $t('paypal.polling_note') }}</p>
+      <p class="text-[13px] text-text-muted" data-matching-note>{{ $t('paypal.matching_note') }}</p>
 
       <div v-if="canManage" class="flex flex-wrap gap-2">
         <button v-if="integration.status === 'active'" type="button" class="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy" @click="runSync">{{ $t('provider.sync_now') }}</button>
@@ -207,6 +208,7 @@ void load();
           </label>
         </div>
         <p class="text-[13px] text-text-muted">{{ $t('paypal.storage_note') }}</p>
+        <p class="text-[13px] text-text-muted">{{ $t('paypal.matching_note') }}</p>
         <div>
           <button type="submit" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !formReady">{{ $t('paypal.connect') }}</button>
         </div>

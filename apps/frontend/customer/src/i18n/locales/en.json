@@ -1163,6 +1163,7 @@
     "revoke_warning": "The PayPal credentials stop being used; money reconciliation of PayPal orders returns to “unknown”. Delete the app in PayPal as well.",
     "revoke_confirm": "Disconnect PayPal",
     "revoked": "PayPal disconnected.",
-    "credentials_rejected": "PayPal rejected the app credentials or the app lacks Transaction Search — calls to PayPal are stopped and money reconciliation shows “unknown”. Disconnect and connect PayPal again."
+    "credentials_rejected": "PayPal rejected the app credentials or the app lacks Transaction Search — calls to PayPal are stopped and money reconciliation shows “unknown”. Disconnect and connect PayPal again.",
+    "matching_note": "Metadata matching is not supported for PayPal: payments are linked to orders only by the transaction id the PayPal plugin writes to the order."
   }
 }

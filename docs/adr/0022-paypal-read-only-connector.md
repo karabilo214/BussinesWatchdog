@@ -2,7 +2,7 @@
 
 Date: 2026-10-10
 
-Status: spike done (parts 0–2); connector implemented in Step 70; the decisions below await owner review.
+Status: spike done (parts 0–2); connector implemented in Step 70. Owner review 2026-10-10: refund link by unique amount — accepted for now (to be revisited with real data); coverage per gateway/provider — accepted; metadata matching — not supported for PayPal, shown as such in the dashboard.
 
 ## Context
 
@@ -56,7 +56,7 @@ At 15:01 UTC `last_refreshed_datetime` was 13:29:59 (about 1.5 h behind). Rows: 
 - **Refund link by unique amount (new rule, provider-neutral)**: WooCommerce refunds of PayPal orders carry no PayPal refund id. Inside an order already linked to a payment, when exactly one unlinked store refund without `provider_ref` and exactly one unlinked succeeded provider refund of that payment have the same amount and currency, they are linked with strategy `unique_amount` (evidence `unique_amount_v1`). Any ambiguity (two equal amounts on either side) links nothing; a person links it manually. Store refunds that carry `provider_ref` keep the exact rule only.
 - **Coverage per gateway**: an order whose gateway belongs to a known provider (Stripe gateways → stripe, `ppcp-*` → paypal) is only checked when that provider is connected; otherwise it stays `unknown / provider_not_connected`. A store with only Stripe connected therefore does not report PayPal orders as missing captures. Orders of unknown gateways keep the store-wide rule.
 - **Plugin**: PayPal Payments gateways (`ppcp-*`) are reported as supported; their test/live mode is read from PayPal Payments' own `_ppcp_paypal_payment_mode` (sandbox → test), not copied.
-- **Metadata matching** (`verified_metadata`) does not apply to PayPal: PayPal metadata has no site URL to compare with the confirmed store domain. PayPal payments link by the exact capture id only.
+- **Metadata matching** (`verified_metadata`) is not supported for PayPal: PayPal metadata has no site URL to compare with the confirmed store domain. PayPal payments link by the exact capture id only; the PayPal tab says so (owner decision 2026-10-10).
 - Verified on the owner's sandbox: connecting the real Watchdog app (write scopes capture, payments_v1, refund reported), audit sync over Transaction Search and reading the spike orders: captured/refunded, pending EUR captures, an authorization — all mapped as described.
 
 ## Open

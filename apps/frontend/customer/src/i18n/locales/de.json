@@ -1163,6 +1163,7 @@
     "revoke_warning": "Die PayPal-Zugangsdaten werden nicht mehr genutzt; der Geldabgleich von PayPal-Bestellungen kehrt zu „unbekannt“ zurück. Löschen Sie die App auch in PayPal.",
     "revoke_confirm": "PayPal trennen",
     "revoked": "PayPal getrennt.",
-    "credentials_rejected": "PayPal hat die App-Zugangsdaten abgelehnt oder der App fehlt Transaction Search — Aufrufe an PayPal sind gestoppt, der Geldabgleich zeigt „unbekannt“. Trennen und verbinden Sie PayPal neu."
+    "credentials_rejected": "PayPal hat die App-Zugangsdaten abgelehnt oder der App fehlt Transaction Search — Aufrufe an PayPal sind gestoppt, der Geldabgleich zeigt „unbekannt“. Trennen und verbinden Sie PayPal neu.",
+    "matching_note": "Zuordnung über Metadaten wird für PayPal nicht unterstützt: Zahlungen werden Bestellungen nur über die Transaktions-ID zugeordnet, die das PayPal-Plugin in die Bestellung schreibt."
   }
 }

@@ -158,6 +158,7 @@ describe('PayPalPanel', () => {
     expect(wrapper.get('[data-write-scopes]').text()).toContain('возвраты');
     expect(wrapper.text()).toContain('тестовая (Sandbox)');
     expect(wrapper.text()).toContain('Список платежей PayPal обновлён до');
+    expect(wrapper.get('[data-matching-note]').text()).toContain('Сопоставление по metadata для PayPal не поддерживается');
     expect(wrapper.find('#paypal-client-secret').exists()).toBe(false);
   });
 
