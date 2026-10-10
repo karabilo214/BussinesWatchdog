@@ -29,7 +29,7 @@ class AuthSessionDto
             'email' => $user->email,
             'locale' => $user->locale,
             'email_verified' => $user->email_verified_at !== null,
-            'mfa_enabled' => $user->mfa_secret_ciphertext !== null,
+            'mfa_enabled' => $user->mfa_confirmed_at !== null,
         ];
     }
 

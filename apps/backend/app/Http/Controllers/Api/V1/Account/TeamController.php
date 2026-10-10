@@ -8,6 +8,7 @@ use App\Models\Membership;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Account\AccountRejected;
+use App\Support\Account\StepUp;
 use App\Support\Account\TeamService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -42,6 +43,25 @@ class TeamController extends Controller
         }
 
         return response()->json($this->member($membership, $request->user()));
+    }
+
+    public function transferOwnership(Request $request, TenantContext $tenantContext, StepUp $stepUp): JsonResponse
+    {
+        $validated = $request->validate([
+            'target_user_id' => ['required', 'string', 'uuid'],
+            'current_password' => ['required', 'string', 'max:128'],
+            'code' => ['nullable', 'string', 'max:32'],
+        ]);
+        $tenantId = $tenantContext->requireTenantId('transfer ownership');
+        $stepUp->require($request->user(), $validated['current_password'], $validated['code'] ?? null);
+
+        try {
+            $this->team->transferOwnership($tenantId, $request->user(), $validated['target_user_id']);
+        } catch (AccountRejected $exception) {
+            return $this->rejected($exception);
+        }
+
+        return response()->json(null, 204);
     }
 
     public function removeMember(Request $request, string $user, TenantContext $tenantContext): JsonResponse
@@ -143,6 +163,7 @@ class TeamController extends Controller
             'tenant_id' => $membership->tenant_id,
             'name' => $membership->user?->name,
             'email' => $membership->user?->email,
+            'email_verified' => $membership->user?->email_verified_at !== null,
             'role' => $membership->role,
             'is_you' => $membership->user_id === $viewer->id,
             'created_at' => $membership->created_at?->toJSON(),

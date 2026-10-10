@@ -5,6 +5,7 @@ import { changePassword, resendEmailVerification, updateProfile } from '@/api/ac
 import type { Locale } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { fieldErrorsOf } from '@/composables/errors';
+import MfaPanel from '@/components/account/MfaPanel.vue';
 import PasswordFields from '@/components/account/PasswordFields.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
 import { useSession } from '@/composables/useSession';
@@ -139,6 +140,8 @@ async function savePassword(): Promise<void> {
         </form>
         <p v-if="passwordSaved" class="text-sm text-ok" role="status">{{ $t('account.password.changed') }}</p>
       </section>
+
+      <MfaPanel />
     </div>
   </AppLayout>
 </template>

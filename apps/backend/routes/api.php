@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Account\AccountController;
+use App\Http\Controllers\Api\V1\Account\MfaController;
 use App\Http\Controllers\Api\V1\Account\TeamController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Checks\CheckRunController;
@@ -35,12 +36,18 @@ Route::middleware('stateful.session')->prefix('/v1/auth')->group(function (): vo
     Route::post('/login', [AuthController::class, 'login'])->middleware(['guest', 'throttle:auth-login']);
     Route::post('/password-reset/request', [AccountController::class, 'requestPasswordReset'])->middleware('throttle:auth-password-reset');
     Route::post('/password-reset/complete', [AccountController::class, 'completePasswordReset'])->middleware('throttle:auth-password-reset-complete');
+    Route::post('/mfa/challenge', [MfaController::class, 'challenge'])->middleware(['guest', 'throttle:auth-mfa-challenge']);
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
         Route::patch('/me', [AccountController::class, 'updateProfile']);
         Route::post('/password', [AccountController::class, 'changePassword'])->middleware('throttle:auth-login');
         Route::post('/email-verification/resend', [AccountController::class, 'resendVerification'])->middleware('throttle:auth-email-verification');
+        Route::get('/mfa', [MfaController::class, 'show']);
+        Route::post('/mfa/setup', [MfaController::class, 'setup'])->middleware('throttle:auth-step-up');
+        Route::post('/mfa/confirm', [MfaController::class, 'confirm'])->middleware('throttle:auth-step-up');
+        Route::post('/mfa/disable', [MfaController::class, 'disable'])->middleware('throttle:auth-step-up');
+        Route::post('/mfa/recovery-codes', [MfaController::class, 'regenerateRecoveryCodes'])->middleware('throttle:auth-step-up');
         Route::post('/logout', [AuthController::class, 'logout']);
     });
 });
@@ -145,6 +152,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::teamManage()));
     Route::post('/invitations', [TeamController::class, 'invite'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::teamManage()), 'throttle:invitations']);
+    Route::post('/ownership-transfer', [TeamController::class, 'transferOwnership'])
+        ->middleware(['tenant.role:'.TenantRoles::OWNER, 'throttle:auth-step-up']);
     Route::post('/invitations/{invitation}/revoke', [TeamController::class, 'revoke'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::teamManage()));
     Route::get('/overview', [OverviewController::class, 'show'])

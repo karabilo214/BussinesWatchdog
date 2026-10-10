@@ -94,6 +94,46 @@ class TeamService
     }
 
     /**
+     * The owner hands the team to a member with a confirmed address and stays as admin; both changes happen together,
+     * so the team always has exactly one owner (ADR 0021). Re-authentication is checked by the caller.
+     */
+    public function transferOwnership(string $tenantId, User $actor, string $targetUserId): Membership
+    {
+        return DB::transaction(function () use ($tenantId, $actor, $targetUserId): Membership {
+            [$actorRole, $target] = $this->lockPair($tenantId, $actor, $targetUserId);
+
+            if ($actorRole !== TenantRoles::OWNER) {
+                throw new AccountRejected('team_forbidden', 403);
+            }
+
+            if ($target->user_id === $actor->id) {
+                throw new AccountRejected('cannot_transfer_to_self');
+            }
+
+            /** @var User|null $targetUser */
+            $targetUser = User::query()->whereKey($target->user_id)->whereNull('disabled_at')->first();
+
+            if ($targetUser === null) {
+                throw new AccountRejected('member_not_found', 404);
+            }
+
+            if ($targetUser->email_verified_at === null) {
+                throw new AccountRejected('target_email_unverified');
+            }
+
+            Membership::query()->where('tenant_id', $tenantId)->where('user_id', $actor->id)->update(['role' => TenantRoles::ADMIN]);
+            Membership::query()->where('tenant_id', $tenantId)->where('user_id', $target->user_id)->update(['role' => TenantRoles::OWNER]);
+            $this->audit($tenantId, $actor->id, 'membership.ownership_transferred', 'membership', $target->user_id, [
+                'owner' => ['from' => $actor->id, 'to' => $target->user_id],
+                'previous_owner_role' => TenantRoles::ADMIN,
+                'new_owner_previous_role' => $target->role,
+            ]);
+
+            return Membership::query()->where('tenant_id', $tenantId)->where('user_id', $target->user_id)->with('user')->firstOrFail();
+        });
+    }
+
+    /**
      * @return Collection<int, Invitation>
      */
     public function pendingInvitations(string $tenantId): Collection

@@ -15,4 +15,4 @@ Status: implemented in Step 64; accepted by the owner on 2026-10-10.
 
 ## Not done
 
-MFA, ownership transfer, creating/switching between several teams in the dashboard, session list per device.
+MFA and ownership transfer — done in Step 69 (ADR 0021). Still open: creating/switching between several teams in the dashboard, session list per device.

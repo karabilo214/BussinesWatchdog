@@ -31,7 +31,8 @@
     "selected": "Text markiert – mit Strg+C (⌘C) kopieren.",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "saved": "Gespeichert."
+    "saved": "Gespeichert.",
+    "continue": "Weiter"
   },
   "auth": {
     "title": "Anmelden",
@@ -43,7 +44,17 @@
     "submitting": "Anmeldung…",
     "failed": "E-Mail oder Passwort ist falsch.",
     "rate_limited": "Zu viele Versuche. Warten Sie eine Minute und versuchen Sie es erneut.",
-    "session_expired": "Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an."
+    "session_expired": "Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an.",
+    "mfa": {
+      "title": "Bestätigungscode",
+      "subtitle": "Geben Sie die 6 Ziffern aus Ihrer Authenticator-App ein.",
+      "code": "Code",
+      "recovery_hint": "Kein Zugriff auf die App? Geben Sie einen Ihrer Wiederherstellungscodes ein – jeder gilt einmal.",
+      "submit": "Anmelden",
+      "back": "Mit einer anderen Adresse anmelden",
+      "expired": "Die Zeit für die Code-Eingabe ist abgelaufen. Geben Sie Ihr Passwort erneut ein.",
+      "invalid": "Der Code passt nicht. Prüfen Sie die Uhrzeit auf Ihrem Telefon und geben Sie einen neuen Code ein."
+    }
   },
   "overview": {
     "title": "Übersicht",
@@ -309,7 +320,15 @@
     "stripe_unavailable": "Stripe ist vorübergehend nicht verfügbar. Versuchen Sie es später erneut.",
     "stripe_request_rejected": "Stripe hat die Anfrage abgelehnt.",
     "stripe_invalid_response": "Stripe hat eine unerwartete Antwort geliefert.",
-    "integration_not_active": "Nur eine aktive Verbindung kann synchronisiert werden."
+    "integration_not_active": "Nur eine aktive Verbindung kann synchronisiert werden.",
+    "mfa_already_enabled": "Die Zwei-Faktor-Authentifizierung ist bereits aktiv.",
+    "mfa_not_enabled": "Die Zwei-Faktor-Authentifizierung ist nicht aktiv.",
+    "mfa_setup_missing": "Die Einrichtung wurde nicht gestartet oder ist abgelaufen. Beginnen Sie neu.",
+    "mfa_code_invalid": "Der Code passt nicht. Geben Sie einen neuen App-Code oder einen unbenutzten Wiederherstellungscode ein.",
+    "mfa_code_required": "Geben Sie einen App-Code oder einen Wiederherstellungscode ein.",
+    "mfa_challenge_expired": "Die Zeit für die Code-Eingabe ist abgelaufen. Melden Sie sich erneut an.",
+    "cannot_transfer_to_self": "Sie können die Inhaberschaft nicht an sich selbst übertragen.",
+    "target_email_unverified": "Dieses Mitglied hat seine E-Mail-Adresse noch nicht bestätigt."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -964,6 +983,32 @@
       "sign_in_first": "Für diese Adresse gibt es bereits ein Konto. Melden Sie sich an, um die Einladung anzunehmen.",
       "create_account": "Erstellen Sie ein Konto, um beizutreten.",
       "join": "Konto erstellen und beitreten"
+    },
+    "mfa": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "on": "aktiv",
+      "off": "aus",
+      "intro": "Bei der Anmeldung brauchen Sie neben dem Passwort einen Code aus einer Authenticator-App (Google Authenticator, 1Password, Microsoft Authenticator u. a.).",
+      "owner_hint": "Sie sind Inhaber des Teams: Aktivieren Sie die Zwei-Faktor-Authentifizierung, damit ein gestohlenes Passwort keinen Zugriff auf Shops und Abgleich gibt.",
+      "remaining": "Unbenutzte Wiederherstellungscodes: {count}.",
+      "enable": "Aktivieren",
+      "regenerate": "Neue Wiederherstellungscodes",
+      "disable": "Deaktivieren",
+      "step_app": "Installieren Sie eine Authenticator-App auf Ihrem Telefon.",
+      "step_scan": "Scannen Sie den QR-Code oder geben Sie den Schlüssel von Hand ein.",
+      "step_code": "Geben Sie die 6 Ziffern ein, die die App anzeigt.",
+      "qr_alt": "QR-Code für die Authenticator-App",
+      "secret": "Schlüssel zur manuellen Eingabe",
+      "code": "Code aus der App",
+      "confirm": "Bestätigen und aktivieren",
+      "codes_once": "Bewahren Sie die Wiederherstellungscodes sicher auf. Sie werden nur jetzt angezeigt; jeder Code ersetzt einmal einen App-Code.",
+      "copy_codes": "Kopieren",
+      "download_codes": "Als Datei herunterladen",
+      "copied": "Kopiert.",
+      "saved_codes": "Ich habe die Codes gespeichert",
+      "disable_warning": "Danach genügt das Passwort zur Anmeldung. Wiederherstellungscodes werden ungültig.",
+      "regenerate_warning": "Die alten Wiederherstellungscodes werden ungültig, Sie erhalten 10 neue.",
+      "code_or_recovery": "App-Code oder Wiederherstellungscode"
     }
   },
   "team": {
@@ -989,6 +1034,12 @@
       "pending": "Warten auf Antwort",
       "until": "bis {time}",
       "revoke": "Zurückziehen"
+    },
+    "transfer": {
+      "open": "Inhaberschaft übertragen",
+      "warning": "{name} wird Inhaber des Teams, Sie werden Administrator. Zurückübertragen kann nur der neue Inhaber.",
+      "unverified": "{name} hat die E-Mail-Adresse noch nicht bestätigt. Die Inhaberschaft kann nur an ein Mitglied mit bestätigter Adresse gehen.",
+      "submit": "Inhaberschaft übertragen"
     }
   },
   "provider": {

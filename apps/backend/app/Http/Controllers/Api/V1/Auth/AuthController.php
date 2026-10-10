@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Http\Controllers\Api\V1\Account\MfaController;
 use App\Http\Controllers\Controller;
 use App\Http\Dto\Auth\AuthSessionDto;
 use App\Http\Requests\Auth\LoginRequest;
@@ -10,9 +11,11 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Account\AccountRejected;
 use App\Support\Account\EmailVerificationService;
+use App\Support\Account\MfaService;
 use App\Support\Account\TeamService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -99,23 +102,37 @@ class AuthController extends Controller
         return response()->json($this->authSessionDto->toArray($user->refresh(), $membership->tenant_id), 201);
     }
 
-    public function login(LoginRequest $request): JsonResponse
+    /** With MFA on, a correct password only opens the second step; the session stays unauthenticated until a code arrives. */
+    public function login(LoginRequest $request, MfaService $mfa): JsonResponse
     {
         $validated = $request->validated();
+        $credentials = ['email' => $validated['email'], 'password' => $validated['password']];
+        $remember = (bool) ($validated['remember'] ?? false);
+        $guard = Auth::guard('web');
 
-        if (! Auth::guard('web')->attempt([
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-        ], (bool) ($validated['remember'] ?? false))) {
+        if (! $guard->validate($credentials)) {
             throw ValidationException::withMessages([
                 'email' => __('auth.failed'),
             ]);
         }
 
-        $request->session()->regenerate();
-
         /** @var User $user */
-        $user = $request->user();
+        $user = $guard->getProvider()->retrieveByCredentials($credentials);
+
+        if ($mfa->enabled($user)) {
+            $request->session()->regenerate();
+            $request->session()->put(MfaController::PENDING_LOGIN, [
+                'user_id' => $user->id,
+                'remember' => $remember,
+                'expires_at' => Carbon::now()->getTimestamp() + MfaController::PENDING_TTL_SECONDS,
+                'attempts' => 0,
+            ]);
+
+            return response()->json(['mfa_required' => true]);
+        }
+
+        $guard->login($user, $remember);
+        $request->session()->regenerate();
         $activeTenantId = $user->memberships()->value('tenant_id');
 
         if ($activeTenantId !== null) {

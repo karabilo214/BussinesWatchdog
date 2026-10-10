@@ -50,6 +50,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'disabled_at' => 'datetime',
+            'mfa_confirmed_at' => 'datetime',
             'password_hash' => 'hashed',
         ];
     }

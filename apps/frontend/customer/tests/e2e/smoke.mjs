@@ -1,5 +1,6 @@
 // Browser smoke test against a running backend + Vite server. Runs inside the Playwright image:
 // docker run --rm -v "$PWD/tests/e2e/smoke.mjs:/app/smoke.mjs:ro" -e BW_APP_URL=... -e BW_SMOKE_EMAIL=... -e BW_SMOKE_PASSWORD=... bw-browser-worker node smoke.mjs
+import { createHmac } from 'node:crypto';
 import { chromium } from 'playwright';
 
 const base = process.env.BW_APP_URL;
@@ -46,6 +47,19 @@ async function mailTexts(address, until, timeoutMs = 30000) {
   }
 
   throw new Error(`no matching email for ${address}`);
+}
+
+/** RFC 6238 code for a base32 secret, as an authenticator app would show it now. */
+function totp(secret) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const bits = [...secret].map((char) => alphabet.indexOf(char).toString(2).padStart(5, '0')).join('');
+  const key = Buffer.from((bits.match(/.{8}/g) ?? []).map((byte) => parseInt(byte, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000)));
+  const hash = createHmac('sha1', key).update(counter).digest();
+  const offset = hash[19] & 0x0f;
+
+  return String((hash.readUInt32BE(offset) & 0x7fffffff) % 1000000).padStart(6, '0');
 }
 
 const step = async (name, run) => {
@@ -491,6 +505,56 @@ try {
     await guest.getByRole('button', { name: 'Войти' }).click();
     await guest.getByRole('heading', { name: 'Обзор', exact: true }).waitFor();
     await guestContext.close();
+  });
+
+  const ownerContext = await browser.newContext({ locale: 'ru-RU', viewport: { width: 1280, height: 900 } });
+  const owner = await ownerContext.newPage();
+  owner.on('pageerror', (error) => consoleErrors.push(error.message));
+  let recoveryCodes = [];
+
+  await step('the owner turns on two-factor authentication with an authenticator code', async () => {
+    await owner.goto(`${base}/app/login`);
+    await owner.getByLabel('Электронная почта').fill(email);
+    await owner.getByLabel('Пароль', { exact: true }).fill(password);
+    await owner.getByRole('button', { name: 'Войти', exact: true }).click();
+    await owner.getByRole('heading', { name: 'Обзор', exact: true }).waitFor();
+    await owner.goto(`${base}/app/settings/profile`);
+    await owner.locator('[data-panel="mfa"]').getByRole('button', { name: 'Включить' }).click();
+    await owner.locator('#mfa-password').fill(password);
+    await owner.getByRole('button', { name: 'Продолжить' }).click();
+    const secret = await owner.locator('#mfa-secret').inputValue();
+    await owner.locator('[data-qr]').waitFor();
+    await owner.locator('#mfa-code').fill(totp(secret));
+    await owner.getByRole('button', { name: 'Подтвердить и включить' }).click();
+    await owner.locator('[data-recovery-codes]').waitFor();
+    recoveryCodes = (await owner.locator('[data-recovery-codes] li').allTextContents()).map((text) => text.trim());
+    if (recoveryCodes.length !== 10) throw new Error(`expected 10 recovery codes, got ${recoveryCodes.length}`);
+    await owner.screenshot({ path: `${shots}/mfa-recovery-codes.png` });
+    await owner.getByRole('button', { name: 'Я сохранил коды' }).click();
+    await owner.getByText('Неиспользованных резервных кодов: 10.').waitFor();
+  });
+
+  await step('signing in again asks for the second factor and accepts a recovery code', async () => {
+    await owner.locator('header').getByRole('button', { name: 'Выйти' }).click();
+    await owner.getByLabel('Электронная почта').fill(email);
+    await owner.getByLabel('Пароль', { exact: true }).fill(password);
+    await owner.getByRole('button', { name: 'Войти', exact: true }).click();
+    await owner.locator('[data-step="mfa"]').waitFor();
+    await owner.locator('#login-code').fill(recoveryCodes[0]);
+    await owner.getByRole('button', { name: 'Войти', exact: true }).click();
+    await owner.getByRole('heading', { name: 'Обзор', exact: true }).waitFor();
+  });
+
+  await step('the owner hands ownership to the operator after re-authentication', async () => {
+    await owner.goto(`${base}/app/settings/team`);
+    const operator = owner.locator('[data-member="operator@smoke.example.test"]');
+    await operator.getByRole('button', { name: 'Передать владение' }).click();
+    await operator.getByLabel('Текущий пароль').fill(password);
+    await operator.getByLabel('Код из приложения или резервный код').fill(recoveryCodes[1]);
+    await operator.locator('[data-transfer]').getByRole('button', { name: 'Передать владение' }).click();
+    await operator.getByText('владелец').waitFor();
+    await owner.locator(`[data-member="${email}"]`).getByText('администратор').waitFor();
+    await ownerContext.close();
   });
 
   await step('no console errors', async () => {

@@ -512,6 +512,7 @@ export interface TeamMember {
   tenant_id: string;
   name: string | null;
   email: string | null;
+  email_verified?: boolean;
   role: TeamRole;
   is_you: boolean;
   created_at: string | null;
@@ -533,4 +534,15 @@ export interface InvitationLookup {
   role: Exclude<TeamRole, 'owner'>;
   expires_at: string;
   account_exists: boolean;
+}
+
+export interface MfaState {
+  enabled: boolean;
+  recovery_codes_remaining: number;
+}
+
+export interface MfaSetup {
+  secret: string;
+  otpauth_uri: string;
+  qr_svg: string;
 }

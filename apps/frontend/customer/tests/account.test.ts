@@ -7,7 +7,9 @@ import * as api from '@/api/account';
 import type { AuthSession } from '@/api/types';
 import PasswordFields from '@/components/account/PasswordFields.vue';
 import { localization, setLocale } from '@/i18n';
+import MfaPanel from '@/components/account/MfaPanel.vue';
 import InvitationView from '@/views/InvitationView.vue';
+import LoginView from '@/views/LoginView.vue';
 import TeamView from '@/views/TeamView.vue';
 
 const session = ref<AuthSession | null>(null);
@@ -23,7 +25,16 @@ vi.mock('@/api/account', () => ({
   acceptInvitation: vi.fn(),
   registerWithInvitation: vi.fn(),
   resendEmailVerification: vi.fn(),
+  transferOwnership: vi.fn(),
+  fetchMfa: vi.fn(),
+  beginMfaSetup: vi.fn(),
+  confirmMfa: vi.fn(),
+  disableMfa: vi.fn(),
+  regenerateRecoveryCodes: vi.fn(),
 }));
+
+const completeMfa = vi.fn();
+const signIn = vi.fn();
 
 vi.mock('@/composables/useSession', () => ({
   useSession: () => ({
@@ -35,6 +46,8 @@ vi.mock('@/composables/useSession', () => ({
     signOut: vi.fn(async () => {
       session.value = null;
     }),
+    signIn,
+    completeMfa,
   }),
 }));
 
@@ -51,7 +64,7 @@ function sessionFor(role: 'owner' | 'admin' | 'viewer', email = 'me@example.test
 async function mountWith(component: object, path: string) {
   const router = createRouter({
     history: createMemoryHistory('/app/'),
-    routes: ['overview', 'login', 'profile', 'team', 'incidents', 'reconciliation', 'checks', 'notifications', 'invitation'].map((name) => ({ path: `/${name}`, name, component: { template: '<div />' } })),
+    routes: ['overview', 'login', 'forgot-password', 'profile', 'team', 'incidents', 'reconciliation', 'checks', 'notifications', 'invitation'].map((name) => ({ path: `/${name}`, name, component: { template: '<div />' } })),
   });
   await router.push(path);
 
@@ -122,6 +135,133 @@ describe('TeamView', () => {
     await wrapper.get('[data-member="oleg@example.test"]').findAll('button').find((button) => button.text() === 'Удалить')!.trigger('click');
     await flushPromises();
     expect(mocked.removeMember).toHaveBeenCalledWith('u-op');
+  });
+});
+
+describe('ownership transfer', () => {
+  const team = [
+    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', email: 'me@example.test', email_verified: true, role: 'owner' as const, is_you: true, created_at: null },
+    { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', email: 'anna@example.test', email_verified: true, role: 'admin' as const, is_you: false, created_at: null },
+    { user_id: 'u-new', tenant_id: 't-1', name: 'Neu', email: 'new@example.test', email_verified: false, role: 'viewer' as const, is_you: false, created_at: null },
+  ];
+
+  it('is offered only to the owner and asks for the password and, with MFA on, a code', async () => {
+    session.value = { ...sessionFor('owner'), user: { ...sessionFor('owner').user, mfa_enabled: true } };
+    mocked.listMembers.mockResolvedValue({ data: team, assignable_roles: ['admin', 'operator', 'viewer'] });
+    mocked.listInvitations.mockResolvedValue([]);
+    mocked.transferOwnership.mockRejectedValueOnce(new ApiError(422, 'validation_failed', { code: ['mfa_code_invalid'] })).mockResolvedValueOnce();
+    const wrapper = await mountWith(TeamView, '/team');
+    await flushPromises();
+
+    expect(wrapper.get('[data-member="me@example.test"]').text()).not.toContain('Передать владение');
+    await wrapper.get('[data-member="new@example.test"]').findAll('button').find((button) => button.text() === 'Передать владение')!.trigger('click');
+    expect(wrapper.get('[data-transfer]').text()).toContain('ещё не подтвердил адрес');
+    expect(wrapper.find('[data-transfer] button[type="submit"]').exists()).toBe(false);
+
+    await wrapper.get('[data-member="anna@example.test"]').findAll('button').find((button) => button.text() === 'Передать владение')!.trigger('click');
+    const form = wrapper.get('[data-member="anna@example.test"] [data-transfer]');
+    const [password, code] = form.findAll('input');
+    await password!.setValue('very-secure-password');
+    await code!.setValue('123456');
+    await form.trigger('submit');
+    await flushPromises();
+    expect(mocked.transferOwnership).toHaveBeenLastCalledWith('u-anna', 'very-secure-password', '123456');
+    expect(wrapper.text()).toContain('Код не подошёл');
+
+    await password!.setValue('very-secure-password');
+    await code!.setValue('654321');
+    await form.trigger('submit');
+    await flushPromises();
+    expect(mocked.transferOwnership).toHaveBeenCalledTimes(2);
+    expect(mocked.listMembers).toHaveBeenCalledTimes(2);
+  });
+
+  it('is not offered to an admin', async () => {
+    session.value = sessionFor('admin');
+    mocked.listMembers.mockResolvedValue({ data: team.map((member) => ({ ...member, is_you: member.user_id === 'u-anna', role: member.user_id === 'u-me' ? ('owner' as const) : member.role })), assignable_roles: ['operator', 'viewer'] });
+    mocked.listInvitations.mockResolvedValue([]);
+    const wrapper = await mountWith(TeamView, '/team');
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain('Передать владение');
+  });
+});
+
+describe('MfaPanel', () => {
+  it('enrolls with the password, a QR code and a confirming code, then shows the recovery codes once', async () => {
+    session.value = sessionFor('owner');
+    mocked.fetchMfa.mockResolvedValue({ enabled: false, recovery_codes_remaining: 0 });
+    mocked.beginMfaSetup.mockResolvedValue({ secret: 'JBSWY3DPEHPK3PXP', otpauth_uri: 'otpauth://totp/x', qr_svg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>' });
+    mocked.confirmMfa.mockResolvedValue({ enabled: true, recovery_codes_remaining: 10, recovery_codes: ['abcde-fghjk', 'mnpqr-stuvw'] });
+    const wrapper = await mountWith(MfaPanel, '/profile');
+    await flushPromises();
+
+    expect(wrapper.find('[data-owner-hint]').exists()).toBe(true);
+    await wrapper.findAll('button').find((button) => button.text() === 'Включить')!.trigger('click');
+    await wrapper.get('#mfa-password').setValue('very-secure-password');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(mocked.beginMfaSetup).toHaveBeenCalledWith('very-secure-password');
+    expect(wrapper.get('[data-qr]').attributes('src')).toMatch(/^data:image\/svg\+xml;base64,/);
+    expect((wrapper.get('#mfa-secret').element as HTMLInputElement).value).toBe('JBSWY3DPEHPK3PXP');
+
+    await wrapper.get('#mfa-code').setValue('123456');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(mocked.confirmMfa).toHaveBeenCalledWith('123456');
+    expect(wrapper.get('[data-recovery-codes]').text()).toContain('abcde-fghjk');
+
+    await wrapper.findAll('button').find((button) => button.text() === 'Я сохранил коды')!.trigger('click');
+    expect(wrapper.find('[data-recovery-codes]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Неиспользованных резервных кодов: 10.');
+  });
+
+  it('turns off only with the password and a code and explains a wrong password', async () => {
+    session.value = sessionFor('admin');
+    mocked.fetchMfa.mockResolvedValue({ enabled: true, recovery_codes_remaining: 2 });
+    mocked.disableMfa.mockRejectedValueOnce(new ApiError(422, 'validation_failed', { current_password: ['current_password_invalid'] })).mockResolvedValueOnce({ enabled: false, recovery_codes_remaining: 0 });
+    const wrapper = await mountWith(MfaPanel, '/profile');
+    await flushPromises();
+
+    expect(wrapper.find('[data-owner-hint]').exists()).toBe(false);
+    await wrapper.findAll('button').find((button) => button.text() === 'Отключить')!.trigger('click');
+    await wrapper.get('#mfa-stepup-password').setValue('wrong-password');
+    await wrapper.get('#mfa-stepup-code').setValue('abcde-fghjk');
+    await wrapper.get('[data-step-up="disable"]').trigger('submit');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Текущий пароль указан неверно.');
+
+    await wrapper.get('#mfa-stepup-password').setValue('very-secure-password');
+    await wrapper.get('[data-step-up="disable"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.disableMfa).toHaveBeenLastCalledWith('very-secure-password', 'abcde-fghjk');
+    expect(wrapper.text()).toContain('выключена');
+  });
+});
+
+describe('LoginView', () => {
+  it('asks for the second factor after a correct password and returns to the password when it expires', async () => {
+    session.value = null;
+    signIn.mockResolvedValue('mfa');
+    completeMfa.mockRejectedValueOnce(new ApiError(422, 'mfa_code_invalid')).mockRejectedValueOnce(new ApiError(401, 'mfa_challenge_expired'));
+    const wrapper = await mountWith(LoginView, '/login');
+
+    await wrapper.get('#login-email').setValue('me@example.test');
+    await wrapper.get('#login-password').setValue('very-secure-password');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(wrapper.find('[data-step="mfa"]').exists()).toBe(true);
+
+    await wrapper.get('#login-code').setValue('000000');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Код не подошёл');
+
+    await wrapper.get('#login-code').setValue('111111');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(wrapper.find('[data-step="mfa"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Время на ввод кода истекло');
   });
 });
 

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { changeMemberRole, inviteMember, listInvitations, listMembers, removeMember, revokeInvitation } from '@/api/account';
+import { changeMemberRole, inviteMember, listInvitations, listMembers, removeMember, revokeInvitation, transferOwnership } from '@/api/account';
 import type { TeamInvitation, TeamMember, TeamRole } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
+import { stepUpErrorKey } from '@/composables/errors';
 import { useFormat } from '@/composables/useFormat';
 import { useRole } from '@/composables/useRole';
 import { useSession } from '@/composables/useSession';
@@ -15,8 +16,8 @@ type Assignable = Exclude<TeamRole, 'owner'>;
 
 const router = useRouter();
 const { dateTime } = useFormat();
-const { canManageStores } = useRole();
-const { load: reloadSession } = useSession();
+const { canManageStores, role: myRole } = useRole();
+const { session, load: reloadSession } = useSession();
 
 const members = ref<TeamMember[]>([]);
 const assignable = ref<Assignable[]>([]);
@@ -28,11 +29,46 @@ const confirming = ref<string | null>(null);
 const invite = reactive({ email: '', role: 'viewer' as Assignable });
 const inviting = ref(false);
 const invited = ref<string | null>(null);
+const transferring = ref<string | null>(null);
+const transfer = reactive({ password: '', code: '' });
+const transferBusy = ref(false);
+const transferError = ref<unknown>(null);
+const transferStepUpKey = computed(() => stepUpErrorKey(transferError.value));
+const needsCode = computed(() => session.value?.user.mfa_enabled === true);
 
 const canInvite = computed(() => canManageStores.value && assignable.value.length > 0);
 
 function manageable(member: TeamMember): boolean {
   return !member.is_you && member.role !== 'owner' && assignable.value.includes(member.role as Assignable);
+}
+
+function canReceiveOwnership(member: TeamMember): boolean {
+  return myRole.value === 'owner' && !member.is_you && member.role !== 'owner';
+}
+
+function openTransfer(member: TeamMember): void {
+  confirming.value = null;
+  transferring.value = member.user_id;
+  transfer.password = '';
+  transfer.code = '';
+  transferError.value = null;
+}
+
+async function submitTransfer(member: TeamMember): Promise<void> {
+  transferBusy.value = true;
+  transferError.value = null;
+
+  try {
+    await transferOwnership(member.user_id, transfer.password, needsCode.value ? transfer.code.trim() : null);
+    transferring.value = null;
+    await reloadSession(true);
+    await load();
+  } catch (caught) {
+    transferError.value = caught;
+  } finally {
+    transfer.password = '';
+    transferBusy.value = false;
+  }
 }
 
 async function load(): Promise<void> {
@@ -151,8 +187,50 @@ onMounted(load);
                   >
                     {{ member.is_you ? $t('team.leave') : $t('team.remove') }}
                   </button>
+                  <button
+                    v-if="canReceiveOwnership(member) && transferring !== member.user_id"
+                    type="button"
+                    class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
+                    @click="openTransfer(member)"
+                  >
+                    {{ $t('team.transfer.open') }}
+                  </button>
                 </div>
               </div>
+              <form
+                v-if="transferring === member.user_id"
+                class="flex flex-col gap-3 rounded-md border border-warn-border bg-warn-soft p-3 text-sm"
+                data-transfer
+                @submit.prevent="submitTransfer(member)"
+              >
+                <p v-if="member.email_verified === false">{{ $t('team.transfer.unverified', { name: member.name }) }}</p>
+                <template v-else>
+                  <p>{{ $t('team.transfer.warning', { name: member.name }) }}</p>
+                  <div class="flex flex-wrap items-end gap-3">
+                    <label class="flex min-w-[12rem] flex-1 flex-col gap-1.5 font-medium">
+                      {{ $t('account.password.current') }}
+                      <input v-model="transfer.password" type="password" autocomplete="current-password" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base font-normal" />
+                    </label>
+                    <label v-if="needsCode" class="flex min-w-[10rem] flex-col gap-1.5 font-medium">
+                      {{ $t('account.mfa.code_or_recovery') }}
+                      <input v-model="transfer.code" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="32" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-base font-normal" />
+                    </label>
+                  </div>
+                  <p v-if="transferStepUpKey" role="alert" class="rounded-md border border-crit-border bg-crit-soft px-3 py-2 text-crit">{{ $t(transferStepUpKey) }}</p>
+                  <ErrorNotice v-else-if="transferError" :error="transferError" />
+                </template>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-if="member.email_verified !== false"
+                    type="submit"
+                    class="rounded-md bg-primary px-3 py-1.5 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"
+                    :disabled="transferBusy || transfer.password === '' || (needsCode && transfer.code.trim().length < 6)"
+                  >
+                    {{ $t('team.transfer.submit') }}
+                  </button>
+                  <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-medium" @click="transferring = null">{{ $t('common.cancel') }}</button>
+                </div>
+              </form>
               <div v-if="confirming === member.user_id" class="flex flex-wrap items-center gap-2 rounded-md border border-warn-border bg-warn-soft p-3 text-sm">
                 <span class="flex-1">{{ member.is_you ? $t('team.leave_warning') : $t('team.remove_warning', { name: member.name }) }}</span>
                 <button type="button" class="rounded-md bg-crit-solid px-3 py-1.5 font-medium text-white" @click="remove(member)">{{ member.is_you ? $t('team.leave') : $t('team.remove') }}</button>

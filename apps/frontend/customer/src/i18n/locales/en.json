@@ -31,7 +31,8 @@
     "selected": "Text selected — copy it with Ctrl+C (⌘C).",
     "cancel": "Cancel",
     "save": "Save",
-    "saved": "Saved."
+    "saved": "Saved.",
+    "continue": "Continue"
   },
   "auth": {
     "title": "Sign in",
@@ -43,7 +44,17 @@
     "submitting": "Signing in…",
     "failed": "Wrong e-mail or password.",
     "rate_limited": "Too many attempts. Wait a minute and try again.",
-    "session_expired": "Your session has ended. Sign in again."
+    "session_expired": "Your session has ended. Sign in again.",
+    "mfa": {
+      "title": "Verification code",
+      "subtitle": "Enter the 6 digits from your authenticator app.",
+      "code": "Code",
+      "recovery_hint": "No access to the app? Enter one of your recovery codes — each works once.",
+      "submit": "Sign in",
+      "back": "Sign in with another address",
+      "expired": "The time to enter the code ran out. Enter your password again.",
+      "invalid": "That code did not work. Check the time on your phone and enter a new code."
+    }
   },
   "overview": {
     "title": "Overview",
@@ -309,7 +320,15 @@
     "stripe_unavailable": "Stripe is temporarily unavailable. Try again later.",
     "stripe_request_rejected": "Stripe rejected the request.",
     "stripe_invalid_response": "Stripe returned an unexpected response.",
-    "integration_not_active": "Only an active connection can be synchronised."
+    "integration_not_active": "Only an active connection can be synchronised.",
+    "mfa_already_enabled": "Two-factor authentication is already on.",
+    "mfa_not_enabled": "Two-factor authentication is not on.",
+    "mfa_setup_missing": "Setup was not started or has expired. Start again.",
+    "mfa_code_invalid": "That code did not work. Enter a new app code or an unused recovery code.",
+    "mfa_code_required": "Enter an app code or a recovery code.",
+    "mfa_challenge_expired": "The time to enter the code ran out. Sign in again.",
+    "cannot_transfer_to_self": "You cannot transfer ownership to yourself.",
+    "target_email_unverified": "This member has not confirmed their e-mail address yet."
   },
   "incidents": {
     "title": "Incidents",
@@ -964,6 +983,32 @@
       "sign_in_first": "This address already has an account. Sign in to accept the invitation.",
       "create_account": "Create an account to join.",
       "join": "Create account and join"
+    },
+    "mfa": {
+      "title": "Two-factor authentication",
+      "on": "on",
+      "off": "off",
+      "intro": "Signing in will need a code from an authenticator app (Google Authenticator, 1Password, Microsoft Authenticator, etc.) in addition to your password.",
+      "owner_hint": "You own this team: turn on two-factor authentication so a stolen password does not open your stores and reconciliation.",
+      "remaining": "Unused recovery codes: {count}.",
+      "enable": "Turn on",
+      "regenerate": "New recovery codes",
+      "disable": "Turn off",
+      "step_app": "Install an authenticator app on your phone.",
+      "step_scan": "Scan the QR code or enter the key by hand.",
+      "step_code": "Enter the 6 digits the app shows.",
+      "qr_alt": "QR code for the authenticator app",
+      "secret": "Key for manual entry",
+      "code": "Code from the app",
+      "confirm": "Confirm and turn on",
+      "codes_once": "Keep these recovery codes somewhere safe. They are shown only now; each code replaces an app code once.",
+      "copy_codes": "Copy",
+      "download_codes": "Download as file",
+      "copied": "Copied.",
+      "saved_codes": "I have saved the codes",
+      "disable_warning": "After turning it off, your password alone will sign you in. Recovery codes stop working.",
+      "regenerate_warning": "Your old recovery codes stop working and you get 10 new ones.",
+      "code_or_recovery": "App code or recovery code"
     }
   },
   "team": {
@@ -989,6 +1034,12 @@
       "pending": "Awaiting answer",
       "until": "until {time}",
       "revoke": "Revoke"
+    },
+    "transfer": {
+      "open": "Transfer ownership",
+      "warning": "{name} becomes the team owner and you become an admin. Only the new owner can transfer it back.",
+      "unverified": "{name} has not confirmed their e-mail address yet. Ownership can only go to a member with a confirmed address.",
+      "submit": "Transfer ownership"
     }
   },
   "provider": {

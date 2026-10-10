@@ -34,8 +34,22 @@ async function load(force = false): Promise<AuthSession | null> {
   return pending;
 }
 
-async function signIn(email: string, password: string, remember: boolean): Promise<AuthSession> {
-  session.value = await auth.login(email, password, remember);
+/** Resolves to 'mfa' when the password was right and the second factor is still needed. */
+async function signIn(email: string, password: string, remember: boolean): Promise<AuthSession | 'mfa'> {
+  const result = await auth.login(email, password, remember);
+
+  if ('mfa_required' in result) {
+    return 'mfa';
+  }
+
+  session.value = result;
+  loaded.value = true;
+
+  return result;
+}
+
+async function completeMfa(code: string): Promise<AuthSession> {
+  session.value = await auth.completeMfaChallenge(code);
   loaded.value = true;
 
   return session.value;
@@ -61,5 +75,5 @@ function clear(): void {
 }
 
 export function useSession() {
-  return { session: readonly(session), loaded: readonly(loaded), load, signIn, signOut, clear, replace };
+  return { session: readonly(session), loaded: readonly(loaded), load, signIn, completeMfa, signOut, clear, replace };
 }

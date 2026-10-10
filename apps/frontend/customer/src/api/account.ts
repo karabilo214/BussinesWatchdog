@@ -1,5 +1,5 @@
 import { request } from '@bw/api-client';
-import type { AuthSession, InvitationLookup, Locale, TeamInvitation, TeamMember, TeamRole } from './types';
+import type { AuthSession, InvitationLookup, Locale, MfaSetup, MfaState, TeamInvitation, TeamMember, TeamRole } from './types';
 
 export async function requestPasswordReset(email: string): Promise<void> {
   await request('POST', '/api/v1/auth/password-reset/request', { body: { email } });
@@ -59,4 +59,28 @@ export async function registerWithInvitation(input: { token: string; name: strin
       body: { name: input.name, email: input.email, password: input.password, password_confirmation: input.password, locale: input.locale, invitation_token: input.token },
     })
   ).data;
+}
+
+export async function fetchMfa(): Promise<MfaState> {
+  return (await request<MfaState>('GET', '/api/v1/auth/mfa')).data;
+}
+
+export async function beginMfaSetup(currentPassword: string): Promise<MfaSetup> {
+  return (await request<MfaSetup>('POST', '/api/v1/auth/mfa/setup', { body: { current_password: currentPassword } })).data;
+}
+
+export async function confirmMfa(code: string): Promise<MfaState & { recovery_codes: string[] }> {
+  return (await request<MfaState & { recovery_codes: string[] }>('POST', '/api/v1/auth/mfa/confirm', { body: { code } })).data;
+}
+
+export async function disableMfa(currentPassword: string, code: string): Promise<MfaState> {
+  return (await request<MfaState>('POST', '/api/v1/auth/mfa/disable', { body: { current_password: currentPassword, code } })).data;
+}
+
+export async function regenerateRecoveryCodes(currentPassword: string, code: string): Promise<MfaState & { recovery_codes: string[] }> {
+  return (await request<MfaState & { recovery_codes: string[] }>('POST', '/api/v1/auth/mfa/recovery-codes', { body: { current_password: currentPassword, code } })).data;
+}
+
+export async function transferOwnership(targetUserId: string, currentPassword: string, code: string | null): Promise<void> {
+  await request('POST', '/api/v1/ownership-transfer', { body: { target_user_id: targetUserId, current_password: currentPassword, code } });
 }

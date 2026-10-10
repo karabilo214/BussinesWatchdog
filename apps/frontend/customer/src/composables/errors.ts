@@ -44,3 +44,22 @@ export function requestIdOf(error: unknown): string | null {
 export function fieldErrorsOf(error: unknown): string[] {
   return error instanceof ApiError ? Object.keys(error.fieldErrors) : [];
 }
+
+/** Message for a failed re-authentication (password, then second-factor code), or null for other failures. */
+export function stepUpErrorKey(error: unknown): string | null {
+  if (!(error instanceof ApiError)) {
+    return null;
+  }
+
+  if (error.fieldErrors.current_password !== undefined) {
+    return 'account.password.current_invalid';
+  }
+
+  const code = error.fieldErrors.code?.[0];
+
+  if (code === 'mfa_code_required' || code === 'mfa_code_invalid') {
+    return `errors.${code}`;
+  }
+
+  return null;
+}

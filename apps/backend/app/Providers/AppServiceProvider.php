@@ -56,6 +56,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-email-verification', fn (Request $request): Limit => Limit::perMinute(1)
             ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        RateLimiter::for('auth-mfa-challenge', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
+
+        RateLimiter::for('auth-step-up', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         RateLimiter::for('invitation-lookup', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->ip()));
 
         RateLimiter::for('invitations', fn (Request $request): Limit => Limit::perHour(30)
