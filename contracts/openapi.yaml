@@ -998,7 +998,7 @@ paths:
       operationId: syncProviderIntegration
       security:
         - {UserSession: []}
-      description: Runs a bounded delta (default) or audit poll now; twice a minute at most. 502 when Stripe failed (details in integration.health.last_error).
+      description: Runs a bounded delta (default) or audit poll now for a Stripe or PayPal integration; twice a minute at most. 502 when the provider request failed (details in integration.health.last_error). A PayPal audit already done in the last 23 hours answers status skipped.
       parameters:
         - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
         - {$ref: "#/components/parameters/CsrfToken"}
@@ -1021,7 +1021,7 @@ paths:
                   complete: {type: boolean}
                   error: {type: string}
                   integration: {$ref: "#/components/schemas/ProviderIntegration"}
-        "502": {description: Stripe request failed}
+        "502": {description: Provider request failed}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
@@ -1050,6 +1050,97 @@ paths:
         "404": {description: Unknown integration}
         "409": {description: No webhook secret configured}
         "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/integrations/paypal:
+    post:
+      tags: [Integrations]
+      operationId: connectPayPal
+      security:
+        - {UserSession: []}
+      description: "Owner/admin (ADR 0022). PayPal REST app credentials always allow refunds and captures, so write_access_acknowledged must be true (paypal_write_access_not_acknowledged otherwise; nothing is sent to PayPal before). The app must have Transaction Search (paypal_transaction_search_missing). The adapter only calls the OAuth token, verify-webhook-signature and an allowlist of GET endpoints. health.write_scopes lists what the credentials could do. Secrets are stored encrypted and never returned. Connecting re-queues the store's reconciliation window."
+      parameters:
+        - {name: store_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [environment, client_id, client_secret, write_access_acknowledged]
+              properties:
+                environment: {enum: [sandbox, live]}
+                client_id: {type: string, maxLength: 255}
+                client_secret: {type: string, maxLength: 255, writeOnly: true}
+                webhook_id: {type: [string, "null"], maxLength: 64}
+                write_access_acknowledged: {type: boolean}
+      responses:
+        "201":
+          description: Connected
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ProviderIntegration"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/integrations/{integration_id}/webhook-id:
+    put:
+      tags: [Integrations]
+      operationId: setPayPalWebhookId
+      security:
+        - {UserSession: []}
+      description: Stores the id of the webhook created in the PayPal app (needed to verify deliveries); replaces the previous one.
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [webhook_id]
+              properties:
+                webhook_id: {type: string, maxLength: 64}
+      responses:
+        "200":
+          description: Stored
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ProviderIntegration"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/webhooks/paypal/{integration_id}:
+    post:
+      tags: [Integrations]
+      operationId: receivePayPalWebhook
+      description: "Called by PayPal. The PAYPAL-* transmission headers and the raw body are checked by PayPal's verify-webhook-signature with the stored webhook id (transmission time within 600 s). The body is only a hint: the affected PayPal order is read through the API and goes through the same change-detecting path as polling; nothing from the body is stored."
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: PAYPAL-TRANSMISSION-ID, in: header, required: true, schema: {type: string}}
+        - {name: PAYPAL-TRANSMISSION-TIME, in: header, required: true, schema: {type: string}}
+        - {name: PAYPAL-TRANSMISSION-SIG, in: header, required: true, schema: {type: string}}
+        - {name: PAYPAL-CERT-URL, in: header, required: true, schema: {type: string}}
+        - {name: PAYPAL-AUTH-ALGO, in: header, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object}
+      responses:
+        "200":
+          description: Received
+          content:
+            application/json:
+              schema: {type: object, required: [received], properties: {received: {const: true}, emitted: {type: integer}, ignored: {type: string}}}
+        "400": {description: Signature invalid}
+        "404": {description: Unknown integration}
+        "409": {description: No webhook id configured}
+        "429": {$ref: "#/components/responses/Problem"}
+        "503": {description: PayPal unavailable for verification or reading}
   /api/v1/pairing/exchange:
     post:
       tags: [Pairing]

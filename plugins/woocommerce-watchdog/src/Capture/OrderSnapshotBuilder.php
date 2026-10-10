@@ -11,7 +11,7 @@ final class OrderSnapshotBuilder
 
     public static function supportedGateway(string $gateway): bool
     {
-        return $gateway === 'stripe' || strpos($gateway, 'stripe_') === 0;
+        return $gateway === 'stripe' || strpos($gateway, 'stripe_') === 0 || strpos($gateway, 'ppcp-') === 0;
     }
 
     public static function build(\WC_Order $order): array

@@ -314,7 +314,7 @@
     "stripe_permission_missing": "The key cannot read Payment Intents, Charges or Refunds. Add the permissions and try again.",
     "stripe_key_rejected": "Stripe rejected the key: it was deleted, revoked or mistyped.",
     "stripe_account_mismatch": "The key belongs to a different Stripe account than the one given.",
-    "provider_already_connected": "Stripe is already connected to this store.",
+    "provider_already_connected": "This payment provider is already connected to the store.",
     "stripe_unreachable": "Could not reach Stripe. Try again later.",
     "stripe_rate_limited": "Stripe is limiting requests for now. Try again in a minute.",
     "stripe_unavailable": "Stripe is temporarily unavailable. Try again later.",
@@ -328,7 +328,20 @@
     "mfa_code_required": "Enter an app code or a recovery code.",
     "mfa_challenge_expired": "The time to enter the code ran out. Sign in again.",
     "cannot_transfer_to_self": "You cannot transfer ownership to yourself.",
-    "target_email_unverified": "This member has not confirmed their e-mail address yet."
+    "target_email_unverified": "This member has not confirmed their e-mail address yet.",
+    "paypal_credentials_invalid": "Check the Client ID and Secret: copy them from the PayPal app in full.",
+    "paypal_webhook_id_invalid": "This does not look like a Webhook ID — copy it from the webhook settings of the PayPal app.",
+    "paypal_write_access_not_acknowledged": "Confirm that you understand the warning about PayPal rights.",
+    "paypal_transaction_search_missing": "The app does not have Transaction Search. Enable it in the PayPal app settings and try again (the change can take a few minutes).",
+    "paypal_credentials_rejected": "PayPal did not accept the Client ID and Secret: a typo, the other environment (Live/Sandbox), or the app was deleted.",
+    "paypal_permission_missing": "PayPal denied access: the app lacks the needed feature.",
+    "paypal_not_found": "PayPal did not find the requested object.",
+    "paypal_rate_limited": "PayPal is limiting requests for now. Try again in a minute.",
+    "paypal_unavailable": "PayPal is temporarily unavailable. Try again later.",
+    "paypal_unreachable": "Could not reach PayPal. Try again later.",
+    "paypal_request_rejected": "PayPal rejected the request.",
+    "paypal_invalid_response": "PayPal returned an unexpected response.",
+    "paypal_endpoint_not_allowed": "A request to PayPal was blocked: the service only reads from PayPal."
   },
   "incidents": {
     "title": "Incidents",
@@ -1044,7 +1057,7 @@
   },
   "provider": {
     "title": "Payment provider",
-    "subtitle": "Stripe data is needed to check that order money was really captured and refunded. Without it reconciliation shows “unknown”, not “all fine”.",
+    "subtitle": "Payment provider data is needed to check that order money was really captured and refunded. Without it reconciliation shows “unknown”, not “all fine”. Connect the provider your store takes payments with.",
     "not_connected": "not connected",
     "status": {
       "active": "connected",
@@ -1110,5 +1123,46 @@
       "stripe_invalid_response": "Stripe returned an unexpected response.",
       "integration_not_active": "Only an active connection can be synchronised."
     }
+  },
+  "paypal": {
+    "why": "PayPal is connected with the credentials of a separate REST app in your PayPal account. They are entered here, not in WordPress, so money data reaches the service around the store.",
+    "step_app": "Open developer.paypal.com → Apps & Credentials, choose Live (or Sandbox for testing) and create an app “Business Watchdog” (type Merchant).",
+    "step_features": "In the app settings untick everything and enable only Transaction Search — it is needed to list payments.",
+    "step_copy": "Copy the app’s Client ID and Secret and paste them below.",
+    "environment": "PayPal environment",
+    "environments": {
+      "live": "Live",
+      "sandbox": "Sandbox (test)"
+    },
+    "warning_title": "PayPal cannot issue read-only access",
+    "warning_body": "Even an app with only Transaction Search may, by PayPal’s rules, refund payments and capture authorizations. Business Watchdog never does this: the service only calls read methods from a fixed list and blocks any other request before it is sent. The credentials are stored encrypted, and you can delete the app in PayPal at any time.",
+    "acknowledge": "I understand: the PayPal app credentials allow more than the service needs; the service uses them for reading only.",
+    "storage_note": "Right after connecting, the store’s orders of the last 90 days are reconciled again. PayPal’s payment list lags about 1–3 hours behind.",
+    "connect": "Connect PayPal",
+    "connected": "PayPal is connected. The first sync runs within 15 minutes, or start it now.",
+    "app": "App",
+    "rights": "PayPal credential rights",
+    "rights_note": "Not used by the service: reading only, from a fixed list.",
+    "scopes": {
+      "refund": "refunds",
+      "capture": "capturing authorizations",
+      "payouts": "payouts",
+      "payments_v1": "payments (API v1)",
+      "subscriptions": "subscriptions",
+      "disputes": "disputes",
+      "vault": "saved payment methods"
+    },
+    "search_refreshed": "PayPal payment list refreshed up to {time}",
+    "webhook_off": "not set up — payments arrive from the PayPal list, up to a few hours late",
+    "polling_note": "Sync runs every 15 minutes over PayPal’s transaction list and re-reads 90 days once a day; a webhook reports payments and refunds right away.",
+    "webhook_id": "Webhook",
+    "webhook_step_add": "In the PayPal app open Webhooks → “Add Webhook” and enter the address below.",
+    "webhook_step_events": "Select the events Payment capture completed, pending, denied, refunded, reversed and Checkout order completed.",
+    "webhook_step_id": "Copy the Webhook ID of the new webhook and paste it here.",
+    "webhook_saved": "Webhook ID saved.",
+    "revoke_warning": "The PayPal credentials stop being used; money reconciliation of PayPal orders returns to “unknown”. Delete the app in PayPal as well.",
+    "revoke_confirm": "Disconnect PayPal",
+    "revoked": "PayPal disconnected.",
+    "credentials_rejected": "PayPal rejected the app credentials or the app lacks Transaction Search — calls to PayPal are stopped and money reconciliation shows “unknown”. Disconnect and connect PayPal again."
   }
 }

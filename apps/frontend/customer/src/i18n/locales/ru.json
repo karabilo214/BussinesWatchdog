@@ -314,7 +314,7 @@
     "stripe_permission_missing": "У ключа нет прав на чтение Payment Intents, Charges или Refunds. Добавьте права и попробуйте снова.",
     "stripe_key_rejected": "Stripe отклонил ключ: он удалён, отозван или введён с ошибкой.",
     "stripe_account_mismatch": "Ключ относится к другому аккаунту Stripe, чем указан.",
-    "provider_already_connected": "Stripe уже подключён к этому магазину.",
+    "provider_already_connected": "Этот платёжный провайдер уже подключён к магазину.",
     "stripe_unreachable": "Не удалось связаться со Stripe. Попробуйте позже.",
     "stripe_rate_limited": "Stripe временно ограничил запросы. Попробуйте через минуту.",
     "stripe_unavailable": "Stripe временно недоступен. Попробуйте позже.",
@@ -328,7 +328,20 @@
     "mfa_code_required": "Введите код из приложения или резервный код.",
     "mfa_challenge_expired": "Время на ввод кода истекло. Войдите ещё раз.",
     "cannot_transfer_to_self": "Нельзя передать владение самому себе.",
-    "target_email_unverified": "Участник ещё не подтвердил адрес e-mail."
+    "target_email_unverified": "Участник ещё не подтвердил адрес e-mail.",
+    "paypal_credentials_invalid": "Проверьте Client ID и Secret: они должны быть скопированы из приложения PayPal целиком.",
+    "paypal_webhook_id_invalid": "Webhook ID выглядит иначе — скопируйте его из настроек webhook в приложении PayPal.",
+    "paypal_write_access_not_acknowledged": "Подтвердите, что понимаете предупреждение о правах PayPal.",
+    "paypal_transaction_search_missing": "У приложения не включён Transaction Search. Включите его в настройках приложения PayPal и попробуйте снова (изменение может занять несколько минут).",
+    "paypal_credentials_rejected": "PayPal не принял Client ID и Secret: они введены с ошибкой, относятся к другой среде (Live/Sandbox) или приложение удалено.",
+    "paypal_permission_missing": "PayPal отказал в доступе: у приложения нет нужной функции.",
+    "paypal_not_found": "PayPal не нашёл запрошенный объект.",
+    "paypal_rate_limited": "PayPal временно ограничил запросы. Попробуйте через минуту.",
+    "paypal_unavailable": "PayPal временно недоступен. Попробуйте позже.",
+    "paypal_unreachable": "Не удалось связаться с PayPal. Попробуйте позже.",
+    "paypal_request_rejected": "PayPal отклонил запрос.",
+    "paypal_invalid_response": "PayPal вернул непонятный ответ.",
+    "paypal_endpoint_not_allowed": "Запрос к PayPal заблокирован: сервис обращается к PayPal только для чтения."
   },
   "incidents": {
     "title": "Инциденты",
@@ -1044,7 +1057,7 @@
   },
   "provider": {
     "title": "Платёжный провайдер",
-    "subtitle": "Данные Stripe нужны, чтобы проверять, что деньги по заказам действительно списаны и возвращены. Без них сверка показывает «неизвестно», а не «всё в порядке».",
+    "subtitle": "Данные платёжного провайдера нужны, чтобы проверять, что деньги по заказам действительно списаны и возвращены. Без них сверка показывает «неизвестно», а не «всё в порядке». Подключите тот провайдер, через который магазин принимает оплату.",
     "not_connected": "не подключён",
     "status": {
       "active": "подключён",
@@ -1110,5 +1123,46 @@
       "stripe_invalid_response": "Stripe вернул непонятный ответ.",
       "integration_not_active": "Синхронизировать можно только активное подключение."
     }
+  },
+  "paypal": {
+    "why": "PayPal подключается данными отдельного REST-приложения в вашем аккаунте PayPal. Они вводятся здесь, а не в WordPress: так данные о деньгах приходят мимо магазина.",
+    "step_app": "Откройте developer.paypal.com → Apps & Credentials, выберите Live (или Sandbox для теста) и создайте приложение «Business Watchdog» (тип Merchant).",
+    "step_features": "В настройках приложения снимите все галочки и включите только Transaction Search — он нужен для списка платежей.",
+    "step_copy": "Скопируйте Client ID и Secret этого приложения и вставьте ниже.",
+    "environment": "Среда PayPal",
+    "environments": {
+      "live": "боевая (Live)",
+      "sandbox": "тестовая (Sandbox)"
+    },
+    "warning_title": "PayPal не умеет выдавать доступ только на чтение",
+    "warning_body": "Даже приложение только с Transaction Search по правилам PayPal может делать возвраты и списывать авторизованные платежи. Business Watchdog никогда этого не делает: сервис обращается только к методам чтения из фиксированного списка, остальные запросы блокируются до отправки. Данные хранятся зашифрованными, а приложение можно удалить в PayPal в любой момент.",
+    "acknowledge": "Понимаю: данные приложения PayPal дают больше прав, чем нужно сервису; сервис использует их только для чтения.",
+    "storage_note": "Сразу после подключения заказы магазина за 90 дней будут пересверены. Список платежей PayPal отстаёт примерно на 1–3 часа.",
+    "connect": "Подключить PayPal",
+    "connected": "PayPal подключён. Первая синхронизация пройдёт в течение 15 минут, или запустите её сейчас.",
+    "app": "Приложение",
+    "rights": "Права данных PayPal",
+    "rights_note": "Сервис ими не пользуется: только чтение по фиксированному списку.",
+    "scopes": {
+      "refund": "возвраты",
+      "capture": "списание авторизаций",
+      "payouts": "выплаты",
+      "payments_v1": "платежи (API v1)",
+      "subscriptions": "подписки",
+      "disputes": "споры",
+      "vault": "сохранённые способы оплаты"
+    },
+    "search_refreshed": "Список платежей PayPal обновлён до {time}",
+    "webhook_off": "не настроен — платежи приходят по списку PayPal, с задержкой до нескольких часов",
+    "polling_note": "Синхронизация идёт каждые 15 минут по списку транзакций PayPal и раз в сутки перечитывает 90 дней; webhook сообщает об оплатах и возвратах сразу.",
+    "webhook_id": "Webhook",
+    "webhook_step_add": "В приложении PayPal откройте Webhooks → «Add Webhook» и укажите адрес ниже.",
+    "webhook_step_events": "Выберите события Payment capture completed, pending, denied, refunded, reversed и Checkout order completed.",
+    "webhook_step_id": "Скопируйте Webhook ID созданного webhook и вставьте сюда.",
+    "webhook_saved": "Webhook ID сохранён.",
+    "revoke_warning": "Данные PayPal перестанут использоваться, сверка денег по заказам PayPal вернётся в «неизвестно». Удалите приложение и в самом PayPal.",
+    "revoke_confirm": "Отключить PayPal",
+    "revoked": "PayPal отключён.",
+    "credentials_rejected": "PayPal отклонил данные приложения или у него нет Transaction Search — обращения к PayPal остановлены, сверка денег показывает «неизвестно». Отключите это подключение и подключите PayPal заново."
   }
 }

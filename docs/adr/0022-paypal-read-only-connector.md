@@ -2,7 +2,7 @@
 
 Date: 2026-10-10
 
-Status: spike in progress (part 1 done on the owner's PayPal sandbox); no connector code yet.
+Status: spike done (parts 0–2); connector implemented in Step 70; the decisions below await owner review.
 
 ## Context
 
@@ -37,6 +37,27 @@ Two sandbox REST apps of one business account: "Watchdog" (reads) and "shop" (cr
 - A pending PayPal capture (EUR to a USD account) leaves the order on-hold without a paid date: the plugin does not report it as paid. The store-reported paid marker therefore did not lie in this case; Watchdog still treats only capture `COMPLETED` as money.
 - WooCommerce refunds carry no PayPal reference (the refund id goes only into the order's `_ppcp_refunds` list), so the Watchdog plugin cannot send `provider_ref` for PayPal refunds. PayPal refunds still link to the order through their capture (`up` link) and `custom_id`; a store refund can be matched to a provider refund of the same order by amount only as a suggestion, not automatically.
 - `custom_id` = WooCommerce order id on order, capture and refund; `invoice_id` = per-site prefix + order number. These are the metadata for a verified-metadata rule like Stripe's `order_id` (there is no site URL in PayPal metadata; the invoice prefix is per installation).
+
+## Recheck (2026-10-10, owner unticked every feature except Transaction Search)
+
+The token still carries `payments/refund`, `payments/payment/authcapture`, `api.paypal.com/v1/payments/.*` and `wallet/mandates/write`; only some read-only client scopes disappeared. The conclusion stands.
+
+## Transaction Search on real data (2026-10-10)
+
+At 15:01 UTC `last_refreshed_datetime` was 13:29:59 (about 1.5 h behind). Rows: payments `T0006` with `transaction_id` = capture id, `custom_field` = WooCommerce order id; refund `T1107` with `transaction_id` = refund id and `paypal_reference_id` (type `TXN`) = the refunded capture. The pending EUR captures and the pending (eCheck) refund were not listed yet — they reach the service through the webhook or a later poll/audit.
+
+## Decisions (Step 70, connector)
+
+- **Connecting** (`POST /stores/{id}/integrations/paypal`): environment sandbox/live (stored as mode test/live), client id and secret of a dedicated REST app, optional webhook id, and `write_access_acknowledged = true` — without it nothing is sent to PayPal. The app must have Transaction Search (scope `reporting/search/read`, probed with a real search call). The write scopes found in the token are stored as `health.write_scopes` and shown to the owner. Credentials are keyring-encrypted (`paypal_client`, `paypal_webhook`).
+- **Read-only by construction**: `PayPalClient` sends only the OAuth token request, `verify-webhook-signature`, and GETs matching an allowlist (transactions search, orders, captures, refunds, authorizations by id); anything else is refused before it leaves the service. A test runs connect, delta, audit and a webhook and checks every recorded request against the allowlist.
+- **The unit of sync is the PayPal order**: every source (search row, webhook) is resolved to its PayPal order (capture `up` link, cached), and the whole order is read and mapped: one `payment.snapshot` (intent_ref = PayPal order id, charge_ref = first capture or authorization id, `provider_order_ref` = `custom_id`) plus captures and refunds as operations. Payment status: captured if any capture is COMPLETED/PARTIALLY_REFUNDED/REFUNDED, pending if a capture is PENDING, authorized for an open authorization, failed/cancelled otherwise. Only those capture statuses are captured money; a PENDING capture is not an operation. Amounts are converted as strings (HUF, JPY, TWD without decimals; unknown currencies skipped). Payer data is never read; webhook bodies are only hints and are not stored.
+- **Polling**: delta every 15 minutes from the watermark minus 180 minutes; the watermark never passes `last_refreshed_datetime`. Windows of at most 31 days, a budget of 300 PayPal reads per run. The 90-day audit starts once a day and continues hourly from a cursor when the budget runs out. Event codes T00xx are payments (capture id), T11xx refunds/reversals (via `paypal_reference_id`); other rows are not used.
+- **Webhook** (`POST /webhooks/paypal/{id}`): PayPal's verify-webhook-signature with the stored webhook id over the raw body, transmission time within 600 s and a PayPal certificate host; then the affected order is read through the API.
+- **Refund link by unique amount (new rule, provider-neutral)**: WooCommerce refunds of PayPal orders carry no PayPal refund id. Inside an order already linked to a payment, when exactly one unlinked store refund without `provider_ref` and exactly one unlinked succeeded provider refund of that payment have the same amount and currency, they are linked with strategy `unique_amount` (evidence `unique_amount_v1`). Any ambiguity (two equal amounts on either side) links nothing; a person links it manually. Store refunds that carry `provider_ref` keep the exact rule only.
+- **Coverage per gateway**: an order whose gateway belongs to a known provider (Stripe gateways → stripe, `ppcp-*` → paypal) is only checked when that provider is connected; otherwise it stays `unknown / provider_not_connected`. A store with only Stripe connected therefore does not report PayPal orders as missing captures. Orders of unknown gateways keep the store-wide rule.
+- **Plugin**: PayPal Payments gateways (`ppcp-*`) are reported as supported; their test/live mode is read from PayPal Payments' own `_ppcp_paypal_payment_mode` (sandbox → test), not copied.
+- **Metadata matching** (`verified_metadata`) does not apply to PayPal: PayPal metadata has no site URL to compare with the confirmed store domain. PayPal payments link by the exact capture id only.
+- Verified on the owner's sandbox: connecting the real Watchdog app (write scopes capture, payments_v1, refund reported), audit sync over Transaction Search and reading the spike orders: captured/refunded, pending EUR captures, an authorization — all mapped as described.
 
 ## Open
 

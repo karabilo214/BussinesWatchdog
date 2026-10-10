@@ -41,7 +41,7 @@ class OrderReconciliationService
             $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
             $now = Carbon::now();
-            $providerConnected = $this->coverage->isConnected($lockedOrder->tenant_id, $lockedOrder->store_id);
+            $providerConnected = $this->coverage->isConnected($lockedOrder->tenant_id, $lockedOrder->store_id, $lockedOrder->gateway);
             $storeDataStale = $this->freshness->storeDataStale($lockedOrder->tenant_id, $lockedOrder->store_id);
 
             $run = ReconciliationRun::query()->create([

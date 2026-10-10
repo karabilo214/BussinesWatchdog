@@ -112,6 +112,26 @@ bw_test('the Stripe payment mode is recorded once at payment time and sent with 
     delete_option('woocommerce_stripe_settings');
 });
 
+bw_test('PayPal Payments orders are supported and carry the sandbox/live mode the PayPal plugin recorded', function () {
+    $order = bw_make_order(['gateway' => 'ppcp-gateway', 'status' => 'pending']);
+    $order->update_meta_data('_ppcp_paypal_payment_mode', 'sandbox');
+    $order->save();
+    $order->payment_complete('5TR80192ED162870P');
+    OrderCapture::flush();
+    $events = bw_events(OrderCapture::orderKey($order->get_id()));
+    $data = end($events)['data'];
+    bw_assert($data['financial_support'] === 'supported' && $data['mode'] === 'test' && $data['transaction_ref'] === '5TR80192ED162870P', 'paypal order: ' . json_encode([$data['financial_support'], $data['mode'] ?? null, $data['transaction_ref']]));
+    bw_assert((string) wc_get_order($order->get_id())->get_meta(PaymentMode::META) === '', 'the PayPal mode is read, not copied');
+
+    $live = bw_make_order(['gateway' => 'ppcp-credit-card-gateway', 'status' => 'pending']);
+    $live->update_meta_data('_ppcp_paypal_payment_mode', 'live');
+    $live->save();
+    $live->payment_complete('CAPLIVE0000000001');
+    OrderCapture::flush();
+    $liveEvents = bw_events(OrderCapture::orderKey($live->get_id()));
+    bw_assert(end($liveEvents)['data']['mode'] === 'live', 'live PayPal order');
+});
+
 bw_test('the provider refund id written by the Stripe gateway is sent as provider_ref', function () {
     $order = bw_make_order();
     $refund = wc_create_refund(['order_id' => $order->get_id(), 'amount' => '30.00', 'refund_payment' => false]);

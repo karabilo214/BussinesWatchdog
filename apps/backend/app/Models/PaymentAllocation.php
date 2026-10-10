@@ -15,6 +15,9 @@ class PaymentAllocation extends Model
 
     public const STRATEGY_VERIFIED_METADATA = 'verified_metadata';
 
+    /** Refund allocations only: the single same-amount pair inside an exactly matched order (ADR 0022). */
+    public const STRATEGY_UNIQUE_AMOUNT = 'unique_amount';
+
     public const STRATEGY_MANUAL = 'manual';
 
     public $timestamps = false;

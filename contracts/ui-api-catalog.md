@@ -183,4 +183,6 @@ Step 64 (ADR 0019): реализованы password reset (request/complete), e-
 
 Step 69 (ADR 0021): MFA (TOTP) — `GET /auth/mfa`, `POST /auth/mfa/setup|confirm|disable|recovery-codes`, второй шаг входа `POST /auth/mfa/challenge` (login при включённой MFA отвечает `{mfa_required: true}` без сессии); `POST /ownership-transfer` принимает `target_user_id`, `current_password` и `code` (код MFA или резервный, если MFA включена), прежний владелец становится admin. TeamMember дополнен `email_verified`. Колонка `users.mfa_secret_ciphertext` — text (keyring), а не bytea.
 
-Ещё не реализовано из каталога: `POST /tenants` и переключатель команд в кабинете, PayPal подключение, exports, maintenance windows, rules, billing, privacy deletion, Telegram.
+Step 70 (ADR 0022): PayPal — `POST /stores/{id}/integrations/paypal` (environment, client_id, client_secret, webhook_id, обязательный `write_access_acknowledged`), `PUT /integrations/{id}/webhook-id`, `POST /webhooks/paypal/{id}`; `POST /integrations/{id}/sync` работает для Stripe и PayPal. Стратегия связи возвратов `unique_amount`.
+
+Ещё не реализовано из каталога: `POST /tenants` и переключатель команд в кабинете, exports, maintenance windows, rules, billing, privacy deletion, Telegram.

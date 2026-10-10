@@ -327,7 +327,13 @@ try {
   await step('Stripe is connected with a restricted key and synchronised', async () => {
     await page.locator('article', { hasText: 'Smoke Check Shop' }).getByRole('link', { name: 'Smoke Check Shop' }).click();
     const panel = page.locator('[data-panel="provider"]');
-    await panel.getByText('не подключён').waitFor();
+    await panel.locator('[data-provider-tab="paypal"]').click();
+    await panel.locator('[data-write-warning]').getByText('PayPal не умеет выдавать доступ только на чтение').waitFor();
+    await panel.getByLabel('Client ID').fill('AaBbCcDdEeFfGgHhIiJjKkLlMm0123456789');
+    await panel.getByLabel('Secret').fill('EeFfGgHhIiJjKkLlMmNnOoPp0123456789');
+    if (await panel.getByRole('button', { name: 'Подключить PayPal' }).isEnabled()) throw new Error('PayPal must not connect before the warning is acknowledged');
+    await panel.locator('[data-provider-tab="stripe"]').click();
+    await panel.locator('[data-provider-tab="stripe"]').getByText('не подключён').waitFor();
     await panel.getByLabel('Ограниченный ключ Stripe').fill('sk_live_51FullSecret0123456789');
     await panel.getByText('Это полный секретный ключ').waitFor();
     if (await panel.getByRole('button', { name: 'Подключить Stripe' }).isEnabled()) throw new Error('secret key must not be accepted');

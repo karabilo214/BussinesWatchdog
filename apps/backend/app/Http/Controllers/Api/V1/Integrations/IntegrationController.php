@@ -145,7 +145,7 @@ class IntegrationController extends Controller
         abort_unless($integration->tenant_id === $tenantId, 404);
 
         $validated = $request->validate([
-            'kind' => ['required', 'string', 'in:plugin_hmac,stripe_api,stripe_webhook'],
+            'kind' => ['required', 'string', 'in:plugin_hmac,stripe_api,stripe_webhook,paypal_client,paypal_webhook'],
         ]);
 
         if ($validated['kind'] !== IntegrationCredential::KIND_PLUGIN_HMAC) {

@@ -132,6 +132,7 @@ export interface ProviderSyncHealth {
   unchanged?: number;
   skipped?: Record<string, number>;
   complete?: boolean;
+  search_refreshed_at?: string | null;
 }
 
 export interface Integration {
@@ -149,6 +150,8 @@ export interface Integration {
   capabilities?: Record<string, string>;
   health?: {
     key_last4?: string;
+    client_id_last4?: string;
+    write_scopes?: string[];
     account_verified?: boolean;
     sync?: ProviderSyncHealth;
     last_error?: { code: string; at: string; retry_after_seconds?: number | null } | null;

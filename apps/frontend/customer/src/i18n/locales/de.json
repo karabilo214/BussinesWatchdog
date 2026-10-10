@@ -314,7 +314,7 @@
     "stripe_permission_missing": "Der Schlüssel darf Payment Intents, Charges oder Refunds nicht lesen. Ergänzen Sie die Rechte und versuchen Sie es erneut.",
     "stripe_key_rejected": "Stripe hat den Schlüssel abgelehnt: gelöscht, widerrufen oder falsch eingegeben.",
     "stripe_account_mismatch": "Der Schlüssel gehört zu einem anderen Stripe-Konto als angegeben.",
-    "provider_already_connected": "Stripe ist mit diesem Shop bereits verbunden.",
+    "provider_already_connected": "Dieser Zahlungsanbieter ist mit dem Shop bereits verbunden.",
     "stripe_unreachable": "Stripe ist nicht erreichbar. Versuchen Sie es später erneut.",
     "stripe_rate_limited": "Stripe begrenzt gerade die Anfragen. Versuchen Sie es in einer Minute erneut.",
     "stripe_unavailable": "Stripe ist vorübergehend nicht verfügbar. Versuchen Sie es später erneut.",
@@ -328,7 +328,20 @@
     "mfa_code_required": "Geben Sie einen App-Code oder einen Wiederherstellungscode ein.",
     "mfa_challenge_expired": "Die Zeit für die Code-Eingabe ist abgelaufen. Melden Sie sich erneut an.",
     "cannot_transfer_to_self": "Sie können die Inhaberschaft nicht an sich selbst übertragen.",
-    "target_email_unverified": "Dieses Mitglied hat seine E-Mail-Adresse noch nicht bestätigt."
+    "target_email_unverified": "Dieses Mitglied hat seine E-Mail-Adresse noch nicht bestätigt.",
+    "paypal_credentials_invalid": "Prüfen Sie Client ID und Secret: Kopieren Sie sie vollständig aus der PayPal-App.",
+    "paypal_webhook_id_invalid": "Das sieht nicht wie eine Webhook ID aus — kopieren Sie sie aus den Webhook-Einstellungen der PayPal-App.",
+    "paypal_write_access_not_acknowledged": "Bestätigen Sie, dass Sie den Hinweis zu den PayPal-Rechten verstanden haben.",
+    "paypal_transaction_search_missing": "Der App fehlt Transaction Search. Aktivieren Sie sie in den Einstellungen der PayPal-App und versuchen Sie es erneut (die Änderung kann einige Minuten dauern).",
+    "paypal_credentials_rejected": "PayPal hat Client ID und Secret nicht akzeptiert: Tippfehler, andere Umgebung (Live/Sandbox) oder die App wurde gelöscht.",
+    "paypal_permission_missing": "PayPal hat den Zugriff verweigert: Der App fehlt die nötige Funktion.",
+    "paypal_not_found": "PayPal hat das angefragte Objekt nicht gefunden.",
+    "paypal_rate_limited": "PayPal begrenzt Anfragen gerade. Versuchen Sie es in einer Minute erneut.",
+    "paypal_unavailable": "PayPal ist vorübergehend nicht erreichbar. Versuchen Sie es später.",
+    "paypal_unreachable": "PayPal war nicht erreichbar. Versuchen Sie es später.",
+    "paypal_request_rejected": "PayPal hat die Anfrage abgelehnt.",
+    "paypal_invalid_response": "PayPal hat eine unerwartete Antwort geliefert.",
+    "paypal_endpoint_not_allowed": "Eine Anfrage an PayPal wurde blockiert: Der Dienst liest bei PayPal nur."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -1044,7 +1057,7 @@
   },
   "provider": {
     "title": "Zahlungsanbieter",
-    "subtitle": "Stripe-Daten werden gebraucht, um zu prüfen, dass Geld für Bestellungen wirklich abgebucht und erstattet wurde. Ohne sie zeigt der Abgleich „unbekannt“, nicht „alles in Ordnung“.",
+    "subtitle": "Daten des Zahlungsanbieters werden gebraucht, um zu prüfen, dass Geld für Bestellungen wirklich abgebucht und erstattet wurde. Ohne sie zeigt der Abgleich „unbekannt“, nicht „alles in Ordnung“. Verbinden Sie den Anbieter, über den Ihr Shop Zahlungen annimmt.",
     "not_connected": "nicht verbunden",
     "status": {
       "active": "verbunden",
@@ -1110,5 +1123,46 @@
       "stripe_invalid_response": "Stripe hat eine unerwartete Antwort geliefert.",
       "integration_not_active": "Nur eine aktive Verbindung kann synchronisiert werden."
     }
+  },
+  "paypal": {
+    "why": "PayPal wird mit den Zugangsdaten einer eigenen REST-App in Ihrem PayPal-Konto verbunden. Sie werden hier eingegeben, nicht in WordPress, damit Gelddaten am Shop vorbei zum Dienst gelangen.",
+    "step_app": "Öffnen Sie developer.paypal.com → Apps & Credentials, wählen Sie Live (oder Sandbox zum Testen) und legen Sie eine App „Business Watchdog“ an (Typ Merchant).",
+    "step_features": "Entfernen Sie in den App-Einstellungen alle Häkchen und aktivieren Sie nur Transaction Search — sie wird für die Zahlungsliste gebraucht.",
+    "step_copy": "Kopieren Sie Client ID und Secret der App und fügen Sie sie unten ein.",
+    "environment": "PayPal-Umgebung",
+    "environments": {
+      "live": "Live",
+      "sandbox": "Sandbox (Test)"
+    },
+    "warning_title": "PayPal kann keinen reinen Lesezugriff vergeben",
+    "warning_body": "Auch eine App nur mit Transaction Search darf nach PayPals Regeln Zahlungen erstatten und Autorisierungen einziehen. Business Watchdog tut das nie: Der Dienst ruft nur Lesemethoden aus einer festen Liste auf und blockiert jede andere Anfrage, bevor sie gesendet wird. Die Zugangsdaten werden verschlüsselt gespeichert, und Sie können die App jederzeit in PayPal löschen.",
+    "acknowledge": "Ich verstehe: Die Zugangsdaten der PayPal-App erlauben mehr, als der Dienst braucht; der Dienst nutzt sie nur zum Lesen.",
+    "storage_note": "Direkt nach dem Verbinden werden die Bestellungen der letzten 90 Tage neu abgeglichen. PayPals Zahlungsliste hinkt etwa 1–3 Stunden hinterher.",
+    "connect": "PayPal verbinden",
+    "connected": "PayPal ist verbunden. Die erste Synchronisierung läuft innerhalb von 15 Minuten, oder starten Sie sie jetzt.",
+    "app": "App",
+    "rights": "Rechte der PayPal-Zugangsdaten",
+    "rights_note": "Vom Dienst nicht genutzt: nur Lesen aus einer festen Liste.",
+    "scopes": {
+      "refund": "Erstattungen",
+      "capture": "Einzug von Autorisierungen",
+      "payouts": "Auszahlungen",
+      "payments_v1": "Zahlungen (API v1)",
+      "subscriptions": "Abonnements",
+      "disputes": "Konflikte",
+      "vault": "gespeicherte Zahlungsmethoden"
+    },
+    "search_refreshed": "PayPal-Zahlungsliste aktualisiert bis {time}",
+    "webhook_off": "nicht eingerichtet — Zahlungen kommen aus der PayPal-Liste, bis zu einige Stunden später",
+    "polling_note": "Die Synchronisierung läuft alle 15 Minuten über PayPals Transaktionsliste und liest einmal täglich 90 Tage neu; ein Webhook meldet Zahlungen und Erstattungen sofort.",
+    "webhook_id": "Webhook",
+    "webhook_step_add": "Öffnen Sie in der PayPal-App Webhooks → „Add Webhook“ und tragen Sie die Adresse unten ein.",
+    "webhook_step_events": "Wählen Sie die Ereignisse Payment capture completed, pending, denied, refunded, reversed und Checkout order completed.",
+    "webhook_step_id": "Kopieren Sie die Webhook ID des neuen Webhooks und fügen Sie sie hier ein.",
+    "webhook_saved": "Webhook ID gespeichert.",
+    "revoke_warning": "Die PayPal-Zugangsdaten werden nicht mehr genutzt; der Geldabgleich von PayPal-Bestellungen kehrt zu „unbekannt“ zurück. Löschen Sie die App auch in PayPal.",
+    "revoke_confirm": "PayPal trennen",
+    "revoked": "PayPal getrennt.",
+    "credentials_rejected": "PayPal hat die App-Zugangsdaten abgelehnt oder der App fehlt Transaction Search — Aufrufe an PayPal sind gestoppt, der Geldabgleich zeigt „unbekannt“. Trennen und verbinden Sie PayPal neu."
   }
 }

@@ -58,4 +58,17 @@ return [
         'audit_days' => 90,
         'webhook_tolerance_seconds' => 300,
     ],
+
+    'paypal' => [
+        'api_base_live' => env('WATCHDOG_PAYPAL_API_BASE_LIVE', 'https://api-m.paypal.com'),
+        'api_base_sandbox' => env('WATCHDOG_PAYPAL_API_BASE_SANDBOX', 'https://api-m.sandbox.paypal.com'),
+        'timeout_seconds' => 20,
+        'search_page_size' => 500,
+        'max_search_pages_per_run' => 10,
+        'max_orders_per_run' => 300,
+        'search_window_days' => 31,
+        'delta_overlap_minutes' => 180,
+        'audit_days' => 90,
+        'webhook_tolerance_seconds' => 600,
+    ],
 ];

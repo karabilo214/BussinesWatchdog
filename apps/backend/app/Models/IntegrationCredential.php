@@ -16,6 +16,10 @@ class IntegrationCredential extends Model
 
     public const KIND_STRIPE_WEBHOOK = 'stripe_webhook';
 
+    public const KIND_PAYPAL_CLIENT = 'paypal_client';
+
+    public const KIND_PAYPAL_WEBHOOK = 'paypal_webhook';
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_DRAINING = 'draining';

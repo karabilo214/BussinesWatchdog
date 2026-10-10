@@ -49,6 +49,16 @@ Schedule::command('stripe:sync')
     ->withoutOverlapping(30)
     ->onOneServer();
 
+Schedule::command('paypal:sync')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(30)
+    ->onOneServer();
+
+Schedule::command('paypal:sync --audit')
+    ->hourlyAt(50)
+    ->withoutOverlapping(60)
+    ->onOneServer();
+
 Schedule::command('stripe:sync --audit')
     ->dailyAt('03:45')
     ->timezone('UTC')

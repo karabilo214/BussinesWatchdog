@@ -7,7 +7,6 @@ import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
 import CopyField from './CopyField.vue';
 import ErrorNotice from './ErrorNotice.vue';
-import { INTEGRATION_TONES } from './integrationTones';
 
 const props = defineProps<{ storeId: string; canManage: boolean }>();
 const emit = defineEmits<{ changed: [] }>();
@@ -97,15 +96,7 @@ void load();
 </script>
 
 <template>
-  <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="provider-title" data-panel="provider">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div class="flex flex-col gap-1">
-        <h2 id="provider-title" class="text-lg font-semibold">{{ $t('provider.title') }}</h2>
-        <p class="max-w-3xl text-sm text-text-muted">{{ $t('provider.subtitle') }}</p>
-      </div>
-      <StatusBadge v-if="integration" :tone="INTEGRATION_TONES[integration.status]" :label="`Stripe · ${$t(`provider.status.${integration.status}`)}`" />
-      <StatusBadge v-else-if="!loading" tone="unknown" :label="$t('provider.not_connected')" />
-    </div>
+  <div class="flex flex-col gap-4" data-provider="stripe">
 
     <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
     <ErrorNotice v-else-if="loadError" :error="loadError" />
@@ -202,5 +193,5 @@ void load();
 
     <p v-if="notice" class="text-sm text-ok" role="status">{{ $t(notice) }}</p>
     <ErrorNotice v-if="error" :error="error" />
-  </section>
+  </div>
 </template>

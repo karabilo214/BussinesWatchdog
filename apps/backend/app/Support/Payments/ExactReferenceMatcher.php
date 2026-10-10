@@ -17,14 +17,18 @@ use App\Models\Store;
  * Spec §13 in order. 1) Exact gateway reference: exactly one order of the store names the payment intent, charge or
  * capture as its transaction reference (same mode and currency). 2) Only when no order has the reference: provider
  * metadata naming the store's order id, accepted only when the recorded site origin is the store's confirmed domain
- * (`verified_metadata`). A provider refund is linked to the store refund that names it. Ambiguity links nothing —
- * the payment stays in the unmatched list for a person to decide. Amount and time never link anything here.
+ * (`verified_metadata`). A provider refund is linked to the store refund that names it; when the store refund names
+ * nothing (PayPal Payments keeps refund ids only on the order), inside an order already linked to the payment the one
+ * unlinked store refund and the one unlinked provider refund of the same amount and currency are paired
+ * (`unique_amount`, ADR 0022). Ambiguity links nothing — a person decides. Amount and time never link a payment.
  */
 class ExactReferenceMatcher
 {
     public const MATCHER_VERSION = 'exact_reference_v1';
 
     public const METADATA_MATCHER_VERSION = 'verified_metadata_v1';
+
+    public const UNIQUE_AMOUNT_MATCHER_VERSION = 'unique_amount_v1';
 
     public function __construct(
         private readonly PaymentAllocationService $allocations,
@@ -92,6 +96,16 @@ class ExactReferenceMatcher
         $providerRef = $event->payload['data']['provider_ref'] ?? null;
 
         if (! is_string($providerRef) || $providerRef === '') {
+            $orderId = Refund::query()
+                ->where('tenant_id', $event->tenant_id)
+                ->where('integration_id', $event->integration_id)
+                ->where('external_id', $event->aggregate_external_id)
+                ->value('order_id');
+
+            if (is_string($orderId)) {
+                $this->matchRefundsByUniqueAmount($event->tenant_id, $orderId);
+            }
+
             return;
         }
 
@@ -260,6 +274,10 @@ class ExactReferenceMatcher
             ->get();
 
         if ($refunds->count() !== 1) {
+            foreach ($allocations->pluck('order_id')->unique() as $orderId) {
+                $this->matchRefundsByUniqueAmount($transaction->tenant_id, (string) $orderId);
+            }
+
             return;
         }
 
@@ -275,6 +293,54 @@ class ExactReferenceMatcher
             PaymentAllocation::STRATEGY_EXACT_REFERENCE,
             ['matcher' => self::MATCHER_VERSION, 'reference' => $transaction->external_operation_id],
         ));
+    }
+
+    private function matchRefundsByUniqueAmount(string $tenantId, string $orderId): void
+    {
+        $allocations = PaymentAllocation::query()->where('tenant_id', $tenantId)->where('order_id', $orderId)->whereNull('revoked_at')->get();
+
+        if ($allocations->isEmpty()) {
+            return;
+        }
+
+        $linkedStoreRefunds = RefundAllocation::query()->whereNull('revoked_at')->select('refund_id');
+        $storeRefunds = Refund::query()
+            ->where('tenant_id', $tenantId)
+            ->where('order_id', $orderId)
+            ->where(fn ($query) => $query->whereNull('provider_ref')->orWhere('provider_ref', ''))
+            ->whereIn('status', ['requested', 'recorded'])
+            ->where(fn ($query) => $query->whereNull('external_required')->orWhere('external_required', true))
+            ->whereNotIn('id', $linkedStoreRefunds)
+            ->get();
+        $providerRefunds = FinancialTransaction::query()
+            ->where('tenant_id', $tenantId)
+            ->where('kind', 'refund')
+            ->where('status', 'succeeded')
+            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
+            ->whereIn('payment_id', $allocations->pluck('payment_id'))
+            ->whereNotIn('id', RefundAllocation::query()->whereNull('revoked_at')->select('refund_transaction_id'))
+            ->get();
+
+        foreach ($storeRefunds as $storeRefund) {
+            $sameStore = $storeRefunds->filter(fn (Refund $other): bool => (int) $other->amount_minor === (int) $storeRefund->amount_minor && $other->currency === $storeRefund->currency);
+            $sameProvider = $providerRefunds->filter(fn (FinancialTransaction $other): bool => (int) $other->amount_minor === (int) $storeRefund->amount_minor && $other->currency === $storeRefund->currency);
+
+            if ($sameStore->count() !== 1 || $sameProvider->count() !== 1) {
+                continue;
+            }
+
+            $providerRefund = $sameProvider->first();
+            $allocation = $allocations->firstWhere('payment_id', $providerRefund->payment_id);
+
+            $this->attempt(fn () => $this->allocations->allocateRefund(
+                $storeRefund,
+                $providerRefund,
+                $allocation,
+                (int) $storeRefund->amount_minor,
+                PaymentAllocation::STRATEGY_UNIQUE_AMOUNT,
+                ['matcher' => self::UNIQUE_AMOUNT_MATCHER_VERSION, 'amount_minor' => (string) $storeRefund->amount_minor, 'currency' => $storeRefund->currency],
+            ));
+        }
     }
 
     /** A rejected link (amount already allocated, scope or currency mismatch) is left for a person to review. */
