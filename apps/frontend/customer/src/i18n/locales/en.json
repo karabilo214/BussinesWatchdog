@@ -7,7 +7,8 @@
     "main": "Main navigation",
     "overview": "Overview",
     "incidents": "Incidents",
-    "reconciliation": "Reconciliation"
+    "reconciliation": "Reconciliation",
+    "checks": "Checks"
   },
   "common": {
     "loading": "Loading…",
@@ -218,7 +219,11 @@
     "allocation_already_revoked": "The link has already been revoked.",
     "allocation_has_active_refund_allocations": "Revoke the refunds linked to this payment first.",
     "allocation_order_mismatch": "The refund belongs to a different order.",
-    "allocation_source_not_independent": "Only payment provider data can be matched, not store markers."
+    "allocation_source_not_independent": "Only payment provider data can be matched, not store markers.",
+    "url_outside_store_origin": "Check addresses must be on the store domain.",
+    "scenario_exists": "The store already has a check scenario. Reload the page.",
+    "check_run_not_active": "The check has already finished.",
+    "store_not_verified": "Confirm the store domain first."
   },
   "incidents": {
     "title": "Incidents",
@@ -360,7 +365,8 @@
       "show_screenshot": "Show check screenshot",
       "screenshot_note": "Input fields and addresses are masked in the screenshot.",
       "no_screenshot": "This check has no screenshot.",
-      "screenshot_alt": "Screenshot of the page at the step where the check stopped"
+      "screenshot_alt": "Screenshot of the page at the step where the check stopped",
+      "open_run": "Check details"
     },
     "signal_type": {
       "reconciliation_finding": "Money reconciliation",
@@ -558,5 +564,156 @@
     "link_refund_confirm": "Link",
     "revisions_title": "Order change history",
     "revision": "Version {n}"
+  },
+  "checks": {
+    "title": "Checkout checks",
+    "subtitle": "The service regularly walks the customer path to the payment form in a browser: product, cart, checkout. No order is created and no money is charged.",
+    "readiness": {
+      "title": "Ready to run",
+      "ready": "checks are running",
+      "not_ready": "checks do not run",
+      "verified": {
+        "met": "Store domain confirmed",
+        "missing": "Store domain not confirmed"
+      },
+      "active": {
+        "met": "Store monitoring is active",
+        "missing": "The store is not active (paused, onboarding or plugin interruptions)"
+      },
+      "browser_enabled": {
+        "met": "Checks enabled for the store",
+        "missing": "Checks disabled for the store",
+        "turn_on": "Enable",
+        "turn_off": "Disable"
+      },
+      "scenario": {
+        "met": "Check scenario set up and enabled",
+        "missing": "Check scenario missing or disabled"
+      },
+      "open_store": "Open store",
+      "verify_first": "Can be enabled once the domain is confirmed.",
+      "note": "Scheduled checks run only when every condition is met."
+    },
+    "scenario": {
+      "title": "Scenario",
+      "subtitle": "Which product to put in the cart and how often to check. The check usually finds the cart and checkout itself.",
+      "enabled": "enabled",
+      "disabled": "disabled",
+      "none": "No scenario set up yet.",
+      "product_url": "Test product page",
+      "product_hint": "A simple product in stock, on the store domain (https://). It is put in the cart but never bought.",
+      "cart_url": "Cart page",
+      "checkout_url": "Checkout page",
+      "auto": "detected automatically",
+      "interval": "How often to check",
+      "next_due": "Next scheduled check",
+      "not_scheduled": "not scheduled",
+      "version": "Version",
+      "version_value": "{version} · adapter {adapter}",
+      "steps": "What is checked",
+      "untested": "What this check does not cover",
+      "no_purchase": "The check stops at the payment form: it creates no order, enters no card data and does not verify that charging succeeds.",
+      "enable": "Enable checks",
+      "disable": "Disable checks",
+      "enable_label": "Enable scheduled checks",
+      "edit": "Edit",
+      "create": "Save scenario",
+      "advanced": "Advanced",
+      "origins": "Allowed external addresses",
+      "origins_hint": "Public https addresses of payment gateways and CDNs the checkout page needs. One per line.",
+      "country": "Shipping country (2 letters)",
+      "postcode": "Postcode",
+      "location_hint": "Test shipping data if the payment form only appears after it. No real addresses are used."
+    },
+    "interval": {
+      "s300": "every 5 minutes",
+      "s900": "every 15 minutes",
+      "s1800": "every 30 minutes",
+      "s3600": "every hour",
+      "s21600": "every 6 hours",
+      "s86400": "once a day",
+      "custom": "every {n} min"
+    },
+    "untested": {
+      "variable_products": "products with variants (size, colour)",
+      "shipping_required_before_payment": "stores that show payment methods only after shipping is chosen",
+      "third_party_gateway_iframes": "contents of payment forms in external frames",
+      "redirect_gateways": "payments that redirect to the payment provider's site"
+    },
+    "runs": {
+      "title": "Run history",
+      "run_now": "Run now",
+      "not_ready": "A manual run is available once the readiness conditions are met.",
+      "in_progress": "A check is running — the list updates by itself.",
+      "empty": "No runs yet."
+    },
+    "trigger": {
+      "scheduled": "scheduled",
+      "manual": "started manually",
+      "incident": "incident recheck"
+    },
+    "status": {
+      "queued": "queued",
+      "running": "running",
+      "passed": "passed",
+      "failed": "failed",
+      "inconclusive": "inconclusive",
+      "blocked": "blocked by the site",
+      "unsupported": "not supported",
+      "cancelled": "cancelled"
+    },
+    "status_note": {
+      "queued": "The check is waiting for a free browser.",
+      "running": "A browser is walking the path to payment now.",
+      "passed": "The path to the payment form was completed.",
+      "failed": "The site twice did not let the check reach the payment form.",
+      "inconclusive": "The result is undetermined because of a failure on our side or a single error. It does not mean the store works or is broken.",
+      "blocked": "Site protection blocked the check. This is not a store failure, but the store could not be checked.",
+      "unsupported": "The check does not support this site's checkout yet.",
+      "cancelled": "The check was cancelled. This is not a store failure."
+    },
+    "attempt_status": {
+      "running": "running",
+      "passed": "passed",
+      "failed": "failed",
+      "inconclusive": "inconclusive",
+      "blocked": "blocked",
+      "unsupported": "not supported",
+      "cancelled": "cancelled",
+      "expired": "interrupted"
+    },
+    "step_status": {
+      "passed": "passed",
+      "failed": "error",
+      "skipped": "skipped",
+      "inconclusive": "inconclusive",
+      "blocked": "blocked"
+    },
+    "error": {
+      "site_failure": "The site did not let the check reach the payment form.",
+      "product_unavailable": "The test product is unavailable.",
+      "worker_capacity": "Not enough free browsers on our side.",
+      "dns_failure": "The store domain could not be found.",
+      "waf_challenge": "The site showed bot protection.",
+      "selector_changed": "A page element was not found: the site theme may have changed.",
+      "adapter_unsupported": "The site's checkout is not supported by the check.",
+      "forbidden_mutation": "The page tried a forbidden action; the check stopped.",
+      "blocked_external_origin": "The page called an address the check does not allow.",
+      "infra_timeout": "The check ran out of time because of a failure on our side.",
+      "lease_expired": "The browser stopped responding; the attempt was interrupted.",
+      "cancelled_by_user": "Cancelled by a user."
+    },
+    "run": {
+      "title": "Check {time}",
+      "scheduled": "Scheduled",
+      "started": "Started",
+      "finished": "Finished",
+      "cancel": "Cancel check",
+      "cancel_confirm": "Cancel",
+      "cancel_warning": "The check will be stopped. A cancellation does not count as a store failure.",
+      "no_attempts": "No attempts yet.",
+      "attempt": "Attempt {n}",
+      "diagnostics": "Technical details ({n})"
+    }
   }
 }

@@ -1337,3 +1337,22 @@ Verification:
 - Backend: SQLite 313 + 4 skipped, PostgreSQL 18 317 passed.
 - Not done: CSV export (no export API yet), per-currency discrepancy totals, partial amounts for manual matches (the UI links whole captures / the full unlinked refund remainder). Tested with seeded data only, not a real Stripe account.
 
+### Step 61: Dashboard Checkout-Check Screens
+
+Status: complete
+
+Added:
+
+- Customer app `/app/checks`: store picker; readiness (domain confirmed, store active, checks enabled for the store with an on/off switch, scenario set up and enabled — scheduled checks run only when all are met); scenario panel (create from the test product page, cart/checkout detected automatically or set, interval 5 min–24 h, enable/disable with the scenario version, advanced: allowed external origins and synthetic shipping country/postcode; what is checked, what is not covered, "nothing is bought"); run history with "run now" (only when ready), auto-refresh while a run is queued or running.
+- `/app/checks/runs/:id`: status with a plain-language note (inconclusive/blocked/cancelled are not store failures), times, attempts with location and browser, steps with their status and error, masked screenshot on demand, sanitized technical details, cancel an active run with a reason. Incident evidence links to the run.
+- Contract tests: every run/attempt/step state in OpenAPI has a colour and a label in ru/en/de and only "passed" is green; every worker/backend error code is explained.
+- Fixed a request race on the checks, incidents and reconciliation lists: a slower response for a previous store or filter could overwrite the current one (seen once in the smoke as a missing "enable checks" button); stale responses are discarded, with a test that fails without the fix.
+- Smoke: seeds a verified "Smoke Check Shop" with a disabled scenario and a failed run with steps; clears the local rate limiter before starting (back-to-back runs hit the 5 logins/min limit).
+
+Verification:
+
+- `make frontend-check` green (customer 49 tests).
+- `make frontend-smoke` 26/26, six consecutive runs: readiness, enable scenario, change interval, run now → queued → cancel with a reason, failed run steps and details, German mobile layout; screenshots inspected.
+- Backend unchanged in this step (last runs: SQLite 313 + 4 skipped, PostgreSQL 18 317).
+- Not covered in the browser: a real worker run and the screenshot of a run (no worker or object storage in the smoke); scenario creation is covered by unit tests.
+

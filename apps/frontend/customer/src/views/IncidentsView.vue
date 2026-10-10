@@ -40,7 +40,11 @@ function setQuery(changes: Record<string, string>): void {
   void router.replace({ query });
 }
 
+let listRequest = 0;
+
 async function load(more = false): Promise<void> {
+  const request = ++listRequest;
+
   if (more) {
     loadingMore.value = true;
   } else {
@@ -57,13 +61,17 @@ async function load(more = false): Promise<void> {
       cursor: more ? (nextCursor.value ?? undefined) : undefined,
       limit: 50,
     });
+    if (request !== listRequest) return;
+
     incidents.value = more ? [...incidents.value, ...page.data] : page.data;
     nextCursor.value = page.next_cursor;
   } catch (caught) {
-    error.value = caught;
+    if (request === listRequest) error.value = caught;
   } finally {
-    loading.value = false;
-    loadingMore.value = false;
+    if (request === listRequest) {
+      loading.value = false;
+      loadingMore.value = false;
+    }
   }
 }
 

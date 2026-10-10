@@ -355,3 +355,76 @@ export interface UnmatchedPayment {
   reason: 'no_candidate_found' | 'review_required';
   candidates: UnmatchedCandidate[];
 }
+
+export interface CheckScenario {
+  id: string;
+  store_id: string;
+  name: string;
+  mode: 'payment_form';
+  version: number;
+  enabled: boolean;
+  adapter_version: string;
+  product_external_id: string | null;
+  product_url: string | null;
+  cart_url: string | null;
+  checkout_url: string | null;
+  extra_allowed_origins: string[];
+  synthetic_location: { country: string; postcode: string | null } | null;
+  interval_seconds: number;
+  next_due_at: string | null;
+  supported_steps: string[];
+  untested_components: string[];
+}
+
+export interface CheckScenarioInput {
+  name?: string;
+  product_url?: string;
+  cart_url?: string | null;
+  checkout_url?: string | null;
+  interval_seconds?: number;
+  enabled?: boolean;
+  extra_allowed_origins?: string[];
+  synthetic_location?: { country: string; postcode: string | null } | null;
+}
+
+export type CheckRunStatus = 'queued' | 'running' | 'passed' | 'failed' | 'inconclusive' | 'blocked' | 'unsupported' | 'cancelled';
+
+export interface CheckRunSummary {
+  id: string;
+  store_id: string;
+  scenario_id: string;
+  scenario_version: number;
+  trigger: 'scheduled' | 'manual' | 'incident';
+  status: CheckRunStatus;
+  error_code: string | null;
+  scheduled_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface CheckStep {
+  index: number;
+  code: string;
+  status: 'passed' | 'failed' | 'skipped' | 'inconclusive' | 'blocked';
+  error_code: string | null;
+  started_at: string;
+  finished_at: string;
+}
+
+export interface CheckAttempt {
+  id: string;
+  attempt_number: number;
+  status: 'running' | 'passed' | 'failed' | 'inconclusive' | 'blocked' | 'unsupported' | 'cancelled' | 'expired';
+  error_code: string | null;
+  location: string | null;
+  browser_version: string | null;
+  started_at: string;
+  finished_at: string | null;
+  diagnostics: { redaction_version?: string; relevant_errors?: Record<string, unknown>[] } | null;
+  artifacts: CheckArtifact[];
+  steps: CheckStep[];
+}
+
+export interface CheckRunDetail extends CheckRunSummary {
+  attempts: CheckAttempt[];
+}

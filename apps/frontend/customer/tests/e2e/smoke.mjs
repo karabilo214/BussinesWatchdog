@@ -197,6 +197,48 @@ try {
     await page.getByRole('heading', { name: 'Магазины' }).waitFor();
   });
 
+  await step('checks page shows readiness, the scenario and a failed run', async () => {
+    await page.getByRole('link', { name: 'Проверки', exact: true }).click();
+    await page.getByRole('heading', { name: 'Проверки оформления заказа' }).waitFor();
+    await page.getByLabel('Магазин').selectOption({ label: 'Smoke Check Shop' });
+    await page.locator('[data-condition="scenario"][data-met="false"]').waitFor();
+    await page.locator('[data-condition="verified"][data-met="true"]').waitFor();
+    await page.locator('[data-panel="runs"]').getByText('Сайт не дал дойти до формы оплаты.').waitFor();
+  });
+
+  await step('the scenario is enabled and its interval changed', async () => {
+    await page.getByRole('button', { name: 'Включить проверки' }).click();
+    await page.getByText('проверки работают').waitFor();
+    await page.getByRole('button', { name: 'Изменить' }).click();
+    await page.getByLabel('Как часто проверять').selectOption({ label: 'каждые 30 минут' });
+    await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+    await page.locator('[data-panel="scenario"]').getByText('каждые 30 минут').waitFor();
+    await page.screenshot({ path: `${shots}/checks-ru.png`, fullPage: true });
+  });
+
+  await step('a manual run is queued and can be cancelled', async () => {
+    await page.getByRole('button', { name: 'Запустить сейчас' }).click();
+    const queued = page.locator('[data-run-id]', { hasText: 'в очереди' });
+    await queued.waitFor();
+    await queued.getByRole('link').click();
+    await page.getByText('Проверка ждёт свободный браузер.').waitFor();
+    await page.getByRole('button', { name: 'Отменить проверку' }).click();
+    await page.getByLabel('Причина (видна в журнале)').fill('Smoke: not needed now');
+    await page.getByRole('button', { name: 'Отменить', exact: true }).click();
+    await page.getByText('Проверку отменили. Это не сбой магазина.').waitFor();
+  });
+
+  await step('a failed run shows its steps and technical details', async () => {
+    await page.getByRole('link', { name: '← Проверки' }).click();
+    const failed = page.locator('[data-run-id]', { hasText: 'не прошла' });
+    await failed.getByRole('link').click();
+    await page.locator('[data-attempt="2"] [data-step="checkout"]').getByText('ошибка').waitFor();
+    await page.locator('[data-attempt="1"]').getByText('Технические подробности (1)').waitFor();
+    await page.screenshot({ path: `${shots}/check-run-ru.png`, fullPage: true });
+    await page.getByRole('link', { name: 'Обзор', exact: true }).click();
+    await page.getByRole('heading', { name: 'Магазины' }).waitFor();
+  });
+
   await step('language switch to German', async () => {
     await page.getByRole('combobox').first().selectOption('de');
     await page.getByRole('heading', { name: 'Shops' }).waitFor();
@@ -229,6 +271,17 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     if (overflow) throw new Error('horizontal scroll on mobile');
     await page.screenshot({ path: `${shots}/order-de-mobile.png`, fullPage: true });
+  });
+
+  await step('checks page in German at mobile width', async () => {
+    await page.getByRole('link', { name: 'Prüfungen' }).click();
+    await page.getByRole('heading', { name: 'Checkout-Prüfungen' }).waitFor();
+    await page.getByLabel('Shop').selectOption({ label: 'Smoke Check Shop' });
+    await page.getByRole('heading', { name: 'Verlauf der Prüfungen' }).waitFor();
+    await page.locator('[data-panel="runs"] [data-run-id]').first().waitFor();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    if (overflow) throw new Error('horizontal scroll on mobile');
+    await page.screenshot({ path: `${shots}/checks-de-mobile.png`, fullPage: true });
   });
 
   await step('sign out ends the session', async () => {

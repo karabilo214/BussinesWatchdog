@@ -72,9 +72,12 @@ function dayStart(day: string, offsetDays = 0): string {
   return date.toISOString();
 }
 
+let findingsRequest = 0;
+
 async function loadFindings(more = false): Promise<void> {
   if (storeId.value === '' || tab.value !== 'findings') return;
 
+  const request = ++findingsRequest;
   loading.value = !more;
   error.value = null;
 
@@ -88,12 +91,14 @@ async function loadFindings(more = false): Promise<void> {
       to: to.value ? dayStart(to.value, 1) : undefined,
       cursor: more ? (nextCursor.value ?? undefined) : undefined,
     });
+    if (request !== findingsRequest) return;
+
     findings.value = more ? [...findings.value, ...page.data] : page.data;
     nextCursor.value = page.next_cursor;
   } catch (caught) {
-    error.value = caught;
+    if (request === findingsRequest) error.value = caught;
   } finally {
-    loading.value = false;
+    if (request === findingsRequest) loading.value = false;
   }
 }
 

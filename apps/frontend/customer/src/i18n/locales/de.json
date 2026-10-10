@@ -7,7 +7,8 @@
     "main": "Hauptnavigation",
     "overview": "Übersicht",
     "incidents": "Vorfälle",
-    "reconciliation": "Abgleich"
+    "reconciliation": "Abgleich",
+    "checks": "Prüfungen"
   },
   "common": {
     "loading": "Wird geladen…",
@@ -218,7 +219,11 @@
     "allocation_already_revoked": "Die Verknüpfung wurde bereits aufgehoben.",
     "allocation_has_active_refund_allocations": "Heben Sie zuerst die mit dieser Zahlung verknüpften Erstattungen auf.",
     "allocation_order_mismatch": "Die Erstattung gehört zu einer anderen Bestellung.",
-    "allocation_source_not_independent": "Zugeordnet werden können nur Daten des Zahlungsanbieters, keine Shop-Markierungen."
+    "allocation_source_not_independent": "Zugeordnet werden können nur Daten des Zahlungsanbieters, keine Shop-Markierungen.",
+    "url_outside_store_origin": "Die Prüfadressen müssen auf der Shop-Domain liegen.",
+    "scenario_exists": "Der Shop hat bereits ein Prüfszenario. Seite neu laden.",
+    "check_run_not_active": "Die Prüfung ist bereits beendet.",
+    "store_not_verified": "Bitte zuerst die Shop-Domain bestätigen."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -360,7 +365,8 @@
       "show_screenshot": "Screenshot der Prüfung anzeigen",
       "screenshot_note": "Eingabefelder und Adressen sind im Screenshot geschwärzt.",
       "no_screenshot": "Für diese Prüfung gibt es keinen Screenshot.",
-      "screenshot_alt": "Screenshot der Seite beim Schritt, an dem die Prüfung stoppte"
+      "screenshot_alt": "Screenshot der Seite beim Schritt, an dem die Prüfung stoppte",
+      "open_run": "Details der Prüfung"
     },
     "signal_type": {
       "reconciliation_finding": "Geldabgleich",
@@ -558,5 +564,156 @@
     "link_refund_confirm": "Verknüpfen",
     "revisions_title": "Änderungsverlauf der Bestellung",
     "revision": "Version {n}"
+  },
+  "checks": {
+    "title": "Checkout-Prüfungen",
+    "subtitle": "Der Dienst geht regelmäßig im Browser den Weg des Kunden bis zum Zahlungsformular: Produkt, Warenkorb, Kasse. Es wird keine Bestellung angelegt und kein Geld abgebucht.",
+    "readiness": {
+      "title": "Startbereitschaft",
+      "ready": "Prüfungen laufen",
+      "not_ready": "Prüfungen laufen nicht",
+      "verified": {
+        "met": "Shop-Domain bestätigt",
+        "missing": "Shop-Domain nicht bestätigt"
+      },
+      "active": {
+        "met": "Überwachung des Shops ist aktiv",
+        "missing": "Der Shop ist nicht aktiv (pausiert, in Einrichtung oder Plugin-Unterbrechungen)"
+      },
+      "browser_enabled": {
+        "met": "Prüfungen für den Shop aktiviert",
+        "missing": "Prüfungen für den Shop deaktiviert",
+        "turn_on": "Aktivieren",
+        "turn_off": "Deaktivieren"
+      },
+      "scenario": {
+        "met": "Prüfszenario eingerichtet und aktiv",
+        "missing": "Prüfszenario fehlt oder ist deaktiviert"
+      },
+      "open_store": "Shop öffnen",
+      "verify_first": "Aktivierbar, sobald die Domain bestätigt ist.",
+      "note": "Geplante Prüfungen laufen nur, wenn alle Bedingungen erfüllt sind."
+    },
+    "scenario": {
+      "title": "Szenario",
+      "subtitle": "Welches Produkt in den Warenkorb kommt und wie oft geprüft wird. Warenkorb und Kasse findet die Prüfung meist selbst.",
+      "enabled": "aktiv",
+      "disabled": "deaktiviert",
+      "none": "Noch kein Szenario eingerichtet.",
+      "product_url": "Seite des Testprodukts",
+      "product_hint": "Ein einfaches, vorrätiges Produkt auf der Shop-Domain (https://). Es wird in den Warenkorb gelegt, aber nie gekauft.",
+      "cart_url": "Warenkorbseite",
+      "checkout_url": "Kassenseite",
+      "auto": "wird automatisch ermittelt",
+      "interval": "Wie oft prüfen",
+      "next_due": "Nächste geplante Prüfung",
+      "not_scheduled": "nicht geplant",
+      "version": "Version",
+      "version_value": "{version} · Adapter {adapter}",
+      "steps": "Was geprüft wird",
+      "untested": "Was diese Prüfung nicht abdeckt",
+      "no_purchase": "Die Prüfung stoppt am Zahlungsformular: Sie legt keine Bestellung an, gibt keine Kartendaten ein und prüft nicht, ob die Abbuchung gelingt.",
+      "enable": "Prüfungen aktivieren",
+      "disable": "Prüfungen deaktivieren",
+      "enable_label": "Geplante Prüfungen aktivieren",
+      "edit": "Bearbeiten",
+      "create": "Szenario speichern",
+      "advanced": "Erweitert",
+      "origins": "Erlaubte externe Adressen",
+      "origins_hint": "Öffentliche https-Adressen von Zahlungs-Gateways und CDNs, die die Kassenseite braucht. Eine pro Zeile.",
+      "country": "Lieferland (2 Buchstaben)",
+      "postcode": "Postleitzahl",
+      "location_hint": "Testdaten für den Versand, falls das Zahlungsformular erst danach erscheint. Es werden keine echten Adressen verwendet."
+    },
+    "interval": {
+      "s300": "alle 5 Minuten",
+      "s900": "alle 15 Minuten",
+      "s1800": "alle 30 Minuten",
+      "s3600": "stündlich",
+      "s21600": "alle 6 Stunden",
+      "s86400": "einmal täglich",
+      "custom": "alle {n} Min."
+    },
+    "untested": {
+      "variable_products": "Produkte mit Varianten (Größe, Farbe)",
+      "shipping_required_before_payment": "Shops, die Zahlungsarten erst nach der Versandwahl zeigen",
+      "third_party_gateway_iframes": "Inhalte von Zahlungsformularen in externen Frames",
+      "redirect_gateways": "Zahlungen mit Weiterleitung zur Website des Anbieters"
+    },
+    "runs": {
+      "title": "Verlauf der Prüfungen",
+      "run_now": "Jetzt starten",
+      "not_ready": "Ein manueller Start ist möglich, sobald die Bedingungen erfüllt sind.",
+      "in_progress": "Eine Prüfung läuft – die Liste aktualisiert sich selbst.",
+      "empty": "Noch keine Prüfungen."
+    },
+    "trigger": {
+      "scheduled": "geplant",
+      "manual": "manuell gestartet",
+      "incident": "Nachprüfung eines Vorfalls"
+    },
+    "status": {
+      "queued": "in Warteschlange",
+      "running": "läuft",
+      "passed": "bestanden",
+      "failed": "fehlgeschlagen",
+      "inconclusive": "unbestimmt",
+      "blocked": "von der Website blockiert",
+      "unsupported": "nicht unterstützt",
+      "cancelled": "abgebrochen"
+    },
+    "status_note": {
+      "queued": "Die Prüfung wartet auf einen freien Browser.",
+      "running": "Ein Browser geht gerade den Weg zur Zahlung.",
+      "passed": "Der Weg bis zum Zahlungsformular wurde durchlaufen.",
+      "failed": "Die Website hat die Prüfung zweimal nicht bis zum Zahlungsformular gelassen.",
+      "inconclusive": "Das Ergebnis ist wegen eines Fehlers auf unserer Seite oder eines Einzelfehlers unbestimmt. Das heißt weder, dass der Shop funktioniert, noch dass er defekt ist.",
+      "blocked": "Der Website-Schutz hat die Prüfung blockiert. Das ist kein Shop-Ausfall, aber der Shop konnte nicht geprüft werden.",
+      "unsupported": "Die Prüfung unterstützt den Checkout dieser Website noch nicht.",
+      "cancelled": "Die Prüfung wurde abgebrochen. Das ist kein Shop-Ausfall."
+    },
+    "attempt_status": {
+      "running": "läuft",
+      "passed": "bestanden",
+      "failed": "fehlgeschlagen",
+      "inconclusive": "unbestimmt",
+      "blocked": "blockiert",
+      "unsupported": "nicht unterstützt",
+      "cancelled": "abgebrochen",
+      "expired": "unterbrochen"
+    },
+    "step_status": {
+      "passed": "bestanden",
+      "failed": "Fehler",
+      "skipped": "übersprungen",
+      "inconclusive": "unbestimmt",
+      "blocked": "blockiert"
+    },
+    "error": {
+      "site_failure": "Die Website ließ die Prüfung nicht bis zum Zahlungsformular.",
+      "product_unavailable": "Das Testprodukt ist nicht verfügbar.",
+      "worker_capacity": "Auf unserer Seite waren nicht genug Browser frei.",
+      "dns_failure": "Die Shop-Domain wurde nicht gefunden.",
+      "waf_challenge": "Die Website zeigte einen Bot-Schutz.",
+      "selector_changed": "Ein Seitenelement wurde nicht gefunden: Das Theme hat sich eventuell geändert.",
+      "adapter_unsupported": "Der Checkout der Website wird von der Prüfung nicht unterstützt.",
+      "forbidden_mutation": "Die Seite versuchte eine verbotene Aktion; die Prüfung wurde gestoppt.",
+      "blocked_external_origin": "Die Seite rief eine Adresse auf, die die Prüfung nicht erlaubt.",
+      "infra_timeout": "Die Prüfung lief wegen eines Fehlers auf unserer Seite in eine Zeitüberschreitung.",
+      "lease_expired": "Der Browser reagierte nicht mehr; der Versuch wurde abgebrochen.",
+      "cancelled_by_user": "Von einem Benutzer abgebrochen."
+    },
+    "run": {
+      "title": "Prüfung {time}",
+      "scheduled": "Geplant",
+      "started": "Gestartet",
+      "finished": "Beendet",
+      "cancel": "Prüfung abbrechen",
+      "cancel_confirm": "Abbrechen",
+      "cancel_warning": "Die Prüfung wird gestoppt. Ein Abbruch zählt nicht als Shop-Ausfall.",
+      "no_attempts": "Noch keine Versuche.",
+      "attempt": "Versuch {n}",
+      "diagnostics": "Technische Details ({n})"
+    }
   }
 }

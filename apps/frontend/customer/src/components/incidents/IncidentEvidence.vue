@@ -127,6 +127,7 @@ async function showScreenshot(): Promise<void> {
           {{ $t('incident.evidence.show_screenshot') }}
         </button>
         <span class="text-[13px] text-text-muted">{{ $t('incident.evidence.screenshot_note') }}</span>
+        <RouterLink :to="{ name: 'check-run', params: { id: latestRunId } }" class="text-sm text-primary hover:underline">{{ $t('incident.evidence.open_run') }}</RouterLink>
       </div>
       <p v-if="screenshotState === 'none'" class="text-sm text-text-muted">{{ $t('incident.evidence.no_screenshot') }}</p>
       <ErrorNotice v-if="screenshotError" :error="screenshotError" />
