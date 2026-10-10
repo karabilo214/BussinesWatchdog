@@ -56,9 +56,15 @@ Test-mode payments created by the owner in the Stripe Dashboard: a 5.00 EUR card
 - Order meta also has `_stripe_charge_captured = yes`, `_stripe_fee`, `_stripe_net` (fees stay out of the money comparison, spec §12).
 - The spike created one test payment of 10.00 EUR with a 3.00 EUR refund in the owner's Stripe test account.
 
+## Verified-metadata matching (spec §13 rule 2, Step 67)
+
+- The adapter takes exactly two values from Stripe metadata: `order_id` (as `provider_order_ref`, `[A-Za-z0-9_-]{1,255}`) and the origin of `site_url` (`provider_site_origin`, scheme + host + port, lower-case). They are optional fields of `payment.snapshot` (event schema extended) and are kept in `payments.metadata`. Customer email/name in the same metadata are never read.
+- Rule order: the exact reference first; only when **no** order of the store has the reference, metadata may link: the order whose store id equals `provider_order_ref`, same mode and currency, and only if the store's domain is **confirmed** and its origin equals `provider_site_origin`. Several candidates or an unconfirmed domain link nothing. Strategy `verified_metadata`, evidence `verified_metadata_v1` with the order ref and origin. After a capture is linked, the provider refunds of that payment are tried as well.
+- Matching is retried when an order arrives after its payment (order snapshot), right after a store domain is confirmed, and in the nightly sweep for every unlinked provider capture.
+- Verified on real data: the payment created by the WooCommerce Stripe Gateway in spike part 3 (metadata `order_id = 12`, `site_url = https://shop-latest.example.test`) linked by metadata to order 12 that had no transaction reference; its refund linked by `_stripe_refund_id`; reconciliation ok for capture and refund.
+
 ## Still open
 
-- `verified_metadata` matching (see above).
 - A full chain on one machine (plugin events → backend → Stripe sync → link) was not run in one go; each link is verified separately (plugin snapshot fields, backend matcher with charge references, real Stripe sync).
 
 ## Not done

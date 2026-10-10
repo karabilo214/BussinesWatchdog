@@ -285,6 +285,22 @@
             "store_reported",
             "independent_provider"
           ]
+        },
+        "provider_order_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255,
+          "description": "Store order id the provider recorded for this payment (e.g. Stripe metadata order_id). Independent providers only; a hint for verified_metadata matching, never customer data."
+        },
+        "provider_site_origin": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255,
+          "description": "Origin (scheme://host[:port]) of the store site the provider recorded (e.g. Stripe metadata site_url)."
         }
       }
     },

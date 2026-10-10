@@ -3,6 +3,7 @@
 namespace App\Support\Providers\Stripe;
 
 use App\Models\Integration;
+use App\Support\Payments\StoreOrigin;
 
 /**
  * Stripe objects → normalized event bodies (without event id and timestamps). Payment status comes from the
@@ -136,8 +137,31 @@ class StripeEventMapper
                 'currency_exponent' => $exponent,
                 'status' => $status,
                 'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+                'provider_order_ref' => $this->orderRef($object),
+                'provider_site_origin' => $this->siteOrigin($object),
             ],
         ];
+    }
+
+    /**
+     * Only the store's order id and site origin are taken from metadata (written by the WooCommerce Stripe Gateway);
+     * customer email and name in the same metadata are never read (ADR 0020).
+     *
+     * @param  array<string, mixed>  $object
+     */
+    private function orderRef(array $object): ?string
+    {
+        $value = $object['metadata']['order_id'] ?? null;
+
+        return is_string($value) && preg_match('/^[A-Za-z0-9_-]{1,255}$/', $value) === 1 ? $value : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $object
+     */
+    private function siteOrigin(array $object): ?string
+    {
+        return StoreOrigin::of($object['metadata']['site_url'] ?? null);
     }
 
     /**

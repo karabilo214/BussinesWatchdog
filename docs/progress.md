@@ -1470,3 +1470,12 @@ Status: done
 - Backend test for an order that references the charge id (as the gateway does). Backend: SQLite 335 + 4 skipped, PostgreSQL 18 339 passed.
 - Open: `verified_metadata` matching by `order_id` + `site_url`; one-run full chain (plugin → backend → Stripe).
 
+### Step 67: Verified-Metadata Matching (ADR 0020)
+
+Status: complete
+
+- `payment.snapshot` gains optional `provider_order_ref` and `provider_site_origin` (event schema in `contracts/`, `spec/contracts/` and the backend copy); the Stripe adapter fills them from metadata `order_id` and the origin of `site_url` only.
+- Matcher rule 2: when no order has the exact reference, link the order named by `provider_order_ref` if the store domain is confirmed and equals `provider_site_origin` (same mode and currency, exactly one order). Retried when an order arrives after its payment, after domain confirmation and in the nightly sweep; provider refunds of a newly linked payment are tried right away.
+- Tests: 4 new end-to-end tests (metadata link only on the confirmed domain, other site / exact reference wins, late order via a real order snapshot, metadata kept without customer data). Backend: SQLite 338 + 4 skipped, PostgreSQL 18 342 passed.
+- Real check: the gateway-created Stripe payment linked to order 12 by metadata, its refund by the refund id, reconciliation ok; temporary store removed.
+

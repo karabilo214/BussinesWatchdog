@@ -156,6 +156,67 @@ class StripeIntegrationTest extends TestCase
         $this->assertSame(1000, (int) PaymentAllocation::query()->where('order_id', $order->id)->value('amount_minor'));
     }
 
+    public function test_gateway_metadata_links_an_order_only_on_the_confirmed_store_domain(): void
+    {
+        $order = $this->order(null, 1500, 'wc-41');
+        $this->stripe['payment_intents'][] = [...$this->intent('pi_md_1', 'succeeded', 'ch_md_1'), 'metadata' => ['order_id' => 'wc-41', 'site_url' => 'https://SHOP.example.test/', 'customer_email' => 'buyer@example.test']];
+        $this->stripe['charges'][] = $this->charge('ch_md_1', 'pi_md_1', 'succeeded', true, 1500);
+        $integration = $this->connected();
+
+        app(StripeSync::class)->run($integration);
+        $this->drain();
+        $this->assertFalse(PaymentAllocation::query()->exists(), 'an unconfirmed domain must not be trusted');
+        $payment = Payment::query()->where('external_id', 'pi_md_1')->firstOrFail();
+        $this->assertSame(['provider_order_ref' => 'wc-41', 'provider_site_origin' => 'https://shop.example.test'], $payment->metadata);
+        $this->assertStringNotContainsString('buyer@example.test', json_encode(\App\Models\EventInbox::query()->pluck('payload'), JSON_THROW_ON_ERROR));
+
+        $this->store->forceFill(['verified_at' => now()])->save();
+        app(\App\Support\Reconciliation\NightlyReconciliationSweep::class)->run();
+
+        $allocation = PaymentAllocation::query()->where('order_id', $order->id)->firstOrFail();
+        $this->assertSame([PaymentAllocation::STRATEGY_VERIFIED_METADATA, 1500], [$allocation->strategy, (int) $allocation->amount_minor]);
+        $this->assertSame('verified_metadata_v1', $allocation->evidence['matcher']);
+    }
+
+    public function test_metadata_from_another_site_or_an_existing_reference_wins_over_metadata(): void
+    {
+        $this->store->forceFill(['verified_at' => now()])->save();
+        $byReference = $this->order('pi_both', 900);
+        $byMetadata = $this->order(null, 900, 'wc-77');
+        $this->stripe['payment_intents'][] = [...$this->intent('pi_both', 'succeeded', 'ch_both'), 'metadata' => ['order_id' => 'wc-77', 'site_url' => 'https://shop.example.test']];
+        $this->stripe['charges'][] = $this->charge('ch_both', 'pi_both', 'succeeded', true, 900);
+        $this->stripe['payment_intents'][] = [...$this->intent('pi_other_site', 'succeeded', 'ch_other_site'), 'metadata' => ['order_id' => 'wc-77', 'site_url' => 'https://evil.example.test']];
+        $this->stripe['charges'][] = $this->charge('ch_other_site', 'pi_other_site', 'succeeded', true, 900);
+
+        app(StripeSync::class)->run($this->connected());
+        $this->drain();
+
+        $this->assertSame([PaymentAllocation::STRATEGY_EXACT_REFERENCE], PaymentAllocation::query()->where('order_id', $byReference->id)->pluck('strategy')->all());
+        $this->assertFalse(PaymentAllocation::query()->where('order_id', $byMetadata->id)->exists());
+        $this->assertFalse(PaymentAllocation::query()->where('capture_transaction_id', FinancialTransaction::query()->where('external_operation_id', 'ch_other_site')->value('id'))->exists());
+    }
+
+    public function test_an_order_that_arrives_after_its_payment_is_linked_when_its_snapshot_is_processed(): void
+    {
+        $this->stripe['payment_intents'][] = $this->intent('pi_late', 'succeeded', 'ch_late');
+        $this->stripe['charges'][] = $this->charge('ch_late', 'pi_late', 'succeeded', true, 2500);
+        app(StripeSync::class)->run($this->connected());
+        $this->drain();
+        $this->assertFalse(PaymentAllocation::query()->exists());
+
+        app(\App\Support\Ingest\EventIngestor::class)->ingest($this->woo, [[
+            'schema_version' => '1.0', 'event_id' => (string) Str::uuid(), 'type' => 'order.snapshot', 'aggregate_type' => 'order', 'aggregate_id' => 'wc-late',
+            'aggregate_revision' => 1, 'occurred_at' => now()->toJSON(), 'observed_at' => now()->toJSON(), 'is_synthetic' => false,
+            'data' => ['status' => 'processing', 'display_number' => '#LATE', 'currency' => 'EUR', 'currency_exponent' => 2, 'total_minor' => '2500', 'gateway' => 'stripe',
+                'transaction_ref' => 'ch_late', 'payment_expected' => true, 'paid_marked_at' => now()->toJSON(), 'source_created_at' => now()->toJSON(),
+                'source_updated_at' => now()->toJSON(), 'mode' => 'test', 'financial_support' => 'supported'],
+        ]], null, (string) Str::uuid());
+        $this->drain();
+
+        $order = Order::query()->where('external_id', 'wc-late')->firstOrFail();
+        $this->assertSame(PaymentAllocation::STRATEGY_EXACT_REFERENCE, PaymentAllocation::query()->where('order_id', $order->id)->value('strategy'));
+    }
+
     public function test_resync_emits_nothing_new_and_a_refund_moves_from_pending_to_succeeded(): void
     {
         $order = $this->order('pi_2', 5000);
@@ -282,14 +343,14 @@ class StripeIntegrationTest extends TestCase
         }
     }
 
-    private function order(string $transactionRef, int $total): Order
+    private function order(?string $transactionRef, int $total, ?string $externalId = null): Order
     {
         return Order::query()->create([
-            'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'integration_id' => $this->woo->id, 'external_id' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'integration_id' => $this->woo->id, 'external_id' => $externalId ?? (string) Str::uuid(),
             'display_number' => '#'.random_int(1000, 9999), 'source_revision' => 1, 'status' => 'processing', 'mode' => 'test', 'currency' => 'EUR',
             'currency_exponent' => 2, 'total_minor' => $total, 'payment_expected' => true, 'paid_marked_at' => now()->subHours(2), 'transaction_ref' => $transactionRef,
             'gateway' => 'stripe', 'financial_support' => 'supported', 'is_synthetic' => false, 'source_created_at' => now()->subHours(2), 'source_updated_at' => now()->subHours(2),
-            'current_payload_hash' => hash('sha256', $transactionRef), 'metadata' => [], 'created_at' => now(), 'updated_at' => now(),
+            'current_payload_hash' => hash('sha256', $transactionRef ?? $externalId ?? 'order'), 'metadata' => [], 'created_at' => now(), 'updated_at' => now(),
         ]);
     }
 

@@ -104,7 +104,10 @@ class PaymentSnapshotProjector
             'source_authority' => $data['source_authority'],
             'source_updated_at' => $data['source_updated_at'],
             'current_payload_hash' => $payloadHash,
-            'metadata' => [],
+            'metadata' => array_filter([
+                'provider_order_ref' => ProjectionValueNormalizer::nullableString($data['provider_order_ref'] ?? null),
+                'provider_site_origin' => ProjectionValueNormalizer::nullableString($data['provider_site_origin'] ?? null),
+            ], fn (mixed $value): bool => $value !== null),
             'created_at' => $now,
             'updated_at' => $now,
         ];

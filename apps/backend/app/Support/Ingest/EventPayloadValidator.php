@@ -123,8 +123,10 @@ class EventPayloadValidator
                 && $this->isOptionalString($data, 'provider_ref', nullable: true)
                 && $this->isRequiredEnum($data, 'status', ['requested', 'recorded', 'cancelled', 'deleted']),
             EventInbox::EVENT_PAYMENT_SNAPSHOT => $event['aggregate_type'] === EventInbox::AGGREGATE_PAYMENT
-                && $this->hasOnlyKeys($data, ['intent_ref', 'charge_ref', 'mode', 'currency', 'currency_exponent', 'status', 'source_updated_at', 'source_authority'])
+                && $this->hasOnlyKeys($data, ['intent_ref', 'charge_ref', 'mode', 'currency', 'currency_exponent', 'status', 'source_updated_at', 'source_authority', 'provider_order_ref', 'provider_site_origin'])
                 && $this->isOptionalString($data, 'intent_ref', nullable: true)
+                && $this->isOptionalString($data, 'provider_order_ref', nullable: true)
+                && $this->isOptionalString($data, 'provider_site_origin', nullable: true)
                 && $this->isOptionalString($data, 'charge_ref', nullable: true)
                 && $this->isRequiredEnum($data, 'mode', ['live', 'test'])
                 && $this->isCurrencyData($data)

@@ -8,6 +8,7 @@ use App\Models\Store;
 use App\Models\StoreVerification;
 use App\Support\Network\DnsClient;
 use App\Support\Network\SafeHttpFetcher;
+use App\Support\Payments\ExactReferenceMatcher;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,6 +24,7 @@ class StoreVerificationService
     public function __construct(
         private readonly DnsClient $dns,
         private readonly SafeHttpFetcher $fetcher,
+        private readonly ExactReferenceMatcher $matcher,
     ) {}
 
     public function start(Store $store, string $method): StoreVerification
@@ -129,7 +131,13 @@ class StoreVerificationService
             return $verification;
         }
 
-        return $this->markVerified($verification, $store, $now);
+        $verified = $this->markVerified($verification, $store, $now);
+
+        if ($verified->status === StoreVerification::STATUS_VERIFIED) {
+            $this->matcher->matchUnlinkedCaptures($store->tenant_id, $store->id);
+        }
+
+        return $verified;
     }
 
     private function checkDns(StoreVerification $verification, Store $store): ?string

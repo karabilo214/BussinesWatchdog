@@ -5,6 +5,7 @@ namespace App\Support\Reconciliation;
 use App\Models\ReconciliationDirtySubject;
 use App\Models\Store;
 use App\Models\Tenant;
+use App\Support\Payments\ExactReferenceMatcher;
 use App\Support\Scheduling\ScheduledWindowGuard;
 use Illuminate\Support\Carbon;
 
@@ -19,6 +20,7 @@ class NightlyReconciliationSweep
     public function __construct(
         private readonly ScheduledWindowGuard $guard,
         private readonly StoreReconciliationRequeue $requeue,
+        private readonly ExactReferenceMatcher $matcher,
     ) {}
 
     /**
@@ -48,6 +50,7 @@ class NightlyReconciliationSweep
                 foreach ($chunk as $store) {
                     $stores++;
 
+                    $this->matcher->matchUnlinkedCaptures($store->tenant_id, $store->id);
                     $ordersMarked += $this->requeue->requeue($store->tenant_id, $store->id, ReconciliationDirtySubject::REASON_NIGHTLY_SWEEP);
                 }
             });
