@@ -67,3 +67,10 @@ Not verified: WooCommerce Stripe gateway versions, themes, multisite, PHP 7.4 wi
 ## Backend
 
 - PHP 8.4 (Homebrew `php@8.4` locally), Laravel 13, PostgreSQL 18 (local Docker), SQLite in-memory for the fast suite.
+
+## WooCommerce Stripe Gateway (ADR 0020, spike part 3)
+
+| Gateway | WooCommerce | Order transaction id | PaymentIntent | Refund id on WooCommerce refund | Stripe metadata |
+|---|---|---|---|---|---|
+| 11.0.1 (test mode, classic checkout) | 11.2.0 HPOS | charge `ch_…` | order meta `_stripe_intent_id` | `_stripe_refund_id` (`re_…`) | `order_id`, `order_key`, `site_url`, `signature`, … plus customer email/name (not stored by Watchdog) |
+

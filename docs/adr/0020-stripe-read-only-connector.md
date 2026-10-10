@@ -46,12 +46,20 @@ Test-mode payments created by the owner in the Stripe Dashboard: a 5.00 EUR card
 - Reconciliation of the order: `MONEY_CAPTURE_AMOUNT` ok (G = C = 500), `MONEY_REFUND_MISSING` ok (RW = RP = 200).
 - Metadata of Dashboard-created objects is empty, as expected; gateway metadata can only be seen with WooCommerce orders.
 
-## Still needs the compatibility spike, part 3 (WooCommerce Stripe Gateway)
+## Spike, part 3 — WooCommerce Stripe Gateway (2026-10-10)
 
-- Which id the gateway stores as the order transaction id (PaymentIntent or charge) in the tested gateway versions — the matcher accepts both, but this must be confirmed.
-- Order metadata written by the gateway (order id, site) for the second matching rule (`verified_metadata`), not implemented yet.
-- Whether a restricted key can read `/v1/account`; without it the account id stays unverified (shown as such).
-- Real field shapes for authorize/capture/refund/failure in the pinned API version; minor units of HUF/ISK/TWD/UGX.
+`plugins/woocommerce-watchdog/tests/matrix/stripe-gateway-spike.sh`: WordPress 7.1 + WooCommerce 11.2 (HPOS) from the matrix, the official WooCommerce Stripe Gateway **11.0.1** in test mode with the owner's test keys (read from the git-ignored `apps/backend/.env`, passed only to the test container), a classic-checkout order paid with the Stripe test payment method `pm_card_visa`, then a partial refund through WooCommerce (`refund_payment = true`).
+
+- **Order transaction id = the charge id** (`ch_…`), not the PaymentIntent; the PaymentIntent id is in order meta `_stripe_intent_id`. The exact-reference matcher accepts the charge through the payment's `latest_charge` — covered by a backend test with a charge reference.
+- **Refund**: `_stripe_refund_id` (`re_…`) on the WooCommerce refund, `refunded_payment = true`. The Watchdog plugin did not send `provider_ref` at all, so automatic refund linking could never work for real refunds — fixed: the plugin now sends `_stripe_refund_id` as `provider_ref` (only that confirmed key).
+- **Stripe metadata written by the gateway** on the PaymentIntent and the charge: `order_id`, `order_key`, `site_url`, `signature`, `payment_type`, … plus `customer_email` and `customer_name`. The adapter keeps no metadata, so no customer data reaches Watchdog. The second matching rule (`verified_metadata`: `order_id` + `site_url` equal to the store origin) can be built on `order_id`/`site_url` only — not implemented yet.
+- Order meta also has `_stripe_charge_captured = yes`, `_stripe_fee`, `_stripe_net` (fees stay out of the money comparison, spec §12).
+- The spike created one test payment of 10.00 EUR with a 3.00 EUR refund in the owner's Stripe test account.
+
+## Still open
+
+- `verified_metadata` matching (see above).
+- A full chain on one machine (plugin events → backend → Stripe sync → link) was not run in one go; each link is verified separately (plugin snapshot fields, backend matcher with charge references, real Stripe sync).
 
 ## Not done
 

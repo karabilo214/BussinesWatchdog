@@ -7,6 +7,12 @@ use BusinessWatchdog\WooCommerce\Money\MinorUnits;
 
 final class RefundSnapshotBuilder
 {
+    /**
+     * Refund meta where a payment gateway stores the provider's refund id. Only keys confirmed against a real
+     * gateway are listed: WooCommerce Stripe Gateway 11.0.1 writes `_stripe_refund_id` (ADR 0020, spike part 3).
+     */
+    private const PROVIDER_REFUND_ID_META = ['_stripe_refund_id'];
+
     public static function build(\WC_Order_Refund $refund, \WC_Order $parent): array
     {
         $currency = strtoupper((string) ($refund->get_currency('edit') ?: $parent->get_currency('edit')));
@@ -28,8 +34,22 @@ final class RefundSnapshotBuilder
             'currency_exponent' => $exponent,
             'amount_minor' => $amount,
             'external_required' => method_exists($refund, 'get_refunded_payment') ? (bool) $refund->get_refunded_payment('edit') : null,
+            'provider_ref' => self::providerRef($refund),
             'status' => 'recorded',
         ];
+    }
+
+    private static function providerRef(\WC_Order_Refund $refund)
+    {
+        foreach (self::PROVIDER_REFUND_ID_META as $key) {
+            $value = trim((string) $refund->get_meta($key, true, 'edit'));
+
+            if ($value !== '') {
+                return substr($value, 0, 255);
+            }
+        }
+
+        return null;
     }
 
     private static function absoluteDecimal($value)

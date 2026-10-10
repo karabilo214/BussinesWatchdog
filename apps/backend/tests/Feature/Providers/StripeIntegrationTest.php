@@ -144,6 +144,18 @@ class StripeIntegrationTest extends TestCase
         $this->assertNotContains('unknown', $statuses);
     }
 
+    public function test_an_order_referencing_the_charge_like_the_woocommerce_stripe_gateway_is_linked_too(): void
+    {
+        $order = $this->order('ch_gw_1', 1000);
+        $this->stripe['payment_intents'][] = $this->intent('pi_gw_1', 'succeeded', 'ch_gw_1');
+        $this->stripe['charges'][] = $this->charge('ch_gw_1', 'pi_gw_1', 'succeeded', true, 1000);
+
+        app(StripeSync::class)->run($this->connected());
+        $this->drain();
+
+        $this->assertSame(1000, (int) PaymentAllocation::query()->where('order_id', $order->id)->value('amount_minor'));
+    }
+
     public function test_resync_emits_nothing_new_and_a_refund_moves_from_pending_to_succeeded(): void
     {
         $order = $this->order('pi_2', 5000);

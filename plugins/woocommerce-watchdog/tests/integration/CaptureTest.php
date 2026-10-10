@@ -87,6 +87,27 @@ bw_test('refunds are captured with their parent order id', function () {
     bw_assert($data['external_required'] === false && $data['status'] === 'recorded', 'refund flags wrong');
 });
 
+bw_test('the provider refund id written by the Stripe gateway is sent as provider_ref', function () {
+    $order = bw_make_order();
+    $refund = wc_create_refund(['order_id' => $order->get_id(), 'amount' => '30.00', 'refund_payment' => false]);
+    $refund->update_meta_data('_stripe_refund_id', 're_spike_123');
+    $refund->save();
+    OrderCapture::flush();
+
+    $events = bw_events(OrderCapture::refundKey($refund->get_id()));
+    $data = end($events)['data'];
+    bw_assert($data['provider_ref'] === 're_spike_123', 'provider_ref missing: ' . json_encode($data['provider_ref'] ?? null));
+});
+
+bw_test('a refund without a gateway refund id has no provider_ref', function () {
+    $order = bw_make_order();
+    $refund = wc_create_refund(['order_id' => $order->get_id(), 'amount' => '10.00', 'refund_payment' => false]);
+    OrderCapture::flush();
+
+    $events = bw_events(OrderCapture::refundKey($refund->get_id()));
+    bw_assert(end($events)['data']['provider_ref'] === null, 'unexpected provider_ref');
+});
+
 bw_test('deleting a refund emits a deleted refund snapshot', function () {
     $order = bw_make_order();
     $refund = wc_create_refund(['order_id' => $order->get_id(), 'amount' => '20.00', 'refund_payment' => false]);

@@ -1461,3 +1461,12 @@ Status: done; only the WooCommerce Stripe Gateway part remains
 - Owner's test-mode data: captured payment with a partial refund, two declined payments, an uncaptured authorization, an invoice marked paid. The connector produced captured / failed / failed / authorized / cancelled payments, one capture (500) and one refund (200); no capture for failures, the authorization or the invoice.
 - Exact-reference matching linked the capture to the test order and the refund to the store refund; reconciliation gave capture ok (500 = 500) and refund ok (200 = 200). Re-sync emitted nothing. Temporary data removed. Details in ADR 0020.
 
+### Stripe Compatibility Spike — Part 3 (WooCommerce Stripe Gateway)
+
+Status: done
+
+- `tests/matrix/stripe-gateway-spike.sh`: WooCommerce 11.2 + Stripe Gateway 11.0.1 in test mode, classic checkout with `pm_card_visa`, partial refund through WooCommerce. Order transaction id is the charge id; refund id is in `_stripe_refund_id`; gateway metadata includes `order_id` and `site_url` (and customer email/name, which Watchdog never stores).
+- Fixed: the Watchdog plugin now sends the refund's `_stripe_refund_id` as `provider_ref` (it sent none, so refunds could never be linked automatically). Plugin tests: floor and latest 44/44; PHP 7.4 lint ok.
+- Backend test for an order that references the charge id (as the gateway does). Backend: SQLite 335 + 4 skipped, PostgreSQL 18 339 passed.
+- Open: `verified_metadata` matching by `order_id` + `site_url`; one-run full chain (plugin → backend → Stripe).
+
