@@ -10,6 +10,7 @@ use App\Http\Requests\Notifications\CreateNotificationChannelRequest;
 use App\Http\Requests\Notifications\UpdateNotificationChannelRequest;
 use App\Http\Requests\Notifications\VerifyNotificationChannelRequest;
 use App\Models\NotificationChannel;
+use App\Models\NotificationChannelVerification;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Auth\TenantRoles;
@@ -67,7 +68,7 @@ class NotificationChannelController extends Controller
         return response()->json(array_merge($this->channelDto->toArray($channel, $tenant), [
             'verification' => [
                 'method' => 'email_code',
-                'expires_in_seconds' => 15 * 60,
+                'expires_in_seconds' => NotificationChannelVerification::TTL_MINUTES * 60,
             ],
         ]), 201);
     }
@@ -106,6 +107,24 @@ class NotificationChannelController extends Controller
         }
 
         return response()->json($this->channelDto->toArray($channel, $tenant));
+    }
+
+    public function resendVerification(Request $request, NotificationChannel $notificationChannel, TenantContext $tenantContext): JsonResponse
+    {
+        $tenant = $this->tenant($tenantContext, 'resend notification channel verification');
+
+        abort_unless($notificationChannel->tenant_id === $tenant->id, 404);
+
+        try {
+            $this->service->resendVerification($notificationChannel, $tenant, $request->user()?->id);
+        } catch (NotificationChannelRejected $exception) {
+            return $this->rejected($exception);
+        }
+
+        return response()->json([
+            'method' => 'email_code',
+            'expires_in_seconds' => NotificationChannelVerification::TTL_MINUTES * 60,
+        ], 202);
     }
 
     public function test(NotificationChannel $notificationChannel, TenantContext $tenantContext): JsonResponse

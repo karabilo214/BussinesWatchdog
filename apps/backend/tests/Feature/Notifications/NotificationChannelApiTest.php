@@ -107,6 +107,47 @@ class NotificationChannelApiTest extends TestCase
             ->assertJsonPath('code', 'verification_code_expired');
     }
 
+    public function test_a_new_code_can_be_requested_once_a_minute_to_the_saved_address(): void
+    {
+        $context = $this->context('owner');
+        $channelId = $this->createChannel($context)->json('id');
+        $first = $this->sentCode('alerts@example.test');
+
+        $this->asMember($context)->postJson("/api/v1/notification-channels/{$channelId}/verification-code")
+            ->assertStatus(429)
+            ->assertJsonPath('code', 'verification_resend_rate_limited');
+
+        $this->travel(61)->seconds();
+
+        $this->asMember($context)->postJson("/api/v1/notification-channels/{$channelId}/verification-code")
+            ->assertStatus(202)
+            ->assertJsonPath('method', 'email_code')
+            ->assertJsonPath('expires_in_seconds', 900);
+
+        Mail::assertSent(NotificationMessageMail::class, 2);
+        $second = $this->sentCode('alerts@example.test');
+
+        if ($first !== $second) {
+            $this->asMember($context)->postJson("/api/v1/notification-channels/{$channelId}/verify", ['code' => $first])
+                ->assertStatus(422);
+        }
+
+        $this->asMember($context)->postJson("/api/v1/notification-channels/{$channelId}/verify", ['code' => $second])
+            ->assertOk()
+            ->assertJsonPath('enabled', true);
+
+        $this->travel(61)->seconds();
+
+        $this->asMember($context)->postJson("/api/v1/notification-channels/{$channelId}/verification-code")
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'channel_already_verified');
+
+        $operator = $this->context('operator', $context['tenant']);
+
+        $this->asMember($operator)->postJson("/api/v1/notification-channels/{$channelId}/verification-code")
+            ->assertForbidden();
+    }
+
     public function test_an_unverified_channel_cannot_be_enabled(): void
     {
         $context = $this->context('owner');

@@ -8,6 +8,7 @@ class NotificationChannelRejected extends RuntimeException
 {
     private const STATUS_BY_REASON = [
         'test_rate_limited' => 429,
+        'verification_resend_rate_limited' => 429,
         'verification_attempts_exceeded' => 429,
         'channel_already_verified' => 409,
     ];

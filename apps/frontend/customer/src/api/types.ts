@@ -428,3 +428,42 @@ export interface CheckAttempt {
 export interface CheckRunDetail extends CheckRunSummary {
   attempts: CheckAttempt[];
 }
+
+export interface NotificationPreferences {
+  min_severity: IncidentSeverity;
+  locale: Locale;
+  timezone: string;
+  quiet_hours: { start: string; end: string } | null;
+  critical_bypasses_quiet_hours: boolean;
+  notify_recovery: boolean;
+  store_ids: string[] | null;
+}
+
+export interface NotificationChannel {
+  id: string;
+  kind: 'email' | 'telegram';
+  label: string;
+  destination_masked: string;
+  enabled: boolean;
+  verified_at: string | null;
+  preferences: Partial<NotificationPreferences>;
+  effective_preferences: NotificationPreferences;
+  health: { status?: 'ok' | 'failing'; last_success_at?: string; last_error_code?: string; last_dead_letter_at?: string };
+  created_at: string;
+}
+
+export type DeliveryStatus = 'queued' | 'sending' | 'sent' | 'uncertain' | 'failed' | 'dead_letter' | 'suppressed';
+
+export interface NotificationDelivery {
+  id: string;
+  incident_id: string | null;
+  channel_id: string;
+  notification_kind: 'incident_opened' | 'incident_reopened' | 'incident_recovered' | 'test';
+  status: DeliveryStatus;
+  delivery_uncertain: boolean;
+  attempts: number;
+  next_attempt_at: string | null;
+  sent_at: string | null;
+  error_code: string | null;
+  created_at: string;
+}

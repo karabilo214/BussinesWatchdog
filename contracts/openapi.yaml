@@ -1160,6 +1160,7 @@ paths:
         - {UserSession: []}
       description: Telegram is rejected until P1.
       parameters:
+        - {$ref: "#/components/parameters/IdempotencyKey"}
         - {$ref: "#/components/parameters/CsrfToken"}
       requestBody:
         required: true
@@ -1260,6 +1261,35 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/notification-channels/{channel_id}/verification-code:
+    post:
+      tags: [Notifications]
+      operationId: resendNotificationChannelCode
+      security:
+        - {UserSession: []}
+      description: Mails a new code to the address saved on the unverified channel; the previous code stops working. Once per minute.
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "202":
+          description: Code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [method, expires_in_seconds]
+                properties:
+                  method: {const: email_code}
+                  expires_in_seconds: {type: integer}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
   /api/v1/notification-channels/{channel_id}/test:
     post:
@@ -2420,6 +2450,8 @@ components:
         next_attempt_at: {type: [string, "null"], format: date-time}
         sent_at: {type: [string, "null"], format: date-time}
         error_code: {type: [string, "null"]}
+        content: {type: object, description: "Sanitized rendered message (subject, body, locale); no customer data."}
+        created_at: {type: string, format: date-time}
         content: {type: object, description: "Sanitized template input, no PII."}
         created_at: {type: string, format: date-time}
     CheckScenario:

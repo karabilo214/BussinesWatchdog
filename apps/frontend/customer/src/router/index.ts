@@ -22,6 +22,7 @@ export function buildRouter(): Router {
       { path: '/orders/:id', name: 'order', component: () => import('@/views/OrderView.vue'), props: true },
       { path: '/checks', name: 'checks', component: () => import('@/views/ChecksView.vue') },
       { path: '/checks/runs/:id', name: 'check-run', component: () => import('@/views/CheckRunView.vue'), props: true },
+      { path: '/notifications', name: 'notifications', component: () => import('@/views/NotificationsView.vue') },
       { path: '/:pathMatch(.*)*', redirect: { name: 'overview' } },
     ],
   });

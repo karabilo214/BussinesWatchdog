@@ -6,7 +6,26 @@ const base = process.env.BW_APP_URL;
 const email = process.env.BW_SMOKE_EMAIL;
 const password = process.env.BW_SMOKE_PASSWORD;
 const shots = process.env.BW_SMOKE_SCREENSHOTS ?? '/tmp';
+const mailpit = process.env.BW_MAILPIT_URL;
 const steps = [];
+
+/** Texts of the emails Mailpit received for an address, newest first; waits until `until` accepts them. */
+async function mailTexts(address, until, timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const list = await (await fetch(`${mailpit}/api/v1/messages`)).json();
+    const ids = (list.messages ?? []).filter((message) => message.To.some((to) => to.Address === address)).map((message) => message.ID);
+    const texts = await Promise.all(ids.map(async (id) => (await (await fetch(`${mailpit}/api/v1/message/${id}`)).json()).Text));
+
+    if (until(texts)) return texts;
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  throw new Error(`no matching email for ${address}`);
+}
+
 const step = async (name, run) => {
   try {
     await run();
@@ -239,6 +258,48 @@ try {
     await page.getByRole('heading', { name: 'Магазины' }).waitFor();
   });
 
+  await step('an email recipient is added and confirmed with the mailed code', async () => {
+    await page.getByRole('link', { name: 'Уведомления', exact: true }).click();
+    await page.getByRole('heading', { name: 'Уведомления', exact: true }).waitFor();
+    await page.locator('[data-empty]').waitFor();
+    await page.getByRole('button', { name: 'Добавить адрес' }).click();
+    await page.getByLabel('Название').fill('Дежурный');
+    await page.getByLabel('Электронная почта').fill('oncall@smoke.example.test');
+    await page.getByRole('button', { name: 'Отправить код' }).click();
+    const card = page.locator('[data-channel-id]', { hasText: 'Дежурный' });
+    await card.getByText('ждёт подтверждения').waitFor();
+    const [mail] = await mailTexts('oncall@smoke.example.test', (texts) => texts.some((text) => /\b\d{6}\b/.test(text)));
+    const code = /\b(\d{6})\b/.exec(mail)[1];
+    await card.getByLabel('Код из письма').fill(code);
+    await card.getByRole('button', { name: 'Подтвердить' }).click();
+    await card.getByText('получает уведомления').waitFor();
+  });
+
+  await step('a test email is delivered by the worker and logged', async () => {
+    const card = page.locator('[data-channel-id]', { hasText: 'Дежурный' });
+    await card.getByRole('button', { name: 'Отправить тестовое письмо' }).click();
+    await card.getByText('Тестовое письмо поставлено в очередь').waitFor();
+    await mailTexts('oncall@smoke.example.test', (texts) => texts.length >= 2);
+    for (let i = 0; i < 15; i++) {
+      await page.reload();
+      await page.locator('[data-panel="deliveries"]').waitFor();
+      if ((await page.locator('[data-delivery-id]', { hasText: 'доставлено' }).count()) > 0) break;
+      await page.waitForTimeout(1000);
+    }
+    await page.locator('[data-delivery-id]', { hasText: 'Тестовое письмо' }).getByText('доставлено').waitFor();
+  });
+
+  await step('quiet hours are saved for the recipient', async () => {
+    const card = page.locator('[data-channel-id]', { hasText: 'Дежурный' });
+    await card.getByRole('button', { name: 'Настройки' }).click();
+    await card.getByLabel('Не присылать уведомления ночью').check();
+    await card.getByRole('button', { name: 'Сохранить', exact: true }).click();
+    await card.getByText(/тихие часы 22:00–07:00/).waitFor();
+    await page.screenshot({ path: `${shots}/notifications-ru.png`, fullPage: true });
+    await page.getByRole('link', { name: 'Обзор', exact: true }).click();
+    await page.getByRole('heading', { name: 'Магазины' }).waitFor();
+  });
+
   await step('language switch to German', async () => {
     await page.getByRole('combobox').first().selectOption('de');
     await page.getByRole('heading', { name: 'Shops' }).waitFor();
@@ -282,6 +343,14 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     if (overflow) throw new Error('horizontal scroll on mobile');
     await page.screenshot({ path: `${shots}/checks-de-mobile.png`, fullPage: true });
+  });
+
+  await step('notifications page in German at mobile width', async () => {
+    await page.getByRole('link', { name: 'Benachrichtigungen' }).click();
+    await page.getByRole('heading', { name: 'Zustellprotokoll' }).waitFor();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    if (overflow) throw new Error('horizontal scroll on mobile');
+    await page.screenshot({ path: `${shots}/notifications-de-mobile.png`, fullPage: true });
   });
 
   await step('sign out ends the session', async () => {

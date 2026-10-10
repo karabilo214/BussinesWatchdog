@@ -49,6 +49,13 @@ async function leave(): Promise<void> {
           >
             {{ $t('nav.checks') }}
           </RouterLink>
+          <RouterLink
+            :to="{ name: 'notifications' }"
+            class="rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:bg-surface-muted hover:text-text"
+            active-class="bg-primary-soft !text-primary"
+          >
+            {{ $t('nav.notifications') }}
+          </RouterLink>
         </nav>
         <div class="flex items-center gap-3">
           <span class="hidden text-sm text-text-muted sm:inline">{{ session?.user.name }}</span>

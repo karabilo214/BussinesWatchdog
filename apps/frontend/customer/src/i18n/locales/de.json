@@ -8,7 +8,8 @@
     "overview": "Übersicht",
     "incidents": "Vorfälle",
     "reconciliation": "Abgleich",
-    "checks": "Prüfungen"
+    "checks": "Prüfungen",
+    "notifications": "Benachrichtigungen"
   },
   "common": {
     "loading": "Wird geladen…",
@@ -223,7 +224,17 @@
     "url_outside_store_origin": "Die Prüfadressen müssen auf der Shop-Domain liegen.",
     "scenario_exists": "Der Shop hat bereits ein Prüfszenario. Seite neu laden.",
     "check_run_not_active": "Die Prüfung ist bereits beendet.",
-    "store_not_verified": "Bitte zuerst die Shop-Domain bestätigen."
+    "store_not_verified": "Bitte zuerst die Shop-Domain bestätigen.",
+    "channel_not_verified": "Bestätigen Sie die Adresse zuerst mit dem Code aus der E-Mail.",
+    "channel_already_verified": "Die Adresse ist bereits bestätigt.",
+    "verification_code_invalid": "Der Code passt nicht. Prüfen Sie die Ziffern aus der letzten E-Mail.",
+    "verification_code_expired": "Der Code ist abgelaufen. Fordern Sie einen neuen an.",
+    "verification_attempts_exceeded": "Zu viele falsche Versuche. Fordern Sie einen neuen Code an.",
+    "verification_resend_rate_limited": "Einen neuen Code können Sie in einer Minute anfordern.",
+    "test_rate_limited": "Eine Test-E-Mail kann höchstens einmal pro Minute gesendet werden.",
+    "critical_bypass_requires_owner": "Nur der Kontoinhaber kann kritische Benachrichtigungen in Ruhezeiten erlauben.",
+    "store_not_found": "Einer der gewählten Shops wurde nicht gefunden. Seite neu laden.",
+    "channel_kind_not_supported_yet": "Dieser Kanaltyp wird noch nicht unterstützt."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -714,6 +725,107 @@
       "no_attempts": "Noch keine Versuche.",
       "attempt": "Versuch {n}",
       "diagnostics": "Technische Details ({n})"
+    }
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "subtitle": "Wohin Meldungen zu Vorfällen gehen. Jede Adresse wird mit einem Code aus einer E-Mail bestätigt. Telegram folgt später.",
+    "add": "Adresse hinzufügen",
+    "read_only": "Empfänger verwalten Inhaber und Administratoren. Sie sehen das Zustellprotokoll.",
+    "empty": "Noch keine Empfänger – niemand erfährt von Vorfällen, bis Sie eine Adresse hinzufügen.",
+    "new": {
+      "title": "Neuer Empfänger",
+      "label": "Name",
+      "label_placeholder": "Zum Beispiel „Bereitschaft“ oder „Buchhaltung“",
+      "email": "E-Mail",
+      "note": "An die Adresse wird eine E-Mail mit einem sechsstelligen Code gesendet. Benachrichtigungen kommen nach der Bestätigung.",
+      "submit": "Code senden"
+    },
+    "prefs": {
+      "min_severity": "Vorfälle senden",
+      "severity": {
+        "info": "alle, auch Hinweise",
+        "warning": "Warnungen und kritische",
+        "critical": "nur kritische"
+      },
+      "locale": "Sprache der E-Mails",
+      "timezone": "Zeitzone",
+      "quiet_title": "Ruhezeiten",
+      "quiet_enable": "Nachts keine Benachrichtigungen senden",
+      "quiet_from": "Von",
+      "quiet_to": "Bis",
+      "critical_bypass": "Kritische Benachrichtigungen auch in Ruhezeiten senden",
+      "owner_only": "Kann nur der Kontoinhaber aktivieren.",
+      "quiet_note": "Meldungen in Ruhezeiten werden nach deren Ende gesendet.",
+      "notify_recovery": "Melden, wenn ein Problem behoben ist",
+      "stores": "Shops",
+      "all_stores": "alle Shops",
+      "pick_store": "Wählen Sie mindestens einen Shop."
+    },
+    "channel": {
+      "state": {
+        "active": "erhält Benachrichtigungen",
+        "disabled": "deaktiviert",
+        "unverified": "wartet auf Bestätigung",
+        "failing": "E-Mails werden nicht zugestellt"
+      },
+      "summary": "Sendet: {severity}",
+      "quiet": "Ruhezeiten {start}–{end} ({zone})",
+      "failing": "E-Mails an diese Adresse können nicht zugestellt werden (letzter Fehlschlag {time}). Prüfen Sie die Adresse oder senden Sie eine Test-E-Mail.",
+      "last_success": "Zuletzt zugestellte E-Mail: {time}",
+      "code_label": "Code aus der E-Mail",
+      "code_hint": "Der Code gilt 15 Minuten. Keine E-Mail? Spam prüfen oder neuen Code anfordern.",
+      "confirm": "Bestätigen",
+      "resend": "Neuen Code senden",
+      "verified": "Adresse bestätigt, Benachrichtigungen aktiviert.",
+      "code_sent": "Ein neuer Code wurde gesendet.",
+      "enable": "Aktivieren",
+      "disable": "Deaktivieren",
+      "test": "Test-E-Mail senden",
+      "test_queued": "Test-E-Mail eingereiht – prüfen Sie Ihr Postfach und das Protokoll unten.",
+      "settings": "Einstellungen",
+      "change_address": "Adresse ändern",
+      "new_address": "Neue Adresse",
+      "address_note": "Bis die neue Adresse bestätigt ist, gehen keine Benachrichtigungen an diesen Kanal.",
+      "send_code": "Code an die neue Adresse senden"
+    },
+    "log": {
+      "title": "Zustellprotokoll",
+      "subtitle": "Jede Benachrichtigung und was mit ihr geschah. Ohne E-Mail-Inhalte.",
+      "channel": "Empfänger",
+      "status": "Zustand",
+      "empty": "Noch keine Benachrichtigungen.",
+      "open_incident": "Vorfall",
+      "attempts": "Versuche: {n}",
+      "next_attempt": "nächster Versuch {time}",
+      "uncertain_note": "Der Mailserver hat nicht rechtzeitig geantwortet: Die E-Mail wurde eventuell gesendet, eventuell nicht. Sie wird nicht erneut gesendet, um Duplikate zu vermeiden.",
+      "kind": {
+        "incident_opened": "Neuer Vorfall",
+        "incident_reopened": "Vorfall wieder geöffnet",
+        "incident_recovered": "Problem behoben",
+        "test": "Test-E-Mail"
+      },
+      "state": {
+        "queued": "in Warteschlange",
+        "sending": "wird gesendet",
+        "sent": "zugestellt",
+        "uncertain": "Zustellung unklar",
+        "failed": "Fehler, neuer Versuch folgt",
+        "dead_letter": "nicht zugestellt",
+        "suppressed": "nicht gesendet"
+      },
+      "error": {
+        "email_transport_error": "Der Mailserver hat die E-Mail abgelehnt.",
+        "email_transport_timeout": "Der Mailserver hat nicht rechtzeitig geantwortet.",
+        "incident_suppressed": "Benachrichtigungen zum Vorfall waren stummgeschaltet.",
+        "channel_unavailable": "Der Empfänger ist deaktiviert oder entfernt.",
+        "channel_kind_unsupported": "Dieser Kanaltyp wird noch nicht unterstützt.",
+        "destination_unreadable": "Die Empfängeradresse konnte nicht gelesen werden.",
+        "worker_lost_during_send": "Der Versand wurde auf unserer Seite unterbrochen.",
+        "retry_window_exhausted": "Wiederholungen über einen Tag waren erfolglos.",
+        "notification_incident_not_found": "Der Vorfall wurde nicht gefunden.",
+        "notification_kind_invalid": "Unbekannter Benachrichtigungstyp."
+      }
     }
   }
 }

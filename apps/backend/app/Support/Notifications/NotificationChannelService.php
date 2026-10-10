@@ -187,6 +187,42 @@ class NotificationChannelService
         return $result;
     }
 
+    public const RESEND_INTERVAL_SECONDS = 60;
+
+    /**
+     * New code to the address already saved on the channel (the previous code stops working).
+     */
+    public function resendVerification(NotificationChannel $channel, Tenant $tenant, ?string $actorId): NotificationChannel
+    {
+        [$locked, $code] = DB::transaction(function () use ($channel, $actorId): array {
+            /** @var NotificationChannel $locked */
+            $locked = NotificationChannel::query()->whereKey($channel->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->verified_at !== null) {
+                throw new NotificationChannelRejected('channel_already_verified');
+            }
+
+            $recent = NotificationChannelVerification::query()
+                ->where('tenant_id', $locked->tenant_id)
+                ->where('channel_id', $locked->id)
+                ->where('created_at', '>', Carbon::now()->subSeconds(self::RESEND_INTERVAL_SECONDS))
+                ->exists();
+
+            if ($recent) {
+                throw new NotificationChannelRejected('verification_resend_rate_limited');
+            }
+
+            $code = $this->issueVerification($locked);
+            $this->audit($locked, $actorId, AuditLog::ACTION_NOTIFICATION_CHANNEL_UPDATED, ['verification' => 'code_resent']);
+
+            return [$locked, $code];
+        });
+
+        $this->sendVerificationCode($locked, $this->keyring->decrypt($locked->destination_ciphertext, $locked->key_version), $code, $tenant);
+
+        return $locked;
+    }
+
     public function sendTest(NotificationChannel $channel, Tenant $tenant): NotificationDelivery
     {
         if (! $channel->isDeliverable()) {

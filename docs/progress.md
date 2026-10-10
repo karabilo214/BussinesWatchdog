@@ -1356,3 +1356,22 @@ Verification:
 - Backend unchanged in this step (last runs: SQLite 313 + 4 skipped, PostgreSQL 18 317).
 - Not covered in the browser: a real worker run and the screenshot of a run (no worker or object storage in the smoke); scenario creation is covered by unit tests.
 
+### Step 62: Dashboard Notification Screens
+
+Status: complete
+
+Added:
+
+- Customer app `/app/notifications` (owner/admin manage; everyone sees the log): add an email recipient with preferences (minimum severity, email language, time zone, quiet hours, critical during quiet hours — owner only, recovery messages, all or selected stores); confirm with the mailed 6-digit code or request a new one; enable/disable; test email; settings; change address (requires a new confirmation). Channel state: receiving / disabled / awaiting confirmation / emails not delivered (from channel health).
+- Delivery log with channel and state filters: kind, recipient, time, attempts, next attempt, translated error, incident link; "delivery unknown" is explained (not resent to avoid duplicates) and shown as a warning, not as delivered.
+- Backend: `POST /notification-channels/{id}/verification-code` — a new code to the saved address of an unverified channel, once a minute (before, a new code needed an address change); the contract now lists `Idempotency-Key` on channel creation and `content`/`created_at` of deliveries. Catalogue §11 updated.
+- Contract tests: every delivery state has a colour and a label (only "sent" green); every delivery error and channel rejection code from the backend is translated.
+- Smoke runs real email: Mailpit receives the confirmation code, the browser test reads it through the Mailpit API, and a background `notifications:deliver` loop delivers the test email.
+
+Verification:
+
+- `make frontend-check` green (customer 55 tests).
+- `make frontend-smoke` 30/30, twice: add recipient, confirm with the code from the real email, test email delivered by the worker (in Mailpit and in the log), quiet hours saved, German mobile layout; emails and screenshots inspected.
+- Backend: SQLite 314 + 4 skipped, PostgreSQL 18 318 passed.
+- Not done: Telegram (P1), deleting a recipient (disable instead), daily digest/reminders. The mobile navigation with five items takes a lot of height; a compact menu is a follow-up.
+

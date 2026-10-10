@@ -8,7 +8,8 @@
     "overview": "Overview",
     "incidents": "Incidents",
     "reconciliation": "Reconciliation",
-    "checks": "Checks"
+    "checks": "Checks",
+    "notifications": "Notifications"
   },
   "common": {
     "loading": "Loading…",
@@ -223,7 +224,17 @@
     "url_outside_store_origin": "Check addresses must be on the store domain.",
     "scenario_exists": "The store already has a check scenario. Reload the page.",
     "check_run_not_active": "The check has already finished.",
-    "store_not_verified": "Confirm the store domain first."
+    "store_not_verified": "Confirm the store domain first.",
+    "channel_not_verified": "Confirm the address with the code from the email first.",
+    "channel_already_verified": "The address is already confirmed.",
+    "verification_code_invalid": "The code did not match. Check the digits from the latest email.",
+    "verification_code_expired": "The code has expired. Request a new one.",
+    "verification_attempts_exceeded": "Too many wrong attempts. Request a new code.",
+    "verification_resend_rate_limited": "You can request a new code in a minute.",
+    "test_rate_limited": "A test email can be sent at most once a minute.",
+    "critical_bypass_requires_owner": "Only the account owner can allow critical notifications during quiet hours.",
+    "store_not_found": "One of the selected stores was not found. Reload the page.",
+    "channel_kind_not_supported_yet": "This channel type is not supported yet."
   },
   "incidents": {
     "title": "Incidents",
@@ -714,6 +725,107 @@
       "no_attempts": "No attempts yet.",
       "attempt": "Attempt {n}",
       "diagnostics": "Technical details ({n})"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Where incident messages go. Every address is confirmed with a code from an email. Telegram comes later.",
+    "add": "Add address",
+    "read_only": "Owners and admins manage recipients. You can see the delivery log.",
+    "empty": "No recipients yet — nobody hears about incidents until you add an address.",
+    "new": {
+      "title": "New recipient",
+      "label": "Name",
+      "label_placeholder": "For example “On call” or “Accounting”",
+      "email": "Email",
+      "note": "An email with a six-digit code is sent to the address. Notifications start once it is confirmed.",
+      "submit": "Send code"
+    },
+    "prefs": {
+      "min_severity": "Send incidents",
+      "severity": {
+        "info": "all, including informational",
+        "warning": "warnings and critical",
+        "critical": "critical only"
+      },
+      "locale": "Email language",
+      "timezone": "Time zone",
+      "quiet_title": "Quiet hours",
+      "quiet_enable": "Do not send notifications at night",
+      "quiet_from": "From",
+      "quiet_to": "To",
+      "critical_bypass": "Send critical notifications during quiet hours too",
+      "owner_only": "Only the account owner can enable this.",
+      "quiet_note": "Messages that fall into quiet hours are sent when they end.",
+      "notify_recovery": "Tell me when a problem is fixed",
+      "stores": "Stores",
+      "all_stores": "all stores",
+      "pick_store": "Choose at least one store."
+    },
+    "channel": {
+      "state": {
+        "active": "receives notifications",
+        "disabled": "disabled",
+        "unverified": "awaiting confirmation",
+        "failing": "emails are not delivered"
+      },
+      "summary": "Sends: {severity}",
+      "quiet": "quiet hours {start}–{end} ({zone})",
+      "failing": "Emails to this address cannot be delivered (last failure {time}). Check the address or send a test email.",
+      "last_success": "Last delivered email: {time}",
+      "code_label": "Code from the email",
+      "code_hint": "The code is valid for 15 minutes. No email? Check spam or request a new code.",
+      "confirm": "Confirm",
+      "resend": "Send a new code",
+      "verified": "Address confirmed, notifications enabled.",
+      "code_sent": "A new code has been sent.",
+      "enable": "Enable",
+      "disable": "Disable",
+      "test": "Send a test email",
+      "test_queued": "Test email queued — check your inbox and the log below.",
+      "settings": "Settings",
+      "change_address": "Change address",
+      "new_address": "New address",
+      "address_note": "No notifications are sent to this channel until the new address is confirmed.",
+      "send_code": "Send code to the new address"
+    },
+    "log": {
+      "title": "Delivery log",
+      "subtitle": "Every notification and what happened to it. Without email contents.",
+      "channel": "Recipient",
+      "status": "State",
+      "empty": "No notifications yet.",
+      "open_incident": "incident",
+      "attempts": "attempts: {n}",
+      "next_attempt": "next attempt {time}",
+      "uncertain_note": "The mail server did not answer in time: the email may or may not have been sent. It is not resent to avoid a duplicate.",
+      "kind": {
+        "incident_opened": "New incident",
+        "incident_reopened": "Incident reopened",
+        "incident_recovered": "Problem fixed",
+        "test": "Test email"
+      },
+      "state": {
+        "queued": "queued",
+        "sending": "sending",
+        "sent": "delivered",
+        "uncertain": "delivery unknown",
+        "failed": "failed, will retry",
+        "dead_letter": "not delivered",
+        "suppressed": "not sent"
+      },
+      "error": {
+        "email_transport_error": "The mail server rejected the email.",
+        "email_transport_timeout": "The mail server did not answer in time.",
+        "incident_suppressed": "Notifications for the incident were snoozed.",
+        "channel_unavailable": "The recipient is disabled or removed.",
+        "channel_kind_unsupported": "This channel type is not supported yet.",
+        "destination_unreadable": "The recipient address could not be read.",
+        "worker_lost_during_send": "Sending was interrupted on our side.",
+        "retry_window_exhausted": "Retries over a day did not succeed.",
+        "notification_incident_not_found": "The incident was not found.",
+        "notification_kind_invalid": "Unknown notification type."
+      }
     }
   }
 }

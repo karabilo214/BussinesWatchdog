@@ -129,6 +129,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
     Route::post('/notification-channels/{notificationChannel}/verify', [NotificationChannelController::class, 'verify'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+    Route::post('/notification-channels/{notificationChannel}/verification-code', [NotificationChannelController::class, 'resendVerification'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
     Route::post('/notification-channels/{notificationChannel}/test', [NotificationChannelController::class, 'test'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
     Route::get('/notification-deliveries', [NotificationDeliveryController::class, 'index'])
