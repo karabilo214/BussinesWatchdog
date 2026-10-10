@@ -1,6 +1,7 @@
 <?php
 
 use BusinessWatchdog\WooCommerce\Capture\OrderCapture;
+use BusinessWatchdog\WooCommerce\Capture\PaymentMode;
 use BusinessWatchdog\WooCommerce\Money\MinorUnits;
 use BusinessWatchdog\WooCommerce\Storage\Outbox;
 use BusinessWatchdog\WooCommerce\Storage\State;
@@ -85,6 +86,30 @@ bw_test('refunds are captured with their parent order id', function () {
     $data = $events[0]['data'];
     bw_assert($data['order_id'] === (string) $order->get_id() && $data['amount_minor'] === '5000', 'refund data wrong');
     bw_assert($data['external_required'] === false && $data['status'] === 'recorded', 'refund flags wrong');
+});
+
+bw_test('the Stripe payment mode is recorded once at payment time and sent with the order', function () {
+    update_option('woocommerce_stripe_settings', ['enabled' => 'yes', 'testmode' => 'yes']);
+    $order = bw_make_order(['status' => 'pending']);
+    $order->payment_complete('ch_mode_test');
+    OrderCapture::flush();
+    $events = bw_events(OrderCapture::orderKey($order->get_id()));
+    bw_assert(end($events)['data']['mode'] === 'test', 'mode should be test: ' . json_encode(end($events)['data']['mode'] ?? null));
+    bw_assert(end($events)['data']['order_key_hash'] === hash('sha256', $order->get_order_key()), 'order key hash missing');
+    bw_assert(strpos(json_encode($events), $order->get_order_key()) === false, 'the raw order key must not be sent');
+
+    update_option('woocommerce_stripe_settings', ['enabled' => 'yes', 'testmode' => 'no']);
+    $order = wc_get_order($order->get_id());
+    $order->set_status('completed');
+    $order->save();
+    bw_assert(PaymentMode::forOrder(wc_get_order($order->get_id())) === 'test', 'mode must not change after the gateway setting changes');
+
+    $other = bw_make_order(['gateway' => 'bacs', 'status' => 'pending']);
+    $other->payment_complete();
+    OrderCapture::flush();
+    $otherEvents = bw_events(OrderCapture::orderKey($other->get_id()));
+    bw_assert(! array_key_exists('mode', end($otherEvents)['data']), 'other gateways are not labelled');
+    delete_option('woocommerce_stripe_settings');
 });
 
 bw_test('the provider refund id written by the Stripe gateway is sent as provider_ref', function () {

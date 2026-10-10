@@ -58,14 +58,21 @@ Test-mode payments created by the owner in the Stripe Dashboard: a 5.00 EUR card
 
 ## Verified-metadata matching (spec §13 rule 2, Step 67)
 
-- The adapter takes exactly two values from Stripe metadata: `order_id` (as `provider_order_ref`, `[A-Za-z0-9_-]{1,255}`) and the origin of `site_url` (`provider_site_origin`, scheme + host + port, lower-case). They are optional fields of `payment.snapshot` (event schema extended) and are kept in `payments.metadata`. Customer email/name in the same metadata are never read.
+- The adapter takes exactly three values from Stripe metadata: `order_id` (as `provider_order_ref`, `[A-Za-z0-9_-]{1,255}`), the origin of `site_url` (`provider_site_origin`, scheme + host + port, lower-case) and the SHA-256 of `order_key` (`provider_order_key_hash`; the key itself is never stored or sent on). They are optional fields of `payment.snapshot` (event schema extended) and are kept in `payments.metadata`. Customer email/name in the same metadata are never read.
 - Rule order: the exact reference first; only when **no** order of the store has the reference, metadata may link: the order whose store id equals `provider_order_ref`, same mode and currency, and only if the store's domain is **confirmed** and its origin equals `provider_site_origin`. Several candidates or an unconfirmed domain link nothing. Strategy `verified_metadata`, evidence `verified_metadata_v1` with the order ref and origin. After a capture is linked, the provider refunds of that payment are tried as well.
+- **Guards against reused order numbers (found in the one-run chain, see below).** Metadata never links an order that already carries its own transaction reference (that order names a different payment). When the payment carries an order-key hash, the order must carry the same hash (`order.snapshot` gains optional `order_key_hash`, sent by the plugin as SHA-256 of the WooCommerce order key, kept in `orders.metadata`); an order without a hash (older plugin) is then not linked by metadata. Without these guards a store whose order ids repeat (a restored backup, a recreated test site) would get old Stripe payments attached to a new order.
 - Matching is retried when an order arrives after its payment (order snapshot), right after a store domain is confirmed, and in the nightly sweep for every unlinked provider capture.
 - Verified on real data: the payment created by the WooCommerce Stripe Gateway in spike part 3 (metadata `order_id = 12`, `site_url = https://shop-latest.example.test`) linked by metadata to order 12 that had no transaction reference; its refund linked by `_stripe_refund_id`; reconciliation ok for capture and refund.
 
-## Still open
+## Payment mode from the plugin
 
-- A full chain on one machine (plugin events → backend → Stripe sync → link) was not run in one go; each link is verified separately (plugin snapshot fields, backend matcher with charge references, real Stripe sync).
+- Assumption (owner to review): the plugin records the Stripe mode of an order once, when it is paid or authorized (`woocommerce_payment_complete`, or a status change to processing/completed/on-hold), from the gateway setting `woocommerce_stripe_settings.testmode` at that moment, into order meta `_bw_payment_mode`, and sends it as `mode` with the order snapshot. Only orders of the Stripe gateways are labelled; others keep no mode (the backend default stays `live`). Switching the gateway to live mode later does not relabel orders that were paid in test mode. Without this, test-mode orders were projected as `live` and never matched test-mode Stripe payments.
+
+## One-run full chain (`tests/matrix/stripe-chain-e2e.sh`)
+
+- One script on the owner's real Stripe test account: backend + WooCommerce 11.2 (HPOS) + Stripe Gateway 11.0.1 → verified store, Stripe connected with the restricted key → plugin paired → real classic checkout (`pm_card_visa`, 10.00 EUR) → partial refund 3.00 through WooCommerce → plugin delivers its events → Stripe audit sync → matching → reconciliation.
+- Result: order mode `test`, transaction ref the charge id; capture linked `exact_reference` 1000, refund linked `exact_reference` 300 by the plugin's `provider_ref`; `MONEY_CAPTURE_AMOUNT` ok, `MONEY_REFUND_MISSING` ok. The Stripe integration and its credentials are revoked at the end.
+- The first full run failed: the test account already held payments from earlier runs with the same metadata (`order_id = 12`, same site), and metadata linked them to the new order (capture amount and multiple-captures mismatches). Fixed by the guards above; covered by a backend test.
 
 ## Not done
 

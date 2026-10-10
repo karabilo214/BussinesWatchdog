@@ -74,3 +74,5 @@ Not verified: WooCommerce Stripe gateway versions, themes, multisite, PHP 7.4 wi
 |---|---|---|---|---|---|
 | 11.0.1 (test mode, classic checkout) | 11.2.0 HPOS | charge `ch_…` | order meta `_stripe_intent_id` | `_stripe_refund_id` (`re_…`) | `order_id`, `order_key`, `site_url`, `signature`, … plus customer email/name (not stored by Watchdog) |
 
+One-run chain (plugin → backend → real Stripe test account → links → reconciliation), `tests/matrix/stripe-chain-e2e.sh latest`: capture and refund linked by exact reference, reconciliation ok (2026-10-10).
+

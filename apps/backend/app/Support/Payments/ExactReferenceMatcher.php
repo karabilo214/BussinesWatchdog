@@ -157,6 +157,7 @@ class ExactReferenceMatcher
     {
         $orderRef = $payment->metadata['provider_order_ref'] ?? null;
         $siteOrigin = $payment->metadata['provider_site_origin'] ?? null;
+        $orderKeyHash = $payment->metadata['provider_order_key_hash'] ?? null;
         /** @var Store|null $store */
         $store = Store::query()->where('tenant_id', $capture->tenant_id)->whereKey($capture->store_id)->first();
 
@@ -177,10 +178,20 @@ class ExactReferenceMatcher
             return false;
         }
 
+        $order = $orders->first();
+
+        if (($order->transaction_ref ?? '') !== '') {
+            return false;
+        }
+
+        if (is_string($orderKeyHash) && ($order->metadata['order_key_hash'] ?? null) !== $orderKeyHash) {
+            return false;
+        }
+
         return $this->attempt(fn () => $this->allocations->allocateCapture(
             $payment,
             $capture,
-            $orders->first(),
+            $order,
             (int) $capture->amount_minor,
             PaymentAllocation::STRATEGY_VERIFIED_METADATA,
             ['matcher' => self::METADATA_MATCHER_VERSION, 'order_ref' => $orderRef, 'site_origin' => $siteOrigin],

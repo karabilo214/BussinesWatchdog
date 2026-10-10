@@ -51,6 +51,18 @@ final class OrderSnapshotBuilder
             $data['display_number'] = substr($displayNumber, 0, 255);
         }
 
+        $mode = PaymentMode::forOrder($order);
+
+        if ($mode !== null) {
+            $data['mode'] = $mode;
+        }
+
+        $orderKey = (string) $order->get_order_key('edit');
+
+        if ($orderKey !== '') {
+            $data['order_key_hash'] = hash('sha256', $orderKey);
+        }
+
         if ($created !== null) {
             $data['source_created_at'] = $created;
         }

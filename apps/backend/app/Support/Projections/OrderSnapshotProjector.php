@@ -124,7 +124,9 @@ class OrderSnapshotProjector
             'source_updated_at' => ProjectionValueNormalizer::nullableDateTime($data['source_updated_at'] ?? null) ?? $event->occurred_at,
             'deleted_at' => null,
             'current_payload_hash' => $payloadHash,
-            'metadata' => [],
+            'metadata' => array_filter([
+                'order_key_hash' => ProjectionValueNormalizer::nullableString($data['order_key_hash'] ?? null),
+            ], fn (mixed $value): bool => $value !== null),
             'updated_at' => $now,
             'created_at' => $now,
         ];

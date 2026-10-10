@@ -96,7 +96,7 @@ class EventPayloadValidator
         return match ($event['type']) {
             EventInbox::EVENT_ORDER_SNAPSHOT => $event['aggregate_type'] === EventInbox::AGGREGATE_ORDER
                 && array_key_exists('aggregate_revision', $event)
-                && $this->hasOnlyKeys($data, ['status', 'display_number', 'currency', 'currency_exponent', 'total_minor', 'gateway', 'transaction_ref', 'payment_expected', 'paid_marked_at', 'source_created_at', 'source_updated_at', 'mode', 'financial_support'])
+                && $this->hasOnlyKeys($data, ['status', 'display_number', 'currency', 'currency_exponent', 'total_minor', 'gateway', 'transaction_ref', 'payment_expected', 'paid_marked_at', 'source_created_at', 'source_updated_at', 'mode', 'financial_support', 'order_key_hash'])
                 && $this->isRequiredString($data, 'status')
                 && $this->isOptionalString($data, 'display_number')
                 && $this->isCurrencyData($data)
@@ -108,7 +108,8 @@ class EventPayloadValidator
                 && $this->isOptionalDateTime($data, 'source_created_at')
                 && $this->isOptionalDateTime($data, 'source_updated_at')
                 && $this->isOptionalEnum($data, 'mode', ['live', 'test'])
-                && $this->isOptionalEnum($data, 'financial_support', ['supported', 'unsupported', 'unknown']),
+                && $this->isOptionalEnum($data, 'financial_support', ['supported', 'unsupported', 'unknown'])
+                && $this->isOptionalSha256($data, 'order_key_hash'),
             EventInbox::EVENT_ORDER_DELETED => $event['aggregate_type'] === EventInbox::AGGREGATE_ORDER
                 && array_key_exists('aggregate_revision', $event)
                 && $this->hasOnlyKeys($data, ['reason_code'])
@@ -123,10 +124,11 @@ class EventPayloadValidator
                 && $this->isOptionalString($data, 'provider_ref', nullable: true)
                 && $this->isRequiredEnum($data, 'status', ['requested', 'recorded', 'cancelled', 'deleted']),
             EventInbox::EVENT_PAYMENT_SNAPSHOT => $event['aggregate_type'] === EventInbox::AGGREGATE_PAYMENT
-                && $this->hasOnlyKeys($data, ['intent_ref', 'charge_ref', 'mode', 'currency', 'currency_exponent', 'status', 'source_updated_at', 'source_authority', 'provider_order_ref', 'provider_site_origin'])
+                && $this->hasOnlyKeys($data, ['intent_ref', 'charge_ref', 'mode', 'currency', 'currency_exponent', 'status', 'source_updated_at', 'source_authority', 'provider_order_ref', 'provider_site_origin', 'provider_order_key_hash'])
                 && $this->isOptionalString($data, 'intent_ref', nullable: true)
                 && $this->isOptionalString($data, 'provider_order_ref', nullable: true)
                 && $this->isOptionalString($data, 'provider_site_origin', nullable: true)
+                && $this->isOptionalSha256($data, 'provider_order_key_hash')
                 && $this->isOptionalString($data, 'charge_ref', nullable: true)
                 && $this->isRequiredEnum($data, 'mode', ['live', 'test'])
                 && $this->isCurrencyData($data)
@@ -217,6 +219,14 @@ class EventPayloadValidator
         return is_string($data[$key] ?? null)
             && $data[$key] !== ''
             && mb_strlen($data[$key]) <= 255;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function isOptionalSha256(array $data, string $key): bool
+    {
+        return ! array_key_exists($key, $data) || $data[$key] === null || (is_string($data[$key]) && preg_match('/^[0-9a-f]{64}$/', $data[$key]) === 1);
     }
 
     /**

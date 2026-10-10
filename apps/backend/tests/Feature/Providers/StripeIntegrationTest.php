@@ -196,6 +196,30 @@ class StripeIntegrationTest extends TestCase
         $this->assertFalse(PaymentAllocation::query()->where('capture_transaction_id', FinancialTransaction::query()->where('external_operation_id', 'ch_other_site')->value('id'))->exists());
     }
 
+    public function test_metadata_does_not_link_a_reused_order_number_or_an_order_that_names_its_own_payment(): void
+    {
+        $this->store->forceFill(['verified_at' => now()])->save();
+        $ownPayment = $this->order('ch_own', 1000, 'wc-12');
+        $this->stripe['payment_intents'][] = [...$this->intent('pi_old_12', 'succeeded', 'ch_old_12'), 'metadata' => ['order_id' => 'wc-12', 'site_url' => 'https://shop.example.test', 'order_key' => 'wc_order_old']];
+        $this->stripe['charges'][] = $this->charge('ch_old_12', 'pi_old_12', 'succeeded', true, 1000);
+        $reused = $this->order(null, 700, 'wc-13');
+        $reused->forceFill(['metadata' => ['order_key_hash' => hash('sha256', 'wc_order_new')]])->save();
+        $this->stripe['payment_intents'][] = [...$this->intent('pi_old_13', 'succeeded', 'ch_old_13'), 'metadata' => ['order_id' => 'wc-13', 'site_url' => 'https://shop.example.test', 'order_key' => 'wc_order_old']];
+        $this->stripe['charges'][] = $this->charge('ch_old_13', 'pi_old_13', 'succeeded', true, 700);
+        $this->stripe['payment_intents'][] = [...$this->intent('pi_new_13', 'succeeded', 'ch_new_13'), 'metadata' => ['order_id' => 'wc-13', 'site_url' => 'https://shop.example.test', 'order_key' => 'wc_order_new']];
+        $this->stripe['charges'][] = $this->charge('ch_new_13', 'pi_new_13', 'succeeded', true, 700);
+
+        app(StripeSync::class)->run($this->connected());
+        $this->drain();
+
+        $this->assertFalse(PaymentAllocation::query()->where('order_id', $ownPayment->id)->exists());
+        $this->assertSame(hash('sha256', 'wc_order_old'), Payment::query()->where('external_id', 'pi_old_13')->value('metadata')['provider_order_key_hash']);
+        $this->assertStringNotContainsString('wc_order_old', json_encode(\App\Models\EventInbox::query()->pluck('payload'), JSON_THROW_ON_ERROR));
+        $linked = PaymentAllocation::query()->where('order_id', $reused->id)->get();
+        $this->assertCount(1, $linked);
+        $this->assertSame(FinancialTransaction::query()->where('external_operation_id', 'ch_new_13')->value('id'), $linked->first()->capture_transaction_id);
+    }
+
     public function test_an_order_that_arrives_after_its_payment_is_linked_when_its_snapshot_is_processed(): void
     {
         $this->stripe['payment_intents'][] = $this->intent('pi_late', 'succeeded', 'ch_late');

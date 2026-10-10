@@ -1479,3 +1479,11 @@ Status: complete
 - Tests: 4 new end-to-end tests (metadata link only on the confirmed domain, other site / exact reference wins, late order via a real order snapshot, metadata kept without customer data). Backend: SQLite 338 + 4 skipped, PostgreSQL 18 342 passed.
 - Real check: the gateway-created Stripe payment linked to order 12 by metadata, its refund by the refund id, reconciliation ok; temporary store removed.
 
+### Step 68: One-Run Stripe Chain (ADR 0020)
+
+Status: complete
+
+- `plugins/woocommerce-watchdog/tests/matrix/stripe-chain-e2e.sh` + `backend-e2e.php` actions `stripe-chain-setup|check|cleanup`: backend, WooCommerce 11.2 + Stripe Gateway 11.0.1, owner's real Stripe test account; checkout, partial refund, plugin delivery, Stripe sync, matching and reconciliation in one run. Result PASS: capture and refund linked by exact reference, `MONEY_CAPTURE_AMOUNT` and `MONEY_REFUND_MISSING` ok.
+- Plugin: `PaymentMode` records the Stripe test/live mode once at payment/authorization (`_bw_payment_mode`) and sends it as `mode`; the order snapshot carries `order_key_hash` (SHA-256 of the order key, never the key). Plugin tests: floor and latest 45/45; PHP 7.4 lint ok.
+- Backend: the first chain run linked old Stripe payments with the same metadata `order_id` to the new order. Metadata no longer links an order that has its own transaction reference, and requires the order-key hash to match when Stripe metadata has `order_key` (`payment.snapshot.provider_order_key_hash`, `order.snapshot.order_key_hash`; event schema in all three copies). New backend test. SQLite 339 + 4 skipped, PostgreSQL 18 343 passed.
+- The mode assumption and the guards are recorded in ADR 0020 for the owner.

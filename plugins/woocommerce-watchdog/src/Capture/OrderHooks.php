@@ -35,6 +35,8 @@ final class OrderHooks
             add_action($hook, [self::class, 'onBlocksCheckout'], 20, 1);
         }
 
+        PaymentMode::register();
+
         add_action('woocommerce_before_delete_order', [self::class, 'onBeforeDeleteOrder'], 10, 2);
         add_filter('woocommerce_pre_delete_order_refund', [self::class, 'onPreDeleteRefund'], 10, 2);
         add_action('woocommerce_delete_order', [self::class, 'onDeleteOrder'], 10, 1);

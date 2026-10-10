@@ -154,6 +154,14 @@
             "unsupported",
             "unknown"
           ]
+        },
+        "order_key_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the WooCommerce order key; the key itself is never sent. Used to verify provider metadata matches."
         }
       }
     },
@@ -301,6 +309,14 @@
           ],
           "maxLength": 255,
           "description": "Origin (scheme://host[:port]) of the store site the provider recorded (e.g. Stripe metadata site_url)."
+        },
+        "provider_order_key_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the order key the provider recorded (e.g. Stripe metadata order_key)."
         }
       }
     },

@@ -189,4 +189,53 @@ if ($action === 'browser-status') {
     ];
 }
 
+if ($action === 'stripe-chain-setup') {
+    $tenant = Tenant::query()->create(['name' => 'Stripe chain E2E', 'timezone' => 'Europe/Berlin']);
+    $user = User::query()->create(['name' => 'E2E', 'email' => 'e2e-'.Str::random(10).'@example.test', 'password_hash' => Hash::make(Str::random(32)), 'locale' => 'en']);
+    Membership::query()->create(['tenant_id' => $tenant->id, 'user_id' => $user->id, 'role' => 'owner']);
+    $store = Store::query()->create(['tenant_id' => $tenant->id, 'name' => 'Stripe chain', 'base_url' => getenv('BW_E2E_BASE_URL'), 'timezone' => 'Europe/Berlin', 'default_currency' => 'EUR']);
+    $store->forceFill(['verified_at' => now(), 'status' => 'active'])->save();
+    $code = 'bwpc_'.Str::lower(Str::random(40));
+    PairingCode::query()->create(['tenant_id' => $tenant->id, 'store_id' => $store->id, 'code_hash' => hash('sha256', $code), 'created_by' => $user->id, 'expires_at' => now()->addMinutes(15), 'created_at' => now()]);
+    $stripe = app(\App\Support\Providers\Stripe\StripeConnector::class)->connect($store, (string) env('WATCHDOG_DEV_STRIPE_RESTRICTED_API_KEY'), null, null, $user->id);
+    $out = ['store_id' => $store->id, 'pairing_code' => $code, 'stripe_integration_id' => $stripe->id, 'stripe_mode' => $stripe->mode];
+}
+
+if ($action === 'stripe-chain-check') {
+    $storeId = getenv('BW_E2E_STORE_ID');
+    $wooOrderId = getenv('BW_E2E_ORDER_ID');
+    $drain = function (): void {
+        for ($i = 0; $i < 6; $i++) {
+            app(\App\Support\Outbox\DomainOutboxDispatcher::class)->dispatchDue(limit: 200, leaseSeconds: 60);
+        }
+    };
+    $drain();
+    $stripe = Integration::query()->where('store_id', $storeId)->where('provider', 'stripe')->firstOrFail();
+    $sync = app(\App\Support\Providers\Stripe\StripeSync::class)->run($stripe, 'audit');
+    $drain();
+    $order = \App\Models\Order::query()->where('store_id', $storeId)->where('external_id', $wooOrderId)->first();
+    $findings = [];
+
+    if ($order !== null) {
+        app(\App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($order);
+        $findings = \App\Models\ReconciliationFinding::query()->where('order_id', $order->id)->get()->map(fn ($f) => $f->rule_code.':'.$f->status)->all();
+    }
+
+    $out = [
+        'sync' => $sync,
+        'inbox' => \App\Models\EventInbox::query()->where('store_id', $storeId)->get()->groupBy('status')->map->count()->all(),
+        'order' => $order ? ['mode' => $order->mode, 'transaction_ref_prefix' => substr((string) $order->transaction_ref, 0, 3), 'total_minor' => (string) $order->total_minor] : null,
+        'store_refunds' => \App\Models\Refund::query()->where('store_id', $storeId)->get()->map(fn ($r) => ['amount' => (string) $r->amount_minor, 'provider_ref_prefix' => substr((string) $r->provider_ref, 0, 3)])->all(),
+        'capture_links' => $order ? \App\Models\PaymentAllocation::query()->where('order_id', $order->id)->whereNull('revoked_at')->get()->map(fn ($a) => $a->strategy.':'.$a->amount_minor)->all() : [],
+        'refund_links' => \App\Models\RefundAllocation::query()->where('store_id', $storeId)->whereNull('revoked_at')->get()->map(fn ($a) => $a->strategy.':'.$a->amount_minor)->all(),
+        'findings' => $findings,
+    ];
+}
+
+if ($action === 'stripe-chain-cleanup') {
+    Integration::query()->where('store_id', getenv('BW_E2E_STORE_ID'))->where('provider', 'stripe')->update(['status' => Integration::STATUS_REVOKED]);
+    IntegrationCredential::query()->where('store_id', getenv('BW_E2E_STORE_ID'))->whereIn('kind', [IntegrationCredential::KIND_STRIPE_API, IntegrationCredential::KIND_STRIPE_WEBHOOK])->update(['status' => IntegrationCredential::STATUS_REVOKED]);
+    $out = ['revoked' => true];
+}
+
 echo 'BW_E2E_JSON='.json_encode($out).PHP_EOL;
