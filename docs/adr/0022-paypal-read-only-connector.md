@@ -26,7 +26,10 @@ Two sandbox REST apps of one business account: "Watchdog" (reads) and "shop" (cr
 - Fees are in `seller_receivable_breakdown` / `seller_payable_breakdown` (informational, never mixed with captured amounts).
 - Card payments through the API were refused for this sandbox business account (`PAYEE_NOT_ENABLED_FOR_CARD_PROCESSING`); PayPal-wallet payments were used.
 
+- **Limiting the app (owner, 2026-10-10):** with every optional feature unticked (Save payment methods, Subscriptions, Invoicing, Payment links and buttons, Payouts, disputes, Log in with PayPal) and Transaction Search ticked, the token lost `payouts`, `subscriptions`, `vault/payment-tokens/*`, `disputes/*`, but **kept `payments/refund`, `payments/payment/authcapture` and `api.paypal.com/v1/payments/.*`**; accepting payments cannot be switched off. Conclusion: **PayPal credentials cannot be limited to reading.** Per spec §10.2 the dashboard MUST warn the owner, ask for a separate app with only Transaction Search ticked (fewer rights than the default app), and the adapter calls only an allowlist of GET endpoints (plus the OAuth token request), enforced by a test. No write call was made with the Watchdog app.
+- **Transaction Search** works once ticked (`reporting/search/read` appears). The first call reported `last_refreshed_datetime` about 1.5 hours behind and no transactions yet: listing lags (PayPal documents up to about 3 hours), so the connector cannot rely on it for fast detection.
+
 ## Open
 
-- Whether the app can be limited (features unticked) so that write scopes disappear; otherwise the dashboard must warn and the adapter keeps a GET-only endpoint allowlist with a test (spec §10.2).
+- Transaction Search on real data (delay, 31-day window, which events appear, how pending captures show), whether its rows carry `custom_id`/`invoice_id`.
 - Transaction Search delay and window limits on real data; webhooks; part 2 with the plugin in the WooCommerce matrix (what it records for capture, authorization, pending capture and refunds).
