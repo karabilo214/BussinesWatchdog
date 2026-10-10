@@ -58,6 +58,14 @@ foreach ([$missing, $candidate] as $smokeOrderToCheck) {
 }
 $checkStore = Store::query()->firstOrCreate(["tenant_id" => $lindner->tenant_id, "name" => "Smoke Check Shop"], ["base_url" => "https://check-shop.example", "timezone" => "Europe/Berlin", "default_currency" => "EUR"]);
 $checkStore->forceFill(["verified_at" => now()->subDay(), "status" => "active", "browser_enabled" => true])->save();
+$checkStripe = Integration::query()->where("store_id", $checkStore->id)->where("provider", "stripe")->pluck("id");
+foreach ($checkStripe as $stripeId) {
+    DB::table("domain_outbox")->whereRaw("payload::text like ?", ["%".$stripeId."%"])->delete();
+}
+foreach (["financial_transactions", "payments", "provider_object_states", "event_inbox", "integration_credentials"] as $table) {
+    DB::table($table)->whereIn("integration_id", $checkStripe)->delete();
+}
+Integration::query()->whereIn("id", $checkStripe)->delete();
 $cs = ["tenant_id" => $checkStore->tenant_id, "store_id" => $checkStore->id];
 foreach (["check_steps", "artifacts", "check_attempts", "check_runs", "check_scenarios"] as $table) {
     DB::table($table)->where($cs)->delete();
@@ -78,12 +86,17 @@ App\Models\IncidentSignal::query()->create(["tenant_id" => $lindner->tenant_id, 
 App\Models\IncidentActivity::query()->create(["tenant_id" => $lindner->tenant_id, "store_id" => $lindner->id, "incident_id" => $incident->id, "kind" => "created", "actor_id" => null, "incident_revision" => 1, "sanitized_data" => [], "created_at" => now()->subMinutes(20)]);' >/dev/null)
 
 (cd apps/backend && DB_HOST=127.0.0.1 CACHE_STORE=database "$PHP" artisan cache:clear >/dev/null)
-(cd apps/backend && DB_HOST=127.0.0.1 CACHE_STORE=database MAIL_MAILER=smtp MAIL_HOST=127.0.0.1 MAIL_PORT=1025 SANCTUM_STATEFUL_DOMAINS=host.docker.internal:5173,localhost:5173 "$PHP" artisan serve --host=127.0.0.1 --port=8000 > "$OUT/backend.log" 2>&1) &
+"$PHP" -S 127.0.0.1:12111 "$ROOT/apps/frontend/customer/tests/e2e/fake-stripe.php" > "$OUT/fake-stripe.log" 2>&1 &
+FAKE_STRIPE=$!
+(cd apps/backend && DB_HOST=127.0.0.1 CACHE_STORE=database MAIL_MAILER=smtp MAIL_HOST=127.0.0.1 MAIL_PORT=1025 WATCHDOG_STRIPE_API_BASE=http://127.0.0.1:12111 SANCTUM_STATEFUL_DOMAINS=host.docker.internal:5173,localhost:5173 "$PHP" artisan serve --host=127.0.0.1 --port=8000 > "$OUT/backend.log" 2>&1) &
 (cd apps/frontend/customer && BW_ALLOWED_HOSTS=host.docker.internal npx vite --host 0.0.0.0 > "$OUT/vite.log" 2>&1) &
 (cd apps/backend && while true; do DB_HOST=127.0.0.1 CACHE_STORE=database MAIL_MAILER=smtp MAIL_HOST=127.0.0.1 MAIL_PORT=1025 "$PHP" artisan notifications:deliver >/dev/null 2>&1; sleep 3; done) &
 DELIVER_LOOP=$!
+(cd apps/backend && while true; do DB_HOST=127.0.0.1 CACHE_STORE=database "$PHP" artisan outbox:dispatch >/dev/null 2>&1; sleep 2; done) &
+OUTBOX_LOOP=$!
 stop_servers() {
     kill "$DELIVER_LOOP" 2>/dev/null || true
+    kill "$OUTBOX_LOOP" "$FAKE_STRIPE" 2>/dev/null || true
     for port in 8000 5173; do
         lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null || true
     done

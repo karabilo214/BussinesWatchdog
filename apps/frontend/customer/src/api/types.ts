@@ -117,6 +117,23 @@ export interface PairingCode {
 
 export type IntegrationStatus = 'pending' | 'active' | 'degraded' | 'revoked' | 'disabled';
 
+export interface IntegrationCredentialInfo {
+  id: string;
+  kind: string;
+  status: 'active' | 'draining' | 'revoked';
+  created_at: string | null;
+}
+
+export interface ProviderSyncHealth {
+  last_run_at?: string;
+  last_mode?: 'delta' | 'audit';
+  last_audit_at?: string | null;
+  emitted?: number;
+  unchanged?: number;
+  skipped?: Record<string, number>;
+  complete?: boolean;
+}
+
 export interface Integration {
   id: string;
   store_id: string;
@@ -124,8 +141,21 @@ export interface Integration {
   mode: 'live' | 'test';
   source_authority: 'store_reported' | 'independent_provider';
   status: IntegrationStatus;
+  external_account_id?: string | null;
+  api_version?: string | null;
   connector_version: string | null;
   last_heartbeat_at: string | null;
+  last_successful_sync_at?: string | null;
+  capabilities?: Record<string, string>;
+  health?: {
+    key_last4?: string;
+    account_verified?: boolean;
+    sync?: ProviderSyncHealth;
+    last_error?: { code: string; at: string; retry_after_seconds?: number | null } | null;
+    webhook?: { last_received_at?: string; last_type?: string };
+  };
+  credentials?: IntegrationCredentialInfo[];
+  webhook_url?: string;
   created_at: string;
 }
 

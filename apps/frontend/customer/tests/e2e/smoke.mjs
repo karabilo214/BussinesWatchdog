@@ -310,6 +310,36 @@ try {
     await page.getByRole('heading', { name: 'Магазины' }).waitFor();
   });
 
+  await step('Stripe is connected with a restricted key and synchronised', async () => {
+    await page.locator('article', { hasText: 'Smoke Check Shop' }).getByRole('link', { name: 'Smoke Check Shop' }).click();
+    const panel = page.locator('[data-panel="provider"]');
+    await panel.getByText('не подключён').waitFor();
+    await panel.getByLabel('Ограниченный ключ Stripe').fill('sk_live_51FullSecret0123456789');
+    await panel.getByText('Это полный секретный ключ').waitFor();
+    if (await panel.getByRole('button', { name: 'Подключить Stripe' }).isEnabled()) throw new Error('secret key must not be accepted');
+    await panel.getByLabel('Ограниченный ключ Stripe').fill('rk_test_51SmokeCheck0123456789');
+    await panel.getByRole('button', { name: 'Подключить Stripe' }).click();
+    await panel.getByText('rk_••••6789').waitFor();
+    await panel.getByText('acct_smokeCheck').waitFor();
+    await panel.getByRole('button', { name: 'Синхронизировать сейчас' }).click();
+    await panel.locator('[data-last-sync]').getByText('новых событий: 2').waitFor();
+    await page.screenshot({ path: `${shots}/provider-ru.png`, fullPage: true });
+  });
+
+  await step('the synchronised Stripe capture is listed among payments without an order', async () => {
+    await page.locator('header').getByRole('link', { name: 'Сверка', exact: true }).click();
+    await page.locator('select').filter({ has: page.locator('option', { hasText: 'Smoke Check Shop' }) }).selectOption({ label: 'Smoke Check Shop' });
+    await page.getByRole('tab', { name: 'Платежи без заказа' }).click();
+    for (let i = 0; i < 15 && (await page.locator('[data-capture-id]', { hasText: 'ch_check_1' }).count()) === 0; i++) {
+      await page.waitForTimeout(1000);
+      await page.reload();
+      await page.locator('[data-panel="unmatched"]').waitFor();
+    }
+    await page.locator('[data-capture-id]', { hasText: 'ch_check_1' }).getByText(/42,00/).first().waitFor();
+    await page.getByRole('link', { name: 'Обзор', exact: true }).click();
+    await page.getByRole('heading', { name: 'Обзор', exact: true }).waitFor();
+  });
+
   await step('an email recipient is added and confirmed with the mailed code', async () => {
     await page.getByRole('link', { name: 'Уведомления', exact: true }).click();
     await page.getByRole('heading', { name: 'Уведомления', exact: true }).waitFor();

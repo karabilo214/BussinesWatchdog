@@ -1429,3 +1429,19 @@ Verification:
 - Backend: SQLite 334 + 4 skipped, PostgreSQL 18 338 passed; 7 new end-to-end tests (connect rules, sync → allocation → reconciliation without discrepancy, refund lifecycle and refund link, rejected key → unknown, skipped mode/currency, webhook signature, page-budget backlog).
 - Not tested with real Stripe: the compatibility spike (Stripe sandbox + WooCommerce Stripe Gateway) is still required — see ADR 0020.
 
+### Step 66: Stripe Connection in the Dashboard
+
+Status: complete; one unexplained smoke failure (see below)
+
+Added:
+
+- Store page "Payment provider" panel: connection form with step-by-step Stripe instructions (restricted key only, a full `sk_` key is refused in the UI and the API), optional webhook secret and expected account; connected state with mode, account (verified or not), key `rk_••••last4`, last sync and its result, last error, webhook state; "Sync now", webhook secret form with the endpoint URL, disconnect with confirmation; a rejected key is shown as a separate alert.
+- Smoke: a fake Stripe API (`tests/e2e/fake-stripe.php`) and a background `outbox:dispatch` loop; the smoke refuses a secret key, connects with a restricted key, syncs (2 events) and finds the Stripe capture among payments without an order.
+
+Verification:
+
+- `make frontend-check` green (customer 70 tests).
+- `make frontend-smoke`: 38/38 in one run; in the run before it one step failed and its log was overwritten — not investigated yet, rerun several times before relying on it.
+- Backend unchanged since Step 65: SQLite 334 + 4 skipped, PostgreSQL 18 338 passed.
+- Not tested with real Stripe (fake API only).
+
