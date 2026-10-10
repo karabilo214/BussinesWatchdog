@@ -9,7 +9,8 @@
     "incidents": "Incidents",
     "reconciliation": "Reconciliation",
     "checks": "Checks",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "menu": "Menu"
   },
   "common": {
     "loading": "Loading…",
@@ -44,14 +45,62 @@
     "session_expired": "Your session has ended. Sign in again."
   },
   "overview": {
-    "title": "Stores",
-    "subtitle": "What the service can currently see for each store. \"No data\" does not mean everything is fine.",
+    "title": "Overview",
+    "subtitle": "The essentials across all stores. “No data” does not mean everything is fine.",
     "empty_title": "No stores yet",
     "empty_body": "Stores you add appear here with the state of the plugin, money reconciliation, payment attempts and checkout checks.",
     "active_incidents": "Active incidents: {n}",
     "no_incidents": "No active incidents",
     "last_passed_check": "Last passed check: {time}",
-    "add_store": "Add store"
+    "add_store": "Add store",
+    "stores": "Stores",
+    "verdict": {
+      "problems": {
+        "badge": "problems found",
+        "title": "Active incidents: {n}",
+        "body": "Open the incidents to see the facts and what to check."
+      },
+      "incomplete": {
+        "badge": "data incomplete",
+        "title": "No problems found, but coverage is incomplete: stores with gaps — {stores}",
+        "body": "Until every source is connected and fresh, the service cannot say that everything is fine. See each store's state below."
+      },
+      "all_clear": {
+        "badge": "no problems found",
+        "title": "No problems detected",
+        "body": "All data sources are fresh, reconciliation is running and checkout checks pass."
+      },
+      "no_stores": {
+        "badge": "no stores",
+        "title": "No stores yet",
+        "body": "Add a store to start monitoring."
+      }
+    },
+    "tiles": {
+      "incidents": "Active incidents",
+      "critical": "critical: {n}",
+      "warning": "warning: {n}",
+      "info": "info: {n}",
+      "discrepancies": "Verified discrepancies",
+      "no_discrepancies": "No discrepancies in active incidents.",
+      "unknown_amounts": "Incidents without a verified amount: {n}",
+      "discrepancies_note": "Differences found by reconciliation, not losses. Currencies and kinds are never added up.",
+      "minor_units": "in minor units",
+      "last_check": "Last successful checkout check",
+      "uncovered": "Stores with incomplete coverage: {n}",
+      "all_covered": "All stores are monitored."
+    },
+    "component": {
+      "capture": "Captures",
+      "refund": "Refunds",
+      "multiple_captures": "Repeated captures",
+      "currency_mismatch": "Capture currency",
+      "order_changed": "Changes after payment",
+      "payment_without_order": "Payments without an order"
+    },
+    "latest_incidents": "Latest active incidents",
+    "no_active_incidents": "No active incidents.",
+    "recent_checks": "Recent checks"
   },
   "store_status": {
     "onboarding": "Onboarding",

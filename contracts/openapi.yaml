@@ -913,6 +913,55 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/overview:
+    get:
+      tags: [Incidents]
+      operationId: getOverview
+      description: "Tenant summary for the dashboard (ADR 0018). Discrepancies are verified amounts of active money incidents, summed per currency and component only; incidents without a verified amount are counted separately. Not a loss figure."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [incidents, discrepancies, unknown_amount_incidents, recent_checks]
+                properties:
+                  incidents:
+                    type: object
+                    required: [active, by_severity, latest]
+                    properties:
+                      active: {type: integer}
+                      by_severity:
+                        type: object
+                        required: [critical, warning, info]
+                        properties:
+                          critical: {type: integer}
+                          warning: {type: integer}
+                          info: {type: integer}
+                      latest:
+                        type: array
+                        maxItems: 5
+                        items: {$ref: "#/components/schemas/Incident"}
+                  discrepancies:
+                    type: array
+                    items:
+                      type: object
+                      required: [currency, component, total_minor, incident_count]
+                      properties:
+                        currency: {type: string, pattern: "^[A-Z]{3}$"}
+                        currency_exponent: {type: [integer, "null"]}
+                        component: {type: string}
+                        total_minor: {$ref: "#/components/schemas/MoneyMinor"}
+                        incident_count: {type: integer}
+                  unknown_amount_incidents: {type: integer}
+                  recent_checks:
+                    type: array
+                    maxItems: 5
+                    items: {$ref: "#/components/schemas/CheckRun"}
+        "401": {$ref: "#/components/responses/Problem"}
   /api/v1/incidents:
     get:
       tags: [Incidents]

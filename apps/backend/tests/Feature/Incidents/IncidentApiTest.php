@@ -232,6 +232,63 @@ class IncidentApiTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_overview_sums_verified_discrepancies_per_currency_and_component_only(): void
+    {
+        $context = $this->context('admin');
+        $real = Incident::query()->findOrFail($this->triggerIncident($context));
+        $make = function (array $attributes) use ($context): Incident {
+            return Incident::query()->create(array_merge([
+                'tenant_id' => $context['tenant']->id,
+                'store_id' => $context['store']->id,
+                'family' => 'money',
+                'component' => 'capture',
+                'fingerprint' => (string) Str::uuid(),
+                'state' => 'open',
+                'severity' => 'warning',
+                'title_code' => 'MONEY_CAPTURE_MISSING',
+                'first_seen_at' => now(),
+                'last_seen_at' => now(),
+                'revision' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], $attributes));
+        };
+        $make(['currency' => 'EUR', 'verified_discrepancy_minor' => 9000000000000000000]);
+        $make(['currency' => 'EUR', 'verified_discrepancy_minor' => 500, 'component' => 'refund', 'state' => 'acknowledged', 'title_code' => 'MONEY_REFUND_MISSING']);
+        $make(['currency' => 'USD', 'verified_discrepancy_minor' => 1000]);
+        $make(['currency' => null, 'verified_discrepancy_minor' => null]);
+        $make(['currency' => 'EUR', 'verified_discrepancy_minor' => 7000, 'state' => 'resolved']);
+        $make(['family' => 'integration', 'component' => 'connector', 'title_code' => 'INTEGRATION_STALE', 'severity' => 'critical', 'currency' => null, 'verified_discrepancy_minor' => null]);
+
+        $foreign = $this->context('owner');
+        Incident::query()->create([
+            'tenant_id' => $foreign['tenant']->id, 'store_id' => $foreign['store']->id, 'family' => 'money', 'component' => 'capture',
+            'fingerprint' => 'foreign', 'state' => 'open', 'severity' => 'warning', 'title_code' => 'MONEY_CAPTURE_MISSING',
+            'currency' => 'EUR', 'verified_discrepancy_minor' => 1, 'first_seen_at' => now(), 'last_seen_at' => now(), 'revision' => 1,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->getJson('/api/v1/overview')
+            ->assertOk()
+            ->assertJsonPath('incidents.active', 6)
+            ->assertJsonPath('incidents.by_severity.critical', 1)
+            ->assertJsonPath('incidents.by_severity.warning', 5)
+            ->assertJsonCount(5, 'incidents.latest')
+            ->assertJsonPath('unknown_amount_incidents', 1);
+
+        $groups = collect($response->json('discrepancies'))->keyBy(fn (array $row): string => $row['currency'].'/'.$row['component']);
+
+        $this->assertSame(['EUR/capture', 'EUR/refund', 'USD/capture'], $groups->keys()->sort()->values()->all());
+        $this->assertSame(bcadd('9000000000000000000', (string) $real->verified_discrepancy_minor), $groups['EUR/capture']['total_minor']);
+        $this->assertSame(2, $groups['EUR/capture']['incident_count']);
+        $this->assertSame(2, $groups['EUR/capture']['currency_exponent']);
+        $this->assertSame('500', $groups['EUR/refund']['total_minor']);
+        $this->assertSame('1000', $groups['USD/capture']['total_minor']);
+        $this->assertNull($groups['USD/capture']['currency_exponent']);
+    }
+
     public function test_user_cannot_read_or_act_on_a_foreign_tenant_incident(): void
     {
         $context = $this->context('admin');

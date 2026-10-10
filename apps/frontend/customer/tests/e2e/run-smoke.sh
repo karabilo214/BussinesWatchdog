@@ -45,8 +45,9 @@ $missing = $smokeOrder("#SM-15238", 18400, "pi_smoke_missing");
 $candidate = $smokeOrder("#SM-2002", 7700, "pi_smoke_other");
 $payment = App\Models\Payment::query()->create($scope + ["integration_id" => $stripe->id, "external_id" => (string) Str::uuid(), "intent_ref" => "pi_smoke_unmatched", "charge_ref" => "ch_smoke_unmatched", "mode" => "live", "currency" => "EUR", "currency_exponent" => 2, "status" => "captured", "source_authority" => "independent_provider", "source_updated_at" => now()->subHour(), "current_payload_hash" => hash("sha256", (string) Str::uuid()), "metadata" => [], "created_at" => now()->subHour(), "updated_at" => now()->subHour()]);
 App\Models\FinancialTransaction::query()->create($scope + ["integration_id" => $stripe->id, "payment_id" => $payment->id, "external_operation_id" => "ch_smoke_unmatched", "kind" => "capture", "status" => "succeeded", "currency" => "EUR", "currency_exponent" => 2, "amount_minor" => 7700, "occurred_at" => now()->subHour(), "source_authority" => "independent_provider", "operation_hash" => hash("sha256", (string) Str::uuid()), "metadata" => [], "created_at" => now()]);
-app(App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($missing);
-app(App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($candidate);
+foreach ([$missing, $candidate] as $smokeOrderToCheck) {
+    app(App\Support\Incidents\MoneyIncidentCorrelator::class)->correlate(app(App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($smokeOrderToCheck));
+}
 $checkStore = Store::query()->firstOrCreate(["tenant_id" => $lindner->tenant_id, "name" => "Smoke Check Shop"], ["base_url" => "https://check-shop.example", "timezone" => "Europe/Berlin", "default_currency" => "EUR"]);
 $checkStore->forceFill(["verified_at" => now()->subDay(), "status" => "active", "browser_enabled" => true])->save();
 $cs = ["tenant_id" => $checkStore->tenant_id, "store_id" => $checkStore->id];

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Checks\CheckRunController;
 use App\Http\Controllers\Api\V1\Checks\CheckScenarioController;
 use App\Http\Controllers\Api\V1\Incidents\IncidentController;
+use App\Http\Controllers\Api\V1\Overview\OverviewController;
 use App\Http\Controllers\Api\V1\Incidents\SuppressionController;
 use App\Http\Controllers\Api\V1\Ingest\CredentialRotationController;
 use App\Http\Controllers\Api\V1\Ingest\EventsController;
@@ -106,6 +107,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
 
+    Route::get('/overview', [OverviewController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::get('/incidents', [IncidentController::class, 'index'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::incidentRead()));
     Route::get('/incidents/{incident}', [IncidentController::class, 'show'])

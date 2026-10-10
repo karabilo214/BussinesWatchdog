@@ -1375,3 +1375,21 @@ Verification:
 - Backend: SQLite 314 + 4 skipped, PostgreSQL 18 318 passed.
 - Not done: Telegram (P1), deleting a recipient (disable instead), daily digest/reminders. The mobile navigation with five items takes a lot of height; a compact menu is a follow-up.
 
+### Step 63: Dashboard Overview and Mobile Menu (ADR 0018)
+
+Status: complete
+
+Added:
+
+- Backend `GET /api/v1/overview`: active incidents by severity and the 5 latest, verified discrepancies of active money incidents summed by the database per currency and component (never across currencies or kinds), the number of active money incidents without a verified amount, the 5 latest finished checks. Decisions in `docs/adr/0018-overview-discrepancy-totals.md` (for owner review). OpenAPI and catalogue §11 updated.
+- Overview page: verdict banner — "problems found" with active incidents; "no problems found" only when every store has a fresh connector, money reconciling, payment attempts observed and passing checkout checks; otherwise "data incomplete" with the number of stores with gaps. Tiles: active incidents by severity, verified discrepancies per currency and kind labelled "not losses" with the unknown-amount count, last successful checkout check; latest incidents, recent checks, then the store cards.
+- Navigation below 768 px collapses into a "Menu" button with a panel (sections, user, language, sign out); the current section stays highlighted on child pages (store, incident, order, check run) and the panel closes after navigation.
+- Smoke seeds money incidents through the real correlator, checks the verdict and the EUR capture total, and uses the menu at mobile width.
+
+Verification:
+
+- `make frontend-check` green (customer 59 tests: verdict rules, totals never added across kinds, menu behaviour).
+- `make frontend-smoke` 32/32 twice; screenshots inspected.
+- Backend: SQLite 315 + 4 skipped, PostgreSQL 18 319 passed (overview totals checked above 2^53 on both).
+- Limits (ADR 0018): live and test-mode incidents are not separated; a sum above the signed 64-bit range fails on SQLite only.
+

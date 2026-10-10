@@ -9,6 +9,18 @@ const shots = process.env.BW_SMOKE_SCREENSHOTS ?? '/tmp';
 const mailpit = process.env.BW_MAILPIT_URL;
 const steps = [];
 
+/** Main navigation: on narrow screens the links live behind the menu button. */
+async function nav(page, name) {
+  const menu = page.locator('button[aria-controls="mobile-menu"]');
+
+  if (await menu.isVisible()) {
+    if ((await menu.getAttribute('aria-expanded')) !== 'true') await menu.click();
+    await page.locator('#mobile-menu').getByRole('link', { name, exact: true }).click();
+  } else {
+    await page.locator('header').getByRole('link', { name, exact: true }).click();
+  }
+}
+
 /** Texts of the emails Mailpit received for an address, newest first; waits until `until` accepts them. */
 async function mailTexts(address, until, timeoutMs = 30000) {
   const deadline = Date.now() + timeoutMs;
@@ -87,6 +99,12 @@ try {
     await page.screenshot({ path: `${shots}/overview-ru.png`, fullPage: true });
   });
 
+  await step('overview gives a verdict and verified discrepancies per currency and kind', async () => {
+    await page.locator('[data-verdict="problems"]').waitFor();
+    await page.locator('[data-discrepancy="EUR-capture"]', { hasText: '261,00' }).waitFor();
+    await page.locator('[data-tile="incidents"]').getByText('3', { exact: true }).waitFor();
+  });
+
   await step('session survives a reload', async () => {
     await page.reload();
     await page.getByRole('heading', { name: 'Магазины' }).waitFor();
@@ -143,7 +161,7 @@ try {
 
   await step('the incident badge leads to the store incidents', async () => {
     const card = page.locator('article', { hasText: 'Kaffeerösterei Lindner' });
-    await card.getByText('Активных инцидентов: 1').click();
+    await card.getByText(/Активных инцидентов: \d+/).click();
     await page.waitForURL(/\/app\/incidents\?store=/);
     await page.getByRole('heading', { name: 'Инциденты' }).waitFor();
     await page.getByRole('link', { name: 'Оплаты подряд не проходят' }).click();
@@ -172,7 +190,8 @@ try {
     await page.getByRole('button', { name: 'Закрыть инцидент' }).click();
     await page.locator('[data-resolution]').getByText('Smoke: Stripe keys rotated').waitFor();
     await page.getByRole('link', { name: '← Инциденты' }).click();
-    await page.getByRole('heading', { name: 'Активных инцидентов нет' }).waitFor();
+    await page.locator('[data-incident-id]').first().waitFor();
+    if ((await page.getByRole('link', { name: 'Оплаты подряд не проходят' }).count()) !== 0) throw new Error('resolved incident still listed as active');
     await page.getByRole('tab', { name: 'Закрытые' }).click();
     await page.getByRole('link', { name: 'Оплаты подряд не проходят' }).first().waitFor();
     await page.getByRole('link', { name: 'Обзор', exact: true }).click();
@@ -316,7 +335,7 @@ try {
   });
 
   await step('incident page in German at mobile width', async () => {
-    await page.getByRole('link', { name: 'Vorfälle' }).click();
+    await nav(page, 'Vorfälle');
     await page.getByRole('tab', { name: 'Geschlossen' }).click();
     await page.getByRole('link', { name: 'Zahlungen schlagen wiederholt fehl' }).first().click();
     await page.getByRole('heading', { name: 'Was prüfen' }).waitFor();
@@ -326,7 +345,7 @@ try {
   });
 
   await step('order page in German at mobile width', async () => {
-    await page.getByRole('link', { name: 'Abgleich' }).click();
+    await nav(page, 'Abgleich');
     await page.getByRole('link', { name: '#SM-15238' }).click();
     await page.getByRole('heading', { name: 'Bestellung #SM-15238' }).waitFor();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
@@ -335,7 +354,7 @@ try {
   });
 
   await step('checks page in German at mobile width', async () => {
-    await page.getByRole('link', { name: 'Prüfungen' }).click();
+    await nav(page, 'Prüfungen');
     await page.getByRole('heading', { name: 'Checkout-Prüfungen' }).waitFor();
     await page.getByLabel('Shop').selectOption({ label: 'Smoke Check Shop' });
     await page.getByRole('heading', { name: 'Verlauf der Prüfungen' }).waitFor();
@@ -346,15 +365,25 @@ try {
   });
 
   await step('notifications page in German at mobile width', async () => {
-    await page.getByRole('link', { name: 'Benachrichtigungen' }).click();
+    await nav(page, 'Benachrichtigungen');
     await page.getByRole('heading', { name: 'Zustellprotokoll' }).waitFor();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     if (overflow) throw new Error('horizontal scroll on mobile');
     await page.screenshot({ path: `${shots}/notifications-de-mobile.png`, fullPage: true });
   });
 
+  await step('overview in German at mobile width with the menu open', async () => {
+    await nav(page, 'Übersicht');
+    await page.getByRole('heading', { name: 'Übersicht', exact: true }).waitFor();
+    await page.locator('button[aria-controls="mobile-menu"]').click();
+    await page.locator('#mobile-menu').waitFor();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    if (overflow) throw new Error('horizontal scroll on mobile');
+    await page.screenshot({ path: `${shots}/overview-de-mobile-menu.png` });
+  });
+
   await step('sign out ends the session', async () => {
-    await page.getByRole('button', { name: 'Abmelden' }).click();
+    await page.locator('#mobile-menu').getByRole('button', { name: 'Abmelden' }).click();
     await page.waitForURL(/\/app\/login/);
     await page.goto(`${base}/app/overview`);
     await page.waitForURL(/\/app\/login/);

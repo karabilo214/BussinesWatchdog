@@ -9,7 +9,8 @@
     "incidents": "Vorfälle",
     "reconciliation": "Abgleich",
     "checks": "Prüfungen",
-    "notifications": "Benachrichtigungen"
+    "notifications": "Benachrichtigungen",
+    "menu": "Menü"
   },
   "common": {
     "loading": "Wird geladen…",
@@ -44,14 +45,62 @@
     "session_expired": "Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an."
   },
   "overview": {
-    "title": "Shops",
-    "subtitle": "Was der Dienst derzeit für jeden Shop sieht. „Keine Daten“ bedeutet nicht, dass alles in Ordnung ist.",
+    "title": "Übersicht",
+    "subtitle": "Das Wichtigste über alle Shops. „Keine Daten“ heißt nicht, dass alles in Ordnung ist.",
     "empty_title": "Noch keine Shops",
     "empty_body": "Hinzugefügte Shops erscheinen hier mit dem Status von Plugin, Zahlungsabgleich, Zahlungsversuchen und Checkout-Prüfungen.",
     "active_incidents": "Aktive Vorfälle: {n}",
     "no_incidents": "Keine aktiven Vorfälle",
     "last_passed_check": "Letzte erfolgreiche Prüfung: {time}",
-    "add_store": "Shop hinzufügen"
+    "add_store": "Shop hinzufügen",
+    "stores": "Shops",
+    "verdict": {
+      "problems": {
+        "badge": "Probleme gefunden",
+        "title": "Aktive Vorfälle: {n}",
+        "body": "Öffnen Sie die Vorfälle, um Fakten und Prüfhinweise zu sehen."
+      },
+      "incomplete": {
+        "badge": "Daten unvollständig",
+        "title": "Keine Probleme gefunden, aber die Abdeckung ist unvollständig: Shops mit Lücken — {stores}",
+        "body": "Solange nicht alle Quellen verbunden und aktuell sind, kann der Dienst nicht sagen, dass alles in Ordnung ist. Den Zustand jedes Shops sehen Sie unten."
+      },
+      "all_clear": {
+        "badge": "keine Probleme gefunden",
+        "title": "Keine Probleme festgestellt",
+        "body": "Alle Datenquellen sind aktuell, der Abgleich läuft und Checkout-Prüfungen sind erfolgreich."
+      },
+      "no_stores": {
+        "badge": "keine Shops",
+        "title": "Noch keine Shops",
+        "body": "Fügen Sie einen Shop hinzu, um die Überwachung zu starten."
+      }
+    },
+    "tiles": {
+      "incidents": "Aktive Vorfälle",
+      "critical": "kritisch: {n}",
+      "warning": "Warnung: {n}",
+      "info": "Hinweis: {n}",
+      "discrepancies": "Bestätigte Abweichungen",
+      "no_discrepancies": "Keine Abweichungen in aktiven Vorfällen.",
+      "unknown_amounts": "Vorfälle ohne bestätigten Betrag: {n}",
+      "discrepancies_note": "Differenzen aus dem Abgleich, keine Verluste. Währungen und Arten werden nie addiert.",
+      "minor_units": "in kleinsten Einheiten",
+      "last_check": "Letzte erfolgreiche Checkout-Prüfung",
+      "uncovered": "Shops mit unvollständiger Abdeckung: {n}",
+      "all_covered": "Alle Shops werden überwacht."
+    },
+    "component": {
+      "capture": "Abbuchungen",
+      "refund": "Erstattungen",
+      "multiple_captures": "Wiederholte Abbuchungen",
+      "currency_mismatch": "Währung der Abbuchungen",
+      "order_changed": "Änderungen nach der Zahlung",
+      "payment_without_order": "Zahlungen ohne Bestellung"
+    },
+    "latest_incidents": "Neueste aktive Vorfälle",
+    "no_active_incidents": "Keine aktiven Vorfälle.",
+    "recent_checks": "Letzte Prüfungen"
   },
   "store_status": {
     "onboarding": "Einrichtung",

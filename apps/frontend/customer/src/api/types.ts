@@ -467,3 +467,10 @@ export interface NotificationDelivery {
   error_code: string | null;
   created_at: string;
 }
+
+export interface Overview {
+  incidents: { active: number; by_severity: Record<IncidentSeverity, number>; latest: Incident[] };
+  discrepancies: { currency: string; currency_exponent: number | null; component: string; total_minor: string; incident_count: number }[];
+  unknown_amount_incidents: number;
+  recent_checks: CheckRunSummary[];
+}
