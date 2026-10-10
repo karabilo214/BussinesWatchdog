@@ -399,7 +399,10 @@ try {
 
   await step('incident page in German at mobile width', async () => {
     await nav(page, 'Vorfälle');
+    await page.getByRole('heading', { name: 'Vorfälle', exact: true }).waitFor();
     await page.getByRole('tab', { name: 'Geschlossen' }).click();
+    await page.getByRole('tab', { name: 'Geschlossen', selected: true }).waitFor();
+    await page.waitForURL(/tab=resolved/);
     await page.getByRole('link', { name: 'Zahlungen schlagen wiederholt fehl' }).first().click();
     await page.getByRole('heading', { name: 'Was prüfen' }).waitFor();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

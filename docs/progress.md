@@ -1441,7 +1441,7 @@ Added:
 Verification:
 
 - `make frontend-check` green (customer 70 tests).
-- `make frontend-smoke`: 38/38 in one run; in the run before it one step failed and its log was overwritten — not investigated yet, rerun several times before relying on it.
+- `make frontend-smoke`: 38/38. One earlier run failed once at "incident page in German at mobile width"; four reruns did not reproduce it. The step now waits for the Resolved tab to be selected (URL `tab=resolved`) before clicking; seven consecutive runs passed after that.
 - Backend unchanged since Step 65: SQLite 334 + 4 skipped, PostgreSQL 18 338 passed.
 - Not tested with real Stripe (fake API only).
 
