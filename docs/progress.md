@@ -1454,3 +1454,10 @@ Status: done for reading; captures/refunds and the WooCommerce gateway are still
 - Connect → audit sync → processing → re-sync without new events verified on real data (temporary store, removed after the run). Details in ADR 0020.
 - Next for the spike: a real test-card payment, a partial refund and a failed payment (Stripe Dashboard or the WooCommerce Stripe Gateway on the test site) to confirm capture/refund shapes, the order transaction reference and gateway metadata.
 
+### Stripe Compatibility Spike — Part 2 (real payments)
+
+Status: done; only the WooCommerce Stripe Gateway part remains
+
+- Owner's test-mode data: captured payment with a partial refund, two declined payments, an uncaptured authorization, an invoice marked paid. The connector produced captured / failed / failed / authorized / cancelled payments, one capture (500) and one refund (200); no capture for failures, the authorization or the invoice.
+- Exact-reference matching linked the capture to the test order and the refund to the store refund; reconciliation gave capture ok (500 = 500) and refund ok (200 = 200). Re-sync emitted nothing. Temporary data removed. Details in ADR 0020.
+

@@ -29,7 +29,24 @@ Run against the owner's Stripe test-mode restricted key (kept only in the git-ig
 - The owner's test invoice marked **paid** left one PaymentIntent of 2.00 EUR in status `canceled` with no charge — an invoice marked paid outside Stripe moves no money through Stripe. The connector recorded a cancelled payment and **no capture**, which is the intended semantics (a store-side "paid" marker is not capture evidence).
 - Full path verified on real data: connect → audit sync (1 event) → inbox processed → payment projected; a second sync emitted nothing.
 
-## Still needs the compatibility spike, part 2 (real captures/refunds + WooCommerce Stripe Gateway)
+## Spike, part 2 — real captures, refunds, failures and an authorization (2026-10-10)
+
+Test-mode payments created by the owner in the Stripe Dashboard: a 5.00 EUR card payment with a 2.00 EUR partial refund, two declined payments (card 4000 0000 0000 0002), a 5.00 EUR payment with "capture funds later" left uncaptured, and the earlier invoice marked paid. Run on a temporary store with an order of 5.00 EUR whose transaction reference is the PaymentIntent id and a store refund of 2.00 EUR naming the refund id; everything was removed afterwards.
+
+| Stripe | Connector result |
+|---|---|
+| PaymentIntent `succeeded`, charge captured 500 | payment `captured`; capture operation 500 EUR |
+| Refund `succeeded` 200 (partial; charge `refunded: false`, `amount_refunded: 200`) | refund operation 200 EUR, linked to the payment |
+| Two PaymentIntents `requires_payment_method` with failed charges | payments `failed`; no capture |
+| PaymentIntent `requires_capture`, charge `captured: false`, `amount_captured: 0` | payment `authorized`; no capture (authorization is not money received) |
+| Invoice marked paid → PaymentIntent `canceled`, no charge | payment `cancelled`; no capture |
+
+- 7 events, all processed; a second sync emitted nothing.
+- Exact-reference matching linked the capture (500) to the order and the provider refund (200) to the store refund.
+- Reconciliation of the order: `MONEY_CAPTURE_AMOUNT` ok (G = C = 500), `MONEY_REFUND_MISSING` ok (RW = RP = 200).
+- Metadata of Dashboard-created objects is empty, as expected; gateway metadata can only be seen with WooCommerce orders.
+
+## Still needs the compatibility spike, part 3 (WooCommerce Stripe Gateway)
 
 - Which id the gateway stores as the order transaction id (PaymentIntent or charge) in the tested gateway versions — the matcher accepts both, but this must be confirmed.
 - Order metadata written by the gateway (order id, site) for the second matching rule (`verified_metadata`), not implemented yet.
