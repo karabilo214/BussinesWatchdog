@@ -757,6 +757,121 @@ paths:
                   next_cursor: {type: [string, "null"]}
         "401": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/integrations/stripe:
+    post:
+      tags: [Integrations]
+      operationId: connectStripe
+      security:
+        - {UserSession: []}
+      description: "Owner/admin (ADR 0020). Only restricted keys (rk_test_/rk_live_) are accepted; full secret keys answer stripe_secret_key_refused. Read access to payment intents, charges and refunds is probed before anything is stored; the account is read when the key allows it. Secrets are stored encrypted and never returned. Connecting re-queues the store's reconciliation window."
+      parameters:
+        - {name: store_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [restricted_api_key]
+              properties:
+                restricted_api_key: {type: string, maxLength: 255, writeOnly: true}
+                webhook_secret: {type: [string, "null"], maxLength: 255, writeOnly: true}
+                expected_account_id: {type: [string, "null"], pattern: "^acct_[A-Za-z0-9]+$"}
+      responses:
+        "201":
+          description: Connected
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ProviderIntegration"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/integrations/{integration_id}/webhook-secret:
+    put:
+      tags: [Integrations]
+      operationId: setStripeWebhookSecret
+      security:
+        - {UserSession: []}
+      description: Replaces the webhook signing secret (whsec_…); the previous one stops working.
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [webhook_secret], properties: {webhook_secret: {type: string, maxLength: 255, writeOnly: true}}}
+      responses:
+        "200":
+          description: Stored
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ProviderIntegration"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/integrations/{integration_id}/sync:
+    post:
+      tags: [Integrations]
+      operationId: syncProviderIntegration
+      security:
+        - {UserSession: []}
+      description: Runs a bounded delta (default) or audit poll now; twice a minute at most. 502 when Stripe failed (details in integration.health.last_error).
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        content:
+          application/json:
+            schema: {type: object, properties: {kind: {enum: [delta, audit]}}}
+      responses:
+        "200":
+          description: Synchronised
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, emitted, unchanged, complete, integration]
+                properties:
+                  status: {enum: [ok, failed, skipped]}
+                  emitted: {type: integer}
+                  unchanged: {type: integer}
+                  complete: {type: boolean}
+                  error: {type: string}
+                  integration: {$ref: "#/components/schemas/ProviderIntegration"}
+        "502": {description: Stripe request failed}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/webhooks/stripe/{integration_id}:
+    post:
+      tags: [Integrations]
+      operationId: receiveStripeWebhook
+      description: "Called by Stripe. The Stripe-Signature header is verified by the official library over the raw body (tolerance 300 s). Only payment_intent, charge and refund objects are used; they go through the same change-detecting path as polling, so repeats are harmless."
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: Stripe-Signature, in: header, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object}
+      responses:
+        "200":
+          description: Received
+          content:
+            application/json:
+              schema: {type: object, required: [received], properties: {received: {const: true}, emitted: {type: integer}, ignored: {type: string}}}
+        "400": {description: Signature invalid}
+        "404": {description: Unknown integration}
+        "409": {description: No webhook secret configured}
+        "429": {$ref: "#/components/responses/Problem"}
   /api/v1/pairing/exchange:
     post:
       tags: [Pairing]
@@ -2678,6 +2793,12 @@ components:
         invited_by: {type: [string, "null"]}
         expires_at: {type: string, format: date-time}
         created_at: {type: [string, "null"], format: date-time}
+    ProviderIntegration:
+      allOf:
+        - {$ref: "#/components/schemas/Integration"}
+        - type: object
+          properties:
+            webhook_url: {type: string, format: uri, description: Endpoint to register in the Stripe Dashboard.}
     Incident:
       type: object
       required:

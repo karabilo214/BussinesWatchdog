@@ -1411,3 +1411,21 @@ Verification:
 - Backend: SQLite 327 + 4 skipped, PostgreSQL 18 331 passed (account 6 and team 6 new feature tests).
 - Not done: MFA, ownership transfer, several teams per user in the dashboard (create/switch), per-device session list.
 
+### Step 65: Stripe Read-Only Connector — Backend (ADR 0020)
+
+Status: complete for the backend; tested with Stripe-shaped fixtures only (no real Stripe account yet)
+
+Added:
+
+- `POST /stores/{id}/integrations/stripe` (restricted key only, full secret keys refused, read probes for payment intents/charges/refunds, optional account check and expected account, encrypted key and webhook secret, one Stripe integration per store, window re-queued), `PUT /integrations/{id}/webhook-secret`, `POST /integrations/{id}/sync` (delta|audit), `POST /webhooks/stripe/{integration}` (signature checked by the official `stripe/stripe-php` 22.0 library).
+- Mapping: PaymentIntent → `payment.snapshot`; captured charge → capture `transaction.observed`; refund → refund operation; other mode and unconfirmed currencies skipped. Change detection per object (`provider_object_states`) with content-derived event ids — re-syncs and webhook/poll races emit nothing new.
+- Shared `EventIngestor` (plugin ingress and server adapters use the same validation, authority check, idempotency and outbox).
+- Independent-provider operations may change status (pending → succeeded → failed) in observation order with history; operations that arrive before their payment are attached later.
+- `ExactReferenceMatcher`: captures linked to the single order whose transaction reference is the PaymentIntent/charge id; provider refunds linked to the store refund naming them; ambiguity links nothing.
+- `stripe:sync` every 15 min (delta with 60 min overlap, page budget with backlog), `stripe:sync --audit` daily (90 days). A rejected key degrades the integration, stops calls and turns money checks back to unknown.
+
+Verification:
+
+- Backend: SQLite 334 + 4 skipped, PostgreSQL 18 338 passed; 7 new end-to-end tests (connect rules, sync → allocation → reconciliation without discrepancy, refund lifecycle and refund link, rejected key → unknown, skipped mode/currency, webhook signature, page-budget backlog).
+- Not tested with real Stripe: the compatibility spike (Stripe sandbox + WooCommerce Stripe Gateway) is still required — see ADR 0020.
+

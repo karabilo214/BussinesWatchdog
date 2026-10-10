@@ -47,4 +47,15 @@ return [
         'max_per_attempt' => 3,
         'download_ttl_seconds' => 60,
     ],
+
+    'stripe' => [
+        'api_base' => env('WATCHDOG_STRIPE_API_BASE', 'https://api.stripe.com'),
+        'api_version' => '2026-09-30.endive',
+        'timeout_seconds' => 20,
+        'page_size' => 100,
+        'max_pages_per_run' => 20,
+        'delta_overlap_minutes' => 60,
+        'audit_days' => 90,
+        'webhook_tolerance_seconds' => 300,
+    ],
 ];

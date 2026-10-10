@@ -3,6 +3,7 @@
 namespace App\Support\Projections;
 
 use App\Models\EventInbox;
+use App\Models\FinancialTransaction;
 use App\Models\Payment;
 use App\Support\Ingest\EventProjectionResult;
 
@@ -36,7 +37,8 @@ class PaymentSnapshotProjector
         $payloadHash = $event->payload_hash;
 
         if ($payment === null) {
-            Payment::query()->create($this->paymentAttributes($event, $data, $payloadHash, $now));
+            $payment = Payment::query()->create($this->paymentAttributes($event, $data, $payloadHash, $now));
+            $this->linkEarlierTransactions($payment);
 
             return EventProjectionResult::ok();
         }
@@ -57,6 +59,17 @@ class PaymentSnapshotProjector
     /**
      * @param array<string, mixed> $data
      */
+    /** Operations can arrive before their payment; they are attached once the payment exists. */
+    private function linkEarlierTransactions(Payment $payment): void
+    {
+        FinancialTransaction::query()
+            ->where('tenant_id', $payment->tenant_id)
+            ->where('integration_id', $payment->integration_id)
+            ->whereNull('payment_id')
+            ->where('metadata->payment_external_id', $payment->external_id)
+            ->update(['payment_id' => $payment->id]);
+    }
+
     private function isValidPaymentData(array $data): bool
     {
         return in_array($data['mode'] ?? null, ['live', 'test'], true)

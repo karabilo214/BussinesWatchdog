@@ -12,6 +12,10 @@ class IntegrationCredential extends Model
 
     public const KIND_PLUGIN_HMAC = 'plugin_hmac';
 
+    public const KIND_STRIPE_API = 'stripe_api';
+
+    public const KIND_STRIPE_WEBHOOK = 'stripe_webhook';
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_DRAINING = 'draining';

@@ -61,6 +61,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('invitations', fn (Request $request): Limit => Limit::perHour(30)
             ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        RateLimiter::for('provider-sync', fn (Request $request): Limit => Limit::perMinute(2)
+            ->by((string) ($request->route('integration')?->id ?? $request->ip())));
+
+        RateLimiter::for('provider-webhook', fn (Request $request): Limit => Limit::perMinute(600)
+            ->by((string) $request->route('integration')));
+
         RateLimiter::for('auth-signup', fn (Request $request): Limit => Limit::perHour((int) config('watchdog.rate_limits.signup_per_hour'))
             ->by((string) $request->ip()));
     }

@@ -23,6 +23,10 @@ class AuditLog extends Model
 
     public const ACTION_INTEGRATION_PAIRED = 'integration.paired';
 
+    public const ACTION_INTEGRATION_PROVIDER_CONNECTED = 'integration.provider_connected';
+
+    public const ACTION_INTEGRATION_WEBHOOK_SECRET_SET = 'integration.webhook_secret_set';
+
     public const ACTION_INTEGRATION_REVOKED = 'integration.revoked';
 
     public const ACTION_INTEGRATION_PAIRING_FAILED = 'integration.pairing_failed';

@@ -43,11 +43,56 @@ class FinancialTransactionProjector
             return EventProjectionResult::ok();
         }
 
-        if ($transaction->operation_hash !== $operationHash) {
-            return EventProjectionResult::failed(self::ERROR_OPERATION_CONFLICT);
+        if ($transaction->payment_id === null && $payment !== null) {
+            $transaction->forceFill(['payment_id' => $payment->id])->save();
         }
 
-        return EventProjectionResult::ok();
+        if ($transaction->operation_hash === $operationHash) {
+            return EventProjectionResult::ok();
+        }
+
+        return $this->statusTransition($event, $transaction, $data, $operationHash)
+            ? EventProjectionResult::ok()
+            : EventProjectionResult::failed(self::ERROR_OPERATION_CONFLICT);
+    }
+
+    /**
+     * A provider operation keeps its identity (kind, amount, currency, payment) but may change status over its life
+     * (a refund goes pending → succeeded, or later failed). Only that is accepted, in observation order, with history;
+     * any other difference stays a conflict (ADR 0020).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function statusTransition(EventInbox $event, FinancialTransaction $transaction, array $data, string $operationHash): bool
+    {
+        $sameIdentity = $data['source_authority'] === 'independent_provider'
+            && $transaction->source_authority === 'independent_provider'
+            && $transaction->currency === $data['currency']
+            && $transaction->currency_exponent === $data['currency_exponent']
+            && (string) $transaction->amount_minor === $data['amount_minor']
+            && ($transaction->metadata['payment_external_id'] ?? null) === ($data['payment_external_id'] ?? null);
+
+        if (! $sameIdentity) {
+            return false;
+        }
+
+        $metadata = $transaction->metadata ?? [];
+        $observedAt = $event->observed_at->toJSON();
+
+        if (isset($metadata['status_observed_at']) && strcmp($observedAt, (string) $metadata['status_observed_at']) < 0) {
+            return true;
+        }
+
+        $metadata['status_history'] = [...($metadata['status_history'] ?? []), ['from' => $transaction->status, 'to' => $data['status'], 'observed_at' => $observedAt, 'event_id' => $event->id]];
+        $metadata['status_observed_at'] = $observedAt;
+
+        $transaction->forceFill([
+            'status' => $data['status'],
+            'operation_hash' => $operationHash,
+            'metadata' => $metadata,
+        ])->save();
+
+        return true;
     }
 
     /**
@@ -106,7 +151,10 @@ class FinancialTransactionProjector
             'source_event_id' => $event->id,
             'source_authority' => $data['source_authority'],
             'operation_hash' => $operationHash,
-            'metadata' => [],
+            'metadata' => array_filter([
+                'payment_external_id' => $data['payment_external_id'] ?? null,
+                'status_observed_at' => $event->observed_at?->toJSON(),
+            ], fn (mixed $value): bool => $value !== null),
             'created_at' => now(),
         ];
     }

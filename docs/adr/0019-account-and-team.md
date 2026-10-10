@@ -2,7 +2,7 @@
 
 Date: 2026-10-10
 
-Status: implemented in Step 64; shown to the owner for review.
+Status: implemented in Step 64; accepted by the owner on 2026-10-10.
 
 ## Decisions
 

@@ -3,6 +3,7 @@
 namespace App\Support\Ingest;
 
 use App\Models\EventInbox;
+use App\Support\Payments\ExactReferenceMatcher;
 use App\Support\Projections\FinancialTransactionProjector;
 use App\Support\Projections\OrderDeletedProjector;
 use App\Support\Projections\OrderSnapshotProjector;
@@ -24,6 +25,7 @@ class EventInboxProcessor
         private readonly FinancialTransactionProjector $financialTransactionProjector,
         private readonly PaymentAttemptsProjector $paymentAttemptsProjector,
         private readonly EventDirtyMarker $dirtyMarker,
+        private readonly ExactReferenceMatcher $matcher,
     ) {}
 
     public function processReceived(string $eventInboxId): bool
@@ -73,6 +75,7 @@ class EventInboxProcessor
                 return false;
             }
 
+            $this->matcher->matchForEvent($event);
             $this->dirtyMarker->markForEvent($event);
 
             $event->forceFill([
