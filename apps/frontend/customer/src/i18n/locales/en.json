@@ -6,7 +6,8 @@
   "nav": {
     "main": "Main navigation",
     "overview": "Overview",
-    "incidents": "Incidents"
+    "incidents": "Incidents",
+    "reconciliation": "Reconciliation"
   },
   "common": {
     "loading": "Loading…",
@@ -207,7 +208,17 @@
     "incident_resolved_cannot_acknowledge": "The incident is already resolved; no need to acknowledge it.",
     "suppression_already_revoked": "The snooze has already been lifted.",
     "suppression_window_invalid": "The end time must be in the future.",
-    "suppression_window_too_long": "You can snooze for at most 30 days."
+    "suppression_window_too_long": "You can snooze for at most 30 days.",
+    "allocation_scope_mismatch": "The payment and the order belong to different stores or modes.",
+    "allocation_capture_invalid": "This capture cannot be matched.",
+    "allocation_refund_invalid": "This provider refund cannot be linked.",
+    "allocation_currency_mismatch": "The payment currency differs from the order currency.",
+    "allocation_amount_exceeds_capture": "The amount exceeds what is left unmatched on the capture. It may have been matched already — reload the page.",
+    "allocation_amount_exceeds_refund": "The amount exceeds what is left unlinked on the refund.",
+    "allocation_already_revoked": "The link has already been revoked.",
+    "allocation_has_active_refund_allocations": "Revoke the refunds linked to this payment first.",
+    "allocation_order_mismatch": "The refund belongs to a different order.",
+    "allocation_source_not_independent": "Only payment provider data can be matched, not store markers."
   },
   "incidents": {
     "title": "Incidents",
@@ -416,5 +427,136 @@
         "suppressed": "Notifications snoozed"
       }
     }
+  },
+  "reconciliation": {
+    "title": "Money reconciliation",
+    "subtitle": "Compares what the store considers paid and refunded with the payment provider's data. The store's “paid” marker alone does not prove a capture.",
+    "no_stores": "Add a store first.",
+    "tab": {
+      "findings": "Discrepancies",
+      "unmatched": "Payments without an order"
+    },
+    "scan": "Find payments without an order",
+    "scan_done": "Search done, data updated.",
+    "status_column": "Result",
+    "status": {
+      "ok": "matches",
+      "mismatch": "discrepancy",
+      "pending": "awaiting data",
+      "unsupported": "not supported",
+      "unknown": "unknown"
+    },
+    "coverage": {
+      "provider_not_connected": "Without a connected payment provider, captures and refunds are not visible, so every reconciliation result is “unknown”, not “all fine”.",
+      "store_not_connected": "The store plugin is not connected: the service cannot see orders.",
+      "store_data_stale": "Store data is stale: until the plugin sends fresh data, reconciliation results are undetermined."
+    },
+    "filter": {
+      "view": "Show",
+      "current": "Current state",
+      "history": "All checks",
+      "current_note": "The latest result for each order.",
+      "history_note": "Every result of every check, newest first.",
+      "status": "Result",
+      "rule": "Check",
+      "all": "All",
+      "from": "From",
+      "to": "To"
+    },
+    "empty": "Nothing found for these filters.",
+    "empty_unknown": "No results. Without a connected provider this does not mean there are no discrepancies.",
+    "reason": "Reason (kept in the audit log)",
+    "unmatched": {
+      "subtitle": "Provider captures that could not be matched to an order. A matching payment reference is a strong hint; amount and time alone are only a reason to check manually.",
+      "empty": "No unmatched payments.",
+      "captured_at": "captured {time}",
+      "test_mode": "test mode",
+      "reason": {
+        "no_candidate_found": "no order found",
+        "review_required": "needs review"
+      },
+      "confidence": {
+        "exact_candidate": "payment reference matches",
+        "manual_review": "only the amount matches — check manually"
+      },
+      "no_candidates": "No matching orders found. Check the payment in the provider dashboard.",
+      "link": "Match",
+      "link_warning": "The whole capture will count towards this order. The action is logged and can be revoked on the order page.",
+      "link_confirm": "Match to order",
+      "linked": "Payment matched. The order is reconciled again automatically."
+    },
+    "rule": {
+      "MONEY_CAPTURE_MISSING": "Capture for a paid order",
+      "MONEY_CAPTURE_AMOUNT": "Capture amount",
+      "MONEY_MULTIPLE_CAPTURES": "Repeated captures",
+      "MONEY_CURRENCY_MISMATCH": "Capture currency",
+      "MONEY_ORDER_CHANGED": "Order changes after payment",
+      "MONEY_REFUND_MISSING": "Store refunds at the provider",
+      "MONEY_REFUND_EXTRA": "Provider refunds in the store",
+      "MONEY_PAYMENT_WITHOUT_ORDER": "Payment without an order",
+      "MONEY_UNSUPPORTED": "Reconciliation possible"
+    }
+  },
+  "order": {
+    "title": "Order {number}",
+    "status": "store status: {status}",
+    "test_mode": "test mode",
+    "synthetic": "check order",
+    "money_title": "Order money",
+    "gross": "Order total",
+    "captured": "Captured at provider",
+    "refund_expected": "Refunds in store",
+    "refund_actual": "Refunds at provider",
+    "paid_marked": "Marked paid in store:",
+    "not_marked": "no",
+    "gateway": "Payment method:",
+    "transaction_ref": "Payment reference:",
+    "support": "Reconciliation:",
+    "financial_support": {
+      "supported": "supported",
+      "unsupported": "not supported for this payment method",
+      "unknown": "unknown"
+    },
+    "paid_marker_note": "The “paid” marker comes from the store and does not prove a capture by itself. Provider amounts are from the latest reconciliation.",
+    "findings_title": "Latest reconciliation",
+    "recheck": "Reconcile order",
+    "no_findings": "The order has not been reconciled yet.",
+    "captures_title": "Captures counted for the order",
+    "no_allocations": "No provider capture is matched to this order.",
+    "strategy": {
+      "exact_reference": "by payment reference",
+      "verified_metadata": "by payment metadata",
+      "manual": "manually"
+    },
+    "revoked": "revoked {time}",
+    "linked_at": "matched {time}",
+    "revoke": "Revoke link",
+    "revoke_confirm": "Revoke link",
+    "revoke_capture_warning": "The capture will no longer count towards this order and the order is reconciled again. A revoked link cannot be restored, only created again.",
+    "revoke_refund_warning": "The provider refund will no longer count towards this store refund and the order is reconciled again.",
+    "refunds_title": "Refunds",
+    "store_refunds": "Refunds in store",
+    "provider_refunds": "Refunds at provider",
+    "refund_status": {
+      "requested": "requested",
+      "recorded": "recorded",
+      "cancelled": "cancelled",
+      "deleted": "deleted"
+    },
+    "transaction_status": {
+      "pending": "pending",
+      "succeeded": "succeeded",
+      "failed": "failed",
+      "cancelled": "cancelled"
+    },
+    "none": "None.",
+    "refund_links": "Refund links",
+    "link_refund": "Link refund manually",
+    "link_refund_warning": "The provider refund will count towards the chosen store refund. The action is logged.",
+    "link_amount": "Will be linked: {amount}",
+    "nothing_to_link": "The chosen refunds are already fully linked.",
+    "link_refund_confirm": "Link",
+    "revisions_title": "Order change history",
+    "revision": "Version {n}"
   }
 }

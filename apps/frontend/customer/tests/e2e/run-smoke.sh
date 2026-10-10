@@ -27,13 +27,20 @@ if (! User::query()->where("email", "smoke@example.test")->exists()) {
     Integration::query()->create(["tenant_id" => $t->id, "store_id" => $s->id, "provider" => "woocommerce", "install_id" => Str::uuid(), "mode" => "live", "source_authority" => "store_reported", "status" => "active", "capabilities" => [], "connector_version" => "0.6.0", "health" => ["freshness" => ["state" => "fresh"]], "last_heartbeat_at" => now()]);
 }
 $lindner = Store::query()->where("name", "Kaffeerösterei Lindner")->firstOrFail();
-$smokeSignals = DB::table("signals")->where("tenant_id", $lindner->tenant_id)->where("dedupe_key", "like", "smoke-%")->pluck("id");
-$smokeIncidents = DB::table("incident_signals")->whereIn("signal_id", $smokeSignals)->pluck("incident_id");
-DB::table("incident_activity")->whereIn("incident_id", $smokeIncidents)->delete();
-DB::table("suppressions")->whereIn("incident_id", $smokeIncidents)->delete();
-DB::table("incident_signals")->whereIn("incident_id", $smokeIncidents)->delete();
-DB::table("incidents")->whereIn("id", $smokeIncidents)->delete();
-DB::table("signals")->whereIn("id", $smokeSignals)->delete();
+$scope = ["tenant_id" => $lindner->tenant_id, "store_id" => $lindner->id];
+foreach (["incident_activity", "suppressions", "incident_signals", "incidents", "signals", "reconciliation_dirty_subjects", "refund_allocations", "payment_allocations", "reconciliation_findings", "reconciliation_runs", "financial_transactions", "payments"] as $table) {
+    DB::table($table)->where($scope)->delete();
+}
+DB::table("orders")->where($scope)->where("display_number", "like", "#SM-%")->delete();
+$woo = Integration::query()->where($scope)->where("provider", "woocommerce")->firstOrFail();
+$stripe = Integration::query()->firstOrCreate($scope + ["provider" => "stripe"], ["install_id" => Str::uuid(), "mode" => "live", "source_authority" => "independent_provider", "status" => "active", "capabilities" => [], "connector_version" => "1.0.0", "health" => []]);
+$smokeOrder = fn (string $number, int $total, string $ref) => App\Models\Order::query()->create($scope + ["integration_id" => $woo->id, "external_id" => (string) Str::uuid(), "display_number" => $number, "source_revision" => 1, "status" => "processing", "gateway" => "stripe", "mode" => "live", "currency" => "EUR", "currency_exponent" => 2, "total_minor" => $total, "payment_expected" => true, "paid_marked_at" => now()->subHours(2), "transaction_ref" => $ref, "financial_support" => "supported", "is_synthetic" => false, "source_created_at" => now()->subHours(2), "source_updated_at" => now()->subHours(2), "current_payload_hash" => hash("sha256", (string) Str::uuid()), "metadata" => [], "created_at" => now(), "updated_at" => now()]);
+$missing = $smokeOrder("#SM-15238", 18400, "pi_smoke_missing");
+$candidate = $smokeOrder("#SM-2002", 7700, "pi_smoke_other");
+$payment = App\Models\Payment::query()->create($scope + ["integration_id" => $stripe->id, "external_id" => (string) Str::uuid(), "intent_ref" => "pi_smoke_unmatched", "charge_ref" => "ch_smoke_unmatched", "mode" => "live", "currency" => "EUR", "currency_exponent" => 2, "status" => "captured", "source_authority" => "independent_provider", "source_updated_at" => now()->subHour(), "current_payload_hash" => hash("sha256", (string) Str::uuid()), "metadata" => [], "created_at" => now()->subHour(), "updated_at" => now()->subHour()]);
+App\Models\FinancialTransaction::query()->create($scope + ["integration_id" => $stripe->id, "payment_id" => $payment->id, "external_operation_id" => "ch_smoke_unmatched", "kind" => "capture", "status" => "succeeded", "currency" => "EUR", "currency_exponent" => 2, "amount_minor" => 7700, "occurred_at" => now()->subHour(), "source_authority" => "independent_provider", "operation_hash" => hash("sha256", (string) Str::uuid()), "metadata" => [], "created_at" => now()]);
+app(App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($missing);
+app(App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($candidate);
 $incident = App\Models\Incident::query()->create(["tenant_id" => $lindner->tenant_id, "store_id" => $lindner->id, "family" => "checkout_payment", "component" => "payment_method:stripe", "fingerprint" => "smoke-".Str::uuid(), "state" => "open", "severity" => "warning", "title_code" => "CHECKOUT_PAYMENTS_FAILING", "first_seen_at" => now()->subMinutes(20), "last_seen_at" => now()->subMinutes(5), "first_bad_at" => now()->subMinutes(20), "last_good_at" => now()->subHours(2), "revision" => 1, "created_at" => now()->subMinutes(20), "updated_at" => now()->subMinutes(5)]);
 $signal = App\Models\Signal::query()->forceCreate(["id" => Str::uuid7(), "tenant_id" => $lindner->tenant_id, "store_id" => $lindner->id, "signal_type" => "payment_attempts", "family" => "checkout_payment", "component" => "CHECKOUT_PAYMENTS_FAILING", "dedupe_key" => "smoke-".Str::uuid(), "severity" => "warning", "confidence" => "observed", "rule_version" => "1", "config_version" => 1, "evidence" => ["payment_method" => "stripe", "failure_streak" => 4, "threshold" => 3, "failure_classes" => ["declined" => 4], "last_success_at" => now()->subHours(2)->toJSON()], "data_quality" => ["source" => "store_reported_checkout"], "detected_at" => now()->subMinutes(5)]);
 App\Models\IncidentSignal::query()->create(["tenant_id" => $lindner->tenant_id, "store_id" => $lindner->id, "incident_id" => $incident->id, "signal_id" => $signal->id, "association_reason" => "smoke", "linked_at" => now()]);

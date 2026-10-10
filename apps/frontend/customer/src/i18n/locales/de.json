@@ -6,7 +6,8 @@
   "nav": {
     "main": "Hauptnavigation",
     "overview": "Übersicht",
-    "incidents": "Vorfälle"
+    "incidents": "Vorfälle",
+    "reconciliation": "Abgleich"
   },
   "common": {
     "loading": "Wird geladen…",
@@ -207,7 +208,17 @@
     "incident_resolved_cannot_acknowledge": "Der Vorfall ist bereits geschlossen und muss nicht bestätigt werden.",
     "suppression_already_revoked": "Die Stummschaltung wurde bereits aufgehoben.",
     "suppression_window_invalid": "Das Ende muss in der Zukunft liegen.",
-    "suppression_window_too_long": "Stummschalten ist höchstens für 30 Tage möglich."
+    "suppression_window_too_long": "Stummschalten ist höchstens für 30 Tage möglich.",
+    "allocation_scope_mismatch": "Zahlung und Bestellung gehören zu verschiedenen Shops oder Modi.",
+    "allocation_capture_invalid": "Diese Abbuchung kann nicht zugeordnet werden.",
+    "allocation_refund_invalid": "Diese Erstattung des Anbieters kann nicht verknüpft werden.",
+    "allocation_currency_mismatch": "Die Währung der Zahlung weicht von der Bestellwährung ab.",
+    "allocation_amount_exceeds_capture": "Der Betrag übersteigt den noch nicht zugeordneten Teil der Abbuchung. Eventuell wurde sie bereits zugeordnet – Seite neu laden.",
+    "allocation_amount_exceeds_refund": "Der Betrag übersteigt den noch nicht verknüpften Teil der Erstattung.",
+    "allocation_already_revoked": "Die Verknüpfung wurde bereits aufgehoben.",
+    "allocation_has_active_refund_allocations": "Heben Sie zuerst die mit dieser Zahlung verknüpften Erstattungen auf.",
+    "allocation_order_mismatch": "Die Erstattung gehört zu einer anderen Bestellung.",
+    "allocation_source_not_independent": "Zugeordnet werden können nur Daten des Zahlungsanbieters, keine Shop-Markierungen."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -416,5 +427,136 @@
         "suppressed": "Benachrichtigungen stumm"
       }
     }
+  },
+  "reconciliation": {
+    "title": "Geldabgleich",
+    "subtitle": "Vergleicht, was der Shop als bezahlt und erstattet ansieht, mit den Daten des Zahlungsanbieters. Die Shop-Markierung „bezahlt“ allein beweist keine Abbuchung.",
+    "no_stores": "Fügen Sie zuerst einen Shop hinzu.",
+    "tab": {
+      "findings": "Abweichungen",
+      "unmatched": "Zahlungen ohne Bestellung"
+    },
+    "scan": "Zahlungen ohne Bestellung suchen",
+    "scan_done": "Suche ausgeführt, Daten aktualisiert.",
+    "status_column": "Ergebnis",
+    "status": {
+      "ok": "stimmt",
+      "mismatch": "Abweichung",
+      "pending": "wartet auf Daten",
+      "unsupported": "nicht unterstützt",
+      "unknown": "unbekannt"
+    },
+    "coverage": {
+      "provider_not_connected": "Ohne verbundenen Zahlungsanbieter sind Abbuchungen und Erstattungen nicht sichtbar; alle Abgleichsergebnisse sind daher „unbekannt“, nicht „alles in Ordnung“.",
+      "store_not_connected": "Das Shop-Plugin ist nicht verbunden: Der Dienst sieht keine Bestellungen.",
+      "store_data_stale": "Die Shop-Daten sind veraltet: Bis das Plugin frische Daten sendet, sind die Abgleichsergebnisse unbestimmt."
+    },
+    "filter": {
+      "view": "Anzeigen",
+      "current": "Aktueller Stand",
+      "history": "Alle Prüfungen",
+      "current_note": "Das jeweils letzte Ergebnis pro Bestellung.",
+      "history_note": "Alle Ergebnisse aller Prüfungen, neueste zuerst.",
+      "status": "Ergebnis",
+      "rule": "Prüfung",
+      "all": "Alle",
+      "from": "Von",
+      "to": "Bis"
+    },
+    "empty": "Für diese Filter wurde nichts gefunden.",
+    "empty_unknown": "Keine Ergebnisse. Ohne verbundenen Anbieter heißt das nicht, dass es keine Abweichungen gibt.",
+    "reason": "Grund (wird im Protokoll gespeichert)",
+    "unmatched": {
+      "subtitle": "Abbuchungen beim Anbieter, die keiner Bestellung zugeordnet werden konnten. Eine passende Zahlungsreferenz ist ein starker Hinweis; Betrag und Zeit allein sind nur Anlass für eine manuelle Prüfung.",
+      "empty": "Keine nicht zugeordneten Zahlungen.",
+      "captured_at": "abgebucht {time}",
+      "test_mode": "Testmodus",
+      "reason": {
+        "no_candidate_found": "keine Bestellung gefunden",
+        "review_required": "Prüfung nötig"
+      },
+      "confidence": {
+        "exact_candidate": "Zahlungsreferenz stimmt überein",
+        "manual_review": "nur der Betrag stimmt – manuell prüfen"
+      },
+      "no_candidates": "Keine passenden Bestellungen gefunden. Prüfen Sie die Zahlung im Anbieter-Dashboard.",
+      "link": "Zuordnen",
+      "link_warning": "Die gesamte Abbuchung wird dieser Bestellung angerechnet. Die Aktion wird protokolliert und kann auf der Bestellseite aufgehoben werden.",
+      "link_confirm": "Der Bestellung zuordnen",
+      "linked": "Zahlung zugeordnet. Die Bestellung wird automatisch neu abgeglichen."
+    },
+    "rule": {
+      "MONEY_CAPTURE_MISSING": "Abbuchung für bezahlte Bestellung",
+      "MONEY_CAPTURE_AMOUNT": "Abbuchungsbetrag",
+      "MONEY_MULTIPLE_CAPTURES": "Wiederholte Abbuchungen",
+      "MONEY_CURRENCY_MISMATCH": "Währung der Abbuchung",
+      "MONEY_ORDER_CHANGED": "Änderungen nach der Zahlung",
+      "MONEY_REFUND_MISSING": "Shop-Erstattungen beim Anbieter",
+      "MONEY_REFUND_EXTRA": "Anbieter-Erstattungen im Shop",
+      "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung ohne Bestellung",
+      "MONEY_UNSUPPORTED": "Abgleich möglich"
+    }
+  },
+  "order": {
+    "title": "Bestellung {number}",
+    "status": "Status im Shop: {status}",
+    "test_mode": "Testmodus",
+    "synthetic": "Prüfbestellung",
+    "money_title": "Geld der Bestellung",
+    "gross": "Bestellsumme",
+    "captured": "Beim Anbieter abgebucht",
+    "refund_expected": "Erstattungen im Shop",
+    "refund_actual": "Erstattungen beim Anbieter",
+    "paid_marked": "Im Shop als bezahlt markiert:",
+    "not_marked": "nein",
+    "gateway": "Zahlungsart:",
+    "transaction_ref": "Zahlungsreferenz:",
+    "support": "Abgleich:",
+    "financial_support": {
+      "supported": "unterstützt",
+      "unsupported": "für diese Zahlungsart nicht unterstützt",
+      "unknown": "unbekannt"
+    },
+    "paid_marker_note": "Die Markierung „bezahlt“ kommt vom Shop und beweist allein keine Abbuchung. Anbieterbeträge stammen aus dem letzten Abgleich.",
+    "findings_title": "Letzter Abgleich",
+    "recheck": "Bestellung abgleichen",
+    "no_findings": "Die Bestellung wurde noch nicht abgeglichen.",
+    "captures_title": "Der Bestellung angerechnete Abbuchungen",
+    "no_allocations": "Keine Abbuchung des Anbieters ist dieser Bestellung zugeordnet.",
+    "strategy": {
+      "exact_reference": "per Zahlungsreferenz",
+      "verified_metadata": "per Zahlungsmetadaten",
+      "manual": "manuell"
+    },
+    "revoked": "aufgehoben {time}",
+    "linked_at": "zugeordnet {time}",
+    "revoke": "Verknüpfung aufheben",
+    "revoke_confirm": "Verknüpfung aufheben",
+    "revoke_capture_warning": "Die Abbuchung wird dieser Bestellung nicht mehr angerechnet und die Bestellung neu abgeglichen. Eine aufgehobene Verknüpfung kann nicht wiederhergestellt, nur neu angelegt werden.",
+    "revoke_refund_warning": "Die Erstattung des Anbieters wird dieser Shop-Erstattung nicht mehr angerechnet und die Bestellung neu abgeglichen.",
+    "refunds_title": "Erstattungen",
+    "store_refunds": "Erstattungen im Shop",
+    "provider_refunds": "Erstattungen beim Anbieter",
+    "refund_status": {
+      "requested": "angefordert",
+      "recorded": "gebucht",
+      "cancelled": "storniert",
+      "deleted": "gelöscht"
+    },
+    "transaction_status": {
+      "pending": "in Bearbeitung",
+      "succeeded": "ausgeführt",
+      "failed": "fehlgeschlagen",
+      "cancelled": "storniert"
+    },
+    "none": "Keine.",
+    "refund_links": "Verknüpfte Erstattungen",
+    "link_refund": "Erstattung manuell verknüpfen",
+    "link_refund_warning": "Die Erstattung des Anbieters wird der gewählten Shop-Erstattung angerechnet. Die Aktion wird protokolliert.",
+    "link_amount": "Wird verknüpft: {amount}",
+    "nothing_to_link": "Die gewählten Erstattungen sind bereits vollständig verknüpft.",
+    "link_refund_confirm": "Verknüpfen",
+    "revisions_title": "Änderungsverlauf der Bestellung",
+    "revision": "Version {n}"
   }
 }

@@ -13,6 +13,7 @@ const step = async (name, run) => {
     steps.push(`ok   ${name}`);
   } catch (error) {
     steps.push(`FAIL ${name}: ${String(error.message).split('\n')[0]}`);
+    await page.screenshot({ path: `${shots}/failure.png`, fullPage: true }).catch(() => undefined);
     throw error;
   }
 };
@@ -62,7 +63,7 @@ try {
     await card.waitFor();
     const tone = (part) => card.locator(`[data-coverage="${part}"] [data-tone]`).getAttribute('data-tone');
     if ((await tone('connector')) !== 'ok') throw new Error('connector should be ok');
-    if ((await tone('money')) !== 'unknown') throw new Error('money should be unknown without a provider');
+    if ((await tone('money')) !== 'ok') throw new Error('money should be reconciling with the seeded provider');
     if ((await tone('browser_checks')) !== 'unknown') throw new Error('unverified store checks should be unknown');
     await page.screenshot({ path: `${shots}/overview-ru.png`, fullPage: true });
   });
@@ -159,6 +160,43 @@ try {
     await page.getByRole('heading', { name: 'Магазины' }).waitFor();
   });
 
+  await step('reconciliation lists store-reported paid orders without a capture', async () => {
+    await page.getByRole('link', { name: 'Сверка', exact: true }).click();
+    await page.getByRole('heading', { name: 'Сверка денег' }).waitFor();
+    if ((await page.locator('[data-coverage-warning]').count()) !== 0) throw new Error('coverage warning with a connected provider');
+    const row = page.locator('tr', { hasText: '#SM-15238' });
+    await row.getByText('Списание по оплаченному заказу').waitFor();
+    await row.getByText('расхождение').waitFor();
+    await page.screenshot({ path: `${shots}/reconciliation-ru.png`, fullPage: true });
+  });
+
+  await step('an unmatched capture is matched to an order with a reason', async () => {
+    await page.getByRole('tab', { name: 'Платежи без заказа' }).click();
+    const item = page.locator('[data-capture-id]', { hasText: 'ch_smoke_unmatched' });
+    await item.getByText(/77,00/).first().waitFor();
+    await item.getByRole('button', { name: 'Сопоставить', exact: true }).click();
+    await item.locator('textarea').fill('Smoke: customer confirmed the payment');
+    await item.getByRole('button', { name: 'Сопоставить с заказом' }).click();
+    await page.getByText('Платёж сопоставлен').waitFor();
+  });
+
+  await step('the order reconciles again and the link can be revoked', async () => {
+    await page.getByRole('tab', { name: 'Расхождения' }).click();
+    await page.getByRole('link', { name: '#SM-2002' }).click();
+    await page.getByRole('heading', { name: 'Заказ #SM-2002' }).waitFor();
+    await page.getByRole('button', { name: 'Пересверить заказ' }).click();
+    await page.locator('[data-captured]', { hasText: '77,00' }).waitFor();
+    await page.locator('[data-panel="order-captures"]').getByText('вручную').waitFor();
+    await page.getByRole('table').getByText('совпадает').first().waitFor();
+    await page.screenshot({ path: `${shots}/order-ru.png`, fullPage: true });
+    await page.getByRole('button', { name: 'Отменить связь' }).click();
+    await page.getByLabel('Причина (видна в журнале)').fill('Smoke: matched by mistake');
+    await page.getByRole('button', { name: 'Отменить связь' }).click();
+    await page.locator('[data-panel="order-captures"]').getByText(/отменено/).waitFor();
+    await page.getByRole('link', { name: 'Обзор', exact: true }).click();
+    await page.getByRole('heading', { name: 'Магазины' }).waitFor();
+  });
+
   await step('language switch to German', async () => {
     await page.getByRole('combobox').first().selectOption('de');
     await page.getByRole('heading', { name: 'Shops' }).waitFor();
@@ -182,6 +220,15 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     if (overflow) throw new Error('horizontal scroll on mobile');
     await page.screenshot({ path: `${shots}/incident-de-mobile.png`, fullPage: true });
+  });
+
+  await step('order page in German at mobile width', async () => {
+    await page.getByRole('link', { name: 'Abgleich' }).click();
+    await page.getByRole('link', { name: '#SM-15238' }).click();
+    await page.getByRole('heading', { name: 'Bestellung #SM-15238' }).waitFor();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    if (overflow) throw new Error('horizontal scroll on mobile');
+    await page.screenshot({ path: `${shots}/order-de-mobile.png`, fullPage: true });
   });
 
   await step('sign out ends the session', async () => {

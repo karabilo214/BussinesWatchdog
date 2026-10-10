@@ -39,7 +39,12 @@ class UnmatchedPaymentApiTest extends TestCase
             ->assertJsonPath('data.0.reason', 'review_required')
             ->assertJsonCount(1, 'data.0.candidates')
             ->assertJsonPath('data.0.candidates.0.order_id', $order->id)
-            ->assertJsonPath('data.0.candidates.0.confidence', 'exact_candidate');
+            ->assertJsonPath('data.0.candidates.0.confidence', 'exact_candidate')
+            ->assertJsonPath('data.0.candidates.0.display_number', '#2001')
+            ->assertJsonPath('data.0.candidates.0.currency_exponent', 2)
+            ->assertJsonPath('data.0.currency_exponent', $capture->currency_exponent)
+            ->assertJsonPath('data.0.external_operation_id', $capture->external_operation_id)
+            ->assertJsonPath('data.0.amount_minor', '18400');
     }
 
     public function test_it_suggests_manual_review_candidates_by_amount_when_no_reference_matches(): void

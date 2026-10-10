@@ -70,3 +70,22 @@ describe('api client', () => {
     expect(handler).toHaveBeenCalledOnce();
   });
 });
+
+describe('newIdempotencyKey', () => {
+  it('produces a v4 UUID also outside a secure context', async () => {
+    const { newIdempotencyKey } = await import('@bw/api-client');
+    const original = globalThis.isSecureContext;
+    Object.defineProperty(globalThis, 'isSecureContext', { value: false, configurable: true });
+
+    try {
+      const keys = new Set(Array.from({ length: 50 }, () => newIdempotencyKey()));
+
+      expect(keys.size).toBe(50);
+      for (const key of keys) {
+        expect(key).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      }
+    } finally {
+      Object.defineProperty(globalThis, 'isSecureContext', { value: original, configurable: true });
+    }
+  });
+});

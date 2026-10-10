@@ -1317,3 +1317,23 @@ Verification:
 - Backend: SQLite 311 + 4 skipped, PostgreSQL 18 315 passed.
 - Not tested in the browser: money incidents with findings and the check screenshot (covered by unit and API tests only; the smoke incident is a seeded payment-attempts incident).
 
+### Step 60: Dashboard Reconciliation Screens
+
+Status: complete
+
+Added:
+
+- Customer app `/app/reconciliation`: store picker, coverage warning when money cannot be reconciled (no provider / store not connected / stale data — results are "unknown", not "fine"), Discrepancies tab (current state by default or full history; filters result, check, currency, date range, all kept in the URL; neutral check names, order links, expected/found/difference) and Payments-without-an-order tab (provider captures with the provider operation ID, candidates with their confidence, manual match of the whole capture with a reason), store-wide "find payments without an order".
+- `/app/orders/:id`: order total, captured at provider, refunds in store and at provider kept separate (unknown stays unknown), store "paid" marker shown as a store claim, latest reconciliation with "reconcile order", captures counted for the order with revoke (reason), store and provider refunds, refund links with revoke and a manual refund link (amount = the smaller unlinked remainder, BigInt arithmetic), order revisions.
+- Incident evidence reuses the findings table and links orders.
+- `newIdempotencyKey` falls back to `crypto.getRandomValues` outside secure contexts (found by the smoke over plain HTTP: every Idempotency-Key mutation failed in the browser before reaching the API).
+- Backend: findings newest first (the contract said so, the code returned oldest first) with `order_display_number` and `current=1`; unmatched payments carry `external_operation_id`, `currency_exponent`, candidate `display_number`/`currency_exponent`; order detail findings come from the latest run only and `refund_transactions` include unlinked provider refunds of the payments allocated to the order. OpenAPI and catalogue §11 updated.
+- Smoke seeds a provider, a paid order without a capture and an unmatched capture; failed smoke steps now save `failure.png`.
+
+Verification:
+
+- `make frontend-check` green (customer 39 tests).
+- `make frontend-smoke` 21/21, run twice: discrepancy list, manual match, order recheck shows the capture and "matches", revoke with a reason, German mobile order page; screenshots inspected.
+- Backend: SQLite 313 + 4 skipped, PostgreSQL 18 317 passed.
+- Not done: CSV export (no export API yet), per-currency discrepancy totals, partial amounts for manual matches (the UI links whole captures / the full unlinked refund remainder). Tested with seeded data only, not a real Stripe account.
+

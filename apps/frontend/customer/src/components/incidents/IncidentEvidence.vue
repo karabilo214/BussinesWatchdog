@@ -4,13 +4,12 @@ import { useI18n } from 'vue-i18n';
 import { artifactLink, getCheckRun } from '@/api/incidents';
 import type { IncidentDetail, Signal } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import FindingsTable from '@/components/reconciliation/FindingsTable.vue';
 import { useFormat } from '@/composables/useFormat';
-import { useIncidentText } from './useIncidentText';
 
 const props = defineProps<{ incident: IncidentDetail }>();
 const { t, te } = useI18n();
 const { dateTime } = useFormat();
-const { title, amount } = useIncidentText();
 
 const screenshot = ref<string | null>(null);
 const screenshotState = ref<'idle' | 'loading' | 'none'>('idle');
@@ -103,32 +102,7 @@ async function showScreenshot(): Promise<void> {
   <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="evidence-title" data-panel="incident-evidence">
     <h2 id="evidence-title" class="text-lg font-semibold">{{ $t('incident.evidence.title') }}</h2>
 
-    <div v-if="incident.findings.length > 0" class="-mx-5 overflow-x-auto px-5">
-      <table class="w-full min-w-[36rem] text-left text-sm">
-        <caption class="sr-only">{{ $t('incident.evidence.findings') }}</caption>
-        <thead class="text-[13px] text-text-muted">
-          <tr class="border-b border-border">
-            <th scope="col" class="py-2 pr-4 font-medium">{{ $t('incident.evidence.check') }}</th>
-            <th scope="col" class="py-2 pr-4 font-medium">{{ $t('incident.evidence.order') }}</th>
-            <th scope="col" class="py-2 pr-4 text-right font-medium">{{ $t('incident.evidence.expected') }}</th>
-            <th scope="col" class="py-2 pr-4 text-right font-medium">{{ $t('incident.evidence.actual') }}</th>
-            <th scope="col" class="py-2 text-right font-medium">{{ $t('incident.evidence.difference') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="finding in incident.findings" :key="finding.id" class="border-b border-border last:border-0" :data-finding-id="finding.id">
-            <td class="py-2 pr-4">
-              <span class="block">{{ title(finding.rule_code) }}</span>
-              <span class="text-[13px] text-text-muted">{{ dateTime(finding.evaluated_at) }}</span>
-            </td>
-            <td class="py-2 pr-4">{{ finding.order_display_number ?? (finding.order_id ? $t('incident.evidence.order_unknown_number') : $t('incident.evidence.no_order')) }}</td>
-            <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ amount(finding.expected_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown') }}</td>
-            <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ amount(finding.actual_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown') }}</td>
-            <td class="py-2 text-right font-mono whitespace-nowrap">{{ amount(finding.difference_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown') }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <FindingsTable v-if="incident.findings.length > 0" :findings="incident.findings" :show-status="false" />
 
     <ul v-if="signals.length > 0" class="flex flex-col gap-3">
       <li v-for="signal in signals" :key="signal.id" class="flex flex-col gap-1 rounded-lg border border-border p-3 text-sm" :data-signal-type="signal.signal_type">

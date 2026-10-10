@@ -32,6 +32,7 @@ class ListFindingsRequest extends FormRequest
             'currency' => ['sometimes', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
             'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'cursor' => ['sometimes', 'string'],
+            'current' => ['sometimes', 'boolean'],
         ];
     }
 

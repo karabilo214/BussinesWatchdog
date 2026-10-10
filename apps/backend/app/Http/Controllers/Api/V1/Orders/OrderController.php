@@ -11,6 +11,7 @@ use App\Http\Dto\Payments\PaymentAllocationDto;
 use App\Http\Dto\Payments\RefundAllocationDto;
 use App\Http\Dto\Reconciliation\ReconciliationFindingDto;
 use App\Models\FinancialTransaction;
+use App\Models\Integration;
 use App\Models\Order;
 use App\Models\OrderRevision;
 use App\Models\PaymentAllocation;
@@ -55,7 +56,15 @@ class OrderController extends Controller
             ->orderBy('created_at')
             ->get();
         $refundTransactions = FinancialTransaction::query()
-            ->whereIn('id', $refundAllocations->pluck('refund_transaction_id')->unique())
+            ->where('tenant_id', $tenantId)
+            ->where(function ($query) use ($refundAllocations, $allocations): void {
+                $query->whereIn('id', $refundAllocations->pluck('refund_transaction_id')->unique())
+                    ->orWhere(fn ($related) => $related
+                        ->whereIn('payment_id', $allocations->whereNull('revoked_at')->pluck('payment_id')->unique())
+                        ->where('kind', 'refund')
+                        ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER));
+            })
+            ->orderBy('occurred_at')
             ->get();
 
         $revisions = OrderRevision::query()
@@ -63,12 +72,18 @@ class OrderController extends Controller
             ->orderBy('source_revision')
             ->get();
 
-        $latestFindings = ReconciliationFinding::query()
+        $latestRunId = ReconciliationFinding::query()
+            ->where('tenant_id', $tenantId)
             ->where('order_id', $order->id)
-            ->orderByDesc('id')
-            ->get()
-            ->unique('rule_code')
-            ->values();
+            ->orderByDesc('evaluated_at')
+            ->orderByDesc('run_id')
+            ->value('run_id');
+        $latestFindings = ReconciliationFinding::query()
+            ->where('tenant_id', $tenantId)
+            ->where('order_id', $order->id)
+            ->where('run_id', $latestRunId)
+            ->orderBy('rule_code')
+            ->get();
 
         return response()->json(array_merge($this->orderDto->toArray($order), [
             'findings' => $this->findingDto->collection($latestFindings),

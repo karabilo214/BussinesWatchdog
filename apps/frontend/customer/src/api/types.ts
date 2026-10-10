@@ -170,19 +170,25 @@ export interface Signal {
   detected_at: string;
 }
 
+export type FindingStatus = 'ok' | 'pending' | 'mismatch' | 'unsupported' | 'unknown';
+
 export interface Finding {
   id: string;
   run_id: string;
   order_id: string | null;
   payment_id: string | null;
   rule_code: string;
-  status: string;
+  status: FindingStatus;
   reason_code: string | null;
-  currency: string;
+  currency: string | null;
   currency_exponent: number | null;
   expected_minor: string | null;
   actual_minor: string | null;
   difference_minor: string | null;
+  gross_minor?: string | null;
+  captured_minor?: string | null;
+  refund_expected_minor?: string | null;
+  refund_actual_minor?: string | null;
   evaluated_at: string;
   order_display_number?: string | null;
 }
@@ -236,4 +242,116 @@ export interface ArtifactLink {
   expires_at: string;
   content_type: string;
   size_bytes: number;
+}
+
+export interface Order {
+  id: string;
+  store_id: string;
+  external_id: string;
+  display_number: string | null;
+  status: string;
+  gateway: string | null;
+  mode: 'live' | 'test';
+  currency: string;
+  currency_exponent: number;
+  total_minor: string;
+  payment_expected: boolean;
+  paid_marked_at: string | null;
+  transaction_ref: string | null;
+  financial_support: 'supported' | 'unsupported' | 'unknown';
+  is_synthetic: boolean;
+  source_created_at: string | null;
+  source_updated_at: string | null;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  payment_id: string | null;
+  external_operation_id: string;
+  kind: 'capture' | 'refund' | 'fee' | 'dispute_debit' | 'dispute_credit' | 'adjustment';
+  status: 'pending' | 'succeeded' | 'failed' | 'cancelled';
+  currency: string;
+  currency_exponent: number;
+  amount_minor: string;
+  occurred_at: string | null;
+}
+
+export interface StoreRefund {
+  id: string;
+  order_id: string;
+  external_id: string;
+  currency: string;
+  currency_exponent: number;
+  amount_minor: string;
+  external_required: boolean | null;
+  provider_ref: string | null;
+  status: 'requested' | 'recorded' | 'cancelled' | 'deleted';
+  occurred_at: string | null;
+}
+
+export interface PaymentAllocation {
+  id: string;
+  order_id: string;
+  payment_id: string;
+  capture_transaction_id: string;
+  currency: string;
+  amount_minor: string;
+  strategy: string;
+  created_by: string | null;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+export interface RefundAllocation {
+  id: string;
+  refund_id: string;
+  refund_transaction_id: string;
+  payment_allocation_id: string;
+  currency: string;
+  amount_minor: string;
+  strategy: string;
+  created_by: string | null;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+export interface OrderRevision {
+  source_revision: number;
+  status: string | null;
+  total_minor: string | null;
+  observed_at: string | null;
+}
+
+export interface OrderDetail extends Order {
+  findings: Finding[];
+  captures: FinancialTransaction[];
+  refunds: StoreRefund[];
+  refund_transactions: FinancialTransaction[];
+  allocations: PaymentAllocation[];
+  refund_allocations: RefundAllocation[];
+  revisions: OrderRevision[];
+}
+
+export interface UnmatchedCandidate {
+  order_id: string;
+  display_number: string | null;
+  confidence: 'exact_candidate' | 'manual_review';
+  provider_ref: string | null;
+  amount_minor: string;
+  currency: string;
+  currency_exponent: number;
+  mode: string | null;
+}
+
+export interface UnmatchedPayment {
+  payment_id: string | null;
+  capture_transaction_id: string;
+  external_operation_id: string;
+  currency: string;
+  currency_exponent: number;
+  amount_minor: string;
+  mode: string | null;
+  occurred_at: string | null;
+  reason: 'no_candidate_found' | 'review_required';
+  candidates: UnmatchedCandidate[];
 }

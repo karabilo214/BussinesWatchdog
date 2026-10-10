@@ -18,6 +18,8 @@ export function buildRouter(): Router {
       { path: '/stores/:id', name: 'store', component: () => import('@/views/StoreView.vue'), props: true },
       { path: '/incidents', name: 'incidents', component: () => import('@/views/IncidentsView.vue') },
       { path: '/incidents/:id', name: 'incident', component: () => import('@/views/IncidentView.vue'), props: true },
+      { path: '/reconciliation', name: 'reconciliation', component: () => import('@/views/ReconciliationView.vue') },
+      { path: '/orders/:id', name: 'order', component: () => import('@/views/OrderView.vue'), props: true },
       { path: '/:pathMatch(.*)*', redirect: { name: 'overview' } },
     ],
   });

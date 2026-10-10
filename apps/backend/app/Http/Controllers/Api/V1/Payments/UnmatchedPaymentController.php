@@ -73,7 +73,9 @@ class UnmatchedPaymentController extends Controller
         return [
             'payment_id' => $payment?->id,
             'capture_transaction_id' => $capture->id,
+            'external_operation_id' => $capture->external_operation_id,
             'currency' => $capture->currency,
+            'currency_exponent' => $capture->currency_exponent,
             'amount_minor' => (string) $capture->amount_minor,
             'mode' => $payment?->mode,
             'occurred_at' => $capture->occurred_at?->toJSON(),
@@ -145,10 +147,12 @@ class UnmatchedPaymentController extends Controller
     {
         return [
             'order_id' => $order->id,
+            'display_number' => $order->display_number,
             'confidence' => $confidence,
             'provider_ref' => $payment?->intent_ref ?? $payment?->charge_ref,
             'amount_minor' => (string) $order->total_minor,
             'currency' => $order->currency,
+            'currency_exponent' => $order->currency_exponent,
             'mode' => $order->mode,
         ];
     }

@@ -185,6 +185,36 @@ class ReconciliationApiTest extends TestCase
         $this->assertNull($secondPage->json('next_cursor'));
     }
 
+    public function test_findings_are_newest_first_with_order_numbers_and_current_keeps_only_the_latest_run(): void
+    {
+        $context = $this->context('admin');
+        $other = $this->extraOrder($context, '#3001');
+        $request = fn () => $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->withHeaders(['Idempotency-Key' => (string) Str::uuid()]);
+
+        $request()->postJson("/api/v1/stores/{$context['store']->id}/reconciliations", ['order_ids' => [$context['order']->id]])->assertStatus(202);
+        $request()->postJson("/api/v1/stores/{$context['store']->id}/reconciliations", ['order_ids' => [$other->id]])->assertStatus(202);
+        $latest = $request()->postJson("/api/v1/stores/{$context['store']->id}/reconciliations", ['order_ids' => [$context['order']->id]])->assertStatus(202);
+
+        $all = $this->getJson("/api/v1/stores/{$context['store']->id}/findings")->assertOk();
+        $this->assertSame($latest->json('data.0.run_id'), $all->json('data.0.run_id'));
+        $this->assertSame($context['order']->display_number, $all->json('data.0.order_display_number'));
+
+        $current = $this->getJson("/api/v1/stores/{$context['store']->id}/findings?current=1")->assertOk();
+        $runs = array_values(array_unique(array_column($current->json('data'), 'run_id')));
+        $orders = array_values(array_unique(array_column($current->json('data'), 'order_id')));
+
+        sort($orders);
+        $expectedOrders = [$context['order']->id, $other->id];
+        sort($expectedOrders);
+
+        $this->assertCount(2, $runs);
+        $this->assertContains($latest->json('data.0.run_id'), $runs);
+        $this->assertSame($expectedOrders, $orders);
+        $this->assertLessThan(count($all->json('data')), count($current->json('data')));
+    }
+
     public function test_user_cannot_list_findings_for_a_foreign_tenant_store(): void
     {
         $context = $this->context('admin');

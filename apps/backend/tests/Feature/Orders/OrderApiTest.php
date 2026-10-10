@@ -134,6 +134,48 @@ class OrderApiTest extends TestCase
             ->assertJsonCount(1, 'refund_allocations');
     }
 
+    public function test_order_detail_offers_unlinked_provider_refunds_of_its_payments(): void
+    {
+        $context = $this->context('owner');
+        $refundTransaction = FinancialTransaction::query()->create([
+            'tenant_id' => $context['tenant']->id,
+            'store_id' => $context['store']->id,
+            'integration_id' => $context['integration']->id,
+            'payment_id' => $context['payment']->id,
+            'external_operation_id' => 'ref_'.fake()->uuid(),
+            'kind' => 'refund',
+            'status' => 'succeeded',
+            'currency' => 'EUR',
+            'currency_exponent' => 2,
+            'amount_minor' => 2500,
+            'occurred_at' => now()->subMinute(),
+            'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+            'operation_hash' => hash('sha256', fake()->uuid()),
+            'metadata' => [],
+            'created_at' => now(),
+        ]);
+        $request = fn () => $this->actingAs($context['user'])->withSession(['active_tenant_id' => $context['tenant']->id]);
+
+        $request()->getJson("/api/v1/orders/{$context['order']->id}")
+            ->assertOk()
+            ->assertJsonCount(0, 'refund_transactions');
+
+        app(PaymentAllocationService::class)->allocateCapture(
+            $context['payment'],
+            $context['capture'],
+            $context['order'],
+            18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE,
+            [],
+        );
+
+        $request()->getJson("/api/v1/orders/{$context['order']->id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'refund_transactions')
+            ->assertJsonPath('refund_transactions.0.id', $refundTransaction->id)
+            ->assertJsonCount(0, 'refund_allocations');
+    }
+
     public function test_user_cannot_read_foreign_tenant_order(): void
     {
         $context = $this->context('owner');

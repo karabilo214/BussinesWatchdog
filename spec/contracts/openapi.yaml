@@ -608,6 +608,10 @@ paths:
         - name: cursor
           in: query
           schema: {type: string, maxLength: 2048}
+        - name: current
+          in: query
+          description: "Only findings of the latest run per order and of the latest store-wide unmatched-payment scan."
+          schema: {type: boolean}
       responses:
         "200":
           description: "Findings, newest first; null amounts are unknown, not zero"
@@ -723,6 +727,7 @@ paths:
                     properties:
                       findings:
                         type: array
+                        description: Findings of the latest reconciliation run of the order.
                         items: {$ref: "#/components/schemas/Finding"}
                       captures:
                         type: array
@@ -732,6 +737,7 @@ paths:
                         items: {$ref: "#/components/schemas/Refund"}
                       refund_transactions:
                         type: array
+                        description: Provider refunds linked to the order's refunds, plus provider refunds of the payments allocated to it (candidates for a manual refund link).
                         items: {$ref: "#/components/schemas/FinancialTransaction"}
                       allocations:
                         type: array
@@ -2110,6 +2116,7 @@ components:
             - {type: "null"}
         evidence: {type: object}
         evaluated_at: {type: string, format: date-time}
+        order_display_number: {type: [string, "null"], description: "Store order number; present in finding lists and incident details."}
     ReconciliationRunSummary:
       type: object
       required: [run_id, store_id, status, findings_count]
@@ -2242,7 +2249,9 @@ components:
       properties:
         payment_id: {type: [string, "null"], format: uuid}
         capture_transaction_id: {type: string, format: uuid}
+        external_operation_id: {type: string, description: Provider operation ID (e.g. the Stripe charge) to look the capture up.}
         currency: {type: string, pattern: "^[A-Z]{3}$"}
+        currency_exponent: {type: integer}
         amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
         mode: {type: [string, "null"]}
         occurred_at: {type: [string, "null"], format: date-time}
@@ -2255,10 +2264,12 @@ components:
             required: [order_id, confidence]
             properties:
               order_id: {type: string, format: uuid}
+              display_number: {type: [string, "null"]}
               confidence: {enum: [exact_candidate, manual_review]}
               provider_ref: {type: [string, "null"]}
               amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
               currency: {type: string, pattern: "^[A-Z]{3}$"}
+              currency_exponent: {type: integer}
               mode: {type: [string, "null"]}
     Incident:
       type: object
@@ -2338,12 +2349,7 @@ components:
             findings:
               type: array
               description: Reconciliation findings behind the linked signals, oldest first.
-              items:
-                allOf:
-                  - {$ref: "#/components/schemas/Finding"}
-                  - type: object
-                    properties:
-                      order_display_number: {type: [string, "null"]}
+              items: {$ref: "#/components/schemas/Finding"}
             activity:
               type: array
               items: {$ref: "#/components/schemas/IncidentActivity"}

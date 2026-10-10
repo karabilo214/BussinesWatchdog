@@ -17,6 +17,7 @@ use App\Support\Reconciliation\OrderReconciliationService;
 use App\Support\Reconciliation\UnmatchedPaymentScanner;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class ReconciliationController extends Controller
 {
@@ -93,6 +94,10 @@ class ReconciliationController extends Controller
             ->where('tenant_id', $tenantId)
             ->where('store_id', $store->id);
 
+        if ($request->boolean('current')) {
+            $query->whereIn('id', $this->currentFindingIds($tenantId, $store->id));
+        }
+
         if (isset($validated['from'])) {
             $query->where('evaluated_at', '>=', $validated['from']);
         }
@@ -117,10 +122,10 @@ class ReconciliationController extends Controller
             $cursorId = UuidCursor::decode($validated['cursor']);
             abort_if($cursorId === null, 400, 'Invalid cursor.');
 
-            $query->where('id', '>', $cursorId);
+            $query->where('id', '<', $cursorId);
         }
 
-        $items = $query->orderBy('id')->limit($limit + 1)->get();
+        $items = $query->orderByDesc('id')->limit($limit + 1)->get();
         $hasMore = $items->count() > $limit;
         $items = $items->take($limit);
 
@@ -132,10 +137,34 @@ class ReconciliationController extends Controller
             $nextCursor = UuidCursor::encode($last->id);
         }
 
+        $orderNumbers = Order::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', $items->pluck('order_id')->filter()->unique()->values())
+            ->pluck('display_number', 'id');
+
         return response()->json([
-            'data' => $this->findingDto->collection($items),
+            'data' => $items
+                ->map(fn (ReconciliationFinding $finding): array => [
+                    ...$this->findingDto->toArray($finding),
+                    'order_display_number' => $finding->order_id === null ? null : ($orderNumbers[$finding->order_id] ?? null),
+                ])
+                ->values()
+                ->all(),
             'next_cursor' => $nextCursor,
         ]);
+    }
+
+    /**
+     * Findings of the latest run per order, plus those of the latest store-wide unmatched-payment scan.
+     */
+    private function currentFindingIds(string $tenantId, string $storeId): \Illuminate\Database\Query\Builder
+    {
+        $ranked = DB::table('reconciliation_findings')
+            ->where('tenant_id', $tenantId)
+            ->where('store_id', $storeId)
+            ->selectRaw("id, DENSE_RANK() OVER (PARTITION BY COALESCE(CAST(order_id AS TEXT), '') ORDER BY evaluated_at DESC, run_id DESC) AS position");
+
+        return DB::query()->fromSub($ranked, 'ranked')->where('position', 1)->select('id');
     }
 
     /**
