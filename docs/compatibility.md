@@ -77,7 +77,21 @@ Not verified: WooCommerce Stripe gateway versions, themes, multisite, PHP 7.4 wi
 One-run chain (plugin → backend → real Stripe test account → links → reconciliation), `tests/matrix/stripe-chain-e2e.sh latest`: capture and refund linked by exact reference, reconciliation ok (2026-10-10).
 
 
-## WooCommerce PayPal Payments (spike part 0: source reading only, not run)
+## WooCommerce PayPal Payments (ADR 0022)
+
+Spike part 2 (2026-10-10), `tests/matrix/paypal-gateway-spike.sh latest`: WooCommerce 11.2 (HPOS) + WooCommerce PayPal Payments 4.1.3 (PayPal JS SDK v6) connected to the owner's sandbox business account by client id/secret; real classic checkout in Chromium with the sandbox buyer in the PayPal popup.
+
+| Case | WooCommerce order | Transaction id | PayPal side |
+|---|---|---|---|
+| Capture, USD | processing, date paid set | capture id | capture `COMPLETED`, `custom_id` = order id, `invoice_id` = prefix + order number |
+| Partial refund 3.00 from WooCommerce admin | refund object with no PayPal meta | unchanged | refund `COMPLETED`, carries the same `custom_id`/`invoice_id`, `up` link to the capture; id appended to the order's `_ppcp_refunds` |
+| Authorize only | on-hold, no date paid, `_ppcp_paypal_captured=false` | **authorization id** | authorization `CREATED` |
+| …then status on-hold → processing | processing, date paid set, `_ppcp_paypal_captured=true` | **replaced by the capture id** | capture `COMPLETED` |
+| EUR to an account without EUR balance | on-hold, no date paid, note with the pending reason | capture id | capture `PENDING` (`RECEIVING_PREFERENCE_MANDATES_MANUAL_ACTION`) |
+
+Test-environment notes: SDK v6 asks PayPal for a client token bound to the site domain and PayPal rejects `.test` domains (`invalid_domain`), so the spike shop runs as `shop-<target>.example.com` mapped to the container; the plugin stores the payer e-mail (`_ppcp_paypal_payer_email`), which Watchdog never reads.
+
+### Spike part 0: source reading
 
 Read from the source of WooCommerce PayPal Payments 4.1.3 (wordpress.org, 2026-10-10); nothing here was executed against PayPal yet.
 

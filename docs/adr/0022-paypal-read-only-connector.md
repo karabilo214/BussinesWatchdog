@@ -29,6 +29,15 @@ Two sandbox REST apps of one business account: "Watchdog" (reads) and "shop" (cr
 - **Limiting the app (owner, 2026-10-10):** with every optional feature unticked (Save payment methods, Subscriptions, Invoicing, Payment links and buttons, Payouts, disputes, Log in with PayPal) and Transaction Search ticked, the token lost `payouts`, `subscriptions`, `vault/payment-tokens/*`, `disputes/*`, but **kept `payments/refund`, `payments/payment/authcapture` and `api.paypal.com/v1/payments/.*`**; accepting payments cannot be switched off. Conclusion: **PayPal credentials cannot be limited to reading.** Per spec §10.2 the dashboard MUST warn the owner, ask for a separate app with only Transaction Search ticked (fewer rights than the default app), and the adapter calls only an allowlist of GET endpoints (plus the OAuth token request), enforced by a test. No write call was made with the Watchdog app.
 - **Transaction Search** works once ticked (`reporting/search/read` appears). The first call reported `last_refreshed_datetime` about 1.5 hours behind and no transactions yet: listing lags (PayPal documents up to about 3 hours), so the connector cannot rely on it for fast detection.
 
+## Spike part 2 — the plugin on a real checkout (2026-10-10)
+
+`plugins/woocommerce-watchdog/tests/matrix/paypal-gateway-spike.sh`: WooCommerce 11.2 + PayPal Payments 4.1.3 on the sandbox, real browser checkout with the sandbox buyer; results table in `docs/compatibility.md`.
+
+- The order's transaction id is the **capture id** — the exact reference the Watchdog plugin already sends (`transaction_ref`), so exact-reference matching works as for Stripe charges. While an order is only authorized it holds the **authorization id** and the store marks it on-hold without a paid date; on capture the plugin replaces it with the capture id.
+- A pending PayPal capture (EUR to a USD account) leaves the order on-hold without a paid date: the plugin does not report it as paid. The store-reported paid marker therefore did not lie in this case; Watchdog still treats only capture `COMPLETED` as money.
+- WooCommerce refunds carry no PayPal reference (the refund id goes only into the order's `_ppcp_refunds` list), so the Watchdog plugin cannot send `provider_ref` for PayPal refunds. PayPal refunds still link to the order through their capture (`up` link) and `custom_id`; a store refund can be matched to a provider refund of the same order by amount only as a suggestion, not automatically.
+- `custom_id` = WooCommerce order id on order, capture and refund; `invoice_id` = per-site prefix + order number. These are the metadata for a verified-metadata rule like Stripe's `order_id` (there is no site URL in PayPal metadata; the invoice prefix is per installation).
+
 ## Open
 
 - Transaction Search on real data (delay, 31-day window, which events appear, how pending captures show), whether its rows carry `custom_id`/`invoice_id`.
