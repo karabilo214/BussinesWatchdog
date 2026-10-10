@@ -1445,3 +1445,12 @@ Verification:
 - Backend unchanged since Step 65: SQLite 334 + 4 skipped, PostgreSQL 18 338 passed.
 - Not tested with real Stripe (fake API only).
 
+### Stripe Compatibility Spike — Part 1 (real test account)
+
+Status: done for reading; captures/refunds and the WooCommerce gateway are still open
+
+- With the owner's test-mode restricted key: payment intents, charges and refunds are readable; `/v1/account` and `/v1/invoices` answer 403 (account stays "unverified", as designed).
+- The owner's invoice marked paid produced a cancelled PaymentIntent without a charge; the connector projected a cancelled payment and no capture — correct, since no money moved through Stripe.
+- Connect → audit sync → processing → re-sync without new events verified on real data (temporary store, removed after the run). Details in ADR 0020.
+- Next for the spike: a real test-card payment, a partial refund and a failed payment (Stripe Dashboard or the WooCommerce Stripe Gateway on the test site) to confirm capture/refund shapes, the order transaction reference and gateway metadata.
+

@@ -20,7 +20,16 @@ Status: backend implemented in Step 65 and tested with Stripe-shaped fixtures on
 - **Webhook** `POST /api/v1/webhooks/stripe/{integration}`: the signature is checked by the official `stripe/stripe-php` library over the raw body (tolerance 300 s); only payment intent, charge and refund objects are used, through the same change-detecting path.
 - **Rejected key** (HTTP 401): calls stop, the integration becomes `degraded` with `health.last_error`, the store window is re-queued, and money checks fall back to `unknown / provider_not_connected` until the owner reconnects. Other failures are kept in health and retried.
 
-## Needs the compatibility spike (real Stripe sandbox + WooCommerce Stripe Gateway)
+## Spike, part 1 — real Stripe test account (2026-10-10)
+
+Run against the owner's Stripe test-mode restricted key (kept only in the git-ignored `apps/backend/.env` as `WATCHDOG_DEV_STRIPE_RESTRICTED_API_KEY`), on a temporary store that was removed afterwards. Only ids, statuses, amounts, currency and mode were printed — no customer data.
+
+- Reads of `/v1/payment_intents`, `/v1/charges`, `/v1/refunds` work with the pinned API version and the real response shapes match the mapper (`latest_charge`, `status`, `currency` lower-case, `livemode`).
+- `/v1/account` answers **403** for a restricted key without the Account permission: confirmed that connecting must not require it; the integration is created with the account "unverified" (as implemented). `/v1/invoices` is not readable either and is not used.
+- The owner's test invoice marked **paid** left one PaymentIntent of 2.00 EUR in status `canceled` with no charge — an invoice marked paid outside Stripe moves no money through Stripe. The connector recorded a cancelled payment and **no capture**, which is the intended semantics (a store-side "paid" marker is not capture evidence).
+- Full path verified on real data: connect → audit sync (1 event) → inbox processed → payment projected; a second sync emitted nothing.
+
+## Still needs the compatibility spike, part 2 (real captures/refunds + WooCommerce Stripe Gateway)
 
 - Which id the gateway stores as the order transaction id (PaymentIntent or charge) in the tested gateway versions — the matcher accepts both, but this must be confirmed.
 - Order metadata written by the gateway (order id, site) for the second matching rule (`verified_metadata`), not implemented yet.
