@@ -474,3 +474,33 @@ export interface Overview {
   unknown_amount_incidents: number;
   recent_checks: CheckRunSummary[];
 }
+
+export type TeamRole = 'owner' | 'admin' | 'operator' | 'viewer';
+
+export interface TeamMember {
+  user_id: string;
+  tenant_id: string;
+  name: string | null;
+  email: string | null;
+  role: TeamRole;
+  is_you: boolean;
+  created_at: string | null;
+}
+
+export interface TeamInvitation {
+  id: string;
+  email: string;
+  role: Exclude<TeamRole, 'owner'>;
+  state: 'pending' | 'accepted' | 'revoked' | 'expired';
+  invited_by: string | null;
+  expires_at: string;
+  created_at: string | null;
+}
+
+export interface InvitationLookup {
+  tenant_name: string;
+  email: string;
+  role: Exclude<TeamRole, 'owner'>;
+  expires_at: string;
+  account_exists: boolean;
+}

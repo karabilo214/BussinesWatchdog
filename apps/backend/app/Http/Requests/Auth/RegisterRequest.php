@@ -22,8 +22,9 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'min:1', 'max:100'],
             'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'confirmed', 'max:128', Password::min(12)],
-            'organization_name' => ['required', 'string', 'min:1', 'max:100'],
-            'timezone' => ['required', 'timezone'],
+            'organization_name' => ['required_without:invitation_token', 'string', 'min:1', 'max:100'],
+            'timezone' => ['required_without:invitation_token', 'timezone'],
+            'invitation_token' => ['sometimes', 'string', 'max:128'],
             'locale' => ['sometimes', 'string', 'in:ru,en,de'],
         ];
     }

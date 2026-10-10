@@ -8,6 +8,16 @@ const password = process.env.BW_SMOKE_PASSWORD;
 const shots = process.env.BW_SMOKE_SCREENSHOTS ?? '/tmp';
 const mailpit = process.env.BW_MAILPIT_URL;
 const steps = [];
+let invitationPath = null;
+
+/** Path and query of the newest link in an email to `address` that contains `marker` (the host in emails is the backend's). */
+async function mailedPath(address, marker) {
+  const texts = await mailTexts(address, (all) => all.some((text) => text.includes(marker)));
+  const link = texts.map((text) => (text.match(/https?:\/\/\S+/g) ?? []).find((url) => url.includes(marker))).find(Boolean);
+  const url = new URL(link);
+
+  return `${url.pathname}${url.search}`;
+}
 
 /** Main navigation: on narrow screens the links live behind the menu button. */
 async function nav(page, name) {
@@ -108,6 +118,29 @@ try {
   await step('session survives a reload', async () => {
     await page.reload();
     await page.getByRole('heading', { name: 'Магазины' }).waitFor();
+  });
+
+  await step('the owner confirms the address from the emailed link', async () => {
+    await page.locator('[data-verify-banner]').getByRole('button', { name: 'Прислать письмо ещё раз' }).click();
+    await page.locator('[data-verify-banner]').getByText('Письмо отправлено.').waitFor();
+    const path = await mailedPath('smoke@example.test', '/email-verification/');
+    await page.goto(`${base}${path}`);
+    await page.locator('[data-verified-notice]').getByText('Адрес подтверждён').waitFor();
+    if ((await page.locator('[data-verify-banner]').count()) !== 0) throw new Error('banner still shown');
+  });
+
+  await step('the owner invites an operator by email', async () => {
+    await page.locator('header').getByRole('link', { name: 'Smoke Owner' }).click();
+    await page.getByRole('heading', { name: 'Настройки' }).waitFor();
+    await page.getByRole('link', { name: 'Команда' }).click();
+    await page.locator('[data-member="smoke@example.test"]').getByText('владелец').waitFor();
+    await page.locator('[data-panel="invite"]').getByLabel('Электронная почта').fill('operator@smoke.example.test');
+    await page.locator('[data-panel="invite"]').getByLabel('Роль').selectOption('operator');
+    await page.getByRole('button', { name: 'Отправить приглашение' }).click();
+    await page.locator('[data-invitation="operator@smoke.example.test"]').waitFor();
+    invitationPath = await mailedPath('operator@smoke.example.test', '/app/invitation');
+    await page.screenshot({ path: `${shots}/team-ru.png`, fullPage: true });
+    await page.getByRole('link', { name: 'Обзор', exact: true }).click();
   });
 
   await step('store page shows the connector and starts DNS confirmation', async () => {
@@ -387,6 +420,44 @@ try {
     await page.waitForURL(/\/app\/login/);
     await page.goto(`${base}/app/overview`);
     await page.waitForURL(/\/app\/login/);
+  });
+
+  const guestContext = await browser.newContext({ locale: 'ru-RU', viewport: { width: 1280, height: 900 } });
+  const guest = await guestContext.newPage();
+  guest.on('pageerror', (error) => consoleErrors.push(error.message));
+
+  await step('the invited person creates an account from the emailed link and joins as operator', async () => {
+    await guest.goto(`${base}${invitationPath}`);
+    await guest.getByText('Вас приглашают в команду «Smoke GmbH» с ролью «оператор».').waitFor();
+    await guest.getByLabel('Имя').fill('Smoke Operator');
+    await guest.getByLabel('Новый пароль', { exact: true }).fill('operator-password-1234');
+    await guest.getByLabel('Повторите новый пароль').fill('operator-password-1234');
+    await guest.getByRole('button', { name: 'Создать аккаунт и присоединиться' }).click();
+    await guest.waitForURL(/\/app\/overview/);
+    await guest.getByRole('heading', { name: 'Обзор', exact: true }).waitFor();
+    if ((await guest.getByRole('link', { name: 'Добавить магазин' }).count()) !== 0) throw new Error('operator must not add stores');
+    if ((await guest.locator('[data-verify-banner]').count()) !== 0) throw new Error('invited address should count as confirmed');
+  });
+
+  await step('the operator restores a forgotten password through the emailed link', async () => {
+    await guest.locator('header').getByRole('button', { name: 'Выйти' }).click();
+    await guest.getByRole('link', { name: 'Забыли пароль?' }).click();
+    await guest.getByRole('heading', { name: 'Сброс пароля' }).waitFor();
+    await guest.getByLabel('Электронная почта').fill('operator@smoke.example.test');
+    await guest.getByRole('button', { name: 'Прислать ссылку' }).click();
+    await guest.locator('[data-sent]').waitFor();
+    const path = await mailedPath('operator@smoke.example.test', '/app/reset-password');
+    await guest.goto(`${base}${path}`);
+    await guest.getByLabel('Новый пароль', { exact: true }).fill('operator-new-password-99');
+    await guest.getByLabel('Повторите новый пароль').fill('operator-new-password-99');
+    await guest.getByRole('button', { name: 'Сохранить пароль' }).click();
+    await guest.getByText('Пароль изменён. Войдите с новым паролем.').waitFor();
+    await guest.getByRole('heading', { name: 'Вход в кабинет' }).waitFor();
+    await guest.getByLabel('Электронная почта').fill('operator@smoke.example.test');
+    await guest.getByLabel('Пароль', { exact: true }).fill('operator-new-password-99');
+    await guest.getByRole('button', { name: 'Войти' }).click();
+    await guest.getByRole('heading', { name: 'Обзор', exact: true }).waitFor();
+    await guestContext.close();
   });
 
   await step('no console errors', async () => {

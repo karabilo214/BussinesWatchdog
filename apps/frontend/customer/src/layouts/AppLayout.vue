@@ -2,12 +2,39 @@
 import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LocaleSwitch } from '@bw/i18n';
+import { resendEmailVerification } from '@/api/account';
+import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useSession } from '@/composables/useSession';
 
 const router = useRouter();
 const route = useRoute();
-const { session, signOut } = useSession();
+const { session, signOut, load } = useSession();
 const menuOpen = ref(false);
+const verifyState = ref<'idle' | 'sent'>('idle');
+const verifyError = ref<unknown>(null);
+const verifiedNotice = ref<'1' | '0' | null>(null);
+
+if (route.query.email_verified === '1' || route.query.email_verified === '0') {
+  verifiedNotice.value = route.query.email_verified;
+  const query = { ...route.query };
+  delete query.email_verified;
+  void router.replace({ query });
+
+  if (verifiedNotice.value === '1') {
+    void load(true);
+  }
+}
+
+async function resendVerification(): Promise<void> {
+  verifyError.value = null;
+
+  try {
+    await resendEmailVerification();
+    verifyState.value = 'sent';
+  } catch (caught) {
+    verifyError.value = caught;
+  }
+}
 
 /** Main sections; `also` lists child pages that keep the section highlighted. */
 const NAV = [
@@ -52,7 +79,7 @@ watch(() => route.fullPath, () => {
         </nav>
 
         <div class="ml-auto hidden items-center gap-3 md:flex">
-          <span class="hidden text-sm text-text-muted lg:inline">{{ session?.user.name }}</span>
+          <RouterLink :to="{ name: 'profile' }" class="max-w-[12rem] truncate text-sm text-text-muted hover:text-primary hover:underline" :title="$t('nav.settings')">{{ session?.user.name }}</RouterLink>
           <LocaleSwitch />
           <button
             type="button"
@@ -92,9 +119,9 @@ watch(() => route.fullPath, () => {
           </RouterLink>
         </nav>
         <div class="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
-          <span class="text-sm text-text-muted">{{ session?.user.name }}</span>
+          <RouterLink :to="{ name: 'profile' }" class="text-sm font-medium text-primary hover:underline">{{ $t('nav.settings') }} · {{ session?.user.name }}</RouterLink>
           <div class="flex items-center gap-3">
-            <LocaleSwitch />
+            <LocaleSwitch id="locale-switch-mobile" />
             <button
               type="button"
               class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft"
@@ -107,6 +134,15 @@ watch(() => route.fullPath, () => {
       </div>
     </header>
     <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      <p v-if="verifiedNotice" role="status" class="mb-6 rounded-md border px-3 py-2 text-sm" :class="verifiedNotice === '1' ? 'border-ok-border bg-ok-soft text-ok' : 'border-warn-border bg-warn-soft'" data-verified-notice>
+        {{ verifiedNotice === '1' ? $t('account.verify.done') : $t('account.verify.failed') }}
+      </p>
+      <div v-else-if="session && !session.user.email_verified" class="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm" data-verify-banner>
+        <span class="flex-1">{{ $t('account.verify.banner', { email: session.user.email }) }}</span>
+        <button v-if="verifyState === 'idle'" type="button" class="font-medium text-primary hover:underline" @click="resendVerification">{{ $t('account.verify.resend') }}</button>
+        <span v-else class="text-ok" role="status">{{ $t('account.verify.sent') }}</span>
+        <ErrorNotice v-if="verifyError" :error="verifyError" class="w-full" />
+      </div>
       <slot />
     </main>
   </div>

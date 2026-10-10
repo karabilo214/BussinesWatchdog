@@ -10,7 +10,8 @@
     "reconciliation": "Abgleich",
     "checks": "Prüfungen",
     "notifications": "Benachrichtigungen",
-    "menu": "Menü"
+    "menu": "Menü",
+    "settings": "Einstellungen"
   },
   "common": {
     "loading": "Wird geladen…",
@@ -283,7 +284,19 @@
     "test_rate_limited": "Eine Test-E-Mail kann höchstens einmal pro Minute gesendet werden.",
     "critical_bypass_requires_owner": "Nur der Kontoinhaber kann kritische Benachrichtigungen in Ruhezeiten erlauben.",
     "store_not_found": "Einer der gewählten Shops wurde nicht gefunden. Seite neu laden.",
-    "channel_kind_not_supported_yet": "Dieser Kanaltyp wird noch nicht unterstützt."
+    "channel_kind_not_supported_yet": "Dieser Kanaltyp wird noch nicht unterstützt.",
+    "password_reset_invalid": "Der Link zum Zurücksetzen ist ungültig oder abgelaufen. Fordern Sie einen neuen an.",
+    "email_already_verified": "Die Adresse ist bereits bestätigt.",
+    "invitation_invalid": "Die Einladung ist nicht mehr gültig: Sie wurde zurückgezogen, ist abgelaufen oder bereits angenommen.",
+    "invitation_email_mismatch": "Die Einladung wurde an eine andere Adresse gesendet.",
+    "already_member": "Diese Person ist bereits im Team.",
+    "role_not_assignable": "Diese Rolle können Sie nicht vergeben.",
+    "cannot_change_own_role": "Ihre eigene Rolle können Sie nicht ändern.",
+    "owner_cannot_leave": "Der Inhaber kann das Team nicht verlassen.",
+    "team_forbidden": "Dieses Mitglied können Sie nicht verwalten.",
+    "member_not_found": "Mitglied nicht gefunden. Seite neu laden.",
+    "invitation_not_found": "Einladung nicht gefunden. Seite neu laden.",
+    "tenant_forbidden": "Kein Zugriff auf das Team. Melden Sie sich erneut an oder bitten Sie um eine Einladung."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -875,6 +888,94 @@
         "notification_incident_not_found": "Der Vorfall wurde nicht gefunden.",
         "notification_kind_invalid": "Unbekannter Benachrichtigungstyp."
       }
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "tab": {
+      "profile": "Profil",
+      "team": "Team"
+    }
+  },
+  "account": {
+    "back_to_login": "Zurück zur Anmeldung",
+    "forgot": {
+      "link": "Passwort vergessen?",
+      "title": "Passwort zurücksetzen",
+      "subtitle": "Geben Sie die Adresse Ihres Kontos an. Wir senden einen Link für ein neues Passwort.",
+      "submit": "Link senden",
+      "sent": "Wenn diese Adresse registriert ist, ist eine E-Mail mit Link unterwegs. Der Link gilt 60 Minuten."
+    },
+    "reset": {
+      "title": "Neues Passwort",
+      "subtitle": "Legen Sie ein neues Passwort für {email} fest. Sitzungen auf anderen Geräten werden danach beendet.",
+      "broken": "Der Link ist unvollständig. Öffnen Sie ihn vollständig aus der E-Mail oder fordern Sie einen neuen an.",
+      "submit": "Passwort speichern",
+      "request_new": "Neuen Link anfordern",
+      "done": "Passwort geändert. Melden Sie sich mit dem neuen Passwort an."
+    },
+    "password": {
+      "title": "Passwort",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "repeat": "Neues Passwort wiederholen",
+      "rule": "12 bis 128 Zeichen.",
+      "mismatch": "Die Passwörter stimmen nicht überein.",
+      "other_sessions": "Nach der Änderung werden Sitzungen auf anderen Geräten beendet.",
+      "change": "Passwort ändern",
+      "changed": "Passwort geändert.",
+      "current_invalid": "Das aktuelle Passwort ist falsch."
+    },
+    "profile": {
+      "title": "Profil",
+      "name": "Name",
+      "locale": "Sprache der Oberfläche und E-Mails",
+      "email_verified": "Adresse bestätigt",
+      "email_unverified": "Adresse nicht bestätigt"
+    },
+    "verify": {
+      "banner": "Bestätigen Sie die Adresse {email}: Öffnen Sie den Link aus der E-Mail.",
+      "resend": "E-Mail erneut senden",
+      "sent": "E-Mail gesendet.",
+      "done": "Adresse bestätigt. Danke!",
+      "failed": "Der Bestätigungslink ist ungültig oder abgelaufen. Fordern Sie in den Einstellungen eine neue E-Mail an."
+    },
+    "invitation": {
+      "title": "Einladung ins Team",
+      "invalid": "Die Einladung ist nicht mehr gültig: Sie wurde zurückgezogen, ist abgelaufen oder bereits angenommen. Bitten Sie um eine neue.",
+      "offer": "Sie sind in das Team „{team}“ mit der Rolle „{role}“ eingeladen.",
+      "for": "Einladung für {email}, gültig bis {time}.",
+      "accept": "Einladung annehmen",
+      "other_account": "Sie sind als {email} angemeldet, die Einladung ging aber an eine andere Adresse.",
+      "switch": "Abmelden und andere Adresse verwenden",
+      "sign_in_first": "Für diese Adresse gibt es bereits ein Konto. Melden Sie sich an, um die Einladung anzunehmen.",
+      "create_account": "Erstellen Sie ein Konto, um beizutreten.",
+      "join": "Konto erstellen und beitreten"
+    }
+  },
+  "team": {
+    "members": "Mitglieder",
+    "roles_hint": "Inhaber und Administratoren verwalten das Team; Operatoren bearbeiten Vorfälle und Abgleich; Betrachter sehen nur zu.",
+    "you": "Sie",
+    "role_for": "Rolle: {name}",
+    "role": {
+      "owner": "Inhaber",
+      "admin": "Administrator",
+      "operator": "Operator",
+      "viewer": "Betrachter"
+    },
+    "remove": "Entfernen",
+    "leave": "Team verlassen",
+    "remove_warning": "{name} verliert sofort den Zugriff auf das Team.",
+    "leave_warning": "Sie verlieren sofort den Zugriff auf dieses Team.",
+    "invite": {
+      "title": "Ins Team einladen",
+      "role": "Rolle",
+      "submit": "Einladung senden",
+      "sent": "Einladung an {email} gesendet.",
+      "pending": "Warten auf Antwort",
+      "until": "bis {time}",
+      "revoke": "Zurückziehen"
     }
   }
 }

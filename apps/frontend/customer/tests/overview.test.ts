@@ -74,7 +74,7 @@ describe('AppLayout mobile menu', () => {
     const Stub = { template: '<div />' };
     const router = createRouter({
       history: createMemoryHistory('/app/'),
-      routes: ['overview', 'incidents', 'incident', 'reconciliation', 'checks', 'notifications', 'login'].map((name) => ({ path: `/${name}${name === 'incident' ? '/:id' : ''}`, name, component: Stub })),
+      routes: ['overview', 'incidents', 'incident', 'reconciliation', 'checks', 'notifications', 'login', 'profile'].map((name) => ({ path: `/${name}${name === 'incident' ? '/:id' : ''}`, name, component: Stub })),
     });
     await router.push('/incident/1');
     const wrapper = mount(AppLayout, { global: { plugins: [localization, router] } });

@@ -54,7 +54,10 @@ class StoreApiTest extends TestCase
                 'timezone' => 'Europe/Kyiv',
                 'default_currency' => 'EUR',
             ])
-            ->assertStatus(500);
+            ->assertForbidden()
+            ->assertJsonPath('code', 'tenant_forbidden');
+
+        $this->assertDatabaseCount('stores', 0);
     }
 
     public function test_user_lists_only_active_tenant_stores(): void

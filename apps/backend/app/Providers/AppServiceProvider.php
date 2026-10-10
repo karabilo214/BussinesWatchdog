@@ -46,6 +46,21 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('artifact-url', fn (Request $request): Limit => Limit::perMinute(60)
             ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        RateLimiter::for('auth-password-reset', fn (Request $request): array => [
+            Limit::perHour(3)->by('reset-email|'.mb_strtolower(trim((string) $request->input('email')))),
+            Limit::perHour(20)->by('reset-ip|'.$request->ip()),
+        ]);
+
+        RateLimiter::for('auth-password-reset-complete', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
+
+        RateLimiter::for('auth-email-verification', fn (Request $request): Limit => Limit::perMinute(1)
+            ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        RateLimiter::for('invitation-lookup', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->ip()));
+
+        RateLimiter::for('invitations', fn (Request $request): Limit => Limit::perHour(30)
+            ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         RateLimiter::for('auth-signup', fn (Request $request): Limit => Limit::perHour((int) config('watchdog.rate_limits.signup_per_hour'))
             ->by((string) $request->ip()));
     }

@@ -13,6 +13,11 @@ export function buildRouter(): Router {
     routes: [
       { path: '/', redirect: { name: 'overview' } },
       { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
+      { path: '/forgot-password', name: 'forgot-password', component: () => import('@/views/ForgotPasswordView.vue'), meta: { public: true } },
+      { path: '/reset-password', name: 'reset-password', component: () => import('@/views/ResetPasswordView.vue'), meta: { public: true } },
+      { path: '/invitation', name: 'invitation', component: () => import('@/views/InvitationView.vue'), meta: { public: true } },
+      { path: '/settings/profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
+      { path: '/settings/team', name: 'team', component: () => import('@/views/TeamView.vue') },
       { path: '/overview', name: 'overview', component: () => import('@/views/OverviewView.vue') },
       { path: '/stores/new', name: 'store-create', component: () => import('@/views/StoreCreateView.vue') },
       { path: '/stores/:id', name: 'store', component: () => import('@/views/StoreView.vue'), props: true },

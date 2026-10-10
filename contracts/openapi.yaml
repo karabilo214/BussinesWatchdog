@@ -82,7 +82,8 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, email, password, password_confirmation, organization_name, timezone]
+              required: [name, email, password, password_confirmation]
+              description: "organization_name and timezone are required unless invitation_token is given; with a token the account joins the inviting team (the email must be the invited one) and no tenant is created."
               properties:
                 name: {type: string, minLength: 1, maxLength: 100}
                 email: {type: string, format: email, maxLength: 255}
@@ -90,6 +91,7 @@ paths:
                 password_confirmation: {type: string}
                 organization_name: {type: string, minLength: 1, maxLength: 100}
                 timezone: {type: string}
+                invitation_token: {type: string, maxLength: 128}
                 locale: {enum: [ru, en, de]}
       responses:
         "201":
@@ -147,6 +149,310 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/AuthSession"}
         "401": {$ref: "#/components/responses/Problem"}
+    patch:
+      tags: [Auth]
+      operationId: updateProfile
+      security:
+        - {UserSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string, minLength: 1, maxLength: 100}
+                locale: {enum: [ru, en, de]}
+      responses:
+        "200":
+          description: Updated session view
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AuthSession"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/password-reset/request:
+    post:
+      tags: [Auth]
+      operationId: requestPasswordReset
+      description: Same answer for known and unknown addresses; a one-time link (60 min) is mailed to known active users. 3/hour per address, 20/hour per IP.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: {type: string, maxLength: 255}
+      responses:
+        "202":
+          description: Requested
+          content:
+            application/json:
+              schema: {type: object, required: [status], properties: {status: {const: requested}}}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/password-reset/complete:
+    post:
+      tags: [Auth]
+      operationId: completePasswordReset
+      description: Consumes the token, ends every session of the user and confirms the address. Unknown, wrong or expired tokens all answer password_reset_invalid.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, token, password, password_confirmation]
+              properties:
+                email: {type: string, maxLength: 255}
+                token: {type: string, maxLength: 128}
+                password: {type: string, minLength: 12, maxLength: 128}
+                password_confirmation: {type: string}
+      responses:
+        "204": {description: Password changed}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/email-verification/{user_id}/{hash}:
+    get:
+      tags: [Auth]
+      operationId: verifyEmail
+      description: Signed expiring link (24 h) from the email; works without a session and redirects to /app/overview?email_verified=1|0.
+      parameters:
+        - {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: hash, in: path, required: true, schema: {type: string}}
+        - {name: expires, in: query, required: true, schema: {type: integer}}
+        - {name: signature, in: query, required: true, schema: {type: string}}
+      responses:
+        "302": {description: Redirect to the dashboard with the result}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/email-verification/resend:
+    post:
+      tags: [Auth]
+      operationId: resendEmailVerification
+      security:
+        - {UserSession: []}
+      description: Once a minute; 409 email_already_verified.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "202":
+          description: Sent
+          content:
+            application/json:
+              schema: {type: object, required: [status], properties: {status: {const: sent}}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/password:
+    post:
+      tags: [Auth]
+      operationId: changePassword
+      security:
+        - {UserSession: []}
+      description: Requires the current password; ends every other session of the user.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, password, password_confirmation]
+              properties:
+                current_password: {type: string, maxLength: 128}
+                password: {type: string, minLength: 12, maxLength: 128}
+                password_confirmation: {type: string}
+      responses:
+        "204": {description: Changed}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/invitations/lookup:
+    get:
+      tags: [Team]
+      operationId: lookupInvitation
+      description: Public; what a pending invitation offers. Unknown, expired, revoked or accepted tokens answer invitation_invalid.
+      parameters:
+        - {name: token, in: query, required: true, schema: {type: string, maxLength: 128}}
+      responses:
+        "200":
+          description: Pending invitation
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tenant_name, email, role, expires_at, account_exists]
+                properties:
+                  tenant_name: {type: string}
+                  email: {type: string}
+                  role: {enum: [admin, operator, viewer]}
+                  expires_at: {type: string, format: date-time}
+                  account_exists: {type: boolean}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/invitations/accept:
+    post:
+      tags: [Team]
+      operationId: acceptInvitation
+      security:
+        - {UserSession: []}
+      description: The signed-in user's address must be the invited one; accepting confirms that address and makes the team active.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [token], properties: {token: {type: string, maxLength: 128}}}
+      responses:
+        "200":
+          description: Joined
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TeamMember"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/memberships:
+    get:
+      tags: [Team]
+      operationId: listMembers
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Members of the active team and the roles the viewer may assign
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, assignable_roles]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/TeamMember"}
+                  assignable_roles:
+                    type: array
+                    items: {enum: [admin, operator, viewer]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+  /api/v1/memberships/{user_id}:
+    patch:
+      tags: [Team]
+      operationId: changeMemberRole
+      security:
+        - {UserSession: []}
+      description: "ADR 0019: owner assigns admin/operator/viewer; admin manages only operators and viewers; nobody changes their own role; the owner role is not assignable."
+      parameters:
+        - {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [role], properties: {role: {enum: [admin, operator, viewer]}}}
+      responses:
+        "200":
+          description: Changed
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TeamMember"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+    delete:
+      tags: [Team]
+      operationId: removeMember
+      security:
+        - {UserSession: []}
+      description: Removes a member (same rules as role changes) or lets any non-owner leave; access ends with the next request.
+      parameters:
+        - {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "204": {description: Removed}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/invitations:
+    get:
+      tags: [Team]
+      operationId: listInvitations
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Pending invitations of the active team
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Invitation"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Team]
+      operationId: inviteMember
+      security:
+        - {UserSession: []}
+      description: Mails a 7-day link; a new invitation to the same address replaces the pending one. 30/hour per user.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email: {type: string, format: email, maxLength: 255}
+                role: {enum: [admin, operator, viewer]}
+      responses:
+        "201":
+          description: Invited
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Invitation"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/invitations/{invitation_id}/revoke:
+    post:
+      tags: [Team]
+      operationId: revokeInvitation
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: invitation_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Invitation"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
   /api/v1/tenants/{tenant_id}/activate:
     post:
       tags: [Tenancy]
@@ -2350,6 +2656,28 @@ components:
               currency: {type: string, pattern: "^[A-Z]{3}$"}
               currency_exponent: {type: integer}
               mode: {type: [string, "null"]}
+    TeamMember:
+      type: object
+      required: [user_id, tenant_id, role, is_you]
+      properties:
+        user_id: {type: string, format: uuid}
+        tenant_id: {type: string, format: uuid}
+        name: {type: [string, "null"]}
+        email: {type: [string, "null"]}
+        role: {enum: [owner, admin, operator, viewer]}
+        is_you: {type: boolean}
+        created_at: {type: [string, "null"], format: date-time}
+    Invitation:
+      type: object
+      required: [id, email, role, state, expires_at]
+      properties:
+        id: {type: string, format: uuid}
+        email: {type: string}
+        role: {enum: [admin, operator, viewer]}
+        state: {enum: [pending, accepted, revoked, expired]}
+        invited_by: {type: [string, "null"]}
+        expires_at: {type: string, format: date-time}
+        created_at: {type: [string, "null"], format: date-time}
     Incident:
       type: object
       required:

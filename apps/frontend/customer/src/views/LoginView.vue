@@ -13,6 +13,7 @@ const password = ref('');
 const remember = ref(false);
 const submitting = ref(false);
 const errorKey = ref<string | null>(route.query.expired === '1' ? 'auth.session_expired' : null);
+const infoKey = route.query.reset === '1' ? 'account.reset.done' : null;
 
 async function submit(): Promise<void> {
   submitting.value = true;
@@ -47,6 +48,8 @@ async function submit(): Promise<void> {
         <p class="text-sm text-text-muted">{{ $t('auth.subtitle') }}</p>
       </div>
 
+      <p v-if="infoKey && !errorKey" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok">{{ $t(infoKey) }}</p>
+
       <p v-if="errorKey" role="alert" class="rounded-md border border-crit-border bg-crit-soft px-3 py-2 text-sm text-crit">
         {{ $t(errorKey) }}
       </p>
@@ -73,6 +76,7 @@ async function submit(): Promise<void> {
           class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base"
         />
       </div>
+      <RouterLink :to="{ name: 'forgot-password' }" class="-mt-2 self-start text-sm text-primary hover:underline">{{ $t('account.forgot.link') }}</RouterLink>
       <label for="login-remember" class="flex items-center gap-2 text-sm">
         <input id="login-remember" v-model="remember" type="checkbox" class="size-4 accent-primary" />
         {{ $t('auth.remember') }}

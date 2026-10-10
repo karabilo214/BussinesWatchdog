@@ -107,6 +107,14 @@ class TenantRoles
     /**
      * @return list<string>
      */
+    public static function teamManage(): array
+    {
+        return self::storeManage();
+    }
+
+    /**
+     * @return list<string>
+     */
     public static function notificationManage(): array
     {
         return self::storeManage();

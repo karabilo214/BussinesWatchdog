@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\Tenancy\MissingTenantContext;
 use App\Console\Commands\CheckStoreVerifications;
 use App\Console\Commands\DeliverNotifications;
 use App\Console\Commands\DispatchDomainOutbox;
@@ -53,4 +54,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->is('internal/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(fn (MissingTenantContext $exception, Request $request) => $request->is('api/*')
+            ? response()->json(['code' => 'tenant_forbidden', 'message' => 'No access to an active team.'], 403)
+            : null);
     })->create();

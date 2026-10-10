@@ -1393,3 +1393,21 @@ Verification:
 - Backend: SQLite 315 + 4 skipped, PostgreSQL 18 319 passed (overview totals checked above 2^53 on both).
 - Limits (ADR 0018): live and test-mode incidents are not separated; a sum above the signed 64-bit range fails on SQLite only.
 
+### Step 64: Account and Team (ADR 0019)
+
+Status: complete
+
+Added:
+
+- Backend: password reset request/complete (same answer for unknown addresses, one-time 60-minute link stored as a hash, ends every session, confirms the address), email confirmation (signed 24-hour link sent at sign-up, works without a session, resend once a minute), `PATCH /auth/me` (name, language), `POST /auth/password` (needs the current password, ends other sessions), team: `GET/PATCH/DELETE /memberships`, `GET/POST /invitations`, revoke, public lookup, accept, and sign-up through an invitation (joins the team, no new tenant). Role rules, audit and limits in `docs/adr/0019-account-and-team.md` (for owner review). Mail texts in ru/en/de (`lang/*/account.php`).
+- Fixed: a request without access to an active team (no team in the session or membership removed) returned HTTP 500; it now answers `403 tenant_forbidden` (an old test had asserted the 500). The email confirmation route sat behind the SPA-session middleware, so a link opened from an email was rejected — found by the smoke, moved out.
+- Customer app: "Forgot password?" → request page → reset page from the email; banner "confirm your address" with resend and the result notice after the link; Settings → Profile (name, language — also switches the UI, address state, password change) and Team (members with role selects only where allowed, remove/leave with confirmation, invite by email with allowed roles, pending invitations with revoke); invitation page (accept when signed in with the invited address, warning for another address, sign-in for an existing account, account creation for a new person). Header name links to settings; mobile menu has Settings.
+- Smoke (real email through Mailpit): the owner confirms the address from the email; invites an operator; in a separate browser the operator creates an account from the invitation email and later restores a forgotten password from the reset email.
+
+Verification:
+
+- `make frontend-check` green (customer 66 tests: password rules, team permissions, every invitation state, every account rejection code translated).
+- `make frontend-smoke` 36/36, five consecutive runs; emails and screenshots inspected.
+- Backend: SQLite 327 + 4 skipped, PostgreSQL 18 331 passed (account 6 and team 6 new feature tests).
+- Not done: MFA, ownership transfer, several teams per user in the dashboard (create/switch), per-device session list.
+

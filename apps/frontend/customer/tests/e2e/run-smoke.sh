@@ -30,6 +30,14 @@ if (! User::query()->where("email", "smoke@example.test")->exists()) {
     Integration::query()->create(["tenant_id" => $t->id, "store_id" => $s->id, "provider" => "woocommerce", "install_id" => Str::uuid(), "mode" => "live", "source_authority" => "store_reported", "status" => "active", "capabilities" => [], "connector_version" => "0.6.0", "health" => ["freshness" => ["state" => "fresh"]], "last_heartbeat_at" => now()]);
 }
 $lindner = Store::query()->where("name", "Kaffeerösterei Lindner")->firstOrFail();
+User::query()->where("email", "smoke@example.test")->update(["email_verified_at" => null, "name" => "Smoke Owner"]);
+$smokeGuests = User::query()->where("email", "like", "%@smoke.example.test")->pluck("id");
+DB::table("audit_log")->whereIn("actor_user_id", $smokeGuests)->delete();
+DB::table("memberships")->whereIn("user_id", $smokeGuests)->delete();
+DB::table("sessions")->whereIn("user_id", $smokeGuests)->delete();
+DB::table("invitations")->where("tenant_id", $lindner->tenant_id)->delete();
+DB::table("password_reset_tokens")->where("email", "like", "%@smoke.example.test")->delete();
+User::query()->whereIn("id", $smokeGuests)->delete();
 DB::table("notification_deliveries")->where("tenant_id", $lindner->tenant_id)->delete();
 DB::table("notification_channel_verifications")->where("tenant_id", $lindner->tenant_id)->delete();
 DB::table("notification_channels")->where("tenant_id", $lindner->tenant_id)->delete();

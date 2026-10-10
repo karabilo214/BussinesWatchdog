@@ -10,7 +10,8 @@
     "reconciliation": "Reconciliation",
     "checks": "Checks",
     "notifications": "Notifications",
-    "menu": "Menu"
+    "menu": "Menu",
+    "settings": "Settings"
   },
   "common": {
     "loading": "Loading…",
@@ -283,7 +284,19 @@
     "test_rate_limited": "A test email can be sent at most once a minute.",
     "critical_bypass_requires_owner": "Only the account owner can allow critical notifications during quiet hours.",
     "store_not_found": "One of the selected stores was not found. Reload the page.",
-    "channel_kind_not_supported_yet": "This channel type is not supported yet."
+    "channel_kind_not_supported_yet": "This channel type is not supported yet.",
+    "password_reset_invalid": "The password reset link is invalid or has expired. Request a new one.",
+    "email_already_verified": "The address is already confirmed.",
+    "invitation_invalid": "The invitation is no longer valid: it was revoked, expired or already accepted.",
+    "invitation_email_mismatch": "The invitation was sent to a different address.",
+    "already_member": "This person is already in the team.",
+    "role_not_assignable": "You cannot give this role.",
+    "cannot_change_own_role": "You cannot change your own role.",
+    "owner_cannot_leave": "The owner cannot leave the team.",
+    "team_forbidden": "You cannot manage this member.",
+    "member_not_found": "Member not found. Reload the page.",
+    "invitation_not_found": "Invitation not found. Reload the page.",
+    "tenant_forbidden": "No access to the team. Sign in again or ask for an invitation."
   },
   "incidents": {
     "title": "Incidents",
@@ -875,6 +888,94 @@
         "notification_incident_not_found": "The incident was not found.",
         "notification_kind_invalid": "Unknown notification type."
       }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "tab": {
+      "profile": "Profile",
+      "team": "Team"
+    }
+  },
+  "account": {
+    "back_to_login": "Back to sign in",
+    "forgot": {
+      "link": "Forgot your password?",
+      "title": "Reset password",
+      "subtitle": "Enter the address of your account. We will send a link to set a new password.",
+      "submit": "Send link",
+      "sent": "If this address is registered, an email with a link is on its way. The link is valid for 60 minutes."
+    },
+    "reset": {
+      "title": "New password",
+      "subtitle": "Set a new password for {email}. Sessions on other devices end afterwards.",
+      "broken": "The link is incomplete. Open it from the email in full or request a new one.",
+      "submit": "Save password",
+      "request_new": "Request a new link",
+      "done": "Password changed. Sign in with the new password."
+    },
+    "password": {
+      "title": "Password",
+      "current": "Current password",
+      "new": "New password",
+      "repeat": "Repeat the new password",
+      "rule": "12 to 128 characters.",
+      "mismatch": "The passwords do not match.",
+      "other_sessions": "Sessions on other devices end after the change.",
+      "change": "Change password",
+      "changed": "Password changed.",
+      "current_invalid": "The current password is wrong."
+    },
+    "profile": {
+      "title": "Profile",
+      "name": "Name",
+      "locale": "Language of the interface and emails",
+      "email_verified": "address confirmed",
+      "email_unverified": "address not confirmed"
+    },
+    "verify": {
+      "banner": "Confirm the address {email}: open the link from the email.",
+      "resend": "Send the email again",
+      "sent": "Email sent.",
+      "done": "Address confirmed. Thank you!",
+      "failed": "The confirmation link is invalid or has expired. Request a new email in the settings."
+    },
+    "invitation": {
+      "title": "Team invitation",
+      "invalid": "The invitation is no longer valid: it was revoked, expired or already accepted. Ask for a new one.",
+      "offer": "You are invited to the “{team}” team as {role}.",
+      "for": "Invitation for {email}, valid until {time}.",
+      "accept": "Accept invitation",
+      "other_account": "You are signed in as {email}, but the invitation was sent to a different address.",
+      "switch": "Sign out and use another address",
+      "sign_in_first": "This address already has an account. Sign in to accept the invitation.",
+      "create_account": "Create an account to join.",
+      "join": "Create account and join"
+    }
+  },
+  "team": {
+    "members": "Members",
+    "roles_hint": "The owner and admins manage the team; operators handle incidents and reconciliation; viewers only look.",
+    "you": "you",
+    "role_for": "Role: {name}",
+    "role": {
+      "owner": "owner",
+      "admin": "admin",
+      "operator": "operator",
+      "viewer": "viewer"
+    },
+    "remove": "Remove",
+    "leave": "Leave team",
+    "remove_warning": "{name} loses access to the team immediately.",
+    "leave_warning": "You lose access to this team immediately.",
+    "invite": {
+      "title": "Invite to the team",
+      "role": "Role",
+      "submit": "Send invitation",
+      "sent": "Invitation sent to {email}.",
+      "pending": "Awaiting answer",
+      "until": "until {time}",
+      "revoke": "Revoke"
     }
   }
 }

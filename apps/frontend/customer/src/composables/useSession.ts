@@ -49,11 +49,17 @@ async function signOut(): Promise<void> {
   }
 }
 
+/** Replaces the cached session after the server returned a fresh one (profile change, sign-up, joining a team). */
+function replace(value: AuthSession): void {
+  session.value = value;
+  loaded.value = true;
+}
+
 function clear(): void {
   session.value = null;
   loaded.value = true;
 }
 
 export function useSession() {
-  return { session: readonly(session), loaded: readonly(loaded), load, signIn, signOut, clear };
+  return { session: readonly(session), loaded: readonly(loaded), load, signIn, signOut, clear, replace };
 }
