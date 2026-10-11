@@ -127,6 +127,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationManage()), 'throttle:provider-sync']);
     Route::post('/billing/checkout', [BillingController::class, 'checkout'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+    Route::post('/billing/trial', [BillingController::class, 'trial'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
     Route::get('/billing/checkouts/{checkout}', [BillingController::class, 'showCheckout'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
     Route::get('/billing/subscription', [BillingController::class, 'subscription'])

@@ -1355,6 +1355,36 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "503": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/trial:
+    post:
+      tags: [Billing]
+      operationId: startBillingTrial
+      description: "Tenant owner with a verified email only. Our own trial without a payment method (ADR 0030): once per tenant (consumed under the tenant lock, kept even if the subscription row is later replaced), for the trial days of the plan version. Policy acceptance is added when the legal pages exist."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 16, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [plan_version_id]
+              properties:
+                plan_version_id: {type: string, format: uuid}
+      responses:
+        "201":
+          description: Trial started
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/BillingSubscription"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/billing/checkouts/{checkout_id}:
     get:
       tags: [Billing]

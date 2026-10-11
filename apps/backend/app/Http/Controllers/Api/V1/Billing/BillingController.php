@@ -9,6 +9,7 @@ use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\Paddle\PaddleCheckout;
 use App\Support\Billing\Paddle\PaddleConfig;
+use App\Support\Billing\TrialService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,21 +58,45 @@ class BillingController extends Controller
         return response()->json($this->checkoutDto($session, $tenantId));
     }
 
+    public function trial(Request $request, TenantContext $tenantContext, TrialService $trials, EntitlementCalculator $calculator): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('start trial');
+        $validated = $request->validate(['plan_version_id' => ['required', 'uuid']]);
+
+        if ($request->user()->email_verified_at === null) {
+            return response()->json(['code' => 'email_not_verified', 'message' => 'Confirm your email address first.'], 403);
+        }
+
+        try {
+            $subscription = $trials->start($tenantId, $validated['plan_version_id']);
+        } catch (BillingCheckoutRejected $exception) {
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The trial cannot be started.'], $exception->status());
+        }
+
+        $calculator->forget();
+
+        return response()->json($this->subscriptionDto($subscription, $calculator), 201);
+    }
+
     public function subscription(TenantContext $tenantContext, EntitlementCalculator $calculator): JsonResponse|Response
     {
         $tenantId = $tenantContext->requireTenantId('read subscription');
         /** @var Subscription|null $subscription */
         $subscription = Subscription::query()->where('tenant_id', $tenantId)->first();
 
-        if ($subscription === null) {
-            return response()->noContent();
-        }
+        return $subscription === null ? response()->noContent() : response()->json($this->subscriptionDto($subscription, $calculator));
+    }
 
-        $entitlements = $calculator->forTenant($tenantId);
+    /**
+     * @return array<string, mixed>
+     */
+    private function subscriptionDto(Subscription $subscription, EntitlementCalculator $calculator): array
+    {
+        $entitlements = $calculator->forTenant($subscription->tenant_id);
 
-        return response()->json([
+        return [
             'id' => $subscription->id,
-            'tenant_id' => $tenantId,
+            'tenant_id' => $subscription->tenant_id,
             'provider' => $subscription->provider,
             'plan_code' => $subscription->plan_code,
             'plan_version_id' => $subscription->plan_version_id,
@@ -86,7 +111,7 @@ class BillingController extends Controller
             'extra_store_quantity' => $subscription->extra_store_quantity,
             'version' => $subscription->version,
             'entitlements' => EntitlementCalculator::withStores($subscription->entitlements, $subscription->extra_store_quantity),
-        ]);
+        ];
     }
 
     /**

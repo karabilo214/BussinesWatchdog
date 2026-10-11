@@ -1992,3 +1992,15 @@ Verification:
 - `tests/Feature/Billing/PaddleBillingTest.php` — 14 tests (HTTP faked).
 - Backend SQLite: 429 passed, 4 skipped. PostgreSQL 18: 433 of 433.
 
+### Step 99: Owner Decisions on ADR 0030 and Our Own Trial
+
+Status: complete
+
+- Owner: prices stay gross for consumers for now (to be checked with a tax adviser); trial is our own without a payment method; policy acceptance waits for the legal pages.
+- Migration `2026_10_11_200000_add_trial_consumed_to_tenants`. `TrialService` + `POST /api/v1/billing/trial` (owner, verified email, `idempotency` middleware): once per tenant under the tenant lock, `provider = internal`, `trial_ends_at` from the plan version's `trial_days`; drafts only in the Paddle sandbox. A paid contract replaces the trial row through `SubscriptionProjector`. OpenAPI (both copies).
+
+Verification:
+
+- `tests/Feature/Billing/TrialTest.php` — 3 tests.
+
+- Backend SQLite: 432 passed, 4 skipped. PostgreSQL 18: 436 of 436.

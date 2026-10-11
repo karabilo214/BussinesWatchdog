@@ -23,6 +23,7 @@ class Tenant extends Model
     {
         return [
             'config_version' => 'integer',
+            'trial_consumed_at' => 'datetime',
         ];
     }
 

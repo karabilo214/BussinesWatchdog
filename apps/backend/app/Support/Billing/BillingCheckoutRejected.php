@@ -12,6 +12,9 @@ class BillingCheckoutRejected extends RuntimeException
         'extra_stores_out_of_range' => 422,
         'subscription_exists' => 409,
         'idempotency_conflict' => 409,
+        'trial_not_available' => 409,
+        'plan_not_available' => 422,
+        'email_not_verified' => 403,
     ];
 
     public function __construct(public readonly string $reasonCode)
