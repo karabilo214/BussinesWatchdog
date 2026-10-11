@@ -505,7 +505,8 @@
       "connector_reason": {
         "heartbeats_missed": "Das Plugin hat mehrere Signale in Folge ausgelassen.",
         "no_heartbeat_since_pairing": "Seit der Verbindung kam kein Signal vom Plugin.",
-        "delivery_backlog": "Das Plugin hat einen Rückstand nicht gesendeter Ereignisse."
+        "delivery_backlog": "Das Plugin hat einen Rückstand nicht gesendeter Ereignisse.",
+        "local_queue_full": "Die lokale Warteschlange des Plugins ist voll (100.000 Ereignisse): Neue Bestelländerungen werden vorerst nicht vorgemerkt und nach dem Abbau aus den Bestellungen wiederhergestellt. Bestellungen funktionieren weiter."
       },
       "last_heartbeat": "Letztes Signal: {time}.",
       "backlog": "Nicht gesendete Ereignisse: {n}.",

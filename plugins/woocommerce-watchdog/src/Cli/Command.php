@@ -28,6 +28,18 @@ final class Command
         \WP_CLI::line((string) wp_json_encode(HeartbeatJob::run()));
     }
 
+    public function stop(): void
+    {
+        \BusinessWatchdog\WooCommerce\Safety\MonitoringSwitch::stop('cli');
+        \WP_CLI::success('Monitoring stopped. Orders and checkout are not affected.');
+    }
+
+    public function resume(): void
+    {
+        \BusinessWatchdog\WooCommerce\Safety\MonitoringSwitch::resume();
+        \WP_CLI::success('Monitoring resumed.');
+    }
+
     public function diagnostics(): void
     {
         \WP_CLI::line((string) wp_json_encode(RestController::diagnosticsPayload()));

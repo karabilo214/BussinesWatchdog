@@ -5,6 +5,7 @@ namespace BusinessWatchdog\WooCommerce\Jobs;
 use BusinessWatchdog\WooCommerce\Connection\Connection;
 use BusinessWatchdog\WooCommerce\Http\Response;
 use BusinessWatchdog\WooCommerce\Http\SignedClient;
+use BusinessWatchdog\WooCommerce\Storage\Outbox;
 use BusinessWatchdog\WooCommerce\Storage\OutboxStats;
 use BusinessWatchdog\WooCommerce\Storage\State;
 
@@ -22,6 +23,7 @@ final class HeartbeatJob
 
     public static function run(): array
     {
+        Outbox::checkLimit();
         $connection = Connection::current();
 
         if ($connection === null || $connection->status() !== Connection::STATUS_CONNECTED) {
@@ -32,6 +34,8 @@ final class HeartbeatJob
             'backlog_count' => OutboxStats::backlogCount(),
             'oldest_pending_at' => OutboxStats::oldestPendingAt(),
             'plugin_version' => BW_PLUGIN_VERSION,
+            'outbox_full' => Outbox::full(),
+            'skipped_events' => (int) (Outbox::fullState()['skipped'] ?? 0),
         ]);
 
         State::set(self::STATE_LAST, [
@@ -73,6 +77,8 @@ final class HeartbeatJob
         $confirmation = (new SignedClient($connection))->post('/api/v1/ingest/heartbeat', [
             'backlog_count' => OutboxStats::backlogCount(),
             'plugin_version' => BW_PLUGIN_VERSION,
+            'outbox_full' => Outbox::full(),
+            'skipped_events' => (int) (Outbox::fullState()['skipped'] ?? 0),
         ]);
 
         return $confirmation->successful();

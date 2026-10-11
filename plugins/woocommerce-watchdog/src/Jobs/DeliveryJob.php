@@ -27,6 +27,7 @@ final class DeliveryJob
 
     public static function run(): array
     {
+        Outbox::checkLimit();
         $connection = Connection::current();
 
         if ($connection === null || $connection->status() !== Connection::STATUS_CONNECTED) {

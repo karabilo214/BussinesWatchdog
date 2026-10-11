@@ -63,6 +63,14 @@ class ConnectorFreshness
             $heartbeat['oldest_pending_at'] = Carbon::parse($report['oldest_pending_at'])->utc()->toJSON();
         }
 
+        if (is_bool($report['outbox_full'] ?? null)) {
+            $heartbeat['outbox_full'] = $report['outbox_full'];
+        }
+
+        if (is_int($report['skipped_events'] ?? null) && $report['skipped_events'] >= 0) {
+            $heartbeat['skipped_events'] = $report['skipped_events'];
+        }
+
         if (is_string($report['plugin_version'] ?? null) && $report['plugin_version'] !== '') {
             $heartbeat['plugin_version'] = mb_substr($report['plugin_version'], 0, 64);
         }
@@ -89,6 +97,10 @@ class ConnectorFreshness
 
         if ($integration->last_heartbeat_at->lessThanOrEqualTo($now->copy()->subSeconds($staleAfter))) {
             return ['state' => self::STATE_STALE, 'reason' => 'heartbeats_missed'];
+        }
+
+        if (($integration->health['heartbeat']['outbox_full'] ?? false) === true) {
+            return ['state' => self::STATE_PARTIAL, 'reason' => 'local_queue_full'];
         }
 
         $oldestPending = $integration->health['heartbeat']['oldest_pending_at'] ?? null;
@@ -229,6 +241,8 @@ class ConnectorFreshness
                 'last_heartbeat_at' => $integration->last_heartbeat_at?->toJSON(),
                 'backlog_count' => $heartbeat['backlog_count'] ?? null,
                 'oldest_pending_at' => $heartbeat['oldest_pending_at'] ?? null,
+                'outbox_full' => $heartbeat['outbox_full'] ?? null,
+                'skipped_events' => $heartbeat['skipped_events'] ?? null,
                 'missed_heartbeats_threshold' => self::MISSED_HEARTBEATS,
             ],
             'data_quality' => [],

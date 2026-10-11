@@ -1531,3 +1531,13 @@ Status: complete (owner accepted the proposal from Step 71)
 - New backend test (pointer read and link; old, other-mode, other-gateway orders ignored; unknown capture retried only after the interval; only allowlisted GETs). SQLite 356 + 4 skipped, PostgreSQL 18 360 passed.
 - The one-run chain (`paypal-chain-e2e.sh latest`) now checks the pointer path instead of a simulated hint: PASS on the owner's sandbox.
 
+### Step 73: Plugin Safety (ADR 0023)
+
+Status: complete
+
+- Owner decisions on the platforms research: Germany/DACH, WooCommerce REST API-first, plugin safety first (ADR 0023).
+- Plugin 0.2.0: local queue limit 100 000 with skip-before-revision and backfill recovery below 90 000; heartbeat `outbox_full`/`skipped_events`; emergency stop (settings page, `wp business-watchdog stop|resume`) and `BUSINESS_WATCHDOG_DISABLED` constant before the autoloader; 7-day backlog flag; uninstall removes the new options; README with emergency instructions.
+- Backend: a full plugin queue makes the connector `partial` / `local_queue_full`; reason text ru/en/de in the dashboard.
+- Release: `bin/build-release.sh` (package without tests, PHP 7.4 lint), `tests/matrix/release-checks.sh` on the shipped ZIP — 27 checks PASS on floor and latest (upgrade/rollback, checkout with the service unreachable, switches, no WooCommerce, offline deactivation and repeated uninstall).
+- Tests: plugin integration floor/latest 48/48; backend new freshness test.
+

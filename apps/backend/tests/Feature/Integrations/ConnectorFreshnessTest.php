@@ -135,6 +135,25 @@ class ConnectorFreshnessTest extends TestCase
         $this->assertSame(1, DomainOutbox::query()->where('topic', DomainOutbox::TOPIC_INCIDENT_NOTIFICATION_REQUESTED)->count());
     }
 
+    public function test_a_full_plugin_queue_is_partial_until_the_plugin_reports_it_drained(): void
+    {
+        $context = $this->context();
+        [$connector, $secret] = $this->connector($context, now());
+        $this->heartbeat($secret, ['backlog_count' => 100000, 'oldest_pending_at' => now()->subMinutes(5)->toJSON(), 'plugin_version' => '0.1.0', 'outbox_full' => true, 'skipped_events' => 12])->assertOk();
+        $this->check();
+
+        $freshness = $connector->fresh()->health['freshness'];
+        $this->assertSame([ConnectorFreshness::STATE_PARTIAL, 'local_queue_full'], [$freshness['state'], $freshness['reason']]);
+        $this->assertSame(12, $connector->fresh()->health['heartbeat']['skipped_events']);
+        $this->assertSame(Incident::STATE_OPEN, Incident::query()->sole()->state);
+
+        $this->heartbeat($secret, ['backlog_count' => 10, 'oldest_pending_at' => now()->toJSON(), 'plugin_version' => '0.1.0', 'outbox_full' => false, 'skipped_events' => 0])->assertOk();
+        $this->check();
+
+        $this->assertSame(ConnectorFreshness::STATE_FRESH, $connector->fresh()->health['freshness']['state']);
+        $this->assertSame(Incident::STATE_RESOLVED, Incident::query()->sole()->state);
+    }
+
     public function test_money_checks_are_unknown_while_store_data_is_stale(): void
     {
         $context = $this->context();

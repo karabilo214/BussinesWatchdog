@@ -505,7 +505,8 @@
       "connector_reason": {
         "heartbeats_missed": "The plugin missed several signals in a row.",
         "no_heartbeat_since_pairing": "No signal from the plugin since it was connected.",
-        "delivery_backlog": "The plugin has a backlog of unsent events."
+        "delivery_backlog": "The plugin has a backlog of unsent events.",
+        "local_queue_full": "The plugin's local queue is full (100,000 events): new order changes are not queued for now and will be recovered from the orders once the queue drains. Orders keep working."
       },
       "last_heartbeat": "Last signal: {time}.",
       "backlog": "Unsent events: {n}.",

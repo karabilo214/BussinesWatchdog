@@ -16,6 +16,7 @@ use BusinessWatchdog\WooCommerce\Jobs\HeartbeatJob;
 use BusinessWatchdog\WooCommerce\Jobs\PaymentAttemptsJob;
 use BusinessWatchdog\WooCommerce\Jobs\RescanJob;
 use BusinessWatchdog\WooCommerce\Rest\RestController;
+use BusinessWatchdog\WooCommerce\Safety\MonitoringSwitch;
 use BusinessWatchdog\WooCommerce\Storage\Schema;
 use BusinessWatchdog\WooCommerce\Synthetic\SyntheticOrders;
 use BusinessWatchdog\WooCommerce\Storage\State;
@@ -40,6 +41,11 @@ final class Plugin
 
     public static function deactivate(): void
     {
+        self::clearSchedules();
+    }
+
+    public static function clearSchedules(): void
+    {
         foreach (array_keys(self::RECURRING) as $hook) {
             SchedulerFactory::make()->clear($hook);
             wp_clear_scheduled_hook($hook);
@@ -49,6 +55,18 @@ final class Plugin
     public static function boot(): void
     {
         add_filter('cron_schedules', [WpCronAdapter::class, 'registerSchedules']);
+
+        if (MonitoringSwitch::stopped()) {
+            add_action('admin_notices', [self::class, 'stoppedNotice']);
+
+            if (is_admin()) {
+                SettingsPage::register();
+            }
+
+            self::registerCli();
+
+            return;
+        }
 
         if (! Environment::wooCommerceSupported()) {
             add_action('admin_notices', [self::class, 'unsupportedNotice']);
@@ -79,39 +97,53 @@ final class Plugin
             SettingsPage::register();
         }
 
-        if (defined('WP_CLI') && WP_CLI) {
-            $command = new Cli\Command();
-            \WP_CLI::add_command('business-watchdog pair', [$command, 'pair'], [
-                'shortdesc' => 'Pair this store with Business Watchdog.',
-                'synopsis' => [
-                    ['type' => 'assoc', 'name' => 'endpoint', 'optional' => false],
-                    ['type' => 'assoc', 'name' => 'code', 'optional' => false],
-                ],
-            ]);
-            \WP_CLI::add_command('business-watchdog heartbeat', [$command, 'heartbeat'], ['shortdesc' => 'Send a heartbeat now.']);
-            \WP_CLI::add_command('business-watchdog diagnostics', [$command, 'diagnostics'], ['shortdesc' => 'Print diagnostics as JSON.']);
-            \WP_CLI::add_command('business-watchdog deliver', [$command, 'deliver'], ['shortdesc' => 'Deliver pending outbox events now.']);
-            \WP_CLI::add_command('business-watchdog payment-attempts', [$command, 'paymentAttempts'], [
-                'shortdesc' => 'Resolve open payment attempts and report closed windows now.',
-                'synopsis' => [
-                    ['type' => 'assoc', 'name' => 'advance', 'optional' => true, 'description' => 'Evaluate as if this many seconds had passed (closes windows, expires pending attempts).'],
-                ],
-            ]);
-            \WP_CLI::add_command('business-watchdog cleanup-synthetic', [$command, 'cleanupSynthetic'], [
-                'shortdesc' => 'Delete checkout drafts created by verified browser checks.',
-                'synopsis' => [
-                    ['type' => 'assoc', 'name' => 'advance', 'optional' => true, 'description' => 'Evaluate as if this many seconds had passed.'],
-                ],
-            ]);
-            \WP_CLI::add_command('business-watchdog rescan', [$command, 'rescan'], ['shortdesc' => 'Rescan orders changed in the last 48 hours.']);
-            \WP_CLI::add_command('business-watchdog backfill', [$command, 'backfill'], [
-                'shortdesc' => 'Run backfill pages (90-day window).',
-                'synopsis' => [
-                    ['type' => 'flag', 'name' => 'start', 'optional' => true],
-                    ['type' => 'assoc', 'name' => 'pages', 'optional' => true],
-                ],
-            ]);
+        self::registerCli();
+    }
+
+    private static function registerCli(): void
+    {
+        if (! defined('WP_CLI') || ! WP_CLI) {
+            return;
         }
+
+        $command = new Cli\Command();
+        \WP_CLI::add_command('business-watchdog stop', [$command, 'stop'], ['shortdesc' => 'Stop all monitoring work on this site (orders and checkout are not affected).']);
+        \WP_CLI::add_command('business-watchdog resume', [$command, 'resume'], ['shortdesc' => 'Resume monitoring after a stop.']);
+        \WP_CLI::add_command('business-watchdog diagnostics', [$command, 'diagnostics'], ['shortdesc' => 'Print diagnostics as JSON.']);
+
+        if (MonitoringSwitch::stopped()) {
+            return;
+        }
+
+        \WP_CLI::add_command('business-watchdog pair', [$command, 'pair'], [
+            'shortdesc' => 'Pair this store with Business Watchdog.',
+            'synopsis' => [
+                ['type' => 'assoc', 'name' => 'endpoint', 'optional' => false],
+                ['type' => 'assoc', 'name' => 'code', 'optional' => false],
+            ],
+        ]);
+        \WP_CLI::add_command('business-watchdog heartbeat', [$command, 'heartbeat'], ['shortdesc' => 'Send a heartbeat now.']);
+        \WP_CLI::add_command('business-watchdog deliver', [$command, 'deliver'], ['shortdesc' => 'Deliver pending outbox events now.']);
+        \WP_CLI::add_command('business-watchdog payment-attempts', [$command, 'paymentAttempts'], [
+            'shortdesc' => 'Resolve open payment attempts and report closed windows now.',
+            'synopsis' => [
+                ['type' => 'assoc', 'name' => 'advance', 'optional' => true, 'description' => 'Evaluate as if this many seconds had passed (closes windows, expires pending attempts).'],
+            ],
+        ]);
+        \WP_CLI::add_command('business-watchdog cleanup-synthetic', [$command, 'cleanupSynthetic'], [
+            'shortdesc' => 'Delete checkout drafts created by verified browser checks.',
+            'synopsis' => [
+                ['type' => 'assoc', 'name' => 'advance', 'optional' => true, 'description' => 'Evaluate as if this many seconds had passed.'],
+            ],
+        ]);
+        \WP_CLI::add_command('business-watchdog rescan', [$command, 'rescan'], ['shortdesc' => 'Rescan orders changed in the last 48 hours.']);
+        \WP_CLI::add_command('business-watchdog backfill', [$command, 'backfill'], [
+            'shortdesc' => 'Run backfill pages (90-day window).',
+            'synopsis' => [
+                ['type' => 'flag', 'name' => 'start', 'optional' => true],
+                ['type' => 'assoc', 'name' => 'pages', 'optional' => true],
+            ],
+        ]);
     }
 
     public static function ensureSchedules(): void
@@ -152,6 +184,11 @@ final class Plugin
         BackfillJob::start('pairing');
         EnvironmentEvents::capabilities();
         EnvironmentEvents::deployments();
+    }
+
+    public static function stoppedNotice(): void
+    {
+        echo '<div class="notice notice-warning"><p>' . esc_html__('Business Watchdog monitoring is stopped on this site. Orders and checkout work as usual; nothing is recorded or sent until monitoring is resumed.', 'business-watchdog') . '</p></div>';
     }
 
     public static function unsupportedNotice(): void

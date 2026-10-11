@@ -6,6 +6,7 @@ use BusinessWatchdog\WooCommerce\Connection\Connection;
 use BusinessWatchdog\WooCommerce\Connection\PairingClient;
 use BusinessWatchdog\WooCommerce\Jobs\HeartbeatJob;
 use BusinessWatchdog\WooCommerce\Rest\RestController;
+use BusinessWatchdog\WooCommerce\Safety\MonitoringSwitch;
 use BusinessWatchdog\WooCommerce\Storage\State;
 
 final class SettingsPage
@@ -17,6 +18,8 @@ final class SettingsPage
         add_action('admin_menu', [self::class, 'menu']);
         add_action('admin_post_bw_pair', [self::class, 'handlePair']);
         add_action('admin_post_bw_disconnect', [self::class, 'handleDisconnect']);
+        add_action('admin_post_bw_stop', [self::class, 'handleStop']);
+        add_action('admin_post_bw_resume', [self::class, 'handleResume']);
     }
 
     public static function menu(): void
@@ -47,6 +50,20 @@ final class SettingsPage
         self::redirect('disconnected');
     }
 
+    public static function handleStop(): void
+    {
+        self::guard('bw_stop');
+        MonitoringSwitch::stop('admin');
+        self::redirect('stopped');
+    }
+
+    public static function handleResume(): void
+    {
+        self::guard('bw_resume');
+        MonitoringSwitch::resume();
+        self::redirect('resumed');
+    }
+
     public static function render(): void
     {
         if (! current_user_can('manage_woocommerce')) {
@@ -61,6 +78,28 @@ final class SettingsPage
 
         if ($notice !== '') {
             echo '<div class="notice notice-info"><p>' . esc_html($notice) . '</p></div>';
+        }
+
+        if (is_array($diagnostics['outbox']['full'] ?? null)) {
+            echo '<div class="notice notice-error"><p>' . esc_html(sprintf(__('The local queue reached %d events. New order changes are not queued until it drains; they are recovered from the orders afterwards. Orders keep working.', 'business-watchdog'), $diagnostics['outbox']['limit'])) . '</p></div>';
+        } elseif (! empty($diagnostics['outbox']['backlog_over_7_days'])) {
+            echo '<div class="notice notice-warning"><p>' . esc_html__('Some events have waited for delivery for more than 7 days. Monitoring data is incomplete; check the connection to Business Watchdog.', 'business-watchdog') . '</p></div>';
+        }
+
+        $stopped = MonitoringSwitch::stopped();
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        wp_nonce_field($stopped ? 'bw_resume' : 'bw_stop');
+        echo '<input type="hidden" name="action" value="' . ($stopped ? 'bw_resume' : 'bw_stop') . '" />';
+        echo '<p>' . esc_html($stopped
+            ? __('Monitoring is stopped. Orders and checkout are not affected.', 'business-watchdog')
+            : __('Emergency stop: halts all Business Watchdog work on this site at once. Orders and checkout are not affected.', 'business-watchdog')) . '</p>';
+        submit_button($stopped ? __('Resume monitoring', 'business-watchdog') : __('Stop monitoring', 'business-watchdog'), 'secondary');
+        echo '</form>';
+
+        if ($stopped) {
+            echo '</div>';
+
+            return;
         }
 
         if ($connection === null) {

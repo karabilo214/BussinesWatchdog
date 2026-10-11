@@ -11,6 +11,20 @@ final class OutboxStats
         return (int) $wpdb->get_var("SELECT COUNT(*) FROM " . Schema::outboxTable() . " WHERE state = 'pending'");
     }
 
+    public static function totalCount(): int
+    {
+        global $wpdb;
+
+        return (int) $wpdb->get_var("SELECT COUNT(*) FROM " . Schema::outboxTable());
+    }
+
+    public static function backlogOlderThanDays(int $days): bool
+    {
+        $oldest = self::oldestPendingAt();
+
+        return $oldest !== null && strtotime($oldest) <= time() - $days * 86400;
+    }
+
     public static function oldestPendingAt(): ?string
     {
         global $wpdb;

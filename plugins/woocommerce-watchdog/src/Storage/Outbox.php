@@ -8,6 +8,58 @@ final class Outbox
 
     public const STATE_DEAD_LETTER = 'dead_letter';
 
+    public const LIMIT = 100000;
+
+    public const RECOVER_BELOW = 90000;
+
+    public const FULL_OPTION = 'bw_outbox_full';
+
+    public static function full(): bool
+    {
+        return is_array(get_option(self::FULL_OPTION, null));
+    }
+
+    public static function fullState(): ?array
+    {
+        $value = get_option(self::FULL_OPTION, null);
+
+        return is_array($value) ? $value : null;
+    }
+
+    public static function noteSkipped(): void
+    {
+        $state = self::fullState();
+
+        if ($state !== null) {
+            $state['skipped'] = (int) ($state['skipped'] ?? 0) + 1;
+            update_option(self::FULL_OPTION, $state, true);
+        }
+    }
+
+    public static function checkLimit(?int $limit = null, ?int $recoverBelow = null): array
+    {
+        $limit = $limit ?? self::LIMIT;
+        $recoverBelow = $recoverBelow ?? self::RECOVER_BELOW;
+        $total = OutboxStats::totalCount();
+        $state = self::fullState();
+
+        if ($state === null && $total >= $limit) {
+            update_option(self::FULL_OPTION, ['since' => gmdate('c'), 'skipped' => 0], true);
+
+            return ['full' => true, 'total' => $total, 'recovered' => false];
+        }
+
+        if ($state !== null && $total < $recoverBelow) {
+            delete_option(self::FULL_OPTION);
+            State::set('outbox_last_recovery', ['at' => gmdate('c'), 'full_since' => $state['since'] ?? null, 'skipped' => (int) ($state['skipped'] ?? 0)]);
+            \BusinessWatchdog\WooCommerce\Jobs\BackfillJob::start('queue_recovery');
+
+            return ['full' => false, 'total' => $total, 'recovered' => true];
+        }
+
+        return ['full' => $state !== null, 'total' => $total, 'recovered' => false];
+    }
+
     public static function enqueue(array $envelope, string $aggregateKey): void
     {
         global $wpdb;

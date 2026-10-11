@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Business Watchdog for WooCommerce
  * Description: Sends order and refund snapshots to Business Watchdog for payment reconciliation and checkout monitoring.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * WC requires at least: 6.0
@@ -16,7 +16,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('BW_PLUGIN_VERSION', '0.1.0');
+define('BW_PLUGIN_VERSION', '0.2.0');
 define('BW_PLUGIN_FILE', __FILE__);
 define('BW_PLUGIN_DIR', __DIR__);
 define('BW_MIN_PHP', '7.4');
@@ -26,6 +26,16 @@ if (version_compare(PHP_VERSION, BW_MIN_PHP, '<')) {
     add_action('admin_notices', static function () {
         echo '<div class="notice notice-error"><p>'
             . esc_html__('Business Watchdog requires PHP 7.4 or newer. The plugin is inactive.', 'business-watchdog')
+            . '</p></div>';
+    });
+
+    return;
+}
+
+if (defined('BUSINESS_WATCHDOG_DISABLED') && BUSINESS_WATCHDOG_DISABLED) {
+    add_action('admin_notices', static function () {
+        echo '<div class="notice notice-warning"><p>'
+            . esc_html__('Business Watchdog is switched off by BUSINESS_WATCHDOG_DISABLED in wp-config.php. Nothing is recorded or sent; the store works as usual.', 'business-watchdog')
             . '</p></div>';
     });
 

@@ -16,6 +16,9 @@ foreach (['bw_heartbeat', 'bw_deliver_outbox', 'bw_rescan_recent', 'bw_backfill'
     }
 }
 
+delete_option('bw_monitoring_stopped');
+delete_option('bw_outbox_full');
+
 global $wpdb;
 
 $stateTable = $wpdb->prefix . 'bw_state';

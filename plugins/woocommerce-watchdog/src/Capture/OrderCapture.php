@@ -172,6 +172,12 @@ final class OrderCapture
 
     private static function record(string $type, string $aggregateType, string $aggregateId, string $key, ?string $parentKey, array $data, ?string $occurredAt, bool $synthetic = false): int
     {
+        if (Outbox::full()) {
+            Outbox::noteSkipped();
+
+            return 0;
+        }
+
         $revision = Revisions::observe($key, hash('sha256', (string) wp_json_encode($data)), $parentKey, $data);
 
         if ($revision === null) {
