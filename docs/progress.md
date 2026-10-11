@@ -1754,7 +1754,14 @@ Status: complete (backend); dashboard screen next
 - `App\Support\Providers\Shopware\*`: client (allowlist: OAuth token, order search, order search-ids; never state transitions), connector (`POST /stores/{id}/integrations/shopware`, risk acknowledgement required, key confirms the store, one order source), mapper (float amounts only when exact, effective transaction, SwagPayPal capture id and sandbox flag, `swag_paypal_*` → PayPal coverage, refund state), sync (OR delta over created/updated/transaction updated, daily audit with deletion check), `shopware:sync [--audit]`. Shared `StoreOriginHttp` (SSRF-safe store origin requests, now also used by the WooCommerce client) and `OrderSources` (plugin, WooCommerce key or Shopware key — one per store). Stores can be created with `platform` `woocommerce` or `shopware`. PayPal pointers also follow `swag_paypal_*` orders.
 - Tests: 5 backend Shopware tests (connect rules and allowlist, mapping without personal data, audit deletion, six refund-state cases against PayPal provider data, float conversion). SQLite 380 + 4 skipped, PostgreSQL 18 384. Real chain `plugins/shopware-app/tests/chain/chain-e2e.sh` on Shopware 6.6.10.6 and 6.7.2.2: PASS.
 
-### Step 86: Export Download Pending Notice
+### Step 86: Shopware Connection Screen (ADR 0025/0026)
+
+Status: complete
+
+- Store creation asks for the platform (WooCommerce or Shopware 6). A Shopware store's "Order source" block shows only `ShopwarePanel.vue`: steps for a role with Orders → View and an Integration without administrator rights, requirements, what is read and not read, the state-change warning that must be acknowledged before connecting, the refund note (partial refund amount from the provider), connected key SWIA••••, last sync, sync now, key-rejected alert, disconnect with a reminder to delete the integration. Verification hint and the `api_key` method name cover both key types. Error texts for every Shopware connector code (ru/en/de, checked by a test).
+- Tests: customer unit tests 90; `make frontend-check` green; `make frontend-smoke` 42/42 twice in a row (new step: a Shopware store gets the Shopware panel, connecting waits for the acknowledgement).
+
+### Step 87: Export Download Pending Notice
 
 Status: complete
 
@@ -1770,11 +1777,4 @@ Verification:
 Coordination:
 
 - Claude's Shopware Step 85 files were left unstaged; this step only touched customer frontend export helper/views and this progress entry.
-
-### Step 86: Shopware Connection Screen (ADR 0025/0026)
-
-Status: complete
-
-- Store creation asks for the platform (WooCommerce or Shopware 6). A Shopware store's "Order source" block shows only `ShopwarePanel.vue`: steps for a role with Orders → View and an Integration without administrator rights, requirements, what is read and not read, the state-change warning that must be acknowledged before connecting, the refund note (partial refund amount from the provider), connected key SWIA••••, last sync, sync now, key-rejected alert, disconnect with a reminder to delete the integration. Verification hint and the `api_key` method name cover both key types. Error texts for every Shopware connector code (ru/en/de, checked by a test).
-- Tests: customer unit tests 90; `make frontend-check` green; `make frontend-smoke` 42/42 twice in a row (new step: a Shopware store gets the Shopware panel, connecting waits for the acknowledgement).
 
