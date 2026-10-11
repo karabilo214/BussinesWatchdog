@@ -1682,3 +1682,26 @@ Status: complete
 - Spike part 1 repeated on Shopware 6.6.10.6: identical results. The generic state-machine route checks the update privilege while the order/transaction/delivery routes do not (delivery shipped with the read-only key) — added to `verify_acl.py`.
 - SwagPayPal 10.8.5 source: capture id, PayPal order id and sandbox flag in the order transaction's custom fields; refunds leave only the transaction state (no amount, no id) in Shopware — reconciliation model to be decided with the connector.
 
+### Step 82: PostgreSQL Constraint for Transaction Exports
+
+Status: complete
+
+Fixed:
+
+- Added a PostgreSQL migration that expands `exports_kind_check` from `findings/incidents` to `findings/incidents/transactions`.
+- Down migration restores the previous check constraint, matching the pre-transaction export schema.
+- Acceptance evidence markers bumped after the production-database compatibility fix.
+
+Verification:
+
+- PHP lint: `2026_10_11_130000_add_transactions_export_kind.php`.
+- Backend targeted: `php artisan test tests/Feature/Exports/ExportApiTest.php tests/Feature/Contracts/OpenApiRoutesTest.php` — 8 passed.
+
+Remaining:
+
+- PostgreSQL full suite was not rerun in this step; the migration specifically targets the PostgreSQL check constraint missed by the SQLite export tests.
+
+Coordination:
+
+- Shopware files and ADR 0025 work remain Claude-owned and were not touched.
+
