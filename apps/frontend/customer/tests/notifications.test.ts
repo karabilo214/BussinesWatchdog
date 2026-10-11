@@ -6,6 +6,7 @@ import * as api from '@/api/notifications';
 import type { NotificationChannel, NotificationPreferences } from '@/api/types';
 import ChannelCard from '@/components/notifications/ChannelCard.vue';
 import PreferencesForm from '@/components/notifications/PreferencesForm.vue';
+import { telegramBotHandle } from '@/components/notifications/telegramBot';
 import { DELIVERY_TONES } from '@/components/notifications/tones';
 import en from '@/i18n/locales/en.json';
 import { localization, setLocale } from '@/i18n';
@@ -85,6 +86,16 @@ describe('notification contract', () => {
     for (const code of rejections) {
       expect((en.errors as Record<string, string>)[code], code).toBeTruthy();
     }
+  });
+});
+
+describe('telegram bot handle', () => {
+  it('formats bot usernames with exactly one leading at sign', () => {
+    expect(telegramBotHandle('Karabin214Bot')).toBe('@Karabin214Bot');
+    expect(telegramBotHandle('@Karabin214Bot')).toBe('@Karabin214Bot');
+    expect(telegramBotHandle('@@Karabin214Bot')).toBe('@Karabin214Bot');
+    expect(telegramBotHandle('')).toBeNull();
+    expect(telegramBotHandle(null)).toBeNull();
   });
 });
 

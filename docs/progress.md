@@ -1899,3 +1899,22 @@ Status: complete
 - Dashboard: the Shopware panel offers the app (recommended, download after the acknowledgement, waiting state that refreshes itself) or the integration key; the connected view shows the connection type and the last webhook. `@bw/api-client` gained `requestFile` for file responses.
 - Tests: 5 backend app tests; SQLite 394 + 4 skipped, PostgreSQL 18 402 (tree with the parallel Telegram work). Customer unit tests 91. Real `plugins/shopware-app/tests/app/app-e2e.sh` on Shopware 6.6.10.6 and 6.7.2.2: PASS. `make frontend-smoke`: the Shopware step passes; the run stops later at the e-mail recipient step because Step 88 (parallel session) renamed "Добавить адрес" to "Добавить получателя" without updating the smoke test.
 
+### Step 94: Telegram Live Smoke and Handle Display
+
+Status: complete
+
+Updated:
+
+- Fixed Telegram bot handle rendering in the customer notification binding hint: `TELEGRAM_BOT_USERNAME` may be configured with or without `@`, but the UI now displays exactly one leading `@`.
+- Completed live Telegram smoke with the real bot through a Cloudflare quick tunnel: `telegram:webhook set` registered the native update endpoint, `telegram:webhook info` confirmed the URL with zero pending updates, a real Telegram message with the binding code reached the backend, the channel became verified, and a backend-triggered test notification was delivered to the Telegram chat.
+- Acceptance/project/catalog evidence now marks ACC-38 as done, with the remaining deployment note limited to replacing the quick tunnel with a stable production domain/tunnel.
+
+Verification:
+
+- Customer frontend: `npm run check -w @bw/customer` — 92 tests passed and production build completed.
+- Live Telegram: Cloudflare `/up` returned 200; unauthenticated webhook update returned 401; secret-authenticated update returned 202; real bot binding update verified `Telegram chat ***3272`; test delivery `01a12aea-a2e8-71d3-81e2-fd89a15d2f13` reached `sent` and the message was received in Telegram.
+
+Coordination:
+
+- Claude's Shopware script files were left unstaged; this step only stages Telegram UI/evidence files.
+

@@ -8,6 +8,7 @@ import ErrorNotice from '@/components/ErrorNotice.vue';
 import ChannelCard from '@/components/notifications/ChannelCard.vue';
 import DeliveriesLog from '@/components/notifications/DeliveriesLog.vue';
 import PreferencesForm from '@/components/notifications/PreferencesForm.vue';
+import { telegramBotHandle } from '@/components/notifications/telegramBot';
 import { browserTimezone } from '@/components/storeOptions';
 import { useRole } from '@/composables/useRole';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -123,7 +124,7 @@ if (canManageStores.value) {
 
       <div v-if="telegramBinding" class="rounded-xl border border-primary bg-primary-soft p-4 text-sm" data-telegram-binding>
         <p class="font-semibold text-primary">{{ $t('notifications.telegram.ready', { label: telegramBinding.label }) }}</p>
-        <p class="mt-1 text-text-muted">{{ $t('notifications.telegram.instruction', { bot: telegramBinding.bot_username ? `@${telegramBinding.bot_username}` : $t('notifications.telegram.bot') }) }}</p>
+        <p class="mt-1 text-text-muted">{{ $t('notifications.telegram.instruction', { bot: telegramBotHandle(telegramBinding.bot_username) ?? $t('notifications.telegram.bot') }) }}</p>
         <p class="mt-3 inline-flex rounded-md border border-primary bg-surface px-3 py-2 font-mono text-lg font-semibold tracking-widest text-text">
           {{ telegramBinding.binding_code }}
         </p>
