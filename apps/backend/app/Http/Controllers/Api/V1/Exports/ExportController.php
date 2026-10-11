@@ -47,8 +47,7 @@ class ExportController extends Controller
         $tenantId = $tenantContext->requireTenantId('download export');
 
         abort_unless($export->tenant_id === $tenantId, 404);
-        abort_unless($export->state === ExportFile::STATE_READY && $export->object_key !== null, 404);
-        abort_if($export->expires_at !== null && $export->expires_at->isPast(), 404);
+        abort_unless($this->isDownloadable($export), 404);
 
         return response()->streamDownload(
             fn () => print $exports->body($export),
@@ -76,10 +75,17 @@ class ExportController extends Controller
             'size_bytes' => $export->size_bytes,
             'sha256' => $export->sha256,
             'error_code' => $export->error_code,
-            'download_url' => $export->state === ExportFile::STATE_READY ? url("/api/v1/exports/{$export->id}/download") : null,
+            'download_url' => $this->isDownloadable($export) ? url("/api/v1/exports/{$export->id}/download") : null,
             'expires_at' => $export->expires_at?->toJSON(),
             'created_at' => $export->created_at?->toJSON(),
             'completed_at' => $export->completed_at?->toJSON(),
         ];
+    }
+
+    private function isDownloadable(ExportFile $export): bool
+    {
+        return $export->state === ExportFile::STATE_READY
+            && $export->object_key !== null
+            && ($export->expires_at === null || $export->expires_at->isFuture());
     }
 }

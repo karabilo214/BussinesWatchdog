@@ -1705,3 +1705,26 @@ Coordination:
 
 - Shopware files and ADR 0025 work remain Claude-owned and were not touched.
 
+### Step 83: Expired Export Download URLs
+
+Status: complete
+
+Fixed:
+
+- Export DTOs no longer advertise `download_url` once the private export file is expired.
+- The download endpoint now uses the same downloadable predicate as the DTO, so ready/missing/expired handling stays consistent.
+
+Verification:
+
+- PHP lint: `ExportController.php`, `ExportApiTest.php`.
+- Backend export targeted: `php artisan test tests/Feature/Exports/ExportApiTest.php` — 7 passed.
+
+Remaining:
+
+- Async export worker/retry and frontend smoke coverage remain future export work.
+- Combined export/OpenAPI targeted run was not used as evidence because Claude's unstaged Shopware route adds `POST /api/v1/stores/{}/integrations/shopware` before its contract update.
+
+Coordination:
+
+- No Shopware files were touched; Claude-owned working tree changes were left unstaged.
+

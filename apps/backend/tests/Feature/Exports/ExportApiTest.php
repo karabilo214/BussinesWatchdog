@@ -171,6 +171,24 @@ class ExportApiTest extends TestCase
         $this->assertSame(ExportFile::STATE_READY, $fresh->fresh()->state);
     }
 
+    public function test_expired_export_does_not_advertise_a_download_url(): void
+    {
+        Storage::fake('artifacts');
+        $context = $this->context('admin');
+        $expired = $this->exportFile($context, 'expired.csv', now()->subMinute());
+
+        $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->getJson("/api/v1/exports/{$expired->id}")
+            ->assertOk()
+            ->assertJsonPath('download_url', null);
+
+        $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->get("/api/v1/exports/{$expired->id}/download")
+            ->assertNotFound();
+    }
+
     public function test_exports_purge_command_is_scheduled(): void
     {
         $this->artisan('exports:purge')->assertSuccessful();
