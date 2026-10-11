@@ -1627,3 +1627,9 @@ Status: complete
 - Payment mode without the plugin: `mode_reported` in the order projection and API; money checks against a test-mode-only provider are `unknown` / `payment_mode_needs_plugin`, and test-mode payments without an order in an API-connected store too. New backend test.
 - Fix: the spec copy of the OpenAPI contract (`spec/contracts/openapi.yaml`) missed the REST API connect operation in Step 76 (its copy test failed on that commit); both copies are identical again.
 
+### Step 78: Store Confirmed by a Read Key (ADR 0024)
+
+Status: complete
+
+- Owner decision: a working Read key on the store's own HTTPS origin confirms the store. `StoreVerificationService::confirmByApiKey()` records a verification with method `api_key` (pgsql constraint extended) on connect, activates an onboarding store, writes `store.verified` to the audit log and re-runs exact matching like the other methods; a store already verified for its URL is left alone. `api_key` cannot be requested through `POST /stores/{id}/verify`. OpenAPI (both copies): method enum. Two backend tests; SQLite 373 + 4 skipped, PostgreSQL 18 377 passed.
+

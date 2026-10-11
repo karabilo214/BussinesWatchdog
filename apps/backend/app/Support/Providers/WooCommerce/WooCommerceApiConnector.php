@@ -10,14 +10,15 @@ use App\Models\Store;
 use App\Support\Account\AccountRejected;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use App\Support\Security\Keyring;
+use App\Support\Stores\StoreVerificationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
  * Connects a store through a WooCommerce REST API key with Read permission (ADR 0024). The key must read orders on
- * the store's own HTTPS origin and must not be able to write (checked without writing). A store has one order
- * source: this connection or the plugin, not both.
+ * the store's own HTTPS origin and must not be able to write (checked without writing); such a key also confirms
+ * the store. A store has one order source: this connection or the plugin, not both.
  */
 class WooCommerceApiConnector
 {
@@ -31,6 +32,7 @@ class WooCommerceApiConnector
         private readonly WooCommerceApiClient $client,
         private readonly Keyring $keyring,
         private readonly StoreReconciliationRequeue $requeue,
+        private readonly StoreVerificationService $verifications,
     ) {}
 
     public function connect(Store $store, string $consumerKey, string $consumerSecret, ?string $actorId): Integration
@@ -107,6 +109,7 @@ class WooCommerceApiConnector
             return $integration;
         });
 
+        $this->verifications->confirmByApiKey($store->refresh());
         $this->requeue->requeue($store->tenant_id, $store->id, ReconciliationDirtySubject::REASON_PROVIDER_COVERAGE_CHANGED);
 
         return $integration->refresh();

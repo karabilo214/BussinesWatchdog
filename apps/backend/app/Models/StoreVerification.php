@@ -14,6 +14,9 @@ class StoreVerification extends Model
 
     public const METHOD_DNS = 'dns';
 
+    /** Set only by connecting a working WooCommerce Read key on the store's own origin (ADR 0024). */
+    public const METHOD_API_KEY = 'api_key';
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_VERIFIED = 'verified';

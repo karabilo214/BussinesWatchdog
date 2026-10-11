@@ -282,6 +282,30 @@ class WooCommerceApiIntegrationTest extends TestCase
         $this->assertNotContains('payment_mode_needs_plugin', $live, 'a live provider checks the order as usual');
     }
 
+    public function test_a_working_read_key_on_the_stores_own_origin_confirms_the_store(): void
+    {
+        $this->assertNull($this->store->verified_at);
+        $this->connected();
+
+        $store = $this->store->refresh();
+        $this->assertNotNull($store->verified_at);
+        $this->assertSame('active', $store->status);
+        $verification = \App\Models\StoreVerification::query()->where('store_id', $store->id)->sole();
+        $this->assertSame([\App\Models\StoreVerification::METHOD_API_KEY, 'verified', 'https://shop.example.test'], [$verification->method, $verification->status, $verification->verified_origin]);
+        $this->assertSame('api_key', AuditLog::query()->where('action', AuditLog::ACTION_STORE_VERIFIED)->sole()->changes['method']);
+
+        $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
+            ->postJson("/api/v1/stores/{$store->id}/verify", ['method' => 'api_key'])->assertStatus(422);
+    }
+
+    public function test_a_store_already_verified_for_its_url_is_not_verified_again(): void
+    {
+        app(\App\Support\Stores\StoreVerificationService::class)->confirmByApiKey($this->store);
+        $this->assertNull(app(\App\Support\Stores\StoreVerificationService::class)->confirmByApiKey($this->store->refresh()));
+        $this->connected();
+        $this->assertSame(1, \App\Models\StoreVerification::query()->where('store_id', $this->store->id)->count());
+    }
+
     public function test_amounts_are_converted_as_strings(): void
     {
         $this->assertSame('18400', WooCommerceAmount::toMinor('184.000000', 2));

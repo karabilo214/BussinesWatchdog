@@ -2949,7 +2949,9 @@ components:
       properties:
         id: {type: string, format: uuid}
         store_id: {type: string, format: uuid}
-        method: {enum: [dns, plugin_challenge]}
+        method:
+          enum: [dns, plugin_challenge, api_key]
+          description: api_key is recorded only by connecting a working WooCommerce Read key on the store's own origin (ADR 0024); it cannot be started.
         state: {enum: [pending, verified, failed, expired]}
         verified_origin: {type: [string, "null"]}
         expires_at: {type: [string, "null"], format: date-time}

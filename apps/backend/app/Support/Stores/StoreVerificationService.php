@@ -49,6 +49,34 @@ class StoreVerificationService
         ]);
     }
 
+    /**
+     * A WooCommerce REST API key can only be created in the store's admin, so a key that reads orders on the store's
+     * own HTTPS origin proves control of that store (owner decision, ADR 0024). Nothing changes for a store that is
+     * already verified for its current URL.
+     */
+    public function confirmByApiKey(Store $store): ?StoreVerification
+    {
+        $verified = StoreVerification::query()
+            ->where('tenant_id', $store->tenant_id)
+            ->where('store_id', $store->id)
+            ->where('status', StoreVerification::STATUS_VERIFIED)
+            ->where('verified_origin', $store->base_url)
+            ->exists();
+
+        if ($verified && $store->verified_at !== null) {
+            return null;
+        }
+
+        $verification = $this->start($store, StoreVerification::METHOD_API_KEY);
+        $result = $this->markVerified($verification, $store, Carbon::now());
+
+        if ($result->status === StoreVerification::STATUS_VERIFIED) {
+            $this->matcher->matchUnlinkedCaptures($store->tenant_id, $store->id);
+        }
+
+        return $result;
+    }
+
     public function challenge(string $verificationId): string
     {
         return 'bw-'.substr(hash_hmac('sha256', 'store-verification:'.$verificationId, (string) config('app.key')), 0, 40);
@@ -98,7 +126,7 @@ class StoreVerificationService
 
         $now = Carbon::now();
 
-        if ($verification->expires_at->lessThanOrEqualTo($now)) {
+        if ($verification->expires_at->lessThanOrEqualTo($now) || $verification->method === StoreVerification::METHOD_API_KEY) {
             $verification->forceFill(['status' => StoreVerification::STATUS_EXPIRED])->save();
 
             return $verification;
