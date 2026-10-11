@@ -71,9 +71,11 @@ class NotificationRenderer
         $lines[] = '';
         $lines[] = $this->t('link', ['link' => $content['link']], $locale);
 
-        $subjectKey = $content['kind'] === NotificationDelivery::KIND_INCIDENT_REOPENED
-            ? 'subject.reopened'
-            : 'subject.opened';
+        $subjectKey = match ($content['kind']) {
+            NotificationDelivery::KIND_INCIDENT_REOPENED => 'subject.reopened',
+            NotificationDelivery::KIND_INCIDENT_REMINDER => 'subject.reminder',
+            default => 'subject.opened',
+        };
         $subjectReplace = ['store' => $content['store_name'], 'severity' => $severity];
 
         return new RenderedNotification(

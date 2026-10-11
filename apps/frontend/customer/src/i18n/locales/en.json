@@ -1019,6 +1019,10 @@
       "owner_only": "Only the account owner can enable this.",
       "quiet_note": "Messages that fall into quiet hours are sent when they end.",
       "notify_recovery": "Tell me when a problem is fixed",
+      "reminder_title": "Reminders",
+      "reminder_enable": "Remind me about open incidents",
+      "reminder_every": "Repeat after, hours",
+      "reminder_note": "Minimum 24 hours. Quiet hours apply to reminders too.",
       "stores": "Stores",
       "all_stores": "all stores",
       "pick_store": "Choose at least one store."
@@ -1032,6 +1036,7 @@
       },
       "summary": "Sends: {severity}",
       "quiet": "quiet hours {start}–{end} ({zone})",
+      "reminder": "reminder after {hours} h",
       "failing": "Notifications to this channel cannot be delivered (last failure {time}). Check the destination or send a test notification.",
       "last_success": "Last delivered notification: {time}",
       "code_label": "Code from the email",

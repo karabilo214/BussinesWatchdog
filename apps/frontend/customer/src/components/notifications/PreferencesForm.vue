@@ -16,6 +16,8 @@ const form = reactive({
   quiet_end: props.preferences.quiet_hours?.end ?? '07:00',
   critical_bypasses_quiet_hours: props.preferences.critical_bypasses_quiet_hours,
   notify_recovery: props.preferences.notify_recovery,
+  reminder: props.preferences.reminder_hours !== null,
+  reminder_hours: props.preferences.reminder_hours ?? 24,
   all_stores: props.preferences.store_ids === null,
   store_ids: [...(props.preferences.store_ids ?? [])],
 });
@@ -29,6 +31,7 @@ function value(): Partial<NotificationPreferences> {
     timezone: form.timezone,
     quiet_hours: form.quiet ? { start: form.quiet_start, end: form.quiet_end } : null,
     notify_recovery: form.notify_recovery,
+    reminder_hours: form.reminder ? form.reminder_hours : null,
     store_ids: form.all_stores ? null : form.store_ids,
   };
 
@@ -95,6 +98,19 @@ defineExpose({ value, valid: () => form.all_stores || form.store_ids.length > 0 
       <input v-model="form.notify_recovery" type="checkbox" class="size-4 accent-primary" />
       {{ $t('notifications.prefs.notify_recovery') }}
     </label>
+
+    <fieldset class="flex flex-col gap-2 rounded-lg border border-border p-3">
+      <legend class="px-1 text-sm font-medium">{{ $t('notifications.prefs.reminder_title') }}</legend>
+      <label class="flex items-center gap-2 text-sm">
+        <input v-model="form.reminder" type="checkbox" class="size-4 accent-primary" />
+        {{ $t('notifications.prefs.reminder_enable') }}
+      </label>
+      <label v-if="form.reminder" class="flex max-w-60 flex-col gap-1 text-sm">
+        {{ $t('notifications.prefs.reminder_every') }}
+        <input v-model.number="form.reminder_hours" type="number" min="24" max="720" step="1" class="rounded-md border border-border-strong bg-surface px-3 py-1.5" />
+      </label>
+      <p class="text-[13px] text-text-muted">{{ $t('notifications.prefs.reminder_note') }}</p>
+    </fieldset>
 
     <fieldset class="flex flex-col gap-2 rounded-lg border border-border p-3">
       <legend class="px-1 text-sm font-medium">{{ $t('notifications.prefs.stores') }}</legend>

@@ -17,6 +17,11 @@ Schedule::command('notifications:deliver')
     ->withoutOverlapping(10)
     ->onOneServer();
 
+Schedule::command('notifications:remind')
+    ->hourly()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
 Schedule::command('reconciliation:nightly-sweep')
     ->dailyAt('02:30')
     ->timezone('UTC')

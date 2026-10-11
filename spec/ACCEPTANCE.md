@@ -1,6 +1,6 @@
 # Матрица приёмки Business Watchdog
 
-Обновлено: 2026-10-11, Step 94.
+Обновлено: 2026-10-11, Step 95.
 
 Эта матрица теперь отражает текущее состояние реализации. Evidence указывает на тесты, e2e-скрипты или журнал шагов; это не заменяет финальный release checklist. P1 включает обязательные P0; P2 принимается отдельно.
 
@@ -50,7 +50,7 @@
 | ACC-36 | P1 | done | Concurrent manual allocation | `PaymentAllocationServiceTest`; row locks and allocation bounds | — |
 | ACC-37 | P1 | done | Revoked API key | Provider coverage tests; rejected Stripe/PayPal credentials degrade to unknown | — |
 | ACC-38 | P1 | done | Telegram binding чужому chat | Telegram pending channel, secret-protected bot bind and native update endpoints, masked destination, sender success/failure, webhook registration command, binding collision tests and live Telegram bot binding/test delivery smoke through Cloudflare tunnel; Steps 88-94 | Use a stable production tunnel/domain for deployment |
-| ACC-39 | P1 | partial | Quiet hours и recovery | Email/Telegram notification preferences and delivery tests; Steps 62, 88 | Digest/reminders not implemented |
+| ACC-39 | P1 | partial | Quiet hours и recovery | Email/Telegram notification preferences and delivery tests; reminder planner/command/UI tests for opt-in open-incident reminders that respect quiet hours; Steps 62, 88, 95 | Daily digest not implemented |
 | ACC-40 | P1 | not_done | Plan quota или suspended | — | SaaS billing/entitlements not implemented |
 | ACC-41 | P1 | not_done | Backup restore новым host | — | RPO/RTO restore drill missing |
 | ACC-42 | P1 | not_done | Tenant deletion с artifacts | — | Privacy deletion workflow not implemented |

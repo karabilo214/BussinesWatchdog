@@ -493,6 +493,7 @@ export interface NotificationPreferences {
   quiet_hours: { start: string; end: string } | null;
   critical_bypasses_quiet_hours: boolean;
   notify_recovery: boolean;
+  reminder_hours: number | null;
   store_ids: string[] | null;
 }
 
@@ -527,7 +528,7 @@ export interface NotificationDelivery {
   id: string;
   incident_id: string | null;
   channel_id: string;
-  notification_kind: 'incident_opened' | 'incident_reopened' | 'incident_recovered' | 'test';
+  notification_kind: 'incident_opened' | 'incident_reopened' | 'incident_recovered' | 'incident_reminder' | 'test';
   status: DeliveryStatus;
   delivery_uncertain: boolean;
   attempts: number;

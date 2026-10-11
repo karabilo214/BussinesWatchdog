@@ -28,6 +28,7 @@ final class NotificationPreferences
         public readonly ?array $quietHours,
         public readonly bool $criticalBypassesQuietHours,
         public readonly bool $notifyRecovery,
+        public readonly ?int $reminderHours,
         public readonly ?array $storeIds,
     ) {}
 
@@ -53,6 +54,9 @@ final class NotificationPreferences
                 : null,
             criticalBypassesQuietHours: ($raw['critical_bypasses_quiet_hours'] ?? false) === true,
             notifyRecovery: ($raw['notify_recovery'] ?? true) !== false,
+            reminderHours: isset($raw['reminder_hours']) && is_numeric($raw['reminder_hours']) && (int) $raw['reminder_hours'] >= 24
+                ? (int) $raw['reminder_hours']
+                : null,
             storeIds: isset($raw['store_ids']) && is_array($raw['store_ids'])
                 ? array_values(array_map('strval', $raw['store_ids']))
                 : null,
@@ -71,6 +75,7 @@ final class NotificationPreferences
             'quiet_hours' => $this->quietHours,
             'critical_bypasses_quiet_hours' => $this->criticalBypassesQuietHours,
             'notify_recovery' => $this->notifyRecovery,
+            'reminder_hours' => $this->reminderHours,
             'store_ids' => $this->storeIds,
         ];
     }

@@ -4,6 +4,7 @@ return [
     'subject' => [
         'opened' => '[:store] :severity: Abweichung in Zahlungsdaten',
         'reopened' => '[:store] :severity: Abweichung in Zahlungsdaten erneut festgestellt',
+        'reminder' => '[:store] :severity: Erinnerung an einen offenen Vorfall',
         'recovered' => '[:store] Abweichung in Zahlungsdaten behoben',
     ],
     'store' => 'Shop: :store',

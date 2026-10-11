@@ -42,6 +42,8 @@ class NotificationDelivery extends Model
 
     public const KIND_INCIDENT_RECOVERED = 'incident_recovered';
 
+    public const KIND_INCIDENT_REMINDER = 'incident_reminder';
+
     public const KIND_TEST = 'test';
 
     public const INCIDENT_KINDS = [

@@ -109,6 +109,9 @@ function changeAddress(): Promise<void> {
       <template v-if="channel.effective_preferences.quiet_hours">
         · {{ $t('notifications.channel.quiet', { start: channel.effective_preferences.quiet_hours.start, end: channel.effective_preferences.quiet_hours.end, zone: channel.effective_preferences.timezone }) }}
       </template>
+      <template v-if="channel.effective_preferences.reminder_hours">
+        · {{ $t('notifications.channel.reminder', { hours: channel.effective_preferences.reminder_hours }) }}
+      </template>
       · {{ storeNames === null ? $t('notifications.prefs.all_stores') : storeNames.join(', ') }}
     </p>
 

@@ -415,6 +415,10 @@ class NotificationChannelService
             }
         }
 
+        if (array_key_exists('reminder_hours', $preferences)) {
+            $preferences['reminder_hours'] = $preferences['reminder_hours'] === null ? null : (int) $preferences['reminder_hours'];
+        }
+
         if (isset($preferences['store_ids']) && is_array($preferences['store_ids'])) {
             $storeIds = array_values(array_unique(array_map('strval', $preferences['store_ids'])));
             $known = Store::query()->where('tenant_id', $tenantId)->whereIn('id', $storeIds)->count();

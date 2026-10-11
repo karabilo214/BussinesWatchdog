@@ -1019,6 +1019,10 @@
       "owner_only": "Kann nur der Kontoinhaber aktivieren.",
       "quiet_note": "Meldungen in Ruhezeiten werden nach deren Ende gesendet.",
       "notify_recovery": "Melden, wenn ein Problem behoben ist",
+      "reminder_title": "Erinnerungen",
+      "reminder_enable": "An offene Vorfälle erinnern",
+      "reminder_every": "Wiederholen nach, Stunden",
+      "reminder_note": "Mindestens 24 Stunden. Ruhezeiten gelten auch für Erinnerungen.",
       "stores": "Shops",
       "all_stores": "alle Shops",
       "pick_store": "Wählen Sie mindestens einen Shop."
@@ -1032,6 +1036,7 @@
       },
       "summary": "Sendet: {severity}",
       "quiet": "Ruhezeiten {start}–{end} ({zone})",
+      "reminder": "Erinnerung nach {hours} Std.",
       "failing": "Benachrichtigungen an diesen Kanal können nicht zugestellt werden (letzter Fehlschlag {time}). Prüfen Sie das Ziel oder senden Sie eine Testbenachrichtigung.",
       "last_success": "Zuletzt zugestellte Benachrichtigung: {time}",
       "code_label": "Code aus der E-Mail",

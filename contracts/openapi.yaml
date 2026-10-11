@@ -3574,6 +3574,10 @@ components:
             end: {type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$"}
         critical_bypasses_quiet_hours: {type: boolean}
         notify_recovery: {type: boolean}
+        reminder_hours:
+          type: [integer, "null"]
+          minimum: 24
+          maximum: 720
         store_ids:
           type: [array, "null"]
           maxItems: 100
@@ -3600,7 +3604,7 @@ components:
         id: {type: string, format: uuid}
         incident_id: {type: [string, "null"], format: uuid}
         channel_id: {type: string, format: uuid}
-        notification_kind: {enum: [incident_opened, incident_reopened, incident_recovered, test]}
+        notification_kind: {enum: [incident_opened, incident_reopened, incident_recovered, incident_reminder, test]}
         incident_revision: {type: [integer, "null"]}
         template_version: {type: string}
         status: {enum: [queued, sending, sent, uncertain, failed, dead_letter, suppressed]}

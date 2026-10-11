@@ -29,6 +29,7 @@ const preferences: NotificationPreferences = {
   quiet_hours: { start: '22:00', end: '07:00' },
   critical_bypasses_quiet_hours: false,
   notify_recovery: true,
+  reminder_hours: null,
   store_ids: null,
 };
 
@@ -148,7 +149,7 @@ describe('PreferencesForm', () => {
     const admin = mount(PreferencesForm, { props: { idPrefix: 'p', preferences, stores, isOwner: false }, global });
 
     expect(admin.vm.value()).not.toHaveProperty('critical_bypasses_quiet_hours');
-    expect(admin.vm.value()).toMatchObject({ quiet_hours: { start: '22:00', end: '07:00' }, store_ids: null });
+    expect(admin.vm.value()).toMatchObject({ quiet_hours: { start: '22:00', end: '07:00' }, reminder_hours: null, store_ids: null });
 
     const all = admin.findAll('input[type="checkbox"]').find((input) => (input.element.parentElement?.textContent ?? '').includes('все магазины'))!;
     await all.setValue(false);
@@ -158,5 +159,18 @@ describe('PreferencesForm', () => {
 
     const owner = mount(PreferencesForm, { props: { idPrefix: 'o', preferences, stores, isOwner: true }, global });
     expect(owner.vm.value()).toHaveProperty('critical_bypasses_quiet_hours', false);
+  });
+
+  it('sends reminder hours only when reminders are enabled', async () => {
+    const wrapper = mount(PreferencesForm, {
+      props: { idPrefix: 'r', preferences: { ...preferences, reminder_hours: 48 }, stores: [], isOwner: true },
+      global,
+    });
+
+    expect(wrapper.vm.value()).toMatchObject({ reminder_hours: 48 });
+
+    const reminder = wrapper.findAll('input[type="checkbox"]').find((input) => (input.element.parentElement?.textContent ?? '').includes('открытых инцидентах'))!;
+    await reminder.setValue(false);
+    expect(wrapper.vm.value()).toMatchObject({ reminder_hours: null });
   });
 });

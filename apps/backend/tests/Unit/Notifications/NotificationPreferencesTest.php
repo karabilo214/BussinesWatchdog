@@ -17,6 +17,7 @@ class NotificationPreferencesTest extends TestCase
         $this->assertSame('Europe/Berlin', $preferences->timezone);
         $this->assertSame('warning', $preferences->minSeverity);
         $this->assertTrue($preferences->notifyRecovery);
+        $this->assertNull($preferences->reminderHours);
         $this->assertFalse($preferences->allowsSeverity('info'));
         $this->assertTrue($preferences->allowsSeverity('warning'));
         $this->assertTrue($preferences->allowsSeverity('critical'));
@@ -69,6 +70,16 @@ class NotificationPreferencesTest extends TestCase
         $this->assertTrue($default->nextAllowedAt($night, 'critical')->greaterThan($night));
         $this->assertTrue($bypass->nextAllowedAt($night, 'critical')->equalTo($night));
         $this->assertTrue($bypass->nextAllowedAt($night, 'warning')->greaterThan($night));
+    }
+
+    public function test_reminder_hours_are_opt_in_and_normalized(): void
+    {
+        $tooShort = NotificationPreferences::fromArray(['reminder_hours' => 23], 'ru', 'UTC');
+        $enabled = NotificationPreferences::fromArray(['reminder_hours' => '48'], 'ru', 'UTC');
+
+        $this->assertNull($tooShort->reminderHours);
+        $this->assertSame(48, $enabled->reminderHours);
+        $this->assertSame(48, $enabled->toArray()['reminder_hours']);
     }
 
     public function test_minor_units_are_formatted_without_floats(): void

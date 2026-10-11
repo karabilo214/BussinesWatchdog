@@ -4,6 +4,7 @@ return [
     'subject' => [
         'opened' => '[:store] :severity: расхождение в платёжных данных',
         'reopened' => '[:store] :severity: расхождение в платёжных данных снова обнаружено',
+        'reminder' => '[:store] :severity: напоминание о нерешённом инциденте',
         'recovered' => '[:store] Расхождение в платёжных данных устранено',
     ],
     'store' => 'Магазин: :store',

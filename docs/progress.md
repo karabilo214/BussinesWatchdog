@@ -1918,8 +1918,6 @@ Coordination:
 
 - Claude's Shopware script files were left unstaged; this step only stages Telegram UI/evidence files.
 
-
-
 ### Step 94: Newest Shopware Releases (ADR 0025/0027)
 
 Status: complete
@@ -1927,4 +1925,26 @@ Status: complete
 - `plugins/shopware-app/tests/build-image.sh` builds exact Shopware releases from the dockware base through composer and `system:update:finish`; `wait-ready.sh` waits until the admin token works (a fresh container may restart its web server after answering 401). `paypal/run.sh` installs the matching SwagPayPal line (9.x for 6.6, 10.x for 6.7) and runs the money chain.
 - 6.7.15.1: key chain, SwagPayPal chain and app — PASS. 6.6.10.29: key chain and SwagPayPal chain — PASS; app installation fails inside Shopware 6.6.10.25–29 (empty DI argument for the app-system TrustedUrlResolver), affecting every app with a registration URL; documented, the key remains the path there.
 - Stripe for Shopware: no open-source Shopware 6 Stripe plugin exists (packagist/GitHub); the common "Stripe Payment" plugin (Pickware) is downloaded only through a Shopware account — needs the owner.
+
+### Step 95: Notification Reminders
+
+Status: complete
+
+Updated:
+
+- Added opt-in open-incident reminders for notification channels: `reminder_hours` is validated and normalized per channel, `incident_reminder` deliveries are deduped per incident/channel/window, and reminders are only planned after a previously sent open/reopen/reminder delivery.
+- Added `notifications:remind` plus hourly scheduler wiring. The planner respects tenant/store scope, enabled+verified channels, severity/store filters, active suppressions and quiet hours.
+- Customer notifications UI now exposes reminders inside the existing compact preferences form and shows the reminder interval in the channel summary. RU/EN/DE translations and OpenAPI contracts were updated.
+- Acceptance/catalog/project evidence for ACC-39 now records reminders as implemented; daily digest remains the notification gap.
+
+Verification:
+
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Feature/Notifications tests/Unit/Notifications` — 49 passed.
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan list notifications` — `notifications:remind` registered.
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test` — 401 passed, 4 skipped.
+- Customer frontend: `npm run check -w @bw/customer` — 93 tests passed and production build completed.
+
+Coordination:
+
+- Claude's Shopware script files were left unstaged; this step only stages notification reminder and evidence files.
 

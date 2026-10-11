@@ -4,6 +4,7 @@ return [
     'subject' => [
         'opened' => '[:store] :severity: payment data discrepancy',
         'reopened' => '[:store] :severity: payment data discrepancy detected again',
+        'reminder' => '[:store] :severity: reminder about an unresolved incident',
         'recovered' => '[:store] Payment data discrepancy resolved',
     ],
     'store' => 'Store: :store',

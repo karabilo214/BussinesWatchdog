@@ -16,6 +16,7 @@ use App\Support\Incidents\MoneyIncidentCorrelator;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
 use App\Support\Notifications\Channels\SendResult;
 use App\Support\Notifications\NotificationDeliveryWorker;
+use App\Support\Notifications\IncidentReminderPlanner;
 use App\Support\Outbox\DomainOutboxDispatcher;
 use App\Support\Payments\PaymentAllocationService;
 use App\Support\Reconciliation\OrderReconciliationService;
@@ -220,6 +221,69 @@ class IncidentNotificationFlowTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-10-10 08:00:01', 'Europe/Kyiv'));
         app(NotificationDeliveryWorker::class)->deliverDue();
         $this->assertCount(1, $this->sender->sent);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_open_incident_reminders_are_planned_after_the_configured_interval(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-11 10:00:00', 'UTC'));
+
+        $context = $this->context();
+        $this->verifiedEmailChannel($context['tenant'], 'alerts@example.test', [
+            'locale' => 'en',
+            'reminder_hours' => 24,
+        ]);
+
+        [$incident] = $this->evaluate($this->order($context, ['paid_marked_at' => now()->subMinutes(31)]));
+        $this->dispatchOutbox();
+        app(NotificationDeliveryWorker::class)->deliverDue();
+
+        Carbon::setTestNow(Carbon::parse('2026-10-12 09:59:00', 'UTC'));
+        $this->assertSame(0, app(IncidentReminderPlanner::class)->planDue());
+
+        Carbon::setTestNow(Carbon::parse('2026-10-12 10:01:00', 'UTC'));
+        $this->assertSame(1, app(IncidentReminderPlanner::class)->planDue());
+        $this->assertSame(0, app(IncidentReminderPlanner::class)->planDue());
+        $this->artisan('notifications:remind')->assertSuccessful();
+
+        $this->assertSame(1, NotificationDelivery::query()->where('notification_kind', NotificationDelivery::KIND_INCIDENT_REMINDER)->count());
+
+        app(NotificationDeliveryWorker::class)->deliverDue();
+        $reminder = collect($this->sender->sent)->last();
+
+        $this->assertNotNull($reminder);
+        $this->assertStringContainsString('reminder', $reminder['message']->subject);
+        $this->assertStringContainsString('/app/incidents/'.$incident->id, $reminder['message']->body);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_reminders_are_opt_in_and_respect_quiet_hours(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-11 10:00:00', 'Europe/Kyiv'));
+
+        $context = $this->context();
+        $this->verifiedEmailChannel($context['tenant'], 'without-reminders@example.test');
+        $this->verifiedEmailChannel($context['tenant'], 'quiet@example.test', [
+            'timezone' => 'Europe/Kyiv',
+            'quiet_hours' => ['start' => '22:00', 'end' => '08:00'],
+            'reminder_hours' => 24,
+        ]);
+
+        $this->evaluate($this->order($context, ['paid_marked_at' => now()->subMinutes(31)]));
+        $this->dispatchOutbox();
+        app(NotificationDeliveryWorker::class)->deliverDue();
+
+        Carbon::setTestNow(Carbon::parse('2026-10-12 23:30:00', 'Europe/Kyiv'));
+        $this->assertSame(1, app(IncidentReminderPlanner::class)->planDue());
+
+        $reminder = NotificationDelivery::query()
+            ->where('notification_kind', NotificationDelivery::KIND_INCIDENT_REMINDER)
+            ->firstOrFail();
+
+        $this->assertTrue($reminder->next_attempt_at->equalTo(Carbon::parse('2026-10-13 08:00:00', 'Europe/Kyiv')));
+        $this->assertSame(1, NotificationDelivery::query()->where('notification_kind', NotificationDelivery::KIND_INCIDENT_REMINDER)->count());
 
         Carbon::setTestNow();
     }
