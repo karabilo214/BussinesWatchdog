@@ -1514,3 +1514,12 @@ Status: complete; decisions await owner review
 - Dashboard: "Payment provider" block with Stripe/PayPal tabs (status on each tab, the connected one opens first); PayPal tab with app setup steps, the write-access warning that must be acknowledged, rights shown after connecting, Transaction Search freshness, webhook id. ru/en/de.
 - Tests: 9 backend PayPal tests (acknowledgement, Transaction Search probe, exact capture link + unique-amount refund, late store refund, pending capture and authorization, watermark and ambiguous refunds, request allowlist, webhook verification, per-gateway coverage and rejected credentials, currency conversion). Backend: SQLite 355 + 4 skipped, PostgreSQL 18 359 passed. Customer unit tests 80. `make frontend-smoke` 41/41 in the last three consecutive runs (two earlier runs failed once each on unrelated late steps — German order page, sign out — while other jobs were loading the machine).
 - Real check on the owner's sandbox: the real Watchdog app connected through the connector, audit sync found the plugin and API payments via Transaction Search, and orders mapped correctly (captured with refunds, pending EUR, authorization). Store "PayPal Sandbox Shop" left in the local smoke tenant for viewing.
+
+### Step 71: One-Run PayPal Chain (ADR 0022)
+
+Status: complete; proposal awaits owner review
+
+- `plugins/woocommerce-watchdog/tests/matrix/paypal-chain-e2e.sh` + `backend-e2e.php` actions `paypal-chain-setup|check|cleanup`: backend with PayPal connected (real Watchdog app, sandbox), WooCommerce 11.2 + PayPal Payments 4.1.3 + Watchdog plugin, real sandbox buyer checkout, partial refund through PayPal, plugin delivery, PayPal sync (Transaction Search delta and the capture → order read a webhook uses), matching and reconciliation in one run. Result PASS: capture `exact_reference:1000`, refund `unique_amount:300`, `MONEY_CAPTURE_AMOUNT` and `MONEY_REFUND_MISSING` ok.
+- `paypal-spike-configure.php` takes `BW_PAYPAL_INVOICE_PREFIX` (fresh WordPress reuses order numbers and PayPal refuses duplicate invoice ids).
+- Transaction Search lagged ~2 h; the fresh payment came only through the capture → order path. A real signed webhook was not exercised. Proposal recorded in ADR 0022: use the store-reported capture id of PayPal orders as a read pointer to remove the lag without a webhook.
+

@@ -89,6 +89,8 @@ Spike part 2 (2026-10-10), `tests/matrix/paypal-gateway-spike.sh latest`: WooCom
 | …then status on-hold → processing | processing, date paid set, `_ppcp_paypal_captured=true` | **replaced by the capture id** | capture `COMPLETED` |
 | EUR to an account without EUR balance | on-hold, no date paid, note with the pending reason | capture id | capture `PENDING` (`RECEIVING_PREFERENCE_MANDATES_MANUAL_ACTION`) |
 
+One-run chain (2026-10-11), `tests/matrix/paypal-chain-e2e.sh latest`: the same stack plus the Watchdog plugin paired with a local backend that has PayPal connected; checkout 10.00 USD, refund 3.00 through PayPal, delivery, sync, links and reconciliation — PASS (ADR 0022).
+
 Test-environment notes: SDK v6 asks PayPal for a client token bound to the site domain and PayPal rejects `.test` domains (`invalid_domain`), so the spike shop runs as `shop-<target>.example.com` mapped to the container; the plugin stores the payer e-mail (`_ppcp_paypal_payer_email`), which Watchdog never reads.
 
 ### Spike part 0: source reading

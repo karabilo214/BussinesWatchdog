@@ -12,7 +12,7 @@ $gateway = get_option('woocommerce_ppcp-gateway_settings', []);
 update_option('woocommerce_ppcp-gateway_settings', array_merge(is_array($gateway) ? $gateway : [], ['enabled' => 'yes']));
 
 $settings = get_option('woocommerce-ppcp-data-settings', []);
-update_option('woocommerce-ppcp-data-settings', array_merge(is_array($settings) ? $settings : [], ['authorize_only' => getenv('BW_PAYPAL_AUTHORIZE') === '1']));
+update_option('woocommerce-ppcp-data-settings', array_merge(is_array($settings) ? $settings : [], array_filter(['authorize_only' => getenv('BW_PAYPAL_AUTHORIZE') === '1', 'invoice_prefix' => getenv('BW_PAYPAL_INVOICE_PREFIX') ?: null], fn ($value) => $value !== null)));
 
 update_option('woocommerce_currency', getenv('BW_PAYPAL_CURRENCY') ?: 'USD');
 

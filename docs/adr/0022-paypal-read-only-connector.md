@@ -59,7 +59,17 @@ At 15:01 UTC `last_refreshed_datetime` was 13:29:59 (about 1.5 h behind). Rows: 
 - **Metadata matching** (`verified_metadata`) is not supported for PayPal: PayPal metadata has no site URL to compare with the confirmed store domain. PayPal payments link by the exact capture id only; the PayPal tab says so (owner decision 2026-10-10).
 - Verified on the owner's sandbox: connecting the real Watchdog app (write scopes capture, payments_v1, refund reported), audit sync over Transaction Search and reading the spike orders: captured/refunded, pending EUR captures, an authorization — all mapped as described.
 
+## One-run chain (2026-10-11, Step 71)
+
+`plugins/woocommerce-watchdog/tests/matrix/paypal-chain-e2e.sh latest`: local backend with the store's PayPal connected through the connector (the real Watchdog app, sandbox), WooCommerce 11.2 (HPOS) + PayPal Payments 4.1.3 (shop app) + the Watchdog plugin paired with that backend; the sandbox buyer pays 10.00 USD in the PayPal popup, WooCommerce refunds 3.00 through PayPal, the plugin delivers, the backend syncs, links and reconciles. Result PASS in one run: order mode test, gateway `ppcp-gateway`; capture linked by `exact_reference` (1000), the store refund without a PayPal id linked by `unique_amount` (300); `MONEY_CAPTURE_AMOUNT` and `MONEY_REFUND_MISSING` ok.
+
+What the run shows:
+
+- Transaction Search lagged about 2 h (run at ~06:30 UTC, `last_refreshed_datetime` 04:29:59), so the delta sync found only older sandbox payments of the same PayPal account (8 events; they become payments without an order in this store — one PayPal account means all its payments). The fresh payment reached the service through the capture → order path a webhook uses (`orderOfCapture` + `syncOrder`), driven here by the capture id from the store order. A real webhook delivery with PayPal's signature was **not** exercised (no public URL registered in the Watchdog app).
+- Without a webhook a fresh PayPal payment is seen only after the Transaction Search lag (1.5–3 h); until then the order stays `MONEY_CAPTURE_MISSING` within its grace or later. **Proposal for the owner (not implemented):** use the store-reported capture id of a `ppcp-*` order only as a pointer to read that capture and its order from PayPal (allowed GETs), so the money is still proven by PayPal, not by the store. This removes the lag without a webhook.
+- Test-environment notes: a fresh matrix WordPress restarts order numbers and PayPal refuses a repeated invoice id (`DUPLICATE_INVOICE_ID`), so each run sets a unique PayPal Payments invoice prefix; pairing needs the store's `https://` base URL, the browser checkout runs over `http://` on the same host.
+
 ## Open
 
-- Transaction Search on real data (delay, 31-day window, which events appear, how pending captures show), whether its rows carry `custom_id`/`invoice_id`.
-- Transaction Search delay and window limits on real data; webhooks; part 2 with the plugin in the WooCommerce matrix (what it records for capture, authorization, pending capture and refunds).
+- A real PayPal webhook delivery (needs a public URL registered in the Watchdog app).
+- The owner's decision on the store-reported capture id as a sync pointer (above).

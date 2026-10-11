@@ -238,4 +238,65 @@ if ($action === 'stripe-chain-cleanup') {
     $out = ['revoked' => true];
 }
 
+if ($action === 'paypal-chain-setup') {
+    $tenant = Tenant::query()->create(['name' => 'PayPal chain E2E', 'timezone' => 'Europe/Berlin']);
+    $user = User::query()->create(['name' => 'E2E', 'email' => 'e2e-'.Str::random(10).'@example.test', 'password_hash' => Hash::make(Str::random(32)), 'locale' => 'en']);
+    Membership::query()->create(['tenant_id' => $tenant->id, 'user_id' => $user->id, 'role' => 'owner']);
+    $store = Store::query()->create(['tenant_id' => $tenant->id, 'name' => 'PayPal chain', 'base_url' => getenv('BW_E2E_BASE_URL'), 'timezone' => 'Europe/Berlin', 'default_currency' => 'USD']);
+    $store->forceFill(['verified_at' => now(), 'status' => 'active'])->save();
+    $code = 'bwpc_'.Str::lower(Str::random(40));
+    PairingCode::query()->create(['tenant_id' => $tenant->id, 'store_id' => $store->id, 'code_hash' => hash('sha256', $code), 'created_by' => $user->id, 'expires_at' => now()->addMinutes(15), 'created_at' => now()]);
+    $paypal = app(\App\Support\Providers\PayPal\PayPalConnector::class)->connect($store, 'sandbox', (string) env('WATCHDOG_DEV_PAYPAL_CLIENT_ID'), (string) env('WATCHDOG_DEV_PAYPAL_CLIENT_SECRET'), null, true, $user->id);
+    $out = ['store_id' => $store->id, 'pairing_code' => $code, 'paypal_integration_id' => $paypal->id, 'paypal_mode' => $paypal->mode];
+}
+
+if ($action === 'paypal-chain-check') {
+    $storeId = getenv('BW_E2E_STORE_ID');
+    $wooOrderId = getenv('BW_E2E_ORDER_ID');
+    $drain = function (): void {
+        for ($i = 0; $i < 6; $i++) {
+            app(\App\Support\Outbox\DomainOutboxDispatcher::class)->dispatchDue(limit: 200, leaseSeconds: 60);
+        }
+    };
+    $drain();
+    $paypal = Integration::query()->where('store_id', $storeId)->where('provider', 'paypal')->firstOrFail();
+    $sync = app(\App\Support\Providers\PayPal\PayPalSync::class);
+    $order = \App\Models\Order::query()->where('store_id', $storeId)->where('external_id', $wooOrderId)->first();
+    $delta = $sync->run($paypal, 'delta');
+    $hint = null;
+
+    if ($order !== null && $order->transaction_ref !== null) {
+        $paypalOrder = $sync->orderOfCapture($paypal, (string) $order->transaction_ref);
+        $hint = $paypalOrder === null ? ['order_found' => false] : ['order_found' => true, ...$sync->syncOrder($paypal, $paypalOrder)];
+    }
+
+    $drain();
+    $findings = [];
+
+    if ($order !== null) {
+        $order->refresh();
+        app(\App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($order);
+        $findings = \App\Models\ReconciliationFinding::query()->where('order_id', $order->id)->get()->map(fn ($f) => $f->rule_code.':'.$f->status)->all();
+    }
+
+    $out = [
+        'delta_sync' => $delta,
+        'search_refreshed_at' => $paypal->fresh()->health['sync']['search_refreshed_at'] ?? null,
+        'capture_hint_sync' => $hint,
+        'inbox' => \App\Models\EventInbox::query()->where('store_id', $storeId)->get()->groupBy('status')->map->count()->all(),
+        'order' => $order ? ['mode' => $order->mode, 'gateway' => $order->gateway, 'total_minor' => (string) $order->total_minor, 'currency' => $order->currency] : null,
+        'provider_payments' => \App\Models\Payment::query()->where('store_id', $storeId)->where('integration_id', $paypal->id)->get()->map(fn ($p) => $p->status.':'.$p->currency)->all(),
+        'store_refunds' => \App\Models\Refund::query()->where('store_id', $storeId)->get()->map(fn ($r) => ['amount' => (string) $r->amount_minor, 'has_provider_ref' => $r->provider_ref !== null])->all(),
+        'capture_links' => $order ? \App\Models\PaymentAllocation::query()->where('order_id', $order->id)->whereNull('revoked_at')->get()->map(fn ($a) => $a->strategy.':'.$a->amount_minor)->all() : [],
+        'refund_links' => \App\Models\RefundAllocation::query()->where('store_id', $storeId)->whereNull('revoked_at')->get()->map(fn ($a) => $a->strategy.':'.$a->amount_minor)->all(),
+        'findings' => $findings,
+    ];
+}
+
+if ($action === 'paypal-chain-cleanup') {
+    Integration::query()->where('store_id', getenv('BW_E2E_STORE_ID'))->where('provider', 'paypal')->update(['status' => Integration::STATUS_REVOKED]);
+    IntegrationCredential::query()->where('store_id', getenv('BW_E2E_STORE_ID'))->whereIn('kind', [IntegrationCredential::KIND_PAYPAL_CLIENT, IntegrationCredential::KIND_PAYPAL_WEBHOOK])->update(['status' => IntegrationCredential::STATUS_REVOKED]);
+    $out = ['revoked' => true];
+}
+
 echo 'BW_E2E_JSON='.json_encode($out).PHP_EOL;
