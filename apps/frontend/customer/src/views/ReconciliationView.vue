@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { createExport, openExportDownload } from '@/api/exports';
 import { recheckMoney } from '@/api/incidents';
 import { listFindings } from '@/api/reconciliation';
 import { listStores } from '@/api/stores';
@@ -29,6 +30,8 @@ const error = ref<unknown>(null);
 const scanning = ref(false);
 const scanError = ref<unknown>(null);
 const scanDone = ref(false);
+const exporting = ref(false);
+const exportError = ref<unknown>(null);
 const unmatchedKey = ref(0);
 
 function param(name: string): string {
@@ -119,6 +122,32 @@ async function scan(): Promise<void> {
   }
 }
 
+async function exportFindings(): Promise<void> {
+  if (storeId.value === '') return;
+
+  exporting.value = true;
+  exportError.value = null;
+
+  try {
+    const file = await createExport(storeId.value, {
+      kind: 'findings',
+      filters: {
+        current: !history.value,
+        status: status.value || undefined,
+        rule_code: rule.value || undefined,
+        currency: currency.value || undefined,
+        from: from.value ? dayStart(from.value) : undefined,
+        to: to.value ? dayStart(to.value, 1) : undefined,
+      },
+    });
+    openExportDownload(file);
+  } catch (caught) {
+    exportError.value = caught;
+  } finally {
+    exporting.value = false;
+  }
+}
+
 listStores()
   .then((value) => {
     stores.value = value;
@@ -174,15 +203,26 @@ watch([storeId, tab, history, status, rule, currency, from, to], () => loadFindi
               {{ $t(`reconciliation.tab.${value}`) }}
             </button>
           </div>
-          <button
-            v-if="canHandleIncidents && moneyCovered"
-            type="button"
-            class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
-            :disabled="scanning"
-            @click="scan"
-          >
-            {{ $t('reconciliation.scan') }}
-          </button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              v-if="tab === 'findings'"
+              type="button"
+              class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
+              :disabled="exporting"
+              @click="exportFindings"
+            >
+              {{ $t('reconciliation.export') }}
+            </button>
+            <button
+              v-if="canHandleIncidents && moneyCovered"
+              type="button"
+              class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
+              :disabled="scanning"
+              @click="scan"
+            >
+              {{ $t('reconciliation.scan') }}
+            </button>
+          </div>
         </div>
         <p v-if="scanDone" class="text-sm text-ok" role="status">{{ $t('reconciliation.scan_done') }}</p>
         <ErrorNotice v-if="scanError" :error="scanError" />
@@ -227,6 +267,7 @@ watch([storeId, tab, history, status, rule, currency, from, to], () => loadFindi
             </label>
           </div>
           <p class="text-[13px] text-text-muted">{{ history ? $t('reconciliation.filter.history_note') : $t('reconciliation.filter.current_note') }}</p>
+          <ErrorNotice v-if="exportError" :error="exportError" />
 
           <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
           <ErrorNotice v-else-if="error" :error="error">

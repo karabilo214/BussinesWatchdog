@@ -1,37 +1,45 @@
 # Приёмка панелей и SaaS billing
 
-Версия1.1. Это добавочные критерии к ACCEPTANCE.md; реализация пока отсутствует, все пункты не выполнены. Exact test evidence/commit добавляется Codex при разработке. Детальные acceptance IDs OWN/ADM/CLT/PAY/BCK перечислены в соответствующих пяти ТЗ; эта матрица проверяет сквозные сценарии.
+Версия 1.1. Обновлено: 2026-10-11, Step 75.
 
-| ID | Сценарий | Ожидаемый результат |
-|---|---|---|
-| EXT-01 | Tenant_owner пробует platform API | Denied, никакой выдачи staff роли |
-| EXT-02 | Platform staff имеет customer membership | Две независимые sessions; права не сливаются |
-| EXT-03 | Owner без MFA/step-up | Sensitive mutation forbidden |
-| EXT-04 | Удаление последнего platform owner | Transaction rejects |
-| EXT-05 | Support без customer grant | Только safe account summary |
-| EXT-06 | Grant revoked/expired | Detailed reads и новые artifacts links запрещены |
-| EXT-07 | Published price изменён | New immutable version, старые contracts сохранены |
-| EXT-08 | Forged price/amount/currency from browser | Backend revalidates published mapping |
-| EXT-09 | Concurrent two checkout requests | Single reservation/provider effect |
-| EXT-10 | Lost provider response | Unknown+query, без double charge/refund |
-| EXT-11 | Browser return без webhook | Нет fulfillment по success query |
-| EXT-12 | Verified webhook без browser return | Paid entitlement applied once |
-| EXT-13 | Duplicates и out-of-order events | No duplicate sums, no stale projection overwrite |
-| EXT-14 | LIVE/TEST и чужой account | Commercial events rejected/isolated |
-| EXT-15 | Failed renewal и grace expiry | Correct past_due/grace/paused_billing |
-| EXT-16 | Scheduled cancellation | Доступ до verified end, renewal stop separately |
-| EXT-17 | Downgrade превышает store limit | Customer choice required, no data deletion |
-| EXT-18 | Temporary override истёк | Provider paid facts unchanged; policy recomputed |
-| EXT-19 | Refund request billing staff | Owner approval needed before monetary submission |
-| EXT-20 | Refund concurrency | Reservations не превышают paid remainder |
-| EXT-21 | New subscription после cancellation | Old invoices и refs сохранены |
-| EXT-22 | KPI MRR/cash/refunds | Definition consistent, per currency, no merchant sums |
-| EXT-23 | Technical replay | Same dedupe keys, no old alert storm |
-| EXT-24 | Tenant_admin billing/delete/owner role action |403 и audit denied sensitive action |
-| EXT-25 | Workspace switch | Query cache/context isolated |
-| EXT-26 | Customer deletion с recurring contract | Cancellation resolved before purge; tombstone retained |
-| EXT-27 | Legal/policy/price version changed | New purchase preview+acceptance, old history immutable |
-| EXT-28 | Provider unavailable | No paid grant, previous paid_until preserved |
-| EXT-29 | Portal locale coverage ru/en/de | Public, customer, owner, admin, backend validation/problem messages, notification templates and user-facing exports have complete localized strings; no missing keys or raw provider messages are shown |
+Это добавочные критерии к `ACCEPTANCE.md`. Матрица теперь показывает текущее evidence. Большая часть SaaS billing/platform панели всё ещё находится на уровне ТЗ и контрактов; customer cabinet реализован существенно дальше.
 
-Требуются также16 BILL fixture outcomes, проверка no-card storage/secret redaction, CSRF и stored XSS, изоляция guard cookies, private invoice export/download, provider sandbox upgrade/proration/cancel/refund и наблюдаемость webhook lag. Tests of actual provider behavior нельзя заменить JSON fixtures.
+Статусы:
+
+- **done** — реализовано и есть automated/e2e evidence.
+- **partial** — закрыта часть customer/backend поведения, но сквозной EXT-сценарий ещё не принят.
+- **not_done** — реализации пока нет или она только в спецификации.
+
+| ID | Статус | Сценарий | Evidence | Осталось / ограничение |
+|---|---|---|---|---|
+| EXT-01 | not_done | Tenant_owner пробует platform API | — | Platform API/staff guard not implemented |
+| EXT-02 | not_done | Platform staff имеет customer membership | — | Separate staff/customer sessions not implemented |
+| EXT-03 | partial | Owner без MFA/step-up | Customer MFA and ownership-transfer step-up: `MfaApiTest`, `TeamApiTest`, frontend Step 69 smoke | Platform sensitive mutations and billing step-up not implemented |
+| EXT-04 | not_done | Удаление последнего platform owner | — | Platform staff management not implemented |
+| EXT-05 | not_done | Support без customer grant | — | Support grant system not implemented |
+| EXT-06 | not_done | Grant revoked/expired | — | Support grants/artifact grant checks not implemented |
+| EXT-07 | not_done | Published price изменён | — | Plan catalog and immutable price versions not implemented |
+| EXT-08 | not_done | Forged price/amount/currency from browser | — | SaaS billing checkout not implemented |
+| EXT-09 | not_done | Concurrent two checkout requests | — | SaaS billing checkout reservation not implemented |
+| EXT-10 | not_done | Lost provider response | — | SaaS billing provider action/idempotency not implemented |
+| EXT-11 | not_done | Browser return без webhook | — | SaaS billing fulfillment not implemented |
+| EXT-12 | not_done | Verified webhook без browser return | — | SaaS billing webhook projection not implemented |
+| EXT-13 | partial | Duplicates и out-of-order events | Core monitoring ingestion has idempotency/revision evidence: `IngestEventsApiTest`, provider connector tests | SaaS billing event inbox not implemented |
+| EXT-14 | partial | LIVE/TEST и чужой account | Store Stripe/PayPal connectors isolate mode/account; Steps 65-72 | Commercial SaaS billing account isolation not implemented |
+| EXT-15 | not_done | Failed renewal и grace expiry | — | Subscription lifecycle/access projection not implemented |
+| EXT-16 | not_done | Scheduled cancellation | — | Billing cancellation lifecycle not implemented |
+| EXT-17 | not_done | Downgrade превышает store limit | — | Entitlements/quota downgrade flow not implemented |
+| EXT-18 | not_done | Temporary override истёк | — | Platform overrides not implemented |
+| EXT-19 | not_done | Refund request billing staff | — | SaaS refund approval workflow not implemented |
+| EXT-20 | not_done | Refund concurrency | — | SaaS refund reservations not implemented |
+| EXT-21 | not_done | New subscription после cancellation | — | Subscription contract history not implemented |
+| EXT-22 | not_done | KPI MRR/cash/refunds | — | Owner billing KPIs not implemented |
+| EXT-23 | partial | Technical replay | Core monitoring replay/idempotency exists; outbox/reconciliation tests | Platform replay tooling and billing replay not implemented |
+| EXT-24 | partial | Tenant_admin billing/delete/owner role action | Customer role policies, team management, ownership transfer tests; Step 64/69 | Billing/delete organization not implemented |
+| EXT-25 | partial | Workspace switch | Active tenant session exists; tenant activation tests; customer cache keys include tenant in API patterns | Multi-workspace switcher UI and complete cache isolation acceptance not implemented |
+| EXT-26 | not_done | Customer deletion с recurring contract | — | Privacy deletion + recurring cancellation workflow not implemented |
+| EXT-27 | not_done | Legal/policy/price version changed | — | Legal acceptance/versioned public purchase flow not implemented |
+| EXT-28 | not_done | Provider unavailable | — | SaaS paid grant and previous paid_until preservation not implemented |
+| EXT-29 | partial | Portal locale coverage ru/en/de | Customer app, public/control skeleton, notification/account templates, findings/incidents export UI labels and many backend problem codes have ru/en/de tests | Owner/admin/billing/private export localization not implemented |
+
+Требуются также 16 BILL fixture outcomes, проверка no-card storage/secret redaction, CSRF и stored XSS, изоляция guard cookies, private invoice export/download, provider sandbox upgrade/proration/cancel/refund и наблюдаемость webhook lag. Tests of actual provider behavior нельзя заменить JSON fixtures.

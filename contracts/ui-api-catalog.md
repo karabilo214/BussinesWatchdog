@@ -82,7 +82,7 @@ StoreDTO: id, name, base_url, platform, timezone, locale, default_currency, stat
 
 `POST /stores/{id}/reconciliations`: order_ids optional≤100 or from/to window, currency optional, dry_run boolean default false. Response202 run_id; admin/operator allowed by policy, Idempotency-Key. Replay historical notifications disabled unless explicitly requested by admin-reviewed operational action.
 
-`POST /stores/{id}/exports`: kind findings|transactions|incidents, date/filter config, format csv. Response202 export_id. Poll `/exports/{id}` returns state/download URL after role authorization. Export files are separate private artifacts category, can use generalized export storage table at D8; current `artifacts` table is browser-specific and should not be abused by setting fake attempt_id. Framework/job table chosen in ADR.
+`POST /stores/{id}/exports`: kind findings|transactions|incidents, date/filter config, format csv. Response202 export_id. Poll `/exports/{id}` returns state/download URL after role authorization. Export files are separate private artifacts category, can use generalized export storage table at D8; current `artifacts` table is browser-specific and should not be abused by setting fake attempt_id. Framework/job table chosen in ADR. Steps 75 and 77 implement the first slice: `findings` and `incidents` CSV exports complete synchronously into the separate `exports` table and private storage, with daily expired-file purge; `transactions`, billing/private documents and async worker execution remain future work.
 
 ## 6 Проверки и artifacts
 
@@ -185,4 +185,4 @@ Step 69 (ADR 0021): MFA (TOTP) — `GET /auth/mfa`, `POST /auth/mfa/setup|confir
 
 Step 70 (ADR 0022): PayPal — `POST /stores/{id}/integrations/paypal` (environment, client_id, client_secret, webhook_id, обязательный `write_access_acknowledged`), `PUT /integrations/{id}/webhook-id`, `POST /webhooks/paypal/{id}`; `POST /integrations/{id}/sync` работает для Stripe и PayPal. Стратегия связи возвратов `unique_amount`.
 
-Ещё не реализовано из каталога: `POST /tenants` и переключатель команд в кабинете, exports, maintenance windows, rules, billing, privacy deletion, Telegram.
+Ещё не реализовано из каталога: `POST /tenants` и переключатель команд в кабинете, transaction/billing/privacy exports, maintenance windows, rules, billing, privacy deletion, Telegram.

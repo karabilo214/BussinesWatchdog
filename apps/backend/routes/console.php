@@ -44,6 +44,12 @@ Schedule::command('artifacts:purge')
     ->withoutOverlapping(60)
     ->onOneServer();
 
+Schedule::command('exports:purge')
+    ->dailyAt('03:25')
+    ->timezone('UTC')
+    ->withoutOverlapping(60)
+    ->onOneServer();
+
 Schedule::command('stripe:sync')
     ->everyFifteenMinutes()
     ->withoutOverlapping(30)

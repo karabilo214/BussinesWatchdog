@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { createExport, openExportDownload } from '@/api/exports';
 import { listIncidents } from '@/api/incidents';
 import { listStores } from '@/api/stores';
 import type { Incident, IncidentSeverity, IncidentState, Store } from '@/api/types';
@@ -22,6 +23,8 @@ const nextCursor = ref<string | null>(null);
 const loading = ref(true);
 const loadingMore = ref(false);
 const error = ref<unknown>(null);
+const exporting = ref(false);
+const exportError = ref<unknown>(null);
 
 const tab = computed<Tab>(() => (route.query.tab === 'resolved' ? 'resolved' : 'active'));
 const storeId = computed(() => (typeof route.query.store === 'string' ? route.query.store : ''));
@@ -75,6 +78,28 @@ async function load(more = false): Promise<void> {
   }
 }
 
+async function exportIncidents(): Promise<void> {
+  if (storeId.value === '') return;
+
+  exporting.value = true;
+  exportError.value = null;
+
+  try {
+    const file = await createExport(storeId.value, {
+      kind: 'incidents',
+      filters: {
+        state: STATES[tab.value],
+        severity: severity.value || undefined,
+      },
+    });
+    openExportDownload(file);
+  } catch (caught) {
+    exportError.value = caught;
+  } finally {
+    exporting.value = false;
+  }
+}
+
 listStores()
   .then((value) => {
     stores.value = value;
@@ -93,18 +118,29 @@ watch([tab, storeId, severity], () => load(), { immediate: true });
       </div>
 
       <div class="flex flex-wrap items-end justify-between gap-4">
-        <div class="flex gap-1 rounded-lg border border-border bg-surface p-1" role="tablist">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex gap-1 rounded-lg border border-border bg-surface p-1" role="tablist">
+            <button
+              v-for="value in (['active', 'resolved'] as Tab[])"
+              :key="value"
+              type="button"
+              role="tab"
+              :aria-selected="tab === value"
+              class="rounded-md px-3 py-1.5 text-sm font-medium"
+              :class="tab === value ? 'bg-primary-soft text-primary' : 'text-text-muted hover:bg-surface-muted hover:text-text'"
+              @click="setQuery({ tab: value })"
+            >
+              {{ $t(`incidents.tab.${value}`) }}
+            </button>
+          </div>
           <button
-            v-for="value in (['active', 'resolved'] as Tab[])"
-            :key="value"
             type="button"
-            role="tab"
-            :aria-selected="tab === value"
-            class="rounded-md px-3 py-1.5 text-sm font-medium"
-            :class="tab === value ? 'bg-primary-soft text-primary' : 'text-text-muted hover:bg-surface-muted hover:text-text'"
-            @click="setQuery({ tab: value })"
+            class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
+            :disabled="exporting || storeId === ''"
+            :title="storeId === '' ? $t('incidents.export_store_required') : undefined"
+            @click="exportIncidents"
           >
-            {{ $t(`incidents.tab.${value}`) }}
+            {{ $t('incidents.export') }}
           </button>
         </div>
         <div class="flex flex-wrap gap-3">
@@ -132,6 +168,7 @@ watch([tab, storeId, severity], () => load(), { immediate: true });
           </label>
         </div>
       </div>
+      <ErrorNotice v-if="exportError" :error="exportError" />
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
 

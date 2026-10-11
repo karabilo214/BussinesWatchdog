@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Account\TeamController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Checks\CheckRunController;
 use App\Http\Controllers\Api\V1\Checks\CheckScenarioController;
+use App\Http\Controllers\Api\V1\Exports\ExportController;
 use App\Http\Controllers\Api\V1\Incidents\IncidentController;
 use App\Http\Controllers\Api\V1\Overview\OverviewController;
 use App\Http\Controllers\Api\V1\Incidents\SuppressionController;
@@ -147,6 +148,12 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::get('/stores/{store}/findings', [ReconciliationController::class, 'findings'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
     Route::get('/stores/{store}/unmatched-payments', [UnmatchedPaymentController::class, 'index'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
+    Route::post('/stores/{store}/exports', [ExportController::class, 'store'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::findingsRead()), 'idempotency']);
+    Route::get('/exports/{export}', [ExportController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
+    Route::get('/exports/{export}/download', [ExportController::class, 'download'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
 
     Route::get('/orders/{order}', [OrderController::class, 'show'])

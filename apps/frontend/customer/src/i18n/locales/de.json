@@ -361,7 +361,9 @@
       "active_note": "Das heißt nicht, dass alles in Ordnung ist, wenn die Shop-Daten unvollständig sind. Die Abdeckung sehen Sie auf der Shop-Seite.",
       "resolved": "Noch keine geschlossenen Vorfälle"
     },
-    "load_more": "Mehr anzeigen"
+    "load_more": "Mehr anzeigen",
+    "export": "CSV exportieren",
+    "export_store_required": "Wählen Sie einen Shop, um Vorfälle zu exportieren."
   },
   "incident": {
     "severity": {
@@ -563,6 +565,7 @@
     },
     "scan": "Zahlungen ohne Bestellung suchen",
     "scan_done": "Suche ausgeführt, Daten aktualisiert.",
+    "export": "CSV exportieren",
     "status_column": "Ergebnis",
     "status": {
       "ok": "stimmt",

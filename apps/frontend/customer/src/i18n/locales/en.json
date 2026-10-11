@@ -361,7 +361,9 @@
       "active_note": "That does not mean everything is fine if the store data is incomplete. See the coverage on the store page.",
       "resolved": "No resolved incidents yet"
     },
-    "load_more": "Show more"
+    "load_more": "Show more",
+    "export": "Export CSV",
+    "export_store_required": "Choose a store to export incidents."
   },
   "incident": {
     "severity": {
@@ -563,6 +565,7 @@
     },
     "scan": "Find payments without an order",
     "scan_done": "Search done, data updated.",
+    "export": "Export CSV",
     "status_column": "Result",
     "status": {
       "ok": "matches",

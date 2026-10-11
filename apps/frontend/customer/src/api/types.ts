@@ -389,6 +389,23 @@ export interface UnmatchedPayment {
   candidates: UnmatchedCandidate[];
 }
 
+export interface ExportFile {
+  id: string;
+  store_id: string;
+  kind: 'findings' | 'incidents';
+  format: 'csv';
+  filters: Record<string, unknown>;
+  state: 'processing' | 'ready' | 'failed' | 'deleted';
+  content_type: string | null;
+  size_bytes: number | null;
+  sha256: string | null;
+  error_code: string | null;
+  download_url: string | null;
+  expires_at: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
 export interface CheckScenario {
   id: string;
   store_id: string;

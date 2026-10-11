@@ -48,6 +48,12 @@ return [
         'download_ttl_seconds' => 60,
     ],
 
+    'exports' => [
+        'disk' => env('WATCHDOG_EXPORTS_DISK', env('WATCHDOG_ARTIFACTS_DISK', 'artifacts')),
+        'retention_days' => (int) env('WATCHDOG_EXPORTS_RETENTION_DAYS', 7),
+        'max_rows' => (int) env('WATCHDOG_EXPORTS_MAX_ROWS', 10000),
+    ],
+
     'stripe' => [
         'api_base' => env('WATCHDOG_STRIPE_API_BASE', 'https://api.stripe.com'),
         'api_version' => '2026-09-30.endive',
