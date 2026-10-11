@@ -1918,3 +1918,13 @@ Coordination:
 
 - Claude's Shopware script files were left unstaged; this step only stages Telegram UI/evidence files.
 
+
+
+### Step 94: Newest Shopware Releases (ADR 0025/0027)
+
+Status: complete
+
+- `plugins/shopware-app/tests/build-image.sh` builds exact Shopware releases from the dockware base through composer and `system:update:finish`; `wait-ready.sh` waits until the admin token works (a fresh container may restart its web server after answering 401). `paypal/run.sh` installs the matching SwagPayPal line (9.x for 6.6, 10.x for 6.7) and runs the money chain.
+- 6.7.15.1: key chain, SwagPayPal chain and app — PASS. 6.6.10.29: key chain and SwagPayPal chain — PASS; app installation fails inside Shopware 6.6.10.25–29 (empty DI argument for the app-system TrustedUrlResolver), affecting every app with a registration URL; documented, the key remains the path there.
+- Stripe for Shopware: no open-source Shopware 6 Stripe plugin exists (packagist/GitHub); the common "Stripe Payment" plugin (Pickware) is downloaded only through a Shopware account — needs the owner.
+

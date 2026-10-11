@@ -133,3 +133,10 @@ On every version: HTTPS required for the key, writes with a Read key refused (40
 Connector chain without payments (`plugins/shopware-app/tests/chain/chain-e2e.sh`): PASS on both. Stripe for Shopware not examined (closed source). Newer 6.7 patches (up to 6.7.15.1) not exercised.
 
 Shopware App (ADR 0027, `plugins/shopware-app/tests/app/app-e2e.sh`): upload/install/activate, read-only privileges, registration, webhooks for order placed and payment state, uninstall → revoked — PASS on 6.6.10.6 and 6.7.2.2. Shopware sends no webhook for `order_transaction.written`; payment states come as `state_enter.order_transaction.state.*`.
+
+Latest releases (Step 94, self-built with `plugins/shopware-app/tests/build-image.sh`):
+
+| Shopware | Integration key chain | SwagPayPal real chain | App |
+|---|---|---|---|
+| 6.6.10.29 | PASS | PASS (SwagPayPal 9.x) | **fails in Shopware** (app registration TypeError, 6.6.10.25+) — use the key |
+| 6.7.15.1 | PASS | PASS (SwagPayPal 10.x) | PASS |

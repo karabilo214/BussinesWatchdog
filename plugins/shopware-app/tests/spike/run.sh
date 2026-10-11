@@ -10,7 +10,7 @@ IMAGE="${BW_SHOPWARE_IMAGE:-dockware/play:6.7.2.2}"
 if ! docker ps --format '{{.Names}}' | grep -qx bw-shopware; then
     docker rm -f bw-shopware >/dev/null 2>&1 || true
     docker run -d --name bw-shopware -p 127.0.0.1:8480:80 "$IMAGE" >/dev/null
-    i=0; until [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8480/api/_info/version)" = "401" ]; do i=$((i + 1)); [ $i -gt 60 ] && { echo "shopware did not start"; exit 1; }; sleep 5; done
+    ../wait-ready.sh
 fi
 
 python3 -I shopware_spike.py

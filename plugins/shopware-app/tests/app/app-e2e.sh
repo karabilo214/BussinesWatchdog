@@ -26,7 +26,7 @@ sleep 2
 for IMAGE in ${*:-dockware/play:6.6.10.6 dockware/play:6.7.2.2}; do
     docker rm -f bw-shopware >/dev/null 2>&1 || true
     docker run -d --name bw-shopware -p 127.0.0.1:8480:80 "$IMAGE" >/dev/null
-    i=0; until [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8480/api/_info/version)" = "401" ]; do i=$((i + 1)); [ $i -gt 60 ] && { echo "shopware did not start"; exit 1; }; sleep 5; done
+    ../wait-ready.sh
     echo "=== ${IMAGE}"
     package=$(backend BW_E2E_ACTION=app-package BW_E2E_BASE_URL=https://localhost BW_E2E_ZIP="$(pwd)/.out/BusinessWatchdog.zip")
     store_id=$(echo "$package" | python3 -c "import json,sys; print(json.load(sys.stdin)['store_id'])")

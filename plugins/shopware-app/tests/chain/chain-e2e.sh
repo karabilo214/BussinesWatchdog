@@ -16,7 +16,7 @@ backend() { (cd "$BACKEND_DIR" && env DB_HOST=127.0.0.1 CACHE_STORE=database WAT
 for IMAGE in ${*:-dockware/play:6.6.10.6 dockware/play:6.7.2.2}; do
     docker rm -f bw-shopware >/dev/null 2>&1 || true
     docker run -d --name bw-shopware -p 127.0.0.1:8480:80 "$IMAGE" >/dev/null
-    i=0; until [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8480/api/_info/version)" = "401" ]; do i=$((i + 1)); [ $i -gt 60 ] && { echo "shopware did not start"; exit 1; }; sleep 5; done
+    ../wait-ready.sh
     echo "=== ${IMAGE}"
     shop=$(python3 -I store.py setup | sed -n 's/^BW_STORE=//p')
     j() { python3 -c "import json,sys; print(json.loads(sys.argv[1])$2)" "$1"; }

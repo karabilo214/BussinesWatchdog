@@ -43,7 +43,16 @@ ADR 0023 puts Shopware 6 second (Germany/DACH). The research prefers a Shopware 
 - A EUR payment to the sandbox account without EUR balance stays capture `PENDING` (`RECEIVING_PREFERENCE_MANDATES_MANUAL_ACTION`) and Shopware keeps the transaction `in_progress`, not paid — correct. USD payments complete and the transaction becomes `paid`.
 - After a partial refund the transaction is `refunded_partially`, after a full one `refunded`; no amount, no refund id and no capture/refund entities in Shopware — as read from the source.
 - Through the service: Shopware integration key + Watchdog PayPal app connected to one store, Shopware sync, PayPal capture-id pointers; all three captures linked by `exact_reference`, capture amounts ok; partial refund → `MONEY_REFUND_MISSING` `unknown` / `refund_amount_not_reported` with the provider's 5.00 shown; full refund → ok; no refund → no refund finding. PASS on both versions.
-- Version note: packagist lists Shopware up to 6.7.15.1; dockware images stop at 6.7.2.2, so the newest 6.7 patch releases are not exercised yet.
+- Version note: see "Latest releases" below — 6.7.15.1 and 6.6.10.29 are now built and tested.
+
+
+## Latest releases (2026-10-11, Step 94)
+
+Dockware images stop at 6.7.2.2 / 6.6.10.6, so `plugins/shopware-app/tests/build-image.sh` builds exact releases the supported way (composer update of core, administration, storefront and elasticsearch together with a symfony/flex new enough, `system:update:finish`, assets, theme; the API must report the target version). Built and tested: **6.7.15.1** and **6.6.10.29** (newest on packagist).
+
+- Integration key connector chain (`chain/chain-e2e.sh`): PASS on both.
+- Real PayPal money through SwagPayPal (`paypal/run.sh`, SwagPayPal 10.x on 6.7, 9.x on 6.6): PASS on both.
+- Shopware App (`app/app-e2e.sh`): PASS on 6.7.15.1. **Fails on 6.6.10.29 inside Shopware**: since 6.6.10.25 `Framework/DependencyInjection/app.xml` defines `shopware.app_system.trusted_url_resolver` with an empty `<argument/>`, which Symfony (7.2 and 7.4 alike) turns into `''`, while `TrustedUrlResolver::__construct(?Closure $dnsResolver)` needs a closure or null — the app registration request throws a TypeError. This breaks the installation of any app with a registration URL on 6.6.10.25–6.6.10.29 (checked against the upstream tags), not only ours. On those versions the integration key is the working path; the owner may report it to Shopware alongside the ACL finding.
 
 ## Open
 

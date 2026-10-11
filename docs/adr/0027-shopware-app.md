@@ -16,3 +16,7 @@ A Shopware Integration key must be created and copied by hand, its permissions c
 ## Verified
 
 `plugins/shopware-app/tests/app/app-e2e.sh` on real Shopware 6.6.10.6 and 6.7.2.2: the archive from the service uploaded, installed and activated through Shopware's extension API (as the owner does); the app has exactly the eight `:read` privileges; registration and confirmation make it the order source and confirm the store; an order and its payment arrive through webhooks with no polling run; uninstalling revokes the integration — PASS on both. Backend tests cover the handshake signatures, waiting for activation, webhook signature and shop checks, lifecycle events and the one-order-source rule.
+
+## Latest releases (Step 94)
+
+PASS on self-built 6.7.15.1. On 6.6.10.25–6.6.10.29 Shopware itself cannot install apps that register with a server (empty `<argument/>` for `shopware.app_system.trusted_url_resolver`, see ADR 0025); the dashboard keeps the integration key as the alternative, and the app steps say to use it when the installation fails on those versions.
