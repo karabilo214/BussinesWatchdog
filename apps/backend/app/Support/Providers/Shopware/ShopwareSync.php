@@ -67,6 +67,56 @@ class ShopwareSync
     }
 
     /**
+     * Reads the orders a webhook named (by order or transaction id) right away; the delta remains the guarantee, so
+     * a busy lock or a failure only waits for the next run.
+     *
+     * @param  list<string>  $orderIds
+     * @param  list<string>  $transactionIds
+     * @return array{status: string, emitted: int, unchanged: int, complete: bool, error?: string}
+     */
+    public function syncChanged(Integration $integration, array $orderIds, array $transactionIds): array
+    {
+        $valid = fn (array $ids): array => array_values(array_slice(array_unique(array_filter($ids, fn (mixed $id): bool => is_string($id) && preg_match('/^[0-9a-f]{32}$/', $id) === 1)), 0, 50));
+        $orderIds = $valid($orderIds);
+        $transactionIds = $valid($transactionIds);
+
+        if (! $this->syncable($integration) || $orderIds === [] && $transactionIds === []) {
+            return ['status' => 'skipped', 'emitted' => 0, 'unchanged' => 0, 'complete' => false];
+        }
+
+        $lock = Cache::lock('shopware-sync:'.$integration->id, 900);
+
+        if (! $lock->get()) {
+            return ['status' => 'skipped', 'emitted' => 0, 'unchanged' => 0, 'complete' => false];
+        }
+
+        try {
+            $this->budget = 3;
+            $this->totals = ['emitted' => 0, 'unchanged' => 0, 'skipped' => []];
+            $credentials = $this->connector->credentials($integration);
+
+            if ($credentials === null) {
+                throw new ShopwareRequestFailed('shopware_key_rejected', 401);
+            }
+
+            $baseUrl = $credentials['api_url'] ?? (string) $integration->store()->value('base_url');
+            $this->spend();
+            $token = $this->client->token($baseUrl, $credentials['access_key'], $credentials['secret'])['token'];
+            $queries = array_values(array_filter([
+                $orderIds === [] ? null : ['type' => 'equalsAny', 'field' => 'id', 'value' => $orderIds],
+                $transactionIds === [] ? null : ['type' => 'equalsAny', 'field' => 'transactions.id', 'value' => $transactionIds],
+            ]));
+            $walk = $this->walk($integration, $baseUrl, $token, [['type' => 'multi', 'operator' => 'OR', 'queries' => $queries]]);
+
+            return ['status' => 'ok', 'emitted' => $this->totals['emitted'], 'unchanged' => $this->totals['unchanged'], 'complete' => $walk['complete']];
+        } catch (ShopwareRequestFailed $failure) {
+            return $this->fail($integration, $failure);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
      * @return array{status: string, emitted: int, unchanged: int, complete: bool, error?: string}
      */
     private function runLocked(Integration $integration, string $mode): array
@@ -76,7 +126,7 @@ class ShopwareSync
         $this->budget = (int) config('watchdog.shopware.max_requests_per_run');
         $this->totals = ['emitted' => 0, 'unchanged' => 0, 'skipped' => []];
         $credentials = $this->connector->credentials($integration);
-        $baseUrl = (string) $integration->store()->value('base_url');
+        $baseUrl = $credentials['api_url'] ?? (string) $integration->store()->value('base_url');
         $retentionStart = $now->copy()->subDays((int) config('watchdog.shopware.audit_days'));
         $next = $state;
 

@@ -16,7 +16,7 @@ import ru from '@/i18n/locales/ru.json';
 import { localization, setLocale } from '@/i18n';
 import { makeStore } from './fixtures';
 
-vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), syncProvider: vi.fn() }));
+vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), downloadShopwareApp: vi.fn(), syncProvider: vi.fn() }));
 vi.mock('@/api/stores', () => ({
   listStoreIntegrations: vi.fn(),
   revokeIntegration: vi.fn(),
@@ -160,7 +160,9 @@ describe('Shopware order source', () => {
 
     expect(wrapper.find('[role="tablist"]').exists()).toBe(false);
     expect(wrapper.find('[data-connector="shopware"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain('Settings → System → Integrations');
+    expect(wrapper.find('[data-app-steps]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Extensions → My extensions → Upload extension');
+    expect(wrapper.get('[data-download-app]').attributes('disabled')).toBeDefined();
   });
 
   it('connects only after the state-change risk is acknowledged and never with a malformed key', async () => {
@@ -168,6 +170,7 @@ describe('Shopware order source', () => {
     vi.mocked(providers.connectShopware).mockResolvedValue(integration('shopware', { health: { key_last4: 'ZXCV' } }));
     const wrapper = mount(ShopwarePanel, { props: { storeId: 's-1', canManage: true }, global });
     await flushPromises();
+    await wrapper.get('[data-method="key"]').setValue(true);
     const submit = () => wrapper.get('button[type="submit"]');
 
     await wrapper.get('#sw-access-key').setValue('nope');
@@ -184,13 +187,33 @@ describe('Shopware order source', () => {
 
     expect(providers.connectShopware).toHaveBeenCalledWith('s-1', { access_key: 'SWIAQWERTYUIOPASDFGHJKLZXCV', secret_access_key: 'S3cretAccessKeyForShopwareIntegration', state_change_risk_acknowledged: true });
     expect(wrapper.text()).toContain('SWIA••••ZXCV');
+    expect(wrapper.get('[data-connection]').text()).toContain('ключ интеграции');
     expect(wrapper.text()).toContain('частичном возврате');
+  });
+
+  it('downloads the app only after the acknowledgement and then waits for Shopware', async () => {
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValueOnce([]).mockResolvedValue([integration('shopware', { status: 'pending', capabilities: { connection: 'app' } })]);
+    vi.mocked(providers.downloadShopwareApp).mockResolvedValue({ blob: new Blob(['zip']), filename: 'BusinessWatchdog.zip' });
+    URL.createObjectURL = vi.fn(() => 'blob:app');
+    URL.revokeObjectURL = vi.fn();
+    const wrapper = mount(ShopwarePanel, { props: { storeId: 's-1', canManage: true }, global });
+    await flushPromises();
+
+    expect(wrapper.get('[data-download-app]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-acknowledge]').setValue(true);
+    await wrapper.get('[data-download-app]').trigger('click');
+    await flushPromises();
+
+    expect(providers.downloadShopwareApp).toHaveBeenCalledWith('s-1');
+    expect(wrapper.find('[data-app-waiting]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Ждём установки приложения');
+    wrapper.unmount();
   });
 
   it('every Shopware connector error code is explained in every language', () => {
     const dir = resolve(__dirname, '../../../backend/app/Support/Providers/Shopware');
     const source = readdirSync(dir).map((name) => readFileSync(resolve(dir, name), 'utf8')).join('\n');
-    const codes = new Set([...source.matchAll(/'(shopware_[a-z_]+)'/g)].map((match) => match[1]!).filter((code) => !['shopware_integration', 'shopware_sync'].includes(code)));
+    const codes = new Set([...source.matchAll(/'(shopware_[a-z_]+)'/g)].map((match) => match[1]!).filter((code) => !['shopware_integration', 'shopware_sync', 'shopware_app'].includes(code)));
 
     expect(codes.size).toBeGreaterThan(8);
 

@@ -1,4 +1,4 @@
-import { request } from '@bw/api-client';
+import { request, requestFile } from '@bw/api-client';
 import type { Integration } from './types';
 
 export async function connectStripe(storeId: string, input: { restricted_api_key: string; webhook_secret?: string; expected_account_id?: string }): Promise<Integration> {
@@ -27,6 +27,10 @@ export async function connectWooCommerceApi(storeId: string, input: { consumer_k
 
 export async function connectShopware(storeId: string, input: { access_key: string; secret_access_key: string; state_change_risk_acknowledged: boolean }): Promise<Integration> {
   return (await request<Integration>('POST', `/api/v1/stores/${encodeURIComponent(storeId)}/integrations/shopware`, { body: input })).data;
+}
+
+export async function downloadShopwareApp(storeId: string): Promise<{ blob: Blob; filename: string | null }> {
+  return requestFile(`/api/v1/stores/${encodeURIComponent(storeId)}/integrations/shopware-app`, { state_change_risk_acknowledged: true });
 }
 
 export function webhookUrl(integrationId: string): string {

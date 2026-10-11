@@ -32,7 +32,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "saved": "Saved.",
-    "continue": "Continue"
+    "continue": "Continue",
+    "back": "Back"
   },
   "auth": {
     "title": "Sign in",
@@ -313,7 +314,7 @@
       "plugin_active": "Orders currently come through the plugin. A store has one order source: to switch to a REST API key, first disconnect the plugin in the \"Plugin\" tab."
     },
     "shopware": {
-      "why": "Nothing is installed in the store: the service reads orders through the Shopware Admin API with an integration key. Shopware 6.6 and 6.7 are supported.",
+      "why": "Nothing has to be set up by hand in the store: the service reads Shopware 6.6 and 6.7 orders through the Admin API — with the app or an integration key.",
       "step_role": "In the admin open Settings → System → Users & permissions → Roles and create a role \"Business Watchdog\" with a single permission: Orders → View.",
       "step_integration": "Open Settings → System → Integrations → Add integration: name \"Business Watchdog\", \"Administrator\" off, assign the new role. Save.",
       "step_paste": "Copy the Access key ID and Secret access key here — Shopware shows the secret only once.",
@@ -333,7 +334,30 @@
       "revoked": "Key disconnected.",
       "key": "Key",
       "key_rejected": "Shopware no longer accepts the key (the integration was deleted or its role changed). Reading has stopped — create a new integration and connect it.",
-      "revoke_warning": "The service deletes the key on its side and stops reading orders. Delete the integration in Shopware too (Settings → System → Integrations)."
+      "revoke_warning": "The service deletes the key on its side and stops reading orders. Delete the integration in Shopware too (Settings → System → Integrations).",
+      "method": "Connection method",
+      "method_app": "Shopware app",
+      "method_app_hint": "Upload the app file in Shopware — Shopware shows the read-only permissions at install, no keys to copy, changes arrive right away.",
+      "method_key": "Integration key",
+      "method_key_hint": "Create a role and an integration by hand and paste the key; changes are read every 5 minutes.",
+      "app_step_download": "Download the app file for this store (button below).",
+      "app_step_upload": "In the Shopware admin open Extensions → My extensions → Upload extension and choose BusinessWatchdog.zip.",
+      "app_step_install": "Click Install, then Activate and confirm the permissions — the connection completes by itself.",
+      "app_permissions": "The app only asks to read orders, payments, currencies and payment methods. The file is made for this store; a new file replaces a previous one that is not installed yet.",
+      "app_download": "Download app",
+      "app_download_again": "Download the file again",
+      "app_downloaded": "App file downloaded. Upload it in Shopware.",
+      "app_waiting": "Waiting for the app to be installed in Shopware.",
+      "app_not_active_yet": "The app has registered but is not activated yet — click Activate in Shopware.",
+      "app_auto_refresh": "The status updates by itself once the app is activated.",
+      "app_cancel_confirm": "Cancel the connection",
+      "app_connected": "App connected, store confirmed.",
+      "connection": "Connection",
+      "connection_app": "Shopware app",
+      "connection_key": "integration key",
+      "no_webhook_yet": "no events yet",
+      "app_realtime_note": "New orders and payment status changes arrive right away; every 5 minutes the service also checks for changes.",
+      "app_revoke_warning": "The service stops reading orders. Remove the app in Shopware too (Extensions → My extensions)."
     }
   },
   "errors": {
@@ -450,7 +474,10 @@
     "shopware_response_too_large": "Shopware returned a response that is too large. Please contact support.",
     "shopware_invalid_response": "Shopware did not answer in Admin API format. Check the store address.",
     "shopware_endpoint_not_allowed": "The service does not send this request to stores.",
-    "shopware_budget_exhausted": "The request limit for one run was reached; the next sync continues."
+    "shopware_budget_exhausted": "The request limit for one run was reached; the next sync continues.",
+    "shopware_app_signature_invalid": "The Shopware request signature did not match.",
+    "shopware_app_registration_invalid": "Shopware sent invalid registration data.",
+    "shopware_app_webhook_invalid": "The Shopware event does not belong to this store."
   },
   "incidents": {
     "title": "Incidents",

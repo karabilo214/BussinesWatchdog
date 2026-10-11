@@ -222,7 +222,11 @@ try {
     await page.locator('[data-connector="shopware"]').waitFor();
     if (await page.locator('[role="tablist"][aria-label="Источник заказов"]').count()) throw new Error('a Shopware store must not offer WooCommerce sources');
     await page.locator('[data-state-risk]').waitFor();
-    if (!(await page.getByRole('button', { name: 'Подключить Shopware' }).isDisabled())) throw new Error('connecting must wait for the acknowledgement');
+    if (!(await page.locator('[data-download-app]').isDisabled())) throw new Error('the app download must wait for the acknowledgement');
+    await page.locator('[data-acknowledge]').check();
+    if (await page.locator('[data-download-app]').isDisabled()) throw new Error('the app download must be possible after the acknowledgement');
+    await page.locator('[data-method="key"]').check();
+    await page.locator('#sw-access-key').waitFor();
     await page.getByRole('link', { name: '← Обзор' }).click();
   });
 

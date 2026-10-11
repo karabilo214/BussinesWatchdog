@@ -110,6 +110,36 @@ export async function request<T>(method: string, path: string, options: RequestO
   return { data: payload as T, etag: response.headers.get('ETag'), requestId };
 }
 
+/** A POST that answers with a file (for example an app archive); errors are JSON like every other request. */
+export async function requestFile(path: string, body: unknown): Promise<{ blob: Blob; filename: string | null }> {
+  let response: Response;
+
+  try {
+    response = await fetch(new URL(path, window.location.origin).toString(), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json, application/zip', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-XSRF-TOKEN': await ensureCsrfCookie() },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(0, 'network_unavailable');
+  }
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+
+    if (response.status === 401 && unauthorizedHandler !== null) {
+      unauthorizedHandler();
+    }
+
+    throw new ApiError(response.status, typeof payload?.code === 'string' ? payload.code : `http_${response.status}`, {}, response.headers.get('X-Request-ID'));
+  }
+
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+
+  return { blob: await response.blob(), filename: /filename="([^"]+)"/.exec(disposition)?.[1] ?? null };
+}
+
 /** UUID v4. crypto.randomUUID exists only in secure contexts (HTTPS, localhost); getRandomValues works everywhere. */
 export function newIdempotencyKey(): string {
   if (typeof crypto.randomUUID === 'function' && globalThis.isSecureContext !== false) {

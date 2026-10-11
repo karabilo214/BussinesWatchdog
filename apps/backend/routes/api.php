@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Integrations\IntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\PayPalIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\PayPalWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\ProviderSyncController;
+use App\Http\Controllers\Api\V1\Integrations\ShopwareAppController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\WooCommerceApiIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\StripeIntegrationController;
@@ -62,6 +63,12 @@ Route::post('/v1/webhooks/stripe/{integration}', [StripeWebhookController::class
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/paypal/{integration}', [PayPalWebhookController::class, 'store'])
     ->middleware('throttle:provider-webhook');
+Route::get('/v1/shopware/app/{integration}/register', [ShopwareAppController::class, 'register'])
+    ->middleware('throttle:provider-webhook');
+Route::post('/v1/shopware/app/{integration}/confirm', [ShopwareAppController::class, 'confirm'])
+    ->middleware('throttle:provider-webhook');
+Route::post('/v1/shopware/app/{integration}/webhook', [ShopwareAppController::class, 'webhook'])
+    ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/telegram/bind', [NotificationChannelController::class, 'bindTelegram'])
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/telegram/updates', [NotificationChannelController::class, 'telegramUpdate'])
@@ -106,6 +113,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::post('/stores/{store}/integrations/woocommerce-api', [WooCommerceApiIntegrationController::class, 'connect'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::post('/stores/{store}/integrations/shopware', [ShopwareIntegrationController::class, 'connect'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+    Route::post('/stores/{store}/integrations/shopware-app', [ShopwareAppController::class, 'package'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::put('/integrations/{integration}/webhook-id', [PayPalIntegrationController::class, 'webhookId'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));

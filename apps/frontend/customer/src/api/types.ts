@@ -155,6 +155,7 @@ export interface Integration {
     key_last4?: string;
     key_last7?: string;
     key_rejected_at?: string;
+    app_check_error?: string;
     client_id_last4?: string;
     write_scopes?: string[];
     account_verified?: boolean;

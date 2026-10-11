@@ -32,7 +32,8 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "saved": "Сохранено.",
-    "continue": "Продолжить"
+    "continue": "Продолжить",
+    "back": "Назад"
   },
   "auth": {
     "title": "Вход в кабинет",
@@ -313,7 +314,7 @@
       "plugin_active": "Сейчас заказы приходят через плагин. У магазина один источник заказов: чтобы перейти на ключ REST API, сначала отключите плагин во вкладке «Плагин»."
     },
     "shopware": {
-      "why": "В магазин ничего не устанавливается: сервис читает заказы через Admin API Shopware по ключу интеграции. Поддерживаются Shopware 6.6 и 6.7.",
+      "why": "В магазин ничего не нужно настраивать вручную: сервис читает заказы Shopware 6.6 и 6.7 через Admin API — с помощью приложения или ключа интеграции.",
       "step_role": "В админке откройте Settings → System → Users & permissions → Roles и создайте роль «Business Watchdog» с единственным правом: Orders → View (только просмотр заказов).",
       "step_integration": "Откройте Settings → System → Integrations → Add integration: название «Business Watchdog», «Administrator» выключен, назначьте созданную роль. Сохраните.",
       "step_paste": "Скопируйте сюда Access key ID и Secret access key — Shopware показывает секрет один раз.",
@@ -333,7 +334,30 @@
       "revoked": "Ключ отключён.",
       "key": "Ключ",
       "key_rejected": "Shopware больше не принимает ключ (интеграцию удалили или изменили роль). Чтение остановлено — создайте новую интеграцию и подключите её.",
-      "revoke_warning": "Сервис удалит ключ у себя и перестанет читать заказы. Удалите интеграцию и в Shopware (Settings → System → Integrations)."
+      "revoke_warning": "Сервис удалит ключ у себя и перестанет читать заказы. Удалите интеграцию и в Shopware (Settings → System → Integrations).",
+      "method": "Способ подключения",
+      "method_app": "Приложение Shopware",
+      "method_app_hint": "Загрузите файл приложения в Shopware — права только на чтение Shopware покажет при установке, ключи копировать не нужно, изменения приходят сразу.",
+      "method_key": "Ключ интеграции",
+      "method_key_hint": "Создайте роль и интеграцию вручную и вставьте ключ; изменения читаются каждые 5 минут.",
+      "app_step_download": "Скачайте файл приложения для этого магазина (кнопка ниже).",
+      "app_step_upload": "В админке Shopware откройте Extensions → My extensions → Upload extension и выберите файл BusinessWatchdog.zip.",
+      "app_step_install": "Нажмите Install, затем Activate и подтвердите права — подключение завершится само.",
+      "app_permissions": "Приложение запрашивает только чтение заказов, оплат, валют и способов оплаты. Файл сделан для этого магазина; новый файл заменяет прежний, ещё не установленный.",
+      "app_download": "Скачать приложение",
+      "app_download_again": "Скачать файл заново",
+      "app_downloaded": "Файл приложения скачан. Загрузите его в Shopware.",
+      "app_waiting": "Ждём установки приложения в Shopware.",
+      "app_not_active_yet": "Приложение зарегистрировалось, но ещё не активировано — нажмите Activate в Shopware.",
+      "app_auto_refresh": "Статус обновится сам, как только приложение будет активировано.",
+      "app_cancel_confirm": "Отменить подключение",
+      "app_connected": "Приложение подключено, магазин подтверждён.",
+      "connection": "Подключение",
+      "connection_app": "приложение Shopware",
+      "connection_key": "ключ интеграции",
+      "no_webhook_yet": "событий ещё не было",
+      "app_realtime_note": "Новые заказы и смена статусов оплаты приходят сразу; раз в 5 минут сервис дополнительно сверяет изменения.",
+      "app_revoke_warning": "Сервис перестанет читать заказы. Удалите и само приложение в Shopware (Extensions → My extensions)."
     }
   },
   "errors": {
@@ -450,7 +474,10 @@
     "shopware_response_too_large": "Shopware вернул слишком большой ответ. Напишите в поддержку.",
     "shopware_invalid_response": "Shopware ответил не в формате Admin API. Проверьте адрес магазина.",
     "shopware_endpoint_not_allowed": "Этот запрос сервис к магазину не отправляет.",
-    "shopware_budget_exhausted": "Лимит запросов за один проход исчерпан, продолжим при следующей синхронизации."
+    "shopware_budget_exhausted": "Лимит запросов за один проход исчерпан, продолжим при следующей синхронизации.",
+    "shopware_app_signature_invalid": "Подпись запроса Shopware не подошла.",
+    "shopware_app_registration_invalid": "Shopware передал некорректные данные регистрации.",
+    "shopware_app_webhook_invalid": "Событие Shopware не относится к этому магазину."
   },
   "incidents": {
     "title": "Инциденты",

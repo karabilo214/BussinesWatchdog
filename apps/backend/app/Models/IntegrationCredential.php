@@ -24,6 +24,8 @@ class IntegrationCredential extends Model
 
     public const KIND_SHOPWARE_INTEGRATION = 'shopware_integration';
 
+    public const KIND_SHOPWARE_APP = 'shopware_app';
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_DRAINING = 'draining';

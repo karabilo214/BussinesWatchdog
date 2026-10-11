@@ -87,6 +87,35 @@ if ($action === 'paypal-check') {
     $out = ['shopware_sync' => $sync, 'pointer_sync' => $pointers, 'orders' => $orders];
 }
 
+if ($action === 'app-package') {
+    $tenant = Tenant::query()->create(['name' => 'Shopware app E2E', 'timezone' => 'Europe/Berlin']);
+    $user = User::query()->create(['name' => 'E2E', 'email' => 'e2e-'.Str::random(10).'@example.test', 'password_hash' => Hash::make(Str::random(32)), 'locale' => 'de']);
+    Membership::query()->create(['tenant_id' => $tenant->id, 'user_id' => $user->id, 'role' => 'owner']);
+    $store = Store::query()->create(['tenant_id' => $tenant->id, 'name' => 'Shopware app', 'base_url' => getenv('BW_E2E_BASE_URL'), 'timezone' => 'Europe/Berlin', 'default_currency' => 'EUR', 'platform' => 'shopware']);
+    $package = app(\App\Support\Providers\Shopware\ShopwareApp::class)->package($store, true, $user->id);
+    file_put_contents((string) getenv('BW_E2E_ZIP'), $package['archive']);
+    $out = ['store_id' => $store->id, 'integration_id' => $package['integration']->id, 'status' => $package['integration']->status];
+}
+
+if ($action === 'app-state') {
+    $storeId = getenv('BW_E2E_STORE_ID');
+    $integration = Integration::query()->where('store_id', $storeId)->where('provider', 'shopware')->latest('created_at')->firstOrFail();
+    for ($i = 0; $i < 6; $i++) {
+        app(\App\Support\Outbox\DomainOutboxDispatcher::class)->dispatchDue(limit: 200, leaseSeconds: 60);
+    }
+    $store = Store::query()->findOrFail($storeId);
+    $out = [
+        'status' => $integration->status,
+        'shop_url' => $integration->health['shop_url'] ?? null,
+        'last_webhook' => $integration->health['webhook']['last_type'] ?? null,
+        'store_verified' => $store->verified_at !== null,
+        'verification_method' => \App\Models\StoreVerification::query()->where('store_id', $storeId)->latest('created_at')->value('method'),
+        'active_credentials' => IntegrationCredential::query()->where('integration_id', $integration->id)->where('status', 'active')->pluck('kind')->all(),
+        'orders' => \App\Models\Order::query()->where('store_id', $storeId)->get()->mapWithKeys(fn ($o) => [$o->display_number => implode('|', [$o->status, $o->total_minor, $o->gateway, $o->paid_marked_at ? 'paid' : 'unpaid', 'rev'.$o->source_revision])])->all(),
+        'last_sync' => $integration->last_successful_sync_at?->toJSON(),
+    ];
+}
+
 if ($action === 'cleanup') {
     Integration::query()->where('store_id', getenv('BW_E2E_STORE_ID'))->update(['status' => Integration::STATUS_REVOKED]);
     IntegrationCredential::query()->where('store_id', getenv('BW_E2E_STORE_ID'))->update(['status' => IntegrationCredential::STATUS_REVOKED]);

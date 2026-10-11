@@ -1148,6 +1148,85 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/integrations/shopware-app:
+    post:
+      tags: [Integrations]
+      operationId: downloadShopwareApp
+      security:
+        - {UserSession: []}
+      description: "Owner/admin (ADR 0027). Creates the store's pending Shopware app integration and returns the app archive (BusinessWatchdog.zip) to upload in Shopware (Extensions → My extensions → Upload). The manifest lists only read permissions, a registration URL for this integration and its own secret. A new archive replaces a still pending one. 409 order_source_already_connected / provider_already_connected while another order source is connected. X-Integration-Id names the pending integration."
+      parameters:
+        - {name: store_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [state_change_risk_acknowledged]
+              properties:
+                state_change_risk_acknowledged: {type: boolean, description: "Must be true: Shopware lets the app's read-only role change order, payment and delivery states (ADR 0025)."}
+      responses:
+        "200":
+          description: App archive
+          content:
+            application/zip:
+              schema: {type: string, format: binary}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/shopware/app/{integration_id}/register:
+    get:
+      tags: [Integrations]
+      operationId: registerShopwareApp
+      security: []
+      description: "Called by Shopware when the app is installed: query shop-id, shop-url, timestamp signed with the manifest secret (header shopware-app-signature). Answers proof, a new shop secret and the confirmation URL; errors as {error} for Shopware."
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Registration accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [proof, secret, confirmation_url]
+                properties:
+                  proof: {type: string}
+                  secret: {type: string}
+                  confirmation_url: {type: string, format: uri}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/shopware/app/{integration_id}/confirm:
+    post:
+      tags: [Integrations]
+      operationId: confirmShopwareApp
+      security: []
+      description: "Called by Shopware after registration with the app's API key, signed with the shop secret (header shopware-shop-signature). The key is checked against the shop's Admin API; the integration becomes the store's order source and, when the shop URL host is the store's host, confirms the store."
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Confirmed}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/shopware/app/{integration_id}/webhook:
+    post:
+      tags: [Integrations]
+      operationId: receiveShopwareAppWebhook
+      security: []
+      description: "Signed Shopware app webhooks (shopware-shop-signature): order.written and order_transaction.written read the named orders right away; app.deactivated/app.activated/app.deleted move the integration (deleted → revoked). The body is only a hint."
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Received}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/integrations/{integration_id}/webhook-id:
     put:
       tags: [Integrations]

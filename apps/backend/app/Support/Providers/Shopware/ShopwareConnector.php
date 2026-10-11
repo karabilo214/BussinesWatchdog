@@ -114,21 +114,61 @@ class ShopwareConnector
     }
 
     /**
-     * @return array{access_key: string, secret: string}|null
+     * The Admin API key and the origin to call: the store's URL for a key entered by hand, the shop URL Shopware
+     * reported at app registration for the app.
+     *
+     * @return array{access_key: string, secret: string, api_url: ?string}|null
      */
     public function credentials(Integration $integration): ?array
+    {
+        $decoded = $this->secretJson($integration, IntegrationCredential::KIND_SHOPWARE_INTEGRATION);
+
+        return is_string($decoded['access_key'] ?? null) && is_string($decoded['secret'] ?? null)
+            ? ['access_key' => $decoded['access_key'], 'secret' => $decoded['secret'], 'api_url' => is_string($decoded['api_url'] ?? null) ? $decoded['api_url'] : null]
+            : null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function secretJson(Integration $integration, string $kind): array
     {
         /** @var IntegrationCredential|null $credential */
         $credential = IntegrationCredential::query()
             ->where('integration_id', $integration->id)
-            ->where('kind', IntegrationCredential::KIND_SHOPWARE_INTEGRATION)
+            ->where('kind', $kind)
             ->where('status', IntegrationCredential::STATUS_ACTIVE)
             ->latest('created_at')
             ->first();
         $decoded = $credential === null ? null : json_decode($this->keyring->decrypt($credential->ciphertext, $credential->key_version), true);
 
-        return is_array($decoded) && is_string($decoded['access_key'] ?? null) && is_string($decoded['secret'] ?? null)
-            ? ['access_key' => $decoded['access_key'], 'secret' => $decoded['secret']]
-            : null;
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Replaces the integration's active secret of this kind.
+     *
+     * @param  array<string, mixed>  $secret
+     */
+    public function storeSecretJson(Integration $integration, string $kind, array $secret, string $fingerprintSource): void
+    {
+        IntegrationCredential::query()
+            ->where('integration_id', $integration->id)
+            ->where('kind', $kind)
+            ->where('status', IntegrationCredential::STATUS_ACTIVE)
+            ->update(['status' => IntegrationCredential::STATUS_REVOKED, 'rotated_at' => Carbon::now()]);
+        $encrypted = $this->keyring->encrypt(json_encode($secret, JSON_THROW_ON_ERROR));
+        IntegrationCredential::query()->create([
+            'tenant_id' => $integration->tenant_id,
+            'store_id' => $integration->store_id,
+            'integration_id' => $integration->id,
+            'kind' => $kind,
+            'key_id' => $kind.':'.Str::uuid(),
+            'ciphertext' => $encrypted['ciphertext'],
+            'key_version' => $encrypted['key_version'],
+            'fingerprint' => hash('sha256', $fingerprintSource),
+            'status' => IntegrationCredential::STATUS_ACTIVE,
+            'created_at' => Carbon::now(),
+        ]);
     }
 }

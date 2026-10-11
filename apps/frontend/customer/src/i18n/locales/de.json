@@ -32,7 +32,8 @@
     "cancel": "Abbrechen",
     "save": "Speichern",
     "saved": "Gespeichert.",
-    "continue": "Weiter"
+    "continue": "Weiter",
+    "back": "Zurück"
   },
   "auth": {
     "title": "Anmelden",
@@ -313,7 +314,7 @@
       "plugin_active": "Bestellungen kommen derzeit über das Plugin. Ein Shop hat eine Bestellquelle: Um zu einem REST-API-Schlüssel zu wechseln, trennen Sie zuerst das Plugin im Reiter „Plugin“."
     },
     "shopware": {
-      "why": "Im Shop wird nichts installiert: Der Dienst liest Bestellungen über die Shopware-Admin-API mit einem Integrationsschlüssel. Unterstützt werden Shopware 6.6 und 6.7.",
+      "why": "Im Shop muss nichts von Hand eingerichtet werden: Der Dienst liest Bestellungen von Shopware 6.6 und 6.7 über die Admin-API — mit der App oder einem Integrationsschlüssel.",
       "step_role": "Öffnen Sie im Admin Einstellungen → System → Benutzer & Rechte → Rollen und legen Sie die Rolle „Business Watchdog“ mit nur einem Recht an: Bestellungen → Ansehen.",
       "step_integration": "Öffnen Sie Einstellungen → System → Integrationen → Integration hinzufügen: Name „Business Watchdog“, „Administrator“ aus, die neue Rolle zuweisen. Speichern.",
       "step_paste": "Kopieren Sie Zugangsschlüssel-ID und Sicherheitsschlüssel hierher — Shopware zeigt den Sicherheitsschlüssel nur einmal.",
@@ -333,7 +334,30 @@
       "revoked": "Schlüssel getrennt.",
       "key": "Schlüssel",
       "key_rejected": "Shopware akzeptiert den Schlüssel nicht mehr (Integration gelöscht oder Rolle geändert). Das Lesen ist gestoppt — legen Sie eine neue Integration an und verbinden Sie sie.",
-      "revoke_warning": "Der Dienst löscht den Schlüssel bei sich und liest keine Bestellungen mehr. Löschen Sie die Integration auch in Shopware (Einstellungen → System → Integrationen)."
+      "revoke_warning": "Der Dienst löscht den Schlüssel bei sich und liest keine Bestellungen mehr. Löschen Sie die Integration auch in Shopware (Einstellungen → System → Integrationen).",
+      "method": "Verbindungsart",
+      "method_app": "Shopware-App",
+      "method_app_hint": "Laden Sie die App-Datei in Shopware hoch — Shopware zeigt die Nur-Lese-Rechte bei der Installation, keine Schlüssel zu kopieren, Änderungen kommen sofort.",
+      "method_key": "Integrationsschlüssel",
+      "method_key_hint": "Rolle und Integration von Hand anlegen und den Schlüssel einfügen; Änderungen werden alle 5 Minuten gelesen.",
+      "app_step_download": "Laden Sie die App-Datei für diesen Shop herunter (Schaltfläche unten).",
+      "app_step_upload": "Öffnen Sie im Shopware-Admin Erweiterungen → Meine Erweiterungen → Erweiterung hochladen und wählen Sie BusinessWatchdog.zip.",
+      "app_step_install": "Klicken Sie auf Installieren, dann Aktivieren und bestätigen Sie die Rechte — die Verbindung wird automatisch abgeschlossen.",
+      "app_permissions": "Die App fragt nur Lesezugriff auf Bestellungen, Zahlungen, Währungen und Zahlungsarten an. Die Datei ist für diesen Shop erstellt; eine neue Datei ersetzt eine noch nicht installierte.",
+      "app_download": "App herunterladen",
+      "app_download_again": "Datei erneut herunterladen",
+      "app_downloaded": "App-Datei heruntergeladen. Laden Sie sie in Shopware hoch.",
+      "app_waiting": "Warten auf die Installation der App in Shopware.",
+      "app_not_active_yet": "Die App ist registriert, aber noch nicht aktiviert — klicken Sie in Shopware auf Aktivieren.",
+      "app_auto_refresh": "Der Status aktualisiert sich, sobald die App aktiviert ist.",
+      "app_cancel_confirm": "Verbindung abbrechen",
+      "app_connected": "App verbunden, Shop bestätigt.",
+      "connection": "Verbindung",
+      "connection_app": "Shopware-App",
+      "connection_key": "Integrationsschlüssel",
+      "no_webhook_yet": "noch keine Ereignisse",
+      "app_realtime_note": "Neue Bestellungen und Zahlungsstatus kommen sofort; alle 5 Minuten prüft der Dienst zusätzlich auf Änderungen.",
+      "app_revoke_warning": "Der Dienst liest keine Bestellungen mehr. Entfernen Sie die App auch in Shopware (Erweiterungen → Meine Erweiterungen)."
     }
   },
   "errors": {
@@ -450,7 +474,10 @@
     "shopware_response_too_large": "Shopware hat eine zu große Antwort geliefert. Bitte wenden Sie sich an den Support.",
     "shopware_invalid_response": "Shopware hat nicht im Admin-API-Format geantwortet. Prüfen Sie die Shop-Adresse.",
     "shopware_endpoint_not_allowed": "Diese Anfrage sendet der Dienst nicht an Shops.",
-    "shopware_budget_exhausted": "Das Anfragelimit pro Durchlauf ist erreicht; die nächste Synchronisierung setzt fort."
+    "shopware_budget_exhausted": "Das Anfragelimit pro Durchlauf ist erreicht; die nächste Synchronisierung setzt fort.",
+    "shopware_app_signature_invalid": "Die Signatur der Shopware-Anfrage passt nicht.",
+    "shopware_app_registration_invalid": "Shopware hat ungültige Registrierungsdaten gesendet.",
+    "shopware_app_webhook_invalid": "Das Shopware-Ereignis gehört nicht zu diesem Shop."
   },
   "incidents": {
     "title": "Vorfälle",
