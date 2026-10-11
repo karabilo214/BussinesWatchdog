@@ -403,8 +403,8 @@ try {
 
   await step('a test email is delivered by the worker and logged', async () => {
     const card = page.locator('[data-channel-id]', { hasText: 'Дежурный' });
-    await card.getByRole('button', { name: 'Отправить тестовое письмо' }).click();
-    await card.getByText('Тестовое письмо поставлено в очередь').waitFor();
+    await card.getByRole('button', { name: 'Отправить тестовое уведомление' }).click();
+    await card.getByText('Тестовое уведомление поставлено в очередь').waitFor();
     await mailTexts('oncall@smoke.example.test', (texts) => texts.length >= 2);
     for (let i = 0; i < 15; i++) {
       await page.reload();
@@ -412,7 +412,7 @@ try {
       if ((await page.locator('[data-delivery-id]', { hasText: 'доставлено' }).count()) > 0) break;
       await page.waitForTimeout(1000);
     }
-    await page.locator('[data-delivery-id]', { hasText: 'Тестовое письмо' }).getByText('доставлено').waitFor();
+    await page.locator('[data-delivery-id]', { hasText: 'Тестовое уведомление' }).getByText('доставлено').waitFor();
   });
 
   await step('quiet hours are saved for the recipient', async () => {
