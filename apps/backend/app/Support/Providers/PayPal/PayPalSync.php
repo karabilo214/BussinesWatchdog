@@ -2,7 +2,9 @@
 
 namespace App\Support\Providers\PayPal;
 
+use App\Models\FinancialTransaction;
 use App\Models\Integration;
+use App\Models\Order;
 use App\Models\ReconciliationDirtySubject;
 use App\Support\Providers\ProviderEventEmitter;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
@@ -16,12 +18,16 @@ use Illuminate\Support\Facades\DB;
  * most 31 days. Each transaction is resolved to its PayPal order, and the whole order is read and mapped, so
  * captures, refunds and the payment status always come from one consistent object. Delta reads from the watermark
  * minus an overlap; audit walks the retention window once a day and continues hourly when the request budget runs out.
+ * Pointers close the search lag without a webhook: the capture id a store reports for a recent PayPal order is only
+ * used to find that capture and its order at PayPal, so the money is still proven by PayPal (ADR 0022).
  */
 class PayPalSync
 {
     public const MODE_DELTA = 'delta';
 
     public const MODE_AUDIT = 'audit';
+
+    public const MODE_POINTERS = 'pointers';
 
     private int $budget = 0;
 
@@ -111,6 +117,68 @@ class PayPalSync
         ], ['last_successful_sync_at' => $now]);
 
         return ['status' => 'ok', 'emitted' => $totals['emitted'], 'unchanged' => $totals['unchanged'], 'complete' => $complete];
+    }
+
+    /**
+     * @return array{status: string, emitted: int, unchanged: int, complete: bool, read: int, error?: string}
+     */
+    public function syncPointers(Integration $integration): array
+    {
+        if ($integration->provider !== 'paypal' || $integration->status !== Integration::STATUS_ACTIVE) {
+            return ['status' => 'skipped', 'emitted' => 0, 'unchanged' => 0, 'complete' => false, 'read' => 0];
+        }
+
+        $refs = Order::query()
+            ->where('tenant_id', $integration->tenant_id)
+            ->where('store_id', $integration->store_id)
+            ->where('mode', $integration->mode)
+            ->where('gateway', 'like', 'ppcp-%')
+            ->whereNotNull('transaction_ref')
+            ->whereNull('deleted_at')
+            ->where('source_updated_at', '>=', Carbon::now()->subHours((int) config('watchdog.paypal.pointer_window_hours')))
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from((new FinancialTransaction)->getTable())
+                ->where('integration_id', $integration->id)
+                ->whereColumn('external_operation_id', 'orders.transaction_ref'))
+            ->orderByDesc('source_updated_at')
+            ->limit((int) config('watchdog.paypal.pointer_max_per_run'))
+            ->pluck('transaction_ref')
+            ->filter(fn (mixed $ref): bool => is_string($ref) && preg_match('/^[A-Z0-9]{1,36}$/', $ref) === 1)
+            ->unique()
+            ->filter(fn (string $ref): bool => Cache::add('paypal:pointer:'.$integration->id.':'.$ref, true, Carbon::now()->addMinutes((int) config('watchdog.paypal.pointer_retry_minutes'))))
+            ->values();
+
+        if ($refs->isEmpty()) {
+            return ['status' => 'ok', 'emitted' => 0, 'unchanged' => 0, 'complete' => true, 'read' => 0];
+        }
+
+        $this->budget = 2 * $refs->count();
+        $totals = ['emitted' => 0, 'unchanged' => 0];
+        $orders = [];
+
+        try {
+            $token = $this->token($integration);
+
+            foreach ($refs as $ref) {
+                $orderId = $this->captureOrder($integration, $token, $ref);
+
+                if ($orderId === null || isset($orders[$orderId])) {
+                    continue;
+                }
+
+                $orders[$orderId] = true;
+                $summary = $this->ingestOrder($integration, $token, $orderId);
+                $totals['emitted'] += $summary['emitted'];
+                $totals['unchanged'] += $summary['unchanged'];
+            }
+        } catch (PayPalRequestFailed $failure) {
+            foreach ($refs as $ref) {
+                Cache::forget('paypal:pointer:'.$integration->id.':'.$ref);
+            }
+
+            return [...$this->fail($integration, $failure), 'read' => 0];
+        }
+
+        return ['status' => 'ok', ...$totals, 'complete' => true, 'read' => $refs->count()];
     }
 
     /**

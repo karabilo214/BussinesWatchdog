@@ -2,7 +2,7 @@
 # One run of the whole PayPal money chain (ADR 0022): WooCommerce + WooCommerce PayPal Payments in sandbox (shop app)
 # + the Watchdog plugin paired with a local backend that has the store's PayPal connected with the Watchdog app.
 # Order paid by the sandbox buyer through the PayPal popup → partial refund through WooCommerce → plugin events
-# delivered → backend PayPal sync (Transaction Search delta and the capture hint a webhook would give) → automatic
+# delivered → backend PayPal sync (Transaction Search delta and the capture id the store reports, read back from PayPal) → automatic
 # links → reconciliation. Credentials come from apps/backend/.env and are never printed.
 set -eu
 
@@ -69,7 +69,7 @@ backend BW_E2E_ACTION=paypal-chain-cleanup BW_E2E_STORE_ID="$store_id" >/dev/nul
 python3 - "$check" <<'PY'
 import json, sys
 d = json.loads(sys.argv[1])
-for key in ['delta_sync', 'search_refreshed_at', 'capture_hint_sync', 'inbox', 'order', 'provider_payments', 'store_refunds', 'capture_links', 'refund_links', 'findings']:
+for key in ['delta_sync', 'search_refreshed_at', 'pointer_sync', 'inbox', 'order', 'provider_payments', 'store_refunds', 'capture_links', 'refund_links', 'findings']:
     print(f"  {key}: {d[key]}")
 ok = (d['order'] and d['order']['mode'] == 'test' and d['order']['gateway'] == 'ppcp-gateway'
       and d['capture_links'] == ['exact_reference:1000'] and d['refund_links'] == ['unique_amount:300']

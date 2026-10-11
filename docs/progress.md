@@ -1517,9 +1517,17 @@ Status: complete; decisions await owner review
 
 ### Step 71: One-Run PayPal Chain (ADR 0022)
 
-Status: complete; proposal awaits owner review
+Status: complete
 
 - `plugins/woocommerce-watchdog/tests/matrix/paypal-chain-e2e.sh` + `backend-e2e.php` actions `paypal-chain-setup|check|cleanup`: backend with PayPal connected (real Watchdog app, sandbox), WooCommerce 11.2 + PayPal Payments 4.1.3 + Watchdog plugin, real sandbox buyer checkout, partial refund through PayPal, plugin delivery, PayPal sync (Transaction Search delta and the capture → order read a webhook uses), matching and reconciliation in one run. Result PASS: capture `exact_reference:1000`, refund `unique_amount:300`, `MONEY_CAPTURE_AMOUNT` and `MONEY_REFUND_MISSING` ok.
 - `paypal-spike-configure.php` takes `BW_PAYPAL_INVOICE_PREFIX` (fresh WordPress reuses order numbers and PayPal refuses duplicate invoice ids).
 - Transaction Search lagged ~2 h; the fresh payment came only through the capture → order path. A real signed webhook was not exercised. Proposal recorded in ADR 0022: use the store-reported capture id of PayPal orders as a read pointer to remove the lag without a webhook.
+
+### Step 72: PayPal Capture-Id Pointers (ADR 0022)
+
+Status: complete (owner accepted the proposal from Step 71)
+
+- `PayPalSync::syncPointers()` + `paypal:sync --pointers` every minute: recent (6 h) store orders of `ppcp-*` gateways in the integration's mode whose `transaction_ref` has no PayPal operation yet are read at PayPal by that capture id and mapped from the PayPal order; at most 50 per run, each id at most once per 15 minutes. Config `watchdog.paypal.pointer_*`.
+- New backend test (pointer read and link; old, other-mode, other-gateway orders ignored; unknown capture retried only after the interval; only allowlisted GETs). SQLite 356 + 4 skipped, PostgreSQL 18 360 passed.
+- The one-run chain (`paypal-chain-e2e.sh latest`) now checks the pointer path instead of a simulated hint: PASS on the owner's sandbox.
 

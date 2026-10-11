@@ -70,5 +70,8 @@ return [
         'delta_overlap_minutes' => 180,
         'audit_days' => 90,
         'webhook_tolerance_seconds' => 600,
+        'pointer_window_hours' => 6,
+        'pointer_max_per_run' => 50,
+        'pointer_retry_minutes' => 15,
     ],
 ];

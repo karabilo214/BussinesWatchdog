@@ -66,10 +66,15 @@ At 15:01 UTC `last_refreshed_datetime` was 13:29:59 (about 1.5 h behind). Rows: 
 What the run shows:
 
 - Transaction Search lagged about 2 h (run at ~06:30 UTC, `last_refreshed_datetime` 04:29:59), so the delta sync found only older sandbox payments of the same PayPal account (8 events; they become payments without an order in this store — one PayPal account means all its payments). The fresh payment reached the service through the capture → order path a webhook uses (`orderOfCapture` + `syncOrder`), driven here by the capture id from the store order. A real webhook delivery with PayPal's signature was **not** exercised (no public URL registered in the Watchdog app).
-- Without a webhook a fresh PayPal payment is seen only after the Transaction Search lag (1.5–3 h); until then the order stays `MONEY_CAPTURE_MISSING` within its grace or later. **Proposal for the owner (not implemented):** use the store-reported capture id of a `ppcp-*` order only as a pointer to read that capture and its order from PayPal (allowed GETs), so the money is still proven by PayPal, not by the store. This removes the lag without a webhook.
+- Without a webhook a fresh PayPal payment is seen only after the Transaction Search lag (1.5–3 h); until then the order stays `MONEY_CAPTURE_MISSING` within its grace or later. Proposal: use the store-reported capture id of a `ppcp-*` order only as a pointer — accepted by the owner and implemented in Step 72 (below).
 - Test-environment notes: a fresh matrix WordPress restarts order numbers and PayPal refuses a repeated invoice id (`DUPLICATE_INVOICE_ID`), so each run sets a unique PayPal Payments invoice prefix; pairing needs the store's `https://` base URL, the browser checkout runs over `http://` on the same host.
+
+## Capture-id pointers (Step 72, owner decision 2026-10-11)
+
+- Every minute (`paypal:sync --pointers`) the service takes the store's orders of `ppcp-*` gateways updated in the last 6 hours, in the integration's mode, whose `transaction_ref` has no PayPal operation yet (at most 50 per run), reads that capture at PayPal (`GET /v2/payments/captures/{id}`), follows it to its PayPal order and maps the whole order as usual. The store value is only an address: money exists only if PayPal returns it; an id PayPal does not know (an authorization id before capture, another account, a typo) produces nothing.
+- Each pointer is read at most once per 15 minutes (pending captures, unknown ids); a linked capture is not read again. Older orders rely on Transaction Search and the daily audit. All calls stay inside the GET allowlist.
+- Real check: the one-run chain now uses the pointer pass instead of a simulated webhook hint — PASS (Transaction Search refreshed to 04:59:59 at ~06:55 UTC; the fresh payment came through the pointer, 1 read, 3 events).
 
 ## Open
 
 - A real PayPal webhook delivery (needs a public URL registered in the Watchdog app).
-- The owner's decision on the store-reported capture id as a sync pointer (above).

@@ -263,12 +263,7 @@ if ($action === 'paypal-chain-check') {
     $sync = app(\App\Support\Providers\PayPal\PayPalSync::class);
     $order = \App\Models\Order::query()->where('store_id', $storeId)->where('external_id', $wooOrderId)->first();
     $delta = $sync->run($paypal, 'delta');
-    $hint = null;
-
-    if ($order !== null && $order->transaction_ref !== null) {
-        $paypalOrder = $sync->orderOfCapture($paypal, (string) $order->transaction_ref);
-        $hint = $paypalOrder === null ? ['order_found' => false] : ['order_found' => true, ...$sync->syncOrder($paypal, $paypalOrder)];
-    }
+    $pointers = $sync->syncPointers($paypal->refresh());
 
     $drain();
     $findings = [];
@@ -282,7 +277,7 @@ if ($action === 'paypal-chain-check') {
     $out = [
         'delta_sync' => $delta,
         'search_refreshed_at' => $paypal->fresh()->health['sync']['search_refreshed_at'] ?? null,
-        'capture_hint_sync' => $hint,
+        'pointer_sync' => $pointers,
         'inbox' => \App\Models\EventInbox::query()->where('store_id', $storeId)->get()->groupBy('status')->map->count()->all(),
         'order' => $order ? ['mode' => $order->mode, 'gateway' => $order->gateway, 'total_minor' => (string) $order->total_minor, 'currency' => $order->currency] : null,
         'provider_payments' => \App\Models\Payment::query()->where('store_id', $storeId)->where('integration_id', $paypal->id)->get()->map(fn ($p) => $p->status.':'.$p->currency)->all(),

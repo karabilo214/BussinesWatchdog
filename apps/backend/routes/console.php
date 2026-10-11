@@ -54,6 +54,11 @@ Schedule::command('paypal:sync')
     ->withoutOverlapping(30)
     ->onOneServer();
 
+Schedule::command('paypal:sync --pointers')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
 Schedule::command('paypal:sync --audit')
     ->hourlyAt(50)
     ->withoutOverlapping(60)

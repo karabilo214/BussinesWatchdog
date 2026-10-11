@@ -176,6 +176,45 @@ class PayPalIntegrationTest extends TestCase
         $this->assertSame(0, $again['emitted']);
     }
 
+    public function test_a_recent_store_capture_id_is_read_from_paypal_before_transaction_search_lists_it(): void
+    {
+        $order = $this->order('5TR80192ED162870P', 1000, '41');
+        $order->forceFill(['source_updated_at' => now()->subMinute()])->save();
+        $this->paypalOrder('56072027MF355241N', '41', [$this->capture('5TR80192ED162870P', 'COMPLETED', '10.00')], []);
+        $stale = $this->order('8AB12345CD678901E', 1000, '42');
+        $stale->forceFill(['source_updated_at' => now()->subHours(7)])->save();
+        $live = $this->order('9ZZ12345CD678901E', 1000, '43');
+        $live->forceFill(['mode' => 'live', 'source_updated_at' => now()->subMinute()])->save();
+        $stripe = $this->order('ch_3PointerStripeCharge', 1000, '44');
+        $stripe->forceFill(['gateway' => 'stripe', 'source_updated_at' => now()->subMinute()])->save();
+        $unknown = $this->order('1UNKNOWN0CAPTURE0', 1000, '45');
+        $unknown->forceFill(['source_updated_at' => now()->subMinute()])->save();
+        $integration = $this->connected();
+        $this->requests = [];
+
+        $result = app(PayPalSync::class)->syncPointers($integration);
+        $this->drain();
+
+        $this->assertSame(['ok', 2], [$result['status'], $result['read']]);
+        $this->assertEqualsCanonicalizing([
+            'GET /v2/payments/captures/5TR80192ED162870P',
+            'GET /v2/checkout/orders/56072027MF355241N',
+            'GET /v2/payments/captures/1UNKNOWN0CAPTURE0',
+        ], $this->reads());
+        $this->assertSame([PaymentAllocation::STRATEGY_EXACT_REFERENCE, 1000], [PaymentAllocation::query()->where('order_id', $order->id)->value('strategy'), (int) PaymentAllocation::query()->where('order_id', $order->id)->value('amount_minor')]);
+        $this->assertSame(0, PaymentAllocation::query()->whereIn('order_id', [$stale->id, $live->id, $stripe->id, $unknown->id])->count());
+
+        $this->requests = [];
+        $again = app(PayPalSync::class)->syncPointers($integration->refresh());
+        $this->assertSame(0, $again['read']);
+        $this->assertSame([], $this->reads(), 'a linked capture is not read again, an unknown one not before the retry interval');
+
+        $this->travel(16)->minutes();
+        $this->requests = [];
+        app(PayPalSync::class)->syncPointers($integration->refresh());
+        $this->assertSame(['GET /v2/payments/captures/1UNKNOWN0CAPTURE0'], $this->reads());
+    }
+
     public function test_a_store_refund_that_arrives_after_the_paypal_refund_is_linked_by_the_unique_amount(): void
     {
         $order = $this->order('CAP0000000000005R', 1000, '55');
@@ -350,6 +389,12 @@ class PayPalIntegrationTest extends TestCase
             'HTTP_PAYPAL_TRANSMISSION_TIME' => $sentAt ?? now()->toIso8601ZuluString(),
             'CONTENT_TYPE' => 'application/json',
         ], json_encode(['id' => 'WH-'.Str::random(8), ...$event], JSON_THROW_ON_ERROR));
+    }
+
+    /** @return list<string> */
+    private function reads(): array
+    {
+        return array_values(array_filter($this->requests, fn (string $request): bool => str_starts_with($request, 'GET ')));
     }
 
     private function drain(): void
