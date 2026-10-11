@@ -143,6 +143,9 @@ class PayPalIntegrationTest extends TestCase
         $this->assertStringNotContainsString(self::CLIENT_SECRET, (string) IntegrationCredential::query()->where('kind', IntegrationCredential::KIND_PAYPAL_CLIENT)->value('ciphertext'));
         $this->assertStringNotContainsString(self::CLIENT_SECRET, json_encode(AuditLog::query()->pluck('changes'), JSON_THROW_ON_ERROR));
         $this->assertStringEndsWith('/api/v1/webhooks/paypal/'.$integration->id, $response->json('webhook_url'));
+        $listed = $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])->getJson("/api/v1/stores/{$this->store->id}/integrations")->assertOk();
+        $this->assertSame($response->json('webhook_url'), collect($listed->json('data'))->firstWhere('provider', 'paypal')['webhook_url'], 'the store page loads the list, so the list must carry the webhook URL');
+        $this->assertNull(collect($listed->json('data'))->firstWhere('provider', 'woocommerce')['webhook_url']);
         $this->connect()->assertStatus(409)->assertJsonPath('code', 'provider_already_connected');
     }
 

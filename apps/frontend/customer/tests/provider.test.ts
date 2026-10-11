@@ -11,7 +11,7 @@ import ProviderPanel from '@/components/ProviderPanel.vue';
 import en from '@/i18n/locales/en.json';
 import { localization, setLocale } from '@/i18n';
 
-vi.mock('@/api/providers', () => ({ connectStripe: vi.fn(), connectPayPal: vi.fn(), setPayPalWebhookId: vi.fn(), setWebhookSecret: vi.fn(), syncProvider: vi.fn(), webhookUrl: (id: string) => `https://app.example/api/v1/webhooks/stripe/${id}` }));
+vi.mock('@/api/providers', () => ({ connectStripe: vi.fn(), connectPayPal: vi.fn(), setPayPalWebhookId: vi.fn(), setWebhookSecret: vi.fn(), syncProvider: vi.fn(), webhookUrl: (id: string, provider = 'stripe') => `https://app.example/api/v1/webhooks/${provider}/${id}` }));
 vi.mock('@/api/stores', () => ({ listStoreIntegrations: vi.fn(), revokeIntegration: vi.fn() }));
 
 const global = { plugins: [localization] };
@@ -170,6 +170,13 @@ describe('PayPalPanel', () => {
 
     await wrapper.findAll('button').find((item) => item.text() === 'Webhook')!.trigger('click');
     expect((wrapper.get('#paypal-webhook-url').element as HTMLInputElement).value).toBe('https://app.example/api/v1/webhooks/paypal/int-pp');
+
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValueOnce([paypal({ webhook_url: undefined })]);
+    const reloaded = mount(PayPalPanel, { props: { storeId: 's-1', canManage: true }, global });
+    await flushPromises();
+    await reloaded.findAll('button').find((item) => item.text() === 'Webhook')!.trigger('click');
+    expect((reloaded.get('#paypal-webhook-url').element as HTMLInputElement).value).toBe('https://app.example/api/v1/webhooks/paypal/int-pp');
+    reloaded.unmount();
     await wrapper.get('#paypal-webhook-id').setValue('8PT597110X687430LKGECATA');
     await wrapper.get('[data-webhook-form]').trigger('submit');
     await flushPromises();

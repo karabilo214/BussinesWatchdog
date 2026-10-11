@@ -3204,6 +3204,7 @@ components:
         connector_version: {type: [string, "null"]}
         last_heartbeat_at: {type: [string, "null"], format: date-time}
         last_successful_sync_at: {type: [string, "null"], format: date-time}
+        webhook_url: {type: [string, "null"], format: uri, description: "Where to point the provider webhook (Stripe, PayPal); null for other connectors."}
         health:
           type: object
           description: "Freshness (state, reason, since), last heartbeat self-report, rotation flags. No secrets."

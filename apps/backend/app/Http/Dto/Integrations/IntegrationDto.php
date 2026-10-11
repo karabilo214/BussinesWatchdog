@@ -29,6 +29,7 @@ class IntegrationDto
             'last_heartbeat_at' => $integration->last_heartbeat_at?->toJSON(),
             'last_successful_sync_at' => $integration->last_successful_sync_at?->toJSON(),
             'health' => $integration->health ?? [],
+            'webhook_url' => in_array($integration->provider, ['stripe', 'paypal'], true) ? url('/api/v1/webhooks/'.$integration->provider.'/'.$integration->id) : null,
             'credentials' => $integration->credentials
                 ->map(fn ($credential): array => [
                     'id' => $credential->id,

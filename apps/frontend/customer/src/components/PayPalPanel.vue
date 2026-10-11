@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
-import { connectPayPal, setPayPalWebhookId, syncProvider } from '@/api/providers';
+import { connectPayPal, setPayPalWebhookId, syncProvider, webhookUrl } from '@/api/providers';
 import { listStoreIntegrations, revokeIntegration } from '@/api/stores';
 import type { Integration } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
@@ -158,7 +158,7 @@ void load();
           <li>{{ $t('paypal.webhook_step_events') }}</li>
           <li>{{ $t('paypal.webhook_step_id') }}</li>
         </ol>
-        <CopyField id="paypal-webhook-url" :label="$t('provider.webhook_url')" :value="integration.webhook_url ?? ''" />
+        <CopyField id="paypal-webhook-url" :label="$t('provider.webhook_url')" :value="integration.webhook_url ?? webhookUrl(integration.id, 'paypal')" />
         <label for="paypal-webhook-id" class="text-sm font-medium">Webhook ID</label>
         <input id="paypal-webhook-id" v-model="webhookForm" autocomplete="off" spellcheck="false" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-sm sm:max-w-md" />
         <div>

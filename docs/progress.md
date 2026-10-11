@@ -1948,3 +1948,7 @@ Coordination:
 
 - Claude's Shopware script files were left unstaged; this step only stages notification reminder and evidence files.
 
+### Fix: PayPal webhook URL empty on the store page
+
+- The webhook URL was only in the connect and sync responses; the store page loads the integration list, which lacked it, and the PayPal panel had no fallback, so the field next to "Copy" stayed empty after a reload. `IntegrationDto` now returns `webhook_url` for Stripe and PayPal (null for other connectors; OpenAPI `Integration` schema, both copies), and both panels fall back to building it in the browser. Regression tests: the list carries the URL (backend), the PayPal panel shows it when the field is missing (frontend). The old frontend fixture always contained `webhook_url`, which hid the bug.
+
