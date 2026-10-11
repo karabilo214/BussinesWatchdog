@@ -1641,3 +1641,10 @@ Status: complete
 - Verification: the plugin method only for a paired plugin; hint that a REST API key confirms the store; method `api_key` named. Coverage: "Order source" with the last sync of an API connection (`coverage.connector.last_sync_at`, backend + OpenAPI). Order page: "test/live mode: plugin needed" when the store did not report the mode. Incident facts for `api_key_rejected`, `api_sync_failing`, `api_not_synced_yet`. Error texts for every REST API connector code (ru/en/de, checked by a test).
 - Tests: customer unit tests 87 (new `orderSource.test.ts`); `make frontend-check` green; `make frontend-smoke` 41/41 in the last three runs (smoke checks the plugin tab of a paired store and the recommended key tab of a new store). Backend SQLite 373 + 4 skipped, PostgreSQL 18 377.
 
+### Step 80: Shopware 6 Spike, Part 1 (ADR 0025)
+
+Status: complete; decisions await the owner
+
+- `plugins/shopware-app/tests/spike/run.sh` on dockware/play Shopware 6.7.2.2: read-only ACL role + Integration, orders through the Store API, admin changes. Findings: criteria search and GET work with the read role; `includes` keeps personal data out (without it `orderCustomer` comes back despite no customer privilege); money as floats with currency rounding decimals; new orders have no `updatedAt` and payment state changes touch only the transaction, so the delta needs an OR over order created/updated and transaction updated; deleted orders vanish (404).
+- Security finding: the order/transaction/delivery state transition endpoints have no ACL in 6.7.2.2 — a read-only key changed an order and a payment status (money-moving refunds stay protected). A read-only key cannot be verified without writing or reading all integrations' secrets. Proposal in ADR 0025: Integration first with a PayPal-style warning, App (manifest permissions, webhooks) next; responsible disclosure to Shopware is the owner's call.
+
