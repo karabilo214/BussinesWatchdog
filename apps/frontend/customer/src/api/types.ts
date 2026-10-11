@@ -39,7 +39,7 @@ export type BrowserChecksState =
   | 'not_conclusive';
 
 export interface StoreCoverage {
-  connector: { state: ConnectorState; provider: string | null; last_heartbeat_at: string | null; plugin_version: string | null };
+  connector: { state: ConnectorState; provider: string | null; last_heartbeat_at: string | null; last_sync_at?: string | null; plugin_version: string | null };
   money: { state: MoneyState; providers: { provider: string; status: string }[] };
   payment_attempts: { state: PaymentAttemptsState; last_window_end_at: string | null };
   browser_checks: {
@@ -86,7 +86,7 @@ export type UpdateStoreInput = Partial<Pick<Store, 'name' | 'timezone' | 'defaul
   status?: 'active' | 'paused';
 };
 
-export type VerificationMethod = 'dns' | 'plugin_challenge';
+export type VerificationMethod = 'dns' | 'plugin_challenge' | 'api_key';
 
 export type VerificationInstructions =
   | { type: 'dns_txt'; record_name: string; txt_value: string }
@@ -150,6 +150,8 @@ export interface Integration {
   capabilities?: Record<string, string>;
   health?: {
     key_last4?: string;
+    key_last7?: string;
+    key_rejected_at?: string;
     client_id_last4?: string;
     write_scopes?: string[];
     account_verified?: boolean;
@@ -285,6 +287,7 @@ export interface Order {
   status: string;
   gateway: string | null;
   mode: 'live' | 'test';
+  mode_reported?: boolean;
   currency: string;
   currency_exponent: number;
   total_minor: string;

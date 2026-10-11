@@ -161,7 +161,8 @@ try {
     await page.getByRole('link', { name: 'Kaffeerösterei Lindner' }).click();
     await page.waitForURL(/\/app\/stores\/[0-9a-f-]+$/);
     await page.getByRole('heading', { name: 'Kaffeerösterei Lindner' }).waitFor();
-    await page.locator('[data-panel="connector"]').getByText('подключён', { exact: true }).waitFor();
+    await page.locator('[data-connector="plugin"]').getByText('подключён', { exact: true }).waitFor();
+    if ((await page.locator('[data-source-tab="plugin"]').getAttribute('aria-selected')) !== 'true') throw new Error('a paired store must open the plugin tab');
     await page.locator('[data-panel="verification"]').getByText('не подтверждён').waitFor();
     await page.getByLabel('Через DNS-запись').check();
     const started = page.waitForResponse((response) => response.url().endsWith('/verify') && response.status() === 202);
@@ -197,7 +198,11 @@ try {
     await page.getByLabel('Адрес магазина').fill('https://smoke-neuer-shop.example');
     await page.getByRole('button', { name: 'Добавить магазин' }).click();
     await page.getByRole('heading', { name: 'Smoke Neuer Shop' }).waitFor();
+    await page.locator('[data-source-tab="api"]').getByText('рекомендуется').waitFor();
+    await page.locator('#wc-consumer-key').waitFor();
+    await page.locator('[data-source-tab="plugin"]').click();
     await page.getByText('Плагин ещё не подключён.').waitFor();
+    await page.locator('[data-api-key-hint]').waitFor();
     if (!(await page.getByLabel('Через плагин').isDisabled())) throw new Error('plugin method must wait for a connector');
     await page.getByLabel('Основная валюта').selectOption('USD');
     await page.getByRole('button', { name: 'Сохранить' }).click();

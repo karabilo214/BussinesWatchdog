@@ -123,13 +123,14 @@
   },
   "coverage": {
     "connector": {
-      "label": "Store plugin",
+      "label": "Order source",
       "fresh": "connected",
       "partial": "delivery delayed",
       "stale": "not checking in",
-      "warming_up": "waiting for first signal",
+      "warming_up": "waiting for first data",
       "not_connected": "not connected",
-      "detail_heartbeat": "last signal {time}"
+      "detail_heartbeat": "last signal {time}",
+      "detail_sync": "last sync {time}"
     },
     "money": {
       "label": "Money reconciliation",
@@ -186,7 +187,7 @@
     },
     "connector": {
       "title": "Store plugin",
-      "subtitle": "The plugin sends orders, refunds and payment attempts. Without it the service cannot see what happens in the store.",
+      "subtitle": "The plugin is installed in WordPress and sends orders, refunds and payment attempts right away, without polling. It is needed to watch payment attempts and for Stripe test mode.",
       "none": "The plugin is not connected yet.",
       "last_heartbeat": "last signal: {time}",
       "version": "version {version}",
@@ -210,7 +211,8 @@
       "service_url": "Service URL",
       "pairing_code": "Connection code",
       "code_expires": "Valid until {time}.",
-      "waiting": "Waiting for the plugin to connect — the list updates by itself."
+      "waiting": "Waiting for the plugin to connect — the list updates by itself.",
+      "api_active": "Orders currently come through the REST API key. A store has one order source: to switch to the plugin, first disconnect the key in the \"REST API key\" tab."
     },
     "verification": {
       "title": "Domain confirmation",
@@ -225,7 +227,8 @@
       },
       "method": {
         "plugin_challenge": "Via the plugin",
-        "dns": "Via a DNS record"
+        "dns": "Via a DNS record",
+        "api_key": "With a REST API key"
       },
       "choose": "Confirmation method",
       "restart": "Start over with another method",
@@ -251,7 +254,8 @@
         "response_too_large": "The site returned an unexpectedly large response.",
         "unsafe_destination": "The address points into a private network and cannot be checked.",
         "other": "The check has not passed yet."
-      }
+      },
+      "api_key_hint": "Easiest: connect a REST API key in the \"Order source\" block — the store is confirmed automatically."
     },
     "settings": {
       "title": "Settings",
@@ -261,6 +265,47 @@
       "resume": "Resume monitoring",
       "pause_hint": "Pausing stops scheduled checkout checks and the nightly reconciliation. Plugin data keeps arriving.",
       "resume_hint": "Monitoring is paused: scheduled checks and the nightly reconciliation do not run."
+    },
+    "order_source": {
+      "title": "Order source",
+      "subtitle": "Where the service learns about the store's orders and refunds. A store has one source: a REST API key or the plugin.",
+      "tab": {
+        "api": "REST API key",
+        "plugin": "Plugin"
+      },
+      "recommended": "recommended"
+    },
+    "api": {
+      "why": "The simplest way: nothing is installed in your store. The service reads orders and refunds through the WooCommerce REST API with a read-only key.",
+      "step_open": "In the WordPress admin open WooCommerce → Settings → Advanced → REST API and click \"Add key\".",
+      "step_permissions": "Description \"Business Watchdog\", user — a store administrator or shop manager, permissions \"Read\". Click \"Generate API key\".",
+      "step_paste": "Copy the Consumer key and Consumer secret here — WooCommerce shows them only once.",
+      "requirements": "Required: the store address on HTTPS and permalinks other than \"Plain\" (Settings → Permalinks).",
+      "key_label": "Consumer key",
+      "key_hint": "The key starts with ck_ followed by 40 characters.",
+      "secret_label": "Consumer secret",
+      "secret_hint": "The secret starts with cs_ followed by 40 characters.",
+      "access_title": "What the service sees and what it cannot do",
+      "access_reads": "Reads orders (number, status, amount, currency, payment method, payment reference, dates) and refunds.",
+      "access_not_read": "Does not keep customers, addresses, phone numbers or products: the service does not request those fields.",
+      "access_scope": "A \"Read\" key can technically read other store data too, but the service only calls orders and refunds.",
+      "access_no_write": "Nothing in the store can be changed with such a key. The service refuses keys with write permission.",
+      "access_frequency": "Reading: changes every 5 minutes, recent orders hourly, a full 90-day check daily; at most 60 requests at a time.",
+      "access_revoke": "Disconnect here or delete the key in WooCommerce — the service stops reading immediately.",
+      "verifies_store": "Connecting a working key also confirms the store — no DNS record needed.",
+      "late_refunds_warning": "On WooCommerce older than 7.9, a refund added to an older order reaches the service up to an hour later.",
+      "mode_warning": "Without the plugin, Stripe test and live payments cannot be told apart: with a test-mode provider such orders are not supported in this mode — the plugin is needed.",
+      "connect": "Connect key",
+      "connected": "Key connected, store confirmed.",
+      "revoked": "Key disconnected.",
+      "state": "State",
+      "key": "Key",
+      "read_only": "read only",
+      "last_sync": "Last sync",
+      "polling_note": "The service polls the store itself: changes every 5 minutes.",
+      "key_rejected": "The store no longer accepts the key (it was deleted or its permissions changed). Reading has stopped — create a new \"Read\" key, disconnect the old one and connect the new one.",
+      "revoke_warning": "The service deletes the key on its side and stops reading orders. Delete the key in WooCommerce too (Settings → Advanced → REST API).",
+      "plugin_active": "Orders currently come through the plugin. A store has one order source: to switch to a REST API key, first disconnect the plugin in the \"Plugin\" tab."
     }
   },
   "errors": {
@@ -341,7 +386,25 @@
     "paypal_unreachable": "Could not reach PayPal. Try again later.",
     "paypal_request_rejected": "PayPal rejected the request.",
     "paypal_invalid_response": "PayPal returned an unexpected response.",
-    "paypal_endpoint_not_allowed": "A request to PayPal was blocked: the service only reads from PayPal."
+    "paypal_endpoint_not_allowed": "A request to PayPal was blocked: the service only reads from PayPal.",
+    "woocommerce_key_invalid": "Check the key: the Consumer key starts with ck_, the Consumer secret with cs_; copy both in full.",
+    "woocommerce_key_not_read_only": "This key has write permission. Create a key with \"Read\" permissions — then the service certainly cannot change anything in the store.",
+    "woocommerce_key_rejected": "The store did not accept the key. Check that it was created in this store and copied in full.",
+    "woocommerce_key_not_recognized": "The store did not recognise the key. Usually the cause is \"Plain\" permalinks: choose another option in Settings → Permalinks.",
+    "woocommerce_key_permission_missing": "The key's user cannot access orders. Create the key as a store administrator or shop manager.",
+    "woocommerce_api_unavailable": "The store's REST API is not available under /wp-json/. Turn on permalinks (not \"Plain\") and check that no security plugin disables the REST API.",
+    "woocommerce_store_url_not_allowed": "The store address cannot be connected: a public HTTPS address is required.",
+    "woocommerce_unreachable": "The store does not respond. Check that the site opens and try again.",
+    "woocommerce_redirected": "The store redirects requests to another address. Enter the exact site address in the store settings.",
+    "woocommerce_permission_probe_inconclusive": "Could not check that the key is read-only. Try again or create a new \"Read\" key.",
+    "woocommerce_rate_limited": "The store is limiting requests for now. The service will retry later.",
+    "woocommerce_unavailable": "The store is temporarily unavailable. The service will retry later.",
+    "woocommerce_request_rejected": "The store rejected the request. The service will retry later.",
+    "woocommerce_response_too_large": "The store returned a response that is too large. Please contact support.",
+    "woocommerce_invalid_response": "The store did not answer in REST API format. Check permalinks and security plugins.",
+    "woocommerce_not_found": "The requested data was not found in the store.",
+    "woocommerce_endpoint_not_allowed": "The service does not send this request to stores.",
+    "order_source_already_connected": "The store already has an order source. Disconnect it first."
   },
   "incidents": {
     "title": "Incidents",
@@ -508,7 +571,10 @@
         "heartbeats_missed": "The plugin missed several signals in a row.",
         "no_heartbeat_since_pairing": "No signal from the plugin since it was connected.",
         "delivery_backlog": "The plugin has a backlog of unsent events.",
-        "local_queue_full": "The plugin's local queue is full (100,000 events): new order changes are not queued for now and will be recovered from the orders once the queue drains. Orders keep working."
+        "local_queue_full": "The plugin's local queue is full (100,000 events): new order changes are not queued for now and will be recovered from the orders once the queue drains. Orders keep working.",
+        "api_key_rejected": "The store no longer accepts the REST API key.",
+        "api_sync_failing": "Syncing through the REST API has failed for more than 30 minutes.",
+        "api_not_synced_yet": "No sync has succeeded since the key was connected."
       },
       "last_heartbeat": "Last signal: {time}.",
       "backlog": "Unsent events: {n}.",
@@ -685,7 +751,8 @@
     "nothing_to_link": "The chosen refunds are already fully linked.",
     "link_refund_confirm": "Link",
     "revisions_title": "Order change history",
-    "revision": "Version {n}"
+    "revision": "Version {n}",
+    "mode_needs_plugin": "test/live mode: plugin needed"
   },
   "checks": {
     "title": "Checkout checks",

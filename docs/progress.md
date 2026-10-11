@@ -1633,3 +1633,11 @@ Status: complete
 
 - Owner decision: a working Read key on the store's own HTTPS origin confirms the store. `StoreVerificationService::confirmByApiKey()` records a verification with method `api_key` (pgsql constraint extended) on connect, activates an onboarding store, writes `store.verified` to the audit log and re-runs exact matching like the other methods; a store already verified for its URL is left alone. `api_key` cannot be requested through `POST /stores/{id}/verify`. OpenAPI (both copies): method enum. Two backend tests; SQLite 373 + 4 skipped, PostgreSQL 18 377 passed.
 
+### Step 79: Order Source Screen (ADR 0024)
+
+Status: complete
+
+- Store page: "Order source" block (`OrderSource.vue`) with tabs "REST API key" (`WooCommerceApiPanel.vue`: steps to create a Read key, access details, requirements, warnings about late refunds and payment mode, store confirmation by the key, connected key ck_••••, read-only, last sync, sync now, key-rejected alert, disconnect with a reminder to delete the key in WooCommerce) and "Plugin" (the former connector panel, plugin integrations only). One source: the other tab explains that the current source must be disconnected first.
+- Verification: the plugin method only for a paired plugin; hint that a REST API key confirms the store; method `api_key` named. Coverage: "Order source" with the last sync of an API connection (`coverage.connector.last_sync_at`, backend + OpenAPI). Order page: "test/live mode: plugin needed" when the store did not report the mode. Incident facts for `api_key_rejected`, `api_sync_failing`, `api_not_synced_yet`. Error texts for every REST API connector code (ru/en/de, checked by a test).
+- Tests: customer unit tests 87 (new `orderSource.test.ts`); `make frontend-check` green; `make frontend-smoke` 41/41 in the last three runs (smoke checks the plugin tab of a paired store and the recommended key tab of a new store). Backend SQLite 373 + 4 skipped, PostgreSQL 18 377.
+

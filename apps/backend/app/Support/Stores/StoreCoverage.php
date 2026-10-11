@@ -86,6 +86,7 @@ class StoreCoverage
                         'state' => $connectorState,
                         'provider' => $connector?->provider,
                         'last_heartbeat_at' => $connector?->last_heartbeat_at?->toJSON(),
+                        'last_sync_at' => $connector?->last_successful_sync_at?->toJSON(),
                         'plugin_version' => $connector?->health['heartbeat']['plugin_version'] ?? null,
                     ],
                     'money' => [

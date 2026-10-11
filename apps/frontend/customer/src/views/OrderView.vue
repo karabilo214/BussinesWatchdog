@@ -163,7 +163,8 @@ watch(
             <RouterLink v-if="store" :to="{ name: 'store', params: { id: store.id } }" class="hover:text-primary hover:underline">{{ store.name }}</RouterLink>
             <span v-if="store" aria-hidden="true">·</span>
             <span>{{ $t('order.status', { status: order.status }) }}</span>
-            <StatusBadge v-if="order.mode === 'test'" tone="note" :label="$t('order.test_mode')" />
+            <StatusBadge v-if="order.mode_reported === false && order.financial_support === 'supported'" tone="unknown" :label="$t('order.mode_needs_plugin')" data-mode-needs-plugin />
+            <StatusBadge v-else-if="order.mode === 'test'" tone="note" :label="$t('order.test_mode')" />
             <StatusBadge v-if="order.is_synthetic" tone="note" :label="$t('order.synthetic')" />
           </p>
         </header>

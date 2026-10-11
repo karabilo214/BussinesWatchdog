@@ -2867,8 +2867,9 @@ components:
           required: [state]
           properties:
             state: {enum: [not_connected, warming_up, fresh, stale, partial]}
-            provider: {type: [string, "null"]}
+            provider: {type: [string, "null"], description: "woocommerce (plugin) or woocommerce_api (REST API key)"}
             last_heartbeat_at: {type: [string, "null"], format: date-time}
+            last_sync_at: {type: [string, "null"], format: date-time, description: "Last successful sync of a REST API connection (it has no heartbeat)."}
             plugin_version: {type: [string, "null"]}
         money:
           type: object

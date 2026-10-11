@@ -123,13 +123,14 @@
   },
   "coverage": {
     "connector": {
-      "label": "Shop-Plugin",
+      "label": "Bestellquelle",
       "fresh": "verbunden",
       "partial": "Übertragung verzögert",
       "stale": "meldet sich nicht",
-      "warming_up": "wartet auf erstes Signal",
+      "warming_up": "warten auf erste Daten",
       "not_connected": "nicht verbunden",
-      "detail_heartbeat": "letztes Signal {time}"
+      "detail_heartbeat": "letztes Signal {time}",
+      "detail_sync": "letzte Synchronisierung {time}"
     },
     "money": {
       "label": "Zahlungsabgleich",
@@ -186,7 +187,7 @@
     },
     "connector": {
       "title": "Shop-Plugin",
-      "subtitle": "Das Plugin übermittelt Bestellungen, Erstattungen und Zahlungsversuche. Ohne Plugin sieht der Dienst nicht, was im Shop passiert.",
+      "subtitle": "Das Plugin wird in WordPress installiert und übermittelt Bestellungen, Erstattungen und Zahlungsversuche sofort, ohne Abfrage. Es wird für die Beobachtung von Zahlungsversuchen und für den Stripe-Testmodus benötigt.",
       "none": "Das Plugin ist noch nicht verbunden.",
       "last_heartbeat": "letztes Signal: {time}",
       "version": "Version {version}",
@@ -210,7 +211,8 @@
       "service_url": "Dienst-URL",
       "pairing_code": "Verbindungscode",
       "code_expires": "Gültig bis {time}.",
-      "waiting": "Warten auf die Verbindung des Plugins – die Liste aktualisiert sich selbst."
+      "waiting": "Warten auf die Verbindung des Plugins – die Liste aktualisiert sich selbst.",
+      "api_active": "Bestellungen kommen derzeit über den REST-API-Schlüssel. Ein Shop hat eine Bestellquelle: Um zum Plugin zu wechseln, trennen Sie zuerst den Schlüssel im Reiter „REST-API-Schlüssel“."
     },
     "verification": {
       "title": "Domain-Bestätigung",
@@ -225,7 +227,8 @@
       },
       "method": {
         "plugin_challenge": "Über das Plugin",
-        "dns": "Über einen DNS-Eintrag"
+        "dns": "Über einen DNS-Eintrag",
+        "api_key": "Mit REST-API-Schlüssel"
       },
       "choose": "Bestätigungsweg",
       "restart": "Mit einem anderen Weg neu beginnen",
@@ -251,7 +254,8 @@
         "response_too_large": "Die Website hat eine unerwartet große Antwort geliefert.",
         "unsafe_destination": "Die Adresse zeigt in ein privates Netz und kann nicht geprüft werden.",
         "other": "Die Prüfung war noch nicht erfolgreich."
-      }
+      },
+      "api_key_hint": "Am einfachsten: Verbinden Sie im Block „Bestellquelle“ einen REST-API-Schlüssel — der Shop wird automatisch bestätigt."
     },
     "settings": {
       "title": "Einstellungen",
@@ -261,6 +265,47 @@
       "resume": "Überwachung fortsetzen",
       "pause_hint": "Die Pause stoppt geplante Checkout-Prüfungen und den nächtlichen Abgleich. Plugin-Daten kommen weiter an.",
       "resume_hint": "Die Überwachung ist pausiert: geplante Prüfungen und der nächtliche Abgleich laufen nicht."
+    },
+    "order_source": {
+      "title": "Bestellquelle",
+      "subtitle": "Woher der Dienst Bestellungen und Erstattungen des Shops erfährt. Ein Shop hat eine Quelle: einen REST-API-Schlüssel oder das Plugin.",
+      "tab": {
+        "api": "REST-API-Schlüssel",
+        "plugin": "Plugin"
+      },
+      "recommended": "empfohlen"
+    },
+    "api": {
+      "why": "Der einfachste Weg: Im Shop wird nichts installiert. Der Dienst liest Bestellungen und Erstattungen über die WooCommerce-REST-API mit einem Nur-Lese-Schlüssel.",
+      "step_open": "Öffnen Sie im WordPress-Admin WooCommerce → Einstellungen → Erweitert → REST-API und klicken Sie auf „Schlüssel hinzufügen“.",
+      "step_permissions": "Beschreibung „Business Watchdog“, Benutzer — Administrator oder Shop-Manager, Berechtigungen „Lesen“. Klicken Sie auf „API-Schlüssel generieren“.",
+      "step_paste": "Kopieren Sie Consumer Key und Consumer Secret hierher — WooCommerce zeigt sie nur einmal.",
+      "requirements": "Voraussetzungen: Shop-Adresse mit HTTPS und Permalinks nicht „Einfach“ (Einstellungen → Permalinks).",
+      "key_label": "Consumer Key",
+      "key_hint": "Der Schlüssel beginnt mit ck_ und hat danach 40 Zeichen.",
+      "secret_label": "Consumer Secret",
+      "secret_hint": "Das Secret beginnt mit cs_ und hat danach 40 Zeichen.",
+      "access_title": "Was der Dienst sieht und was er nicht tun kann",
+      "access_reads": "Liest Bestellungen (Nummer, Status, Betrag, Währung, Zahlungsart, Zahlungsreferenz, Daten) und Erstattungen.",
+      "access_not_read": "Speichert keine Kunden, Adressen, Telefonnummern oder Produkte: Diese Felder fragt der Dienst nicht ab.",
+      "access_scope": "Ein Schlüssel mit „Lesen“ kann technisch auch andere Shopdaten lesen, der Dienst ruft aber nur Bestellungen und Erstattungen ab.",
+      "access_no_write": "Mit einem solchen Schlüssel lässt sich im Shop nichts ändern. Schlüssel mit Schreibrecht lehnt der Dienst ab.",
+      "access_frequency": "Abfrage: Änderungen alle 5 Minuten, neue Bestellungen stündlich, vollständige 90-Tage-Prüfung täglich; höchstens 60 Anfragen auf einmal.",
+      "access_revoke": "Trennen Sie hier oder löschen Sie den Schlüssel in WooCommerce — der Dienst hört sofort auf zu lesen.",
+      "verifies_store": "Ein funktionierender Schlüssel bestätigt zugleich den Shop — kein DNS-Eintrag nötig.",
+      "late_refunds_warning": "Bei WooCommerce vor 7.9 erscheint eine Erstattung zu einer älteren Bestellung bis zu einer Stunde später im Dienst.",
+      "mode_warning": "Ohne Plugin lassen sich Stripe-Test- und Live-Zahlungen nicht unterscheiden: Bei einem Anbieter im Testmodus werden solche Bestellungen in diesem Modus nicht unterstützt — das Plugin ist nötig.",
+      "connect": "Schlüssel verbinden",
+      "connected": "Schlüssel verbunden, Shop bestätigt.",
+      "revoked": "Schlüssel getrennt.",
+      "state": "Status",
+      "key": "Schlüssel",
+      "read_only": "nur lesen",
+      "last_sync": "Letzte Synchronisierung",
+      "polling_note": "Der Dienst fragt den Shop selbst ab: Änderungen alle 5 Minuten.",
+      "key_rejected": "Der Shop akzeptiert den Schlüssel nicht mehr (gelöscht oder Rechte geändert). Das Lesen ist gestoppt — erstellen Sie einen neuen Schlüssel „Lesen“, trennen Sie den alten und verbinden Sie den neuen.",
+      "revoke_warning": "Der Dienst löscht den Schlüssel bei sich und liest keine Bestellungen mehr. Löschen Sie den Schlüssel auch in WooCommerce (Einstellungen → Erweitert → REST-API).",
+      "plugin_active": "Bestellungen kommen derzeit über das Plugin. Ein Shop hat eine Bestellquelle: Um zu einem REST-API-Schlüssel zu wechseln, trennen Sie zuerst das Plugin im Reiter „Plugin“."
     }
   },
   "errors": {
@@ -341,7 +386,25 @@
     "paypal_unreachable": "PayPal war nicht erreichbar. Versuchen Sie es später.",
     "paypal_request_rejected": "PayPal hat die Anfrage abgelehnt.",
     "paypal_invalid_response": "PayPal hat eine unerwartete Antwort geliefert.",
-    "paypal_endpoint_not_allowed": "Eine Anfrage an PayPal wurde blockiert: Der Dienst liest bei PayPal nur."
+    "paypal_endpoint_not_allowed": "Eine Anfrage an PayPal wurde blockiert: Der Dienst liest bei PayPal nur.",
+    "woocommerce_key_invalid": "Prüfen Sie den Schlüssel: Consumer Key beginnt mit ck_, Consumer Secret mit cs_; kopieren Sie beide vollständig.",
+    "woocommerce_key_not_read_only": "Dieser Schlüssel hat Schreibrechte. Erstellen Sie einen Schlüssel mit Berechtigung „Lesen“ — dann kann der Dienst im Shop sicher nichts ändern.",
+    "woocommerce_key_rejected": "Der Shop hat den Schlüssel nicht akzeptiert. Prüfen Sie, ob er in diesem Shop erstellt und vollständig kopiert wurde.",
+    "woocommerce_key_not_recognized": "Der Shop hat den Schlüssel nicht erkannt. Meist liegt es an „Einfachen“ Permalinks: Wählen Sie unter Einstellungen → Permalinks eine andere Option.",
+    "woocommerce_key_permission_missing": "Der Benutzer des Schlüssels hat keinen Zugriff auf Bestellungen. Erstellen Sie den Schlüssel als Administrator oder Shop-Manager.",
+    "woocommerce_api_unavailable": "Die REST-API des Shops ist unter /wp-json/ nicht erreichbar. Aktivieren Sie Permalinks (nicht „Einfach“) und prüfen Sie, dass kein Sicherheits-Plugin die REST-API sperrt.",
+    "woocommerce_store_url_not_allowed": "Die Shop-Adresse kann nicht verbunden werden: Eine öffentliche HTTPS-Adresse ist nötig.",
+    "woocommerce_unreachable": "Der Shop antwortet nicht. Prüfen Sie, ob die Website erreichbar ist, und versuchen Sie es erneut.",
+    "woocommerce_redirected": "Der Shop leitet Anfragen auf eine andere Adresse um. Tragen Sie in den Shop-Einstellungen die genaue Adresse ein.",
+    "woocommerce_permission_probe_inconclusive": "Es ließ sich nicht prüfen, dass der Schlüssel nur lesen darf. Versuchen Sie es erneut oder erstellen Sie einen neuen Schlüssel „Lesen“.",
+    "woocommerce_rate_limited": "Der Shop begrenzt Anfragen vorübergehend. Der Dienst versucht es später erneut.",
+    "woocommerce_unavailable": "Der Shop ist vorübergehend nicht erreichbar. Der Dienst versucht es später erneut.",
+    "woocommerce_request_rejected": "Der Shop hat die Anfrage abgelehnt. Der Dienst versucht es später erneut.",
+    "woocommerce_response_too_large": "Der Shop hat eine zu große Antwort geliefert. Bitte wenden Sie sich an den Support.",
+    "woocommerce_invalid_response": "Der Shop hat nicht im REST-API-Format geantwortet. Prüfen Sie Permalinks und Sicherheits-Plugins.",
+    "woocommerce_not_found": "Die angefragten Daten wurden im Shop nicht gefunden.",
+    "woocommerce_endpoint_not_allowed": "Diese Anfrage sendet der Dienst nicht an Shops.",
+    "order_source_already_connected": "Der Shop hat bereits eine Bestellquelle. Trennen Sie sie zuerst."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -508,7 +571,10 @@
         "heartbeats_missed": "Das Plugin hat mehrere Signale in Folge ausgelassen.",
         "no_heartbeat_since_pairing": "Seit der Verbindung kam kein Signal vom Plugin.",
         "delivery_backlog": "Das Plugin hat einen Rückstand nicht gesendeter Ereignisse.",
-        "local_queue_full": "Die lokale Warteschlange des Plugins ist voll (100.000 Ereignisse): Neue Bestelländerungen werden vorerst nicht vorgemerkt und nach dem Abbau aus den Bestellungen wiederhergestellt. Bestellungen funktionieren weiter."
+        "local_queue_full": "Die lokale Warteschlange des Plugins ist voll (100.000 Ereignisse): Neue Bestelländerungen werden vorerst nicht vorgemerkt und nach dem Abbau aus den Bestellungen wiederhergestellt. Bestellungen funktionieren weiter.",
+        "api_key_rejected": "Der Shop akzeptiert den REST-API-Schlüssel nicht mehr.",
+        "api_sync_failing": "Die Synchronisierung über die REST-API schlägt seit über 30 Minuten fehl.",
+        "api_not_synced_yet": "Seit dem Verbinden des Schlüssels war noch keine Synchronisierung erfolgreich."
       },
       "last_heartbeat": "Letztes Signal: {time}.",
       "backlog": "Nicht gesendete Ereignisse: {n}.",
@@ -685,7 +751,8 @@
     "nothing_to_link": "Die gewählten Erstattungen sind bereits vollständig verknüpft.",
     "link_refund_confirm": "Verknüpfen",
     "revisions_title": "Änderungsverlauf der Bestellung",
-    "revision": "Version {n}"
+    "revision": "Version {n}",
+    "mode_needs_plugin": "Test-/Live-Modus: Plugin nötig"
   },
   "checks": {
     "title": "Checkout-Prüfungen",

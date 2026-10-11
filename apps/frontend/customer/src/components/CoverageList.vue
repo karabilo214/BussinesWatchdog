@@ -27,7 +27,11 @@ const rows = computed<Row[]>(() => {
       label: t('coverage.connector.label'),
       tone: CONNECTOR_TONES[coverage.connector.state],
       state: t(`coverage.connector.${coverage.connector.state}`),
-      detail: coverage.connector.last_heartbeat_at ? t('coverage.connector.detail_heartbeat', { time: dateTime(coverage.connector.last_heartbeat_at) }) : null,
+      detail: coverage.connector.last_heartbeat_at
+        ? t('coverage.connector.detail_heartbeat', { time: dateTime(coverage.connector.last_heartbeat_at) })
+        : coverage.connector.last_sync_at
+          ? t('coverage.connector.detail_sync', { time: dateTime(coverage.connector.last_sync_at) })
+          : null,
     },
     {
       key: 'money',

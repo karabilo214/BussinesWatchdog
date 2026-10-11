@@ -33,10 +33,10 @@ const loading = ref(true);
 const loadError = ref<unknown>(null);
 const actionError = ref<unknown>(null);
 const busy = ref(false);
-const method = ref<VerificationMethod>(props.store.coverage.connector.state === 'not_connected' ? 'dns' : 'plugin_challenge');
+const method = ref<VerificationMethod>(props.store.coverage.connector.provider === 'woocommerce' && props.store.coverage.connector.state !== 'not_connected' ? 'plugin_challenge' : 'dns');
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const connectorPresent = computed(() => props.store.coverage.connector.state !== 'not_connected');
+const connectorPresent = computed(() => props.store.coverage.connector.provider === 'woocommerce' && props.store.coverage.connector.state !== 'not_connected');
 const verified = computed(() => props.store.verified_at !== null);
 const pending = computed(() => verification.value?.state === 'pending');
 const reasonKey = computed(() => {
@@ -170,6 +170,7 @@ void load();
       <ErrorNotice v-if="actionError" :error="actionError" />
 
       <form v-if="canManage" class="flex flex-col gap-3" @submit.prevent="start">
+        <p class="rounded-md border border-note-border bg-note-soft px-3 py-2 text-sm" data-api-key-hint>{{ $t('store.verification.api_key_hint') }}</p>
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-1 text-sm font-medium">{{ pending ? $t('store.verification.restart') : $t('store.verification.choose') }}</legend>
           <label class="flex items-start gap-2 text-sm" :class="{ 'text-text-muted': !connectorPresent }">

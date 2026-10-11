@@ -10,7 +10,7 @@ import { INTEGRATION_TONES, providerName } from './integrationTones';
 
 const POLL_MS = 15_000;
 
-const props = defineProps<{ storeId: string; canManage: boolean }>();
+const props = withDefaults(defineProps<{ storeId: string; canManage: boolean; apiActive?: boolean }>(), { apiActive: false });
 const emit = defineEmits<{ changed: [] }>();
 const { dateTime } = useFormat();
 
@@ -24,7 +24,7 @@ const confirmingRevoke = ref<string | null>(null);
 const revoking = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const connectors = computed(() => integrations.value.filter((integration) => integration.source_authority === 'store_reported'));
+const connectors = computed(() => integrations.value.filter((integration) => integration.provider === 'woocommerce'));
 const liveConnectors = computed(() => connectors.value.filter((integration) => integration.status !== 'revoked' && integration.status !== 'disabled'));
 
 async function load(): Promise<void> {
@@ -92,17 +92,15 @@ void load();
 </script>
 
 <template>
-  <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="connector-title" data-panel="connector">
-    <div class="flex flex-col gap-1">
-      <h2 id="connector-title" class="text-lg font-semibold">{{ $t('store.connector.title') }}</h2>
-      <p class="max-w-3xl text-sm text-text-muted">{{ $t('store.connector.subtitle') }}</p>
-    </div>
+  <div class="flex flex-col gap-4" data-connector="plugin">
+    <p class="max-w-3xl text-sm text-text-muted">{{ $t('store.connector.subtitle') }}</p>
 
     <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
     <ErrorNotice v-else-if="loadError" :error="loadError" />
 
     <template v-else>
-      <p v-if="connectors.length === 0" class="text-sm text-text-muted">{{ $t('store.connector.none') }}</p>
+      <p v-if="connectors.length === 0 && apiActive" class="text-sm" data-other-source>{{ $t('store.connector.api_active') }}</p>
+      <p v-else-if="connectors.length === 0" class="text-sm text-text-muted">{{ $t('store.connector.none') }}</p>
 
       <ul v-else class="flex flex-col divide-y divide-border rounded-lg border border-border">
         <li v-for="integration in connectors" :key="integration.id" class="flex flex-col gap-3 p-4" :data-integration-id="integration.id">
@@ -160,7 +158,7 @@ void load();
       <p class="text-[13px] text-text-muted" role="status">{{ $t('store.connector.waiting') }}</p>
     </div>
 
-    <div v-if="canManage" class="flex flex-wrap items-center gap-3">
+    <div v-if="canManage && !apiActive" class="flex flex-wrap items-center gap-3">
       <button
         type="button"
         class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"
@@ -171,5 +169,5 @@ void load();
       </button>
       <span class="text-[13px] text-text-muted">{{ $t('store.connector.code_once') }}</span>
     </div>
-  </section>
+  </div>
 </template>

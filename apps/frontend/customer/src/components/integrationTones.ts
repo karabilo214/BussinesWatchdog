@@ -9,7 +9,7 @@ export const INTEGRATION_TONES: Record<IntegrationStatus, Tone> = {
   disabled: 'unknown',
 };
 
-const PROVIDER_NAMES: Record<string, string> = { woocommerce: 'WooCommerce', stripe: 'Stripe', paypal: 'PayPal' };
+const PROVIDER_NAMES: Record<string, string> = { woocommerce: 'WooCommerce', woocommerce_api: 'WooCommerce REST API', stripe: 'Stripe', paypal: 'PayPal' };
 
 export function providerName(provider: string): string {
   return PROVIDER_NAMES[provider] ?? provider;

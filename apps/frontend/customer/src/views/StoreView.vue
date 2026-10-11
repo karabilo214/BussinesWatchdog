@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { getStore } from '@/api/stores';
 import type { Store } from '@/api/types';
-import ConnectorPanel from '@/components/ConnectorPanel.vue';
+import OrderSource from '@/components/OrderSource.vue';
 import CoverageList from '@/components/CoverageList.vue';
 import PaymentProviders from '@/components/PaymentProviders.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
@@ -75,7 +75,7 @@ watch(
           <CoverageList :coverage="store.coverage" />
         </section>
 
-        <ConnectorPanel :store-id="store.id" :can-manage="canManageStores" @changed="load" />
+        <OrderSource :store-id="store.id" :can-manage="canManageStores" @changed="load" />
         <PaymentProviders :store-id="store.id" :can-manage="canManageStores" @changed="load" />
         <VerificationPanel :key="store.verified_at ?? 'unverified'" :store="store" :can-manage="canManageStores" @verified="load" />
         <StoreSettings :store="store" :can-manage="canManageStores" @updated="store = $event" @stale="load" />

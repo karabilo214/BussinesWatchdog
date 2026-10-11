@@ -21,6 +21,10 @@ export async function setPayPalWebhookId(integrationId: string, webhookId: strin
   return (await request<Integration>('PUT', `/api/v1/integrations/${encodeURIComponent(integrationId)}/webhook-id`, { body: { webhook_id: webhookId } })).data;
 }
 
+export async function connectWooCommerceApi(storeId: string, input: { consumer_key: string; consumer_secret: string }): Promise<Integration> {
+  return (await request<Integration>('POST', `/api/v1/stores/${encodeURIComponent(storeId)}/integrations/woocommerce-api`, { body: input })).data;
+}
+
 export function webhookUrl(integrationId: string): string {
   return `${window.location.origin}/api/v1/webhooks/stripe/${integrationId}`;
 }
