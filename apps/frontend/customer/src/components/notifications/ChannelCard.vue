@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { resendChannelCode, testChannel, updateChannel, verifyChannel } from '@/api/notifications';
-import type { NotificationChannel, Store } from '@/api/types';
+import type { NotificationChannel, Store, TelegramBinding } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
@@ -18,6 +18,7 @@ const email = ref('');
 const busy = ref(false);
 const error = ref<unknown>(null);
 const notice = ref<string | null>(null);
+const telegramBinding = ref<TelegramBinding | null>(null);
 const prefs = ref<InstanceType<typeof PreferencesForm> | null>(null);
 
 const state = computed(() => channelState(props.channel));
@@ -50,8 +51,25 @@ function verify(): Promise<void> {
   return act(() => verifyChannel(props.channel.id, code.value.trim()), 'notifications.channel.verified');
 }
 
-function resend(): Promise<void> {
-  return act(() => resendChannelCode(props.channel.id), 'notifications.channel.code_sent');
+async function resend(): Promise<void> {
+  busy.value = true;
+  error.value = null;
+  notice.value = null;
+  telegramBinding.value = null;
+
+  try {
+    const result = await resendChannelCode(props.channel.id);
+    if (result.method === 'telegram_code') {
+      telegramBinding.value = result;
+      notice.value = 'notifications.channel.telegram_code_ready';
+    } else {
+      notice.value = 'notifications.channel.code_sent';
+    }
+  } catch (caught) {
+    error.value = caught;
+  } finally {
+    busy.value = false;
+  }
 }
 
 function toggle(): Promise<void> {
@@ -99,7 +117,7 @@ function changeAddress(): Promise<void> {
     </p>
     <p v-else-if="channel.health.last_success_at" class="text-[13px] text-text-muted">{{ $t('notifications.channel.last_success', { time: dateTime(channel.health.last_success_at) }) }}</p>
 
-    <form v-if="state === 'unverified'" class="flex flex-col gap-2 rounded-lg border border-warn-border bg-warn-soft p-4" @submit.prevent="verify">
+    <form v-if="state === 'unverified' && channel.kind === 'email'" class="flex flex-col gap-2 rounded-lg border border-warn-border bg-warn-soft p-4" @submit.prevent="verify">
       <label :for="`code-${channel.id}`" class="text-sm font-medium">{{ $t('notifications.channel.code_label') }}</label>
       <div class="flex flex-wrap gap-2">
         <input
@@ -119,6 +137,19 @@ function changeAddress(): Promise<void> {
       </div>
       <p class="text-[13px] text-text-muted">{{ $t('notifications.channel.code_hint') }}</p>
     </form>
+
+    <div v-else-if="state === 'unverified'" class="flex flex-col gap-2 rounded-lg border border-warn-border bg-warn-soft p-4">
+      <p class="text-sm font-medium">{{ $t('notifications.channel.telegram_waiting') }}</p>
+      <p class="text-[13px] text-text-muted">{{ $t('notifications.channel.telegram_hint') }}</p>
+      <p v-if="telegramBinding" class="w-fit rounded-md border border-warn-border bg-surface px-3 py-2 font-mono text-base font-semibold tracking-widest">
+        {{ telegramBinding.binding_code }}
+      </p>
+      <div>
+        <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" @click="resend">
+          {{ $t('notifications.channel.resend') }}
+        </button>
+      </div>
+    </div>
 
     <div class="flex flex-wrap gap-2">
       <button
@@ -142,7 +173,7 @@ function changeAddress(): Promise<void> {
       <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft" :aria-expanded="mode === 'settings'" @click="mode = mode === 'settings' ? 'idle' : 'settings'">
         {{ $t('notifications.channel.settings') }}
       </button>
-      <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft" :aria-expanded="mode === 'address'" @click="mode = mode === 'address' ? 'idle' : 'address'; email = ''">
+      <button v-if="channel.kind === 'email'" type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft" :aria-expanded="mode === 'address'" @click="mode = mode === 'address' ? 'idle' : 'address'; email = ''">
         {{ $t('notifications.channel.change_address') }}
       </button>
     </div>

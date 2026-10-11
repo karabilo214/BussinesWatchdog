@@ -6,6 +6,7 @@ use App\Support\Network\DnsClient;
 use App\Support\Network\SystemDnsClient;
 use App\Support\Notifications\Channels\EmailNotificationSender;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
+use App\Support\Notifications\Channels\TelegramNotificationSender;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DnsClient::class, SystemDnsClient::class);
         $this->app->singleton(NotificationSenderRegistry::class, fn ($app): NotificationSenderRegistry => new NotificationSenderRegistry([
             $app->make(EmailNotificationSender::class),
+            $app->make(TelegramNotificationSender::class),
         ]));
     }
 

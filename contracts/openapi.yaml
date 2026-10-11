@@ -2037,6 +2037,37 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/webhooks/telegram/bind:
+    post:
+      tags: [Notifications]
+      operationId: bindTelegramNotificationChannel
+      description: Called by the Telegram bot gateway after a user sends the binding code from the target chat. Requires X-Business-Watchdog-Telegram-Secret.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [binding_code, chat_id]
+              properties:
+                binding_code: {type: string, pattern: "^[0-9]{6}$"}
+                chat_id: {type: string, maxLength: 64}
+                chat_title: {type: [string, "null"], maxLength: 120}
+      responses:
+        "200":
+          description: Telegram chat bound to the pending channel
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [channel_id, tenant_id, status]
+                properties:
+                  channel_id: {type: string, format: uuid}
+                  tenant_id: {type: string, format: uuid}
+                  status: {const: bound}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/notification-channels:
     get:
       tags: [Notifications]
@@ -2061,7 +2092,7 @@ paths:
       operationId: createNotificationChannel
       security:
         - {UserSession: []}
-      description: Telegram is rejected until P1.
+      description: Email channels return a verification descriptor; Telegram channels return a one-time binding code for the bot.
       parameters:
         - {$ref: "#/components/parameters/IdempotencyKey"}
         - {$ref: "#/components/parameters/CsrfToken"}
@@ -2074,26 +2105,33 @@ paths:
               additionalProperties: false
               required: [kind, label]
               properties:
-                kind: {enum: [email]}
+                kind: {enum: [email, telegram]}
                 label: {type: string, minLength: 1, maxLength: 100}
                 destination_email: {type: string, format: email, maxLength: 254}
                 preferences: {$ref: "#/components/schemas/NotificationPreferences"}
       responses:
         "201":
-          description: Created; a 6-digit code was sent to the address
+          description: Created; email sends a 6-digit code, Telegram returns the bot binding code
           content:
             application/json:
               schema:
                 allOf:
                   - {$ref: "#/components/schemas/NotificationChannel"}
                   - type: object
-                    required: [verification]
                     properties:
                       verification:
                         type: object
                         required: [method, expires_in_seconds]
                         properties:
                           method: {const: email_code}
+                          expires_in_seconds: {type: integer}
+                      binding:
+                        type: object
+                        required: [method, binding_code, expires_in_seconds]
+                        properties:
+                          method: {const: telegram_code}
+                          binding_code: {type: string, pattern: "^[0-9]{6}$"}
+                          bot_username: {type: [string, "null"]}
                           expires_in_seconds: {type: integer}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}

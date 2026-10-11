@@ -45,15 +45,24 @@ class NotificationChannelController extends Controller
         $tenant = $this->tenant($tenantContext, 'create notification channel');
         $validated = $request->validated();
 
-        if ($validated['kind'] !== NotificationChannel::KIND_EMAIL) {
-            return $this->rejected(new NotificationChannelRejected('channel_kind_not_supported_yet'));
-        }
-
         if ($this->bypassRequestedByNonOwner($request, $validated, $tenant)) {
             return $this->rejected(new NotificationChannelRejected('critical_bypass_requires_owner'), 403);
         }
 
         try {
+            if ($validated['kind'] === NotificationChannel::KIND_TELEGRAM) {
+                [$channel, $code] = $this->service->createTelegramChannel(
+                    $tenant,
+                    $validated['label'],
+                    $validated['preferences'] ?? [],
+                    $request->user()?->id,
+                );
+
+                return response()->json(array_merge($this->channelDto->toArray($channel, $tenant), [
+                    'binding' => $this->telegramBindingPayload($code),
+                ]), 201);
+            }
+
             $channel = $this->service->createEmailChannel(
                 $tenant,
                 $validated['label'],
@@ -80,6 +89,10 @@ class NotificationChannelController extends Controller
         abort_unless($notificationChannel->tenant_id === $tenant->id, 404);
 
         $validated = $request->validated();
+
+        if ($notificationChannel->kind === NotificationChannel::KIND_TELEGRAM && array_key_exists('destination_email', $validated)) {
+            return $this->rejected(new NotificationChannelRejected('telegram_destination_is_bound_by_bot'));
+        }
 
         if ($this->bypassRequestedByNonOwner($request, $validated, $tenant)) {
             return $this->rejected(new NotificationChannelRejected('critical_bypass_requires_owner'), 403);
@@ -116,15 +129,46 @@ class NotificationChannelController extends Controller
         abort_unless($notificationChannel->tenant_id === $tenant->id, 404);
 
         try {
-            $this->service->resendVerification($notificationChannel, $tenant, $request->user()?->id);
+            [$channel, $code] = $this->service->resendVerification($notificationChannel, $tenant, $request->user()?->id);
         } catch (NotificationChannelRejected $exception) {
             return $this->rejected($exception);
+        }
+
+        if ($channel->kind === NotificationChannel::KIND_TELEGRAM) {
+            return response()->json($this->telegramBindingPayload($code), 202);
         }
 
         return response()->json([
             'method' => 'email_code',
             'expires_in_seconds' => NotificationChannelVerification::TTL_MINUTES * 60,
         ], 202);
+    }
+
+    public function bindTelegram(Request $request): JsonResponse
+    {
+        $secret = (string) config('services.telegram.webhook_secret');
+
+        if ($secret === '' || ! hash_equals($secret, (string) $request->header('X-Business-Watchdog-Telegram-Secret'))) {
+            return response()->json(['code' => 'telegram_webhook_unauthorized', 'message' => 'telegram_webhook_unauthorized'], 401);
+        }
+
+        $validated = $request->validate([
+            'binding_code' => ['required', 'string', 'regex:/^\d{6}$/'],
+            'chat_id' => ['required', 'string', 'max:64'],
+            'chat_title' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        try {
+            $channel = $this->service->bindTelegram($validated['binding_code'], $validated['chat_id'], $validated['chat_title'] ?? null);
+        } catch (NotificationChannelRejected $exception) {
+            return $this->rejected($exception);
+        }
+
+        return response()->json([
+            'channel_id' => $channel->id,
+            'tenant_id' => $channel->tenant_id,
+            'status' => 'bound',
+        ]);
     }
 
     public function test(NotificationChannel $notificationChannel, TenantContext $tenantContext): JsonResponse
@@ -169,5 +213,18 @@ class NotificationChannelController extends Controller
             'code' => $exception->reasonCode,
             'message' => $exception->getMessage(),
         ], $status ?? $exception->httpStatus());
+    }
+
+    /**
+     * @return array{method: string, binding_code: string, bot_username: string|null, expires_in_seconds: int}
+     */
+    private function telegramBindingPayload(string $code): array
+    {
+        return [
+            'method' => 'telegram_code',
+            'binding_code' => $code,
+            'bot_username' => config('services.telegram.bot_username'),
+            'expires_in_seconds' => NotificationChannelVerification::TTL_MINUTES * 60,
+        ];
     }
 }

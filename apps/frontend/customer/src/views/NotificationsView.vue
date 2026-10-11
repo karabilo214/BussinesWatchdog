@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { createEmailChannel, listChannels } from '@/api/notifications';
+import { createEmailChannel, createTelegramChannel, listChannels } from '@/api/notifications';
 import { listStores } from '@/api/stores';
-import type { Locale, NotificationChannel, NotificationPreferences, Store } from '@/api/types';
+import type { Locale, NotificationChannel, NotificationPreferences, Store, TelegramBinding } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import ChannelCard from '@/components/notifications/ChannelCard.vue';
 import DeliveriesLog from '@/components/notifications/DeliveriesLog.vue';
@@ -20,11 +20,12 @@ const stores = ref<Store[]>([]);
 const loading = ref(true);
 const error = ref<unknown>(null);
 const adding = ref(false);
-const form = reactive({ label: '', email: '' });
+const form = reactive({ kind: 'email' as 'email' | 'telegram', label: '', email: '' });
 const creating = ref(false);
 const createError = ref<unknown>(null);
 const prefs = ref<InstanceType<typeof PreferencesForm> | null>(null);
 const refreshKey = ref(0);
+const telegramBinding = ref<(TelegramBinding & { label: string }) | null>(null);
 
 const isOwner = computed(() => role.value === 'owner');
 const defaults = computed<NotificationPreferences>(() => ({
@@ -36,7 +37,7 @@ const defaults = computed<NotificationPreferences>(() => ({
   notify_recovery: true,
   store_ids: null,
 }));
-const formValid = computed(() => form.label.trim() !== '' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()));
+const formValid = computed(() => form.label.trim() !== '' && (form.kind === 'telegram' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())));
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -63,8 +64,19 @@ async function create(): Promise<void> {
   createError.value = null;
 
   try {
-    const channel = await createEmailChannel(form.label.trim(), form.email.trim(), prefs.value?.value() ?? {});
-    channels.value = [...channels.value, channel];
+    const preferences = prefs.value?.value() ?? {};
+
+    if (form.kind === 'telegram') {
+      const channel = await createTelegramChannel(form.label.trim(), preferences);
+
+      channels.value = [...channels.value, channel];
+      telegramBinding.value = { ...channel.binding, label: channel.label };
+    } else {
+      const channel = await createEmailChannel(form.label.trim(), form.email.trim(), preferences);
+
+      channels.value = [...channels.value, channel];
+      telegramBinding.value = null;
+    }
     adding.value = false;
     form.label = '';
     form.email = '';
@@ -109,20 +121,36 @@ if (canManageStores.value) {
 
       <p v-if="!canManageStores" class="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm">{{ $t('notifications.read_only') }}</p>
 
+      <div v-if="telegramBinding" class="rounded-xl border border-primary bg-primary-soft p-4 text-sm" data-telegram-binding>
+        <p class="font-semibold text-primary">{{ $t('notifications.telegram.ready', { label: telegramBinding.label }) }}</p>
+        <p class="mt-1 text-text-muted">{{ $t('notifications.telegram.instruction', { bot: telegramBinding.bot_username ? `@${telegramBinding.bot_username}` : $t('notifications.telegram.bot') }) }}</p>
+        <p class="mt-3 inline-flex rounded-md border border-primary bg-surface px-3 py-2 font-mono text-lg font-semibold tracking-widest text-text">
+          {{ telegramBinding.binding_code }}
+        </p>
+      </div>
+
       <form v-if="adding" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" novalidate @submit.prevent="create" data-panel="new-channel">
         <h2 class="text-lg font-semibold">{{ $t('notifications.new.title') }}</h2>
+        <div class="inline-flex w-fit rounded-md border border-border-strong bg-surface-muted p-1">
+          <button type="button" class="rounded px-3 py-1.5 text-sm font-medium" :class="form.kind === 'email' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted'" @click="form.kind = 'email'">
+            {{ $t('notifications.new.email_tab') }}
+          </button>
+          <button type="button" class="rounded px-3 py-1.5 text-sm font-medium" :class="form.kind === 'telegram' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted'" @click="form.kind = 'telegram'">
+            {{ $t('notifications.new.telegram_tab') }}
+          </button>
+        </div>
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="flex flex-col gap-1.5 text-sm font-medium">
             {{ $t('notifications.new.label') }}
             <input v-model="form.label" maxlength="100" :placeholder="$t('notifications.new.label_placeholder')" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base font-normal" />
           </label>
-          <label class="flex flex-col gap-1.5 text-sm font-medium">
+          <label v-if="form.kind === 'email'" class="flex flex-col gap-1.5 text-sm font-medium">
             {{ $t('notifications.new.email') }}
             <input v-model="form.email" type="email" autocomplete="email" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base font-normal" />
           </label>
         </div>
         <PreferencesForm ref="prefs" id-prefix="new" :preferences="defaults" :stores="stores" :is-owner="isOwner" />
-        <p class="text-[13px] text-text-muted">{{ $t('notifications.new.note') }}</p>
+        <p class="text-[13px] text-text-muted">{{ $t(form.kind === 'telegram' ? 'notifications.new.telegram_note' : 'notifications.new.note') }}</p>
         <ErrorNotice v-if="createError" :error="createError" />
         <div class="flex flex-wrap gap-2">
           <button type="submit" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="creating || !formValid">

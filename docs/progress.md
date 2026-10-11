@@ -1778,3 +1778,25 @@ Coordination:
 
 - Claude's Shopware Step 85 files were left unstaged; this step only touched customer frontend export helper/views and this progress entry.
 
+### Step 88: Telegram Notification Binding
+
+Status: complete (first backend/frontend slice)
+
+Updated:
+
+- Backend accepts `kind=telegram` notification channels as pending channels with a one-time 6-digit binding code, encrypted pending destination, masked destination output and normal tenant/idempotency/audit handling.
+- Added secret-protected `POST /api/v1/webhooks/telegram/bind` for the Telegram bot gateway: the code must come from the chat that will receive alerts, then the channel is verified/enabled and the encrypted destination becomes the Telegram chat id.
+- Added `TelegramNotificationSender` to the notification sender registry: it uses the configured Bot API token, maps Telegram 429/5xx/timeouts/permanent rejects into existing retry/dead-letter semantics, and keeps notification content PII-free through the existing renderer.
+- Customer frontend notifications screen now offers Email/Telegram recipient creation in the existing compact form style, shows the one-time Telegram code, supports reissuing an unverified Telegram code, hides email address changes for Telegram channels and keeps ru/en/de labels/error explanations in sync.
+- `contracts/openapi.yaml` and `spec/contracts/openapi.yaml` now document Telegram channel creation and the bot bind webhook; `contracts/ui-api-catalog.md`, `PROJECT_STATE.md` and `spec/ACCEPTANCE.md` were updated as evidence.
+
+Verification:
+
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Feature/Notifications/NotificationChannelApiTest.php tests/Feature/Contracts/OpenApiRoutesTest.php` — 16 passed.
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Feature/Notifications` — 29 passed.
+- Customer frontend: `npm run check -w @bw/customer` from `apps/frontend` — 90 tests passed and production build completed.
+
+Remaining gaps:
+
+- Real Telegram bot deployment/webhook registration and a live Telegram send were not tested in this slice.
+

@@ -91,7 +91,7 @@ describe('notification contract', () => {
 describe('ChannelCard', () => {
   it('confirms an unverified address with the mailed code and can ask for a new one', async () => {
     mocked.verifyChannel.mockResolvedValue(channel());
-    mocked.resendChannelCode.mockResolvedValue();
+    mocked.resendChannelCode.mockResolvedValue({ method: 'email_code', expires_in_seconds: 900 });
     const wrapper = mount(ChannelCard, { props: { channel: channel({ verified_at: null, enabled: false }), stores: [], isOwner: true }, global });
 
     expect(wrapper.get('[data-tone]').attributes('data-tone')).toBe('warn');
@@ -123,7 +123,7 @@ describe('ChannelCard', () => {
     mocked.testChannel.mockResolvedValue({} as never);
     const wrapper = mount(ChannelCard, { props: { channel: channel(), stores: [], isOwner: true }, global });
 
-    await wrapper.findAll('button').find((button) => button.text() === 'Отправить тестовое письмо')!.trigger('click');
+    await wrapper.findAll('button').find((button) => button.text() === 'Отправить тестовое уведомление')!.trigger('click');
     await flushPromises();
 
     expect(mocked.testChannel).toHaveBeenCalledWith('ch-1');

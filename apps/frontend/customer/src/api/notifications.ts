@@ -1,5 +1,5 @@
 import { newIdempotencyKey, request } from '@bw/api-client';
-import type { DeliveryStatus, NotificationChannel, NotificationDelivery, NotificationPreferences, Page } from './types';
+import type { DeliveryStatus, EmailVerification, NotificationChannel, NotificationDelivery, NotificationPreferences, Page, TelegramBinding } from './types';
 
 export async function listChannels(): Promise<NotificationChannel[]> {
   return (await request<{ data: NotificationChannel[] }>('GET', '/api/v1/notification-channels')).data.data;
@@ -9,6 +9,15 @@ export async function createEmailChannel(label: string, email: string, preferenc
   return (
     await request<NotificationChannel>('POST', '/api/v1/notification-channels', {
       body: { kind: 'email', label, destination_email: email, preferences },
+      idempotencyKey: newIdempotencyKey(),
+    })
+  ).data;
+}
+
+export async function createTelegramChannel(label: string, preferences: Partial<NotificationPreferences>): Promise<NotificationChannel & { binding: TelegramBinding }> {
+  return (
+    await request<NotificationChannel & { binding: TelegramBinding }>('POST', '/api/v1/notification-channels', {
+      body: { kind: 'telegram', label, preferences },
       idempotencyKey: newIdempotencyKey(),
     })
   ).data;
@@ -25,8 +34,8 @@ export async function verifyChannel(id: string, code: string): Promise<Notificat
   return (await request<NotificationChannel>('POST', `/api/v1/notification-channels/${encodeURIComponent(id)}/verify`, { body: { code } })).data;
 }
 
-export async function resendChannelCode(id: string): Promise<void> {
-  await request('POST', `/api/v1/notification-channels/${encodeURIComponent(id)}/verification-code`);
+export async function resendChannelCode(id: string): Promise<EmailVerification | TelegramBinding> {
+  return (await request<EmailVerification | TelegramBinding>('POST', `/api/v1/notification-channels/${encodeURIComponent(id)}/verification-code`)).data;
 }
 
 export async function testChannel(id: string): Promise<NotificationDelivery> {

@@ -508,6 +508,18 @@ export interface NotificationChannel {
   created_at: string;
 }
 
+export interface TelegramBinding {
+  method: 'telegram_code';
+  binding_code: string;
+  bot_username: string | null;
+  expires_in_seconds: number;
+}
+
+export interface EmailVerification {
+  method: 'email_code';
+  expires_in_seconds: number;
+}
+
 export type DeliveryStatus = 'queued' | 'sending' | 'sent' | 'uncertain' | 'failed' | 'dead_letter' | 'suppressed';
 
 export interface NotificationDelivery {

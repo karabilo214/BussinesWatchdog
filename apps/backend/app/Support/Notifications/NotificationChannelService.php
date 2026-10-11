@@ -63,6 +63,40 @@ class NotificationChannelService
     }
 
     /**
+     * @param  array<string, mixed>  $preferences
+     * @return array{0: NotificationChannel, 1: string}
+     */
+    public function createTelegramChannel(Tenant $tenant, string $label, array $preferences, ?string $actorId): array
+    {
+        $preferences = $this->normalizePreferences($tenant->id, $preferences);
+        $now = Carbon::now();
+        $encrypted = $this->keyring->encrypt(json_encode(['status' => 'pending'], JSON_THROW_ON_ERROR));
+
+        return DB::transaction(function () use ($tenant, $label, $encrypted, $preferences, $actorId, $now): array {
+            $channel = NotificationChannel::query()->create([
+                'tenant_id' => $tenant->id,
+                'kind' => NotificationChannel::KIND_TELEGRAM,
+                'destination_ciphertext' => $encrypted['ciphertext'],
+                'key_version' => $encrypted['key_version'],
+                'label' => $label,
+                'enabled' => false,
+                'preferences' => $preferences,
+                'health' => [],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            $code = $this->issueVerification($channel);
+            $this->audit($channel, $actorId, AuditLog::ACTION_NOTIFICATION_CHANNEL_CREATED, [
+                'kind' => NotificationChannel::KIND_TELEGRAM,
+                'label' => $label,
+            ]);
+
+            return [$channel, $code];
+        });
+    }
+
+    /**
      * @param  array<string, mixed>  $changes
      */
     public function update(NotificationChannel $channel, Tenant $tenant, array $changes, ?string $actorId): NotificationChannel
@@ -134,6 +168,10 @@ class NotificationChannelService
 
     public function verify(NotificationChannel $channel, string $code, ?string $actorId): NotificationChannel
     {
+        if ($channel->kind === NotificationChannel::KIND_TELEGRAM) {
+            throw new NotificationChannelRejected('telegram_bind_required');
+        }
+
         $result = DB::transaction(function () use ($channel, $code, $actorId): NotificationChannel|NotificationChannelRejected {
             /** @var NotificationChannel $locked */
             $locked = NotificationChannel::query()->whereKey($channel->id)->lockForUpdate()->firstOrFail();
@@ -192,7 +230,10 @@ class NotificationChannelService
     /**
      * New code to the address already saved on the channel (the previous code stops working).
      */
-    public function resendVerification(NotificationChannel $channel, Tenant $tenant, ?string $actorId): NotificationChannel
+    /**
+     * @return array{0: NotificationChannel, 1: string}
+     */
+    public function resendVerification(NotificationChannel $channel, Tenant $tenant, ?string $actorId): array
     {
         [$locked, $code] = DB::transaction(function () use ($channel, $actorId): array {
             /** @var NotificationChannel $locked */
@@ -218,9 +259,69 @@ class NotificationChannelService
             return [$locked, $code];
         });
 
-        $this->sendVerificationCode($locked, $this->keyring->decrypt($locked->destination_ciphertext, $locked->key_version), $code, $tenant);
+        if ($locked->kind === NotificationChannel::KIND_EMAIL) {
+            $this->sendVerificationCode($locked, $this->keyring->decrypt($locked->destination_ciphertext, $locked->key_version), $code, $tenant);
+        }
 
-        return $locked;
+        return [$locked, $code];
+    }
+
+    public function bindTelegram(string $code, string $chatId, ?string $chatTitle): NotificationChannel
+    {
+        $result = DB::transaction(function () use ($code, $chatId, $chatTitle): NotificationChannel|NotificationChannelRejected {
+            /** @var NotificationChannelVerification|null $verification */
+            $verification = NotificationChannelVerification::query()
+                ->whereNull('consumed_at')
+                ->where('created_at', '>=', Carbon::now()->subMinutes(NotificationChannelVerification::TTL_MINUTES))
+                ->orderByDesc('created_at')
+                ->lockForUpdate()
+                ->get()
+                ->first(fn (NotificationChannelVerification $candidate): bool => hash_equals($candidate->code_hash, $this->hashCode($code)));
+
+            if ($verification === null || $verification->expires_at->isPast()) {
+                return new NotificationChannelRejected('verification_code_expired');
+            }
+
+            /** @var NotificationChannel $channel */
+            $channel = NotificationChannel::query()
+                ->where('tenant_id', $verification->tenant_id)
+                ->whereKey($verification->channel_id)
+                ->where('kind', NotificationChannel::KIND_TELEGRAM)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($channel->verified_at !== null) {
+                return new NotificationChannelRejected('channel_already_verified');
+            }
+
+            $encrypted = $this->keyring->encrypt(json_encode([
+                'chat_id' => $chatId,
+                'chat_title' => $chatTitle,
+            ], JSON_THROW_ON_ERROR));
+            $now = Carbon::now();
+
+            $verification->forceFill(['consumed_at' => $now])->save();
+            $channel->forceFill([
+                'destination_ciphertext' => $encrypted['ciphertext'],
+                'key_version' => $encrypted['key_version'],
+                'verified_at' => $now,
+                'enabled' => true,
+                'updated_at' => $now,
+            ])->save();
+
+            $this->audit($channel, null, AuditLog::ACTION_NOTIFICATION_CHANNEL_VERIFIED, [
+                'telegram' => 'chat_bound',
+                'enabled' => ['from' => false, 'to' => true],
+            ]);
+
+            return $channel->refresh();
+        });
+
+        if ($result instanceof NotificationChannelRejected) {
+            throw $result;
+        }
+
+        return $result;
     }
 
     public function sendTest(NotificationChannel $channel, Tenant $tenant): NotificationDelivery
@@ -266,7 +367,21 @@ class NotificationChannelService
             return null;
         }
 
-        if ($channel->kind !== NotificationChannel::KIND_EMAIL || ! str_contains($destination, '@')) {
+        if ($channel->kind === NotificationChannel::KIND_TELEGRAM) {
+            try {
+                $payload = json_decode($destination, true, 8, JSON_THROW_ON_ERROR);
+            } catch (\Throwable) {
+                return 'Telegram ***';
+            }
+
+            $chatId = (string) ($payload['chat_id'] ?? '');
+
+            return $chatId === ''
+                ? 'Telegram: awaiting binding'
+                : 'Telegram chat ***'.mb_substr($chatId, -4);
+        }
+
+        if (! str_contains($destination, '@')) {
             return '***';
         }
 

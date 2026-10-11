@@ -6,7 +6,9 @@ use App\Mail\NotificationMessageMail;
 use App\Models\AuditLog;
 use App\Models\NotificationChannel;
 use App\Models\NotificationDelivery;
+use App\Support\Notifications\NotificationDeliveryWorker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -51,13 +53,81 @@ class NotificationChannelApiTest extends TestCase
         $this->assertSame(0, NotificationDelivery::query()->count());
     }
 
-    public function test_telegram_channels_are_rejected_until_binding_is_implemented(): void
+    public function test_telegram_channel_is_created_with_a_bot_binding_code_and_bound_by_the_bot(): void
     {
         $context = $this->context('owner');
+        config()->set('services.telegram.bot_username', 'BusinessWatchdogBot');
+        config()->set('services.telegram.webhook_secret', 'telegram-secret');
 
-        $this->createChannel($context, ['kind' => 'telegram', 'destination_email' => null])
-            ->assertStatus(422)
-            ->assertJsonPath('code', 'channel_kind_not_supported_yet');
+        $response = $this->createChannel($context, ['kind' => 'telegram', 'destination_email' => null]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('kind', 'telegram')
+            ->assertJsonPath('destination_masked', 'Telegram: awaiting binding')
+            ->assertJsonPath('enabled', false)
+            ->assertJsonPath('verified_at', null)
+            ->assertJsonPath('binding.method', 'telegram_code')
+            ->assertJsonPath('binding.bot_username', 'BusinessWatchdogBot');
+
+        $code = $response->json('binding.binding_code');
+        $channel = NotificationChannel::query()->firstOrFail();
+
+        $this->assertMatchesRegularExpression('/^\d{6}$/', $code);
+        $this->assertStringNotContainsString($code, $channel->getRawOriginal('destination_ciphertext'));
+        Mail::assertNothingSent();
+
+        $this->postJson('/api/v1/webhooks/telegram/bind', [
+            'binding_code' => $code,
+            'chat_id' => '-1001234567890',
+            'chat_title' => 'Ops Room',
+        ])->assertUnauthorized();
+
+        $this->withHeaders(['X-Business-Watchdog-Telegram-Secret' => 'telegram-secret'])
+            ->postJson('/api/v1/webhooks/telegram/bind', [
+                'binding_code' => $code,
+                'chat_id' => '-1001234567890',
+                'chat_title' => 'Ops Room',
+            ])
+            ->assertOk()
+            ->assertJsonPath('channel_id', $channel->id)
+            ->assertJsonPath('status', 'bound');
+
+        $this->asMember($context)->getJson('/api/v1/notification-channels')
+            ->assertOk()
+            ->assertJsonPath('data.0.destination_masked', 'Telegram chat ***7890')
+            ->assertJsonPath('data.0.enabled', true);
+    }
+
+    public function test_bound_telegram_channel_can_send_a_test_message(): void
+    {
+        $context = $this->context('owner');
+        config()->set('services.telegram.bot_token', 'bot-token');
+        config()->set('services.telegram.webhook_secret', 'telegram-secret');
+        Http::fake([
+            'api.telegram.org/*' => Http::response(['ok' => true, 'result' => ['message_id' => 321]], 200),
+        ]);
+
+        $code = $this->createChannel($context, ['kind' => 'telegram', 'destination_email' => null])->json('binding.binding_code');
+        $channel = NotificationChannel::query()->firstOrFail();
+
+        $this->withHeaders(['X-Business-Watchdog-Telegram-Secret' => 'telegram-secret'])
+            ->postJson('/api/v1/webhooks/telegram/bind', [
+                'binding_code' => $code,
+                'chat_id' => '1234567890',
+            ])->assertOk();
+
+        $this->asMember($context)->postJson("/api/v1/notification-channels/{$channel->id}/test")
+            ->assertStatus(202)
+            ->assertJsonPath('status', 'queued');
+
+        $totals = app(NotificationDeliveryWorker::class)->deliverDue();
+        $this->assertSame(1, $totals['sent']);
+        $this->assertDatabaseHas('notification_deliveries', [
+            'channel_id' => $channel->id,
+            'status' => NotificationDelivery::STATUS_SENT,
+            'provider_message_id' => '321',
+        ]);
     }
 
     public function test_verification_with_the_mailed_code_enables_the_channel(): void
