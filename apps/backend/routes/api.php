@@ -4,7 +4,9 @@ use App\Http\Controllers\Api\V1\Account\AccountController;
 use App\Http\Controllers\Api\V1\Account\MfaController;
 use App\Http\Controllers\Api\V1\Account\TeamController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Billing\BillingController;
 use App\Http\Controllers\Api\V1\Billing\EntitlementController;
+use App\Http\Controllers\Api\V1\Billing\PaddleWebhookController;
 use App\Http\Controllers\Api\V1\Checks\CheckRunController;
 use App\Http\Controllers\Api\V1\Checks\CheckScenarioController;
 use App\Http\Controllers\Api\V1\Exports\ExportController;
@@ -70,6 +72,8 @@ Route::post('/v1/shopware/app/{integration}/confirm', [ShopwareAppController::cl
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/shopware/app/{integration}/webhook', [ShopwareAppController::class, 'webhook'])
     ->middleware('throttle:provider-webhook');
+Route::post('/v1/webhooks/paddle', [PaddleWebhookController::class, 'store'])
+    ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/telegram/bind', [NotificationChannelController::class, 'bindTelegram'])
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/telegram/updates', [NotificationChannelController::class, 'telegramUpdate'])
@@ -121,6 +125,12 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::post('/integrations/{integration}/sync', [ProviderSyncController::class, 'sync'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationManage()), 'throttle:provider-sync']);
+    Route::post('/billing/checkout', [BillingController::class, 'checkout'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+    Route::get('/billing/checkouts/{checkout}', [BillingController::class, 'showCheckout'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+    Route::get('/billing/subscription', [BillingController::class, 'subscription'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
     Route::get('/entitlements', [EntitlementController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
     Route::get('/integrations', [IntegrationController::class, 'index'])

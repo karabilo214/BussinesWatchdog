@@ -97,6 +97,22 @@ return [
     'billing' => [
         'enforcement' => env('WATCHDOG_BILLING_ENFORCEMENT', 'pilot'),
         'past_due_grace_days' => 7,
+        'checkout_expires_hours' => 24,
+        'event_tolerance_seconds' => 300,
+        'event_max_attempts' => 10,
+        'paddle' => [
+            'environment' => env('PADDLE_ENVIRONMENT', 'sandbox'),
+            'api_key' => env('PADDLE_API_KEY', env('APP_ENV') === 'production' ? null : env('WATCHDOG_DEV_PADDLE_API_KEY')),
+            'client_token' => env('PADDLE_CLIENT_TOKEN', env('APP_ENV') === 'production' ? null : env('WATCHDOG_DEV_PADDLE_CLIENT_TOKEN')),
+            'webhook_secret' => env('PADDLE_WEBHOOK_SECRET', env('APP_ENV') === 'production' ? null : env('WATCHDOG_DEV_PADDLE_WEBHOOK_SECRET')),
+            'account_ref' => env('PADDLE_ACCOUNT_REF', 'default'),
+            'api_base_live' => 'https://api.paddle.com',
+            'api_base_sandbox' => 'https://sandbox-api.paddle.com',
+            'api_version' => '1',
+            'timeout_seconds' => 20,
+            'events_page_size' => 200,
+            'events_max_pages_per_run' => 10,
+        ],
     ],
 
     'shopware' => [

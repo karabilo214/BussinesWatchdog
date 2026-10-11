@@ -105,3 +105,13 @@ Schedule::command('stripe:sync --audit')
     ->timezone('UTC')
     ->withoutOverlapping(120)
     ->onOneServer();
+
+Schedule::command('billing:paddle-events')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
+Schedule::command('billing:process-events')
+    ->everyThirtySeconds()
+    ->withoutOverlapping(10)
+    ->onOneServer();

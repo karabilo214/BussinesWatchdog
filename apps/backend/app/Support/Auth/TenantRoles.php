@@ -26,6 +26,16 @@ class TenantRoles
     }
 
     /**
+     * Subscription purchase and billing documents: the tenant owner only (TZ §7, CLIENT-PANELS §4).
+     *
+     * @return list<string>
+     */
+    public static function billingManage(): array
+    {
+        return [self::OWNER];
+    }
+
+    /**
      * @return list<string>
      */
     public static function storeManage(): array

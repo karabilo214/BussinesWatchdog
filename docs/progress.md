@@ -1976,3 +1976,19 @@ Verification:
 - `tests/Feature/Billing/EntitlementsTest.php` — 14 tests.
 - Backend SQLite: 415 passed, 4 skipped. PostgreSQL 18: 419 of 419.
 
+### Step 98: Paddle Billing Adapter
+
+Status: complete in Paddle sandbox (owner decisions 6–8 of ADR 0030 pending)
+
+- ADR 0030. Migration `2026_10_11_190000_create_billing_provider_tables`: `billing_customers` (provider ref only, no profile), `billing_subscription_contracts`, `billing_checkout_sessions`, `billing_event_inbox`, `billing_sync_cursors`; `billing_prices.provider_product_ref`.
+- `App\Support\Billing\Paddle`: `PaddleClient` (pinned `Paddle-Version: 1`), `PaddleCatalogSync`, `PaddleCheckout` (local session first, provider call outside the DB transaction, own idempotency by tenant + key and request hash, supersedes pending sessions and cancels their transactions, one live contract per tenant), `PaddleSignature`, `PaddleEventRecorder` (sanitized inbox, duplicate/conflict by event id + payload hash), `PaddleEventPuller` (event log in id order, cursor two minutes behind), `PaddleEventProcessor` (lease, backoff, dead letter, quarantine), `PaddleSubscriptionSync` (current subscription from Paddle, link only via a server-created `origin: api` transaction of our checkout, freshness by `updated_at`, unknown prices -> `unknown` contract without access change). Provider-neutral `SubscriptionProjector` writes the tenant's `subscriptions` row.
+- API: `POST /api/v1/billing/checkout`, `GET /api/v1/billing/checkouts/{id}`, `GET /api/v1/billing/subscription` (owner only, `TenantRoles::billingManage`), `POST /api/v1/webhooks/paddle`. OpenAPI (both copies).
+- Commands: `billing:paddle-catalog`, `billing:paddle-events` (every minute), `billing:process-events` (every 30 s); `billing:seed-placeholder-plans --test-prices`.
+- Real Paddle sandbox: catalog created (Start/Pro base and extra-store prices), checkout through the service, payment with Paddle's test card through Paddle.js in Playwright, events pulled from the event log, subscription projected (`start`, active, 2 extra stores -> 3 stores), checkout confirmed, scheduled cancellation projected as `cancel_at_period_end`. Spike transactions created by hand were quarantined as not linked. A real webhook delivery was not tested (needs a public URL).
+- Found on PostgreSQL with real data: non-UUID custom data crashed the session lookup — now validated, and any unexpected processing error retries and then dead-letters instead of blocking the inbox.
+
+Verification:
+
+- `tests/Feature/Billing/PaddleBillingTest.php` — 14 tests (HTTP faked).
+- Backend SQLite: 429 passed, 4 skipped. PostgreSQL 18: 433 of 433.
+

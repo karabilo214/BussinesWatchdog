@@ -1323,6 +1323,94 @@ paths:
         "410": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/checkout:
+    post:
+      tags: [Billing]
+      operationId: createBillingCheckout
+      description: "Tenant owner only. Starts a purchase of a base price (and optionally extra stores of the same plan version, interval and currency) through the billing provider (Paddle, ADR 0030). The amount comes from our stored price, never from the request. A local session is written first; the provider transaction is created outside the database transaction, a lost answer leaves the session `unknown` (resolved later from provider events). Repeating the same Idempotency-Key returns the same session; a different body with the same key is 409. Opening the provider checkout never grants access: paid access comes only from the provider's verified subscription state."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [price_id]
+              properties:
+                price_id: {type: string, format: uuid, description: A base price}
+                extra_stores: {type: integer, minimum: 0, maximum: 1000, default: 0}
+      responses:
+        "202":
+          description: Checkout session
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/BillingCheckout"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "503": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/checkouts/{checkout_id}:
+    get:
+      tags: [Billing]
+      operationId: getBillingCheckout
+      description: Tenant owner only. The browser returning from the provider never grants paid access; poll this until `confirmed`.
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: checkout_id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Checkout session
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/BillingCheckout"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/subscription:
+    get:
+      tags: [Billing]
+      operationId: getBillingSubscription
+      description: Tenant owner only. Billing status (from the provider) and access state (from the entitlement calculator) are reported separately.
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Current subscription projection
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/BillingSubscription"}
+        "204": {description: No trial or paid subscription yet; the client shows onboarding}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+  /api/v1/webhooks/paddle:
+    post:
+      tags: [Billing]
+      operationId: receivePaddleWebhook
+      description: "Called by Paddle. `Paddle-Signature: ts=…;h1=…` is HMAC-SHA256 of `ts:raw body` with the destination secret (tolerance 300 s). The event is stored in the billing inbox with only ids, states, price ids and quantities, periods, totals and our custom data (no names, emails, addresses or payment details) and acknowledged; `billing:process-events` reads the affected subscription from Paddle and projects it. The same event id with the same content is a duplicate; with different content a conflict (kept, not applied)."
+      security: []
+      parameters:
+        - {name: Paddle-Signature, in: header, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object}
+      responses:
+        "200":
+          description: Received
+          content:
+            application/json:
+              schema: {type: object, required: [received, outcome], properties: {received: {const: true}, outcome: {enum: [stored, duplicate, conflict]}}}
+        "400": {description: Signature or payload invalid}
+        "409": {description: No webhook secret configured}
+        "429": {$ref: "#/components/responses/Problem"}
   /api/v1/entitlements:
     get:
       tags: [Billing]
@@ -2995,6 +3083,55 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    BillingCheckout:
+      type: object
+      additionalProperties: false
+      required: [id, status, error_code, expires_at, extra_store_quantity, access_state, provider_checkout]
+      properties:
+        id: {type: string, format: uuid}
+        status: {enum: [creating, pending, requires_action, confirmed, failed, cancelled, expired, unknown]}
+        error_code: {type: [string, "null"]}
+        expires_at: {type: string, format: date-time}
+        extra_store_quantity: {type: integer, minimum: 0}
+        access_state: {type: string}
+        provider_checkout:
+          description: What the browser needs to open the provider's checkout (Paddle.js); null unless the session is pending and not expired.
+          oneOf:
+            - {type: "null"}
+            - type: object
+              additionalProperties: false
+              required: [provider, environment, client_token, transaction_id]
+              properties:
+                provider: {const: paddle}
+                environment: {enum: [sandbox, production]}
+                client_token: {type: string, description: Paddle client-side token (public by design)}
+                transaction_id: {type: string}
+    BillingSubscription:
+      type: object
+      additionalProperties: false
+      required: [id, tenant_id, provider, plan_code, plan_version_id, status, access_state, access_reason_codes, paid_until, trial_ends_at, grace_until, period_end, cancel_at_period_end, extra_store_quantity, version, entitlements]
+      properties:
+        id: {type: string, format: uuid}
+        tenant_id: {type: string, format: uuid}
+        provider: {type: string}
+        plan_code: {type: string}
+        plan_version_id: {type: [string, "null"], format: uuid}
+        status: {enum: [trial, active, past_due, suspended, cancelled]}
+        access_state: {type: string}
+        access_reason_codes: {type: array, items: {type: string}}
+        paid_until: {type: [string, "null"], format: date-time}
+        trial_ends_at: {type: [string, "null"], format: date-time}
+        grace_until: {type: [string, "null"], format: date-time}
+        period_end: {type: [string, "null"], format: date-time}
+        cancel_at_period_end: {type: boolean}
+        extra_store_quantity: {type: integer, minimum: 0}
+        version: {type: integer, minimum: 1}
+        entitlements:
+          type: object
+          required: [features, limits]
+          properties:
+            features: {type: array, items: {type: string}}
+            limits: {type: object, additionalProperties: {type: [integer, "null"]}}
     Entitlements:
       type: object
       additionalProperties: false

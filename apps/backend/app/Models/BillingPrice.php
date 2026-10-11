@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BillingPrice extends Model
 {
@@ -16,10 +17,15 @@ class BillingPrice extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['plan_version_id', 'provider', 'provider_account_ref', 'provider_price_ref', 'price_kind', 'mode', 'currency', 'currency_exponent', 'amount_minor', 'billing_interval', 'tax_behavior', 'state', 'created_at'];
+    protected $fillable = ['plan_version_id', 'provider', 'provider_account_ref', 'provider_price_ref', 'price_kind', 'mode', 'currency', 'currency_exponent', 'amount_minor', 'billing_interval', 'tax_behavior', 'state', 'provider_product_ref', 'created_at'];
 
     protected function casts(): array
     {
         return ['currency_exponent' => 'integer', 'amount_minor' => 'integer', 'created_at' => 'datetime'];
+    }
+
+    public function planVersion(): BelongsTo
+    {
+        return $this->belongsTo(BillingPlanVersion::class, 'plan_version_id');
     }
 }
