@@ -1674,3 +1674,11 @@ Coordination:
 
 - Shopware 6 spike/connector/screen work remains Claude-owned; no Shopware plugin/app/connector files were touched.
 
+### Step 81: Shopware Decisions and Spike Part 2 (ADR 0025)
+
+Status: complete
+
+- Owner accepted: Integration first with a PayPal-style warning, App later, read-only not verifiable for an Integration, responsible disclosure to Shopware (the owner sends the report), supported versions 6.6 and 6.7.
+- Spike part 1 repeated on Shopware 6.6.10.6: identical results. The generic state-machine route checks the update privilege while the order/transaction/delivery routes do not (delivery shipped with the read-only key) — added to `verify_acl.py`.
+- SwagPayPal 10.8.5 source: capture id, PayPal order id and sandbox flag in the order transaction's custom fields; refunds leave only the transaction state (no amount, no id) in Shopware — reconciliation model to be decided with the connector.
+

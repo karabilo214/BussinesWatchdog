@@ -25,3 +25,8 @@ r4 = s.call('POST', '/api/_action/sync', token, [{'action': 'upsert', 'entity': 
 s.out('read key: _action/sync upsert order', s.error_code(r4))
 r5 = s.call('POST', f"/api/_action/order/{order['id']}/document/invoice", token, {})
 s.out('read key: create invoice document', s.error_code(r5))
+generic = s.call('POST', f"/api/_action/state-machine/order/{order['id']}/state/complete", token, {})
+s.out('read key: generic state-machine route (checks the update privilege)', s.error_code(generic))
+deliveries = s.call('POST', '/api/search/order-delivery', admin, {'filter': [{'type': 'equals', 'field': 'orderId', 'value': order['id']}]})['json']['data']
+if deliveries:
+    s.out('read key: delivery -> ship', s.error_code(s.call('POST', f"/api/_action/order_delivery/{deliveries[0]['id']}/state/ship", token, {})))
