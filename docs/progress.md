@@ -1541,6 +1541,76 @@ Status: complete
 - Release: `bin/build-release.sh` (package without tests, PHP 7.4 lint), `tests/matrix/release-checks.sh` on the shipped ZIP — 27 checks PASS on floor and latest (upgrade/rollback, checkout with the service unreachable, switches, no WooCommerce, offline deactivation and repeated uninstall).
 - Tests: plugin integration floor/latest 48/48; backend new freshness test.
 
+### Step 74: Acceptance Evidence Refresh
+
+Status: complete for documentation evidence refresh
+
+Updated:
+
+- `spec/ACCEPTANCE.md`: replaced the original "all not done" package snapshot with live statuses `done` / `partial` / `not_done`, evidence pointers and remaining gaps for ACC-01..ACC-50.
+- `spec/PANELS-ACCEPTANCE.md`: replaced the original "all not done" note with live EXT-01..EXT-29 status/evidence, making clear that customer cabinet/MFA/team/i18n are partly implemented while SaaS billing/platform/support-grants remain mostly specification-only.
+- `PROJECT_STATE.md`: bumped the recovery marker to Step 74 and noted the acceptance evidence update.
+
+Verification:
+
+- Documentation-only change. No backend/frontend/plugin tests were run.
+
+Coordination:
+
+- WooCommerce REST API spike files currently belong to Claude's parallel work and were not touched.
+
+### Step 75: Findings and Incidents CSV Exports
+
+Status: complete for the first export slice
+
+Added:
+
+- Backend `exports` table and `ExportFile` model, separate from browser `artifacts`.
+- `POST /api/v1/stores/{store}/exports`, `GET /api/v1/exports/{id}`, `GET /api/v1/exports/{id}/download`.
+- CSV exports for `findings` and `incidents`, scoped by tenant/store and current filters. Amounts remain minor-unit strings; null stays empty, not zero.
+- Private object storage on the configured export disk, 7-day retention default, idempotency on creation, and CSV formula-injection protection for generated cells.
+- Customer app buttons on reconciliation and incident list screens to create/download CSV with the active filters; ru/en/de labels.
+- OpenAPI contract updated in both `contracts/` and `spec/contracts/`; UI catalog and acceptance evidence updated.
+
+Verification:
+
+- Backend targeted: `php artisan test tests/Feature/Exports/ExportApiTest.php tests/Feature/Contracts/OpenApiRoutesTest.php` — 5 passed.
+- Backend full SQLite suite: `php artisan test` — 364 tests, 360 passed, 4 skipped.
+- Customer frontend: `npm run check -w @bw/customer` — 80 tests passed and production build completed.
+
+Remaining:
+
+- Transaction exports, billing/private invoice exports, async export worker/retry, and frontend smoke coverage.
+- PostgreSQL test suite not rerun for this slice.
+
+Coordination:
+
+- Claude's WooCommerce REST API spike files under `plugins/woocommerce-watchdog/tests/matrix/rest-api-spike-*` were not touched.
+
+### Step 77: Export Retention Purge
+
+Status: complete for scheduled cleanup of generated CSV exports
+
+Added:
+
+- `CsvExportService::purgeExpired()` deletes the private object first and then marks the `exports` row `deleted`, mirroring the browser artifact retention pattern.
+- New `exports:purge` artisan command with `--limit`, scheduled daily at 03:25 UTC with overlap protection.
+- Export UI placement corrected to match the existing customer app style: CSV actions live in the page toolbar next to tabs/actions, not inside filter controls.
+
+Verification:
+
+- PHP lint: `PurgeExports.php`, `CsvExportService.php`, `ExportApiTest.php`.
+- Backend targeted: `php artisan test tests/Feature/Exports/ExportApiTest.php tests/Feature/Contracts/OpenApiRoutesTest.php` — 7 passed.
+- Customer frontend after the style correction: `npm run check -w @bw/customer` from `apps/frontend` — 80 tests passed and production build completed.
+
+Remaining:
+
+- Transaction exports, billing/private invoice exports, async export worker/retry, frontend smoke coverage, and PostgreSQL suite rerun.
+
+Coordination:
+
+- WooCommerce REST API connector/spike work remains Claude-owned; only shared `routes/console.php` was touched to add `exports:purge` next to `artifacts:purge`.
+
 ### Step 76: WooCommerce REST API Connector (ADR 0024)
 
 Status: complete (backend); dashboard screen next; assumptions await owner review

@@ -1348,6 +1348,104 @@ paths:
                   next_cursor: {type: [string, "null"]}
         "401": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/exports:
+    post:
+      tags: [Exports]
+      operationId: createExport
+      security:
+        - {UserSession: []}
+      description: Creates a private CSV export for one store. The first implementation completes synchronously and stores a private object; clients still poll the returned export id.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IdempotencyKey"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [kind, format]
+              properties:
+                kind: {enum: [findings, incidents]}
+                format: {enum: [csv]}
+                filters:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    from: {type: string, format: date-time}
+                    to: {type: string, format: date-time}
+                    current: {type: boolean}
+                    status: {enum: [ok, pending, mismatch, unsupported, unknown]}
+                    rule_code: {type: string, maxLength: 64}
+                    state:
+                      oneOf:
+                        - {type: string, pattern: "^(open|acknowledged|resolved)(,(open|acknowledged|resolved)){0,2}$"}
+                        - type: array
+                          minItems: 1
+                          maxItems: 3
+                          items: {enum: [open, acknowledged, resolved]}
+                    severity: {enum: [info, warning, critical]}
+                    family: {type: string, maxLength: 64}
+                    currency: {type: string, pattern: "^[A-Z]{3}$"}
+      responses:
+        "202":
+          description: Export accepted; state is usually ready in the current synchronous implementation
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Export"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/exports/{export_id}:
+    get:
+      tags: [Exports]
+      operationId: getExport
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: export_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Tenant-scoped export metadata
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Export"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/exports/{export_id}/download:
+    get:
+      tags: [Exports]
+      operationId: downloadExport
+      security:
+        - {UserSession: []}
+      parameters:
+        - name: export_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Private CSV download; role and tenant checked at request time
+          content:
+            text/csv:
+              schema: {type: string}
+          headers:
+            Cache-Control:
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
   /api/v1/stores/{store_id}/reconciliations:
     post:
       tags: [Money]
@@ -2943,6 +3041,24 @@ components:
         evidence: {type: object}
         evaluated_at: {type: string, format: date-time}
         order_display_number: {type: [string, "null"], description: "Store order number; present in finding lists and incident details."}
+    Export:
+      type: object
+      required: [id, store_id, kind, format, filters, state, content_type, size_bytes, sha256, error_code, download_url, expires_at, created_at, completed_at]
+      properties:
+        id: {type: string, format: uuid}
+        store_id: {type: string, format: uuid}
+        kind: {enum: [findings, incidents]}
+        format: {enum: [csv]}
+        filters: {type: object}
+        state: {enum: [processing, ready, failed, deleted]}
+        content_type: {type: [string, "null"]}
+        size_bytes: {type: [integer, "null"]}
+        sha256: {type: [string, "null"]}
+        error_code: {type: [string, "null"]}
+        download_url: {type: [string, "null"]}
+        expires_at: {type: [string, "null"], format: date-time}
+        created_at: {type: string, format: date-time}
+        completed_at: {type: [string, "null"], format: date-time}
     ReconciliationRunSummary:
       type: object
       required: [run_id, store_id, status, findings_count]
