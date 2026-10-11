@@ -220,6 +220,7 @@ void load();
             <li>{{ $t('store.shopware.app_step_install') }}</li>
           </ol>
           <p class="text-[13px] text-text-muted">{{ $t('store.shopware.app_permissions') }}</p>
+          <p class="text-[13px] text-warn" data-app-version-note>{{ $t('store.shopware.app_version_note') }}</p>
           <div>
             <button type="button" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !form.acknowledged" data-download-app @click="download">{{ $t('store.shopware.app_download') }}</button>
           </div>
