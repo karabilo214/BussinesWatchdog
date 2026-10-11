@@ -5,6 +5,7 @@ namespace Tests\Feature\Notifications;
 use App\Mail\NotificationMessageMail;
 use App\Models\AuditLog;
 use App\Models\NotificationChannel;
+use App\Models\NotificationChannelVerification;
 use App\Models\NotificationDelivery;
 use App\Support\Notifications\NotificationDeliveryWorker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -128,6 +129,31 @@ class NotificationChannelApiTest extends TestCase
             'status' => NotificationDelivery::STATUS_SENT,
             'provider_message_id' => '321',
         ]);
+    }
+
+    public function test_telegram_binding_rejects_ambiguous_active_codes(): void
+    {
+        $context = $this->context('owner');
+        config()->set('services.telegram.webhook_secret', 'telegram-secret');
+
+        $firstCode = $this->createChannel($context, ['kind' => 'telegram', 'destination_email' => null])->json('binding.binding_code');
+        $secondContext = $this->context('owner');
+        $this->createChannel($secondContext, ['kind' => 'telegram', 'destination_email' => null]);
+
+        $secondChannel = NotificationChannel::query()->where('tenant_id', $secondContext['tenant']->id)->firstOrFail();
+        NotificationChannelVerification::query()
+            ->where('channel_id', $secondChannel->id)
+            ->update(['code_hash' => hash_hmac('sha256', $firstCode, (string) config('app.key'))]);
+
+        $this->withHeaders(['X-Business-Watchdog-Telegram-Secret' => 'telegram-secret'])
+            ->postJson('/api/v1/webhooks/telegram/bind', [
+                'binding_code' => $firstCode,
+                'chat_id' => '1234567890',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'telegram_binding_code_collision');
+
+        $this->assertSame(0, NotificationChannel::query()->whereNotNull('verified_at')->count());
     }
 
     public function test_verification_with_the_mailed_code_enables_the_channel(): void

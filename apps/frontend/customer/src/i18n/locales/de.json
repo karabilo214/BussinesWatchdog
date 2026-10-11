@@ -371,6 +371,7 @@
     "channel_kind_not_supported_yet": "Dieser Kanaltyp wird noch nicht unterstützt.",
     "telegram_bind_required": "Senden Sie den Code an den Telegram-Bot, um den Chat zu verbinden.",
     "telegram_destination_is_bound_by_bot": "Telegram-Ziele werden durch erneutes Verbinden des Bots geändert.",
+    "telegram_binding_code_collision": "Dieser Telegram-Code ist mehrdeutig. Fordern Sie einen neuen Code an und versuchen Sie es erneut.",
     "password_reset_invalid": "Der Link zum Zurücksetzen ist ungültig oder abgelaufen. Fordern Sie einen neuen an.",
     "email_already_verified": "Die Adresse ist bereits bestätigt.",
     "invitation_invalid": "Die Einladung ist nicht mehr gültig: Sie wurde zurückgezogen, ist abgelaufen oder bereits angenommen.",

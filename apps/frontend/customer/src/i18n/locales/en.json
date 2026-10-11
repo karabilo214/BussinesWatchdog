@@ -371,6 +371,7 @@
     "channel_kind_not_supported_yet": "This channel type is not supported yet.",
     "telegram_bind_required": "Send the code to the Telegram bot to bind the chat.",
     "telegram_destination_is_bound_by_bot": "Telegram destinations are changed by binding the bot again.",
+    "telegram_binding_code_collision": "This Telegram code is ambiguous. Request a new code and try again.",
     "password_reset_invalid": "The password reset link is invalid or has expired. Request a new one.",
     "email_already_verified": "The address is already confirmed.",
     "invitation_invalid": "The invitation is no longer valid: it was revoked, expired or already accepted.",

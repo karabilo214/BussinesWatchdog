@@ -371,6 +371,7 @@
     "channel_kind_not_supported_yet": "Этот тип канала пока не поддерживается.",
     "telegram_bind_required": "Отправьте код Telegram-боту, чтобы привязать чат.",
     "telegram_destination_is_bound_by_bot": "Telegram-чат меняется через новую привязку бота.",
+    "telegram_binding_code_collision": "Этот Telegram-код неоднозначен. Запросите новый код и попробуйте снова.",
     "password_reset_invalid": "Ссылка для сброса пароля недействительна или устарела. Запросите новую.",
     "email_already_verified": "Адрес уже подтверждён.",
     "invitation_invalid": "Приглашение недействительно: его отозвали, оно истекло или уже принято.",

@@ -253,7 +253,7 @@ class NotificationChannelService
                 throw new NotificationChannelRejected('verification_resend_rate_limited');
             }
 
-            $code = $this->issueVerification($locked);
+            $code = $this->issueVerification($locked, globallyUniqueForTelegram: $locked->kind === NotificationChannel::KIND_TELEGRAM);
             $this->audit($locked, $actorId, AuditLog::ACTION_NOTIFICATION_CHANNEL_UPDATED, ['verification' => 'code_resent']);
 
             return [$locked, $code];
@@ -270,17 +270,32 @@ class NotificationChannelService
     {
         $result = DB::transaction(function () use ($code, $chatId, $chatTitle): NotificationChannel|NotificationChannelRejected {
             /** @var NotificationChannelVerification|null $verification */
-            $verification = NotificationChannelVerification::query()
-                ->whereNull('consumed_at')
-                ->where('created_at', '>=', Carbon::now()->subMinutes(NotificationChannelVerification::TTL_MINUTES))
-                ->orderByDesc('created_at')
+            $now = Carbon::now();
+            $verifications = NotificationChannelVerification::query()
+                ->select('notification_channel_verifications.*')
+                ->join('notification_channels', function ($join): void {
+                    $join->on('notification_channel_verifications.tenant_id', '=', 'notification_channels.tenant_id')
+                        ->on('notification_channel_verifications.channel_id', '=', 'notification_channels.id');
+                })
+                ->where('notification_channels.kind', NotificationChannel::KIND_TELEGRAM)
+                ->where('notification_channel_verifications.code_hash', $this->hashCode($code))
+                ->whereNull('notification_channel_verifications.consumed_at')
+                ->where('notification_channel_verifications.expires_at', '>', $now)
+                ->orderByDesc('notification_channel_verifications.created_at')
+                ->limit(2)
                 ->lockForUpdate()
-                ->get()
-                ->first(fn (NotificationChannelVerification $candidate): bool => hash_equals($candidate->code_hash, $this->hashCode($code)));
+                ->get();
 
-            if ($verification === null || $verification->expires_at->isPast()) {
+            if ($verifications->isEmpty()) {
                 return new NotificationChannelRejected('verification_code_expired');
             }
+
+            if ($verifications->count() > 1) {
+                return new NotificationChannelRejected('telegram_binding_code_collision');
+            }
+
+            /** @var NotificationChannelVerification $verification */
+            $verification = $verifications->first();
 
             /** @var NotificationChannel $channel */
             $channel = NotificationChannel::query()
@@ -298,8 +313,6 @@ class NotificationChannelService
                 'chat_id' => $chatId,
                 'chat_title' => $chatTitle,
             ], JSON_THROW_ON_ERROR));
-            $now = Carbon::now();
-
             $verification->forceFill(['consumed_at' => $now])->save();
             $channel->forceFill([
                 'destination_ciphertext' => $encrypted['ciphertext'],
@@ -416,9 +429,8 @@ class NotificationChannelService
         return $preferences;
     }
 
-    private function issueVerification(NotificationChannel $channel): string
+    private function issueVerification(NotificationChannel $channel, bool $globallyUniqueForTelegram = false): string
     {
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $now = Carbon::now();
 
         NotificationChannelVerification::query()
@@ -427,16 +439,48 @@ class NotificationChannelService
             ->whereNull('consumed_at')
             ->update(['expires_at' => $now]);
 
+        $code = null;
+        $hash = null;
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $candidate = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $candidateHash = $this->hashCode($candidate);
+
+            if (! $globallyUniqueForTelegram || ! $this->activeTelegramVerificationExists($candidateHash, $now)) {
+                $code = $candidate;
+                $hash = $candidateHash;
+                break;
+            }
+        }
+
+        if ($code === null || $hash === null) {
+            throw new NotificationChannelRejected('telegram_binding_code_collision');
+        }
+
         NotificationChannelVerification::query()->create([
             'tenant_id' => $channel->tenant_id,
             'channel_id' => $channel->id,
-            'code_hash' => $this->hashCode($code),
+            'code_hash' => $hash,
             'attempts' => 0,
             'expires_at' => $now->copy()->addMinutes(NotificationChannelVerification::TTL_MINUTES),
             'created_at' => $now,
         ]);
 
         return $code;
+    }
+
+    private function activeTelegramVerificationExists(string $codeHash, Carbon $now): bool
+    {
+        return NotificationChannelVerification::query()
+            ->join('notification_channels', function ($join): void {
+                $join->on('notification_channel_verifications.tenant_id', '=', 'notification_channels.tenant_id')
+                    ->on('notification_channel_verifications.channel_id', '=', 'notification_channels.id');
+            })
+            ->where('notification_channels.kind', NotificationChannel::KIND_TELEGRAM)
+            ->where('notification_channel_verifications.code_hash', $codeHash)
+            ->whereNull('notification_channel_verifications.consumed_at')
+            ->where('notification_channel_verifications.expires_at', '>', $now)
+            ->exists();
     }
 
     private function sendVerificationCode(NotificationChannel $channel, string $email, string $code, Tenant $tenant): void

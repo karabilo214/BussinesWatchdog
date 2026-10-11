@@ -1800,3 +1800,22 @@ Remaining gaps:
 
 - Real Telegram bot deployment/webhook registration and a live Telegram send were not tested in this slice.
 
+### Step 89: Telegram Binding Code Hardening
+
+Status: complete
+
+Updated:
+
+- Telegram binding now looks up only active, unconsumed Telegram verification rows by code hash instead of scanning unrelated verification rows.
+- New Telegram binding codes are checked against active global Telegram bindings before issue; if a legacy/manual collision is still present, binding returns `telegram_binding_code_collision` and leaves all channels unverified instead of picking one by timestamp.
+- The new rejection code is localized in ru/en/de for the customer app.
+
+Verification:
+
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Feature/Notifications` — 30 passed.
+- Customer frontend: `npm run check -w @bw/customer` from `apps/frontend` — 90 tests passed and production build completed.
+
+Coordination:
+
+- Claude's Shopware test files were left unstaged; this step only stages notification hardening and evidence files.
+
