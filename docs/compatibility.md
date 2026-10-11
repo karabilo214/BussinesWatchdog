@@ -122,3 +122,12 @@ Spike 2026-10-11 (`tests/matrix/rest-api-spike.sh`) and chain (`tests/matrix/res
 | 11.2.0 HPOS | yes | yes | yes | yes |
 
 On every version: HTTPS required for the key, writes with a Read key refused (401 `woocommerce_rest_authentication_error`), trashed orders only with `status=trash`, deleted orders 404, gateway meta with a leading underscore readable, `POST /wc/v3/system_status` tells a Read key (401) from a Read/Write key (404 `rest_no_route`) without changing anything. Chain on 6.0.2 and 11.2.0: Read/Write key refused, Read key connected, orders/refunds mapped (Stripe refund id, PayPal sandbox mode, JPY), no personal data in events, unchanged second sync, late refund, trashed order and deleted order (audit) found.
+
+## Shopware 6 (ADR 0025/0026)
+
+| Shopware | Payment plugin | Integration key (read role) | Real PayPal sandbox chain |
+|---|---|---|---|
+| 6.6.10.6 (dockware) | SwagPayPal 9.13.4 | orders read, customers 403, state transitions **not** protected | PASS (capture link, partial/full refund by state) |
+| 6.7.2.2 (dockware) | SwagPayPal 10.8.5 | same | PASS |
+
+Connector chain without payments (`plugins/shopware-app/tests/chain/chain-e2e.sh`): PASS on both. Stripe for Shopware not examined (closed source). Newer 6.7 patches (up to 6.7.15.1) not exercised.

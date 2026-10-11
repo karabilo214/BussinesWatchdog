@@ -34,9 +34,19 @@ ADR 0023 puts Shopware 6 second (Germany/DACH). The research prefers a Shopware 
 - Consequence for reconciliation: in Shopware the store-reported refund is a payment state without an amount. The provider (PayPal/Stripe connector) has the amounts. Rules must work with "store says refunded / partially refunded" versus provider refunds — a modelling decision for the connector step (ADR to follow, owner review).
 - Stripe for Shopware (Pickware's plugin) not examined: its source is not public; needs an installed copy.
 
+
+## Spike part 3 — real PayPal sandbox money through SwagPayPal (2026-10-11, Step 87)
+
+`plugins/shopware-app/tests/paypal/chain.sh` on Shopware 6.7.2.2 + SwagPayPal 10.8.5 and Shopware 6.6.10.6 + SwagPayPal 9.13.4 (composer; 10.x needs Shopware 6.7), configured with the owner's sandbox shop app. Guest orders through the Store API on the shop host, Shopware's `handle-payment`, the sandbox buyer approves in Chromium, PayPal returns to the shop and Shopware finalizes; refunds made through the plugin's admin route (`/api/_action/paypal-v2/refund-capture/…`, protected by `order_refund.editor`).
+
+- Confirmed: the transaction's custom fields hold `swag_paypal_order_id`, `swag_paypal_resource_id` = the **capture id** and `swag_paypal_is_sandbox = true`. SwagPayPal sends PayPal `invoice_id` = Shopware order number and `custom_id` = JSON with the Shopware transaction id.
+- A EUR payment to the sandbox account without EUR balance stays capture `PENDING` (`RECEIVING_PREFERENCE_MANDATES_MANUAL_ACTION`) and Shopware keeps the transaction `in_progress`, not paid — correct. USD payments complete and the transaction becomes `paid`.
+- After a partial refund the transaction is `refunded_partially`, after a full one `refunded`; no amount, no refund id and no capture/refund entities in Shopware — as read from the source.
+- Through the service: Shopware integration key + Watchdog PayPal app connected to one store, Shopware sync, PayPal capture-id pointers; all three captures linked by `exact_reference`, capture amounts ok; partial refund → `MONEY_REFUND_MISSING` `unknown` / `refund_amount_not_reported` with the provider's 5.00 shown; full refund → ok; no refund → no refund finding. PASS on both versions.
+- Version note: packagist lists Shopware up to 6.7.15.1; dockware images stop at 6.7.2.2, so the newest 6.7 patch releases are not exercised yet.
+
 ## Open
 
-- Run a real PayPal sandbox payment and refund through SwagPayPal to confirm the fields above.
 - Stripe plugin data for Shopware.
 - Shopware App: manifest permissions, registration handshake, webhooks (order written, state changes), Cloud vs self-hosted.
 - Load: paging large stores with the OR delta filter.

@@ -1819,3 +1819,10 @@ Coordination:
 
 - Claude's Shopware test files were left unstaged; this step only stages notification hardening and evidence files.
 
+### Step 87: Real PayPal Payments through SwagPayPal (ADR 0025 part 3)
+
+Status: complete
+
+- `plugins/shopware-app/tests/paypal/` (`configure.py`, `order.py`, `approve.mjs`, `refund.py`, `inspect.py`, `pay.sh`, `chain.sh`): SwagPayPal configured with the owner's sandbox shop app, real buyer payments approved in Chromium, refunds through the plugin's admin route, then the service connects the Shopware integration key and the Watchdog PayPal app and reconciles. Screenshots and order ids stay in a git-ignored `.out/`.
+- Confirmed on Shopware 6.7.2.2 (SwagPayPal 10.8.5) and 6.6.10.6 (SwagPayPal 9.13.4): capture id and sandbox flag in the transaction custom fields; EUR to an account without EUR balance stays pending/in progress; refunds leave only `refunded_partially`/`refunded`. Chain PASS on both: exact capture links, partial refund unknown with the provider's 5.00 shown, full refund reconciled, no refund without findings.
+
