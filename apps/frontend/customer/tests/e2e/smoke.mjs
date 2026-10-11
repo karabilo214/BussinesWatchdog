@@ -388,7 +388,7 @@ try {
     await page.getByRole('link', { name: 'Уведомления', exact: true }).click();
     await page.getByRole('heading', { name: 'Уведомления', exact: true }).waitFor();
     await page.locator('[data-empty]').waitFor();
-    await page.getByRole('button', { name: 'Добавить адрес' }).click();
+    await page.getByRole('button', { name: 'Добавить получателя' }).click();
     await page.getByLabel('Название').fill('Дежурный');
     await page.getByLabel('Электронная почта').fill('oncall@smoke.example.test');
     await page.getByRole('button', { name: 'Отправить код' }).click();
