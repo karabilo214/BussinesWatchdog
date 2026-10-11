@@ -10,6 +10,8 @@ use App\Models\NotificationChannelVerification;
 use App\Models\NotificationDelivery;
 use App\Models\Store;
 use App\Models\Tenant;
+use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\FeatureCatalog;
 use App\Support\Security\Keyring;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +70,10 @@ class NotificationChannelService
      */
     public function createTelegramChannel(Tenant $tenant, string $label, array $preferences, ?string $actorId): array
     {
+        if (! app(EntitlementCalculator::class)->forTenant($tenant->id)->allows(FeatureCatalog::NOTIFICATIONS_TELEGRAM)) {
+            throw new NotificationChannelRejected('feature_not_in_plan');
+        }
+
         $preferences = $this->normalizePreferences($tenant->id, $preferences);
         $now = Carbon::now();
         $encrypted = $this->keyring->encrypt(json_encode(['status' => 'pending'], JSON_THROW_ON_ERROR));

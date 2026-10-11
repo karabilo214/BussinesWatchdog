@@ -94,6 +94,11 @@ return [
         'dev_endpoint' => env('WATCHDOG_DEV_WC_API_ENDPOINT', ''),
     ],
 
+    'billing' => [
+        'enforcement' => env('WATCHDOG_BILLING_ENFORCEMENT', 'pilot'),
+        'past_due_grace_days' => 7,
+    ],
+
     'shopware' => [
         'timeout_seconds' => 20,
         'page_size' => 100,

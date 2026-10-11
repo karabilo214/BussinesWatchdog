@@ -7,6 +7,8 @@ use App\Http\Dto\Stores\StoreDto;
 use App\Http\Requests\Stores\CreateStoreRequest;
 use App\Http\Requests\Stores\UpdateStoreRequest;
 use App\Models\Store;
+use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\FeatureCatalog;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +40,11 @@ class StoreController extends Controller
     {
         $tenantId = $tenantContext->requireTenantId('create store');
         $validated = $request->validated();
+        $limit = app(EntitlementCalculator::class)->forTenant($tenantId)->limit(FeatureCatalog::MAX_ACTIVE_STORES);
+
+        if ($limit !== null && Store::query()->where('tenant_id', $tenantId)->whereNotIn('status', ['deleted', 'deleting'])->count() >= $limit) {
+            return response()->json(['code' => 'plan_store_limit_reached', 'message' => 'The plan does not include more stores.', 'errors' => [['limit' => FeatureCatalog::MAX_ACTIVE_STORES, 'value' => $limit]]], 403);
+        }
 
         $store = Store::query()->create([
             'tenant_id' => $tenantId,

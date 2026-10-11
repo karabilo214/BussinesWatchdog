@@ -11,6 +11,7 @@ class NotificationChannelRejected extends RuntimeException
         'verification_resend_rate_limited' => 429,
         'verification_attempts_exceeded' => 429,
         'channel_already_verified' => 409,
+        'feature_not_in_plan' => 403,
     ];
 
     public function __construct(

@@ -11,6 +11,8 @@ use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Refund;
 use App\Models\RefundAllocation;
+use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\FeatureCatalog;
 use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Integrations\ProviderCoverage;
 use Illuminate\Database\Eloquent\Collection;
@@ -64,7 +66,13 @@ class OrderReconciliationService
 
             $findings = [];
 
-            if ($lockedOrder->financial_support !== 'supported') {
+            if (! app(EntitlementCalculator::class)->forTenant($lockedOrder->tenant_id)->allows(FeatureCatalog::MONEY_RECONCILIATION)) {
+                $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
+                    'status' => ReconciliationFinding::STATUS_UNKNOWN,
+                    'reason_code' => 'not_entitled',
+                    'evidence' => ['feature' => FeatureCatalog::MONEY_RECONCILIATION],
+                ], $now);
+            } elseif ($lockedOrder->financial_support !== 'supported') {
                 $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
                     'status' => ReconciliationFinding::STATUS_UNSUPPORTED,
                     'reason_code' => 'gateway_unsupported',

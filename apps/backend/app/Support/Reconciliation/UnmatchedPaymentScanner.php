@@ -9,6 +9,8 @@ use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Store;
+use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\FeatureCatalog;
 use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Integrations\ProviderCoverage;
 use App\Support\Providers\WooCommerce\WooCommerceApiConnector;
@@ -58,7 +60,8 @@ class UnmatchedPaymentScanner
                 ->whereNull('revoked_at')
                 ->pluck('capture_transaction_id');
 
-            $orphanCaptures = ! $providerConnected || $storeDataStale ? collect() : FinancialTransaction::query()
+            $entitled = app(EntitlementCalculator::class)->forTenant($store->tenant_id)->allows(FeatureCatalog::MONEY_RECONCILIATION);
+            $orphanCaptures = ! $entitled || ! $providerConnected || $storeDataStale ? collect() : FinancialTransaction::query()
                 ->where('tenant_id', $store->tenant_id)
                 ->where('store_id', $store->id)
                 ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)

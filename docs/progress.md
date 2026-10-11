@@ -1960,3 +1960,19 @@ Status: complete
 - Owner decisions: Mollie and Shopify are P2; Stripe in Shopware is unsupported until a pilot customer with the Pickware plugin (ADR 0025); the Shopware panel states it (ru/en/de).
 - Current smoke is red at the notifications "test email" step after Step 95 (parallel notifications work); recorded in the readiness table.
 
+### Step 97: Plans and Entitlements
+
+Status: complete (plan contents and prices await the owner)
+
+- ADR 0029. Migration `2026_10_11_180000_create_billing_plans_and_entitlements`: `billing_plans`, `billing_plan_versions`, `billing_prices` (`price_kind` base / extra_store), `subscriptions` (plan snapshot, `extra_store_quantity`, trial and past-due dates), `entitlement_overrides`; PostgreSQL CHECK constraints.
+- `FeatureCatalog` (7 features, 6 limits, validation of entitlement JSON), `Entitlements` (access state, reasons, `allows`, `limit`), `EntitlementCalculator` (priority: deleting/deleted → no service; suspended → paused manual; paid period; override on top of the paid plan; trial; past-due grace 7 days; paused by billing / onboarding).
+- Owner requirement: the price depends on the number of stores. `withStores()` adds bought stores to `max_active_stores` up to `max_extra_stores` and multiplies per-store limits (`monthly_event_budget`, `manual_runs_per_day`); the check interval floor applies to every store.
+- Enforcement points: check scheduling and manual runs (`checkout_monitoring`, interval floor; API 403 `feature_not_in_plan`), payment attempt windows, money reconciliation (`unknown` / `not_entitled`), unmatched payments scan, Telegram channels (403), store creation (403 `plan_store_limit_reached`).
+- `WATCHDOG_BILLING_ENFORCEMENT`: `pilot` (default, today's behaviour, everything allowed) or `enforce`.
+- `GET /api/v1/entitlements` (OpenAPI, both copies). `billing:seed-placeholder-plans` creates draft Free / Start / Pro marked as placeholders.
+
+Verification:
+
+- `tests/Feature/Billing/EntitlementsTest.php` — 14 tests.
+- Backend SQLite: 415 passed, 4 skipped. PostgreSQL 18: 419 of 419.
+

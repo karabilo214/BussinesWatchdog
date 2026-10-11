@@ -6,6 +6,8 @@ use App\Models\CheckRun;
 use App\Models\CheckScenario;
 use App\Models\Store;
 use App\Models\Tenant;
+use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\FeatureCatalog;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +21,11 @@ class CheckScheduler
 
     public const ERROR_NOT_ELIGIBLE = 'store_not_eligible_for_browser_checks';
 
+    public const ERROR_NOT_IN_PLAN = 'feature_not_in_plan';
+
     public function __construct(
         private readonly ScenarioDefinition $definition,
+        private readonly EntitlementCalculator $entitlements,
     ) {}
 
     /**
@@ -61,6 +66,10 @@ class CheckScheduler
                 return self::ERROR_NOT_ELIGIBLE;
             }
 
+            if (! $this->entitlements->forTenant($locked->tenant_id)->allows(FeatureCatalog::CHECKOUT_MONITORING)) {
+                return self::ERROR_NOT_IN_PLAN;
+            }
+
             $recentManual = CheckRun::query()
                 ->where('store_id', $locked->store_id)
                 ->where('trigger', CheckRun::TRIGGER_MANUAL)
@@ -92,7 +101,7 @@ class CheckScheduler
 
             $store = $this->eligibleStore($scenario);
 
-            if ($store === null) {
+            if ($store === null || ! $this->entitlements->forTenant($scenario->tenant_id, $now)->allows(FeatureCatalog::CHECKOUT_MONITORING)) {
                 $scenario->forceFill(['next_due_at' => $this->nextDue($scenario, $now)])->save();
 
                 return false;
@@ -155,6 +164,9 @@ class CheckScheduler
         $jitter = (float) config('watchdog.browser.schedule_jitter');
         $factor = 1 + (mt_rand(-1000, 1000) / 1000) * $jitter;
 
-        return $now->copy()->addSeconds((int) round($scenario->interval_seconds * $factor));
+        $floor = $this->entitlements->forTenant($scenario->tenant_id, $now)->limit(FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES);
+        $interval = max($scenario->interval_seconds, $floor === null ? 0 : $floor * 60);
+
+        return $now->copy()->addSeconds((int) round($interval * $factor));
     }
 }

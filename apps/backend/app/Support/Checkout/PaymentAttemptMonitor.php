@@ -5,6 +5,8 @@ namespace App\Support\Checkout;
 use App\Models\Incident;
 use App\Models\PaymentAttemptWindow;
 use App\Models\Signal;
+use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\FeatureCatalog;
 use App\Support\Incidents\IncidentRecorder;
 use Illuminate\Support\Carbon;
 
@@ -32,6 +34,10 @@ class PaymentAttemptMonitor
 
     public function evaluate(string $tenantId, string $storeId, string $paymentMethod): ?Incident
     {
+        if (! app(EntitlementCalculator::class)->forTenant($tenantId)->allows(FeatureCatalog::PAYMENT_ATTEMPTS_SERVER)) {
+            return null;
+        }
+
         $state = $this->state($tenantId, $storeId, $paymentMethod);
 
         if ($state['latest'] === null) {

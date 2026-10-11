@@ -14,6 +14,7 @@ tags:
   - name: Incidents
   - name: Checks
   - name: BrowserInternal
+  - name: Billing
 paths:
   /api/v1/ingest/events:
     post:
@@ -1322,6 +1323,21 @@ paths:
         "410": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/entitlements:
+    get:
+      tags: [Billing]
+      operationId: getEntitlements
+      description: What the active tenant may use and why (ADR 0029). With `enforced` false (pilot) every feature is included and limits are not applied.
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Entitlements of the active tenant
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Entitlements"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
   /api/v1/integrations:
     get:
       tags: [Integrations]
@@ -2979,6 +2995,36 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    Entitlements:
+      type: object
+      additionalProperties: false
+      required: [access_state, reason_codes, enforced, plan_code, features, limits]
+      properties:
+        access_state: {type: string, enum: [pilot, active, override, trial, grace, paused_billing, paused_manual, no_service, onboarding]}
+        reason_codes: {type: array, items: {type: string}}
+        enforced: {type: boolean}
+        plan_code: {type: [string, "null"]}
+        features:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [code, included, reason]
+            properties:
+              code: {type: string, enum: [checkout_monitoring, payment_attempts_server, payment_attempts_script, money_reconciliation, order_outcomes, notifications_telegram, agency_workspace]}
+              included: {type: boolean}
+              reason: {type: string, description: "included, not_in_plan, pilot or the access state that pauses the service"}
+        limits:
+          type: object
+          additionalProperties: false
+          description: Null means no limit.
+          properties:
+            max_active_stores: {type: [integer, "null"]}
+            max_extra_stores: {type: [integer, "null"]}
+            min_check_interval_minutes: {type: [integer, "null"]}
+            retention_days: {type: [integer, "null"]}
+            monthly_event_budget: {type: [integer, "null"]}
+            manual_runs_per_day: {type: [integer, "null"]}
     MoneyMinor:
       type: string
       pattern: '^-?(0|[1-9][0-9]{0,18})$'
