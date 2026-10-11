@@ -127,6 +127,7 @@ class OrderSnapshotProjector
             'metadata' => array_filter([
                 'order_key_hash' => ProjectionValueNormalizer::nullableString($data['order_key_hash'] ?? null),
                 'mode_reported' => array_key_exists('mode', $data) ? null : false,
+                'refund_state' => in_array($data['refund_state'] ?? null, ['none', 'partial', 'full'], true) ? $data['refund_state'] : null,
             ], fn (mixed $value): bool => $value !== null),
             'updated_at' => $now,
             'created_at' => $now,

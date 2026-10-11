@@ -70,6 +70,16 @@ Schedule::command('woocommerce-api:sync --audit')
     ->withoutOverlapping(120)
     ->onOneServer();
 
+Schedule::command('shopware:sync')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(15)
+    ->onOneServer();
+
+Schedule::command('shopware:sync --audit')
+    ->dailyAt('03:40')
+    ->withoutOverlapping(120)
+    ->onOneServer();
+
 Schedule::command('paypal:sync')
     ->everyFifteenMinutes()
     ->withoutOverlapping(30)

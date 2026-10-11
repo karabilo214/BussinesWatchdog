@@ -93,4 +93,15 @@ return [
         'stale_after_minutes' => 30,
         'dev_endpoint' => env('WATCHDOG_DEV_WC_API_ENDPOINT', ''),
     ],
+
+    'shopware' => [
+        'timeout_seconds' => 20,
+        'page_size' => 100,
+        'max_requests_per_run' => 60,
+        'request_pause_ms' => 200,
+        'max_response_bytes' => 5242880,
+        'delta_overlap_minutes' => 10,
+        'audit_days' => 90,
+        'dev_endpoint' => env('WATCHDOG_DEV_SHOPWARE_ENDPOINT', ''),
+    ],
 ];

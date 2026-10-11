@@ -1746,3 +1746,11 @@ Coordination:
 
 - Shopware connector files and contracts currently being edited by Claude were left unstaged.
 
+### Step 85: Shopware Integration Connector (ADR 0026)
+
+Status: complete (backend); dashboard screen next
+
+- Owner decision on refunds kept only as a payment state: `full` must equal the provider's refunds of the captured amount; `partial` shows the provider's refunded amount and is `unknown` unless the provider refunded nothing or everything; provider refunds with store state `none` are extra refunds. New optional `order.snapshot.refund_state` (event schema, all copies) and a state-based branch in the refund rules.
+- `App\Support\Providers\Shopware\*`: client (allowlist: OAuth token, order search, order search-ids; never state transitions), connector (`POST /stores/{id}/integrations/shopware`, risk acknowledgement required, key confirms the store, one order source), mapper (float amounts only when exact, effective transaction, SwagPayPal capture id and sandbox flag, `swag_paypal_*` → PayPal coverage, refund state), sync (OR delta over created/updated/transaction updated, daily audit with deletion check), `shopware:sync [--audit]`. Shared `StoreOriginHttp` (SSRF-safe store origin requests, now also used by the WooCommerce client) and `OrderSources` (plugin, WooCommerce key or Shopware key — one per store). Stores can be created with `platform` `woocommerce` or `shopware`. PayPal pointers also follow `swag_paypal_*` orders.
+- Tests: 5 backend Shopware tests (connect rules and allowlist, mapping without personal data, audit deletion, six refund-state cases against PayPal provider data, float conversion). SQLite 380 + 4 skipped, PostgreSQL 18 384. Real chain `plugins/shopware-app/tests/chain/chain-e2e.sh` on Shopware 6.6.10.6 and 6.7.2.2: PASS.
+

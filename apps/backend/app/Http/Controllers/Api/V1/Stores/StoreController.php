@@ -46,6 +46,7 @@ class StoreController extends Controller
             'timezone' => $validated['timezone'],
             'locale' => $validated['locale'],
             'default_currency' => $validated['default_currency'],
+            'platform' => $validated['platform'] ?? 'woocommerce',
         ]);
 
         return response()->json($this->storeDto->toArray($store->refresh()), 201);

@@ -162,6 +162,14 @@
           ],
           "pattern": "^[0-9a-f]{64}$",
           "description": "SHA-256 of the WooCommerce order key; the key itself is never sent. Used to verify provider metadata matches."
+        },
+        "refund_state": {
+          "enum": [
+            "none",
+            "partial",
+            "full"
+          ],
+          "description": "Sent only by stores that record refunds as a payment state without amounts (Shopware, ADR 0026). Money checks then compare it with the provider's refunds."
         }
       }
     },

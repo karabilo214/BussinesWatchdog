@@ -8,6 +8,7 @@ use App\Models\IntegrationCredential;
 use App\Models\ReconciliationDirtySubject;
 use App\Models\Store;
 use App\Support\Account\AccountRejected;
+use App\Support\Integrations\OrderSources;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use App\Support\Security\Keyring;
 use App\Support\Stores\StoreVerificationService;
@@ -134,14 +135,8 @@ class WooCommerceApiConnector
             : null;
     }
 
-    /** The provider of the store's active order source (`woocommerce` plugin or `woocommerce_api`), if any. */
     public static function activeOrderSource(Store $store): ?string
     {
-        return Integration::query()
-            ->where('tenant_id', $store->tenant_id)
-            ->where('store_id', $store->id)
-            ->whereIn('provider', [self::PROVIDER, self::PLUGIN_PROVIDER])
-            ->whereIn('status', [Integration::STATUS_PENDING, Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED])
-            ->value('provider');
+        return OrderSources::active($store);
     }
 }

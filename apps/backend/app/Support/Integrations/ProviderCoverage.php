@@ -21,7 +21,7 @@ class ProviderCoverage
         return match (true) {
             $gateway === null || $gateway === '' => null,
             $gateway === 'stripe' || str_starts_with($gateway, 'stripe_') => 'stripe',
-            str_starts_with($gateway, 'ppcp-') || $gateway === 'ppcp' => 'paypal',
+            str_starts_with($gateway, 'ppcp-') || $gateway === 'ppcp' || str_starts_with($gateway, 'swag_paypal_') => 'paypal',
             default => null,
         };
     }

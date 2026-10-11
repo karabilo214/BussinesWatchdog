@@ -288,6 +288,12 @@ class OrderReconciliationService
      */
     private function evaluateRefundRules(ReconciliationRun $run, Order $order, Carbon $now): array
     {
+        $refundState = $order->metadata['refund_state'] ?? null;
+
+        if (in_array($refundState, ['none', 'partial', 'full'], true)) {
+            return $this->evaluateStateRefunds($run, $order, $refundState, $now);
+        }
+
         $outstandingRefunds = Refund::query()
             ->where('order_id', $order->id)
             ->where('external_required', true)
@@ -358,6 +364,65 @@ class OrderReconciliationService
             'actual_minor' => $refundActualMinor,
             'difference_minor' => $difference,
             'evidence' => $isPastGrace ? [] : ['grace_deadline_at' => $graceDeadline->toJSON()],
+        ], $now)];
+    }
+
+    /**
+     * Stores that keep a refund only as the payment state (ADR 0026): `full` must match the provider refunding the
+     * whole captured amount, `partial` has no store amount (the provider's refunded amount is shown and the result is
+     * unknown unless the provider refunded nothing or everything), `none` with provider refunds is an extra refund.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function evaluateStateRefunds(ReconciliationRun $run, Order $order, string $refundState, Carbon $now): array
+    {
+        $captureIds = PaymentAllocation::query()
+            ->where('order_id', $order->id)
+            ->whereNull('revoked_at')
+            ->lockForUpdate()
+            ->get(['capture_transaction_id', 'amount_minor']);
+        $captured = (int) $captureIds->sum('amount_minor');
+        $paymentIds = FinancialTransaction::query()->whereIn('id', $captureIds->pluck('capture_transaction_id'))->pluck('payment_id')->filter()->unique()->values();
+        $refunds = $paymentIds->isEmpty() ? collect() : FinancialTransaction::query()
+            ->whereIn('payment_id', $paymentIds)
+            ->where('kind', 'refund')
+            ->where('status', 'succeeded')
+            ->where('currency', $order->currency)
+            ->get(['amount_minor', 'occurred_at']);
+        $refunded = (int) $refunds->sum('amount_minor');
+
+        if ($refundState === 'none' && $refunded === 0 || $refundState !== 'none' && $captured === 0) {
+            return [];
+        }
+
+        $missingGrace = ($order->source_updated_at ?? $now)->copy()->addMinutes(self::GRACE_REFUND_MINUTES);
+        $extraGrace = ($refunds->max('occurred_at') ?? $now)->copy()->addMinutes(self::GRACE_REFUND_MINUTES);
+        $evidence = ['refund_state' => $refundState, 'captured_minor' => (string) $captured, 'provider_refunded_minor' => (string) $refunded];
+
+        [$rule, $status, $reason, $expected, $grace] = match (true) {
+            $refundState === 'none' => [ReconciliationFinding::RULE_REFUND_EXTRA, ReconciliationFinding::STATUS_MISMATCH, 'refund_extra_store_state_none', 0, $extraGrace],
+            $refundState === 'full' && $refunded === $captured => [ReconciliationFinding::RULE_REFUND_MISSING, ReconciliationFinding::STATUS_OK, 'refund_reconciled_ok', $captured, null],
+            $refundState === 'full' && $refunded < $captured => [ReconciliationFinding::RULE_REFUND_MISSING, ReconciliationFinding::STATUS_MISMATCH, 'refund_missing_store_state_full', $captured, $missingGrace],
+            $refundState === 'full' => [ReconciliationFinding::RULE_REFUND_EXTRA, ReconciliationFinding::STATUS_MISMATCH, 'refund_extra_grace_expired', $captured, $extraGrace],
+            $refunded === 0 => [ReconciliationFinding::RULE_REFUND_MISSING, ReconciliationFinding::STATUS_MISMATCH, 'refund_missing_store_state_partial', null, $missingGrace],
+            $refunded >= $captured => [ReconciliationFinding::RULE_REFUND_EXTRA, ReconciliationFinding::STATUS_MISMATCH, 'refund_partial_but_provider_full', null, $extraGrace],
+            default => [ReconciliationFinding::RULE_REFUND_MISSING, ReconciliationFinding::STATUS_UNKNOWN, 'refund_amount_not_reported', null, null],
+        };
+
+        if ($status === ReconciliationFinding::STATUS_MISMATCH && $grace !== null && $now->lessThan($grace)) {
+            $status = ReconciliationFinding::STATUS_PENDING;
+            $evidence['grace_deadline_at'] = $grace->toJSON();
+        }
+
+        return [$this->findingAttributes($run, $order, $rule, [
+            'status' => $status,
+            'reason_code' => $reason,
+            'refund_expected_minor' => $expected,
+            'refund_actual_minor' => $refunded,
+            'expected_minor' => $expected,
+            'actual_minor' => $refunded,
+            'difference_minor' => $expected === null ? null : $refunded - $expected,
+            'evidence' => $evidence,
         ], $now)];
     }
 

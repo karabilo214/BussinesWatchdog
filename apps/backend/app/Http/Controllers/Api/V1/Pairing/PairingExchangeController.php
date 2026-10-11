@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Pairing\ExchangePairingCodeRequest;
 use App\Models\AuditLog;
 use App\Models\Integration;
-use App\Support\Providers\WooCommerce\WooCommerceApiConnector;
+use App\Support\Integrations\OrderSources;
 use App\Models\PairingCode;
 use App\Support\Integrations\IntegrationCredentialService;
 use Illuminate\Http\JsonResponse;
@@ -63,7 +63,7 @@ class PairingExchangeController extends Controller
                 return ['error' => ['code' => 'pairing_base_url_mismatch', 'message' => 'Pairing base URL does not match the store.', 'status' => 422]];
             }
 
-            if (WooCommerceApiConnector::activeOrderSource($store) === WooCommerceApiConnector::PROVIDER) {
+            if (in_array(OrderSources::active($store), OrderSources::POLLED, true)) {
                 $this->auditFailure($pairingCode, 'order_source_already_connected');
 
                 return ['error' => ['code' => 'order_source_already_connected', 'message' => 'The store already sends orders through its REST API connection.', 'status' => 409]];

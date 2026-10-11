@@ -16,6 +16,7 @@ class ProviderSyncController extends Controller
         return match ($integration->provider) {
             'paypal' => app(PayPalIntegrationController::class)->sync($request, $integration, $tenantContext),
             'woocommerce_api' => app(WooCommerceApiIntegrationController::class)->sync($request, $integration, $tenantContext),
+            'shopware' => app(ShopwareIntegrationController::class)->sync($request, $integration, $tenantContext),
             default => app(StripeIntegrationController::class)->sync($request, $integration, $tenantContext),
         };
     }

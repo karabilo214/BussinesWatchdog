@@ -22,6 +22,8 @@ class IntegrationCredential extends Model
 
     public const KIND_WOOCOMMERCE_API = 'woocommerce_api';
 
+    public const KIND_SHOPWARE_INTEGRATION = 'shopware_integration';
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_DRAINING = 'draining';

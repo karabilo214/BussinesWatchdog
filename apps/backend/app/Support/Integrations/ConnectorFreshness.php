@@ -7,7 +7,6 @@ use App\Models\Integration;
 use App\Models\ReconciliationDirtySubject;
 use App\Models\Signal;
 use App\Support\Incidents\IncidentRecorder;
-use App\Support\Providers\WooCommerce\WooCommerceApiConnector;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -89,7 +88,7 @@ class ConnectorFreshness
     {
         $now ??= Carbon::now();
 
-        if ($integration->provider === WooCommerceApiConnector::PROVIDER) {
+        if (in_array($integration->provider, OrderSources::POLLED, true)) {
             return $this->assessApiSync($integration, $now);
         }
 

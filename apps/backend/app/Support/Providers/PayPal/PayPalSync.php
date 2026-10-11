@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\DB;
  * most 31 days. Each transaction is resolved to its PayPal order, and the whole order is read and mapped, so
  * captures, refunds and the payment status always come from one consistent object. Delta reads from the watermark
  * minus an overlap; audit walks the retention window once a day and continues hourly when the request budget runs out.
- * Pointers close the search lag without a webhook: the capture id a store reports for a recent PayPal order is only
+ * Pointers close the search lag without a webhook: the capture id a store reports for a recent PayPal order (PayPal
+ * Payments for WooCommerce, SwagPayPal for Shopware) is only
  * used to find that capture and its order at PayPal, so the money is still proven by PayPal (ADR 0022).
  */
 class PayPalSync
@@ -132,7 +133,7 @@ class PayPalSync
             ->where('tenant_id', $integration->tenant_id)
             ->where('store_id', $integration->store_id)
             ->where('mode', $integration->mode)
-            ->where('gateway', 'like', 'ppcp-%')
+            ->where(fn ($query) => $query->where('gateway', 'like', 'ppcp-%')->orWhere('gateway', 'like', 'swag_paypal_%'))
             ->whereNotNull('transaction_ref')
             ->whereNull('deleted_at')
             ->where('source_updated_at', '>=', Carbon::now()->subHours((int) config('watchdog.paypal.pointer_window_hours')))

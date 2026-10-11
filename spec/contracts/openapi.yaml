@@ -719,6 +719,7 @@ paths:
                 timezone: {type: string}
                 locale: {enum: [ru, en, de]}
                 default_currency: {type: string, pattern: "^[A-Z]{3}$"}
+                platform: {enum: [woocommerce, shopware], default: woocommerce}
       responses:
         "201":
           description: "Created (onboarding, unverified)"
@@ -1104,6 +1105,38 @@ paths:
               properties:
                 consumer_key: {type: string, maxLength: 255, pattern: "^ck_[a-f0-9]{40}$"}
                 consumer_secret: {type: string, maxLength: 255, writeOnly: true, pattern: "^cs_[a-f0-9]{40}$"}
+      responses:
+        "201":
+          description: Connected
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ProviderIntegration"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/integrations/shopware:
+    post:
+      tags: [Integrations]
+      operationId: connectShopware
+      security:
+        - {UserSession: []}
+      description: "Owner/admin (ADR 0025/0026). Connects a Shopware 6.6/6.7 store's orders through an Integration key (access key + secret) on the store's own https origin. Shopware lets even a read-only role change order, payment and delivery states, so state_change_risk_acknowledged must be true (shopware_state_change_risk_not_acknowledged otherwise; nothing is sent before). The key must get a token (shopware_key_rejected) and search orders (shopware_order_read_missing). Only the OAuth token and order searches are sent, always without customer data. A working key confirms the store (verification method api_key). One order source per store (409 order_source_already_connected / provider_already_connected). Refunds are reported as a payment state (refund_state). The key is stored encrypted and never returned."
+      parameters:
+        - {name: store_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [access_key, secret_access_key, state_change_risk_acknowledged]
+              properties:
+                access_key: {type: string, maxLength: 255, pattern: "^SWIA[A-Za-z0-9]{10,60}$"}
+                secret_access_key: {type: string, maxLength: 255, writeOnly: true}
+                state_change_risk_acknowledged: {type: boolean}
       responses:
         "201":
           description: Connected

@@ -2,12 +2,10 @@
 
 namespace App\Support\Providers\WooCommerce;
 
-use App\Support\Network\DnsClient;
-use App\Support\Network\PublicDestinationPolicy;
-use Illuminate\Http\Client\ConnectionException;
+use App\Support\Network\StoreOriginFailure;
+use App\Support\Network\StoreOriginHttp;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Talks to a store's WooCommerce REST API with a Read key (ADR 0024). Only GETs on the order routes leave the
@@ -26,8 +24,7 @@ class WooCommerceApiClient
     ];
 
     public function __construct(
-        private readonly DnsClient $dns,
-        private readonly PublicDestinationPolicy $policy,
+        private readonly StoreOriginHttp $http,
     ) {}
 
     /**
@@ -103,54 +100,17 @@ class WooCommerceApiClient
      */
     private function send(string $baseUrl, string $key, string $secret, callable $call, string $route): Response
     {
-        $host = strtolower((string) parse_url($baseUrl, PHP_URL_HOST));
-        $request = Http::withBasicAuth($key, $secret)
-            ->acceptJson()
-            ->withHeaders(['User-Agent' => 'BusinessWatchdog-Connector/1'])
-            ->timeout((int) config('watchdog.woocommerce_api.timeout_seconds'))
-            ->connectTimeout(10);
-        $devEndpoint = (string) config('watchdog.woocommerce_api.dev_endpoint');
-
-        if ($devEndpoint !== '' && app()->environment(['local', 'testing'])) {
-            $url = rtrim($devEndpoint, '/').'/wp-json'.$route;
-            $request = $request->withHeaders(['Host' => $host, 'X-Forwarded-Proto' => 'https'])->withOptions(['allow_redirects' => false]);
-        } else {
-            if (parse_url($baseUrl, PHP_URL_SCHEME) !== 'https' || ! $this->policy->isAllowedUrl($baseUrl)) {
-                throw new WooCommerceApiRequestFailed('woocommerce_store_url_not_allowed');
-            }
-
-            $ips = filter_var(trim($host, '[]'), FILTER_VALIDATE_IP) !== false ? [trim($host, '[]')] : $this->dns->resolveIps($host);
-
-            if ($ips === []) {
-                throw new WooCommerceApiRequestFailed('woocommerce_unreachable');
-            }
-
-            foreach ($ips as $ip) {
-                if (! $this->policy->isPublicIp($ip)) {
-                    throw new WooCommerceApiRequestFailed('woocommerce_store_url_not_allowed');
-                }
-            }
-
-            $pinned = str_contains($ips[0], ':') ? '['.$ips[0].']' : $ips[0];
-            $url = rtrim($baseUrl, '/').'/wp-json'.$route;
-            $request = $request->withOptions([
-                'allow_redirects' => false,
-                'protocols' => ['https'],
-                'curl' => [CURLOPT_RESOLVE => [$host.':443:'.$pinned]],
-            ]);
-        }
-
         try {
-            $response = $call($request, $url);
-        } catch (ConnectionException) {
-            throw new WooCommerceApiRequestFailed('woocommerce_unreachable');
+            return $this->http->send(
+                $baseUrl,
+                '/wp-json'.$route,
+                StoreOriginHttp::base((int) config('watchdog.woocommerce_api.timeout_seconds'))->withBasicAuth($key, $secret),
+                $call,
+                (string) config('watchdog.woocommerce_api.dev_endpoint'),
+            );
+        } catch (StoreOriginFailure $failure) {
+            throw new WooCommerceApiRequestFailed('woocommerce_'.$failure->reasonCode, $failure->httpStatus);
         }
-
-        if ($response->redirect()) {
-            throw new WooCommerceApiRequestFailed('woocommerce_redirected', $response->status());
-        }
-
-        return $response;
     }
 
     private function failure(Response $response): WooCommerceApiRequestFailed

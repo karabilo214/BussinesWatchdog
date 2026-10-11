@@ -73,7 +73,7 @@ class UnmatchedPaymentScanner
             $modeNeedsPlugin = Integration::query()
                 ->where('tenant_id', $store->tenant_id)
                 ->where('store_id', $store->id)
-                ->where('provider', WooCommerceApiConnector::PROVIDER)
+                ->whereIn('provider', [WooCommerceApiConnector::PROVIDER])
                 ->whereIn('status', [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED])
                 ->exists();
             $testPayments = $modeNeedsPlugin ? Payment::query()->whereIn('id', $orphanCaptures->pluck('payment_id')->filter())->where('mode', 'test')->pluck('id')->flip() : collect();
