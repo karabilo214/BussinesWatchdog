@@ -10,8 +10,12 @@ export async function createExport(storeId: string, input: { kind: 'findings' | 
   ).data;
 }
 
-export function openExportDownload(file: ExportFile): void {
+export function openExportDownload(file: ExportFile): boolean {
   if (file.download_url !== null) {
     window.location.assign(file.download_url);
+
+    return true;
   }
+
+  return false;
 }

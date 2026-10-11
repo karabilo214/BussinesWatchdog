@@ -25,6 +25,7 @@ const loadingMore = ref(false);
 const error = ref<unknown>(null);
 const exporting = ref(false);
 const exportError = ref<unknown>(null);
+const exportNotice = ref<string | null>(null);
 
 const tab = computed<Tab>(() => (route.query.tab === 'resolved' ? 'resolved' : 'active'));
 const storeId = computed(() => (typeof route.query.store === 'string' ? route.query.store : ''));
@@ -83,6 +84,7 @@ async function exportIncidents(): Promise<void> {
 
   exporting.value = true;
   exportError.value = null;
+  exportNotice.value = null;
 
   try {
     const file = await createExport(storeId.value, {
@@ -92,7 +94,9 @@ async function exportIncidents(): Promise<void> {
         severity: severity.value || undefined,
       },
     });
-    openExportDownload(file);
+    if (!openExportDownload(file)) {
+      exportNotice.value = 'common.loading';
+    }
   } catch (caught) {
     exportError.value = caught;
   } finally {
@@ -169,6 +173,7 @@ watch([tab, storeId, severity], () => load(), { immediate: true });
         </div>
       </div>
       <ErrorNotice v-if="exportError" :error="exportError" />
+      <p v-else-if="exportNotice" class="text-sm text-text-muted" role="status">{{ $t(exportNotice) }}</p>
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
 

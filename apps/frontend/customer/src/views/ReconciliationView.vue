@@ -32,6 +32,7 @@ const scanError = ref<unknown>(null);
 const scanDone = ref(false);
 const exporting = ref(false);
 const exportError = ref<unknown>(null);
+const exportNotice = ref<string | null>(null);
 const unmatchedKey = ref(0);
 
 function param(name: string): string {
@@ -127,6 +128,7 @@ async function exportFindings(): Promise<void> {
 
   exporting.value = true;
   exportError.value = null;
+  exportNotice.value = null;
 
   try {
     const file = await createExport(storeId.value, {
@@ -140,7 +142,9 @@ async function exportFindings(): Promise<void> {
         to: to.value ? dayStart(to.value, 1) : undefined,
       },
     });
-    openExportDownload(file);
+    if (!openExportDownload(file)) {
+      exportNotice.value = 'common.loading';
+    }
   } catch (caught) {
     exportError.value = caught;
   } finally {
@@ -153,6 +157,7 @@ async function exportTransactions(): Promise<void> {
 
   exporting.value = true;
   exportError.value = null;
+  exportNotice.value = null;
 
   try {
     const file = await createExport(storeId.value, {
@@ -163,7 +168,9 @@ async function exportTransactions(): Promise<void> {
         to: to.value ? dayStart(to.value, 1) : undefined,
       },
     });
-    openExportDownload(file);
+    if (!openExportDownload(file)) {
+      exportNotice.value = 'common.loading';
+    }
   } catch (caught) {
     exportError.value = caught;
   } finally {
@@ -300,6 +307,7 @@ watch([storeId, tab, history, status, rule, currency, from, to], () => loadFindi
           </div>
           <p class="text-[13px] text-text-muted">{{ history ? $t('reconciliation.filter.history_note') : $t('reconciliation.filter.current_note') }}</p>
           <ErrorNotice v-if="exportError" :error="exportError" />
+          <p v-else-if="exportNotice" class="text-sm text-text-muted" role="status">{{ $t(exportNotice) }}</p>
 
           <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
           <ErrorNotice v-else-if="error" :error="error">
