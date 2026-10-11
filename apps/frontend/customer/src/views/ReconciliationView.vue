@@ -148,6 +148,29 @@ async function exportFindings(): Promise<void> {
   }
 }
 
+async function exportTransactions(): Promise<void> {
+  if (storeId.value === '') return;
+
+  exporting.value = true;
+  exportError.value = null;
+
+  try {
+    const file = await createExport(storeId.value, {
+      kind: 'transactions',
+      filters: {
+        currency: currency.value || undefined,
+        from: from.value ? dayStart(from.value) : undefined,
+        to: to.value ? dayStart(to.value, 1) : undefined,
+      },
+    });
+    openExportDownload(file);
+  } catch (caught) {
+    exportError.value = caught;
+  } finally {
+    exporting.value = false;
+  }
+}
+
 listStores()
   .then((value) => {
     stores.value = value;
@@ -212,6 +235,15 @@ watch([storeId, tab, history, status, rule, currency, from, to], () => loadFindi
               @click="exportFindings"
             >
               {{ $t('reconciliation.export') }}
+            </button>
+            <button
+              v-if="tab === 'findings'"
+              type="button"
+              class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
+              :disabled="exporting"
+              @click="exportTransactions"
+            >
+              {{ $t('reconciliation.export_transactions') }}
             </button>
             <button
               v-if="canHandleIncidents && moneyCovered"

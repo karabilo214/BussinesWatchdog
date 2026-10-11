@@ -631,7 +631,8 @@
     },
     "scan": "Zahlungen ohne Bestellung suchen",
     "scan_done": "Suche ausgeführt, Daten aktualisiert.",
-    "export": "CSV exportieren",
+    "export": "Abweichungen exportieren",
+    "export_transactions": "Transaktionen exportieren",
     "status_column": "Ergebnis",
     "status": {
       "ok": "stimmt",

@@ -1371,7 +1371,7 @@ paths:
               additionalProperties: false
               required: [kind, format]
               properties:
-                kind: {enum: [findings, incidents]}
+                kind: {enum: [findings, incidents, transactions]}
                 format: {enum: [csv]}
                 filters:
                   type: object
@@ -1392,6 +1392,8 @@ paths:
                     severity: {enum: [info, warning, critical]}
                     family: {type: string, maxLength: 64}
                     currency: {type: string, pattern: "^[A-Z]{3}$"}
+                    kind: {enum: [capture, refund, fee, dispute_debit, dispute_credit, adjustment]}
+                    transaction_status: {enum: [pending, succeeded, failed, cancelled]}
       responses:
         "202":
           description: Export accepted; state is usually ready in the current synchronous implementation
@@ -3050,7 +3052,7 @@ components:
       properties:
         id: {type: string, format: uuid}
         store_id: {type: string, format: uuid}
-        kind: {enum: [findings, incidents]}
+        kind: {enum: [findings, incidents, transactions]}
         format: {enum: [csv]}
         filters: {type: object}
         state: {enum: [processing, ready, failed, deleted]}

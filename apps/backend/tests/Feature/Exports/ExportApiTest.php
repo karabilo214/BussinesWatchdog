@@ -3,6 +3,7 @@
 namespace Tests\Feature\Exports;
 
 use App\Models\ExportFile;
+use App\Models\FinancialTransaction;
 use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\Membership;
@@ -118,6 +119,39 @@ class ExportApiTest extends TestCase
                 'format' => ExportFile::FORMAT_CSV,
             ])
             ->assertUnprocessable();
+    }
+
+    public function test_transaction_export_is_scoped_and_keeps_amounts_as_minor_units(): void
+    {
+        Storage::fake('artifacts');
+        $context = $this->context('admin');
+        $foreign = $this->context('admin');
+        $this->transaction($context, '=cap_100', 'capture', 'succeeded', 18400);
+        $this->transaction($context, 'ref_100', 'refund', 'succeeded', 400);
+        $this->transaction($foreign, 'cap_foreign', 'capture', 'succeeded', 999);
+
+        $created = $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->withHeaders(['Idempotency-Key' => (string) Str::uuid()])
+            ->postJson("/api/v1/stores/{$context['store']->id}/exports", [
+                'kind' => ExportFile::KIND_TRANSACTIONS,
+                'format' => ExportFile::FORMAT_CSV,
+                'filters' => ['kind' => 'capture', 'currency' => 'eur'],
+            ])
+            ->assertAccepted()
+            ->assertJsonPath('kind', ExportFile::KIND_TRANSACTIONS);
+
+        $csv = $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->get("/api/v1/exports/{$created->json('id')}/download")
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString('transaction_id,occurred_at,payment_id,payment_external_id', $csv);
+        $this->assertStringContainsString("'=cap_100", $csv);
+        $this->assertStringContainsString(',capture,succeeded,EUR,2,18400,independent_provider', $csv);
+        $this->assertStringNotContainsString('ref_100', $csv);
+        $this->assertStringNotContainsString('cap_foreign', $csv);
     }
 
     public function test_expired_exports_are_purged_from_storage(): void
@@ -290,6 +324,30 @@ class ExportApiTest extends TestCase
             'revision' => 1,
             'created_at' => now(),
             'updated_at' => now(),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function transaction(array $context, string $externalOperationId, string $kind, string $status, int $amountMinor): void
+    {
+        FinancialTransaction::query()->create([
+            'tenant_id' => $context['tenant']->id,
+            'store_id' => $context['store']->id,
+            'integration_id' => $context['integration']->id,
+            'payment_id' => $context['payment']->id,
+            'external_operation_id' => $externalOperationId,
+            'kind' => $kind,
+            'status' => $status,
+            'currency' => 'EUR',
+            'currency_exponent' => 2,
+            'amount_minor' => $amountMinor,
+            'occurred_at' => now()->subMinute(),
+            'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+            'operation_hash' => hash('sha256', $externalOperationId),
+            'metadata' => [],
+            'created_at' => now(),
         ]);
     }
 

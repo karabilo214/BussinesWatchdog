@@ -15,6 +15,8 @@ class ExportFile extends Model
 
     public const KIND_INCIDENTS = 'incidents';
 
+    public const KIND_TRANSACTIONS = 'transactions';
+
     public const FORMAT_CSV = 'csv';
 
     public const STATE_PROCESSING = 'processing';

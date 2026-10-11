@@ -3,8 +3,10 @@
 namespace App\Support\Exports;
 
 use App\Models\ExportFile;
+use App\Models\FinancialTransaction;
 use App\Models\Incident;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\ReconciliationFinding;
 use App\Models\Store;
 use Illuminate\Contracts\Filesystem\Filesystem;
@@ -42,6 +44,7 @@ class CsvExportService
             $body = match ($kind) {
                 ExportFile::KIND_FINDINGS => $this->findingsCsv($tenantId, $store->id, $filters),
                 ExportFile::KIND_INCIDENTS => $this->incidentsCsv($tenantId, $store->id, $filters),
+                ExportFile::KIND_TRANSACTIONS => $this->transactionsCsv($tenantId, $store->id, $filters),
                 default => throw new \InvalidArgumentException(self::ERROR_KIND_UNSUPPORTED),
             };
 
@@ -204,6 +207,78 @@ class CsvExportService
             $incident->last_seen_at?->toJSON(),
             $incident->resolved_at?->toJSON(),
         ])->all());
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function transactionsCsv(string $tenantId, string $storeId, array $filters): string
+    {
+        $query = FinancialTransaction::query()
+            ->where('tenant_id', $tenantId)
+            ->where('store_id', $storeId);
+
+        if (isset($filters['from'])) {
+            $query->where('occurred_at', '>=', $filters['from']);
+        }
+
+        if (isset($filters['to'])) {
+            $query->where('occurred_at', '<', $filters['to']);
+        }
+
+        foreach (['kind', 'currency'] as $field) {
+            if (isset($filters[$field])) {
+                $query->where($field, $filters[$field]);
+            }
+        }
+
+        if (isset($filters['transaction_status'])) {
+            $query->where('status', $filters['transaction_status']);
+        }
+
+        $transactions = $query->orderByDesc('occurred_at')->orderByDesc('id')->limit($this->rowLimit())->get();
+        $payments = Payment::query()
+            ->where('tenant_id', $tenantId)
+            ->where('store_id', $storeId)
+            ->whereIn('id', $transactions->pluck('payment_id')->filter()->unique()->values())
+            ->get(['id', 'external_id', 'intent_ref', 'charge_ref', 'mode'])
+            ->keyBy('id');
+
+        return $this->csv([
+            'transaction_id',
+            'occurred_at',
+            'payment_id',
+            'payment_external_id',
+            'payment_intent_ref',
+            'payment_charge_ref',
+            'mode',
+            'external_operation_id',
+            'kind',
+            'status',
+            'currency',
+            'currency_exponent',
+            'amount_minor',
+            'source_authority',
+        ], $transactions->map(function (FinancialTransaction $transaction) use ($payments): array {
+            $payment = $transaction->payment_id === null ? null : ($payments[$transaction->payment_id] ?? null);
+
+            return [
+                $transaction->id,
+                $transaction->occurred_at?->toJSON(),
+                $transaction->payment_id,
+                $payment?->external_id,
+                $payment?->intent_ref,
+                $payment?->charge_ref,
+                $payment?->mode,
+                $transaction->external_operation_id,
+                $transaction->kind,
+                $transaction->status,
+                $transaction->currency,
+                $transaction->currency_exponent,
+                $transaction->amount_minor,
+                $transaction->source_authority,
+            ];
+        })->all());
     }
 
     /**

@@ -1,6 +1,6 @@
 # Матрица приёмки Business Watchdog
 
-Обновлено: 2026-10-11, Step 77.
+Обновлено: 2026-10-11, Step 81.
 
 Эта матрица теперь отражает текущее состояние реализации. Evidence указывает на тесты, e2e-скрипты или журнал шагов; это не заменяет финальный release checklist. P1 включает обязательные P0; P2 принимается отдельно.
 
@@ -63,4 +63,4 @@
 | ACC-49 | P2 | not_done | Sales drop+browser failure | — | P2 correlation not implemented |
 | ACC-50 | P2 | not_done | Deploy рядом со сбоем | — | Deploy correlation/explanation model not implemented |
 
-Дополнительные обязательные security проверки: CSRF, stored XSS, CSV formula injection, permission matrix, last owner, invitation expiration, secret masking и RLS при включении. Текущее evidence: CSRF/Sanctum, permission matrix, last owner / ownership transfer, invitation expiration, secret masking and CSV formula protection for findings/incidents exports covered in backend/frontend tests; RLS gate, billing/privacy exports and full stored-XSS security sweep remain release-blocking backlog.
+Дополнительные обязательные security проверки: CSRF, stored XSS, CSV formula injection, permission matrix, last owner, invitation expiration, secret masking и RLS при включении. Текущее evidence: CSRF/Sanctum, permission matrix, last owner / ownership transfer, invitation expiration, secret masking and CSV formula protection for findings/incidents/transactions exports covered in backend/frontend tests; RLS gate, billing/privacy exports and full stored-XSS security sweep remain release-blocking backlog.

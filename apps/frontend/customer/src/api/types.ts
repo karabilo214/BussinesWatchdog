@@ -395,7 +395,7 @@ export interface UnmatchedPayment {
 export interface ExportFile {
   id: string;
   store_id: string;
-  kind: 'findings' | 'incidents';
+  kind: 'findings' | 'incidents' | 'transactions';
   format: 'csv';
   filters: Record<string, unknown>;
   state: 'processing' | 'ready' | 'failed' | 'deleted';

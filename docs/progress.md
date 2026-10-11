@@ -1648,3 +1648,29 @@ Status: complete; decisions await the owner
 - `plugins/shopware-app/tests/spike/run.sh` on dockware/play Shopware 6.7.2.2: read-only ACL role + Integration, orders through the Store API, admin changes. Findings: criteria search and GET work with the read role; `includes` keeps personal data out (without it `orderCustomer` comes back despite no customer privilege); money as floats with currency rounding decimals; new orders have no `updatedAt` and payment state changes touch only the transaction, so the delta needs an OR over order created/updated and transaction updated; deleted orders vanish (404).
 - Security finding: the order/transaction/delivery state transition endpoints have no ACL in 6.7.2.2 — a read-only key changed an order and a payment status (money-moving refunds stay protected). A read-only key cannot be verified without writing or reading all integrations' secrets. Proposal in ADR 0025: Integration first with a PayPal-style warning, App (manifest permissions, webhooks) next; responsible disclosure to Shopware is the owner's call.
 
+### Step 81: Transaction CSV Exports
+
+Status: complete for the transaction export slice
+
+Added:
+
+- Backend `transactions` export kind on the existing `exports` API and private storage path.
+- Tenant/store-scoped CSV over `financial_transactions`, with optional date, currency, transaction kind and transaction status filters.
+- Transaction CSV columns keep provider/store semantics explicit: transaction id, payment ids/refs, mode, external operation id, kind, status, currency/exponent, minor-unit amount and source authority.
+- Customer reconciliation toolbar action for transaction CSV export, next to the existing findings export, using the same quiet toolbar button style and ru/en/de labels.
+- OpenAPI contract updated in both `contracts/` and `spec/contracts/`; UI catalog and acceptance evidence refreshed.
+
+Verification:
+
+- PHP lint: `ExportFile.php`, `CreateExportRequest.php`, `CsvExportService.php`, `ExportApiTest.php`.
+- Backend targeted: `php artisan test tests/Feature/Exports/ExportApiTest.php tests/Feature/Contracts/OpenApiRoutesTest.php` — 8 passed.
+- Customer frontend: `npm run check -w @bw/customer` from `apps/frontend` — 87 tests passed and production build completed.
+
+Remaining:
+
+- Billing/private exports, async export worker/retry, frontend smoke coverage, and PostgreSQL suite rerun.
+
+Coordination:
+
+- Shopware 6 spike/connector/screen work remains Claude-owned; no Shopware plugin/app/connector files were touched.
+

@@ -1,6 +1,6 @@
 # Приёмка панелей и SaaS billing
 
-Версия 1.1. Обновлено: 2026-10-11, Step 75.
+Версия 1.1. Обновлено: 2026-10-11, Step 81.
 
 Это добавочные критерии к `ACCEPTANCE.md`. Матрица теперь показывает текущее evidence. Большая часть SaaS billing/platform панели всё ещё находится на уровне ТЗ и контрактов; customer cabinet реализован существенно дальше.
 
@@ -40,6 +40,6 @@
 | EXT-26 | not_done | Customer deletion с recurring contract | — | Privacy deletion + recurring cancellation workflow not implemented |
 | EXT-27 | not_done | Legal/policy/price version changed | — | Legal acceptance/versioned public purchase flow not implemented |
 | EXT-28 | not_done | Provider unavailable | — | SaaS paid grant and previous paid_until preservation not implemented |
-| EXT-29 | partial | Portal locale coverage ru/en/de | Customer app, public/control skeleton, notification/account templates, findings/incidents export UI labels and many backend problem codes have ru/en/de tests | Owner/admin/billing/private export localization not implemented |
+| EXT-29 | partial | Portal locale coverage ru/en/de | Customer app, public/control skeleton, notification/account templates, findings/incidents/transactions export UI labels and many backend problem codes have ru/en/de tests | Owner/admin/billing/private export localization not implemented |
 
 Требуются также 16 BILL fixture outcomes, проверка no-card storage/secret redaction, CSRF и stored XSS, изоляция guard cookies, private invoice export/download, provider sandbox upgrade/proration/cancel/refund и наблюдаемость webhook lag. Tests of actual provider behavior нельзя заменить JSON fixtures.

@@ -631,7 +631,8 @@
     },
     "scan": "Find payments without an order",
     "scan_done": "Search done, data updated.",
-    "export": "Export CSV",
+    "export": "Export findings",
+    "export_transactions": "Export transactions",
     "status_column": "Result",
     "status": {
       "ok": "matches",

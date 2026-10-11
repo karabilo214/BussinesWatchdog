@@ -24,6 +24,7 @@ class CreateExportRequest extends FormRequest
             'kind' => ['required', Rule::in([
                 ExportFile::KIND_FINDINGS,
                 ExportFile::KIND_INCIDENTS,
+                ExportFile::KIND_TRANSACTIONS,
             ])],
             'format' => ['required', Rule::in([ExportFile::FORMAT_CSV])],
             'filters' => ['sometimes', 'array'],
@@ -51,6 +52,8 @@ class CreateExportRequest extends FormRequest
             ])],
             'filters.family' => ['sometimes', 'string', 'max:64'],
             'filters.currency' => ['sometimes', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
+            'filters.kind' => ['sometimes', Rule::in(['capture', 'refund', 'fee', 'dispute_debit', 'dispute_credit', 'adjustment'])],
+            'filters.transaction_status' => ['sometimes', Rule::in(['pending', 'succeeded', 'failed', 'cancelled'])],
         ];
     }
 
