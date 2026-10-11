@@ -1819,6 +1819,29 @@ Coordination:
 
 - Claude's Shopware test files were left unstaged; this step only stages notification hardening and evidence files.
 
+### Step 90: Native Telegram Update Webhook
+
+Status: complete
+
+Updated:
+
+- Added `POST /api/v1/webhooks/telegram/updates` for native Telegram Bot API webhook updates. It accepts `message` and `channel_post`, checks the configured secret against `X-Telegram-Bot-Api-Secret-Token` (and keeps the internal header for controlled tests/tools), extracts a 6-digit binding code from text, and binds the sending chat directly.
+- Updates without a binding code or chat id return `202 {"status":"ignored"}` and do not create side effects.
+- `contracts/openapi.yaml` and `spec/contracts/openapi.yaml` document the native update endpoint; project state, acceptance and UI catalog evidence were bumped.
+
+Verification:
+
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Feature/Notifications/NotificationChannelApiTest.php tests/Feature/Contracts/OpenApiRoutesTest.php` — 19 passed.
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Feature/Notifications` — 32 passed.
+
+Remaining gaps:
+
+- Real Telegram bot webhook registration and live update delivery were not tested in this slice.
+
+Coordination:
+
+- Claude's Shopware test files were left unstaged; this step only stages Telegram webhook and evidence files.
+
 ### Step 87: Real PayPal Payments through SwagPayPal (ADR 0025 part 3)
 
 Status: complete

@@ -2068,6 +2068,66 @@ paths:
                   status: {const: bound}
         "401": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/webhooks/telegram/updates:
+    post:
+      tags: [Notifications]
+      operationId: receiveTelegramNotificationUpdate
+      description: Native Telegram Bot API webhook update. Requires X-Telegram-Bot-Api-Secret-Token or the internal X-Business-Watchdog-Telegram-Secret to match the configured Telegram webhook secret.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              properties:
+                message:
+                  type: object
+                  additionalProperties: true
+                  properties:
+                    text: {type: string, maxLength: 4096}
+                    chat:
+                      type: object
+                      additionalProperties: true
+                      properties:
+                        id: {}
+                        title: {type: [string, "null"], maxLength: 120}
+                        username: {type: [string, "null"], maxLength: 120}
+                channel_post:
+                  type: object
+                  additionalProperties: true
+                  properties:
+                    text: {type: string, maxLength: 4096}
+                    chat:
+                      type: object
+                      additionalProperties: true
+                      properties:
+                        id: {}
+                        title: {type: [string, "null"], maxLength: 120}
+                        username: {type: [string, "null"], maxLength: 120}
+      responses:
+        "200":
+          description: Telegram chat bound to the pending channel
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [channel_id, tenant_id, status]
+                properties:
+                  channel_id: {type: string, format: uuid}
+                  tenant_id: {type: string, format: uuid}
+                  status: {const: bound}
+        "202":
+          description: Update ignored because it did not contain a binding code and chat id
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: {const: ignored}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/notification-channels:
     get:
       tags: [Notifications]

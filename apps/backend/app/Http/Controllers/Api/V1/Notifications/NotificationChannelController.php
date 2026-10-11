@@ -146,9 +146,7 @@ class NotificationChannelController extends Controller
 
     public function bindTelegram(Request $request): JsonResponse
     {
-        $secret = (string) config('services.telegram.webhook_secret');
-
-        if ($secret === '' || ! hash_equals($secret, (string) $request->header('X-Business-Watchdog-Telegram-Secret'))) {
+        if (! $this->telegramWebhookAuthorized($request)) {
             return response()->json(['code' => 'telegram_webhook_unauthorized', 'message' => 'telegram_webhook_unauthorized'], 401);
         }
 
@@ -160,6 +158,48 @@ class NotificationChannelController extends Controller
 
         try {
             $channel = $this->service->bindTelegram($validated['binding_code'], $validated['chat_id'], $validated['chat_title'] ?? null);
+        } catch (NotificationChannelRejected $exception) {
+            return $this->rejected($exception);
+        }
+
+        return response()->json([
+            'channel_id' => $channel->id,
+            'tenant_id' => $channel->tenant_id,
+            'status' => 'bound',
+        ]);
+    }
+
+    public function telegramUpdate(Request $request): JsonResponse
+    {
+        if (! $this->telegramWebhookAuthorized($request)) {
+            return response()->json(['code' => 'telegram_webhook_unauthorized', 'message' => 'telegram_webhook_unauthorized'], 401);
+        }
+
+        $payload = $request->validate([
+            'message.text' => ['sometimes', 'string', 'max:4096'],
+            'message.chat.id' => ['sometimes'],
+            'message.chat.title' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'message.chat.username' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'channel_post.text' => ['sometimes', 'string', 'max:4096'],
+            'channel_post.chat.id' => ['sometimes'],
+            'channel_post.chat.title' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'channel_post.chat.username' => ['sometimes', 'nullable', 'string', 'max:120'],
+        ]);
+
+        $message = $payload['message'] ?? $payload['channel_post'] ?? null;
+        $text = is_array($message) ? (string) ($message['text'] ?? '') : '';
+        $chat = is_array($message) && isset($message['chat']) && is_array($message['chat']) ? $message['chat'] : [];
+
+        if (! preg_match('/\b(\d{6})\b/', $text, $matches) || ! array_key_exists('id', $chat)) {
+            return response()->json(['status' => 'ignored'], 202);
+        }
+
+        try {
+            $channel = $this->service->bindTelegram(
+                $matches[1],
+                (string) $chat['id'],
+                $chat['title'] ?? $chat['username'] ?? null,
+            );
         } catch (NotificationChannelRejected $exception) {
             return $this->rejected($exception);
         }
@@ -213,6 +253,20 @@ class NotificationChannelController extends Controller
             'code' => $exception->reasonCode,
             'message' => $exception->getMessage(),
         ], $status ?? $exception->httpStatus());
+    }
+
+    private function telegramWebhookAuthorized(Request $request): bool
+    {
+        $secret = (string) config('services.telegram.webhook_secret');
+
+        if ($secret === '') {
+            return false;
+        }
+
+        $telegramHeader = (string) $request->header('X-Telegram-Bot-Api-Secret-Token');
+        $internalHeader = (string) $request->header('X-Business-Watchdog-Telegram-Secret');
+
+        return hash_equals($secret, $telegramHeader) || hash_equals($secret, $internalHeader);
     }
 
     /**

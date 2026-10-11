@@ -131,6 +131,59 @@ class NotificationChannelApiTest extends TestCase
         ]);
     }
 
+    public function test_telegram_update_webhook_binds_a_chat_from_a_native_message(): void
+    {
+        $context = $this->context('owner');
+        config()->set('services.telegram.webhook_secret', 'telegram-secret');
+
+        $code = $this->createChannel($context, ['kind' => 'telegram', 'destination_email' => null])->json('binding.binding_code');
+        $channel = NotificationChannel::query()->firstOrFail();
+
+        $this->postJson('/api/v1/webhooks/telegram/updates', [
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 10,
+                'text' => "Business Watchdog {$code}",
+                'chat' => ['id' => -1009876543210, 'title' => 'Ops Room'],
+            ],
+        ])->assertUnauthorized();
+
+        $this->withHeaders(['X-Telegram-Bot-Api-Secret-Token' => 'telegram-secret'])
+            ->postJson('/api/v1/webhooks/telegram/updates', [
+                'update_id' => 2,
+                'message' => [
+                    'message_id' => 11,
+                    'text' => "Business Watchdog {$code}",
+                    'chat' => ['id' => -1009876543210, 'title' => 'Ops Room'],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('channel_id', $channel->id)
+            ->assertJsonPath('status', 'bound');
+
+        $this->asMember($context)->getJson('/api/v1/notification-channels')
+            ->assertOk()
+            ->assertJsonPath('data.0.destination_masked', 'Telegram chat ***3210')
+            ->assertJsonPath('data.0.enabled', true);
+    }
+
+    public function test_telegram_update_without_a_binding_code_is_ignored(): void
+    {
+        config()->set('services.telegram.webhook_secret', 'telegram-secret');
+
+        $this->withHeaders(['X-Telegram-Bot-Api-Secret-Token' => 'telegram-secret'])
+            ->postJson('/api/v1/webhooks/telegram/updates', [
+                'update_id' => 3,
+                'message' => [
+                    'message_id' => 12,
+                    'text' => '/start',
+                    'chat' => ['id' => 1234567890],
+                ],
+            ])
+            ->assertAccepted()
+            ->assertJsonPath('status', 'ignored');
+    }
+
     public function test_telegram_binding_rejects_ambiguous_active_codes(): void
     {
         $context = $this->context('owner');

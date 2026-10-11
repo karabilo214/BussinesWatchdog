@@ -64,6 +64,8 @@ Route::post('/v1/webhooks/paypal/{integration}', [PayPalWebhookController::class
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/telegram/bind', [NotificationChannelController::class, 'bindTelegram'])
     ->middleware('throttle:provider-webhook');
+Route::post('/v1/webhooks/telegram/updates', [NotificationChannelController::class, 'telegramUpdate'])
+    ->middleware('throttle:provider-webhook');
 
 // Opened from an email: no Origin/Referer, so no SPA session; the signed URL is the only credential.
 Route::get('/v1/auth/email-verification/{user}/{hash}', [AccountController::class, 'verifyEmail'])
