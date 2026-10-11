@@ -13,6 +13,9 @@ class ProviderCoverage
 {
     public const REASON_NOT_CONNECTED = 'provider_not_connected';
 
+    /** The store did not report the payment's test/live mode and the provider runs in test mode (ADR 0024). */
+    public const REASON_MODE_NEEDS_PLUGIN = 'payment_mode_needs_plugin';
+
     public static function providerForGateway(?string $gateway): ?string
     {
         return match (true) {
@@ -21,6 +24,26 @@ class ProviderCoverage
             str_starts_with($gateway, 'ppcp-') || $gateway === 'ppcp' => 'paypal',
             default => null,
         };
+    }
+
+    /**
+     * Whether every active provider that could hold the order's money runs in test mode. Orders whose store did not
+     * report a mode are taken as live, so against a test-mode provider they cannot be checked.
+     */
+    public function onlyTestMode(string $tenantId, string $storeId, ?string $gateway = null): bool
+    {
+        $provider = self::providerForGateway($gateway);
+        $modes = Integration::query()
+            ->where('tenant_id', $tenantId)
+            ->where('store_id', $storeId)
+            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
+            ->where('status', Integration::STATUS_ACTIVE)
+            ->when($provider !== null, fn ($query) => $query->where('provider', $provider))
+            ->distinct()
+            ->pluck('mode')
+            ->all();
+
+        return $modes === ['test'];
     }
 
     public function isConnected(string $tenantId, string $storeId, ?string $gateway = null): bool

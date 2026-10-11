@@ -126,6 +126,7 @@ class OrderSnapshotProjector
             'current_payload_hash' => $payloadHash,
             'metadata' => array_filter([
                 'order_key_hash' => ProjectionValueNormalizer::nullableString($data['order_key_hash'] ?? null),
+                'mode_reported' => array_key_exists('mode', $data) ? null : false,
             ], fn (mixed $value): bool => $value !== null),
             'updated_at' => $now,
             'created_at' => $now,

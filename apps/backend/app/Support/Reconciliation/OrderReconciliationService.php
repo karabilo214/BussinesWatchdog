@@ -76,6 +76,12 @@ class OrderReconciliationService
                     'reason_code' => ProviderCoverage::REASON_NOT_CONNECTED,
                     'evidence' => ['financial_support' => $lockedOrder->financial_support],
                 ], $now);
+            } elseif (($lockedOrder->metadata['mode_reported'] ?? true) === false && $this->coverage->onlyTestMode($lockedOrder->tenant_id, $lockedOrder->store_id, $lockedOrder->gateway)) {
+                $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
+                    'status' => ReconciliationFinding::STATUS_UNKNOWN,
+                    'reason_code' => ProviderCoverage::REASON_MODE_NEEDS_PLUGIN,
+                    'evidence' => ['financial_support' => $lockedOrder->financial_support, 'order_mode_reported' => false],
+                ], $now);
             } elseif ($storeDataStale) {
                 $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
                     'status' => ReconciliationFinding::STATUS_UNKNOWN,

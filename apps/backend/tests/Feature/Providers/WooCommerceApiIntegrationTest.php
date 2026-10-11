@@ -259,6 +259,29 @@ class WooCommerceApiIntegrationTest extends TestCase
         ])->assertStatus(409)->assertJsonPath('code', 'order_source_already_connected');
     }
 
+    public function test_without_a_reported_mode_a_test_mode_provider_cannot_check_the_money_and_says_the_plugin_is_needed(): void
+    {
+        $this->wcOrder(41, ['payment_method' => 'stripe', 'transaction_id' => 'ch_3Abc', 'total' => '184.000000']);
+        $this->wcOrder(42, ['payment_method' => 'ppcp-gateway', 'transaction_id' => '5TR80192ED162870P', 'currency' => 'USD', 'total' => '10.000000', 'meta' => ['_ppcp_paypal_payment_mode' => 'sandbox']]);
+        $integration = $this->connected();
+        app(WooCommerceApiSync::class)->run($integration);
+        $this->drain();
+        $stripeOrder = Order::query()->where('external_id', '41')->firstOrFail();
+        $this->assertSame(['live', false], [$stripeOrder->mode, app(\App\Http\Dto\Orders\OrderDto::class)->toArray($stripeOrder)['mode_reported']]);
+        $this->assertTrue(app(\App\Http\Dto\Orders\OrderDto::class)->toArray(Order::query()->where('external_id', '42')->firstOrFail())['mode_reported']);
+
+        $stripe = Integration::query()->create([
+            'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'provider' => 'stripe', 'mode' => 'test',
+            'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER, 'status' => Integration::STATUS_ACTIVE, 'capabilities' => [], 'connector_version' => '1', 'health' => [],
+        ]);
+        $finding = app(\App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($stripeOrder)->findings()->sole();
+        $this->assertSame(['unknown', 'payment_mode_needs_plugin'], [$finding->status, $finding->reason_code]);
+
+        $stripe->forceFill(['mode' => 'live'])->save();
+        $live = app(\App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($stripeOrder->refresh())->findings()->pluck('reason_code')->all();
+        $this->assertNotContains('payment_mode_needs_plugin', $live, 'a live provider checks the order as usual');
+    }
+
     public function test_amounts_are_converted_as_strings(): void
     {
         $this->assertSame('18400', WooCommerceAmount::toMinor('184.000000', 2));

@@ -1,6 +1,6 @@
 # ADR 0024: WooCommerce REST API connector (read key)
 
-Status: accepted direction (owner, 2026-10-11, ADR 0023: REST API-first); assumptions below await owner review
+Status: accepted (owner, 2026-10-11); decisions on the assumptions below
 
 ## Context
 
@@ -38,3 +38,12 @@ Matrix stores without the Watchdog plugin, a Read key created as in WooCommerce 
 4. **Deleted orders** are detected by the daily audit (up to a day late), and only within 90 days.
 5. **WooCommerce 6.0–7.8**: late refunds are seen within an hour (recent re-read), not within 5 minutes.
 6. **Stripe test/live without the plugin**: the API gives no reliable mode for Stripe orders (only the current gateway setting, which can change), so they are labelled live; a test store paired with a test-mode Stripe account needs the plugin or shows mode mismatches.
+
+## Owner decisions (2026-10-11)
+
+1. One order source per store — **accepted**.
+2. A Read/Write key is refused — **accepted**.
+3. Store verification unchanged — **accepted for now**, but asking customers to edit DNS will put many off. Proposal (not implemented, needs a decision): a Read key that works on the store's own confirmed HTTPS origin proves admin access to that store (only store managers can create keys), so a successful connection could confirm the store as a new verification method `api_key`, keeping DNS and plugin verification as alternatives.
+4. Deleted orders found by the daily audit within 90 days — **accepted**.
+5. Late refunds within an hour on WooCommerce 6.0–7.8 — outside our control; **the connection screen warns the customer** (dashboard step).
+6. No test/live mode without the plugin — **show “not supported in this mode, the plugin is needed”** instead of a mode. Implemented (Step 77): the order projection stores `mode_reported = false` when the store sent no mode, the order API returns `mode_reported`; when every provider that could hold the order's money runs in test mode, the order's money check is `unknown` / `payment_mode_needs_plugin` instead of a false missing capture, and test-mode payments without an order in an API-connected store are `unknown` with the same reason instead of awaiting review. With a live provider such orders are checked as usual.

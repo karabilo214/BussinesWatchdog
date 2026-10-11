@@ -4,12 +4,14 @@ namespace App\Support\Reconciliation;
 
 use App\Models\FinancialTransaction;
 use App\Models\Integration;
+use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Store;
 use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Integrations\ProviderCoverage;
+use App\Support\Providers\WooCommerce\WooCommerceApiConnector;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -68,7 +70,16 @@ class UnmatchedPaymentScanner
                 ->limit(self::MAX_FINDINGS_PER_RUN)
                 ->get();
 
+            $modeNeedsPlugin = Integration::query()
+                ->where('tenant_id', $store->tenant_id)
+                ->where('store_id', $store->id)
+                ->where('provider', WooCommerceApiConnector::PROVIDER)
+                ->whereIn('status', [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED])
+                ->exists();
+            $testPayments = $modeNeedsPlugin ? Payment::query()->whereIn('id', $orphanCaptures->pluck('payment_id')->filter())->where('mode', 'test')->pluck('id')->flip() : collect();
+
             foreach ($orphanCaptures as $capture) {
+                $unknownMode = $testPayments->has($capture->payment_id);
                 ReconciliationFinding::query()->create([
                     'tenant_id' => $store->tenant_id,
                     'store_id' => $store->id,
@@ -76,8 +87,8 @@ class UnmatchedPaymentScanner
                     'order_id' => null,
                     'payment_id' => $capture->payment_id,
                     'rule_code' => ReconciliationFinding::RULE_PAYMENT_WITHOUT_ORDER,
-                    'status' => ReconciliationFinding::STATUS_PENDING,
-                    'reason_code' => 'unmatched_capture_awaiting_review',
+                    'status' => $unknownMode ? ReconciliationFinding::STATUS_UNKNOWN : ReconciliationFinding::STATUS_PENDING,
+                    'reason_code' => $unknownMode ? ProviderCoverage::REASON_MODE_NEEDS_PLUGIN : 'unmatched_capture_awaiting_review',
                     'currency' => $capture->currency,
                     'currency_exponent' => $capture->currency_exponent,
                     'actual_minor' => $capture->amount_minor,

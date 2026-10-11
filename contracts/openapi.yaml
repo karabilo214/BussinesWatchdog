@@ -2968,6 +2968,9 @@ components:
         status: {type: string}
         gateway: {type: [string, "null"]}
         mode: {enum: [live, test]}
+        mode_reported:
+          type: boolean
+          description: "false when the store did not report the payment's test/live mode (REST API connection without the plugin, ADR 0024); mode is then the live default and, against a test-mode provider, money checks are unknown (payment_mode_needs_plugin)."
         currency: {type: string, pattern: "^[A-Z]{3}$"}
         currency_exponent: {type: integer}
         total_minor: {$ref: "#/components/schemas/MoneyMinor"}

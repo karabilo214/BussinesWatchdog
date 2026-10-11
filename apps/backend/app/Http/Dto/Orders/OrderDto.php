@@ -20,6 +20,7 @@ class OrderDto
             'status' => $order->status,
             'gateway' => $order->gateway,
             'mode' => $order->mode,
+            'mode_reported' => ($order->metadata['mode_reported'] ?? true) !== false,
             'currency' => $order->currency,
             'currency_exponent' => $order->currency_exponent,
             'total_minor' => (string) $order->total_minor,
