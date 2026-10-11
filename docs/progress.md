@@ -1842,6 +1842,24 @@ Coordination:
 
 - Claude's Shopware test files were left unstaged; this step only stages Telegram webhook and evidence files.
 
+### Step 91: Telegram Sender Failure Semantics
+
+Status: complete
+
+Updated:
+
+- Added direct unit coverage for `TelegramNotificationSender` so its Bot API outcome mapping is explicit and protected: success returns provider message id, 429 uses Telegram `retry_after`, 5xx is retryable, 4xx is permanent, missing bot token / invalid destination are permanent configuration failures, and transport exceptions become `uncertain`.
+- Acceptance/project/catalog evidence now points to Telegram sender success/failure tests in addition to binding/webhook tests.
+
+Verification:
+
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Unit/Notifications/TelegramNotificationSenderTest.php` — 5 passed.
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Unit/Notifications tests/Feature/Notifications` — 42 passed.
+
+Coordination:
+
+- Claude's Shopware files were left unstaged; this step only stages Telegram sender test and evidence files.
+
 ### Step 87: Real PayPal Payments through SwagPayPal (ADR 0025 part 3)
 
 Status: complete
