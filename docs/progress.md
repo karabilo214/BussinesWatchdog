@@ -1860,6 +1860,30 @@ Coordination:
 
 - Claude's Shopware files were left unstaged; this step only stages Telegram sender test and evidence files.
 
+### Step 92: Telegram Webhook Registration Readiness
+
+Status: complete
+
+Updated:
+
+- Added `telegram:webhook set|info|delete` for production operations. `set` registers `/api/v1/webhooks/telegram/updates` through Telegram Bot API with `secret_token`, `allowed_updates=message,channel_post`, optional pending-update drop and HTTPS URL validation; `info`/`delete` support smoke checks and rollback.
+- Added `TELEGRAM_WEBHOOK_URL` config alongside the existing bot token, username and webhook secret.
+- Acceptance/project/catalog evidence now distinguishes automated webhook registration readiness from the remaining live Telegram delivery smoke.
+
+Verification:
+
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan list telegram` — command registered.
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Feature/Notifications/TelegramWebhookCommandTest.php` — 4 passed.
+- Backend: `/opt/homebrew/opt/php@8.4/bin/php artisan test tests/Unit/Notifications tests/Feature/Notifications` — 46 passed.
+
+Remaining gaps:
+
+- No real Telegram token was used in this slice; live send/update delivery must be checked against the production bot after deployment.
+
+Coordination:
+
+- Claude's Shopware files were left unstaged; this step only stages Telegram webhook registration readiness and evidence files.
+
 ### Step 87: Real PayPal Payments through SwagPayPal (ADR 0025 part 3)
 
 Status: complete

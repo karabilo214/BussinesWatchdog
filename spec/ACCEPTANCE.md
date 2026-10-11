@@ -1,6 +1,6 @@
 # Матрица приёмки Business Watchdog
 
-Обновлено: 2026-10-11, Step 91.
+Обновлено: 2026-10-11, Step 92.
 
 Эта матрица теперь отражает текущее состояние реализации. Evidence указывает на тесты, e2e-скрипты или журнал шагов; это не заменяет финальный release checklist. P1 включает обязательные P0; P2 принимается отдельно.
 
@@ -49,7 +49,7 @@
 | ACC-35 | P1 | done | Two currencies | Multi-currency reconciliation and overview totals tests; Steps 60, 63, 70 | — |
 | ACC-36 | P1 | done | Concurrent manual allocation | `PaymentAllocationServiceTest`; row locks and allocation bounds | — |
 | ACC-37 | P1 | done | Revoked API key | Provider coverage tests; rejected Stripe/PayPal credentials degrade to unknown | — |
-| ACC-38 | P1 | partial | Telegram binding чужому chat | Telegram pending channel, secret-protected bot bind and native update endpoints, masked destination, sender success/failure and binding collision tests; Steps 88-91 | Real Telegram bot webhook registration and live update delivery not tested |
+| ACC-38 | P1 | partial | Telegram binding чужому chat | Telegram pending channel, secret-protected bot bind and native update endpoints, masked destination, sender success/failure, webhook registration command and binding collision tests; Steps 88-92 | Live Telegram bot send/update delivery not tested |
 | ACC-39 | P1 | partial | Quiet hours и recovery | Email/Telegram notification preferences and delivery tests; Steps 62, 88 | Digest/reminders not implemented |
 | ACC-40 | P1 | not_done | Plan quota или suspended | — | SaaS billing/entitlements not implemented |
 | ACC-41 | P1 | not_done | Backup restore новым host | — | RPO/RTO restore drill missing |

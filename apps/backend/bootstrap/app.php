@@ -4,6 +4,7 @@ use App\Exceptions\Tenancy\MissingTenantContext;
 use App\Console\Commands\CheckStoreVerifications;
 use App\Console\Commands\DeliverNotifications;
 use App\Console\Commands\DispatchDomainOutbox;
+use App\Console\Commands\ManageTelegramWebhook;
 use App\Console\Commands\ProcessDirtyReconciliation;
 use App\Console\Commands\ReencryptSecrets;
 use App\Console\Commands\RunNightlyReconciliationSweep;
@@ -37,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         RunNightlyReconciliationSweep::class,
         ReencryptSecrets::class,
         CheckStoreVerifications::class,
+        ManageTelegramWebhook::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
