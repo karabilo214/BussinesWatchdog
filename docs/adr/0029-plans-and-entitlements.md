@@ -1,6 +1,6 @@
 # ADR 0029: Plans, entitlements and their enforcement
 
-Status: implemented (Step 97); plan contents and prices await the owner
+Status: implemented (Step 97); accepted by the owner 2026-10-11 (grace 7 days, override on top of the paid plan without lifting a manual suspension, placeholder plan contents — for now); plan contents and prices await the owner
 
 ## Context
 
