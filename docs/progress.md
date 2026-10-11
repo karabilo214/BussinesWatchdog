@@ -1728,3 +1728,21 @@ Coordination:
 
 - No Shopware files were touched; Claude-owned working tree changes were left unstaged.
 
+### Step 84: Export Reference Schema
+
+Status: complete
+
+Updated:
+
+- `spec/database/schema.sql` now includes the implemented `exports` table next to browser `artifacts`.
+- The reference schema captures the private export object metadata, tenant/store scope, creator FK, retention fields, ready/deleted states, indexes and `findings/incidents/transactions` kind constraint.
+- UI API catalog and acceptance evidence markers were bumped to include the schema snapshot coverage.
+
+Verification:
+
+- Documentation/schema snapshot change only; no runtime tests were needed.
+
+Coordination:
+
+- Shopware connector files and contracts currently being edited by Claude were left unstaged.
+

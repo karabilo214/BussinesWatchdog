@@ -609,6 +609,30 @@ CREATE TABLE artifacts (
  FOREIGN KEY (tenant_id,store_id,attempt_id) REFERENCES check_attempts(tenant_id,store_id,id)
 );
 
+CREATE TABLE exports (
+ id uuid PRIMARY KEY,
+ tenant_id uuid NOT NULL,
+ store_id uuid NOT NULL,
+ created_by uuid REFERENCES users(id),
+ kind text NOT NULL CHECK (kind IN ('findings','incidents','transactions')),
+ format text NOT NULL CHECK (format IN ('csv')),
+ filters jsonb NOT NULL,
+ state text NOT NULL CHECK (state IN ('processing','ready','failed','deleted')),
+ object_key text UNIQUE,
+ content_type text,
+ size_bytes bigint CHECK (size_bytes>=0),
+ sha256 char(64),
+ error_code text,
+ expires_at timestamptz,
+ completed_at timestamptz,
+ deleted_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (tenant_id,store_id,id),
+ FOREIGN KEY (tenant_id,store_id) REFERENCES stores(tenant_id,id)
+);
+CREATE INDEX exports_store_created_idx ON exports(tenant_id,store_id,created_at);
+CREATE INDEX exports_retention_idx ON exports(state,expires_at);
+
 CREATE TABLE signals (
  id uuid PRIMARY KEY,
  tenant_id uuid NOT NULL,
