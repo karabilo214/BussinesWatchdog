@@ -1084,6 +1084,37 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/integrations/woocommerce-api:
+    post:
+      tags: [Integrations]
+      operationId: connectWooCommerceApi
+      security:
+        - {UserSession: []}
+      description: "Owner/admin (ADR 0024). Connects the store's orders through a WooCommerce REST API key with Read permission, on the store's own https base URL (/wp-json/wc/v3, pretty permalinks). The key must read orders (woocommerce_key_rejected, woocommerce_key_not_recognized, woocommerce_api_unavailable otherwise) and must not be able to write (woocommerce_key_not_read_only; checked with a request that cannot change anything). A store has one order source: 409 order_source_already_connected when the plugin is paired, provider_already_connected when a key is already connected. Only GET order endpoints are polled. The key is stored encrypted and never returned. Connecting re-queues the store's reconciliation window."
+      parameters:
+        - {name: store_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [consumer_key, consumer_secret]
+              properties:
+                consumer_key: {type: string, maxLength: 255, pattern: "^ck_[a-f0-9]{40}$"}
+                consumer_secret: {type: string, maxLength: 255, writeOnly: true, pattern: "^cs_[a-f0-9]{40}$"}
+      responses:
+        "201":
+          description: Connected
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ProviderIntegration"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/integrations/{integration_id}/webhook-id:
     put:
       tags: [Integrations]

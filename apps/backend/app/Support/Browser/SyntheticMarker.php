@@ -29,6 +29,7 @@ class SyntheticMarker
         $connector = Integration::query()
             ->where('tenant_id', $run->tenant_id)
             ->where('store_id', $run->store_id)
+            ->where('provider', 'woocommerce')
             ->where('source_authority', Integration::SOURCE_STORE_REPORTED)
             ->whereIn('status', [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED])
             ->latest('created_at')

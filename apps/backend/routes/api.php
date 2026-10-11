@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Integrations\IntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\PayPalIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\PayPalWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\ProviderSyncController;
+use App\Http\Controllers\Api\V1\Integrations\WooCommerceApiIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\StripeIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\StripeWebhookController;
 use App\Http\Controllers\Api\V1\Notifications\NotificationChannelController;
@@ -95,6 +96,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::put('/integrations/{integration}/webhook-secret', [StripeIntegrationController::class, 'webhookSecret'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::post('/stores/{store}/integrations/paypal', [PayPalIntegrationController::class, 'connect'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+    Route::post('/stores/{store}/integrations/woocommerce-api', [WooCommerceApiIntegrationController::class, 'connect'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::put('/integrations/{integration}/webhook-id', [PayPalIntegrationController::class, 'webhookId'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));

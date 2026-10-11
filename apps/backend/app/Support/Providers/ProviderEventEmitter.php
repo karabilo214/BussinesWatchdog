@@ -12,9 +12,10 @@ use Ramsey\Uuid\Uuid;
 /**
  * Emits a provider event only when the normalized content of an object changed since it was last seen; the event id
  * is derived from the previous and the new content, so a webhook and a poll that race produce the same event, and a
- * return to an earlier state is still a new event. Shared by every independent-provider adapter.
+ * return to an earlier state is still a new event. Shared by every adapter that reads an external API. Drafts marked
+ * `revisioned` also carry a per-object revision (the store-data events need one); it only grows.
  *
- * @phpstan-type Draft array{type: string, aggregate_type: string, aggregate_id: string, created: int, data: array<string, mixed>}
+ * @phpstan-type Draft array{type: string, aggregate_type: string, aggregate_id: string, created: int, data: array<string, mixed>, revisioned?: bool, object_type?: string}
  */
 class ProviderEventEmitter
 {
@@ -35,16 +36,18 @@ class ProviderEventEmitter
         $requestId = (string) Str::uuid();
 
         foreach ($drafts as $draft) {
-            $objectType = $draft['aggregate_type'];
+            $objectType = $draft['object_type'] ?? $draft['aggregate_type'];
             $contentHash = hash('sha256', json_encode([$draft['type'], $draft['aggregate_id'], $draft['data']], JSON_THROW_ON_ERROR));
 
             $changed = DB::transaction(function () use ($integration, $draft, $objectType, $contentHash, $now, $requestId): bool {
-                $known = DB::table('provider_object_states')
+                $state = DB::table('provider_object_states')
                     ->where('integration_id', $integration->id)
                     ->where('object_type', $objectType)
                     ->where('object_id', $draft['aggregate_id'])
                     ->lockForUpdate()
-                    ->value('content_hash');
+                    ->first(['content_hash', 'revision']);
+                $known = $state?->content_hash;
+                $revision = (int) ($state->revision ?? 0) + 1;
 
                 if ($known === $contentHash) {
                     return false;
@@ -56,17 +59,23 @@ class ProviderEventEmitter
                     $data['source_updated_at'] = $now->toJSON();
                 }
 
-                $this->ingestor->ingest($integration, [[
+                $event = [
                     'schema_version' => '1.0',
                     'event_id' => Uuid::uuid5(self::NAMESPACE, $integration->id.'|'.($known ?? 'new').'|'.$contentHash)->toString(),
                     'type' => $draft['type'],
                     'aggregate_type' => $draft['aggregate_type'],
                     'aggregate_id' => $draft['aggregate_id'],
-                    'occurred_at' => Carbon::createFromTimestamp($draft['created'])->toJSON(),
+                    'occurred_at' => Carbon::createFromTimestamp(min($draft['created'], $now->getTimestamp()))->toJSON(),
                     'observed_at' => $now->toJSON(),
                     'is_synthetic' => false,
                     'data' => $data,
-                ]], null, $requestId);
+                ];
+
+                if (($draft['revisioned'] ?? false) === true) {
+                    $event['aggregate_revision'] = $revision;
+                }
+
+                $this->ingestor->ingest($integration, [$event], null, $requestId);
 
                 DB::table('provider_object_states')->upsert([[
                     'tenant_id' => $integration->tenant_id,
@@ -75,8 +84,9 @@ class ProviderEventEmitter
                     'object_type' => $objectType,
                     'object_id' => $draft['aggregate_id'],
                     'content_hash' => $contentHash,
+                    'revision' => $revision,
                     'observed_at' => $now,
-                ]], ['integration_id', 'object_type', 'object_id'], ['content_hash', 'observed_at']);
+                ]], ['integration_id', 'object_type', 'object_id'], ['content_hash', 'revision', 'observed_at']);
 
                 return true;
             });

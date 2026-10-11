@@ -49,6 +49,21 @@ Schedule::command('stripe:sync')
     ->withoutOverlapping(30)
     ->onOneServer();
 
+Schedule::command('woocommerce-api:sync')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(15)
+    ->onOneServer();
+
+Schedule::command('woocommerce-api:sync --recent')
+    ->hourlyAt(20)
+    ->withoutOverlapping(30)
+    ->onOneServer();
+
+Schedule::command('woocommerce-api:sync --audit')
+    ->dailyAt('03:20')
+    ->withoutOverlapping(120)
+    ->onOneServer();
+
 Schedule::command('paypal:sync')
     ->everyFifteenMinutes()
     ->withoutOverlapping(30)

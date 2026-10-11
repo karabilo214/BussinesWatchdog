@@ -7,6 +7,7 @@ use App\Models\Integration;
 use App\Models\ReconciliationDirtySubject;
 use App\Models\Signal;
 use App\Support\Incidents\IncidentRecorder;
+use App\Support\Providers\WooCommerce\WooCommerceApiConnector;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -87,6 +88,11 @@ class ConnectorFreshness
     public function assess(Integration $integration, ?Carbon $now = null): array
     {
         $now ??= Carbon::now();
+
+        if ($integration->provider === WooCommerceApiConnector::PROVIDER) {
+            return $this->assessApiSync($integration, $now);
+        }
+
         $staleAfter = self::HEARTBEAT_INTERVAL_SECONDS * self::MISSED_HEARTBEATS;
 
         if ($integration->last_heartbeat_at === null) {
@@ -110,6 +116,30 @@ class ConnectorFreshness
         }
 
         return ['state' => self::STATE_FRESH, 'reason' => null];
+    }
+
+    /**
+     * A store read through its API has no heartbeat: it is stale when the key was rejected or no sync succeeded for
+     * a while, and fresh again after the next successful sync.
+     *
+     * @return array{state: string, reason: ?string}
+     */
+    private function assessApiSync(Integration $integration, Carbon $now): array
+    {
+        if (isset($integration->health['key_rejected_at'])) {
+            return ['state' => self::STATE_STALE, 'reason' => 'api_key_rejected'];
+        }
+
+        $staleBefore = $now->copy()->subMinutes((int) config('watchdog.woocommerce_api.stale_after_minutes'));
+        $last = $integration->last_successful_sync_at ?? $integration->created_at;
+
+        if ($last !== null && $last->lessThanOrEqualTo($staleBefore)) {
+            return ['state' => self::STATE_STALE, 'reason' => $integration->last_successful_sync_at === null ? 'api_not_synced_yet' : 'api_sync_failing'];
+        }
+
+        return $integration->last_successful_sync_at === null
+            ? ['state' => self::STATE_WARMING_UP, 'reason' => null]
+            : ['state' => self::STATE_FRESH, 'reason' => null];
     }
 
     /**

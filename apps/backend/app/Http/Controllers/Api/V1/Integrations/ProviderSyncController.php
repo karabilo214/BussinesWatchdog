@@ -8,13 +8,14 @@ use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** `POST /integrations/{id}/sync` for every independent provider; each adapter keeps its own sync rules. */
+/** `POST /integrations/{id}/sync` for every API-polling connector; each adapter keeps its own sync rules. */
 class ProviderSyncController extends Controller
 {
     public function sync(Request $request, Integration $integration, TenantContext $tenantContext): JsonResponse
     {
         return match ($integration->provider) {
             'paypal' => app(PayPalIntegrationController::class)->sync($request, $integration, $tenantContext),
+            'woocommerce_api' => app(WooCommerceApiIntegrationController::class)->sync($request, $integration, $tenantContext),
             default => app(StripeIntegrationController::class)->sync($request, $integration, $tenantContext),
         };
     }

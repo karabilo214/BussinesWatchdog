@@ -108,3 +108,17 @@ Read from the source of WooCommerce PayPal Payments 4.1.3 (wordpress.org, 2026-1
 | What PayPal receives | purchase unit `custom_id` = WooCommerce order id, `invoice_id` = configured prefix + order number |
 
 Consequences to verify with a real sandbox: refunds cannot be linked per WooCommerce refund from the plugin data alone (only the order-level list); the order id travels to PayPal as `custom_id`, which is a stable metadata key like Stripe `order_id`.
+
+## WooCommerce REST API connector (ADR 0024)
+
+Spike 2026-10-11 (`tests/matrix/rest-api-spike.sh`) and chain (`tests/matrix/rest-api-chain-e2e.sh floor latest`, PASS): matrix stores without the Watchdog plugin, Read and Read/Write keys created as in the WooCommerce admin.
+
+| WooCommerce | `/wp-json/wc/v3` with key | `?rest_route=` with key | Refund bumps order `date_modified` | Store-wide `/wc/v3/refunds` |
+|---|---|---|---|---|
+| 6.0.2 legacy | yes | no (401) | no | no |
+| 7.9.2 legacy / HPOS | yes | no | yes | no |
+| 8.9.5 HPOS | yes | no | yes | no |
+| 9.9.7 HPOS | yes | no | yes | yes |
+| 11.2.0 HPOS | yes | yes | yes | yes |
+
+On every version: HTTPS required for the key, writes with a Read key refused (401 `woocommerce_rest_authentication_error`), trashed orders only with `status=trash`, deleted orders 404, gateway meta with a leading underscore readable, `POST /wc/v3/system_status` tells a Read key (401) from a Read/Write key (404 `rest_no_route`) without changing anything. Chain on 6.0.2 and 11.2.0: Read/Write key refused, Read key connected, orders/refunds mapped (Stripe refund id, PayPal sandbox mode, JPY), no personal data in events, unchanged second sync, late refund, trashed order and deleted order (audit) found.

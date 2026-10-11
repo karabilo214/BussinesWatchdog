@@ -27,6 +27,8 @@ services:
         define('WP_ENVIRONMENT_TYPE', 'local');
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1::80"
     volumes:
       - ../../:/var/www/html/wp-content/plugins/business-watchdog:ro
       - ./.cache:/bw-cache:ro

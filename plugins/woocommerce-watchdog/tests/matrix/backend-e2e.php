@@ -294,4 +294,48 @@ if ($action === 'paypal-chain-cleanup') {
     $out = ['revoked' => true];
 }
 
+if ($action === 'rest-api-setup') {
+    $tenant = Tenant::query()->create(['name' => 'REST API chain E2E', 'timezone' => 'Europe/Berlin']);
+    $user = User::query()->create(['name' => 'E2E', 'email' => 'e2e-'.Str::random(10).'@example.test', 'password_hash' => Hash::make(Str::random(32)), 'locale' => 'de']);
+    Membership::query()->create(['tenant_id' => $tenant->id, 'user_id' => $user->id, 'role' => 'owner']);
+    $store = Store::query()->create(['tenant_id' => $tenant->id, 'name' => 'REST API chain', 'base_url' => getenv('BW_E2E_BASE_URL'), 'timezone' => 'Europe/Berlin', 'default_currency' => 'EUR']);
+    $connector = app(\App\Support\Providers\WooCommerce\WooCommerceApiConnector::class);
+    $writeKey = 'not_rejected';
+
+    try {
+        $connector->connect($store, (string) getenv('BW_E2E_WRITE_KEY'), (string) getenv('BW_E2E_WRITE_SECRET'), $user->id);
+    } catch (\App\Support\Account\AccountRejected $rejected) {
+        $writeKey = $rejected->reasonCode;
+    }
+
+    $integration = $connector->connect($store, (string) getenv('BW_E2E_READ_KEY'), (string) getenv('BW_E2E_READ_SECRET'), $user->id);
+    $out = ['store_id' => $store->id, 'integration_id' => $integration->id, 'write_key' => $writeKey, 'status' => $integration->status];
+}
+
+if ($action === 'rest-api-sync') {
+    $integration = Integration::query()->where('store_id', getenv('BW_E2E_STORE_ID'))->where('provider', 'woocommerce_api')->firstOrFail();
+    $result = app(\App\Support\Providers\WooCommerce\WooCommerceApiSync::class)->run($integration, (string) getenv('BW_E2E_MODE'));
+
+    for ($i = 0; $i < 6; $i++) {
+        app(\App\Support\Outbox\DomainOutboxDispatcher::class)->dispatchDue(limit: 200, leaseSeconds: 60);
+    }
+
+    app(\App\Support\Integrations\ConnectorFreshness::class)->check($integration->id);
+    $storeId = getenv('BW_E2E_STORE_ID');
+    $out = [
+        'sync' => $result,
+        'freshness' => $integration->fresh()->health['freshness']['state'] ?? null,
+        'inbox' => \App\Models\EventInbox::query()->where('store_id', $storeId)->get()->groupBy('status')->map->count()->all(),
+        'orders' => \App\Models\Order::query()->where('store_id', $storeId)->orderByRaw('CAST(external_id AS BIGINT)')->get()->mapWithKeys(fn ($o) => [$o->external_id => implode('|', [$o->status, $o->currency, $o->total_minor, $o->gateway, $o->mode, $o->financial_support, $o->transaction_ref ? 'ref' : '-', $o->deleted_at ? 'deleted' : 'live', 'rev'.$o->source_revision])])->all(),
+        'refunds' => \App\Models\Refund::query()->where('store_id', $storeId)->orderBy('external_id')->get()->mapWithKeys(fn ($r) => [$r->external_id => implode('|', [$r->status, $r->amount_minor, $r->provider_ref ?? '-'])])->all(),
+        'pii_in_inbox' => str_contains(json_encode(\App\Models\EventInbox::query()->where('store_id', $storeId)->pluck('payload')), '@example.test'),
+    ];
+}
+
+if ($action === 'rest-api-cleanup') {
+    Integration::query()->where('store_id', getenv('BW_E2E_STORE_ID'))->update(['status' => Integration::STATUS_REVOKED]);
+    IntegrationCredential::query()->where('store_id', getenv('BW_E2E_STORE_ID'))->update(['status' => IntegrationCredential::STATUS_REVOKED]);
+    $out = ['revoked' => true];
+}
+
 echo 'BW_E2E_JSON='.json_encode($out).PHP_EOL;

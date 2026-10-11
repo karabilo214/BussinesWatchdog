@@ -1541,3 +1541,11 @@ Status: complete
 - Release: `bin/build-release.sh` (package without tests, PHP 7.4 lint), `tests/matrix/release-checks.sh` on the shipped ZIP — 27 checks PASS on floor and latest (upgrade/rollback, checkout with the service unreachable, switches, no WooCommerce, offline deactivation and repeated uninstall).
 - Tests: plugin integration floor/latest 48/48; backend new freshness test.
 
+### Step 76: WooCommerce REST API Connector (ADR 0024)
+
+Status: complete (backend); dashboard screen next; assumptions await owner review
+
+- Spike on the matrix (6.0 … 11.2, without the plugin): pretty permalinks required up to 9.9, HTTPS only, `_fields` keeps billing/customer data out, refunds bump the order only from 7.9, trash/deletion behaviour, writes refused for a Read key, a write-free probe that tells a Read key from a Read/Write key.
+- Backend `App\Support\Providers\WooCommerce\*`: SSRF-safe client (store's own HTTPS origin, pinned DNS, no redirects, GET allowlist on order routes + the connect-time probe), connector (`POST /stores/{id}/integrations/woocommerce-api`; Read key only; one order source per store — pairing the plugin is refused while the API is the source and vice versa), mapper to the plugin's events (`order.snapshot`, `refund.snapshot`, `order.deleted`), sync (delta every 5 min, recent re-read hourly, 90-day audit daily with deletion check by `include=`), `woocommerce-api:sync [--recent|--audit]`, freshness by last successful sync, rejected key → degraded and no more polling. `ProviderEventEmitter` gives revisioned drafts a per-object revision (`provider_object_states.revision`). Credential kind `woocommerce_api`.
+- Tests: 8 backend tests (connect rules, origin/SSRF, mapping without personal data, revisions, late and deleted refunds, audit deletion, rejected key and freshness, pairing refusal, amounts). Backend SQLite 368 + 4 skipped, PostgreSQL 18 372 passed (tree including the parallel export work). Real check: `tests/matrix/rest-api-chain-e2e.sh floor latest` PASS. The matrix WordPress port is published on 127.0.0.1 (random port) so the backend can reach it; `WATCHDOG_DEV_WC_API_ENDPOINT` is honoured only in local/testing.
+
