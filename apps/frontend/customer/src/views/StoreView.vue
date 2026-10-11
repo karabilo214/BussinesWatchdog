@@ -75,7 +75,7 @@ watch(
           <CoverageList :coverage="store.coverage" />
         </section>
 
-        <OrderSource :store-id="store.id" :can-manage="canManageStores" @changed="load" />
+        <OrderSource :store-id="store.id" :can-manage="canManageStores" :platform="store.platform" @changed="load" />
         <PaymentProviders :store-id="store.id" :can-manage="canManageStores" @changed="load" />
         <VerificationPanel :key="store.verified_at ?? 'unverified'" :store="store" :can-manage="canManageStores" @verified="load" />
         <StoreSettings :store="store" :can-manage="canManageStores" @updated="store = $event" @stale="load" />

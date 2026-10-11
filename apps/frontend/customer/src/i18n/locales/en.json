@@ -180,6 +180,11 @@
         "name": "Enter a name of up to 100 characters.",
         "base_url": "A public https:// address is required, without login, password, anchor or a non-standard port.",
         "timezone": "Choose a time zone from the list."
+      },
+      "platform": "Store platform",
+      "platforms": {
+        "woocommerce": "WooCommerce",
+        "shopware": "Shopware 6"
       }
     },
     "errors": {
@@ -228,7 +233,7 @@
       "method": {
         "plugin_challenge": "Via the plugin",
         "dns": "Via a DNS record",
-        "api_key": "With a REST API key"
+        "api_key": "With an API key"
       },
       "choose": "Confirmation method",
       "restart": "Start over with another method",
@@ -255,7 +260,7 @@
         "unsafe_destination": "The address points into a private network and cannot be checked.",
         "other": "The check has not passed yet."
       },
-      "api_key_hint": "Easiest: connect a REST API key in the \"Order source\" block — the store is confirmed automatically."
+      "api_key_hint": "Easiest: connect a key (WooCommerce REST API or Shopware integration) in the \"Order source\" block — the store is confirmed automatically."
     },
     "settings": {
       "title": "Settings",
@@ -306,6 +311,29 @@
       "key_rejected": "The store no longer accepts the key (it was deleted or its permissions changed). Reading has stopped — create a new \"Read\" key, disconnect the old one and connect the new one.",
       "revoke_warning": "The service deletes the key on its side and stops reading orders. Delete the key in WooCommerce too (Settings → Advanced → REST API).",
       "plugin_active": "Orders currently come through the plugin. A store has one order source: to switch to a REST API key, first disconnect the plugin in the \"Plugin\" tab."
+    },
+    "shopware": {
+      "why": "Nothing is installed in the store: the service reads orders through the Shopware Admin API with an integration key. Shopware 6.6 and 6.7 are supported.",
+      "step_role": "In the admin open Settings → System → Users & permissions → Roles and create a role \"Business Watchdog\" with a single permission: Orders → View.",
+      "step_integration": "Open Settings → System → Integrations → Add integration: name \"Business Watchdog\", \"Administrator\" off, assign the new role. Save.",
+      "step_paste": "Copy the Access key ID and Secret access key here — Shopware shows the secret only once.",
+      "requirements": "Required: the store address on HTTPS where the Admin API (/api) is reachable.",
+      "key_label": "Access key ID",
+      "key_hint": "The key starts with SWIA.",
+      "secret_label": "Secret access key",
+      "access_reads": "Reads orders: number, status, amount, currency, payment method, payment status and PayPal payment reference.",
+      "access_not_read": "Does not request customers, addresses or products — the service limits the response fields explicitly.",
+      "access_calls": "Sends only the token request and order searches; nothing is changed in the store.",
+      "state_risk": "Important: in Shopware 6.6 and 6.7 even a key with a \"view only\" role can technically change order, payment and delivery statuses (a Shopware limitation, reported to the developers). It cannot move money or edit orders. The service never sends such requests and keeps the key encrypted. Keep the key secret.",
+      "acknowledge": "I understand: the key can change statuses; the service only uses it for reading",
+      "state_risk_short": "The key can technically change order statuses — keep it secret; the service only reads.",
+      "refunds_note": "Shopware records a refund only as the payment status: for a partial refund the amount is shown from the payment provider (PayPal), and the check against the store is \"no data\".",
+      "connect": "Connect Shopware",
+      "connected": "Shopware connected, store confirmed.",
+      "revoked": "Key disconnected.",
+      "key": "Key",
+      "key_rejected": "Shopware no longer accepts the key (the integration was deleted or its role changed). Reading has stopped — create a new integration and connect it.",
+      "revoke_warning": "The service deletes the key on its side and stops reading orders. Delete the integration in Shopware too (Settings → System → Integrations)."
     }
   },
   "errors": {
@@ -404,7 +432,22 @@
     "woocommerce_invalid_response": "The store did not answer in REST API format. Check permalinks and security plugins.",
     "woocommerce_not_found": "The requested data was not found in the store.",
     "woocommerce_endpoint_not_allowed": "The service does not send this request to stores.",
-    "order_source_already_connected": "The store already has an order source. Disconnect it first."
+    "order_source_already_connected": "The store already has an order source. Disconnect it first.",
+    "shopware_key_invalid": "Check the key: the Access key ID starts with SWIA, the secret is a long string of letters and digits; copy both in full.",
+    "shopware_state_change_risk_not_acknowledged": "Confirm that you understand the Shopware key limitation.",
+    "shopware_key_rejected": "Shopware did not accept the key. Check that the integration was created in this store and the key copied in full.",
+    "shopware_order_read_missing": "The integration role cannot view orders. Add Orders → View to the role.",
+    "shopware_api_unavailable": "The store's Admin API is not available under /api. Check the store address.",
+    "shopware_store_url_not_allowed": "The store address cannot be connected: a public HTTPS address is required.",
+    "shopware_unreachable": "The store does not respond. Check that the site opens and try again.",
+    "shopware_redirected": "The store redirects requests to another address. Enter the exact address in the store settings.",
+    "shopware_rate_limited": "Shopware is limiting requests for now. The service will retry later.",
+    "shopware_unavailable": "Shopware is temporarily unavailable. The service will retry later.",
+    "shopware_request_rejected": "Shopware rejected the request. The service will retry later.",
+    "shopware_response_too_large": "Shopware returned a response that is too large. Please contact support.",
+    "shopware_invalid_response": "Shopware did not answer in Admin API format. Check the store address.",
+    "shopware_endpoint_not_allowed": "The service does not send this request to stores.",
+    "shopware_budget_exhausted": "The request limit for one run was reached; the next sync continues."
   },
   "incidents": {
     "title": "Incidents",

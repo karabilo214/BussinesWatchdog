@@ -7,6 +7,7 @@ import * as providers from '@/api/providers';
 import * as stores from '@/api/stores';
 import type { Integration } from '@/api/types';
 import OrderSource from '@/components/OrderSource.vue';
+import ShopwarePanel from '@/components/ShopwarePanel.vue';
 import VerificationPanel from '@/components/VerificationPanel.vue';
 import WooCommerceApiPanel from '@/components/WooCommerceApiPanel.vue';
 import de from '@/i18n/locales/de.json';
@@ -15,7 +16,7 @@ import ru from '@/i18n/locales/ru.json';
 import { localization, setLocale } from '@/i18n';
 import { makeStore } from './fixtures';
 
-vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), syncProvider: vi.fn() }));
+vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), syncProvider: vi.fn() }));
 vi.mock('@/api/stores', () => ({
   listStoreIntegrations: vi.fn(),
   revokeIntegration: vi.fn(),
@@ -147,6 +148,56 @@ describe('VerificationPanel with a REST API connection', () => {
 
     expect(wrapper.find('[data-api-key-hint]').exists()).toBe(true);
     expect((wrapper.get('input[value="plugin_challenge"]').element as HTMLInputElement).disabled).toBe(true);
-    expect((ru.store.verification.method as Record<string, string>).api_key).toBe('Ключом REST API');
+    expect((ru.store.verification.method as Record<string, string>).api_key).toBe('Ключом API');
+  });
+});
+
+describe('Shopware order source', () => {
+  it('shows only the Shopware integration panel for a Shopware store', async () => {
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([]);
+    const wrapper = mount(OrderSource, { props: { storeId: 's-1', canManage: true, platform: 'shopware' }, global });
+    await flushPromises();
+
+    expect(wrapper.find('[role="tablist"]').exists()).toBe(false);
+    expect(wrapper.find('[data-connector="shopware"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Settings → System → Integrations');
+  });
+
+  it('connects only after the state-change risk is acknowledged and never with a malformed key', async () => {
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([]);
+    vi.mocked(providers.connectShopware).mockResolvedValue(integration('shopware', { health: { key_last4: 'ZXCV' } }));
+    const wrapper = mount(ShopwarePanel, { props: { storeId: 's-1', canManage: true }, global });
+    await flushPromises();
+    const submit = () => wrapper.get('button[type="submit"]');
+
+    await wrapper.get('#sw-access-key').setValue('nope');
+    expect(wrapper.text()).toContain('начинается с SWIA');
+    await wrapper.get('#sw-access-key').setValue('SWIAQWERTYUIOPASDFGHJKLZXCV');
+    await wrapper.get('#sw-secret').setValue('S3cretAccessKeyForShopwareIntegration');
+    expect(submit().attributes('disabled')).toBeDefined();
+    expect(wrapper.get('[data-state-risk]').text()).toContain('менять статусы заказов, оплат и доставки');
+
+    await wrapper.get('[data-acknowledge]').setValue(true);
+    expect(submit().attributes('disabled')).toBeUndefined();
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(providers.connectShopware).toHaveBeenCalledWith('s-1', { access_key: 'SWIAQWERTYUIOPASDFGHJKLZXCV', secret_access_key: 'S3cretAccessKeyForShopwareIntegration', state_change_risk_acknowledged: true });
+    expect(wrapper.text()).toContain('SWIA••••ZXCV');
+    expect(wrapper.text()).toContain('частичном возврате');
+  });
+
+  it('every Shopware connector error code is explained in every language', () => {
+    const dir = resolve(__dirname, '../../../backend/app/Support/Providers/Shopware');
+    const source = readdirSync(dir).map((name) => readFileSync(resolve(dir, name), 'utf8')).join('\n');
+    const codes = new Set([...source.matchAll(/'(shopware_[a-z_]+)'/g)].map((match) => match[1]!).filter((code) => !['shopware_integration', 'shopware_sync'].includes(code)));
+
+    expect(codes.size).toBeGreaterThan(8);
+
+    for (const locale of [ru, en, de]) {
+      for (const code of codes) {
+        expect((locale.errors as Record<string, string>)[code], code).toBeTruthy();
+      }
+    }
   });
 });

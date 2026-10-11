@@ -211,6 +211,21 @@ try {
     await page.getByRole('heading', { name: 'Магазины' }).waitFor();
   });
 
+  await step('a Shopware store gets the Shopware integration as its order source', async () => {
+    await page.getByRole('link', { name: 'Добавить магазин' }).click();
+    await page.getByRole('heading', { name: 'Новый магазин' }).waitFor();
+    await page.locator('[data-platform="shopware"]').check();
+    await page.getByLabel('Название').fill('Smoke Shopware Shop');
+    await page.getByLabel('Адрес магазина').fill('https://smoke-shopware.example');
+    await page.getByRole('button', { name: 'Добавить магазин' }).click();
+    await page.getByRole('heading', { name: 'Smoke Shopware Shop' }).waitFor();
+    await page.locator('[data-connector="shopware"]').waitFor();
+    if (await page.locator('[role="tablist"][aria-label="Источник заказов"]').count()) throw new Error('a Shopware store must not offer WooCommerce sources');
+    await page.locator('[data-state-risk]').waitFor();
+    if (!(await page.getByRole('button', { name: 'Подключить Shopware' }).isDisabled())) throw new Error('connecting must wait for the acknowledgement');
+    await page.getByRole('link', { name: '← Обзор' }).click();
+  });
+
   await step('the incident badge leads to the store incidents', async () => {
     const card = page.locator('article', { hasText: 'Kaffeerösterei Lindner' });
     await card.getByText(/Активных инцидентов: \d+/).click();

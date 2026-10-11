@@ -3,7 +3,7 @@ import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { createStore } from '@/api/stores';
-import type { Locale } from '@/api/types';
+import type { Locale, StorePlatform } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { browserTimezone, currencies, timezones } from '@/components/storeOptions';
 import { fieldErrorsOf } from '@/composables/errors';
@@ -14,7 +14,7 @@ const router = useRouter();
 const { locale } = useI18n();
 const { canManageStores } = useRole();
 
-const form = reactive({ name: '', base_url: 'https://', timezone: browserTimezone(), default_currency: 'EUR' });
+const form = reactive<{ name: string; base_url: string; timezone: string; default_currency: string; platform: StorePlatform }>({ name: '', base_url: 'https://', timezone: browserTimezone(), default_currency: 'EUR', platform: 'woocommerce' });
 const submitting = ref(false);
 const error = ref<unknown>(null);
 const zoneOptions = timezones(form.timezone);
@@ -33,6 +33,7 @@ async function submit(): Promise<void> {
       timezone: form.timezone,
       locale: locale.value as Locale,
       default_currency: form.default_currency,
+      platform: form.platform,
     });
     await router.push({ name: 'store', params: { id: store.id } });
   } catch (caught) {
@@ -56,6 +57,16 @@ async function submit(): Promise<void> {
 
       <form v-else class="flex flex-col gap-5 rounded-xl border border-border bg-surface p-6" novalidate @submit.prevent="submit">
         <ErrorNotice v-if="error" :error="error" />
+
+        <fieldset class="flex flex-col gap-2">
+          <legend class="mb-1 text-sm font-medium">{{ $t('store.form.platform') }}</legend>
+          <div class="flex flex-wrap gap-4">
+            <label v-for="platform in (['woocommerce', 'shopware'] as const)" :key="platform" class="flex items-center gap-2 text-sm">
+              <input v-model="form.platform" type="radio" name="store-platform" :value="platform" class="size-4 accent-primary" :data-platform="platform" />
+              {{ $t(`store.form.platforms.${platform}`) }}
+            </label>
+          </div>
+        </fieldset>
 
         <div class="flex flex-col gap-1.5">
           <label for="store-name" class="text-sm font-medium">{{ $t('store.form.name') }}</label>

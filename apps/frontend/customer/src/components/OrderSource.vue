@@ -5,6 +5,7 @@ import type { Integration } from '@/api/types';
 import { StatusBadge } from '@bw/ui';
 import ConnectorPanel from './ConnectorPanel.vue';
 import { INTEGRATION_TONES } from './integrationTones';
+import ShopwarePanel from './ShopwarePanel.vue';
 import WooCommerceApiPanel from './WooCommerceApiPanel.vue';
 
 type Source = 'api' | 'plugin';
@@ -14,7 +15,7 @@ const SOURCES: { id: Source; provider: string }[] = [
   { id: 'plugin', provider: 'woocommerce' },
 ];
 
-const props = defineProps<{ storeId: string; canManage: boolean }>();
+const props = withDefaults(defineProps<{ storeId: string; canManage: boolean; platform?: string }>(), { platform: 'woocommerce' });
 const emit = defineEmits<{ changed: [] }>();
 
 const integrations = ref<Integration[]>([]);
@@ -67,7 +68,9 @@ void load();
       <p class="max-w-3xl text-sm text-text-muted">{{ $t('store.order_source.subtitle') }}</p>
     </div>
 
-    <div role="tablist" :aria-label="$t('store.order_source.title')" class="flex w-fit flex-wrap gap-1 rounded-lg border border-border bg-surface p-1" @keydown.right.prevent="move" @keydown.left.prevent="move">
+    <ShopwarePanel v-if="platform === 'shopware'" :store-id="storeId" :can-manage="canManage" @changed="changed" />
+
+    <div v-if="platform !== 'shopware'" role="tablist" :aria-label="$t('store.order_source.title')" class="flex w-fit flex-wrap gap-1 rounded-lg border border-border bg-surface p-1" @keydown.right.prevent="move" @keydown.left.prevent="move">
       <button
         v-for="source in SOURCES"
         :id="`source-tab-${source.id}`"
@@ -90,7 +93,7 @@ void load();
       </button>
     </div>
 
-    <div :id="`source-tabpanel-${active}`" role="tabpanel" :aria-labelledby="`source-tab-${active}`">
+    <div v-if="platform !== 'shopware'" :id="`source-tabpanel-${active}`" role="tabpanel" :aria-labelledby="`source-tab-${active}`">
       <WooCommerceApiPanel v-if="active === 'api'" :store-id="storeId" :can-manage="canManage" :plugin-active="current.plugin !== null" @changed="changed" />
       <ConnectorPanel v-else :store-id="storeId" :can-manage="canManage" :api-active="current.api !== null" @changed="changed" />
     </div>

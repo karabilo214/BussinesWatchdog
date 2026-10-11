@@ -80,7 +80,10 @@ export interface CreateStoreInput {
   timezone: string;
   locale: Locale;
   default_currency: string;
+  platform?: StorePlatform;
 }
+
+export type StorePlatform = 'woocommerce' | 'shopware';
 
 export type UpdateStoreInput = Partial<Pick<Store, 'name' | 'timezone' | 'default_currency' | 'browser_enabled' | 'telemetry_enabled'>> & {
   status?: 'active' | 'paused';

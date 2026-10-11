@@ -180,6 +180,11 @@
         "name": "Bitte einen Namen mit bis zu 100 Zeichen angeben.",
         "base_url": "Erforderlich ist eine öffentliche https://-Adresse ohne Benutzername, Passwort, Anker und Sonderport.",
         "timezone": "Bitte eine Zeitzone aus der Liste wählen."
+      },
+      "platform": "Shop-Plattform",
+      "platforms": {
+        "woocommerce": "WooCommerce",
+        "shopware": "Shopware 6"
       }
     },
     "errors": {
@@ -228,7 +233,7 @@
       "method": {
         "plugin_challenge": "Über das Plugin",
         "dns": "Über einen DNS-Eintrag",
-        "api_key": "Mit REST-API-Schlüssel"
+        "api_key": "Mit API-Schlüssel"
       },
       "choose": "Bestätigungsweg",
       "restart": "Mit einem anderen Weg neu beginnen",
@@ -255,7 +260,7 @@
         "unsafe_destination": "Die Adresse zeigt in ein privates Netz und kann nicht geprüft werden.",
         "other": "Die Prüfung war noch nicht erfolgreich."
       },
-      "api_key_hint": "Am einfachsten: Verbinden Sie im Block „Bestellquelle“ einen REST-API-Schlüssel — der Shop wird automatisch bestätigt."
+      "api_key_hint": "Am einfachsten: Verbinden Sie im Block „Bestellquelle“ einen Schlüssel (WooCommerce-REST-API oder Shopware-Integration) — der Shop wird automatisch bestätigt."
     },
     "settings": {
       "title": "Einstellungen",
@@ -306,6 +311,29 @@
       "key_rejected": "Der Shop akzeptiert den Schlüssel nicht mehr (gelöscht oder Rechte geändert). Das Lesen ist gestoppt — erstellen Sie einen neuen Schlüssel „Lesen“, trennen Sie den alten und verbinden Sie den neuen.",
       "revoke_warning": "Der Dienst löscht den Schlüssel bei sich und liest keine Bestellungen mehr. Löschen Sie den Schlüssel auch in WooCommerce (Einstellungen → Erweitert → REST-API).",
       "plugin_active": "Bestellungen kommen derzeit über das Plugin. Ein Shop hat eine Bestellquelle: Um zu einem REST-API-Schlüssel zu wechseln, trennen Sie zuerst das Plugin im Reiter „Plugin“."
+    },
+    "shopware": {
+      "why": "Im Shop wird nichts installiert: Der Dienst liest Bestellungen über die Shopware-Admin-API mit einem Integrationsschlüssel. Unterstützt werden Shopware 6.6 und 6.7.",
+      "step_role": "Öffnen Sie im Admin Einstellungen → System → Benutzer & Rechte → Rollen und legen Sie die Rolle „Business Watchdog“ mit nur einem Recht an: Bestellungen → Ansehen.",
+      "step_integration": "Öffnen Sie Einstellungen → System → Integrationen → Integration hinzufügen: Name „Business Watchdog“, „Administrator“ aus, die neue Rolle zuweisen. Speichern.",
+      "step_paste": "Kopieren Sie Zugangsschlüssel-ID und Sicherheitsschlüssel hierher — Shopware zeigt den Sicherheitsschlüssel nur einmal.",
+      "requirements": "Voraussetzung: Shop-Adresse mit HTTPS, unter der die Admin-API (/api) erreichbar ist.",
+      "key_label": "Zugangsschlüssel-ID",
+      "key_hint": "Der Schlüssel beginnt mit SWIA.",
+      "secret_label": "Sicherheitsschlüssel",
+      "access_reads": "Liest Bestellungen: Nummer, Status, Betrag, Währung, Zahlungsart, Zahlungsstatus und PayPal-Zahlungsreferenz.",
+      "access_not_read": "Fragt keine Kunden, Adressen oder Produkte ab — der Dienst begrenzt die Antwortfelder ausdrücklich.",
+      "access_calls": "Sendet nur die Token-Anfrage und Bestellsuchen; im Shop wird nichts geändert.",
+      "state_risk": "Wichtig: In Shopware 6.6 und 6.7 kann selbst ein Schlüssel mit der Rolle „nur ansehen“ technisch Status von Bestellungen, Zahlungen und Lieferungen ändern (eine Einschränkung von Shopware, den Entwicklern gemeldet). Geld bewegen oder Bestellungen bearbeiten kann er nicht. Der Dienst sendet solche Anfragen nie und speichert den Schlüssel verschlüsselt. Halten Sie den Schlüssel geheim.",
+      "acknowledge": "Ich verstehe: Der Schlüssel kann Status ändern; der Dienst nutzt ihn nur zum Lesen",
+      "state_risk_short": "Der Schlüssel kann technisch Bestellstatus ändern — halten Sie ihn geheim; der Dienst liest nur.",
+      "refunds_note": "Shopware speichert eine Erstattung nur als Zahlungsstatus: Bei einer Teilerstattung zeigen wir den Betrag laut Zahlungsanbieter (PayPal), der Abgleich mit dem Shop ist „keine Daten“.",
+      "connect": "Shopware verbinden",
+      "connected": "Shopware verbunden, Shop bestätigt.",
+      "revoked": "Schlüssel getrennt.",
+      "key": "Schlüssel",
+      "key_rejected": "Shopware akzeptiert den Schlüssel nicht mehr (Integration gelöscht oder Rolle geändert). Das Lesen ist gestoppt — legen Sie eine neue Integration an und verbinden Sie sie.",
+      "revoke_warning": "Der Dienst löscht den Schlüssel bei sich und liest keine Bestellungen mehr. Löschen Sie die Integration auch in Shopware (Einstellungen → System → Integrationen)."
     }
   },
   "errors": {
@@ -404,7 +432,22 @@
     "woocommerce_invalid_response": "Der Shop hat nicht im REST-API-Format geantwortet. Prüfen Sie Permalinks und Sicherheits-Plugins.",
     "woocommerce_not_found": "Die angefragten Daten wurden im Shop nicht gefunden.",
     "woocommerce_endpoint_not_allowed": "Diese Anfrage sendet der Dienst nicht an Shops.",
-    "order_source_already_connected": "Der Shop hat bereits eine Bestellquelle. Trennen Sie sie zuerst."
+    "order_source_already_connected": "Der Shop hat bereits eine Bestellquelle. Trennen Sie sie zuerst.",
+    "shopware_key_invalid": "Prüfen Sie den Schlüssel: Die Zugangsschlüssel-ID beginnt mit SWIA, der Sicherheitsschlüssel ist eine lange Folge aus Buchstaben und Ziffern; beide vollständig kopieren.",
+    "shopware_state_change_risk_not_acknowledged": "Bestätigen Sie, dass Sie die Einschränkung des Shopware-Schlüssels verstanden haben.",
+    "shopware_key_rejected": "Shopware hat den Schlüssel nicht akzeptiert. Prüfen Sie, ob die Integration in diesem Shop angelegt und der Schlüssel vollständig kopiert wurde.",
+    "shopware_order_read_missing": "Die Rolle der Integration darf keine Bestellungen ansehen. Ergänzen Sie Bestellungen → Ansehen.",
+    "shopware_api_unavailable": "Die Admin-API des Shops ist unter /api nicht erreichbar. Prüfen Sie die Shop-Adresse.",
+    "shopware_store_url_not_allowed": "Die Shop-Adresse kann nicht verbunden werden: Eine öffentliche HTTPS-Adresse ist nötig.",
+    "shopware_unreachable": "Der Shop antwortet nicht. Prüfen Sie, ob die Website erreichbar ist, und versuchen Sie es erneut.",
+    "shopware_redirected": "Der Shop leitet Anfragen auf eine andere Adresse um. Tragen Sie die genaue Adresse in den Shop-Einstellungen ein.",
+    "shopware_rate_limited": "Shopware begrenzt Anfragen vorübergehend. Der Dienst versucht es später erneut.",
+    "shopware_unavailable": "Shopware ist vorübergehend nicht erreichbar. Der Dienst versucht es später erneut.",
+    "shopware_request_rejected": "Shopware hat die Anfrage abgelehnt. Der Dienst versucht es später erneut.",
+    "shopware_response_too_large": "Shopware hat eine zu große Antwort geliefert. Bitte wenden Sie sich an den Support.",
+    "shopware_invalid_response": "Shopware hat nicht im Admin-API-Format geantwortet. Prüfen Sie die Shop-Adresse.",
+    "shopware_endpoint_not_allowed": "Diese Anfrage sendet der Dienst nicht an Shops.",
+    "shopware_budget_exhausted": "Das Anfragelimit pro Durchlauf ist erreicht; die nächste Synchronisierung setzt fort."
   },
   "incidents": {
     "title": "Vorfälle",

@@ -25,6 +25,10 @@ export async function connectWooCommerceApi(storeId: string, input: { consumer_k
   return (await request<Integration>('POST', `/api/v1/stores/${encodeURIComponent(storeId)}/integrations/woocommerce-api`, { body: input })).data;
 }
 
+export async function connectShopware(storeId: string, input: { access_key: string; secret_access_key: string; state_change_risk_acknowledged: boolean }): Promise<Integration> {
+  return (await request<Integration>('POST', `/api/v1/stores/${encodeURIComponent(storeId)}/integrations/shopware`, { body: input })).data;
+}
+
 export function webhookUrl(integrationId: string): string {
   return `${window.location.origin}/api/v1/webhooks/stripe/${integrationId}`;
 }
