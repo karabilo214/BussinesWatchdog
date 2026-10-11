@@ -174,6 +174,7 @@ void load();
         <li>{{ viaApp ? $t('store.shopware.app_realtime_note') : $t('store.api.polling_note') }}</li>
         <li>{{ $t('store.shopware.refunds_note') }}</li>
         <li>{{ $t('store.shopware.state_risk_short') }}</li>
+        <li>{{ $t('store.shopware.stripe_note') }}</li>
       </ul>
 
       <div v-if="canManage" class="flex flex-wrap gap-2">
@@ -261,6 +262,7 @@ void load();
         <ul class="flex flex-col gap-1 text-[13px] text-text-muted">
           <li>{{ $t('store.api.verifies_store') }}</li>
           <li>{{ $t('store.shopware.refunds_note') }}</li>
+          <li data-stripe-note>{{ $t('store.shopware.stripe_note') }}</li>
         </ul>
       </div>
     </template>

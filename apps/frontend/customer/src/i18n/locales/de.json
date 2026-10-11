@@ -358,7 +358,8 @@
       "no_webhook_yet": "noch keine Ereignisse",
       "app_realtime_note": "Neue Bestellungen und Zahlungsstatus kommen sofort; alle 5 Minuten prüft der Dienst zusätzlich auf Änderungen.",
       "app_revoke_warning": "Der Dienst liest keine Bestellungen mehr. Entfernen Sie die App auch in Shopware (Erweiterungen → Meine Erweiterungen).",
-      "app_version_note": "Wegen eines eigenen Fehlers kann Shopware 6.6.10.25–6.6.10.29 keine Apps mit Serveranbindung installieren — wählen Sie dort „Integrationsschlüssel“. Unter 6.7 und 6.6 bis 6.6.10.24 funktioniert die App."
+      "app_version_note": "Wegen eines eigenen Fehlers kann Shopware 6.6.10.25–6.6.10.29 keine Apps mit Serveranbindung installieren — wählen Sie dort „Integrationsschlüssel“. Unter 6.7 und 6.6 bis 6.6.10.24 funktioniert die App.",
+      "stripe_note": "Der Zahlungsabgleich für Shopware deckt derzeit PayPal (SwagPayPal) ab. Über Stripe oder andere Anbieter bezahlte Bestellungen erscheinen als „Zahlungsart nicht unterstützt“ — ohne falsche Abweichungen."
     }
   },
   "errors": {

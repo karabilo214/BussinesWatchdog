@@ -1952,3 +1952,11 @@ Coordination:
 
 - The webhook URL was only in the connect and sync responses; the store page loads the integration list, which lacked it, and the PayPal panel had no fallback, so the field next to "Copy" stayed empty after a reload. `IntegrationDto` now returns `webhook_url` for Stripe and PayPal (null for other connectors; OpenAPI `Integration` schema, both copies), and both panels fall back to building it in the browser. Regression tests: the list carries the URL (backend), the PayPal panel shows it when the field is missing (frontend). The old frontend fixture always contained `webhook_url`, which hid the bug.
 
+### Step 96: Readiness Summary
+
+Status: complete
+
+- `docs/readiness.md`: readiness by TZ area (26 areas), what separates the project from a commercial P1 (subscription/tariffs, public site, owner and admin panels, operations, checkout layer 2, §43), current test results and pending owner decisions.
+- Owner decisions: Mollie and Shopify are P2; Stripe in Shopware is unsupported until a pilot customer with the Pickware plugin (ADR 0025); the Shopware panel states it (ru/en/de).
+- Current smoke is red at the notifications "test email" step after Step 95 (parallel notifications work); recorded in the readiness table.
+

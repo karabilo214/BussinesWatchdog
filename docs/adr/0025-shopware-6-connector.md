@@ -59,3 +59,8 @@ Dockware images stop at 6.7.2.2 / 6.6.10.6, so `plugins/shopware-app/tests/build
 - Stripe plugin data for Shopware.
 - Shopware App: manifest permissions, registration handshake, webhooks (order written, state changes), Cloud vs self-hosted.
 - Load: paging large stores with the OR delta filter.
+
+## Stripe in Shopware and other providers (owner, 2026-10-11)
+
+- The common Shopware 6 Stripe plugin (Pickware "Stripe Payment") is downloadable only through a Shopware account registered for a company, which the owner does not have; the only public repository (shobcheye/ShopwareStripePayment, VIISON 2015) is a Shopware 4/5 plugin and not usable. **Stripe in Shopware is not supported for now**: such orders stay "payment method not supported" (no money check, no false discrepancies) and the Shopware panel says so. It will be researched with the first pilot customer who uses it (their staging, read-only), following the owner's plan: test orders, read both sides, find the exact link, then an adapter per plugin version.
+- **Mollie and Shopify move to P2** (owner). Mollie notes for later: MolliePayments 4.23.0 is MIT and on packagist; it keeps the Mollie payment id (`tr_…`), order id (`ord_…`) and a third-party id in the transaction's `mollie_payments` custom fields; card holder data sits in the order's custom fields, which the connector never requests.
