@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Platform\ContactRequestController;
 use App\Http\Controllers\Platform\DiscountController;
+use App\Http\Controllers\Platform\PageController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformAuthController;
 use App\Http\Controllers\Platform\TenantController;
@@ -28,6 +30,25 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/tenants/{tenant}/actions/{action}/preview', [TenantController::class, 'preview']);
         Route::post('/tenants/{tenant}/actions/{action}', [TenantController::class, 'act'])->middleware('throttle:platform-step-up');
     });
+
+    Route::middleware('platform.staff:'.PlatformCapabilities::CONTENT_MANAGE)->group(function (): void {
+        Route::get('/pages', [PageController::class, 'index']);
+        Route::post('/pages', [PageController::class, 'store']);
+        Route::get('/pages/{page}', [PageController::class, 'show'])->whereUuid('page');
+        Route::patch('/pages/{page}', [PageController::class, 'update'])->whereUuid('page');
+        Route::post('/pages/{page}/preview', [PageController::class, 'preview'])->whereUuid('page')->middleware('throttle:platform-preview');
+        Route::put('/pages/{page}/locales/{locale}/draft', [PageController::class, 'saveDraft'])->whereUuid('page');
+        Route::delete('/pages/{page}/locales/{locale}/draft', [PageController::class, 'discardDraft'])->whereUuid('page');
+        Route::post('/pages/{page}/locales/{locale}/publish', [PageController::class, 'publish'])->whereUuid('page');
+        Route::post('/pages/{page}/locales/{locale}/unpublish', [PageController::class, 'unpublish'])->whereUuid('page');
+        Route::post('/pages/{page}/versions/{version}/restore', [PageController::class, 'restore'])->whereUuid(['page', 'version']);
+        Route::post('/pages/{page}/archive', [PageController::class, 'archive'])->whereUuid('page');
+    });
+    Route::middleware('platform.staff:'.PlatformCapabilities::CONTACTS_READ)->group(function (): void {
+        Route::get('/contact-requests', [ContactRequestController::class, 'index']);
+        Route::get('/contact-requests/{contactRequest}', [ContactRequestController::class, 'show'])->whereUuid('contactRequest');
+    });
+    Route::middleware('platform.staff:'.PlatformCapabilities::CONTACTS_MANAGE)->patch('/contact-requests/{contactRequest}', [ContactRequestController::class, 'update'])->whereUuid('contactRequest');
 
     Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_MANAGE)->group(function (): void {
         Route::post('/plans', [PlanController::class, 'store']);

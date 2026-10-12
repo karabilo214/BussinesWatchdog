@@ -73,6 +73,12 @@
     "settings": {
       "title": "Settings",
       "body": "Service settings. This section comes in later steps."
+    },
+    "site": {
+      "title": "Website"
+    },
+    "contacts": {
+      "title": "Messages"
     }
   },
   "common": {
@@ -129,7 +135,19 @@
     "no_active_subscription": "There is no active paid subscription.",
     "plan_not_available": "Plan not found.",
     "provider_outcome_unknown": "Paddle did not answer. Refresh later, do not repeat the action.",
-    "plan_change_rejected": "Paddle rejected the request."
+    "plan_change_rejected": "Paddle rejected the request.",
+    "slug_invalid": "Address: lowercase latin letters, digits and hyphens, up to 60 characters.",
+    "slug_taken": "This address is taken.",
+    "too_deep": "Pages can be nested one level only.",
+    "parent_invalid": "This section cannot be chosen.",
+    "body_required": "The page needs a text.",
+    "title_invalid": "Enter a title (up to 200 characters).",
+    "no_draft": "There is no draft to publish.",
+    "not_published": "The page is not published.",
+    "has_children": "Delete the nested pages first.",
+    "system_page": "A system page cannot be deleted.",
+    "page_not_found": "Page not found.",
+    "contact_request_not_found": "Message not found."
   },
   "period": {
     "per": {
@@ -527,5 +545,119 @@
       "cancel_subscription": "Subscription cancellation",
       "refresh_billing": "Refresh from Paddle"
     }
+  },
+  "site": {
+    "hint": "Pages of the public website. Every page has its own address and a separate text per language: draft → preview → publish. Published versions never change and stay in the history.",
+    "col": {
+      "page": "Page",
+      "menu": "Menu"
+    },
+    "kind": {
+      "home": "Home",
+      "pricing": "Pricing",
+      "contact": "Contact",
+      "page": "Page"
+    },
+    "system": "System",
+    "system_hint": {
+      "home": "The home page of the website. Until a text is published, the built-in text is shown.",
+      "pricing": "This text is shown above the plan cards. Plans and prices come from “Plans and discounts”.",
+      "contact": "This text is shown above the contact form. Messages from the form go to “Messages”."
+    },
+    "menu": {
+      "none": "Not shown",
+      "header": "Top menu",
+      "footer": "Footer menu"
+    },
+    "sort": "Order",
+    "state": {
+      "published": "Published",
+      "published_draft": "Published, draft pending",
+      "draft": "Draft",
+      "none": "Not published",
+      "builtin": "Built-in text",
+      "published_at": "Version {version} published: {date}",
+      "draft_version": "Draft (version {version})"
+    },
+    "create": {
+      "title": "New page",
+      "hint": "The address is set once and never changes. Two levels at most, e.g. legal/terms.",
+      "parent": "Section",
+      "no_parent": "No section (top level)",
+      "slug": "Address (slug)",
+      "submit": "Create",
+      "address": "Page address:",
+      "slug_rules": "Lowercase latin letters, digits and single hyphens only, up to 60 characters."
+    },
+    "field": {
+      "title": "Title",
+      "description": "Description for search engines",
+      "description_hint": "Up to 300 characters; shown in search results.",
+      "body": "Page HTML",
+      "body_hint": "The page title is shown automatically — start the code with text or an <h2>.",
+      "body_hint_system": "May stay empty — the built-in text is shown then."
+    },
+    "help": {
+      "title": "What you can use in the HTML",
+      "allowed": "Ordinary markup: headings, paragraphs, lists, links, images over https, tables, quotes. Scripts, iframes, forms, event handlers (onclick…) and the style attribute are removed on save.",
+      "classes": "Ready-made style classes:",
+      "example": "Example block:"
+    },
+    "preview": "Preview",
+    "open": "Open on the website",
+    "unsaved": "Unsaved changes",
+    "unsaved_switch": "Unsaved changes will be lost. Switch the language?",
+    "save_first": "Save the draft first, then publish.",
+    "action": {
+      "save": "Save draft",
+      "publish": "Publish",
+      "discard": "Discard draft",
+      "unpublish": "Unpublish",
+      "refresh": "Refresh",
+      "restore": "To draft",
+      "save_settings": "Save",
+      "archive": "Delete page"
+    },
+    "confirm": {
+      "publish": "Publish the draft ({locale}) at {path}? The current version moves to the history.",
+      "unpublish": "Unpublish {path}? Visitors will see “page not found”.",
+      "archive": "Delete the page in all languages? Published versions stay in the history and the address becomes free.",
+      "reason": "Reason (shown in the audit)"
+    },
+    "done": {
+      "saved": "Draft saved.",
+      "discarded": "Draft discarded.",
+      "restored": "The version was copied to the draft — check it and publish.",
+      "settings": "Settings saved.",
+      "publish": "Published.",
+      "unpublish": "Unpublished."
+    },
+    "history": {
+      "title": "Version history ({locale})",
+      "empty": "Nothing has been published yet.",
+      "version": "Version",
+      "published": "Published",
+      "retired": "Replaced",
+      "published_state": "Current"
+    },
+    "settings": "Page settings",
+    "slug_fixed": "The page address was set at creation and does not change."
+  },
+  "contacts": {
+    "hint": "Messages from the contact form of the website. New messages are announced by email. Closed messages are deleted after a year.",
+    "all": "All",
+    "empty": "No messages.",
+    "status": "Status",
+    "note": "Internal note",
+    "note_hint": "Visible to staff only.",
+    "save": "Save",
+    "saved": "Saved.",
+    "handled_by": "Last change: {name}",
+    "retention": "A closed message is deleted 365 days after it was closed."
+  },
+  "contact_status": {
+    "new": "New",
+    "in_progress": "In progress",
+    "closed": "Closed"
   }
 }

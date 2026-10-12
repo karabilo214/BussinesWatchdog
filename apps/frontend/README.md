@@ -1,12 +1,12 @@
 # Frontend
 
-npm workspace with three applications (ADR 0017) on Vue 3 + TypeScript + Vite + Tailwind CSS 4 (ADR 0016):
+npm workspace with three packages (ADR 0017, ADR 0039) on Vue 3 + TypeScript + Vite + Tailwind CSS 4 (ADR 0016):
 
 | App | Path | Dev port | API |
 | --- | --- | --- | --- |
 | `customer/` | `/app/` customer workspace, Sanctum session | 5173 | `/api/v1` |
 | `control/` | `/owner`, `/admin` platform control zone (placeholders) | 5174 | `/platform-api/v1` |
-| `public/` | public site, prerendered `/`, `/ru/`, `/en/`, `/de/` | 5175 | none |
+| `public/` | stylesheet of the public site, built into `apps/backend/public/site`; the pages are rendered by Laravel (ADR 0039) | — | none |
 
 Shared packages: `packages/design` (frozen palette, base styles, fonts), `packages/ui` (status badge, tones), `packages/i18n` (locales, language switch, translation parity check), `packages/api-client` (CSRF/session HTTP client).
 
@@ -20,8 +20,8 @@ Node 24 LTS (`.nvmrc`). From the repository root:
 make frontend-install       # npm ci for the whole workspace
 make frontend-dev           # customer on http://localhost:5173/app/, proxies /api and /sanctum to http://127.0.0.1:8000
 make frontend-dev-control   # control on http://localhost:5174/owner
-make frontend-dev-public    # public site on http://localhost:5175/
-make frontend-check         # palette, then vue-tsc, Vitest and build of every app (public: prerender check)
+make frontend-dev-public    # rebuilds the public site stylesheet on change; open the site from the backend, e.g. http://127.0.0.1:8000/ru
+make frontend-check         # palette, then vue-tsc, Vitest and build of every app (public: stylesheet check)
 make frontend-smoke         # backend + customer Vite + Chromium end-to-end smoke
 ```
 

@@ -374,3 +374,125 @@ export async function applyTenantAction(id: string, action: TenantAction, input:
 export async function fetchSubscriptions(filters: Partial<Record<'status' | 'plan' | 'cancel_scheduled' | 'cursor', string>>): Promise<{ data: SubscriptionRow[]; next_cursor: string | null }> {
   return (await request<{ data: SubscriptionRow[]; next_cursor: string | null }>('GET', '/platform-api/v1/subscriptions', { query: filters })).data;
 }
+
+export type SiteLocale = 'ru' | 'en' | 'de';
+export type PageKind = 'home' | 'pricing' | 'contact' | 'page';
+export type PageMenu = 'none' | 'header' | 'footer';
+
+export interface PageSummary {
+  id: string;
+  kind: PageKind;
+  parent_id: string | null;
+  slug: string | null;
+  path: string;
+  menu: PageMenu;
+  sort: number;
+  created_at: string | null;
+  locales: Record<SiteLocale, { published: string | null; draft: boolean; title: string | null }>;
+}
+
+export interface PageContent {
+  id: string;
+  version: number;
+  title: string;
+  description: string | null;
+  body: string;
+  content_hash: string;
+  updated_at: string | null;
+  published_at: string | null;
+}
+
+export interface PageVersionRow {
+  id: string;
+  locale: SiteLocale;
+  version: number;
+  state: 'published' | 'retired';
+  title: string;
+  published_at: string | null;
+  retired_at: string | null;
+  published_by: string | null;
+}
+
+export interface PageCard extends PageSummary {
+  content: Record<SiteLocale, { draft: PageContent | null; published: PageContent | null }>;
+  history: PageVersionRow[];
+}
+
+export interface PageDraft {
+  title: string;
+  description: string | null;
+  body: string;
+}
+
+export async function fetchPages(): Promise<PageSummary[]> {
+  return (await request<{ data: PageSummary[] }>('GET', '/platform-api/v1/pages')).data.data;
+}
+
+export async function createPage(input: { slug: string; parent_id: string | null; menu: PageMenu; sort: number }): Promise<PageCard> {
+  return (await request<PageCard>('POST', '/platform-api/v1/pages', { body: input })).data;
+}
+
+export async function fetchPage(id: string): Promise<PageCard> {
+  return (await request<PageCard>('GET', `/platform-api/v1/pages/${encodeURIComponent(id)}`)).data;
+}
+
+export async function updatePage(id: string, input: { menu: PageMenu; sort: number }): Promise<PageCard> {
+  return (await request<PageCard>('PATCH', `/platform-api/v1/pages/${encodeURIComponent(id)}`, { body: input })).data;
+}
+
+export async function savePageDraft(id: string, locale: SiteLocale, draft: PageDraft): Promise<PageCard> {
+  return (await request<PageCard>('PUT', `/platform-api/v1/pages/${encodeURIComponent(id)}/locales/${locale}/draft`, { body: draft })).data;
+}
+
+export async function discardPageDraft(id: string, locale: SiteLocale): Promise<PageCard> {
+  return (await request<PageCard>('DELETE', `/platform-api/v1/pages/${encodeURIComponent(id)}/locales/${locale}/draft`)).data;
+}
+
+export async function publishPage(id: string, locale: SiteLocale, reason: string): Promise<PageCard> {
+  return (await request<PageCard>('POST', `/platform-api/v1/pages/${encodeURIComponent(id)}/locales/${locale}/publish`, { body: { reason } })).data;
+}
+
+export async function unpublishPage(id: string, locale: SiteLocale, reason: string): Promise<PageCard> {
+  return (await request<PageCard>('POST', `/platform-api/v1/pages/${encodeURIComponent(id)}/locales/${locale}/unpublish`, { body: { reason } })).data;
+}
+
+export async function restorePageVersion(id: string, versionId: string): Promise<PageCard> {
+  return (await request<PageCard>('POST', `/platform-api/v1/pages/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`)).data;
+}
+
+export async function archivePage(id: string, reason: string): Promise<void> {
+  await request<null>('POST', `/platform-api/v1/pages/${encodeURIComponent(id)}/archive`, { body: { reason } });
+}
+
+export async function previewPage(id: string, locale: SiteLocale, draft: PageDraft): Promise<{ body: string; html: string }> {
+  return (await request<{ body: string; html: string }>('POST', `/platform-api/v1/pages/${encodeURIComponent(id)}/preview`, { body: { locale, ...draft } })).data;
+}
+
+export type ContactStatus = 'new' | 'in_progress' | 'closed';
+
+export interface ContactRequest {
+  id: string;
+  locale: SiteLocale;
+  name: string;
+  email: string;
+  company: string | null;
+  message: string;
+  status: ContactStatus;
+  note: string | null;
+  handled_by: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  closed_at: string | null;
+}
+
+export async function fetchContactRequests(filters: Partial<Record<'status' | 'cursor', string>>): Promise<{ data: ContactRequest[]; next_cursor: string | null; counts: Record<ContactStatus, number> }> {
+  return (await request<{ data: ContactRequest[]; next_cursor: string | null; counts: Record<ContactStatus, number> }>('GET', '/platform-api/v1/contact-requests', { query: filters })).data;
+}
+
+export async function fetchContactRequest(id: string): Promise<ContactRequest> {
+  return (await request<ContactRequest>('GET', `/platform-api/v1/contact-requests/${encodeURIComponent(id)}`)).data;
+}
+
+export async function updateContactRequest(id: string, input: { status?: ContactStatus; note?: string | null }): Promise<ContactRequest> {
+  return (await request<ContactRequest>('PATCH', `/platform-api/v1/contact-requests/${encodeURIComponent(id)}`, { body: input })).data;
+}

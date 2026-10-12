@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             Route::middleware([])->group(__DIR__.'/../routes/internal.php');
             Route::group([], __DIR__.'/../routes/platform.php');
+            Route::group([], __DIR__.'/../routes/site.php');
         },
     )
     ->withCommands([

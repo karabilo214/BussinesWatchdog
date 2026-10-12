@@ -11,7 +11,7 @@ SaaS для обнаружения денежных расхождений и п
 | `apps/backend` | Laravel: API кабинета (`/api/v1`), API панели владельца (`/platform-api/v1`), фоновые команды |
 | `apps/frontend/customer` | Кабинет клиента (`/app`) |
 | `apps/frontend/control` | Панель владельца сервиса (`/owner`) |
-| `apps/frontend/public` | Публичный сайт |
+| `apps/frontend/public` | Стили публичного сайта (сами страницы — `apps/backend/resources/views/site`) |
 | `apps/browser-worker` | Воркер браузерных проверок (Node + Playwright) |
 | `plugins/woocommerce-watchdog` | WooCommerce-плагин |
 | `plugins/shopware-app` | Тесты Shopware App (архив приложения выдаёт кабинет для каждого магазина) |
@@ -36,6 +36,7 @@ SaaS для обнаружения денежных расхождений и п
 - **Оплата подписки (Paddle):** `PADDLE_ENVIRONMENT=production` (иначе sandbox), `PADDLE_API_KEY`, `PADDLE_CLIENT_TOKEN`, `PADDLE_WEBHOOK_SECRET`, `PADDLE_ACCOUNT_REF`.
 - **Ограничения тарифов:** `WATCHDOG_BILLING_ENFORCEMENT=enforce` включает лимиты тарифов; `pilot` (по умолчанию) — всё доступно всем.
 - **Панель владельца (по желанию):** `WATCHDOG_PLATFORM_IDLE_MINUTES` (30), `WATCHDOG_PLATFORM_ABSOLUTE_HOURS` (8), `WATCHDOG_PLATFORM_LOGIN_PER_MINUTE` (5).
+- **Публичный сайт (по желанию):** `WATCHDOG_SITE_CONTACT_NOTIFY` — куда слать письма о новых обращениях (несколько адресов через запятую; пусто — всем активным владельцам сервиса), `WATCHDOG_SITE_OWNER_URL` (адрес панели для ссылки в письме, по умолчанию `APP_URL/owner`), `WATCHDOG_SITE_CONTACT_RETENTION_DAYS` (365 — через сколько дней после закрытия удалять обращение), `WATCHDOG_SITE_CONTACT_PER_HOUR` (5 сообщений в час с одного IP), `WATCHDOG_SITE_CACHE_SECONDS` (60 — сколько браузер и прокси держат страницу), `WATCHDOG_SITE_PRIVACY_PATH` (`legal/privacy` — страница политики конфиденциальности, ссылка на неё появляется под формой, когда она опубликована).
 
 ### 2. База данных
 
@@ -51,7 +52,7 @@ php artisan migrate --force
 * * * * * cd /path/to/apps/backend && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Он сам запускает: доставку событий (`outbox:dispatch`, 10 с), пересчёт сверки (`reconciliation:process-dirty`, 30 с), уведомления (`notifications:deliver`, 30 с; `notifications:remind`, час), ночную сверку (02:30), проверку подтверждения магазинов и свежести коннекторов (минута), планирование браузерных проверок (минута), синхронизацию Stripe / PayPal / WooCommerce REST / Shopware, события Paddle (`billing:paddle-events`, минута; `billing:process-events`, 30 с), скидки следующего периода подписок (`billing:plan-discounts`, 15 мин), смены тарифа и отмены подписок (`billing:plan-changes`, минута: переход на более дешёвый тариф в начале нового периода, проверка изменений с неизвестным ответом Paddle, пересчёт скидок), очистку старых скриншотов и экспортов (ежедневно). Вручную их запускать не нужно.
+Он сам запускает: доставку событий (`outbox:dispatch`, 10 с), пересчёт сверки (`reconciliation:process-dirty`, 30 с), уведомления (`notifications:deliver`, 30 с; `notifications:remind`, час), ночную сверку (02:30), проверку подтверждения магазинов и свежести коннекторов (минута), планирование браузерных проверок (минута), синхронизацию Stripe / PayPal / WooCommerce REST / Shopware, события Paddle (`billing:paddle-events`, минута; `billing:process-events`, 30 с), скидки следующего периода подписок (`billing:plan-discounts`, 15 мин), смены тарифа и отмены подписок (`billing:plan-changes`, минута: переход на более дешёвый тариф в начале нового периода, проверка изменений с неизвестным ответом Paddle, пересчёт скидок), очистку старых скриншотов и экспортов (ежедневно), письма о новых обращениях с сайта (`site:contact-notify`, минута) и удаление старых закрытых обращений (`site:contact-purge`, ежедневно). Вручную их запускать не нужно.
 
 ### 4. Первый владелец сервиса (вход в `/owner`)
 
@@ -120,8 +121,19 @@ cd apps/frontend
 npm ci
 npm run build -w @bw/customer   # кабинет клиента → customer/dist (/app)
 npm run build -w @bw/control    # панель владельца → control/dist (/owner, отдельный домен по ТЗ)
-npm run build -w @bw/public     # публичный сайт
+npm run build -w @bw/public     # стили публичного сайта → apps/backend/public/site
 ```
+
+Публичный сайт (`/`, `/ru|en|de/...`) отдаёт сам Laravel готовым HTML (SSR, Blade), Node на сервере не нужен. `@bw/public` собирает только его стили в `apps/backend/public/site` (папка не в git — собирать при каждом выпуске до запуска бэкенда). Без сборки сайт работает, но без оформления.
+
+### 11. Публичный сайт: первое наполнение
+
+В панели владельца `/owner/site`:
+
+- **Главная, Тарифы, Связаться с нами** есть сразу. Пока для языка не опубликован свой текст, главная показывает встроенный текст, а тарифы и форма — встроенное вступление. Тарифы и цены берутся из `/owner/plans` (только опубликованные; в тестовом режиме Paddle — с пометкой «Тестовый режим», примеры Free / Start / Pro видны только в нём).
+- **Новая страница:** «Новая страница» → раздел (для вложенной, например `legal`) → адрес (slug, задаётся один раз) → меню → «Создать». Затем на каждом языке: заголовок, описание для поисковиков, HTML → «Сохранить черновик» → «Опубликовать» (с причиной). Язык без опубликованного текста отвечает 404.
+- Условия, гарантии, о компании: например `legal` (без текста, просто раздел) и вложенные `legal/terms`, `legal/privacy` (ссылка на неё появится под формой обратной связи), `about`.
+- **Обращения** из формы — `/owner/contacts`: статус «новое / в работе / закрыто» и внутренняя заметка; ответ — по ссылке на e-mail.
 
 Внутри скриптов npm использовать только `node "$npm_execpath"`, не голый `npm` (см. `docs/progress.md`, Step 57).
 
@@ -138,6 +150,7 @@ npm run build -w @bw/public     # публичный сайт
 | `php artisan stripe:sync`, `paypal:sync`, `woocommerce-api:sync`, `shopware:sync` (`--audit`) | Внеочередная синхронизация (обычно делает планировщик) |
 | `php artisan reconciliation:process-dirty` / `reconciliation:nightly-sweep` | Внеочередной пересчёт сверки |
 | `php artisan artifacts:purge` / `exports:purge` | Внеочередная очистка просроченных файлов |
+| `php artisan site:contact-notify` / `site:contact-purge` | Вручную отправить письма о новых обращениях с сайта / удалить закрытые обращения старше срока хранения (обычно делает планировщик) |
 
 ## Локальная разработка и тесты
 
@@ -156,5 +169,5 @@ make egress-test                    # проверка egress-прокси
 Живые проверки (нужен интернет и ключи sandbox):
 
 - `apps/frontend/customer/tests/e2e/run-billing-live.sh` — покупка подписки через sandbox Paddle тестовой картой; `BW_PROMO=<код> BW_EXPECT_AFTER=<итог, например 20,16> run-billing-live.sh` — покупка с промокодом (и действующими акциями).
-- `apps/frontend/control/tests/e2e/run-live.sh login` — вход в панель владельца с настоящим кодом TOTP; `run-live.sh plans` — создание, цены, публикация в sandbox Paddle и снятие тарифа с продажи; `run-live.sh discounts` — создание промокода (выводит `PROMO <код>`); `run-live.sh tenants` — поиск организации, продление пробного периода, приостановка и возобновление сервиса, аудит.
+- `apps/frontend/control/tests/e2e/run-live.sh login` — вход в панель владельца с настоящим кодом TOTP; `run-live.sh plans` — создание, цены, публикация в sandbox Paddle и снятие тарифа с продажи; `run-live.sh discounts` — создание промокода (выводит `PROMO <код>`); `run-live.sh tenants` — поиск организации, продление пробного периода, приостановка и возобновление сервиса, аудит; `run-live.sh site` — создание и публикация страницы, чтение её на сайте без JavaScript, отправка формы обратной связи, закрытие обращения в панели, удаление страницы.
 - `plugins/woocommerce-watchdog/tests/matrix/*.sh`, `plugins/shopware-app/tests/**` — матрица версий и сквозные прогоны с настоящими магазинами и провайдерами.

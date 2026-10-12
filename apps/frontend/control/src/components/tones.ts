@@ -1,5 +1,5 @@
 import type { Tone } from '@bw/ui';
-import type { AccessState, SubscriptionStatus } from '@/api';
+import type { AccessState, ContactStatus, SubscriptionStatus } from '@/api';
 
 export const ACCESS_TONES: Record<AccessState, Tone> = {
   pilot: 'note',
@@ -19,4 +19,10 @@ export const SUBSCRIPTION_TONES: Record<SubscriptionStatus, Tone> = {
   past_due: 'warn',
   suspended: 'crit',
   cancelled: 'unknown',
+};
+
+export const CONTACT_TONES: Record<ContactStatus, Tone> = {
+  new: 'warn',
+  in_progress: 'note',
+  closed: 'unknown',
 };

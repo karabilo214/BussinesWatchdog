@@ -58,7 +58,7 @@ watch(() => route.fullPath, () => {
             <RouterLink
               :to="{ name: `owner-${section}` }"
               class="block rounded-md px-3 py-2 text-sm font-medium text-text-muted hover:bg-surface-muted hover:text-text"
-              :class="(section === 'plans' && (String($route.name).startsWith('owner-plan') || String($route.name).startsWith('owner-discount'))) || (section === 'tenants' && $route.name === 'owner-tenant') ? 'bg-primary-soft !text-primary' : ''"
+              :class="(section === 'plans' && (String($route.name).startsWith('owner-plan') || String($route.name).startsWith('owner-discount'))) || (section === 'tenants' && $route.name === 'owner-tenant') || (section === 'site' && $route.name === 'owner-page') || (section === 'contacts' && $route.name === 'owner-contact') ? 'bg-primary-soft !text-primary' : ''"
               exact-active-class="bg-primary-soft !text-primary"
             >
               {{ $t(`section.${section}.title`) }}

@@ -125,6 +125,15 @@ return [
         'mfa_max_attempts' => 5,
     ],
 
+    'site' => [
+        'contact_notify' => env('WATCHDOG_SITE_CONTACT_NOTIFY', ''),
+        'contact_retention_days' => (int) env('WATCHDOG_SITE_CONTACT_RETENTION_DAYS', 365),
+        'contact_per_hour' => (int) env('WATCHDOG_SITE_CONTACT_PER_HOUR', 5),
+        'owner_url' => env('WATCHDOG_SITE_OWNER_URL', rtrim((string) env('APP_URL', 'http://localhost'), '/').'/owner'),
+        'cache_seconds' => (int) env('WATCHDOG_SITE_CACHE_SECONDS', 60),
+        'privacy_path' => env('WATCHDOG_SITE_PRIVACY_PATH', 'legal/privacy'),
+    ],
+
     'shopware' => [
         'timeout_seconds' => 20,
         'page_size' => 100,

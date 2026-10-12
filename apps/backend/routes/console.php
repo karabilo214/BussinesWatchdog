@@ -125,3 +125,14 @@ Schedule::command('billing:plan-changes')
     ->everyMinute()
     ->withoutOverlapping(10)
     ->onOneServer();
+
+Schedule::command('site:contact-notify')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
+Schedule::command('site:contact-purge')
+    ->dailyAt('03:35')
+    ->timezone('UTC')
+    ->withoutOverlapping(60)
+    ->onOneServer();

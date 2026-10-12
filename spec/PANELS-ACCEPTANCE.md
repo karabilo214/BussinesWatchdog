@@ -1,6 +1,6 @@
 # Приёмка панелей и SaaS billing
 
-Версия 1.1. Обновлено: 2026-10-12, Step 109.
+Версия 1.1. Обновлено: 2026-10-12, Step 111.
 
 Это добавочные критерии к `ACCEPTANCE.md`. Матрица теперь показывает текущее evidence. Большая часть SaaS billing/platform панели всё ещё находится на уровне ТЗ и контрактов; customer cabinet реализован существенно дальше.
 
@@ -38,8 +38,8 @@
 | EXT-24 | partial | Tenant_admin billing/delete/owner role action | Customer role policies, team management, ownership transfer tests; Step 64/69 | Billing/delete organization not implemented |
 | EXT-25 | partial | Workspace switch | Active tenant session exists; tenant activation tests; customer cache keys include tenant in API patterns | Multi-workspace switcher UI and complete cache isolation acceptance not implemented |
 | EXT-26 | not_done | Customer deletion с recurring contract | — | Privacy deletion + recurring cancellation workflow not implemented |
-| EXT-27 | not_done | Legal/policy/price version changed | — | Legal acceptance/versioned public purchase flow not implemented |
+| EXT-27 | partial | Legal/policy/price version changed | Step 111 (ADR 0039): public pages (terms, privacy, …) versioned per language, published versions immutable and kept with who/when and content hash; `PublicSiteTest` | Acceptance at sign-up/checkout is not bound to a policy version (`policy_versions`, `purchase_acceptances` not implemented) |
 | EXT-28 | not_done | Provider unavailable | — | SaaS paid grant and previous paid_until preservation not implemented |
-| EXT-29 | partial | Portal locale coverage ru/en/de | Customer app, public/control skeleton, notification/account templates, findings/incidents/transactions export UI labels and many backend problem codes have ru/en/de tests | Owner/admin/billing/private export localization not implemented |
+| EXT-29 | partial | Portal locale coverage ru/en/de | Customer app, public site (server-rendered pages, pricing, contact form — Step 111) and control panel, notification/account templates, findings/incidents/transactions export UI labels and many backend problem codes have ru/en/de tests | Owner/admin/billing/private export localization not implemented |
 
-Требуются также 16 BILL fixture outcomes, проверка no-card storage/secret redaction, CSRF и stored XSS, изоляция guard cookies, private invoice export/download, provider sandbox upgrade/proration/cancel/refund и наблюдаемость webhook lag. Tests of actual provider behavior нельзя заменить JSON fixtures.
+Требуются также 16 BILL fixture outcomes, проверка no-card storage/secret redaction, CSRF и stored XSS (для HTML страниц сайта — санитайзер и тест Step 111), изоляция guard cookies, private invoice export/download, provider sandbox upgrade/proration/cancel/refund и наблюдаемость webhook lag. Tests of actual provider behavior нельзя заменить JSON fixtures.

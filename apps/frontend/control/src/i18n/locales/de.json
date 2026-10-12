@@ -73,6 +73,12 @@
     "settings": {
       "title": "Einstellungen",
       "body": "Einstellungen des Dienstes. Dieser Bereich folgt in späteren Schritten."
+    },
+    "site": {
+      "title": "Website"
+    },
+    "contacts": {
+      "title": "Anfragen"
     }
   },
   "common": {
@@ -129,7 +135,19 @@
     "no_active_subscription": "Es gibt kein aktives bezahltes Abonnement.",
     "plan_not_available": "Tarif nicht gefunden.",
     "provider_outcome_unknown": "Paddle hat nicht geantwortet. Später aktualisieren, die Aktion nicht wiederholen.",
-    "plan_change_rejected": "Paddle hat die Anfrage abgelehnt."
+    "plan_change_rejected": "Paddle hat die Anfrage abgelehnt.",
+    "slug_invalid": "Adresse: Kleinbuchstaben, Ziffern und Bindestriche, bis 60 Zeichen.",
+    "slug_taken": "Diese Adresse ist vergeben.",
+    "too_deep": "Seiten lassen sich nur eine Ebene tief verschachteln.",
+    "parent_invalid": "Dieser Bereich kann nicht gewählt werden.",
+    "body_required": "Die Seite braucht einen Text.",
+    "title_invalid": "Titel angeben (bis 200 Zeichen).",
+    "no_draft": "Kein Entwurf zum Veröffentlichen.",
+    "not_published": "Die Seite ist nicht veröffentlicht.",
+    "has_children": "Zuerst die untergeordneten Seiten löschen.",
+    "system_page": "Eine Systemseite kann nicht gelöscht werden.",
+    "page_not_found": "Seite nicht gefunden.",
+    "contact_request_not_found": "Anfrage nicht gefunden."
   },
   "period": {
     "per": {
@@ -527,5 +545,119 @@
       "cancel_subscription": "Kündigung des Abonnements",
       "refresh_billing": "Aktualisierung aus Paddle"
     }
+  },
+  "site": {
+    "hint": "Seiten der öffentlichen Website. Jede Seite hat eine eigene Adresse und je Sprache einen eigenen Text: Entwurf → Vorschau → Veröffentlichung. Veröffentlichte Versionen ändern sich nie und bleiben im Verlauf.",
+    "col": {
+      "page": "Seite",
+      "menu": "Menü"
+    },
+    "kind": {
+      "home": "Startseite",
+      "pricing": "Preise",
+      "contact": "Kontakt",
+      "page": "Seite"
+    },
+    "system": "System",
+    "system_hint": {
+      "home": "Die Startseite der Website. Solange kein Text veröffentlicht ist, wird der eingebaute Text gezeigt.",
+      "pricing": "Dieser Text steht über den Tarifkarten. Tarife und Preise kommen aus „Tarife und Rabatte“.",
+      "contact": "Dieser Text steht über dem Kontaktformular. Nachrichten aus dem Formular landen unter „Anfragen“."
+    },
+    "menu": {
+      "none": "Nicht anzeigen",
+      "header": "Obermenü",
+      "footer": "Fußzeile"
+    },
+    "sort": "Reihenfolge",
+    "state": {
+      "published": "Veröffentlicht",
+      "published_draft": "Veröffentlicht, Entwurf vorhanden",
+      "draft": "Entwurf",
+      "none": "Nicht veröffentlicht",
+      "builtin": "Eingebauter Text",
+      "published_at": "Version {version} veröffentlicht: {date}",
+      "draft_version": "Entwurf (Version {version})"
+    },
+    "create": {
+      "title": "Neue Seite",
+      "hint": "Die Adresse wird einmal festgelegt und ändert sich nicht. Höchstens zwei Ebenen, z. B. legal/terms.",
+      "parent": "Bereich",
+      "no_parent": "Ohne Bereich (oberste Ebene)",
+      "slug": "Adresse (Slug)",
+      "submit": "Anlegen",
+      "address": "Adresse der Seite:",
+      "slug_rules": "Nur Kleinbuchstaben (lateinisch), Ziffern und einzelne Bindestriche, bis 60 Zeichen."
+    },
+    "field": {
+      "title": "Titel",
+      "description": "Beschreibung für Suchmaschinen",
+      "description_hint": "Bis 300 Zeichen; erscheint in Suchergebnissen.",
+      "body": "HTML der Seite",
+      "body_hint": "Der Seitentitel wird automatisch angezeigt — beginnen Sie mit Text oder einem <h2>.",
+      "body_hint_system": "Kann leer bleiben — dann wird der eingebaute Text gezeigt."
+    },
+    "help": {
+      "title": "Was im HTML erlaubt ist",
+      "allowed": "Normales Markup: Überschriften, Absätze, Listen, Links, Bilder über https, Tabellen, Zitate. Skripte, iframes, Formulare, Event-Handler (onclick…) und das style-Attribut werden beim Speichern entfernt.",
+      "classes": "Fertige Stilklassen:",
+      "example": "Beispielblock:"
+    },
+    "preview": "Vorschau",
+    "open": "Auf der Website öffnen",
+    "unsaved": "Ungespeicherte Änderungen",
+    "unsaved_switch": "Ungespeicherte Änderungen gehen verloren. Sprache wechseln?",
+    "save_first": "Speichern Sie zuerst den Entwurf und veröffentlichen Sie dann.",
+    "action": {
+      "save": "Entwurf speichern",
+      "publish": "Veröffentlichen",
+      "discard": "Entwurf verwerfen",
+      "unpublish": "Veröffentlichung zurückziehen",
+      "refresh": "Aktualisieren",
+      "restore": "In Entwurf",
+      "save_settings": "Speichern",
+      "archive": "Seite löschen"
+    },
+    "confirm": {
+      "publish": "Entwurf ({locale}) unter {path} veröffentlichen? Die aktuelle Version wandert in den Verlauf.",
+      "unpublish": "Veröffentlichung von {path} zurückziehen? Besucher sehen „Seite nicht gefunden“.",
+      "archive": "Seite in allen Sprachen löschen? Veröffentlichte Versionen bleiben im Verlauf, die Adresse wird frei.",
+      "reason": "Grund (im Audit sichtbar)"
+    },
+    "done": {
+      "saved": "Entwurf gespeichert.",
+      "discarded": "Entwurf verworfen.",
+      "restored": "Die Version wurde in den Entwurf kopiert — prüfen und veröffentlichen.",
+      "settings": "Einstellungen gespeichert.",
+      "publish": "Veröffentlicht.",
+      "unpublish": "Zurückgezogen."
+    },
+    "history": {
+      "title": "Versionsverlauf ({locale})",
+      "empty": "Noch nichts veröffentlicht.",
+      "version": "Version",
+      "published": "Veröffentlicht",
+      "retired": "Ersetzt",
+      "published_state": "Aktuell"
+    },
+    "settings": "Seiteneinstellungen",
+    "slug_fixed": "Die Adresse wurde beim Anlegen festgelegt und ändert sich nicht."
+  },
+  "contacts": {
+    "hint": "Nachrichten aus dem Kontaktformular der Website. Neue Nachrichten werden per E-Mail gemeldet. Geschlossene Anfragen werden nach einem Jahr gelöscht.",
+    "all": "Alle",
+    "empty": "Keine Nachrichten.",
+    "status": "Status",
+    "note": "Interne Notiz",
+    "note_hint": "Nur für Mitarbeiter sichtbar.",
+    "save": "Speichern",
+    "saved": "Gespeichert.",
+    "handled_by": "Letzte Änderung: {name}",
+    "retention": "Eine geschlossene Anfrage wird 365 Tage nach dem Schließen gelöscht."
+  },
+  "contact_status": {
+    "new": "Neu",
+    "in_progress": "In Bearbeitung",
+    "closed": "Geschlossen"
   }
 }
