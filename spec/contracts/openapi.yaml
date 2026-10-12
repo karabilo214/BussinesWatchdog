@@ -1403,6 +1403,31 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/plans:
+    get:
+      tags: [Billing]
+      operationId: listBillingPlans
+      description: "Any member. The latest sellable version of each plan (published; drafts too in the Paddle sandbox) with its sellable prices for the current mode. Plans with a base price come first, cheapest first. Amounts are minor units as strings; `tax_behavior` tells whether taxes are included (ADR 0030: gross for consumers). `trial_available` is false once the organisation had a trial or any subscription; the store domain check (ADR 0031) happens when the trial starts."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Sellable plans
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data, mode, checkout_available, trial_available]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/BillingPlan"}
+                  mode: {enum: [test, live]}
+                  checkout_available: {type: boolean}
+                  trial_available: {type: boolean}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
   /api/v1/billing/subscription:
     get:
       tags: [Billing]
@@ -3113,6 +3138,36 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    BillingPlan:
+      type: object
+      additionalProperties: false
+      required: [plan_code, plan_version_id, name, placeholder, trial_days, entitlements, prices]
+      properties:
+        plan_code: {type: string}
+        plan_version_id: {type: string, format: uuid}
+        name: {type: object, additionalProperties: {type: string}, description: Localized names by locale}
+        placeholder: {type: boolean, description: "Draft content not approved by the owner"}
+        trial_days: {type: integer, minimum: 0}
+        entitlements:
+          type: object
+          required: [features, limits]
+          properties:
+            features: {type: array, items: {type: string}}
+            limits: {type: object, additionalProperties: {type: [integer, "null"]}}
+        prices:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, kind, currency, currency_exponent, amount_minor, interval, tax_behavior]
+            properties:
+              id: {type: string, format: uuid}
+              kind: {enum: [base, extra_store]}
+              currency: {type: string, pattern: '^[A-Z]{3}$'}
+              currency_exponent: {type: integer}
+              amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+              interval: {type: string}
+              tax_behavior: {type: string}
     BillingCheckout:
       type: object
       additionalProperties: false

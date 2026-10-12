@@ -18,6 +18,7 @@ export function buildRouter(): Router {
       { path: '/invitation', name: 'invitation', component: () => import('@/views/InvitationView.vue'), meta: { public: true } },
       { path: '/settings/profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
       { path: '/settings/team', name: 'team', component: () => import('@/views/TeamView.vue') },
+      { path: '/settings/billing', name: 'billing', component: () => import('@/views/BillingView.vue') },
       { path: '/overview', name: 'overview', component: () => import('@/views/OverviewView.vue') },
       { path: '/stores/new', name: 'store-create', component: () => import('@/views/StoreCreateView.vue') },
       { path: '/stores/:id', name: 'store', component: () => import('@/views/StoreView.vue'), props: true },

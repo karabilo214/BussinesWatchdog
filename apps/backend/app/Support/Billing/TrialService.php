@@ -2,11 +2,9 @@
 
 namespace App\Support\Billing;
 
-use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
 use App\Models\Subscription;
 use App\Models\Tenant;
-use App\Support\Billing\Paddle\PaddleConfig;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -33,7 +31,7 @@ class TrialService
                 throw new BillingCheckoutRejected('trial_not_available');
             }
 
-            $states = PaddleConfig::sandbox() ? [BillingPlan::STATE_PUBLISHED, BillingPlan::STATE_DRAFT] : [BillingPlan::STATE_PUBLISHED];
+            $states = BillingCatalog::sellableStates();
             /** @var BillingPlanVersion|null $version */
             $version = BillingPlanVersion::query()
                 ->with('plan')

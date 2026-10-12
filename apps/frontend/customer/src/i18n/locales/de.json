@@ -483,7 +483,16 @@
     "shopware_budget_exhausted": "Das Anfragelimit pro Durchlauf ist erreicht; die nächste Synchronisierung setzt fort.",
     "shopware_app_signature_invalid": "Die Signatur der Shopware-Anfrage passt nicht.",
     "shopware_app_registration_invalid": "Shopware hat ungültige Registrierungsdaten gesendet.",
-    "shopware_app_webhook_invalid": "Das Shopware-Ereignis gehört nicht zu diesem Shop."
+    "shopware_app_webhook_invalid": "Das Shopware-Ereignis gehört nicht zu diesem Shop.",
+    "trial_not_available": "Diese Organisation hat ihren Testzeitraum bereits genutzt.",
+    "trial_store_already_used": "Einer Ihrer Shops hatte bereits einen Testzeitraum in einer anderen Organisation. Bitte schließen Sie ein Abo ab.",
+    "email_not_verified": "Bestätigen Sie zuerst Ihre E-Mail-Adresse.",
+    "plan_not_available": "Dieser Tarif ist derzeit nicht verfügbar.",
+    "price_not_available": "Dieser Preis ist nicht verfügbar. Laden Sie die Seite neu.",
+    "extra_stores_out_of_range": "So viele zusätzliche Shops sind in diesem Tarif nicht möglich.",
+    "subscription_exists": "Die Organisation hat bereits ein Abonnement.",
+    "billing_not_configured": "Zahlungen sind noch nicht angebunden.",
+    "paddle_unavailable": "Das Zahlungsfenster konnte nicht geöffnet werden. Prüfen Sie Ihren Werbeblocker und versuchen Sie es erneut."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -1112,7 +1121,8 @@
     "title": "Einstellungen",
     "tab": {
       "profile": "Profil",
-      "team": "Team"
+      "team": "Team",
+      "billing": "Abonnement"
     }
   },
   "account": {
@@ -1338,5 +1348,94 @@
     "revoked": "PayPal getrennt.",
     "credentials_rejected": "PayPal hat die App-Zugangsdaten abgelehnt oder der App fehlt Transaction Search — Aufrufe an PayPal sind gestoppt, der Geldabgleich zeigt „unbekannt“. Trennen und verbinden Sie PayPal neu.",
     "matching_note": "Zuordnung über Metadaten wird für PayPal nicht unterstützt: Zahlungen werden Bestellungen nur über die Transaktions-ID zugeordnet, die das PayPal-Plugin in die Bestellung schreibt."
+  },
+  "billing": {
+    "subscription": "Ihr Abonnement",
+    "plan": "Tarif",
+    "no_plan": "Nicht gewählt",
+    "status_label": "Zahlungsstatus",
+    "status": {
+      "trial": "Testzeitraum",
+      "active": "Bezahlt",
+      "past_due": "Zahlung fehlgeschlagen",
+      "suspended": "Ausgesetzt",
+      "cancelled": "Gekündigt"
+    },
+    "access": {
+      "pilot": "Pilot: alles enthalten",
+      "active": "Dienst aktiv",
+      "override": "Dienst aktiv (vorübergehender Zugang)",
+      "trial": "Testzeitraum",
+      "grace": "Kulanzzeitraum",
+      "paused_billing": "Pausiert: keine Zahlung",
+      "paused_manual": "Pausiert",
+      "no_service": "Dienst nicht verfügbar",
+      "onboarding": "Kein Tarif gewählt"
+    },
+    "trial_ends_at": "Testzeitraum bis",
+    "renews_at": "Nächste Verlängerung",
+    "ends_at": "Abonnement endet",
+    "grace_until": "Zahlen bis",
+    "extra_stores": "Zusätzliche Shops",
+    "no_subscription": "Noch kein Abonnement. Starten Sie einen Testzeitraum oder wählen Sie unten einen Tarif.",
+    "owner_manages": "Das Abonnement verwaltet der Inhaber der Organisation.",
+    "cancel_scheduled": "Das Abonnement ist gekündigt und endet mit dem bezahlten Zeitraum.",
+    "pilot": "Der Pilotmodus ist aktiv: alle Funktionen sind ohne Limits verfügbar. Tariflimits gelten, sobald Zahlungen eingeschaltet sind.",
+    "test_mode": "Testzahlungen: Es wird die Paddle-Sandbox verwendet, es wird kein echtes Geld abgebucht.",
+    "usage": "Limits und Verbrauch",
+    "usage_hint": "Der Verbrauch wird pro Kalendertag und -monat in der Zeitzone der Organisation gezählt.",
+    "usage_row": {
+      "stores": "Shops",
+      "manual_runs": "Manuelle Prüfungen heute",
+      "events": "Shop-Ereignisse in diesem Monat"
+    },
+    "resets_at": "Wird zurückgesetzt am {date}",
+    "unlimited": "unbegrenzt",
+    "events_near": "Mehr als 80 % des monatlichen Ereignisvolumens sind verbraucht.",
+    "events_over": "Das Ereignisvolumen des Tarifs ist überschritten. Ereignisse werden weiterhin angenommen und geprüft, aber der Tarif ist für weniger ausgelegt — wählen Sie einen größeren Tarif oder fügen Sie Shops hinzu.",
+    "plans": "Tarife",
+    "tax_note": "Für Verbraucher in der EU enthält der Preis die MwSt.; Unternehmen mit USt-IdNr. zahlen ohne MwSt. Paddle zeigt den Gesamtbetrag mit Steuern vor der Zahlung.",
+    "change_later": "Tarifwechsel und Kündigung kommen später ins Dashboard.",
+    "checkout_unavailable": "Zahlungen sind noch nicht angebunden.",
+    "no_plans": "Es sind noch keine Tarife veröffentlicht.",
+    "current": "Aktuell",
+    "placeholder": "Entwurf",
+    "no_price": "Kein Preis festgelegt",
+    "per": {
+      "month": "pro Monat",
+      "year": "pro Jahr"
+    },
+    "extra_store_price": "+ {price} pro Monat für jeden zusätzlichen Shop (bis zu {max})",
+    "limit": {
+      "max_active_stores": "Shops",
+      "min_check_interval_minutes": "Checkout-Prüfung",
+      "manual_runs_per_day": "Manuelle Prüfungen pro Tag",
+      "monthly_event_budget": "Ereignisse pro Monat",
+      "retention_days": "Verlauf gespeichert"
+    },
+    "limit_value": {
+      "max_active_stores": "{n}",
+      "min_check_interval_minutes": "alle {n} Min.",
+      "manual_runs_per_day": "{n}",
+      "monthly_event_budget": "{n}",
+      "retention_days": "{n} Tage"
+    },
+    "feature": {
+      "checkout_monitoring": "Checkout-Prüfungen im Browser",
+      "payment_attempts_server": "Überwachung von Zahlungsversuchen",
+      "payment_attempts_script": "Überwachungsskript auf der Zahlungsseite",
+      "money_reconciliation": "Geldabgleich mit dem Zahlungsanbieter",
+      "order_outcomes": "Erfüllung bezahlter Bestellungen",
+      "notifications_telegram": "Telegram-Benachrichtigungen",
+      "agency_workspace": "Agentur-Arbeitsbereich für mehrere Kunden"
+    },
+    "start_trial": "Testzeitraum starten ({days} Tage)",
+    "trial_started": "Ihr Testzeitraum hat begonnen.",
+    "total": "Gesamt: {price} pro Monat",
+    "buy": "Abonnieren",
+    "opening_checkout": "Zahlung wird geöffnet…",
+    "checkout_confirming": "Die Zahlung wird bei Paddle bestätigt. Der Zugang ändert sich erst nach der Bestätigung.",
+    "checkout_confirmed": "Zahlung bestätigt, das Abonnement ist aktiv.",
+    "checkout_failed": "Die Zahlung wurde nicht abgeschlossen. Sie können es erneut versuchen."
   }
 }

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1\Billing;
 use App\Http\Controllers\Controller;
 use App\Models\BillingCheckoutSession;
 use App\Models\Subscription;
+use App\Models\Tenant;
+use App\Support\Billing\BillingCatalog;
 use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\Paddle\PaddleCheckout;
@@ -76,6 +78,20 @@ class BillingController extends Controller
         $calculator->forget();
 
         return response()->json($this->subscriptionDto($subscription, $calculator), 201);
+    }
+
+    public function plans(TenantContext $tenantContext, BillingCatalog $catalog): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('read plans');
+        $trialAvailable = Tenant::query()->whereKey($tenantId)->whereNull('trial_consumed_at')->exists()
+            && ! Subscription::query()->where('tenant_id', $tenantId)->exists();
+
+        return response()->json([
+            'data' => $catalog->plans(),
+            'mode' => PaddleConfig::mode(),
+            'checkout_available' => PaddleConfig::configured() && PaddleConfig::clientToken() !== null,
+            'trial_available' => $trialAvailable,
+        ]);
     }
 
     public function subscription(TenantContext $tenantContext, EntitlementCalculator $calculator): JsonResponse|Response

@@ -483,7 +483,16 @@
     "shopware_budget_exhausted": "The request limit for one run was reached; the next sync continues.",
     "shopware_app_signature_invalid": "The Shopware request signature did not match.",
     "shopware_app_registration_invalid": "Shopware sent invalid registration data.",
-    "shopware_app_webhook_invalid": "The Shopware event does not belong to this store."
+    "shopware_app_webhook_invalid": "The Shopware event does not belong to this store.",
+    "trial_not_available": "This organisation has already used its trial.",
+    "trial_store_already_used": "One of your stores already had a trial in another organisation. Please subscribe.",
+    "email_not_verified": "Confirm your email address first.",
+    "plan_not_available": "This plan is not available right now.",
+    "price_not_available": "This price is not available. Reload the page.",
+    "extra_stores_out_of_range": "This plan cannot include that many extra stores.",
+    "subscription_exists": "The organisation already has a subscription.",
+    "billing_not_configured": "Payments are not connected yet.",
+    "paddle_unavailable": "The payment window could not be opened. Check your ad blocker and try again."
   },
   "incidents": {
     "title": "Incidents",
@@ -1112,7 +1121,8 @@
     "title": "Settings",
     "tab": {
       "profile": "Profile",
-      "team": "Team"
+      "team": "Team",
+      "billing": "Subscription"
     }
   },
   "account": {
@@ -1338,5 +1348,94 @@
     "revoked": "PayPal disconnected.",
     "credentials_rejected": "PayPal rejected the app credentials or the app lacks Transaction Search — calls to PayPal are stopped and money reconciliation shows “unknown”. Disconnect and connect PayPal again.",
     "matching_note": "Metadata matching is not supported for PayPal: payments are linked to orders only by the transaction id the PayPal plugin writes to the order."
+  },
+  "billing": {
+    "subscription": "Your subscription",
+    "plan": "Plan",
+    "no_plan": "Not chosen",
+    "status_label": "Payment state",
+    "status": {
+      "trial": "Trial",
+      "active": "Paid",
+      "past_due": "Payment failed",
+      "suspended": "Suspended",
+      "cancelled": "Cancelled"
+    },
+    "access": {
+      "pilot": "Pilot: everything included",
+      "active": "Service active",
+      "override": "Service active (temporary access)",
+      "trial": "Trial",
+      "grace": "Grace period",
+      "paused_billing": "Paused: no payment",
+      "paused_manual": "Paused",
+      "no_service": "Service unavailable",
+      "onboarding": "No plan chosen"
+    },
+    "trial_ends_at": "Trial until",
+    "renews_at": "Next renewal",
+    "ends_at": "Subscription ends",
+    "grace_until": "Pay by",
+    "extra_stores": "Extra stores",
+    "no_subscription": "No subscription yet. Start a trial or choose a plan below.",
+    "owner_manages": "The organisation owner manages the subscription.",
+    "cancel_scheduled": "The subscription is cancelled and ends at the end of the paid period.",
+    "pilot": "Pilot mode is on: every feature is available without limits. Plan limits apply once payments are switched on.",
+    "test_mode": "Test payments: Paddle sandbox is used, no real money is charged.",
+    "usage": "Limits and usage",
+    "usage_hint": "Usage is counted per calendar day and month in the organisation's timezone.",
+    "usage_row": {
+      "stores": "Stores",
+      "manual_runs": "Manual checks today",
+      "events": "Store events this month"
+    },
+    "resets_at": "Resets {date}",
+    "unlimited": "unlimited",
+    "events_near": "More than 80% of the monthly event volume is used.",
+    "events_over": "The plan's event volume is exceeded. Events are still accepted and checked, but the plan is sized for less — choose a larger plan or add stores.",
+    "plans": "Plans",
+    "tax_note": "For consumers in the EU the price includes VAT; businesses with a VAT ID pay without VAT. Paddle shows the total with taxes before payment.",
+    "change_later": "Changing the plan and cancelling will be available in the dashboard later.",
+    "checkout_unavailable": "Payments are not connected yet.",
+    "no_plans": "No plans are published yet.",
+    "current": "Current",
+    "placeholder": "Draft",
+    "no_price": "No price set",
+    "per": {
+      "month": "per month",
+      "year": "per year"
+    },
+    "extra_store_price": "+ {price} per month for each extra store (up to {max})",
+    "limit": {
+      "max_active_stores": "Stores",
+      "min_check_interval_minutes": "Checkout check",
+      "manual_runs_per_day": "Manual checks per day",
+      "monthly_event_budget": "Events per month",
+      "retention_days": "History kept"
+    },
+    "limit_value": {
+      "max_active_stores": "{n}",
+      "min_check_interval_minutes": "every {n} min",
+      "manual_runs_per_day": "{n}",
+      "monthly_event_budget": "{n}",
+      "retention_days": "{n} days"
+    },
+    "feature": {
+      "checkout_monitoring": "Checkout checks in a browser",
+      "payment_attempts_server": "Payment attempt monitoring",
+      "payment_attempts_script": "Monitoring script on the payment page",
+      "money_reconciliation": "Money reconciliation with the payment provider",
+      "order_outcomes": "Fulfilment of paid orders",
+      "notifications_telegram": "Telegram notifications",
+      "agency_workspace": "Agency workspace for several clients"
+    },
+    "start_trial": "Start trial ({days} days)",
+    "trial_started": "Your trial has started.",
+    "total": "Total: {price} per month",
+    "buy": "Subscribe",
+    "opening_checkout": "Opening checkout…",
+    "checkout_confirming": "Confirming the payment with Paddle. Access changes only after confirmation.",
+    "checkout_confirmed": "Payment confirmed, the subscription is active.",
+    "checkout_failed": "The payment was not completed. You can try again."
   }
 }

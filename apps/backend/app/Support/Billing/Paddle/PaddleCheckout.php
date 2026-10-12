@@ -3,11 +3,11 @@
 namespace App\Support\Billing\Paddle;
 
 use App\Models\BillingCheckoutSession;
-use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
 use App\Models\BillingSubscriptionContract;
 use App\Models\Tenant;
+use App\Support\Billing\BillingCatalog;
 use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Billing\FeatureCatalog;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,7 +21,10 @@ use Illuminate\Support\Facades\DB;
  */
 class PaddleCheckout
 {
-    public function __construct(private readonly PaddleClient $client) {}
+    public function __construct(
+        private readonly PaddleClient $client,
+        private readonly BillingCatalog $catalog,
+    ) {}
 
     public function start(string $tenantId, string $userId, string $priceId, int $extraStores, string $idempotencyKey): BillingCheckoutSession
     {
@@ -150,23 +153,15 @@ class PaddleCheckout
      */
     private function prices(): Builder
     {
-        return BillingPrice::query()
-            ->where('provider', PaddleConfig::PROVIDER)
-            ->where('provider_account_ref', PaddleConfig::accountRef())
-            ->where('mode', PaddleConfig::mode())
-            ->whereNotNull('provider_price_ref')
-            ->whereIn('state', $this->sellableStates());
+        return $this->catalog->prices();
     }
 
     /**
-     * Drafts can be bought only in Paddle's sandbox, so placeholder plans are testable end to end; live sells only
-     * published versions and prices.
-     *
      * @return list<string>
      */
     private function sellableStates(): array
     {
-        return PaddleConfig::sandbox() ? [BillingPlan::STATE_PUBLISHED, BillingPlan::STATE_DRAFT] : [BillingPlan::STATE_PUBLISHED];
+        return BillingCatalog::sellableStates();
     }
 
     private function cancelQuietly(string $transactionRef): void

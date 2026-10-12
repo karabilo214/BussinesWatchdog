@@ -2036,3 +2036,18 @@ Verification:
 
 - `tests/Feature/Billing/UsageTest.php` — 3 tests (daily limit with Retry-After and reset at the tenant's midnight, refused attempts not counted; ledger idempotency and pilot counting; store events per month across a DST change, duplicates/quarantined/synthetic/provider events excluded, API usage).
 - Backend SQLite: 439 passed, 4 skipped. PostgreSQL 18: 443 of 443. Customer `npm run check`: 93 passed, build completed.
+
+### Step 102: Subscription Page
+
+Status: complete
+
+- Owner decisions on ADR 0032: the event budget is a soft limit (events are never refused; warning above 80 % and above 100 % with an upgrade offer); manual runs are not returned to the counter.
+- ADR 0033. Backend: `BillingCatalog` (sellable states and prices shared by `PaddleCheckout`, `TrialService` and the catalog), `GET /api/v1/billing/plans` for any member (latest sellable version per plan, prices as minor-unit strings, `mode`, `checkout_available`, `trial_available`). OpenAPI (both copies): path and `BillingPlan` schema.
+- Customer dashboard `/app/settings/billing` ("Подписка" tab): access state, subscription details for the owner (plan, payment state, trial end, renewal or end date, grace, extra stores, scheduled cancellation), limits and usage with the soft event-budget warning, plan cards (price, extra-store price, limits, features, draft marker, current plan), trial button, purchase with extra stores through Paddle.js; "confirmed" only after the backend returns a paid provider subscription. Members see the plan without actions. ru/en/de texts, billing error texts.
+- `tests/e2e/run-billing-live.sh` + `billing-live.mjs`: live check against the Paddle sandbox (fresh verified owner, Start + 1 extra store = 28,00 €, Paddle's test card, confirmation by the backend, subscription shown as paid).
+
+Verification:
+
+- Backend: `tests/Feature/Billing/BillingPlansTest.php` (new). SQLite 440 passed, 4 skipped; PostgreSQL 18 444 of 444.
+- Customer: `tests/billing.test.ts` 5 tests; `npm run check` 98 passed, build completed; `make frontend-smoke` 42/42.
+- Live Paddle sandbox: `run-billing-live.sh` PASS (first run found that the checkout is confirmed by the transaction event a moment before the subscription is projected; the page now waits for the subscription).
