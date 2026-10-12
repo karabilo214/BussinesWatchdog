@@ -253,6 +253,7 @@
         "dns_record_missing": "Der TXT-Eintrag wurde noch nicht gefunden. Wenn Sie ihn gerade angelegt haben, warten Sie auf die DNS-Aktualisierung.",
         "challenge_mismatch": "Die Website antwortet, aber der Code stimmt nicht. Das Plugin hat den neuen Code eventuell noch nicht erhalten.",
         "store_url_changed": "Die Shop-Adresse hat sich während der Prüfung geändert. Bitte die Bestätigung neu starten.",
+        "trial_store_already_used": "Dieser Shop hatte bereits einen Testzeitraum in einer anderen Organisation. Schließen Sie ein Abo ab und bestätigen Sie den Shop erneut.",
         "connection_failed": "Keine Verbindung zur Website möglich.",
         "dns_failure": "Die Domain wurde im DNS nicht gefunden.",
         "http_status_unexpected": "Die Website hat einen Fehler gemeldet. Prüfen Sie, ob das Plugin aktiv ist.",
@@ -363,6 +364,8 @@
     }
   },
   "errors": {
+    "feature_not_in_plan": "Diese Funktion ist in Ihrem Tarif nicht enthalten.",
+    "plan_store_limit_reached": "Ihr Tarif enthält keine weiteren Shops. Fügen Sie Ihrem Abo Shops hinzu oder wechseln Sie den Tarif.",
     "check_run_already_active": "Eine Prüfung läuft bereits. Bitte das Ergebnis abwarten.",
     "manual_check_rate_limited": "Eine manuelle Prüfung kann höchstens einmal pro Minute gestartet werden.",
     "store_not_eligible_for_browser_checks": "Für diesen Shop sind Prüfungen gerade nicht möglich: Domain bestätigen und Prüfszenario aktivieren.",

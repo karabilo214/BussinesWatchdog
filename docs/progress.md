@@ -2004,3 +2004,20 @@ Verification:
 - `tests/Feature/Billing/TrialTest.php` — 3 tests.
 
 - Backend SQLite: 432 passed, 4 skipped. PostgreSQL 18: 436 of 436.
+
+### Step 100: One Trial per Store Domain
+
+Status: complete
+
+- ADR 0031 (owner 2026-10-12: organisation and store domain are checked together; `www.` and the bare host are one domain).
+- Migration `2026_10_12_100000_create_trial_store_hosts`: `trial_store_hosts` (unique host → tenant, store, claimed_at), kept after the store or the trial is gone.
+- `TrialStoreHosts`: host normalization (lower-case, trailing dot, IDN punycode, one leading `www.`; port/path ignored, subdomains distinct), cross-tenant "claimed by another organisation" lookup, claims.
+- `TrialService::start`: besides `tenants.trial_consumed_at`, rejects 409 `trial_store_already_used` when a verified live store of the tenant has a domain claimed by another tenant; claims the domains of its verified stores.
+- `StoreVerificationService::markVerified`: while the tenant is on our own trial, a store whose domain is claimed elsewhere fails verification with `trial_store_already_used`; otherwise a verified store of a tenant that consumed its trial claims its domain. Only verified stores claim, so a domain cannot be blocked by typing someone else's address.
+- Customer dashboard: the verification panel explains `trial_store_already_used` (ru/en/de). Also added the missing error texts for `feature_not_in_plan` and `plan_store_limit_reached` (Step 97 codes; the notification contract test had been red since then). OpenAPI trial description updated (both copies).
+
+Verification:
+
+- `tests/Feature/Billing/TrialTest.php` — 7 tests (4 new: domain normalization, one trial per verified domain across organisations with subdomains distinct, unverified store does not block but cannot be verified during the trial and can after a purchase, store verified during the trial claims its domain).
+- Backend SQLite: 436 passed, 4 skipped. PostgreSQL 18: 440 of 440.
+- Customer frontend `npm run check`: 93 tests passed, build completed.

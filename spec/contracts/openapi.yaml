@@ -1359,7 +1359,7 @@ paths:
     post:
       tags: [Billing]
       operationId: startBillingTrial
-      description: "Tenant owner with a verified email only. Our own trial without a payment method (ADR 0030): once per tenant (consumed under the tenant lock, kept even if the subscription row is later replaced), for the trial days of the plan version. Policy acceptance is added when the legal pages exist."
+      description: "Tenant owner with a verified email only. Our own trial without a payment method (ADR 0030): once per tenant (consumed under the tenant lock, kept even if the subscription row is later replaced) and once per store domain (ADR 0031: `www.` and the bare host are one domain; the tenant's verified stores claim their domains, 409 `trial_store_already_used` when another organisation already had a trial for one of them), for the trial days of the plan version. Policy acceptance is added when the legal pages exist."
       security:
         - {UserSession: []}
       parameters:

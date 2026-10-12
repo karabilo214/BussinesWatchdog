@@ -5,10 +5,15 @@ namespace Tests\Feature\Billing;
 use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingSubscriptionContract;
+use App\Models\Store;
+use App\Models\StoreVerification;
 use App\Models\Subscription;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Billing\SubscriptionProjector;
+use App\Support\Billing\TrialStoreHosts;
+use App\Support\Stores\StoreVerificationService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -94,6 +99,91 @@ class TrialTest extends TestCase
         $subscription = Subscription::query()->sole();
         $this->assertSame([Subscription::STATUS_ACTIVE, 'paddle', null, 2], [$subscription->status, $subscription->provider, $subscription->trial_ends_at, $subscription->version]);
         $this->assertSame('2026-11-11T12:00:00+00:00', $subscription->period_end->toAtomString());
+    }
+
+    public function test_store_domain_with_and_without_www_is_one_domain(): void
+    {
+        $this->assertSame('shop.de', TrialStoreHosts::host('https://www.Shop.DE.'));
+        $this->assertSame('shop.de', TrialStoreHosts::host('https://shop.de:8443/eu'));
+        $this->assertSame('eu.shop.de', TrialStoreHosts::host('https://eu.shop.de'));
+        $this->assertSame('xn--mller-kva.de', TrialStoreHosts::host('https://www.müller.de'));
+        $this->assertSame('www.de', TrialStoreHosts::host('https://www.de'));
+        $this->assertNull(TrialStoreHosts::host('not a url'));
+    }
+
+    public function test_a_verified_store_domain_gets_one_trial_across_organisations(): void
+    {
+        Carbon::setTestNow('2026-10-12T12:00:00Z');
+        $version = $this->version();
+        $first = $this->verified($this->context());
+        $this->storeAt($first, 'https://www.shop.de', true);
+
+        $this->trial($first, $version)->assertCreated();
+        $this->assertSame([['host' => 'shop.de', 'tenant_id' => $first['tenant']->id]], DB::table('trial_store_hosts')->get(['host', 'tenant_id'])->map(fn ($row) => (array) $row)->all());
+
+        $second = $this->verified($this->context());
+        $this->storeAt($second, 'https://shop.de', true);
+        $this->trial($second, $version)->assertStatus(409)->assertJsonPath('code', 'trial_store_already_used');
+        $this->assertNull($second['tenant']->fresh()->trial_consumed_at);
+        $this->assertFalse(Subscription::query()->where('tenant_id', $second['tenant']->id)->exists());
+
+        $subdomain = $this->verified($this->context());
+        $this->storeAt($subdomain, 'https://eu.shop.de', true);
+        $this->trial($subdomain, $version)->assertCreated();
+    }
+
+    public function test_an_unverified_store_does_not_block_a_trial_but_cannot_be_verified_during_it(): void
+    {
+        Carbon::setTestNow('2026-10-12T12:00:00Z');
+        $version = $this->version();
+        $first = $this->verified($this->context());
+        $this->storeAt($first, 'https://shop.de', true);
+        $this->trial($first, $version)->assertCreated();
+
+        $second = $this->verified($this->context());
+        $store = $this->storeAt($second, 'https://www.shop.de', false);
+        $this->trial($second, $version)->assertCreated();
+
+        $verification = app(StoreVerificationService::class)->confirmByApiKey($store);
+
+        $this->assertSame([StoreVerification::STATUS_FAILED, 'trial_store_already_used'], [$verification->status, $verification->last_error_code]);
+        $this->assertNull($store->fresh()->verified_at);
+
+        Subscription::query()->where('tenant_id', $second['tenant']->id)->update(['status' => Subscription::STATUS_ACTIVE, 'provider' => 'paddle', 'trial_ends_at' => null]);
+        $this->assertSame(StoreVerification::STATUS_VERIFIED, app(StoreVerificationService::class)->confirmByApiKey($store)->status);
+        $this->assertSame($first['tenant']->id, DB::table('trial_store_hosts')->where('host', 'shop.de')->value('tenant_id'));
+    }
+
+    public function test_a_store_verified_during_the_trial_claims_its_domain(): void
+    {
+        Carbon::setTestNow('2026-10-12T12:00:00Z');
+        $version = $this->version();
+        $first = $this->verified($this->context());
+        $store = $this->storeAt($first, 'https://later.de', false);
+        $this->trial($first, $version)->assertCreated();
+        $this->assertSame(0, DB::table('trial_store_hosts')->count());
+
+        $this->assertSame(StoreVerification::STATUS_VERIFIED, app(StoreVerificationService::class)->confirmByApiKey($store)->status);
+        $this->assertSame($first['tenant']->id, DB::table('trial_store_hosts')->where('host', 'later.de')->value('tenant_id'));
+
+        $second = $this->verified($this->context());
+        $this->storeAt($second, 'https://www.later.de', true);
+        $this->trial($second, $version)->assertStatus(409)->assertJsonPath('code', 'trial_store_already_used');
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function storeAt(array $context, string $baseUrl, bool $verified): Store
+    {
+        return Store::query()->create([
+            'tenant_id' => $context['tenant']->id,
+            'name' => 'Shop',
+            'base_url' => $baseUrl,
+            'timezone' => 'Europe/Berlin',
+            'default_currency' => 'EUR',
+            'verified_at' => $verified ? now() : null,
+        ]);
     }
 
     private function version(): BillingPlanVersion

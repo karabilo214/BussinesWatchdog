@@ -13,6 +13,7 @@ class BillingCheckoutRejected extends RuntimeException
         'subscription_exists' => 409,
         'idempotency_conflict' => 409,
         'trial_not_available' => 409,
+        'trial_store_already_used' => 409,
         'plan_not_available' => 422,
         'email_not_verified' => 403,
     ];

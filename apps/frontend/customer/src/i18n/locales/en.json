@@ -253,6 +253,7 @@
         "dns_record_missing": "The TXT record was not found yet. If you just added it, wait for DNS to update.",
         "challenge_mismatch": "The site responds, but the code does not match. The plugin may not have received the new code yet.",
         "store_url_changed": "The store address changed during the check. Start the confirmation again.",
+        "trial_store_already_used": "This store already had a trial in another organisation. Subscribe, then confirm the store again.",
         "connection_failed": "Could not connect to the site.",
         "dns_failure": "The domain could not be found in DNS.",
         "http_status_unexpected": "The site returned an error. Check that the plugin is active.",
@@ -363,6 +364,8 @@
     }
   },
   "errors": {
+    "feature_not_in_plan": "This feature is not included in your plan.",
+    "plan_store_limit_reached": "Your plan does not include more stores. Add stores to your subscription or change the plan.",
     "check_run_already_active": "A check is already running. Wait for its result.",
     "manual_check_rate_limited": "A manual check can be started at most once a minute.",
     "store_not_eligible_for_browser_checks": "Checks are not available for this store right now: confirm the domain and enable the check scenario.",

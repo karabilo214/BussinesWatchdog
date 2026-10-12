@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Integration;
 use App\Models\Store;
 use App\Models\StoreVerification;
+use App\Support\Billing\TrialStoreHosts;
 use App\Support\Network\DnsClient;
 use App\Support\Network\SafeHttpFetcher;
 use App\Support\Payments\ExactReferenceMatcher;
@@ -21,10 +22,13 @@ class StoreVerificationService
 
     public const ERROR_STORE_URL_CHANGED = 'store_url_changed';
 
+    public const ERROR_TRIAL_STORE_ALREADY_USED = 'trial_store_already_used';
+
     public function __construct(
         private readonly DnsClient $dns,
         private readonly SafeHttpFetcher $fetcher,
         private readonly ExactReferenceMatcher $matcher,
+        private readonly TrialStoreHosts $trialHosts,
     ) {}
 
     public function start(Store $store, string $method): StoreVerification
@@ -206,6 +210,17 @@ class StoreVerificationService
                 return $locked;
             }
 
+            if ($this->trialHosts->blocksVerification($lockedStore, $now)) {
+                $locked->forceFill([
+                    'status' => StoreVerification::STATUS_FAILED,
+                    'attempts' => $locked->attempts + 1,
+                    'last_checked_at' => $now,
+                    'last_error_code' => self::ERROR_TRIAL_STORE_ALREADY_USED,
+                ])->save();
+
+                return $locked->refresh();
+            }
+
             $locked->forceFill([
                 'status' => StoreVerification::STATUS_VERIFIED,
                 'verified_at' => $now,
@@ -226,6 +241,8 @@ class StoreVerificationService
                 'verified_at' => $now,
                 'status' => $lockedStore->status === 'onboarding' ? 'active' : $lockedStore->status,
             ])->save();
+
+            $this->trialHosts->claimForVerifiedStore($lockedStore, $now);
 
             AuditLog::query()->create([
                 'tenant_id' => $lockedStore->tenant_id,

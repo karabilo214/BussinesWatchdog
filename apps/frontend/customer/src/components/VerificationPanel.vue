@@ -14,6 +14,7 @@ const KNOWN_REASONS = [
   'dns_record_missing',
   'challenge_mismatch',
   'store_url_changed',
+  'trial_store_already_used',
   'connection_failed',
   'dns_failure',
   'http_status_unexpected',
