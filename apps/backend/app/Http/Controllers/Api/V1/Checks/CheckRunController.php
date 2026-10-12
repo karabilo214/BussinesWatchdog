@@ -11,6 +11,8 @@ use App\Models\CheckRun;
 use App\Models\CheckScenario;
 use App\Models\Store;
 use App\Support\Api\UuidCursor;
+use App\Support\Billing\UsageLimitResponse;
+use App\Support\Billing\UsageMeter;
 use App\Support\Browser\ArtifactStore;
 use App\Support\Browser\CheckScheduler;
 use App\Support\Tenancy\TenantContext;
@@ -53,7 +55,7 @@ class CheckRunController extends Controller
         ]);
     }
 
-    public function store(Request $request, Store $store, TenantContext $tenantContext, CheckScheduler $scheduler): JsonResponse
+    public function store(Request $request, Store $store, TenantContext $tenantContext, CheckScheduler $scheduler, UsageLimitResponse $usageLimit): JsonResponse
     {
         abort_unless($store->tenant_id === $tenantContext->requireTenantId('start check'), 404);
         $validated = $request->validate(['scenario_id' => ['required', 'uuid']]);
@@ -62,6 +64,10 @@ class CheckRunController extends Controller
         abort_if($scenario === null, 404);
 
         $run = $scheduler->runNow($scenario);
+
+        if ($run === CheckScheduler::ERROR_USAGE_LIMIT) {
+            return $usageLimit->response($store->tenant_id, UsageMeter::MANUAL_RUNS, 'The plan does not include more manual checks today.');
+        }
 
         if (is_string($run)) {
             $status = match ($run) {

@@ -366,6 +366,7 @@
   "errors": {
     "feature_not_in_plan": "Diese Funktion ist in Ihrem Tarif nicht enthalten.",
     "plan_store_limit_reached": "Ihr Tarif enthält keine weiteren Shops. Fügen Sie Ihrem Abo Shops hinzu oder wechseln Sie den Tarif.",
+    "usage_limit_reached": "Das Tageslimit Ihres Tarifs ist erreicht. Es wird zu Beginn des nächsten Tages zurückgesetzt.",
     "check_run_already_active": "Eine Prüfung läuft bereits. Bitte das Ergebnis abwarten.",
     "manual_check_rate_limited": "Eine manuelle Prüfung kann höchstens einmal pro Minute gestartet werden.",
     "store_not_eligible_for_browser_checks": "Für diesen Shop sind Prüfungen gerade nicht möglich: Domain bestätigen und Prüfszenario aktivieren.",

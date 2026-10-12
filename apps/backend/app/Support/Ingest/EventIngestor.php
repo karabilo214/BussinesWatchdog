@@ -5,6 +5,7 @@ namespace App\Support\Ingest;
 use App\Models\DomainOutbox;
 use App\Models\EventInbox;
 use App\Models\Integration;
+use App\Support\Billing\UsageMeter;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -29,6 +30,7 @@ class EventIngestor
 
     public function __construct(
         private readonly EventPayloadValidator $validator,
+        private readonly UsageMeter $usage,
     ) {}
 
     /**
@@ -42,6 +44,7 @@ class EventIngestor
 
         return DB::transaction(function () use ($integration, $events, $rawEvents, $requestId): array {
             $results = [];
+            $metered = [];
 
             foreach ($events as $index => $event) {
                 if (! is_array($event)) {
@@ -124,9 +127,17 @@ class EventIngestor
                     ]);
                 }
 
+                if ($validation->valid && ! $inbox->is_synthetic) {
+                    $metered[] = $inbox->id;
+                }
+
                 $results[] = $validation->valid
                     ? $this->result($index, $eventId, $inbox->id, self::RESULT_ACCEPTED)
                     : $this->result($index, $eventId, $inbox->id, self::RESULT_QUARANTINED, $validation->errorCode);
+            }
+
+            if ($metered !== [] && $integration->source_authority === Integration::SOURCE_STORE_REPORTED) {
+                $this->usage->consume($integration->tenant_id, UsageMeter::STORE_EVENTS, 'event_inbox:'.$metered[0], null, 'store_events_accepted', count($metered));
             }
 
             return $results;

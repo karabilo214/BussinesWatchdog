@@ -2021,3 +2021,18 @@ Verification:
 - `tests/Feature/Billing/TrialTest.php` — 7 tests (4 new: domain normalization, one trial per verified domain across organisations with subdomains distinct, unverified store does not block but cannot be verified during the trial and can after a purchase, store verified during the trial claims its domain).
 - Backend SQLite: 436 passed, 4 skipped. PostgreSQL 18: 440 of 440.
 - Customer frontend `npm run check`: 93 tests passed, build completed.
+
+### Step 101: Usage Counter
+
+Status: complete (event budget enforcement awaits the owner, ADR 0032 p. 6)
+
+- ADR 0032. Migration `2026_10_12_110000_create_usage_tables`: `usage_buckets`, `usage_entries` (reference schema; PostgreSQL CHECKs).
+- `UsageMeter`: idempotent `consume` by operation key under the locked period bucket, limit check before recording, `current`; day and month periods in the tenant's timezone stored as UTC bounds.
+- Manual check runs: `CheckScheduler::runNow` consumes `manual_runs_per_day` last (after eligibility, per-minute and active-run checks); `UsageLimitResponse` returns 429 `usage_limit_reached` with limit/value/used/resets_at and Retry-After.
+- `EventIngestor`: accepted non-synthetic events from store-reported integrations are counted into `monthly_event_budget` once per ingest call (duplicates, quarantined, synthetic and provider events are not); no limit yet.
+- `GET /api/v1/entitlements` returns `usage`. OpenAPI (both copies): `Entitlements.usage`, `UsagePeriod`, manual run 429 description. Customer error text `usage_limit_reached` (ru/en/de).
+
+Verification:
+
+- `tests/Feature/Billing/UsageTest.php` — 3 tests (daily limit with Retry-After and reset at the tenant's midnight, refused attempts not counted; ledger idempotency and pilot counting; store events per month across a DST change, duplicates/quarantined/synthetic/provider events excluded, API usage).
+- Backend SQLite: 439 passed, 4 skipped. PostgreSQL 18: 443 of 443. Customer `npm run check`: 93 passed, build completed.

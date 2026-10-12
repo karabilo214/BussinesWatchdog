@@ -366,6 +366,7 @@
   "errors": {
     "feature_not_in_plan": "This feature is not included in your plan.",
     "plan_store_limit_reached": "Your plan does not include more stores. Add stores to your subscription or change the plan.",
+    "usage_limit_reached": "The plan limit for today has been reached. It resets at the start of the next day.",
     "check_run_already_active": "A check is already running. Wait for its result.",
     "manual_check_rate_limited": "A manual check can be started at most once a minute.",
     "store_not_eligible_for_browser_checks": "Checks are not available for this store right now: confirm the domain and enable the check scenario.",

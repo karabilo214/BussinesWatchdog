@@ -2719,7 +2719,7 @@ paths:
       operationId: createManualCheck
       security:
         - {UserSession: []}
-      description: Owner/admin; one manual run per minute per store (429); 409 while a run is active; 422 if the store is not eligible.
+      description: "Owner/admin; one manual run per minute per store (429 `manual_check_rate_limited`); when enforced, at most `manual_runs_per_day` runs per tenant per calendar day in the tenant's timezone (429 `usage_limit_reached` with `errors[0]` = {limit, value, used, resets_at} and Retry-After, ADR 0032); 409 while a run is active; 422 if the store is not eligible."
       parameters:
         - name: store_id
           in: path
@@ -3165,7 +3165,7 @@ components:
     Entitlements:
       type: object
       additionalProperties: false
-      required: [access_state, reason_codes, enforced, plan_code, features, limits]
+      required: [access_state, reason_codes, enforced, plan_code, features, limits, usage]
       properties:
         access_state: {type: string, enum: [pilot, active, override, trial, grace, paused_billing, paused_manual, no_service, onboarding]}
         reason_codes: {type: array, items: {type: string}}
@@ -3192,6 +3192,22 @@ components:
             retention_days: {type: [integer, "null"]}
             monthly_event_budget: {type: [integer, "null"]}
             manual_runs_per_day: {type: [integer, "null"]}
+        usage:
+          type: object
+          additionalProperties: false
+          required: [manual_runs_per_day, monthly_event_budget]
+          description: "Usage counted for count-bound limits in the current period (ADR 0032): calendar day / month in the tenant's timezone. Counted in pilot mode too; the limit applies only when enforced."
+          properties:
+            manual_runs_per_day: {$ref: "#/components/schemas/UsagePeriod"}
+            monthly_event_budget: {$ref: "#/components/schemas/UsagePeriod"}
+    UsagePeriod:
+      type: object
+      additionalProperties: false
+      required: [used, period_start, period_end]
+      properties:
+        used: {type: integer, minimum: 0}
+        period_start: {type: string, format: date-time}
+        period_end: {type: string, format: date-time}
     MoneyMinor:
       type: string
       pattern: '^-?(0|[1-9][0-9]{0,18})$'

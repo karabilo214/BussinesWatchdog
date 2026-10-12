@@ -8,6 +8,7 @@ use App\Models\Store;
 use App\Models\Tenant;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
+use App\Support\Billing\UsageMeter;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -23,9 +24,12 @@ class CheckScheduler
 
     public const ERROR_NOT_IN_PLAN = 'feature_not_in_plan';
 
+    public const ERROR_USAGE_LIMIT = UsageMeter::ERROR_LIMIT_REACHED;
+
     public function __construct(
         private readonly ScenarioDefinition $definition,
         private readonly EntitlementCalculator $entitlements,
+        private readonly UsageMeter $usage,
     ) {}
 
     /**
@@ -66,7 +70,9 @@ class CheckScheduler
                 return self::ERROR_NOT_ELIGIBLE;
             }
 
-            if (! $this->entitlements->forTenant($locked->tenant_id)->allows(FeatureCatalog::CHECKOUT_MONITORING)) {
+            $entitlements = $this->entitlements->forTenant($locked->tenant_id);
+
+            if (! $entitlements->allows(FeatureCatalog::CHECKOUT_MONITORING)) {
                 return self::ERROR_NOT_IN_PLAN;
             }
 
@@ -84,7 +90,13 @@ class CheckScheduler
                 return self::ERROR_RUN_ACTIVE;
             }
 
-            return $this->createRun($locked, $store, CheckRun::TRIGGER_MANUAL, 'manual:'.Str::uuid7());
+            $dedupeKey = 'manual:'.Str::uuid7();
+
+            if (! $this->usage->consume($locked->tenant_id, UsageMeter::MANUAL_RUNS, $dedupeKey, $entitlements->limit(FeatureCatalog::MANUAL_RUNS_PER_DAY), 'manual_check_run')) {
+                return self::ERROR_USAGE_LIMIT;
+            }
+
+            return $this->createRun($locked, $store, CheckRun::TRIGGER_MANUAL, $dedupeKey);
         });
     }
 
