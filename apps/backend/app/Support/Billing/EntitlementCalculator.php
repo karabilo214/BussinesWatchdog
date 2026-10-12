@@ -42,6 +42,29 @@ class EntitlementCalculator
     }
 
     /**
+     * The more generous value of each limit of the paid plan and an override: null or missing in the plan means
+     * "no limit"; a limit the override does not mention stays as the plan has it; the check interval is a minimum,
+     * so the smaller one wins, every other limit takes the larger one.
+     *
+     * @param  array<string, ?int>  $plan
+     * @param  array<string, ?int>  $grant
+     * @return array<string, ?int>
+     */
+    public static function widerLimits(array $plan, array $grant): array
+    {
+        $limits = $plan;
+
+        foreach ($grant as $key => $granted) {
+            $current = $plan[$key] ?? null;
+            $limits[$key] = $current === null || $granted === null ? null : ($key === FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES ? min($current, $granted) : max($current, $granted));
+        }
+
+        ksort($limits);
+
+        return $limits;
+    }
+
+    /**
      * Stores bought on top of the plan raise `max_active_stores` (capped by `max_extra_stores`); per-store limits are
      * multiplied by the resulting number of stores, because every store brings its own load.
      *
@@ -107,8 +130,9 @@ class EntitlementCalculator
             $base = $paid ? $snapshot : ['features' => [], 'limits' => []];
             $features = array_values(array_unique([...$base['features'], ...$grant['features']]));
             sort($features);
+            $limits = $paid ? self::widerLimits($base['limits'], $grant['limits']) : $grant['limits'];
 
-            return new Entitlements(Entitlements::ACCESS_OVERRIDE, array_values(array_filter(['override_active', $paid ? 'paid_period' : null])), $subscription?->plan_code, $features, [...$base['limits'], ...$grant['limits']], true);
+            return new Entitlements(Entitlements::ACCESS_OVERRIDE, array_values(array_filter(['override_active', $paid ? 'paid_period' : null])), $subscription?->plan_code, $features, $limits, true);
         }
 
         if ($paid) {

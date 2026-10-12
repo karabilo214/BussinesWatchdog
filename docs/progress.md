@@ -2174,3 +2174,16 @@ Verification:
 - Backend SQLite: 486 passed, 4 skipped; PostgreSQL 18: 490 of 490 (one test first failed on PostgreSQL only because `jsonb` reorders keys — the assertion now compares by key). Control: 17 tests, typecheck, build; palette check ok.
 - Live in Chromium against the real backend (`run-live.sh tenants`): organisation found among trials, filter in the address and the search not, card and stores, trial extended by 10 days, service suspended and resumed, every action in the organisation audit — PASS.
 
+### Step 110: Owner Decisions on ADR 0038 and Temporary Access Limits
+
+Status: complete
+
+- The owner accepted ADR 0038 points 4–6: suspension leaves billing untouched (may be revisited), temporary access up to 180 days and one at a time, our own trial extended up to 90 days from now; a provider trial with a payment method is not extended, so its first charge date never moves.
+- Fixed: on top of a paid period an override replaced the plan's limits, so a temporary access of a smaller plan lowered the store limit the customer pays for. `EntitlementCalculator::widerLimits` now takes the more generous value of each limit (null is "no limit"; the minimum check interval takes the smaller value, every other limit the larger; a limit the override does not mention stays as the plan has it). Without a paid period the override's own limits apply, as before.
+- The action hint in the owner panel says so (ru/en/de).
+
+Verification:
+
+- `EntitlementsTest::test_override_never_lowers_a_limit_of_the_paid_plan`.
+- Backend SQLite: 487 passed, 4 skipped. Control: 17 tests, typecheck.
+

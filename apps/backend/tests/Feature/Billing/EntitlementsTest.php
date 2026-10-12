@@ -112,6 +112,33 @@ class EntitlementsTest extends TestCase
         $this->assertFalse($suspended->allows(FeatureCatalog::NOTIFICATIONS_TELEGRAM));
     }
 
+    public function test_override_never_lowers_a_limit_of_the_paid_plan(): void
+    {
+        $this->enforce();
+        $context = $this->context();
+        $this->subscribe($context['tenant'], ['status' => Subscription::STATUS_ACTIVE, 'period_end' => now()->addDays(10)]);
+        EntitlementOverride::query()->create([
+            'tenant_id' => $context['tenant']->id,
+            'entitlements' => ['features' => [], 'limits' => [FeatureCatalog::MAX_ACTIVE_STORES => 2, FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES => 60, FeatureCatalog::RETENTION_DAYS => 30, FeatureCatalog::MAX_EXTRA_STORES => null]],
+            'reason' => 'partner',
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addDays(2),
+            'created_at' => now(),
+        ]);
+
+        $granted = $this->calculate($context['tenant']);
+
+        $this->assertSame(Entitlements::ACCESS_OVERRIDE, $granted->access);
+        $this->assertSame(3, $granted->limit(FeatureCatalog::MAX_ACTIVE_STORES));
+        $this->assertSame(15, $granted->limit(FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES));
+        $this->assertNull($granted->limit(FeatureCatalog::RETENTION_DAYS));
+        $this->assertNull($granted->limit(FeatureCatalog::MAX_EXTRA_STORES));
+        $this->assertSame(
+            [FeatureCatalog::MAX_ACTIVE_STORES => 9, FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES => 5, FeatureCatalog::RETENTION_DAYS => 90],
+            EntitlementCalculator::widerLimits([FeatureCatalog::MAX_ACTIVE_STORES => 3, FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES => 15, FeatureCatalog::RETENTION_DAYS => 90], [FeatureCatalog::MAX_ACTIVE_STORES => 9, FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES => 5, FeatureCatalog::RETENTION_DAYS => 30]),
+        );
+    }
+
     public function test_suspended_or_deleting_tenant_is_paused_even_in_pilot_mode(): void
     {
         $context = $this->context();

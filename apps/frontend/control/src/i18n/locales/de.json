@@ -482,7 +482,7 @@
       "explain": {
         "suspend": "Prüfungen, Benachrichtigungen und Funktionen stoppen. Abonnement und Abbuchungen werden nicht gekündigt — dafür gibt es eine eigene Aktion.",
         "resume": "Hebt die manuelle Pause auf. Der Zugang wird wieder aus Zahlung und Tarif berechnet; nichts wird als bezahlt markiert.",
-        "grant_override": "Zugang des gewählten Tarifs für begrenzte Zeit (bis 180 Tage). Ändert das Abonnement nicht und zählt nicht als Umsatz.",
+        "grant_override": "Zugang des gewählten Tarifs für begrenzte Zeit (bis 180 Tage). Bei bezahltem Abonnement werden die Funktionen kombiniert und jedes Limit nimmt den großzügigeren Wert. Ändert das Abonnement nicht und zählt nicht als Umsatz.",
         "revoke_override": "Der befristete Zugang endet jetzt; danach gilt wieder das Abonnement.",
         "extend_trial": "Nur unsere eigene Testphase ohne Zahlung; das neue Datum liegt nach dem aktuellen und höchstens 90 Tage voraus.",
         "cancel_subscription": "Die Verlängerung endet bei Paddle; der Zugang bleibt bis zum Ende des bezahlten Zeitraums, nichts wird erstattet.",

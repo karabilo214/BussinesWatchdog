@@ -482,7 +482,7 @@
       "explain": {
         "suspend": "Checks, notifications and features stop. The subscription and its charges are not cancelled — that is a separate action.",
         "resume": "Lifts the manual pause. Access is calculated from payment and plan again; nothing is marked as paid.",
-        "grant_override": "Access of the chosen plan for a limited time (up to 180 days). Does not change the subscription and is not revenue.",
+        "grant_override": "Access of the chosen plan for a limited time (up to 180 days). With a paid subscription the features are combined and each limit takes the more generous value. Does not change the subscription and is not revenue.",
         "revoke_override": "Temporary access ends now; access follows the subscription again.",
         "extend_trial": "Only our own trial without payment; the new date is later than the current one and at most 90 days ahead.",
         "cancel_subscription": "Renewal stops at Paddle; access stays until the paid period ends, nothing is refunded.",
