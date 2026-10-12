@@ -2,7 +2,7 @@ import { newIdempotencyKey, request } from '@bw/api-client';
 
 export type AccessState = 'pilot' | 'active' | 'override' | 'trial' | 'grace' | 'paused_billing' | 'paused_manual' | 'no_service' | 'onboarding';
 export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'suspended' | 'cancelled';
-export type LimitCode = 'max_active_stores' | 'max_extra_stores' | 'min_check_interval_minutes' | 'retention_days' | 'monthly_event_budget' | 'manual_runs_per_day';
+export type LimitCode = 'max_active_stores' | 'max_extra_stores' | 'min_check_interval_minutes' | 'retention_days' | 'monthly_event_budget' | 'manual_runs_per_day' | 'max_orders_per_month';
 export type MeteredLimit = 'manual_runs_per_day' | 'monthly_event_budget';
 
 export interface UsagePeriod {
@@ -65,6 +65,8 @@ export interface BillingPlan {
   name: Record<string, string>;
   placeholder: boolean;
   trial_days: number;
+  contact_sales?: boolean;
+  order_volume_grace_days?: number;
   entitlements: { features: string[]; limits: Partial<Record<LimitCode, number | null>> };
   prices: BillingPrice[];
   discounts: BillingDiscount[];
@@ -94,6 +96,7 @@ export interface BillingSubscription {
   price: { id: string; amount_minor: string; currency: string; currency_exponent: number; billing_interval: string; billing_interval_count: number } | null;
   scheduled_change: PlanChange | null;
   capacity: StoreCapacity;
+  order_volume?: OrderVolume;
   version: number;
   entitlements: { features: string[]; limits: Partial<Record<LimitCode, number | null>> };
 }
@@ -203,4 +206,21 @@ export async function resumeSubscription(expectedVersion: number): Promise<Billi
 
 export async function retainStores(storeIds: string[]): Promise<StoreCapacity> {
   return (await request<StoreCapacity>('PUT', '/api/v1/billing/retained-stores', { body: { store_ids: storeIds } })).data;
+}
+
+export interface OrderVolumeStore {
+  store_id: string;
+  name: string;
+  this_month: number;
+  average: number | null;
+  months: { month: string; orders: number }[];
+  over_since: string | null;
+  grace_ends_at: string | null;
+}
+
+export interface OrderVolume {
+  limit: number | null;
+  grace_days: number;
+  stores: OrderVolumeStore[];
+  recommended: { plan_code: string; name: Record<string, string>; contact_sales: boolean } | null;
 }

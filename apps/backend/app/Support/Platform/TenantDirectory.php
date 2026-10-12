@@ -12,6 +12,7 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\FeatureCatalog;
 use App\Support\Billing\Paddle\PaddleConfig;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
 use App\Support\Billing\StoreCapacity;
@@ -151,8 +152,12 @@ class TenantDirectory
                 'browser_enabled' => $store->browser_enabled,
                 'capacity_paused_at' => $store->capacity_paused_at?->toJSON(),
                 'open_incidents' => (int) ($incidents[$store->id] ?? 0),
+                'orders_this_month' => (int) DB::table('store_order_volumes')->where('store_id', $store->id)->where('month', Carbon::now()->utc()->startOfMonth()->toDateString())->value('orders'),
+                'orders_average' => $store->order_volume_average,
+                'orders_over_since' => $store->order_volume_over_since?->toJSON(),
                 'created_at' => $store->created_at?->toJSON(),
             ])->values()->all(),
+            'orders_limit' => $this->calculator->forTenant($tenant->id)->limit(FeatureCatalog::MAX_ORDERS_PER_MONTH),
             'billing' => $billing ? $this->billing($tenant) : null,
             'audit' => $this->audit($tenant->id),
         ];

@@ -1,6 +1,6 @@
 # ADR 0041: Plan packages by store order volume (pricing option)
 
-Status: proposed — an option for the owner to decide on; nothing is implemented and no published plan changes. Prices and limits below are examples to be checked against cost.
+Status: partly implemented (Step 114: order counting, package order limit, grace period, notice, recommendation, individual-price package — all configured in the owner panel). Prices and limits below are examples to be checked against cost; the check-frequency add-on and retention by plan are not implemented yet. Points marked as assumptions in «Implemented» wait for the owner's review.
 
 ## Context
 
@@ -51,3 +51,16 @@ Not supported:
 5. Optional: retention enforcement by plan; an "individual" package card linking to the contact form.
 
 Open for the owner: final prices and boundaries after the cost check, the grace period length, the price of more frequent checks, and whether Start keeps 19 € as the entry package.
+
+## Implemented (Step 114)
+
+1. **Counting**: `store_order_volumes (store, month, orders)`. An order is counted once, when its projection is first created from a non-synthetic event, in the UTC month it was placed (`source_created_at`). Re-syncs, new revisions, status changes and refunds never count. *Assumption*: orders placed before the store was added in the cabinet (`stores.created_at`) are the history import and do not count — the server has no other marker for the plugin's backfill.
+2. **Average**: the last three complete calendar months; a month counts only if the store existed for the whole of it, so a partial first month does not lower the average; a store younger than one complete month is not evaluated. The current month is shown, not used.
+3. **Package settings in the owner panel** (plan version editor): the limit `max_orders_per_month` (orders a month per store; "unlimited" for none; at least 1), `order_volume_grace_days` (0–365, default 30) and `contact_sales` (individual price: publishable without prices, shown on the website as «Individual» with a contact button, cannot be bought in the account). A new version copies them.
+4. **Crossing the limit**: `billing:order-volume` (daily 04:10 UTC) stores every store's average, marks `order_volume_over_since` when the average exceeds the package limit and emails the organisation owners once (ru/en/de): the average, the limit and the date by which to choose a package (over since + grace days of the subscribed package version). Falling back within the limit clears the mark. Nothing is switched off and nothing is charged. *Assumption*: after the grace period nothing happens automatically either — the cabinet keeps showing the notice and the owner panel shows the store as over its package; what to do with the customer is the platform owner's call.
+5. **Recommendation**: the smallest published, non-placeholder package other than the current one whose limit covers the average; an individual-price package only when no priced one does.
+6. **Where it shows**: the cabinet billing page (block «Order volume»: this month, average, package limit per store, the over-the-package notice with the date and the recommended package; the order limit in every plan card; the individual package card), the owner panel organisation card (stores tab: orders this month, average / limit, «over the package since»), the public pricing page (orders per store row, the individual package).
+7. **Not changed**: `monthly_event_budget` keeps metering events (it is not the order counter); pilot mode (`WATCHDOG_BILLING_ENFORCEMENT=pilot`) evaluates nothing because limits are not enforced.
+
+Still open: the check-frequency add-on (a new price kind next to the extra store, through Paddle checkout and plan change), retention by plan, and the owner's decisions on prices, boundaries and grace period.
+

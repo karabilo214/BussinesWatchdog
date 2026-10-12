@@ -1439,14 +1439,16 @@
       "min_check_interval_minutes": "Checkout-Prüfung",
       "manual_runs_per_day": "Manuelle Prüfungen pro Tag",
       "monthly_event_budget": "Ereignisse pro Monat",
-      "retention_days": "Verlauf gespeichert"
+      "retention_days": "Verlauf gespeichert",
+      "max_orders_per_month": "Bestellungen pro Monat und Shop"
     },
     "limit_value": {
       "max_active_stores": "{n}",
       "min_check_interval_minutes": "alle {n} Min.",
       "manual_runs_per_day": "{n}",
       "monthly_event_budget": "{n}",
-      "retention_days": "{n} Tage"
+      "retention_days": "{n} Tage",
+      "max_orders_per_month": "bis {n}"
     },
     "feature": {
       "checkout_monitoring": "Checkout-Prüfungen im Browser",
@@ -1534,6 +1536,16 @@
       "required": "Der Tarif umfasst {limit} Shop(s), Sie haben {stores}. Die Prüfungen sind pausiert, bis Sie auswählen, welche Shops weiter geprüft werden.",
       "save": "Auswahl speichern",
       "paused": "Durch den Tarif pausierte Shops: {n}. Verlauf und Einstellungen bleiben erhalten."
+    },
+    "individual": "Individuell",
+    "contact_us": "Konditionen besprechen",
+    "volume": {
+      "title": "Bestellvolumen",
+      "hint": "Neue Bestellungen jedes Shops: in diesem Monat und im Schnitt der letzten drei vollen Monate. Wiederholte Synchronisationen, Statusänderungen, Erstattungen und Verlauf vor der Verbindung des Shops zählen nicht.",
+      "row": "diesen Monat {month} · Schnitt {average} · Paket bis {limit}",
+      "over": "Der Shop „{store}“ hat im Schnitt {average} Bestellungen im Monat, das Paket umfasst bis {limit}. Der Schutz läuft weiter; bitte wählen Sie bis {date} ein passendes Paket.",
+      "recommended": "Das Paket „{plan}“ passt.",
+      "recommended_individual": "Das Paket „{plan}“ passt — die Konditionen werden individuell vereinbart."
     }
   }
 }

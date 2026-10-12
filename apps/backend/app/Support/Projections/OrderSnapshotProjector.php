@@ -4,6 +4,7 @@ namespace App\Support\Projections;
 
 use App\Models\EventInbox;
 use App\Models\Order;
+use App\Support\Billing\OrderVolume;
 use App\Models\OrderRevision;
 use App\Support\Ingest\EventProjectionResult;
 
@@ -39,6 +40,7 @@ class OrderSnapshotProjector
 
         if ($order === null) {
             $order = Order::query()->create($this->orderAttributes($event, $data, $sourceRevision, $payloadHash, $now));
+            app(OrderVolume::class)->count($order);
         } elseif ($sourceRevision > $order->source_revision) {
             $attributes = $this->orderAttributes($event, $data, $sourceRevision, $payloadHash, $now);
             unset($attributes['created_at']);

@@ -25,12 +25,15 @@ class PlanAdmin
 
     public const MAX_TRIAL_DAYS = 365;
 
+    public const MAX_GRACE_DAYS = 365;
+
     public const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'PLN', 'CZK', 'SEK', 'NOK', 'DKK', 'HUF', 'UAH', 'CAD', 'AUD', 'NZD', 'JPY', 'CNY', 'HKD', 'SGD', 'INR', 'KRW', 'TWD', 'THB', 'VND', 'ILS', 'TRY', 'ZAR', 'BRL', 'MXN', 'ARS', 'COP'];
 
     private const LIMIT_MINIMUMS = [
         FeatureCatalog::MAX_ACTIVE_STORES => 1,
         FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES => 5,
         FeatureCatalog::RETENTION_DAYS => 1,
+        FeatureCatalog::MAX_ORDERS_PER_MONTH => 1,
     ];
 
     public function __construct(
@@ -126,6 +129,20 @@ class PlanAdmin
 
             if (array_key_exists('entitlements', $changes)) {
                 $attributes['entitlements'] = $this->entitlements((array) $changes['entitlements']);
+            }
+
+            if (array_key_exists('order_volume_grace_days', $changes)) {
+                $grace = $changes['order_volume_grace_days'];
+
+                if (! is_int($grace) || $grace < 0 || $grace > self::MAX_GRACE_DAYS) {
+                    throw new PlanAdminRejected('grace_days_invalid');
+                }
+
+                $attributes['order_volume_grace_days'] = $grace;
+            }
+
+            if (array_key_exists('contact_sales', $changes)) {
+                $attributes['contact_sales'] = (bool) $changes['contact_sales'];
             }
 
             $version->forceFill($attributes)->save();
@@ -236,6 +253,8 @@ class PlanAdmin
                 'localized_content' => $content,
                 'entitlements' => $latest->entitlements,
                 'trial_days' => $latest->trial_days,
+                'order_volume_grace_days' => $latest->order_volume_grace_days,
+                'contact_sales' => $latest->contact_sales,
                 'created_by' => $staffId,
             ]);
 
@@ -346,6 +365,8 @@ class PlanAdmin
             'description' => $version->localized_content['description'] ?? [],
             'placeholder' => (bool) ($version->localized_content['placeholder'] ?? false),
             'trial_days' => $version->trial_days,
+            'order_volume_grace_days' => $version->order_volume_grace_days,
+            'contact_sales' => (bool) $version->contact_sales,
             'entitlements' => FeatureCatalog::normalize($version->entitlements),
             'published_at' => $version->published_at?->toJSON(),
             'subscribers' => $subscribers,
@@ -403,7 +424,7 @@ class PlanAdmin
             ->where('price_kind', BillingPrice::KIND_BASE)
             ->exists();
 
-        if (! $hasBase) {
+        if (! $hasBase && ! $version->contact_sales) {
             throw new PlanAdminRejected('base_price_missing');
         }
     }

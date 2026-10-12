@@ -99,6 +99,8 @@ class BillingCatalog
             'description' => $version->localized_content['description'] ?? [],
             'placeholder' => (bool) ($version->localized_content['placeholder'] ?? false),
             'trial_days' => $version->trial_days,
+            'order_volume_grace_days' => $version->order_volume_grace_days,
+            'contact_sales' => (bool) $version->contact_sales,
             'entitlements' => FeatureCatalog::normalize($version->entitlements),
             'prices' => ($prices[$version->id] ?? collect())->map(fn (BillingPrice $price): array => [
                 'id' => $price->id,

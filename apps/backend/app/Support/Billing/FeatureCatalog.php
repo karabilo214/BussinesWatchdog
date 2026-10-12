@@ -44,6 +44,9 @@ final class FeatureCatalog
 
     public const MANUAL_RUNS_PER_DAY = 'manual_runs_per_day';
 
+    /** New real orders a month one store may have, measured as the average of the last three complete months (ADR 0041). */
+    public const MAX_ORDERS_PER_MONTH = 'max_orders_per_month';
+
     /** Most stores an extra-store quantity may add on top of `max_active_stores` (null: no cap). */
     public const MAX_EXTRA_STORES = 'max_extra_stores';
 
@@ -57,6 +60,7 @@ final class FeatureCatalog
         self::MONTHLY_EVENT_BUDGET,
         self::MANUAL_RUNS_PER_DAY,
         self::MAX_EXTRA_STORES,
+        self::MAX_ORDERS_PER_MONTH,
     ];
 
     /**

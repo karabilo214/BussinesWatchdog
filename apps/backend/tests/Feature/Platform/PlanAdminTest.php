@@ -128,6 +128,29 @@ class PlanAdminTest extends TestCase
         $this->actingAs($customer['user'])->withSession(['active_tenant_id' => $customer['tenant']->id])->getJson('/api/v1/billing/plans')->assertJsonPath('data', []);
     }
 
+    public function test_owner_sets_the_order_limit_grace_period_and_an_individual_price_package_publishes_without_prices(): void
+    {
+        $this->signIn('owner@example.test', PlatformStaff::ROLE_OWNER);
+        Http::fake();
+        $draft = $this->postJson('/platform-api/v1/plans', ['code' => 'enterprise', 'name' => ['ru' => 'Enterprise', 'en' => 'Enterprise', 'de' => 'Enterprise']])->assertCreated()->json();
+
+        $this->patchJson("/platform-api/v1/plan-versions/{$draft['id']}", [
+            'order_volume_grace_days' => 21,
+            'entitlements' => ['features' => [FeatureCatalog::CHECKOUT_MONITORING], 'limits' => [FeatureCatalog::MAX_ORDERS_PER_MONTH => 20000]],
+        ])->assertOk()->assertJsonPath('order_volume_grace_days', 21)->assertJsonPath('entitlements.limits.max_orders_per_month', 20000)->assertJsonPath('contact_sales', false);
+        $this->patchJson("/platform-api/v1/plan-versions/{$draft['id']}", ['order_volume_grace_days' => 400])->assertStatus(422)->assertJsonPath('code', 'grace_days_invalid');
+        $this->patchJson("/platform-api/v1/plan-versions/{$draft['id']}", ['entitlements' => ['features' => [], 'limits' => [FeatureCatalog::MAX_ORDERS_PER_MONTH => 0]]])->assertStatus(422)->assertJsonPath('code', 'entitlement_limit_invalid');
+        $this->publish($draft['id'], 'owner@example.test')->assertStatus(422)->assertJsonPath('code', 'base_price_missing');
+
+        $this->patchJson("/platform-api/v1/plan-versions/{$draft['id']}", ['contact_sales' => true, 'entitlements' => ['features' => [FeatureCatalog::CHECKOUT_MONITORING], 'limits' => [FeatureCatalog::MAX_ORDERS_PER_MONTH => null]]])
+            ->assertOk()->assertJsonPath('contact_sales', true);
+        $this->publish($draft['id'], 'owner@example.test')->assertOk()->assertJsonPath('state', 'published');
+
+        $next = $this->postJson("/platform-api/v1/plans/{$draft['plan_id']}/versions")->assertCreated()->json();
+        $this->assertSame([true, 21], [$next['contact_sales'], $next['order_volume_grace_days']]);
+        $this->getJson('/platform-api/v1/plans')->assertOk()->assertJsonPath('catalog.limits', FeatureCatalog::LIMITS);
+    }
+
     public function test_a_paddle_failure_keeps_the_version_a_draft(): void
     {
         $this->signIn('owner@example.test', PlatformStaff::ROLE_OWNER);

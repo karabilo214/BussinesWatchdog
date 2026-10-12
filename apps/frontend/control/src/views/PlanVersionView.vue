@@ -43,6 +43,8 @@ const draft = reactive({
   name: { ru: '', en: '', de: '' } as Record<(typeof LOCALES)[number], string>,
   description: { ru: '', en: '', de: '' } as Record<(typeof LOCALES)[number], string>,
   trialDays: 0,
+  graceDays: 30,
+  contactSales: false,
   features: [] as string[],
   limits: {} as Record<string, string>,
   unlimited: {} as Record<string, boolean>,
@@ -64,6 +66,8 @@ function fill(current: PlanVersion): void {
   }
 
   draft.trialDays = current.trial_days;
+  draft.graceDays = current.order_volume_grace_days;
+  draft.contactSales = current.contact_sales;
   draft.features = [...current.entitlements.features];
 
   for (const limit of catalog.value?.catalog.limits ?? []) {
@@ -142,6 +146,8 @@ async function save(): Promise<void> {
       name: { ...draft.name },
       description: { ...draft.description },
       trial_days: draft.trialDays,
+      order_volume_grace_days: draft.graceDays,
+      contact_sales: draft.contactSales,
       entitlements: { features: draft.features, limits },
     });
     await load();
@@ -240,6 +246,18 @@ onMounted(load);
             <span class="font-medium">{{ $t('plans.trial_days') }}</span>
             <input v-model.number="draft.trialDays" :disabled="!editable" type="number" min="0" :max="catalog.catalog.max_trial_days" class="rounded-md border border-border-strong bg-surface px-3 py-2 disabled:bg-surface-muted" data-field="trial" />
             <span class="text-[13px] text-text-muted">{{ $t('plans.trial_hint') }}</span>
+          </label>
+          <label class="flex max-w-xs flex-col gap-1.5 text-sm">
+            <span class="font-medium">{{ $t('plans.grace_days') }}</span>
+            <input v-model.number="draft.graceDays" :disabled="!editable" type="number" min="0" max="365" class="rounded-md border border-border-strong bg-surface px-3 py-2 disabled:bg-surface-muted" data-field="grace-days" />
+            <span class="text-[13px] text-text-muted">{{ $t('plans.grace_hint') }}</span>
+          </label>
+          <label class="flex items-start gap-2 text-sm">
+            <input v-model="draft.contactSales" :disabled="!editable" type="checkbox" class="mt-0.5 size-4 accent-primary" data-field="contact-sales" />
+            <span class="flex flex-col gap-0.5">
+              <span class="font-medium">{{ $t('plans.contact_sales') }}</span>
+              <span class="text-[13px] text-text-muted">{{ $t('plans.contact_sales_hint') }}</span>
+            </span>
           </label>
         </section>
 

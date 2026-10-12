@@ -62,6 +62,8 @@ return [
         ],
         'test_mode' => 'Test mode: prices are shown for testing and are not an offer.',
         'placeholder' => 'Example plan',
+        'individual' => 'Individual',
+        'contact_us' => 'Discuss terms',
         'choose' => 'Choose plan',
         'features_title' => 'Features',
         'limits_title' => 'Limits',
@@ -77,6 +79,7 @@ return [
         'agency_workspace' => 'Agency workspace for several clients',
     ],
     'limits' => [
+        'max_orders_per_month' => 'Orders a month per store',
         'max_active_stores' => 'Stores',
         'min_check_interval_minutes' => 'Checkout check',
         'manual_runs_per_day' => 'Manual checks per day',
@@ -85,6 +88,7 @@ return [
         'unlimited' => 'unlimited',
     ],
     'limit_values' => [
+        'max_orders_per_month' => 'up to :n',
         'max_active_stores' => ':n',
         'min_check_interval_minutes' => 'every :n min',
         'manual_runs_per_day' => ':n',

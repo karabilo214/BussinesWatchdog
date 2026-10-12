@@ -51,7 +51,7 @@ function card(overrides: Partial<TenantCard> = {}): TenantCard {
     access: { state: 'active', reasons: ['paid_period'], enforced: true },
     capacity: { limit: 2, stores: 1, paused: 0, choice_required: false },
     members: [{ role: 'owner', joined_at: '2026-10-01T10:00:00Z', name: 'Anna', email: 'anna@example.test', email_verified: true }],
-    stores: [{ id: 's-1', name: 'Shop', host: 'kaffee.example', platform: 'woocommerce', status: 'active', verified: true, browser_enabled: true, capacity_paused_at: null, open_incidents: 1, created_at: null }],
+    stores: [{ id: 's-1', name: 'Shop', host: 'kaffee.example', platform: 'woocommerce', status: 'active', verified: true, browser_enabled: true, capacity_paused_at: null, open_incidents: 1, orders_this_month: 640, orders_average: 1267, orders_over_since: '2026-10-20T04:10:00Z', created_at: null }], orders_limit: 1000,
     billing: {
       mode: 'test',
       subscription: { ...ROW.subscription!, cancel_at_period_end: false, provider_subscription_ref: 'sub_1', next_charge_at: '2026-11-11T00:00:00Z', scheduled_change: null },
@@ -160,6 +160,15 @@ describe('tenants', () => {
     await wrapper.get('[data-tab="overview"]').trigger('click');
     await flushPromises();
     expect(wrapper.find('[data-panel="actions"]').exists()).toBe(false);
+  });
+
+  it('shows the orders of every store this month against the package limit', async () => {
+    const { wrapper } = await open('/owner/tenants/t-1?tab=stores');
+
+    const orders = wrapper.get('[data-store="kaffee.example"] [data-orders]').text();
+    expect(orders).toContain('640');
+    expect(orders).toContain('в среднем 1267 / лимит 1000');
+    expect(orders).toContain('Сверх пакета с');
   });
 
   it('hides the subscription tab when billing is not visible to the role', async () => {

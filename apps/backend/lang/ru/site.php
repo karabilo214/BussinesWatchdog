@@ -62,6 +62,8 @@ return [
         ],
         'test_mode' => 'Тестовый режим: цены показаны для проверки и не являются предложением.',
         'placeholder' => 'Пример тарифа',
+        'individual' => 'Индивидуально',
+        'contact_us' => 'Обсудить условия',
         'choose' => 'Выбрать тариф',
         'features_title' => 'Возможности',
         'limits_title' => 'Лимиты',
@@ -77,6 +79,7 @@ return [
         'agency_workspace' => 'Работа агентства с несколькими клиентами',
     ],
     'limits' => [
+        'max_orders_per_month' => 'Заказов в месяц на магазин',
         'max_active_stores' => 'Магазинов',
         'min_check_interval_minutes' => 'Проверка оформления заказа',
         'manual_runs_per_day' => 'Ручных проверок в день',
@@ -85,6 +88,7 @@ return [
         'unlimited' => 'без ограничений',
     ],
     'limit_values' => [
+        'max_orders_per_month' => 'до :n',
         'max_active_stores' => ':n',
         'min_check_interval_minutes' => 'раз в :n мин',
         'manual_runs_per_day' => ':n',

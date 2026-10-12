@@ -32,6 +32,10 @@ class Store extends Model
         return [
             'verified_at' => 'datetime',
             'capacity_paused_at' => 'datetime',
+            'order_volume_average' => 'integer',
+            'order_volume_checked_at' => 'datetime',
+            'order_volume_over_since' => 'datetime',
+            'order_volume_notified_at' => 'datetime',
             'browser_enabled' => 'boolean',
             'telemetry_enabled' => 'boolean',
             'config_version' => 'integer',

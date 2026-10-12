@@ -2235,3 +2235,17 @@ Status: complete
 
 Verification: backend SQLite 505 passed, 4 skipped; PostgreSQL 18: 509 of 509.
 
+### Step 114: Volume-Based Packages Configured in the Owner Panel
+
+Status: complete
+
+- ADR 0041 (now partly implemented). Order counter `store_order_volumes` filled by `OrderSnapshotProjector` on the first projection of a non-synthetic order placed after the store was added (`OrderVolume::count`); `OrderVolume` figures (this month, three-complete-month average), daily `billing:order-volume` (average, over-the-package mark, one email to owners with the date to choose by, clears when back within), grace days per package version, recommendation of the smallest covering package (individual one last).
+- Package settings in the owner panel: plan limit `max_orders_per_month` (in the generic limits list, minimum 1), `order_volume_grace_days` (0–365) and `contact_sales` on the version (publish without a base price allowed for it; copied to new versions).
+- Shown: cabinet billing «Order volume» block, order limit in plan cards, individual package card with a contact link and without trial/purchase; owner panel organisation card stores tab (orders this month, average / limit, over since); public pricing page (orders per store row, «Individual» card with «Discuss terms»).
+- Mail texts ru/en/de (`account.order_volume_over`).
+
+Verification:
+
+- New `tests/Feature/Billing/OrderVolumeTest.php` (4: whole-month average; over the package → marked, one email with average/limit/date, repeated night sends nothing, summary with grace end and recommendation, back within clears; individual package recommended beyond priced ones, pilot evaluates nothing; pricing page row and individual card), `DomainOutboxDispatcherTest` (an order counts once over two revisions; an order placed before the store was added does not), `PlanAdminTest` (limit, grace days, validation, publish of an individual package without prices, copied to a new version). Owner panel: plan editor saves the limit, grace days and individual price; stores tab shows the volume (control 23 tests). Cabinet: volume block, over notice, recommended individual package and card (customer 108 tests).
+- Backend SQLite: 511 passed, 4 skipped; PostgreSQL 18: 515 of 515 (one assertion first failed on PostgreSQL only because `jsonb` reorders keys). Frontend check green. No live browser run in this step.
+

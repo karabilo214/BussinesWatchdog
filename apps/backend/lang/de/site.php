@@ -62,6 +62,8 @@ return [
         ],
         'test_mode' => 'Testmodus: Die Preise dienen zum Testen und sind kein Angebot.',
         'placeholder' => 'Beispieltarif',
+        'individual' => 'Individuell',
+        'contact_us' => 'Konditionen besprechen',
         'choose' => 'Tarif wählen',
         'features_title' => 'Funktionen',
         'limits_title' => 'Limits',
@@ -77,6 +79,7 @@ return [
         'agency_workspace' => 'Agentur-Arbeitsbereich für mehrere Kunden',
     ],
     'limits' => [
+        'max_orders_per_month' => 'Bestellungen pro Monat und Shop',
         'max_active_stores' => 'Shops',
         'min_check_interval_minutes' => 'Checkout-Prüfung',
         'manual_runs_per_day' => 'Manuelle Prüfungen pro Tag',
@@ -85,6 +88,7 @@ return [
         'unlimited' => 'unbegrenzt',
     ],
     'limit_values' => [
+        'max_orders_per_month' => 'bis :n',
         'max_active_stores' => ':n',
         'min_check_interval_minutes' => 'alle :n Min.',
         'manual_runs_per_day' => ':n',

@@ -12,7 +12,7 @@ class BillingPlanVersion extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['plan_id', 'version', 'state', 'localized_content', 'entitlements', 'trial_days', 'created_by', 'published_at', 'created_at'];
+    protected $fillable = ['plan_id', 'version', 'state', 'localized_content', 'entitlements', 'trial_days', 'order_volume_grace_days', 'contact_sales', 'created_by', 'published_at', 'created_at'];
 
     protected function casts(): array
     {
@@ -21,6 +21,8 @@ class BillingPlanVersion extends Model
             'localized_content' => 'array',
             'entitlements' => 'array',
             'trial_days' => 'integer',
+            'order_volume_grace_days' => 'integer',
+            'contact_sales' => 'boolean',
             'published_at' => 'datetime',
             'created_at' => 'datetime',
         ];

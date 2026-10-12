@@ -61,6 +61,8 @@ export interface PlanVersion {
   description: Localized;
   placeholder: boolean;
   trial_days: number;
+  order_volume_grace_days: number;
+  contact_sales: boolean;
   entitlements: PlanEntitlements;
   published_at: string | null;
   subscribers: number;
@@ -111,7 +113,7 @@ export async function createVersion(planId: string): Promise<PlanVersion> {
 
 export async function updateVersion(
   versionId: string,
-  changes: Partial<{ name: Localized; description: Localized; trial_days: number; entitlements: PlanEntitlements }>,
+  changes: Partial<{ name: Localized; description: Localized; trial_days: number; order_volume_grace_days: number; contact_sales: boolean; entitlements: PlanEntitlements }>,
 ): Promise<PlanVersion> {
   return (await request<PlanVersion>('PATCH', `/platform-api/v1/plan-versions/${encodeURIComponent(versionId)}`, { body: changes })).data;
 }
@@ -316,7 +318,8 @@ export interface TenantCard {
   access: TenantAccess;
   capacity: StoreCapacity;
   members: (Contact & { role: string; joined_at: string | null })[];
-  stores: { id: string; name: string; host: string; platform: string; status: string; verified: boolean; browser_enabled: boolean; capacity_paused_at: string | null; open_incidents: number; created_at: string | null }[];
+  stores: { id: string; name: string; host: string; platform: string; status: string; verified: boolean; browser_enabled: boolean; capacity_paused_at: string | null; open_incidents: number; orders_this_month: number; orders_average: number | null; orders_over_since: string | null; created_at: string | null }[];
+  orders_limit?: number | null;
   billing: {
     mode: 'test' | 'live';
     subscription: (SubscriptionSummary & { provider_subscription_ref: string | null; next_charge_at: string | null; scheduled_change: PlanChangeEntry | null }) | null;

@@ -157,7 +157,7 @@ class TenantAdminTest extends TestCase
             ->assertJsonPath('members.0.role', 'owner')
             ->assertJsonPath('stores.0.verified', false)
             ->json();
-        $this->assertSame(['id', 'name', 'host', 'platform', 'status', 'verified', 'browser_enabled', 'capacity_paused_at', 'open_incidents', 'created_at'], array_keys($card['stores'][0]));
+        $this->assertSame(['id', 'name', 'host', 'platform', 'status', 'verified', 'browser_enabled', 'capacity_paused_at', 'open_incidents', 'orders_this_month', 'orders_average', 'orders_over_since', 'created_at'], array_keys($card['stores'][0]));
         $encoded = json_encode($card);
         $this->assertStringNotContainsString('secret', $encoded);
         $this->assertStringNotContainsString('password', $encoded);

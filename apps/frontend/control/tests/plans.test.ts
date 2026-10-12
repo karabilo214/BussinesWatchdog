@@ -43,6 +43,8 @@ const DRAFT: PlanVersion = {
   description: {},
   placeholder: false,
   trial_days: 14,
+  order_volume_grace_days: 30,
+  contact_sales: false,
   entitlements: { features: ['checkout_monitoring'], limits: { max_active_stores: 2 } },
   published_at: null,
   subscribers: 0,
@@ -56,7 +58,7 @@ function catalog(version: PlanVersion = DRAFT): PlanCatalog {
     provider_configured: true,
     catalog: {
       features: ['checkout_monitoring', 'money_reconciliation'],
-      limits: ['max_active_stores', 'monthly_event_budget'],
+      limits: ['max_active_stores', 'monthly_event_budget', 'max_orders_per_month'],
       per_store_limits: ['monthly_event_budget'],
       currencies: ['EUR', 'JPY'],
       intervals: ['day', 'week', 'month', 'year'],
@@ -117,6 +119,11 @@ describe('plans', () => {
 
     await wrapper.get('[data-field="name-de"]').setValue('Team');
     await wrapper.get('[data-feature="money_reconciliation"]').setValue(true);
+    await wrapper.get('[data-limit="max_orders_per_month"] input[type="checkbox"]').setValue(false);
+    await wrapper.get('[data-limit="max_orders_per_month"] input:not([type="checkbox"])').setValue('1000');
+    await wrapper.get('[data-field="grace-days"]').setValue(21);
+    await wrapper.get('[data-field="contact-sales"]').setValue(true);
+    expect(wrapper.text()).toContain('Заказов в месяц на магазин');
     await wrapper.get('[data-action="save"]').trigger('click');
     await flushPromises();
 
@@ -124,7 +131,9 @@ describe('plans', () => {
       name: { ru: 'Команда', en: 'Team', de: 'Team' },
       description: { ru: '', en: '', de: '' },
       trial_days: 14,
-      entitlements: { features: ['checkout_monitoring', 'money_reconciliation'], limits: { max_active_stores: 2, monthly_event_budget: null } },
+      order_volume_grace_days: 21,
+      contact_sales: true,
+      entitlements: { features: ['checkout_monitoring', 'money_reconciliation'], limits: { max_active_stores: 2, monthly_event_budget: null, max_orders_per_month: 1000 } },
     });
 
     await wrapper.get('[data-field="amount"]').setValue('45,50');

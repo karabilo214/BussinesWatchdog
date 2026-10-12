@@ -1439,14 +1439,16 @@
       "min_check_interval_minutes": "Checkout check",
       "manual_runs_per_day": "Manual checks per day",
       "monthly_event_budget": "Events per month",
-      "retention_days": "History kept"
+      "retention_days": "History kept",
+      "max_orders_per_month": "Orders a month per store"
     },
     "limit_value": {
       "max_active_stores": "{n}",
       "min_check_interval_minutes": "every {n} min",
       "manual_runs_per_day": "{n}",
       "monthly_event_budget": "{n}",
-      "retention_days": "{n} days"
+      "retention_days": "{n} days",
+      "max_orders_per_month": "up to {n}"
     },
     "feature": {
       "checkout_monitoring": "Checkout checks in a browser",
@@ -1534,6 +1536,16 @@
       "required": "The plan includes {limit} store(s) and you have {stores}. Checks are paused until you choose which stores keep being checked.",
       "save": "Save choice",
       "paused": "Stores paused by the plan: {n}. Their history and setup are kept."
+    },
+    "individual": "Individual",
+    "contact_us": "Discuss terms",
+    "volume": {
+      "title": "Order volume",
+      "hint": "New orders of every store: this month and on average over the last three complete months. Repeated syncs, status changes, refunds and history from before the store was connected do not count.",
+      "row": "this month {month} · average {average} · package up to {limit}",
+      "over": "The store “{store}” has {average} orders a month on average while the package covers up to {limit}. Protection keeps working; please choose a fitting package by {date}.",
+      "recommended": "The “{plan}” package fits.",
+      "recommended_individual": "The “{plan}” package fits — its terms are agreed individually."
     }
   }
 }

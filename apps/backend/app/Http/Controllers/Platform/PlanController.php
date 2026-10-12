@@ -61,6 +61,8 @@ class PlanController extends Controller
             'description' => ['sometimes', 'array'],
             'description.*' => ['nullable', 'string', 'max:500'],
             'trial_days' => ['sometimes', 'integer'],
+            'order_volume_grace_days' => ['sometimes', 'integer'],
+            'contact_sales' => ['sometimes', 'boolean'],
             'entitlements' => ['sometimes', 'array'],
             'entitlements.features' => ['sometimes', 'array'],
             'entitlements.limits' => ['sometimes', 'array'],

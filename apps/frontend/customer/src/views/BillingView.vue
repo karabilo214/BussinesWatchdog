@@ -61,7 +61,7 @@ const STATUS_TONES: Record<SubscriptionStatus, Tone> = {
   cancelled: 'unknown',
 };
 
-const PLAN_LIMITS = ['max_active_stores', 'min_check_interval_minutes', 'manual_runs_per_day', 'monthly_event_budget', 'retention_days'] as const;
+const PLAN_LIMITS = ['max_orders_per_month', 'max_active_stores', 'min_check_interval_minutes', 'manual_runs_per_day', 'monthly_event_budget', 'retention_days'] as const;
 
 const { locale, t } = useI18n();
 const { dateTime, period } = useFormat();
@@ -97,7 +97,7 @@ const canBuy = computed(() => isOwner.value && catalog.value?.checkout_available
 const canChange = computed(() => isOwner.value && paid.value && subscription.value?.status === 'active');
 const changingPlan = computed(() => catalog.value?.data.find((plan) => plan.plan_version_id === subscription.value?.scheduled_change?.to.plan_version_id) ?? null);
 
-function planName(plan: BillingPlan | null, code: string | null): string {
+function planName(plan: Pick<BillingPlan, 'name' | 'plan_code'> | null, code: string | null): string {
   if (plan === null) {
     return code ?? t('billing.no_plan');
   }
@@ -734,6 +734,27 @@ onBeforeUnmount(stopPolling);
           </ul>
         </section>
 
+        <section v-if="subscription?.order_volume && subscription.order_volume.stores.length > 0" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="volume-title" data-panel="order-volume">
+          <div class="flex flex-col gap-1">
+            <h2 id="volume-title" class="text-lg font-semibold">{{ $t('billing.volume.title') }}</h2>
+            <p class="text-sm text-text-muted">{{ $t('billing.volume.hint') }}</p>
+          </div>
+          <div v-for="store in subscription.order_volume.stores.filter((row) => row.over_since)" :key="`over-${store.store_id}`" class="flex flex-col gap-1 rounded-md border border-warn-border bg-warn-soft p-3 text-sm text-warn" :data-volume-over="store.store_id">
+            <p>{{ $t('billing.volume.over', { store: store.name, average: count(store.average ?? 0), limit: count(subscription.order_volume.limit ?? 0), date: dateTime(store.grace_ends_at) }) }}</p>
+            <p v-if="subscription.order_volume.recommended">
+              {{ $t(subscription.order_volume.recommended.contact_sales ? 'billing.volume.recommended_individual' : 'billing.volume.recommended', { plan: planName(subscription.order_volume.recommended, subscription.order_volume.recommended.plan_code) }) }}
+            </p>
+          </div>
+          <ul class="flex flex-col divide-y divide-border rounded-lg border border-border">
+            <li v-for="store in subscription.order_volume.stores" :key="store.store_id" class="flex flex-wrap items-center justify-between gap-2 p-3 text-sm" :data-volume="store.store_id">
+              <span class="font-medium">{{ store.name }}</span>
+              <span class="tabular-nums text-text-muted">
+                {{ $t('billing.volume.row', { month: count(store.this_month), average: store.average === null ? '—' : count(store.average), limit: subscription.order_volume.limit === null ? $t('billing.unlimited') : count(subscription.order_volume.limit) }) }}
+              </span>
+            </li>
+          </ul>
+        </section>
+
         <section class="flex flex-col gap-4" aria-labelledby="plans-title" data-panel="plans">
           <div class="flex flex-col gap-1">
             <h2 id="plans-title" class="text-lg font-semibold">{{ $t('billing.plans') }}</h2>
@@ -779,6 +800,10 @@ onBeforeUnmount(stopPolling);
                   {{ $t('billing.extra_store_price', { price: money(price(plan, 'extra_store')!), period: period(price(plan, 'extra_store')!.interval, price(plan, 'extra_store')!.interval_count), max: count(maxExtra(plan)) }) }}
                 </p>
               </div>
+              <div v-else-if="plan.contact_sales" class="flex flex-col gap-1" :data-individual="plan.plan_code">
+                <p class="text-2xl font-semibold">{{ $t('billing.individual') }}</p>
+                <a :href="`/${locale}/contact`" class="text-sm text-primary hover:underline">{{ $t('billing.contact_us') }}</a>
+              </div>
               <p v-else class="text-sm text-text-muted">{{ $t('billing.no_price') }}</p>
               <ul v-if="stacked(plan)" class="flex flex-col gap-1 rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" :data-discount="plan.plan_code">
                 <li v-for="line in stacked(plan)!.lines" :key="line.discount.id" class="flex justify-between gap-3" :data-discount-line="line.discount.audience">
@@ -800,7 +825,7 @@ onBeforeUnmount(stopPolling);
 
               <div v-if="isOwner" class="mt-auto flex flex-col gap-3">
                 <button
-                  v-if="canTrial && plan.trial_days > 0"
+                  v-if="canTrial && plan.trial_days > 0 && !plan.contact_sales"
                   type="button"
                   class="rounded-md border border-border-strong bg-surface px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
                   :disabled="busy !== null"

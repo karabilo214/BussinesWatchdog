@@ -147,7 +147,8 @@
     "has_children": "Delete the nested pages first.",
     "system_page": "A system page cannot be deleted.",
     "page_not_found": "Page not found.",
-    "contact_request_not_found": "Message not found."
+    "contact_request_not_found": "Message not found.",
+    "grace_days_invalid": "The grace period is 0 to 365 days."
   },
   "period": {
     "per": {
@@ -174,7 +175,8 @@
     "min_check_interval_minutes": "Checks at most every N minutes",
     "retention_days": "History kept, days",
     "monthly_event_budget": "Store events per month (soft limit)",
-    "manual_runs_per_day": "Manual checks per day"
+    "manual_runs_per_day": "Manual checks per day",
+    "max_orders_per_month": "Orders a month per store"
   },
   "plans": {
     "hint": "Packages, their versions, prices and limits. A published version never changes: changes go into a new version and current customers stay on theirs.",
@@ -245,7 +247,11 @@
       "owner-plans": "Plans",
       "owner-discounts": "Discounts",
       "owner-discount-history": "Discount history"
-    }
+    },
+    "grace_days": "Grace period when over the volume, days",
+    "grace_hint": "How many days after the notice a store may run above the order limit while the customer chooses a package. Protection stays on and nothing extra is charged.",
+    "contact_sales": "Individual price",
+    "contact_sales_hint": "Shown on the website as “Individual” with a contact button; needs no prices and cannot be bought in the account."
   },
   "discounts": {
     "hint": "Promo codes, discounts for specific customers and offers. Our server applies the discount at purchase and sends it to Paddle with the order.",
@@ -454,7 +460,10 @@
       "state": "State",
       "verified": "Verified",
       "unverified": "Not verified",
-      "capacity_paused": "Paused by plan"
+      "capacity_paused": "Paused by plan",
+      "orders": "Orders this month",
+      "orders_average": "average {average} / limit {limit}",
+      "orders_over": "Over the package since {date}"
     },
     "test_mode": "Paddle test mode (sandbox).",
     "sub": {

@@ -136,3 +136,9 @@ Schedule::command('site:contact-purge')
     ->timezone('UTC')
     ->withoutOverlapping(60)
     ->onOneServer();
+
+Schedule::command('billing:order-volume')
+    ->dailyAt('04:10')
+    ->timezone('UTC')
+    ->withoutOverlapping(60)
+    ->onOneServer();

@@ -18,6 +18,7 @@ use App\Support\Projections\OrderSnapshotProjector;
 use App\Support\Projections\PaymentSnapshotProjector;
 use App\Support\Projections\RefundSnapshotProjector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DomainOutboxDispatcherTest extends TestCase
@@ -132,6 +133,28 @@ class DomainOutboxDispatcherTest extends TestCase
             'subject_type' => ReconciliationDirtySubject::TYPE_STORE_UNMATCHED_PAYMENTS,
             'subject_id' => $store->id,
         ]);
+    }
+
+    public function test_an_order_counts_once_toward_the_store_volume_and_history_before_the_store_does_not(): void
+    {
+        [$tenant, $store, $integration] = $this->integrationContext();
+        $store->forceFill(['created_at' => now()->subHour()])->save();
+        $first = $this->receivedEventInbox(context: [$tenant, $store, $integration], sourceRevision: 1, totalMinor: '18400', status: 'processing')[1];
+        $second = $this->receivedEventInbox(context: [$tenant, $store, $integration], sourceRevision: 2, totalMinor: '18400', status: 'completed')[1];
+        $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $first->id]);
+        $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $second->id]);
+
+        app(DomainOutboxDispatcher::class)->dispatchDue(limit: 10, leaseSeconds: 60);
+
+        $this->assertSame(1, (int) DB::table('store_order_volumes')->where('store_id', $store->id)->sum('orders'));
+
+        [$otherTenant, $otherStore, $otherIntegration] = $this->integrationContext();
+        $history = $this->receivedEventInbox(context: [$otherTenant, $otherStore, $otherIntegration], sourceRevision: 1, totalMinor: '18400', status: 'completed')[1];
+        $this->outbox($otherTenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $history->id]);
+        app(DomainOutboxDispatcher::class)->dispatchDue(limit: 10, leaseSeconds: 60);
+
+        $this->assertSame(1, Order::query()->where('store_id', $otherStore->id)->count());
+        $this->assertSame(0, (int) DB::table('store_order_volumes')->where('store_id', $otherStore->id)->sum('orders'));
     }
 
     public function test_stale_order_snapshot_revision_does_not_overwrite_current_order(): void

@@ -45,18 +45,24 @@
                         @if ($plan['description'])
                             <p class="site-muted">{{ $plan['description'] }}</p>
                         @endif
-                        <p class="site-price"><strong>{{ $plan['price'] }}</strong> <span>{{ $plan['per'] }}</span></p>
+                        @if ($plan['individual'])
+                            <p class="site-price"><strong>{{ __('site.pricing.individual') }}</strong></p>
+                        @else
+                            <p class="site-price"><strong>{{ $plan['price'] }}</strong> <span>{{ $plan['per'] }}</span></p>
+                        @endif
                         @if ($plan['monthly'])
                             <p class="site-muted">{{ __('site.pricing.monthly', ['amount' => $plan['monthly']]) }}</p>
                         @endif
                         @if ($plan['saving'])
                             <p class="site-badge">{{ __('site.pricing.saving', ['n' => $plan['saving']]) }}</p>
                         @endif
-                        <p class="site-muted site-small">{{ $plan['tax'] }}</p>
+                        @if ($plan['tax'])
+                            <p class="site-muted site-small">{{ $plan['tax'] }}</p>
+                        @endif
                         @if ($plan['extra_store'])
                             <p class="site-small">{{ __('site.pricing.extra_store', ['amount' => $plan['extra_store']]) }}</p>
                         @endif
-                        @if ($plan['trial_days'] > 0)
+                        @if ($plan['trial_days'] > 0 && ! $plan['individual'])
                             <p class="site-small">{{ trans_choice('site.pricing.trial', $plan['trial_days'], ['n' => $plan['trial_days']]) }}</p>
                         @endif
                         @if ($plan['features'] !== [])
@@ -75,7 +81,11 @@
                                 @endforeach
                             </dl>
                         @endif
-                        <p class="site-actions"><a class="site-button" href="/app/settings/billing?plan={{ urlencode($plan['code']) }}">{{ __('site.pricing.choose') }}</a></p>
+                        @if ($plan['individual'])
+                            <p class="site-actions"><a class="site-button" href="{{ \App\Support\Site\SiteContent::url($locale, 'contact') }}">{{ __('site.pricing.contact_us') }}</a></p>
+                        @else
+                            <p class="site-actions"><a class="site-button" href="/app/settings/billing?plan={{ urlencode($plan['code']) }}">{{ __('site.pricing.choose') }}</a></p>
+                        @endif
                     </article>
                 @endforeach
             </div>

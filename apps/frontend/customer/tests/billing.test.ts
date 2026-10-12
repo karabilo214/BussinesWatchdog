@@ -412,6 +412,36 @@ describe('BillingView', () => {
     expect(api.resumeSubscription).toHaveBeenCalledWith(4);
   });
 
+  it('shows the order volume of every store, a store over its package with the date to choose by and the individual package', async () => {
+    session.value = sessionFor('owner');
+    api.fetchPlans.mockResolvedValue(catalog({ data: [START, { ...PRO, plan_code: 'enterprise', plan_version_id: 'v-ent', name: { ru: 'Enterprise' }, prices: [], contact_sales: true }] }));
+    api.fetchSubscription.mockResolvedValue(paidSubscription({
+      order_volume: {
+        limit: 1000,
+        grace_days: 14,
+        stores: [
+          { store_id: 's-1', name: 'Kaffee', this_month: 640, average: 1267, months: [], over_since: '2026-10-20T04:10:00Z', grace_ends_at: '2026-11-03T04:10:00Z' },
+          { store_id: 's-2', name: 'Tee', this_month: 90, average: 120, months: [], over_since: null, grace_ends_at: null },
+        ],
+        recommended: { plan_code: 'enterprise', name: { ru: 'Enterprise' }, contact_sales: true },
+      },
+    }));
+    const wrapper = await mountView();
+
+    const panel = wrapper.get('[data-panel="order-volume"]');
+    expect(panel.get('[data-volume="s-2"]').text()).toContain('в этом месяце 90');
+    expect(panel.get('[data-volume="s-2"]').text()).toContain('пакет до 1');
+    const over = panel.get('[data-volume-over="s-1"]').text();
+    expect(over).toContain('«Kaffee»');
+    expect(over).toContain('Защита работает как прежде');
+    expect(over).toContain('«Enterprise» — условия обсуждаются индивидуально');
+    expect(wrapper.find('[data-volume-over="s-2"]').exists()).toBe(false);
+    const individual = wrapper.get('[data-individual="enterprise"]');
+    expect(individual.text()).toContain('Индивидуально');
+    expect(individual.get('a').attributes('href')).toBe('/ru/contact');
+    expect(wrapper.get('[data-plan="start"]').text()).toContain('Заказов в месяц на магазин');
+  });
+
   it('pauses nothing by itself: the owner chooses the stores that stay', async () => {
     session.value = sessionFor('owner');
     vi.mocked(stores.listStores).mockResolvedValue([storeRow('s-1', 'Main'), storeRow('s-2', 'Second')] as never);

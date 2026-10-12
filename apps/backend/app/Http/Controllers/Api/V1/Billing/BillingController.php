@@ -16,6 +16,7 @@ use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\Paddle\PaddleCheckout;
 use App\Support\Billing\Paddle\PaddleConfig;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
+use App\Support\Billing\OrderVolume;
 use App\Support\Billing\StoreCapacity;
 use App\Support\Billing\TrialService;
 use App\Support\Tenancy\TenantContext;
@@ -273,6 +274,7 @@ class BillingController extends Controller
             'price' => $this->priceDto($actions->liveContract($subscription->tenant_id)?->price_id, $scheduled),
             'scheduled_change' => $scheduled === null ? null : PaddleSubscriptionActions::dto($scheduled),
             'capacity' => app(StoreCapacity::class)->state($subscription->tenant_id),
+            'order_volume' => app(OrderVolume::class)->summary($subscription->tenant_id, $subscription->plan_code),
             'version' => $subscription->version,
             'entitlements' => EntitlementCalculator::withStores($subscription->entitlements, $subscription->extra_store_quantity),
         ];

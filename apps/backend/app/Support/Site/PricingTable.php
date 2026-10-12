@@ -24,7 +24,9 @@ class PricingTable
     public function build(string $locale, ?string $period, ?string $currency): array
     {
         $live = PaddleConfig::mode() === 'live';
-        $plans = array_values(array_filter($this->catalog->plans(), fn (array $plan): bool => (! $plan['placeholder'] || ! $live) && $this->bases($plan) !== []));
+        $all = array_values(array_filter($this->catalog->plans(), fn (array $plan): bool => ! $plan['placeholder'] || ! $live));
+        $plans = array_values(array_filter($all, fn (array $plan): bool => $this->bases($plan) !== []));
+        $individual = array_values(array_filter($all, fn (array $plan): bool => $plan['contact_sales'] && $this->bases($plan) === []));
         $periods = [];
 
         foreach ($plans as $plan) {
@@ -59,22 +61,26 @@ class PricingTable
             }
         }
 
+        foreach ($individual as $plan) {
+            $rows[] = $this->row($plan, null, $locale);
+        }
+
         return ['plans' => $rows, 'periods' => $periods, 'period' => $period, 'currencies' => $currencies, 'currency' => $currency, 'test_mode' => ! $live];
     }
 
     /**
      * @param  array<string, mixed>  $plan
-     * @param  array<string, mixed>  $base
+     * @param  array<string, mixed>|null  $base  null for a package with an individual price
      * @return array<string, mixed>
      */
-    private function row(array $plan, array $base, string $locale): array
+    private function row(array $plan, ?array $base, string $locale): array
     {
-        $format = fn (string $minor): string => MoneyFormat::format($minor, (int) $base['currency_exponent'], $base['currency'], $locale);
-        $count = (int) $base['interval_count'];
+        $format = fn (string $minor): string => $base === null ? '' : MoneyFormat::format($minor, (int) $base['currency_exponent'], $base['currency'], $locale);
+        $count = (int) ($base['interval_count'] ?? 1);
         $monthly = null;
         $saving = null;
 
-        if ($base['interval'] === 'year' && $count === 1) {
+        if ($base !== null && $base['interval'] === 'year' && $count === 1) {
             $amount = (int) $base['amount_minor'];
             $monthly = $format((string) intdiv($amount + 6, 12));
             $month = $this->find($plan, BillingPrice::KIND_BASE, 'month:1', $base['currency']);
@@ -86,10 +92,10 @@ class PricingTable
             }
         }
 
-        $extra = $this->find($plan, BillingPrice::KIND_EXTRA_STORE, self::period($base), $base['currency']);
+        $extra = $base === null ? null : $this->find($plan, BillingPrice::KIND_EXTRA_STORE, self::period($base), $base['currency']);
         $limits = [];
 
-        foreach ([FeatureCatalog::MAX_ACTIVE_STORES, FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES, FeatureCatalog::MANUAL_RUNS_PER_DAY, FeatureCatalog::MONTHLY_EVENT_BUDGET, FeatureCatalog::RETENTION_DAYS] as $key) {
+        foreach ([FeatureCatalog::MAX_ORDERS_PER_MONTH, FeatureCatalog::MAX_ACTIVE_STORES, FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES, FeatureCatalog::MANUAL_RUNS_PER_DAY, FeatureCatalog::MONTHLY_EVENT_BUDGET, FeatureCatalog::RETENTION_DAYS] as $key) {
             if (! array_key_exists($key, $plan['entitlements']['limits'])) {
                 continue;
             }
@@ -106,12 +112,13 @@ class PricingTable
             'placeholder' => (bool) $plan['placeholder'],
             'name' => $plan['name'][$locale] ?? $plan['name']['en'] ?? $plan['plan_code'],
             'description' => $plan['description'][$locale] ?? $plan['description']['en'] ?? null,
-            'price' => $format((string) $base['amount_minor']),
-            'per' => self::perLabel($base['interval'], $count, $locale),
+            'individual' => $base === null,
+            'price' => $base === null ? null : $format((string) $base['amount_minor']),
+            'per' => $base === null ? null : self::perLabel($base['interval'], $count, $locale),
             'monthly' => $monthly,
             'saving' => $saving,
             'extra_store' => $extra === null ? null : $format((string) $extra['amount_minor']),
-            'tax' => trans('site.pricing.tax.'.$base['tax_behavior'], [], $locale),
+            'tax' => $base === null ? null : trans('site.pricing.tax.'.$base['tax_behavior'], [], $locale),
             'trial_days' => (int) ($plan['trial_days'] ?? 0),
             'features' => array_map(fn (string $feature): string => trans("site.features.{$feature}", [], $locale), $plan['entitlements']['features']),
             'limits' => $limits,

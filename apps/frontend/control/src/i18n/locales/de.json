@@ -147,7 +147,8 @@
     "has_children": "Zuerst die untergeordneten Seiten löschen.",
     "system_page": "Eine Systemseite kann nicht gelöscht werden.",
     "page_not_found": "Seite nicht gefunden.",
-    "contact_request_not_found": "Anfrage nicht gefunden."
+    "contact_request_not_found": "Anfrage nicht gefunden.",
+    "grace_days_invalid": "Die Kulanzzeit beträgt 0 bis 365 Tage."
   },
   "period": {
     "per": {
@@ -174,7 +175,8 @@
     "min_check_interval_minutes": "Prüfungen höchstens alle N Minuten",
     "retention_days": "Verlauf gespeichert, Tage",
     "monthly_event_budget": "Shop-Ereignisse pro Monat (weiches Limit)",
-    "manual_runs_per_day": "Manuelle Prüfungen pro Tag"
+    "manual_runs_per_day": "Manuelle Prüfungen pro Tag",
+    "max_orders_per_month": "Bestellungen pro Monat und Shop"
   },
   "plans": {
     "hint": "Pakete, ihre Versionen, Preise und Limits. Eine veröffentlichte Version ändert sich nie: Änderungen kommen in eine neue Version, bestehende Kunden bleiben bei ihrer.",
@@ -245,7 +247,11 @@
       "owner-plans": "Tarife",
       "owner-discounts": "Rabatte",
       "owner-discount-history": "Rabattverlauf"
-    }
+    },
+    "grace_days": "Kulanzzeit bei Überschreitung, Tage",
+    "grace_hint": "Wie viele Tage nach dem Hinweis ein Shop über dem Bestelllimit laufen darf, während der Kunde ein Paket wählt. Der Schutz bleibt an, es wird nichts zusätzlich berechnet.",
+    "contact_sales": "Individueller Preis",
+    "contact_sales_hint": "Erscheint auf der Website als „Individuell“ mit Kontakt-Button; braucht keine Preise und ist im Konto nicht kaufbar."
   },
   "discounts": {
     "hint": "Gutscheincodes, Rabatte für bestimmte Kunden und Aktionen. Unser Server wendet den Rabatt beim Kauf an und übergibt ihn mit der Bestellung an Paddle.",
@@ -454,7 +460,10 @@
       "state": "Status",
       "verified": "Bestätigt",
       "unverified": "Nicht bestätigt",
-      "capacity_paused": "Durch Tarif pausiert"
+      "capacity_paused": "Durch Tarif pausiert",
+      "orders": "Bestellungen diesen Monat",
+      "orders_average": "Schnitt {average} / Limit {limit}",
+      "orders_over": "Über dem Paket seit {date}"
     },
     "test_mode": "Paddle-Testmodus (Sandbox).",
     "sub": {
