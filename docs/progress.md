@@ -2122,3 +2122,18 @@ Verification:
 - `DiscountTest` — 5 tests (promo code breakdown and Paddle combined discount; offer → personal → code 2800 → 2300 → 1955 → 1655; renewal planning without the one-time code, no duplicate, Paddle failure then retry, history endpoint). Control 11, customer 102.
 - Backend SQLite: 462 passed, 4 skipped; PostgreSQL 18: 466 of 466.
 - Live in the Paddle sandbox: offer 10 % forever + promo code 20 % for 2 periods created in the panel; purchase 28.00 € → 25.20 € → 20.16 € paid (Paddle total 2016); `billing:plan-discounts` set the second period's combined discount, Paddle's next transaction 20.16 €, the second run planned nothing; ledger rows for periods 1 and 2 match.
+
+### Step 107: Outgoing Mail Authentication (DKIM, SPF, DMARC)
+
+Status: complete
+
+- `MAIL_RETURN_PATH` (Laravel's global `mail.return_path`) sets the bounce address on every message.
+- `DkimMailSigner` signs every outgoing message on `MessageSending` (relaxed/relaxed, SHA-256, `Return-Path` not signed) when `MAIL_DKIM_ENABLED=true` with `MAIL_DKIM_DOMAIN`, `MAIL_DKIM_SELECTOR` and a key (`MAIL_DKIM_PRIVATE_KEY` with `\n` or `MAIL_DKIM_PRIVATE_KEY_PATH`, optional passphrase). An unreadable key does not block delivery: the message leaves unsigned and `mail.dkim_signing_failed` is logged (domain, selector, exception class only) — alerts must still go out; `mail:auth-check` catches the misconfiguration before release.
+- `php artisan mail:auth-check [--strict]` (`MailAuthenticationInspector`): SPF on the return-path domain, DKIM configured (own key readable as RSA, or `MAIL_DKIM_PROVIDER_MANAGED=true` with domain + selector), DKIM TXT present and not revoked (empty `p=`), own private key matches the published `p=`, DMARC (`v=DMARC1` with `p=none|quarantine|reject`, also found on a parent domain), relaxed alignment of return-path and DKIM domains with the sender domain (equal, subdomain or parent; siblings are reported as not aligned because no public suffix list is used — conservative). Fails in `--strict` or in `production`.
+- README «Выпуск релиза → Почта»: both DKIM options, key generation, the three DNS records, the check command.
+
+Verification:
+
+- `tests/Feature/Mail/MailAuthenticationTest.php` — 10 tests: header added; a multipart HTML+text message sent through the Laravel mailer verifies cryptographically (relaxed body hash and header signature against the public key; tampered body or recipient fail); unreadable key sends unsigned and logs; inspector happy path, mismatched and revoked DKIM key, unreadable private key, provider-managed DKIM with a provider bounce subdomain, DMARC on the parent domain, strict failure and non-strict report.
+- Backend SQLite: 468 passed, 4 skipped; PostgreSQL 18: 472 of 472.
+- Real SMTP to local Mailpit with a freshly generated key: the raw message received by Mailpit verified with the independent `dkimpy` 1.1.8 verifier (`True`; with the recipient changed `False`). No real mail provider or public DNS was used.

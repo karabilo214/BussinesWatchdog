@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\Mail\DkimMailSigner;
 use App\Support\Network\DnsClient;
 use App\Support\Network\SystemDnsClient;
 use App\Support\Notifications\Channels\EmailNotificationSender;
@@ -10,6 +11,8 @@ use App\Support\Notifications\Channels\TelegramNotificationSender;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -33,6 +36,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Event::listen(MessageSending::class, function (MessageSending $event): void {
+            app(DkimMailSigner::class)->sign($event->message);
+        });
+
         RateLimiter::for('platform-login', fn (Request $request): array => [
             Limit::perMinute((int) config('watchdog.platform.login_per_minute'))->by('platform|'.$request->ip()),
             Limit::perHour(30)->by('platform-email|'.mb_strtolower(trim((string) $request->input('email')))),

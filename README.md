@@ -87,9 +87,22 @@ php artisan telegram:webhook info    # проверить
 
 ### 8. Почта
 
+Отправитель — `MAIL_FROM_ADDRESS`, адрес возвратов — `MAIL_RETURN_PATH` (домен тот же или поддомен/родитель домена отправителя; пусто — берётся домен отправителя). DKIM — один из двух вариантов:
+
+- **Подписывает почтовый провайдер** (Postmark, SES и т. п.): в кабинете провайдера подтвердить домен, опубликовать его DKIM-записи, затем `MAIL_DKIM_PROVIDER_MANAGED=true`, `MAIL_DKIM_DOMAIN`, `MAIL_DKIM_SELECTOR` (селектор провайдера).
+- **Подписывает сервис:** ключ `openssl genrsa -out dkim.pem 2048`, публичная часть для DNS — `openssl rsa -in dkim.pem -pubout | grep -v -- ----- | tr -d '\n'`. Задать `MAIL_DKIM_ENABLED=true`, `MAIL_DKIM_DOMAIN`, `MAIL_DKIM_SELECTOR` и `MAIL_DKIM_PRIVATE_KEY_PATH` (файл с правами 600) или `MAIL_DKIM_PRIVATE_KEY` (переносы строк как `\n`); `MAIL_DKIM_PASSPHRASE` — если ключ зашифрован. Если ключ не читается, письма уходят без подписи, в логе — `mail.dkim_signing_failed`.
+
+DNS-записи (TXT):
+
+- SPF на домене `MAIL_RETURN_PATH`: `v=spf1 include:<сервер провайдера> -all`;
+- DKIM на `<селектор>._domainkey.<MAIL_DKIM_DOMAIN>`: `v=DKIM1; k=rsa; p=<публичный ключ>`;
+- DMARC на `_dmarc.<домен отправителя>`: начать с `v=DMARC1; p=none; rua=mailto:<адрес отчётов>`, после проверки отчётов — `p=quarantine`.
+
 ```sh
-php artisan mail:auth-check --strict   # DKIM, SPF, DMARC для боевой отправки
+php artisan mail:auth-check --strict   # SPF, DKIM (ключ читается и совпадает с DNS), DMARC, выравнивание доменов
 ```
+
+В `production` команда без `--strict` тоже завершается ошибкой, если что-то не настроено.
 
 ### 9. WooCommerce-плагин (ZIP для магазинов)
 

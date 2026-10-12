@@ -39,7 +39,7 @@
 | ACC-25 | P0 | partial | Screenshot/trace содержит token | Redaction in worker, artifact store, private 60s links; Step 54 | Presigned finalize flow and full artifact rejection suite still differ from catalogue |
 | ACC-26 | P0 | done | Acknowledge | `tests/Feature/Incidents/IncidentApiTest.php`; dashboard smoke Step 59 | — |
 | ACC-27 | P0 | done | Data stale во время recovery | Connector freshness + incident/reconciliation coverage tests; Step 50 | — |
-| ACC-28 | P0 | done | Email timeout/retry | Notification channel/delivery tests; `make frontend-smoke` with Mailpit; Step 62 | Real SMTP provider not tested |
+| ACC-28 | P0 | done | Email timeout/retry | Notification channel/delivery tests; `make frontend-smoke` with Mailpit; Step 62; DKIM signing and `mail:auth-check` (SPF/DKIM/DMARC), Step 107 | Real SMTP provider and public DNS records not tested |
 | ACC-29 | P1 | partial | FIN-01…FIN-24 | Reconciliation, Stripe, PayPal and allocation tests; Steps 30-36, 65-72 | Need formal FIN fixture registry/evidence rollup before P1 sign-off |
 | ACC-30 | P1 | done | Intent+charge events об одном capture | Stripe connector tests; Step 65 | — |
 | ACC-31 | P1 | done | Два captures distinct IDs | Reconciliation rule tests for multiple captures | — |
