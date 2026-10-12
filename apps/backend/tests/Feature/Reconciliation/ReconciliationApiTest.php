@@ -8,6 +8,7 @@ use App\Models\Membership;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\ReconciliationFinding;
+use App\Models\ReconciliationSubjectState;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
@@ -193,8 +194,13 @@ class ReconciliationApiTest extends TestCase
             ->withSession(['active_tenant_id' => $context['tenant']->id])
             ->withHeaders(['Idempotency-Key' => (string) Str::uuid()]);
 
-        $request()->postJson("/api/v1/stores/{$context['store']->id}/reconciliations", ['order_ids' => [$context['order']->id]])->assertStatus(202);
+        $firstRun = $request()->postJson("/api/v1/stores/{$context['store']->id}/reconciliations", ['order_ids' => [$context['order']->id]])->assertStatus(202);
         $request()->postJson("/api/v1/stores/{$context['store']->id}/reconciliations", ['order_ids' => [$other->id]])->assertStatus(202);
+        $latest = $request()->postJson("/api/v1/stores/{$context['store']->id}/reconciliations", ['order_ids' => [$context['order']->id]])->assertStatus(202);
+
+        $this->assertSame($firstRun->json('data.0.run_id'), $latest->json('data.0.run_id'));
+
+        ReconciliationSubjectState::query()->where('subject_id', $context['order']->id)->delete();
         $latest = $request()->postJson("/api/v1/stores/{$context['store']->id}/reconciliations", ['order_ids' => [$context['order']->id]])->assertStatus(202);
 
         $all = $this->getJson("/api/v1/stores/{$context['store']->id}/findings")->assertOk();

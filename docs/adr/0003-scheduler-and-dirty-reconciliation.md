@@ -25,6 +25,9 @@ Pending findings now carry `evidence.grace_deadline_at`. After every evaluation 
 
 ### 3. Nightly sweep
 
+Superseded by ADR 0040 (Step 112): the sweep queues only orders whose result may have changed plus about a thirtieth of the window per night (each order re-checked monthly), and unchanged results are not written again.
+
+
 `reconciliation:nightly-sweep` runs at 02:30 UTC and marks (insert-if-absent) every order whose `source_created_at` or `source_updated_at` is within 90 days, plus the store scan, for stores in `onboarding|active|degraded` of `active` tenants. **Paused and deleted stores are skipped by the sweep**; their incoming events still mark orders dirty. The sweep only finds IDs across tenants; evaluation runs per subject inside its tenant scope.
 
 ### 4. Leader lock and due windows

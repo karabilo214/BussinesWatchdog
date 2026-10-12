@@ -21,9 +21,10 @@ class ProcessDirtyReconciliation extends Command
         );
 
         $this->components->info(sprintf(
-            'Dirty reconciliation complete: claimed=%d processed=%d skipped=%d failed=%d',
+            'Dirty reconciliation complete: claimed=%d processed=%d unchanged=%d skipped=%d failed=%d',
             $result['claimed'],
             $result['processed'],
+            $result['unchanged'],
             $result['skipped'],
             $result['failed'],
         ));

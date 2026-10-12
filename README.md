@@ -52,7 +52,15 @@ php artisan migrate --force
 * * * * * cd /path/to/apps/backend && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Он сам запускает: доставку событий (`outbox:dispatch`, 10 с), пересчёт сверки (`reconciliation:process-dirty`, 30 с), уведомления (`notifications:deliver`, 30 с; `notifications:remind`, час), ночную сверку (02:30), проверку подтверждения магазинов и свежести коннекторов (минута), планирование браузерных проверок (минута), синхронизацию Stripe / PayPal / WooCommerce REST / Shopware, события Paddle (`billing:paddle-events`, минута; `billing:process-events`, 30 с), скидки следующего периода подписок (`billing:plan-discounts`, 15 мин), смены тарифа и отмены подписок (`billing:plan-changes`, минута: переход на более дешёвый тариф в начале нового периода, проверка изменений с неизвестным ответом Paddle, пересчёт скидок), очистку старых скриншотов и экспортов (ежедневно), письма о новых обращениях с сайта (`site:contact-notify`, минута) и удаление старых закрытых обращений (`site:contact-purge`, ежедневно). Вручную их запускать не нужно.
+Он сам запускает: доставку событий (`outbox:dispatch`, 10 с), один проход сверки (`reconciliation:process-dirty`, 30 с; основную работу делают обработчики ниже), уведомления (`notifications:deliver`, 30 с; `notifications:remind`, час), ночную сверку (02:30: только заказы, результат которых мог измениться, плюс ~1/30 окна в 90 дней — каждый заказ раз в месяц), проверку подтверждения магазинов и свежести коннекторов (минута), планирование браузерных проверок (минута), раздачу заданий синхронизации Stripe / PayPal / WooCommerce REST / Shopware (сами синхронизации выполняют обработчики очереди), события Paddle (`billing:paddle-events`, минута; `billing:process-events`, 30 с), скидки следующего периода подписок (`billing:plan-discounts`, 15 мин), смены тарифа и отмены подписок (`billing:plan-changes`, минута: переход на более дешёвый тариф в начале нового периода, проверка изменений с неизвестным ответом Paddle, пересчёт скидок), очистку старых скриншотов и экспортов (ежедневно), письма о новых обращениях с сайта (`site:contact-notify`, минута) и удаление старых закрытых обращений (`site:contact-purge`, ежедневно). Вручную их запускать не нужно.
+
+Кроме планировщика **обязательно** должны работать обработчики (ADR 0040), иначе подключения не синхронизируются:
+
+- **Синхронизация подключений** — очередь Redis (`QUEUE_CONNECTION=redis`), сколько угодно экземпляров:
+  `php artisan queue:work redis --queue=sync --sleep=3 --max-time=3600 --timeout=840`
+- **Сверка** — сколько угодно экземпляров: `php artisan reconciliation:work --max-time=3600`
+
+Оба выходят сами раз в час (или по SIGTERM) — их перезапускает supervisor/systemd или Docker (`restart: unless-stopped`). В Docker Compose это сервисы `sync-worker` и `reconciliation-worker`; число экземпляров — `BW_SYNC_WORKERS` и `BW_RECONCILIATION_WORKERS` (по 2). Нужны PHP-расширения `pcntl` и `redis` (есть в образе `infra/docker/backend`). `REDIS_QUEUE_RETRY_AFTER` (960) должен быть больше `--timeout`.
 
 ### 4. Первый владелец сервиса (вход в `/owner`)
 
@@ -147,7 +155,9 @@ npm run build -w @bw/public     # стили публичного сайта →
 | `php artisan telegram:webhook info\|set\|delete` | Проверить или перерегистрировать webhook Telegram |
 | `php artisan billing:paddle-events` / `billing:process-events` | Вручную дочитать события Paddle (обычно делает планировщик) |
 | `php artisan billing:plan-discounts` | Внеочередной пересчёт скидок следующего периода подписок (обычно делает планировщик; повторяет неудачные попытки) |
-| `php artisan stripe:sync`, `paypal:sync`, `woocommerce-api:sync`, `shopware:sync` (`--audit`) | Внеочередная синхронизация (обычно делает планировщик) |
+| `php artisan stripe:sync`, `paypal:sync`, `woocommerce-api:sync`, `shopware:sync` (`--audit`) | Внеочередная синхронизация: ставит задания в очередь для обработчиков; `--inline` — выполнить прямо в этом процессе, по очереди, без обработчиков |
+| `php artisan queue:failed` / `queue:retry all` | Посмотреть и повторить упавшие задания синхронизации |
+| `php artisan reconciliation:work --stop-when-empty` | Разобрать очередь сверки до конца и выйти (например, после восстановления) |
 | `php artisan reconciliation:process-dirty` / `reconciliation:nightly-sweep` | Внеочередной пересчёт сверки |
 | `php artisan artifacts:purge` / `exports:purge` | Внеочередная очистка просроченных файлов |
 | `php artisan site:contact-notify` / `site:contact-purge` | Вручную отправить письма о новых обращениях с сайта / удалить закрытые обращения старше срока хранения (обычно делает планировщик) |

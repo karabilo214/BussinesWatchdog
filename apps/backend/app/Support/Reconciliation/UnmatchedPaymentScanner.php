@@ -30,6 +30,7 @@ class UnmatchedPaymentScanner
     public function __construct(
         private readonly ProviderCoverage $coverage,
         private readonly ConnectorFreshness $freshness,
+        private readonly ReconciliationResultRecorder $recorder,
     ) {}
 
     public function scan(Store $store, string $trigger = 'manual'): ReconciliationRun
@@ -39,10 +40,9 @@ class UnmatchedPaymentScanner
             $providerConnected = $this->coverage->isConnected($store->tenant_id, $store->id);
             $storeDataStale = $this->freshness->storeDataStale($store->tenant_id, $store->id);
 
-            $run = ReconciliationRun::query()->create([
+            $runAttributes = [
                 'tenant_id' => $store->tenant_id,
                 'store_id' => $store->id,
-                'status' => ReconciliationRun::STATUS_RUNNING,
                 'algorithm_version' => self::ALGORITHM_VERSION,
                 'config_version' => self::CONFIG_VERSION,
                 'currency' => null,
@@ -51,14 +51,16 @@ class UnmatchedPaymentScanner
                 'counters' => [],
                 'started_at' => $now,
                 'created_at' => $now,
-            ]);
+            ];
 
             $graceDeadline = $now->copy()->subHours(self::ORPHAN_GRACE_HOURS);
 
             $allocatedCaptureIds = PaymentAllocation::query()
+                ->where('tenant_id', $store->tenant_id)
                 ->where('store_id', $store->id)
                 ->whereNull('revoked_at')
-                ->pluck('capture_transaction_id');
+                ->whereNotNull('capture_transaction_id')
+                ->select('capture_transaction_id');
 
             $entitled = app(EntitlementCalculator::class)->forTenant($store->tenant_id)->allows(FeatureCatalog::MONEY_RECONCILIATION);
             $orphanCaptures = ! $entitled || ! $providerConnected || $storeDataStale ? collect() : FinancialTransaction::query()
@@ -81,12 +83,13 @@ class UnmatchedPaymentScanner
                 ->exists();
             $testPayments = $modeNeedsPlugin ? Payment::query()->whereIn('id', $orphanCaptures->pluck('payment_id')->filter())->where('mode', 'test')->pluck('id')->flip() : collect();
 
+            $findings = [];
+
             foreach ($orphanCaptures as $capture) {
                 $unknownMode = $testPayments->has($capture->payment_id);
-                ReconciliationFinding::query()->create([
+                $findings[] = [
                     'tenant_id' => $store->tenant_id,
                     'store_id' => $store->id,
-                    'run_id' => $run->id,
                     'order_id' => null,
                     'payment_id' => $capture->payment_id,
                     'rule_code' => ReconciliationFinding::RULE_PAYMENT_WITHOUT_ORDER,
@@ -105,16 +108,10 @@ class UnmatchedPaymentScanner
                         'orphan_grace_hours' => self::ORPHAN_GRACE_HOURS,
                     ],
                     'evaluated_at' => $now,
-                ]);
+                ];
             }
 
-            $run->forceFill([
-                'status' => ReconciliationRun::STATUS_COMPLETED,
-                'finished_at' => Carbon::now(),
-                'counters' => ['findings' => $orphanCaptures->count()],
-            ])->save();
-
-            return $run->refresh();
+            return $this->recorder->record(ReconciliationResultRecorder::SUBJECT_STORE_UNMATCHED_PAYMENTS, $store->id, $runAttributes, $findings, ['entitled' => $entitled, 'store_data_stale' => $storeDataStale]);
         });
     }
 }

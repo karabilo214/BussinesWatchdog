@@ -21,6 +21,7 @@ use App\Support\Reconciliation\DirtySubjectMarker;
 use App\Support\Reconciliation\DirtySubjectProcessor;
 use App\Support\Reconciliation\NightlyReconciliationSweep;
 use App\Support\Reconciliation\OrderReconciliationService;
+use App\Support\Reconciliation\ReconciliationResultRecorder;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -71,7 +72,7 @@ class ScheduledReconciliationTest extends TestCase
         Carbon::setTestNow(now()->addSeconds(31));
         $result = app(DirtySubjectProcessor::class)->processDue();
 
-        $this->assertSame(['claimed' => 1, 'processed' => 1, 'skipped' => 0, 'failed' => 0], $result);
+        $this->assertSame(['claimed' => 1, 'processed' => 1, 'unchanged' => 0, 'skipped' => 0, 'failed' => 0], $result);
         $this->assertSame(0, ReconciliationDirtySubject::query()->count());
         $run = ReconciliationRun::query()->firstOrFail();
         $this->assertSame(DirtySubjectProcessor::TRIGGER, $run->scope['trigger']);
@@ -143,7 +144,8 @@ class ScheduledReconciliationTest extends TestCase
         $subject = ReconciliationDirtySubject::query()->firstOrFail();
         $this->assertSame(2, $subject->mark_version);
         $this->assertNull($subject->lease_until);
-        $this->assertTrue($subject->due_at->lessThanOrEqualTo(now()));
+        $this->assertTrue($subject->due_at->greaterThan(now()));
+        $this->assertTrue($subject->due_at->lessThanOrEqualTo(now()->addSeconds(DirtySubjectMarker::COALESCE_SECONDS)));
     }
 
     public function test_a_failing_subject_is_released_with_backoff_and_an_error_code(): void
@@ -151,7 +153,7 @@ class ScheduledReconciliationTest extends TestCase
         $context = $this->context();
         $order = $this->order($context);
         app(DirtySubjectMarker::class)->markOrder($context['tenant']->id, $context['store']->id, $order->id, ReconciliationDirtySubject::REASON_ORDER_EVENT, now());
-        $this->app->bind(OrderReconciliationService::class, fn () => new class(new ProviderCoverage, app(ConnectorFreshness::class)) extends OrderReconciliationService
+        $this->app->bind(OrderReconciliationService::class, fn () => new class(new ProviderCoverage, app(ConnectorFreshness::class), app(ReconciliationResultRecorder::class)) extends OrderReconciliationService
         {
             public function evaluate(Order $order, string $trigger = 'manual'): ReconciliationRun
             {
@@ -240,7 +242,7 @@ class ScheduledReconciliationTest extends TestCase
         $first = app(NightlyReconciliationSweep::class)->run();
         $second = app(NightlyReconciliationSweep::class)->run();
 
-        $this->assertSame(['stores' => 1, 'orders_marked' => 0], $first);
+        $this->assertSame(['stores' => 1, 'orders_marked' => 0, 'orders_rechecked' => 0], $first);
         $this->assertNull($second);
         $this->assertSame(1, ReconciliationDirtySubject::query()->where('subject_type', ReconciliationDirtySubject::TYPE_ORDER)->count());
         $this->assertSame(1, ReconciliationDirtySubject::query()->where('subject_type', ReconciliationDirtySubject::TYPE_STORE_UNMATCHED_PAYMENTS)->count());
@@ -250,7 +252,7 @@ class ScheduledReconciliationTest extends TestCase
 
         ReconciliationDirtySubject::query()->delete();
         Carbon::setTestNow('2026-10-10 02:30:00');
-        $this->assertSame(['stores' => 1, 'orders_marked' => 1], app(NightlyReconciliationSweep::class)->run());
+        $this->assertSame(['stores' => 1, 'orders_marked' => 1, 'orders_rechecked' => 0], app(NightlyReconciliationSweep::class)->run());
     }
 
     public function test_a_failed_or_stale_sweep_window_can_be_retried(): void

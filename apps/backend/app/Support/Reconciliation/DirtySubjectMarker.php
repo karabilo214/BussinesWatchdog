@@ -50,6 +50,15 @@ class DirtySubjectMarker
         return $inserted;
     }
 
+    /**
+     * A subject that is being processed has a due time in the past; a mark arriving meanwhile asks for a new check at
+     * its own time (an event: 30 s later, a grace deadline: at the deadline), not again at the old one.
+     */
+    private function leased(ReconciliationDirtySubject $subject, Carbon $now): bool
+    {
+        return $subject->lease_until !== null && $subject->lease_until->greaterThan($now);
+    }
+
     private function mark(string $tenantId, string $storeId, string $type, string $subjectId, string $reason, ?DateTimeInterface $dueAt): void
     {
         $now = Carbon::now();
@@ -85,7 +94,7 @@ class DirtySubjectMarker
             'reason' => $reason,
             'mark_version' => $existing->mark_version + 1,
             'last_marked_at' => $now,
-            'due_at' => $due->lessThan($existing->due_at) ? $due : $existing->due_at,
+            'due_at' => $this->leased($existing, $now) || $due->lessThan($existing->due_at) ? $due : $existing->due_at,
         ])->save();
     }
 }

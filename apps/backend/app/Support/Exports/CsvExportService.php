@@ -312,12 +312,11 @@ class CsvExportService
 
     private function currentFindingIds(string $tenantId, string $storeId): \Illuminate\Database\Query\Builder
     {
-        $ranked = DB::table('reconciliation_findings')
+        return DB::table('reconciliation_findings')
             ->where('tenant_id', $tenantId)
             ->where('store_id', $storeId)
-            ->selectRaw("id, DENSE_RANK() OVER (PARTITION BY COALESCE(CAST(order_id AS TEXT), '') ORDER BY evaluated_at DESC, run_id DESC) AS position");
-
-        return DB::query()->fromSub($ranked, 'ranked')->where('position', 1)->select('id');
+            ->whereIn('run_id', DB::table('reconciliation_subject_states')->where('tenant_id', $tenantId)->where('store_id', $storeId)->select('run_id'))
+            ->select('id');
     }
 
     private function objectKey(ExportFile $export): string

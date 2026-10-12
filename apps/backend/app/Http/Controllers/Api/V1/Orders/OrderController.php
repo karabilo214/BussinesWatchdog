@@ -16,8 +16,10 @@ use App\Models\Order;
 use App\Models\OrderRevision;
 use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
+use App\Models\ReconciliationSubjectState;
 use App\Models\Refund;
 use App\Models\RefundAllocation;
+use App\Support\Reconciliation\ReconciliationResultRecorder;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 
@@ -72,11 +74,10 @@ class OrderController extends Controller
             ->orderBy('source_revision')
             ->get();
 
-        $latestRunId = ReconciliationFinding::query()
+        $latestRunId = ReconciliationSubjectState::query()
             ->where('tenant_id', $tenantId)
-            ->where('order_id', $order->id)
-            ->orderByDesc('evaluated_at')
-            ->orderByDesc('run_id')
+            ->where('subject_type', ReconciliationResultRecorder::SUBJECT_ORDER)
+            ->where('subject_id', $order->id)
             ->value('run_id');
         $latestFindings = ReconciliationFinding::query()
             ->where('tenant_id', $tenantId)

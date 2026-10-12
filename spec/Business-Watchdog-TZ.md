@@ -304,7 +304,7 @@ Tolerance по умолчанию 0 minor units; адаптер может им�
 
 Каждый reconciliation run сохраняет scope/window/cursor, algorithm version, config version, coverage snapshot, counts, started/finished и error. Finding содержит G/C/RW/RP, diff, evidence IDs, status ok/pending/mismatch/unsupported/unknown, reason code и evaluated_at. Replay после fix не уничтожает историю findings и не создаёт старые notification storms.
 
-Расписание: dirty orders coalesce 30 секунд; повтор при grace deadline; nightly sweep recent 90 дней; on-demand API с rate limit. Lock на store/currency/order или row locks исключает параллельные inconsistent results. Одни и те же event_ids дают одни результаты при одной версии правил. История старше retention не обещается восстановимой.
+Расписание: dirty orders coalesce 30 секунд; повтор при grace deadline; nightly sweep recent 90 дней — только заказы, результат которых может измениться, плюс ежемесячная полная перепроверка каждого (ADR 0040); on-demand API с rate limit. Lock на store/currency/order или row locks исключает параллельные inconsistent results. Одни и те же event_ids дают одни результаты при одной версии правил. История старше retention не обещается восстановимой.
 
 ## 15 Метрики и полнота данных
 

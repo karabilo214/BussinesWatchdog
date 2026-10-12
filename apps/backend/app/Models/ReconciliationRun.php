@@ -22,6 +22,8 @@ class ReconciliationRun extends Model
 
     public $timestamps = false;
 
+    public bool $resultChanged = true;
+
     protected $fillable = [
         'tenant_id',
         'store_id',

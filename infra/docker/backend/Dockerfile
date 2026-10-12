@@ -11,6 +11,7 @@ RUN apt-get update \
         bcmath \
         intl \
         opcache \
+        pcntl \
         pdo_pgsql \
         zip \
     && pecl install redis \
@@ -33,6 +34,7 @@ RUN apt-get update \
         bcmath \
         intl \
         opcache \
+        pcntl \
         pdo_pgsql \
         zip \
     && pecl install redis \

@@ -34,6 +34,7 @@ class OrderReconciliationService
     public function __construct(
         private readonly ProviderCoverage $coverage,
         private readonly ConnectorFreshness $freshness,
+        private readonly ReconciliationResultRecorder $recorder,
     ) {}
 
     public function evaluate(Order $order, string $trigger = 'manual'): ReconciliationRun
@@ -46,10 +47,9 @@ class OrderReconciliationService
             $providerConnected = $this->coverage->isConnected($lockedOrder->tenant_id, $lockedOrder->store_id, $lockedOrder->gateway);
             $storeDataStale = $this->freshness->storeDataStale($lockedOrder->tenant_id, $lockedOrder->store_id);
 
-            $run = ReconciliationRun::query()->create([
+            $runAttributes = [
                 'tenant_id' => $lockedOrder->tenant_id,
                 'store_id' => $lockedOrder->store_id,
-                'status' => ReconciliationRun::STATUS_RUNNING,
                 'algorithm_version' => self::ALGORITHM_VERSION,
                 'config_version' => self::CONFIG_VERSION,
                 'currency' => $lockedOrder->currency,
@@ -62,11 +62,13 @@ class OrderReconciliationService
                 'counters' => [],
                 'started_at' => $now,
                 'created_at' => $now,
-            ]);
+            ];
+            $run = new ReconciliationRun($runAttributes);
+            $entitled = app(EntitlementCalculator::class)->forTenant($lockedOrder->tenant_id)->allows(FeatureCatalog::MONEY_RECONCILIATION);
 
             $findings = [];
 
-            if (! app(EntitlementCalculator::class)->forTenant($lockedOrder->tenant_id)->allows(FeatureCatalog::MONEY_RECONCILIATION)) {
+            if (! $entitled) {
                 $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
                     'status' => ReconciliationFinding::STATUS_UNKNOWN,
                     'reason_code' => 'not_entitled',
@@ -109,17 +111,7 @@ class OrderReconciliationService
                 );
             }
 
-            foreach ($findings as $finding) {
-                ReconciliationFinding::query()->create($finding);
-            }
-
-            $run->forceFill([
-                'status' => ReconciliationRun::STATUS_COMPLETED,
-                'finished_at' => Carbon::now(),
-                'counters' => ['findings' => count($findings)],
-            ])->save();
-
-            return $run->refresh();
+            return $this->recorder->record(ReconciliationResultRecorder::SUBJECT_ORDER, $lockedOrder->id, $runAttributes, $findings, ['entitled' => $entitled, 'store_data_stale' => $storeDataStale]);
         });
     }
 

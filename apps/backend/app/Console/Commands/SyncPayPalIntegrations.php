@@ -2,35 +2,25 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Integration;
+use App\Console\Commands\Concerns\QueuesIntegrationSyncs;
+use App\Support\Integrations\IntegrationSyncRunner;
 use App\Support\Providers\PayPal\PayPalSync;
 use Illuminate\Console\Command;
 
 class SyncPayPalIntegrations extends Command
 {
-    protected $signature = 'paypal:sync {--audit : Walk the whole retention window instead of the delta} {--pointers : Read the captures that recent store orders point to}';
+    use QueuesIntegrationSyncs;
+
+    protected $signature = 'paypal:sync {--audit : Walk the whole retention window instead of the delta} {--pointers : Read the captures that recent store orders point to} {--inline : Sync one integration after another in this process instead of queueing them}';
 
     protected $description = 'Poll active PayPal integrations through Transaction Search and read the affected orders';
 
-    public function handle(PayPalSync $sync): int
+    public function handle(IntegrationSyncRunner $runner): int
     {
-        $mode = match (true) {
+        return $this->queueSyncs($runner, 'paypal', match (true) {
             (bool) $this->option('pointers') => PayPalSync::MODE_POINTERS,
             (bool) $this->option('audit') => PayPalSync::MODE_AUDIT,
             default => PayPalSync::MODE_DELTA,
-        };
-        $integrations = Integration::query()
-            ->where('provider', 'paypal')
-            ->where('status', Integration::STATUS_ACTIVE)
-            ->orderByRaw('last_successful_sync_at IS NOT NULL')
-            ->orderBy('last_successful_sync_at')
-            ->get();
-
-        foreach ($integrations as $integration) {
-            $result = $mode === PayPalSync::MODE_POINTERS ? $sync->syncPointers($integration) : $sync->run($integration, $mode);
-            $this->line(sprintf('%s %s emitted=%d unchanged=%d complete=%s%s', $integration->id, $result['status'], $result['emitted'], $result['unchanged'], $result['complete'] ? 'yes' : 'no', isset($result['error']) ? ' error='.$result['error'] : ''));
-        }
-
-        return self::SUCCESS;
+        });
     }
 }

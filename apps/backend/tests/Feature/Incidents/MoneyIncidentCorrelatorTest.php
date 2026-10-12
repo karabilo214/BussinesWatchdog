@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
+use App\Models\ReconciliationSubjectState;
 use App\Models\Signal;
 use App\Models\Store;
 use App\Models\Tenant;
@@ -54,7 +55,13 @@ class MoneyIncidentCorrelatorTest extends TestCase
         $firstRun = app(OrderReconciliationService::class)->evaluate($order);
         $correlator->correlate($firstRun);
 
+        $unchanged = app(OrderReconciliationService::class)->evaluate($order->fresh());
+        $this->assertFalse($unchanged->resultChanged);
+        $this->assertSame($firstRun->id, $unchanged->id);
+
+        ReconciliationSubjectState::query()->delete();
         $secondRun = app(OrderReconciliationService::class)->evaluate($order->fresh());
+        $this->assertTrue($secondRun->resultChanged);
         $incidents = $correlator->correlate($secondRun);
 
         $this->assertCount(1, $incidents);

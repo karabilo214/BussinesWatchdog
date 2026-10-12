@@ -120,6 +120,54 @@ services:
     networks:
       - bw-local
 
+  sync-worker:
+    build:
+      context: .
+      dockerfile: infra/docker/backend/Dockerfile
+      target: cli
+    profiles:
+      - app
+    env_file:
+      - .env
+    command: ["php", "artisan", "queue:work", "redis", "--queue=sync", "--sleep=3", "--max-time=3600", "--timeout=840"]
+    volumes:
+      - ./apps/backend:/workspace/apps/backend
+    working_dir: /workspace/apps/backend
+    restart: unless-stopped
+    deploy:
+      replicas: ${BW_SYNC_WORKERS:-2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bw-local
+
+  reconciliation-worker:
+    build:
+      context: .
+      dockerfile: infra/docker/backend/Dockerfile
+      target: cli
+    profiles:
+      - app
+    env_file:
+      - .env
+    command: ["php", "artisan", "reconciliation:work", "--max-time=3600"]
+    volumes:
+      - ./apps/backend:/workspace/apps/backend
+    working_dir: /workspace/apps/backend
+    restart: unless-stopped
+    deploy:
+      replicas: ${BW_RECONCILIATION_WORKERS:-2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bw-local
+
   browser-worker:
     build:
       context: ./apps/browser-worker

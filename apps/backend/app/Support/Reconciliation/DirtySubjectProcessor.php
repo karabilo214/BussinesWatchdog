@@ -30,12 +30,12 @@ class DirtySubjectProcessor
     ) {}
 
     /**
-     * @return array{claimed: int, processed: int, skipped: int, failed: int}
+     * @return array{claimed: int, processed: int, unchanged: int, skipped: int, failed: int}
      */
     public function processDue(int $limit = 100, int $leaseSeconds = 120): array
     {
         $claimed = $this->claimDue(max(1, min($limit, 500)), max(30, min($leaseSeconds, 3600)));
-        $totals = ['claimed' => $claimed->count(), 'processed' => 0, 'skipped' => 0, 'failed' => 0];
+        $totals = ['claimed' => $claimed->count(), 'processed' => 0, 'unchanged' => 0, 'skipped' => 0, 'failed' => 0];
 
         foreach ($claimed as $subject) {
             try {
@@ -62,6 +62,7 @@ class DirtySubjectProcessor
 
             $this->graceScheduler->scheduleFor($run);
             $totals['processed']++;
+            $totals['unchanged'] += $run->resultChanged ? 0 : 1;
         }
 
         return $totals;
@@ -81,7 +82,7 @@ class DirtySubjectProcessor
                 ->orderBy('due_at')
                 ->orderBy('id')
                 ->limit($limit)
-                ->lockForUpdate()
+                ->when(DB::getDriverName() === 'pgsql', fn ($query) => $query->lock('for update skip locked'), fn ($query) => $query->lockForUpdate())
                 ->get();
 
             foreach ($subjects as $subject) {
@@ -124,7 +125,9 @@ class DirtySubjectProcessor
             $run = $this->scanner->scan($store, self::TRIGGER);
         }
 
-        $this->correlator->correlate($run);
+        if ($run->resultChanged) {
+            $this->correlator->correlate($run);
+        }
 
         return $run;
     }
