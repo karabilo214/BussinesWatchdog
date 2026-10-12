@@ -6,8 +6,12 @@ use App\Mail\NotificationMessageMail;
 use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
+use App\Models\EntitlementOverride;
+use App\Models\ReconciliationDirtySubject;
 use App\Models\Store;
 use App\Models\Subscription;
+use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\Entitlements;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Billing\OrderVolume;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -64,7 +68,7 @@ class OrderVolumeTest extends TestCase
 
         $result = app(OrderVolume::class)->evaluate();
 
-        $this->assertSame(['stores' => 1, 'over' => 1, 'notified' => 1], $result);
+        $this->assertSame(['stores' => 1, 'over' => 1, 'notified' => 1, 'paused' => 0, 'resumed' => 0], $result);
         $store = $context['store']->fresh();
         $this->assertSame(1267, $store->order_volume_average);
         $this->assertTrue($store->order_volume_over_since->equalTo(now()));
@@ -72,7 +76,7 @@ class OrderVolumeTest extends TestCase
         Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo($context['user']->email) && str_contains($mail->bodyText, '1267') && str_contains($mail->bodyText, '1000') && str_contains($mail->bodyText, '2026-11-03'));
 
         Carbon::setTestNow(now()->addDay());
-        $this->assertSame(['stores' => 1, 'over' => 1, 'notified' => 0], app(OrderVolume::class)->evaluate());
+        $this->assertSame(['stores' => 1, 'over' => 1, 'notified' => 0, 'paused' => 0, 'resumed' => 0], app(OrderVolume::class)->evaluate());
         $this->assertTrue($context['store']->fresh()->order_volume_over_since->equalTo(Carbon::parse('2026-10-20 04:10:00')));
         Mail::assertSentCount(1);
 
@@ -83,9 +87,74 @@ class OrderVolumeTest extends TestCase
         $this->assertSame('business', $summary['recommended']['plan_code']);
 
         DB::table('store_order_volumes')->where('store_id', $context['store']->id)->update(['orders' => 500]);
-        $this->assertSame(['stores' => 1, 'over' => 0, 'notified' => 0], app(OrderVolume::class)->evaluate());
+        $this->assertSame(['stores' => 1, 'over' => 0, 'notified' => 0, 'paused' => 0, 'resumed' => 0], app(OrderVolume::class)->evaluate());
         $this->assertNull($context['store']->fresh()->order_volume_over_since);
         $this->assertNull(app(OrderVolume::class)->summary($context['tenant']->id, 'start')['recommended']);
+    }
+
+    public function test_after_the_grace_period_the_organisation_is_paused_until_a_package_covers_the_volume(): void
+    {
+        Mail::fake();
+        $context = $this->context();
+        $other = $this->context(tenant: $context['tenant']);
+        $start = $this->package('start', 1000, 19, graceDays: 14);
+        $business = $this->package('business', 5000, 39);
+        $this->subscribe($context['tenant']->id, $start);
+        $context['store']->forceFill(['created_at' => Carbon::parse('2026-01-01')])->save();
+        $this->volumes($context['store'], ['2026-07-01' => 1100, '2026-08-01' => 1300, '2026-09-01' => 1400, '2026-10-01' => 1500]);
+        $calculator = app(EntitlementCalculator::class);
+
+        app(OrderVolume::class)->evaluate();
+        $this->assertNull($context['tenant']->fresh()->order_volume_paused_at);
+
+        Carbon::setTestNow(now()->addDays(14));
+        $calculator->forget();
+        $this->assertSame(1, app(OrderVolume::class)->evaluate()['paused']);
+
+        $this->assertTrue($context['tenant']->fresh()->order_volume_paused_at->equalTo(now()));
+        $calculator->forget();
+        $access = $calculator->forTenant($context['tenant']->id);
+        $this->assertSame([Entitlements::ACCESS_PAUSED_BILLING, [EntitlementCalculator::REASON_ORDER_VOLUME]], [$access->access, $access->reasons]);
+        $this->assertFalse($access->allows(FeatureCatalog::CHECKOUT_MONITORING));
+        $this->assertSame(1000, $access->limit(FeatureCatalog::MAX_ORDERS_PER_MONTH));
+        $this->assertNotNull(app(OrderVolume::class)->summary($context['tenant']->id, 'start')['paused_at']);
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => str_contains($mail->subjectLine, 'приостановлен') && str_contains($mail->bodyText, '«'.$context['store']->name.'»'));
+
+        Carbon::setTestNow(now()->addDay());
+        $calculator->forget();
+        $this->assertSame(0, app(OrderVolume::class)->evaluate()['resumed']);
+        $this->assertNotNull($context['tenant']->fresh()->order_volume_paused_at);
+
+        Subscription::query()->where('tenant_id', $context['tenant']->id)->update(['plan_code' => 'business', 'plan_version_id' => $business->id, 'entitlements' => json_encode($business->entitlements)]);
+        $this->assertSame(1, app(OrderVolume::class)->refreshTenant($context['tenant']->id)['resumed']);
+
+        $this->assertNull($context['tenant']->fresh()->order_volume_paused_at);
+        $this->assertSame(Entitlements::ACCESS_ACTIVE, app(EntitlementCalculator::class)->forTenant($context['tenant']->id)->access);
+        $this->assertSame(2, ReconciliationDirtySubject::query()->where('subject_type', ReconciliationDirtySubject::TYPE_STORE_UNMATCHED_PAYMENTS)->where('reason', ReconciliationDirtySubject::REASON_ORDER_VOLUME_RESUMED)->count());
+        $this->assertNotSame($context['store']->id, $other['store']->id);
+    }
+
+    public function test_temporary_access_with_a_higher_limit_also_resumes_a_paused_organisation(): void
+    {
+        $context = $this->context();
+        $start = $this->package('start', 1000, 19, graceDays: 0);
+        $this->subscribe($context['tenant']->id, $start);
+        $context['store']->forceFill(['created_at' => Carbon::parse('2026-01-01')])->save();
+        $this->volumes($context['store'], ['2026-09-01' => 6000]);
+        app(OrderVolume::class)->evaluate();
+        $this->assertNotNull($context['tenant']->fresh()->order_volume_paused_at);
+
+        EntitlementOverride::query()->create([
+            'tenant_id' => $context['tenant']->id,
+            'entitlements' => ['features' => [], 'limits' => [FeatureCatalog::MAX_ORDERS_PER_MONTH => 5000]],
+            'reason' => 'busy season',
+            'starts_at' => now()->subMinute(),
+            'ends_at' => now()->addDays(30),
+            'created_at' => now(),
+        ]);
+
+        $this->assertSame(1, app(OrderVolume::class)->refreshTenant($context['tenant']->id)['resumed']);
+        $this->assertSame(Entitlements::ACCESS_OVERRIDE, app(EntitlementCalculator::class)->forTenant($context['tenant']->id)->access);
     }
 
     public function test_beyond_every_priced_package_the_individual_one_is_recommended_and_without_a_limit_nothing_is_over(): void
@@ -103,6 +172,7 @@ class OrderVolumeTest extends TestCase
         $context['store']->forceFill(['created_at' => Carbon::parse('2026-01-01')])->save();
         config()->set('watchdog.billing.enforcement', 'pilot');
         $this->assertSame(0, app(OrderVolume::class)->evaluate()['over']);
+        $this->assertNull($context['tenant']->fresh()->order_volume_paused_at);
     }
 
     public function test_the_pricing_page_shows_the_order_limit_and_the_individual_package(): void

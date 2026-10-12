@@ -24,6 +24,7 @@ class Tenant extends Model
         return [
             'config_version' => 'integer',
             'trial_consumed_at' => 'datetime',
+            'order_volume_paused_at' => 'datetime',
         ];
     }
 

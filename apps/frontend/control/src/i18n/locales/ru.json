@@ -408,7 +408,8 @@
     "renewal_failed_grace": "продление не прошло, льготный период",
     "no_subscription": "нет подписки",
     "tenant_suspended": "приостановлен вручную",
-    "pilot_manual_grant": "пилотный режим"
+    "pilot_manual_grant": "пилотный режим",
+    "order_volume_exceeded": "объём заказов больше пакета"
   },
   "store_status": {
     "onboarding": "Подключается",

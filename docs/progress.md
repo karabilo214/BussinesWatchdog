@@ -2249,3 +2249,13 @@ Verification:
 - New `tests/Feature/Billing/OrderVolumeTest.php` (4: whole-month average; over the package → marked, one email with average/limit/date, repeated night sends nothing, summary with grace end and recommendation, back within clears; individual package recommended beyond priced ones, pilot evaluates nothing; pricing page row and individual card), `DomainOutboxDispatcherTest` (an order counts once over two revisions; an order placed before the store was added does not), `PlanAdminTest` (limit, grace days, validation, publish of an individual package without prices, copied to a new version). Owner panel: plan editor saves the limit, grace days and individual price; stores tab shows the volume (control 23 tests). Cabinet: volume block, over notice, recommended individual package and card (customer 108 tests).
 - Backend SQLite: 511 passed, 4 skipped; PostgreSQL 18: 515 of 515 (one assertion first failed on PostgreSQL only because `jsonb` reorders keys). Frontend check green. No live browser run in this step.
 
+### Step 115: Pause the Organisation After the Order-Volume Grace Period
+
+Status: complete
+
+- Owner decisions (2026-10-12): after the grace period the service is paused and resumes only after a fitting package is bought; orders placed before the store was added are history; prices and boundaries are set by the owner.
+- The pause is on the organisation, because the subscription is: `tenants.order_volume_paused_at`; `EntitlementCalculator` turns an active result into `paused_billing` / `order_volume_exceeded` keeping the package limits, so every existing feature gate stops the service while store data is still received. `OrderVolume` evaluates per organisation (stores over the limit, grace end per store), pauses with a second email (ru/en/de `account.order_volume_paused`) and resumes when no store is over any more, re-queuing every store's reconciliation (`REASON_ORDER_VOLUME_RESUMED`). Immediate resume: `SubscriptionProjector` after a subscription change (after commit) and owner temporary access grant/revoke call `refreshTenant`.
+- Cabinet: access badge «Paused: order volume above the package», a pause notice in the «Order volume» block; owner panel: reason label.
+
+Verification: `OrderVolumeTest` 6 (pause after grace with features off and limits kept, stays paused while over, resume after a bigger package and after temporary access with reconciliation re-queued); cabinet test for the pause notice. Backend SQLite 513 passed, 4 skipped; PostgreSQL 18: 517 of 517; frontend check green. No live browser run.
+

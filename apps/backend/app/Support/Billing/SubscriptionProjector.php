@@ -8,7 +8,9 @@ use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
 use App\Models\BillingSubscriptionContract;
 use App\Models\Subscription;
+use App\Models\Tenant;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Provider-neutral: turns the tenant's provider contracts of one mode into the single `subscriptions` row the
@@ -74,7 +76,10 @@ class SubscriptionProjector
         ];
 
         if ($row === null) {
-            return Subscription::query()->create(['tenant_id' => $tenantId, ...$attributes, 'version' => 1]);
+            $row = Subscription::query()->create(['tenant_id' => $tenantId, ...$attributes, 'version' => 1]);
+            $this->resumeIfCovered($tenantId);
+
+            return $row;
         }
 
         $row->fill($attributes);
@@ -82,8 +87,19 @@ class SubscriptionProjector
         if ($row->isDirty()) {
             $row->version++;
             $row->save();
+            $this->resumeIfCovered($tenantId);
         }
 
         return $row;
+    }
+
+    /**
+     * An organisation paused for its order volume resumes as soon as the new package covers it (ADR 0041).
+     */
+    private function resumeIfCovered(string $tenantId): void
+    {
+        if (Tenant::query()->whereKey($tenantId)->whereNotNull('order_volume_paused_at')->exists()) {
+            DB::afterCommit(fn () => app(OrderVolume::class)->refreshTenant($tenantId));
+        }
     }
 }

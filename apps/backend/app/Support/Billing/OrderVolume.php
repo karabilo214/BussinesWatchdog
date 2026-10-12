@@ -6,11 +6,14 @@ use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
 use App\Models\Membership;
 use App\Models\Order;
+use App\Models\ReconciliationDirtySubject;
 use App\Models\Store;
 use App\Models\Subscription;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Account\AccountMailer;
 use App\Support\Auth\TenantRoles;
+use App\Support\Reconciliation\StoreReconciliationRequeue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,15 +24,22 @@ use Throwable;
  * placed, when the service first sees it — repeated syncs, status changes and refunds never count, and neither do
  * orders placed before the store was added (the history import). A store is over its package when the average of
  * the last three complete months exceeds `max_orders_per_month`; the owner is told once and gets the package's grace
- * period to move to a bigger package. Nothing is switched off and nothing is charged automatically.
+ * period to move to a bigger package. The subscription belongs to the organisation, so when the grace period of any
+ * of its stores ends the organisation is paused (owner's decision 2026-10-12; `EntitlementCalculator` then reports
+ * `paused_billing` / `order_volume_exceeded` and every protection feature stops, while store data is still received)
+ * until a package that covers the volume of every store is bought; then it resumes at once and its orders are
+ * re-checked. Nothing is charged automatically.
  */
 class OrderVolume
 {
     public const AVERAGE_MONTHS = 3;
 
+    public const REASON_PAUSED = 'order_volume_paused';
+
     public function __construct(
         private readonly EntitlementCalculator $entitlements,
         private readonly AccountMailer $mailer,
+        private readonly StoreReconciliationRequeue $requeue,
     ) {}
 
     public function count(Order $order): void
@@ -80,42 +90,116 @@ class OrderVolume
     }
 
     /**
-     * Daily: refreshes every store's average and its over-the-package state; notifies owners once per crossing.
+     * Daily: refreshes every store's average and its over-the-package state; notifies owners once per crossing, pauses
+     * a store whose grace period has ended and resumes one the package covers again.
      *
-     * @return array{stores: int, over: int, notified: int}
+     * @return array{stores: int, over: int, notified: int, paused: int, resumed: int}
      */
     public function evaluate(?Carbon $now = null): array
     {
         $now ??= Carbon::now();
-        $result = ['stores' => 0, 'over' => 0, 'notified' => 0];
+        $result = ['stores' => 0, 'over' => 0, 'notified' => 0, 'paused' => 0, 'resumed' => 0];
 
-        Store::query()->whereIn('status', ['onboarding', 'active', 'degraded'])->orderBy('id')->chunkById(200, function ($stores) use ($now, &$result): void {
-            foreach ($stores as $store) {
-                $result['stores']++;
-                $figures = $this->figures($store, $now);
-                $limit = $this->entitlements->forTenant($store->tenant_id, $now)->limit(FeatureCatalog::MAX_ORDERS_PER_MONTH);
-                $over = $limit !== null && $figures['average'] !== null && $figures['average'] > $limit;
-                $store->forceFill([
-                    'order_volume_average' => $figures['average'],
-                    'order_volume_checked_at' => $now,
-                    'order_volume_over_since' => $over ? ($store->order_volume_over_since ?? $now) : null,
-                    'order_volume_notified_at' => $over ? $store->order_volume_notified_at : null,
-                ])->save();
-
-                if (! $over) {
-                    continue;
-                }
-
-                $result['over']++;
-
-                if ($store->order_volume_notified_at === null && $this->notify($store, (int) $limit, (int) $figures['average'], $now)) {
-                    $store->forceFill(['order_volume_notified_at' => $now])->save();
-                    $result['notified']++;
-                }
+        Tenant::query()->whereIn('status', ['active'])->orderBy('id')->select('id')->chunkById(200, function ($tenants) use ($now, &$result): void {
+            foreach ($tenants as $tenant) {
+                $this->evaluateTenant($tenant->id, $now, $result);
             }
         });
 
         return $result;
+    }
+
+    /**
+     * Right after the package changes (purchase, upgrade, temporary access): an organisation whose stores the package
+     * now covers resumes at once instead of waiting for the night.
+     *
+     * @return array{stores: int, over: int, notified: int, paused: int, resumed: int}
+     */
+    public function refreshTenant(string $tenantId, ?Carbon $now = null): array
+    {
+        $result = ['stores' => 0, 'over' => 0, 'notified' => 0, 'paused' => 0, 'resumed' => 0];
+        $this->entitlements->forget();
+        $this->evaluateTenant($tenantId, $now ?? Carbon::now(), $result);
+
+        return $result;
+    }
+
+    /**
+     * @param  array<string, int>  $result
+     */
+    private function evaluateTenant(string $tenantId, Carbon $now, array &$result): void
+    {
+        /** @var Tenant|null $tenant */
+        $tenant = Tenant::query()->find($tenantId);
+
+        if ($tenant === null) {
+            return;
+        }
+
+        $limit = $this->entitlements->forTenant($tenantId, $now)->limit(FeatureCatalog::MAX_ORDERS_PER_MONTH);
+        $grace = $this->graceDays($tenantId);
+        $stores = Store::query()->where('tenant_id', $tenantId)->whereIn('status', ['onboarding', 'active', 'degraded'])->orderBy('id')->get();
+        $over = [];
+        $graceEnded = [];
+
+        foreach ($stores as $store) {
+            $result['stores']++;
+            $figures = $this->figures($store, $now);
+            $isOver = $limit !== null && $figures['average'] !== null && $figures['average'] > $limit;
+            $overSince = $isOver ? ($store->order_volume_over_since ?? $now) : null;
+            $store->forceFill([
+                'order_volume_average' => $figures['average'],
+                'order_volume_checked_at' => $now,
+                'order_volume_over_since' => $overSince,
+                'order_volume_notified_at' => $isOver ? $store->order_volume_notified_at : null,
+            ])->save();
+
+            if (! $isOver) {
+                continue;
+            }
+
+            $result['over']++;
+            $over[] = $store;
+
+            if ($overSince->copy()->addDays($grace)->lessThanOrEqualTo($now)) {
+                $graceEnded[] = $store;
+            }
+
+            if ($store->order_volume_notified_at === null && $this->tell($tenantId, 'order_volume_over', [
+                'store' => $store->name,
+                'average' => (int) $figures['average'],
+                'limit' => (int) $limit,
+                'date' => $overSince->copy()->addDays($grace)->toDateString(),
+                'link' => $this->mailer->link('/app/settings/billing'),
+            ])) {
+                $store->forceFill(['order_volume_notified_at' => $now])->save();
+                $result['notified']++;
+            }
+        }
+
+        $wasPaused = $tenant->order_volume_paused_at !== null;
+        $pause = $over !== [] && ($wasPaused || $graceEnded !== []);
+
+        if ($pause && ! $wasPaused) {
+            $tenant->forceFill(['order_volume_paused_at' => $now])->save();
+            $this->entitlements->forget();
+            $result['paused']++;
+            $this->tell($tenantId, 'order_volume_paused', [
+                'stores' => implode(', ', array_map(fn (Store $store): string => '«'.$store->name.'»', $graceEnded)),
+                'limit' => (int) $limit,
+                'link' => $this->mailer->link('/app/settings/billing'),
+            ]);
+        }
+
+        if (! $pause && $wasPaused) {
+            $tenant->forceFill(['order_volume_paused_at' => null])->save();
+            $this->entitlements->forget();
+            $result['resumed']++;
+
+            foreach ($stores as $store) {
+                $this->requeue->requeue($tenantId, $store->id, ReconciliationDirtySubject::REASON_ORDER_VOLUME_RESUMED);
+            }
+        }
     }
 
     /**
@@ -152,6 +236,7 @@ class OrderVolume
         return [
             'limit' => $limit,
             'grace_days' => $grace,
+            'paused_at' => Tenant::query()->find($tenantId)?->order_volume_paused_at?->toJSON(),
             'stores' => $rows,
             'recommended' => $anyOver ? $this->recommended($highest, $currentPlanCode) : null,
         ];
@@ -190,26 +275,22 @@ class OrderVolume
         ];
     }
 
-    private function notify(Store $store, int $limit, int $average, Carbon $now): bool
+    /**
+     * @param  array<string, string|int>  $replace
+     */
+    private function tell(string $tenantId, string $template, array $replace): bool
     {
         $owners = User::query()
-            ->whereIn('id', Membership::query()->where('tenant_id', $store->tenant_id)->where('role', TenantRoles::OWNER)->select('user_id'))
+            ->whereIn('id', Membership::query()->where('tenant_id', $tenantId)->where('role', TenantRoles::OWNER)->select('user_id'))
             ->get();
-        $graceEnds = $now->copy()->addDays($this->graceDays($store->tenant_id));
         $sent = false;
 
         foreach ($owners as $owner) {
             try {
-                $this->mailer->send($owner->email, (string) $owner->locale, 'order_volume_over', [
-                    'store' => $store->name,
-                    'average' => $average,
-                    'limit' => $limit,
-                    'date' => $graceEnds->toDateString(),
-                    'link' => $this->mailer->link('/app/settings/billing'),
-                ]);
+                $this->mailer->send($owner->email, (string) $owner->locale, $template, $replace);
                 $sent = true;
             } catch (Throwable $exception) {
-                Log::warning('billing.order_volume_notify_failed', ['store_id' => $store->id, 'exception' => $exception::class]);
+                Log::warning('billing.order_volume_notify_failed', ['tenant_id' => $tenantId, 'template' => $template, 'exception' => $exception::class]);
             }
         }
 

@@ -408,7 +408,8 @@
     "renewal_failed_grace": "renewal failed, grace period",
     "no_subscription": "no subscription",
     "tenant_suspended": "suspended manually",
-    "pilot_manual_grant": "pilot mode"
+    "pilot_manual_grant": "pilot mode",
+    "order_volume_exceeded": "order volume above the package"
   },
   "store_status": {
     "onboarding": "Connecting",

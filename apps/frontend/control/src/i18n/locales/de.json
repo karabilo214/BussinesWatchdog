@@ -408,7 +408,8 @@
     "renewal_failed_grace": "Verlängerung fehlgeschlagen, Kulanzfrist",
     "no_subscription": "kein Abonnement",
     "tenant_suspended": "manuell pausiert",
-    "pilot_manual_grant": "Pilotmodus"
+    "pilot_manual_grant": "Pilotmodus",
+    "order_volume_exceeded": "Bestellvolumen über dem Paket"
   },
   "store_status": {
     "onboarding": "Wird verbunden",

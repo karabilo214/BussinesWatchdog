@@ -17,6 +17,10 @@ return [
         'subject' => 'Business Watchdog: Shop „:store“ ist aus seinem Paket herausgewachsen',
         'body' => "Der Shop „:store“ hatte in den letzten drei Monaten durchschnittlich :average Bestellungen im Monat; Ihr Paket umfasst bis zu :limit Bestellungen im Monat pro Shop.\n\nDer Schutz läuft unverändert weiter; nichts wird abgeschaltet und nichts zusätzlich berechnet. Bitte wählen Sie bis zum :date im Konto ein passendes Paket:\n:link\n\nWar es eine einmalige Spitze und liegt das Volumen wieder im Paket, ist nichts zu tun.",
     ],
+    'order_volume_paused' => [
+        'subject' => 'Business Watchdog: Dienst pausiert — Bestellvolumen über dem Paket',
+        'body' => "Die Kulanzzeit ist abgelaufen und das Bestellvolumen des Shops :stores liegt weiter über Ihrem Paket (bis :limit Bestellungen im Monat pro Shop). Der Dienst der Organisation ist daher pausiert: Prüfungen, Abgleich und Benachrichtigungen ruhen. Shop-Daten werden weiter empfangen, nichts geht verloren.\n\nSobald ein passendes Paket gekauft ist, geht es sofort weiter:\n:link",
+    ],
     'roles' => [
         'owner' => 'Inhaber',
         'admin' => 'Administrator',

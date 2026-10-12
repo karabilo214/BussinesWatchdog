@@ -10,6 +10,7 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\OrderVolume;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Billing\Paddle\PaddleConfig;
 use App\Support\Billing\Paddle\PaddleRequestFailed;
@@ -115,6 +116,10 @@ class TenantActions
 
         if (in_array($action, [self::GRANT_OVERRIDE, self::REVOKE_OVERRIDE, self::RESUME], true)) {
             $this->capacity->settle($tenant->id);
+        }
+
+        if (in_array($action, [self::GRANT_OVERRIDE, self::REVOKE_OVERRIDE], true) && Tenant::query()->whereKey($tenant->id)->whereNotNull('order_volume_paused_at')->exists()) {
+            app(OrderVolume::class)->refreshTenant($tenant->id);
         }
     }
 

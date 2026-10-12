@@ -419,6 +419,7 @@ describe('BillingView', () => {
       order_volume: {
         limit: 1000,
         grace_days: 14,
+        paused_at: null,
         stores: [
           { store_id: 's-1', name: 'Kaffee', this_month: 640, average: 1267, months: [], over_since: '2026-10-20T04:10:00Z', grace_ends_at: '2026-11-03T04:10:00Z' },
           { store_id: 's-2', name: 'Tee', this_month: 90, average: 120, months: [], over_since: null, grace_ends_at: null },
@@ -440,6 +441,19 @@ describe('BillingView', () => {
     expect(individual.text()).toContain('Индивидуально');
     expect(individual.get('a').attributes('href')).toBe('/ru/contact');
     expect(wrapper.get('[data-plan="start"]').text()).toContain('Заказов в месяц на магазин');
+  });
+
+  it('shows that the organisation is paused for its order volume until a fitting package is bought', async () => {
+    session.value = sessionFor('owner');
+    api.fetchEntitlements.mockResolvedValue(entitlements({ access_state: 'paused_billing', reason_codes: ['order_volume_exceeded'] }));
+    api.fetchSubscription.mockResolvedValue(paidSubscription({
+      order_volume: { limit: 1000, grace_days: 14, paused_at: '2026-11-03T04:10:00Z', stores: [{ store_id: 's-1', name: 'Kaffee', this_month: 1500, average: 1400, months: [], over_since: '2026-10-20T04:10:00Z', grace_ends_at: '2026-11-03T04:10:00Z' }], recommended: { plan_code: 'pro', name: { ru: 'Pro' }, contact_sales: false } },
+    }));
+    const wrapper = await mountView();
+
+    expect(wrapper.get('[data-access]').text()).toBe('Приостановлено: объём заказов больше пакета');
+    expect(wrapper.get('[data-volume-paused]').text()).toContain('возобновится сразу после покупки подходящего пакета');
+    expect(wrapper.get('[data-volume-over="s-1"]').text()).toContain('Подойдёт пакет «Pro»');
   });
 
   it('pauses nothing by itself: the owner chooses the stores that stay', async () => {

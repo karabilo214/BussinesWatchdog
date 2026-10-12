@@ -221,6 +221,7 @@ export interface OrderVolumeStore {
 export interface OrderVolume {
   limit: number | null;
   grace_days: number;
+  paused_at: string | null;
   stores: OrderVolumeStore[];
   recommended: { plan_code: string; name: Record<string, string>; contact_sales: boolean } | null;
 }

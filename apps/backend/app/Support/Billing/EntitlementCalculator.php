@@ -18,6 +18,8 @@ class EntitlementCalculator
 {
     public const MODE_PILOT = 'pilot';
 
+    public const REASON_ORDER_VOLUME = 'order_volume_exceeded';
+
     public const MODE_ENFORCE = 'enforce';
 
     /** @var array<string, Entitlements> */
@@ -28,7 +30,20 @@ class EntitlementCalculator
         $now ??= Carbon::now();
         $key = $tenantId.'|'.$now->getTimestamp();
 
-        return $this->memo[$key] ??= $this->calculate($tenantId, $now);
+        return $this->memo[$key] ??= $this->withVolumePause($tenantId, $this->calculate($tenantId, $now));
+    }
+
+    /**
+     * An organisation whose store stayed over the package's order volume after the grace period is paused until a
+     * package that covers the volume is bought (ADR 0041); the package limits stay visible so the volume can be compared.
+     */
+    private function withVolumePause(string $tenantId, Entitlements $entitlements): Entitlements
+    {
+        if (! $entitlements->enforced || ! $entitlements->serviceActive() || Tenant::query()->whereKey($tenantId)->whereNotNull('order_volume_paused_at')->doesntExist()) {
+            return $entitlements;
+        }
+
+        return new Entitlements(Entitlements::ACCESS_PAUSED_BILLING, [self::REASON_ORDER_VOLUME], $entitlements->planCode, [], $entitlements->limits, true);
     }
 
     public function forget(): void

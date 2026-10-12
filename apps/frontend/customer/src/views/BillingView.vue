@@ -547,7 +547,7 @@ onBeforeUnmount(stopPolling);
         <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="subscription-title" data-panel="subscription">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 id="subscription-title" class="text-lg font-semibold">{{ $t('billing.subscription') }}</h2>
-            <StatusBadge :tone="ACCESS_TONES[entitlements.access_state]" :label="$t(`billing.access.${entitlements.access_state}`)" />
+            <StatusBadge :tone="ACCESS_TONES[entitlements.access_state]" :label="entitlements.reason_codes.includes('order_volume_exceeded') ? $t('billing.access.order_volume_exceeded') : $t(`billing.access.${entitlements.access_state}`)" data-access />
           </div>
 
           <dl v-if="subscription" class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
@@ -739,6 +739,9 @@ onBeforeUnmount(stopPolling);
             <h2 id="volume-title" class="text-lg font-semibold">{{ $t('billing.volume.title') }}</h2>
             <p class="text-sm text-text-muted">{{ $t('billing.volume.hint') }}</p>
           </div>
+          <p v-if="subscription.order_volume.paused_at" class="rounded-md border border-crit-border bg-crit-soft p-3 text-sm text-crit" data-volume-paused>
+            {{ $t('billing.volume.paused', { date: dateTime(subscription.order_volume.paused_at) }) }}
+          </p>
           <div v-for="store in subscription.order_volume.stores.filter((row) => row.over_since)" :key="`over-${store.store_id}`" class="flex flex-col gap-1 rounded-md border border-warn-border bg-warn-soft p-3 text-sm text-warn" :data-volume-over="store.store_id">
             <p>{{ $t('billing.volume.over', { store: store.name, average: count(store.average ?? 0), limit: count(subscription.order_volume.limit ?? 0), date: dateTime(store.grace_ends_at) }) }}</p>
             <p v-if="subscription.order_volume.recommended">

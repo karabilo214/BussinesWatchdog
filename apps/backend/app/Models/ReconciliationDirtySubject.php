@@ -29,6 +29,8 @@ class ReconciliationDirtySubject extends Model
 
     public const REASON_CONNECTOR_RECOVERED = 'connector_recovered';
 
+    public const REASON_ORDER_VOLUME_RESUMED = 'order_volume_resumed';
+
     public $timestamps = false;
 
     protected $fillable = [

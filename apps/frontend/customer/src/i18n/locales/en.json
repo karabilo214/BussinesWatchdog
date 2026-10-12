@@ -1403,7 +1403,8 @@
       "paused_billing": "Paused: no payment",
       "paused_manual": "Paused",
       "no_service": "Service unavailable",
-      "onboarding": "No plan chosen"
+      "onboarding": "No plan chosen",
+      "order_volume_exceeded": "Paused: order volume above the package"
     },
     "trial_ends_at": "Trial until",
     "renews_at": "Next renewal",
@@ -1545,7 +1546,8 @@
       "row": "this month {month} · average {average} · package up to {limit}",
       "over": "The store “{store}” has {average} orders a month on average while the package covers up to {limit}. Protection keeps working; please choose a fitting package by {date}.",
       "recommended": "The “{plan}” package fits.",
-      "recommended_individual": "The “{plan}” package fits — its terms are agreed individually."
+      "recommended_individual": "The “{plan}” package fits — its terms are agreed individually.",
+      "paused": "Since {date} the service is paused: a store's order volume is above what the package covers and the grace period has ended. Store data is still received. Work resumes as soon as a fitting package is bought."
     }
   }
 }

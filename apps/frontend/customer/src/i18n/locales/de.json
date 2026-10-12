@@ -1403,7 +1403,8 @@
       "paused_billing": "Pausiert: keine Zahlung",
       "paused_manual": "Pausiert",
       "no_service": "Dienst nicht verfügbar",
-      "onboarding": "Kein Tarif gewählt"
+      "onboarding": "Kein Tarif gewählt",
+      "order_volume_exceeded": "Pausiert: Bestellvolumen über dem Paket"
     },
     "trial_ends_at": "Testzeitraum bis",
     "renews_at": "Nächste Verlängerung",
@@ -1545,7 +1546,8 @@
       "row": "diesen Monat {month} · Schnitt {average} · Paket bis {limit}",
       "over": "Der Shop „{store}“ hat im Schnitt {average} Bestellungen im Monat, das Paket umfasst bis {limit}. Der Schutz läuft weiter; bitte wählen Sie bis {date} ein passendes Paket.",
       "recommended": "Das Paket „{plan}“ passt.",
-      "recommended_individual": "Das Paket „{plan}“ passt — die Konditionen werden individuell vereinbart."
+      "recommended_individual": "Das Paket „{plan}“ passt — die Konditionen werden individuell vereinbart.",
+      "paused": "Seit {date} ist der Dienst pausiert: Das Bestellvolumen eines Shops liegt über dem Paket und die Kulanzzeit ist abgelaufen. Shop-Daten werden weiter empfangen. Sobald ein passendes Paket gekauft ist, geht es sofort weiter."
     }
   }
 }
