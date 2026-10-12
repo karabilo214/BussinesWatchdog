@@ -1972,6 +1972,186 @@ paths:
         "204": {description: No trial or paid subscription yet; the client shows onboarding}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/plan-change-preview:
+    post:
+      tags: [Billing]
+      operationId: previewBillingPlanChange
+      description: "Tenant owner only (ADR 0037). Previews a change of the live subscription to another base price of the same currency and interval (and a number of extra stores). A recurring price that is not lower takes effect at once with Paddle's prorated charge for the rest of the period; a lower one takes effect at the next period. While a cheaper plan is scheduled only another cheaper plan can be previewed (409 scheduled_change_pending). When the new plan allows fewer stores than the organisation has, `retained_store_ids` (at most the new limit) is required: 422 retained_stores_required with details {limit, stores}. The returned token is valid for 10 minutes."
+      security:
+        - {UserSession: []}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [price_id]
+              properties:
+                price_id: {type: string, format: uuid}
+                extra_stores: {type: integer, minimum: 0, maximum: 1000, default: 0}
+                retained_store_ids: {type: [array, "null"], items: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Preview
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/BillingPlanChange"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+        "502": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/plan-change:
+    post:
+      tags: [Billing]
+      operationId: confirmBillingPlanChange
+      description: "Tenant owner only. Confirms a preview by its token. 409 preview_expired / preview_stale (the subscription changed since the preview) / preview_used. An immediate change is sent to Paddle with on_payment_failure=prevent_change: if the charge fails, 402 payment_failed and the subscription stays as it was. A lost Paddle answer leaves the change `unknown` (502 provider_outcome_unknown) until the subscription is read again — never retried automatically. Access follows only the subscription read back from Paddle. The same Idempotency-Key returns the same change."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [preview_token]
+              properties:
+                preview_token: {type: string}
+      responses:
+        "202":
+          description: Applied (immediate) or scheduled (next period)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [change, subscription]
+                properties:
+                  change: {$ref: "#/components/schemas/BillingPlanChange"}
+                  subscription: {oneOf: [{$ref: "#/components/schemas/BillingSubscription"}, {type: "null"}]}
+        "400": {$ref: "#/components/responses/Problem"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "402": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "502": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/plan-change/cancel:
+    post:
+      tags: [Billing]
+      operationId: cancelBillingPlanChange
+      description: "Tenant owner only. Withdraws a cheaper plan scheduled for the next period: the paid plan's items are put back at Paddle without billing."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+      responses:
+        "200":
+          description: Withdrawn change and the subscription
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [change, subscription]
+                properties:
+                  change: {$ref: "#/components/schemas/BillingPlanChange"}
+                  subscription: {oneOf: [{$ref: "#/components/schemas/BillingSubscription"}, {type: "null"}]}
+        "400": {$ref: "#/components/responses/Problem"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "502": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/cancel:
+    post:
+      tags: [Billing]
+      operationId: cancelBillingSubscription
+      description: "Tenant owner only. Cancels renewal at the end of the paid period (Paddle scheduled cancel); access, monitoring and history stay until then, nothing is refunded or deleted. Repeating it while a cancellation is scheduled changes nothing. The reason is optional and stored in the audit log only."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [at_period_end]
+              properties:
+                at_period_end: {const: true}
+                reason: {type: [string, "null"], maxLength: 2000}
+      responses:
+        "200":
+          description: Subscription as read back from Paddle
+          content:
+            application/json:
+              schema: {oneOf: [{$ref: "#/components/schemas/BillingSubscription"}, {type: "null"}]}
+        "400": {$ref: "#/components/responses/Problem"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "502": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/resume:
+    post:
+      tags: [Billing]
+      operationId: resumeBillingSubscription
+      description: "Tenant owner only. Withdraws a scheduled cancellation (Paddle scheduled change removed); renewal continues. 409 cancel_not_scheduled, 409 version_conflict when expected_version is not the current subscription version."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                expected_version: {type: [integer, "null"], minimum: 1}
+      responses:
+        "200":
+          description: Subscription as read back from Paddle
+          content:
+            application/json:
+              schema: {oneOf: [{$ref: "#/components/schemas/BillingSubscription"}, {type: "null"}]}
+        "400": {$ref: "#/components/responses/Problem"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "502": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/retained-stores:
+    put:
+      tags: [Billing]
+      operationId: retainBillingStores
+      description: "Tenant owner only. Chooses which stores keep running when the plan allows fewer stores than the organisation has (at most the limit); the others are paused for browser checks, never deleted."
+      security:
+        - {UserSession: []}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [store_ids]
+              properties:
+                store_ids: {type: array, minItems: 1, items: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Store capacity after the choice
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/StoreCapacity"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/webhooks/paddle:
     post:
       tags: [Billing]
@@ -3864,6 +4044,18 @@ components:
         period_end: {type: [string, "null"], format: date-time}
         cancel_at_period_end: {type: boolean}
         extra_store_quantity: {type: integer, minimum: 0}
+        price:
+          type: [object, "null"]
+          description: The base price of the period being paid (with a cheaper plan scheduled, still the old one)
+          properties:
+            id: {type: string, format: uuid}
+            amount_minor: {type: string, pattern: "^[0-9]+$"}
+            currency: {type: string}
+            currency_exponent: {type: integer}
+            billing_interval: {type: string}
+            billing_interval_count: {type: integer}
+        scheduled_change: {oneOf: [{$ref: "#/components/schemas/BillingPlanChange"}, {type: "null"}]}
+        capacity: {$ref: "#/components/schemas/StoreCapacity"}
         version: {type: integer, minimum: 1}
         entitlements:
           type: object
@@ -3871,6 +4063,43 @@ components:
           properties:
             features: {type: array, items: {type: string}}
             limits: {type: object, additionalProperties: {type: [integer, "null"]}}
+    BillingPlanChange:
+      type: object
+      additionalProperties: false
+      required: [id, preview_token, kind, status, from, to, currency, currency_exponent, due_now_minor, next_amount_before_minor, next_amount_minor, effective_at, expires_at, retained_store_ids, error_code]
+      properties:
+        id: {type: string, format: uuid}
+        preview_token: {type: [string, "null"], description: "Only while the preview can be confirmed (10 minutes)"}
+        kind: {enum: [immediate, next_period], description: "immediate — the new recurring price is not lower: Paddle charges the prorated difference now; next_period — a cheaper plan from the next billing period, the paid plan stays until then"}
+        status: {enum: [previewed, applying, applied, scheduled, failed, unknown, cancelled, expired]}
+        from: {$ref: "#/components/schemas/BillingPlanChangeSide"}
+        to: {$ref: "#/components/schemas/BillingPlanChangeSide"}
+        currency: {type: string}
+        currency_exponent: {type: integer}
+        due_now_minor: {type: string, pattern: "^[0-9]+$", description: "Gross amount Paddle charges now for the rest of the period (0 for next_period), without discounts"}
+        next_amount_before_minor: {type: string, pattern: "^[0-9]+$", description: Next period's price of the new plan before discounts}
+        next_amount_minor: {type: string, pattern: "^[0-9]+$", description: "Next period's price after the discounts the subscription still holds that apply to the new plan"}
+        effective_at: {type: [string, "null"], format: date-time}
+        expires_at: {type: string, format: date-time}
+        retained_store_ids: {type: [array, "null"], items: {type: string, format: uuid}}
+        error_code: {type: [string, "null"]}
+    BillingPlanChangeSide:
+      type: object
+      properties:
+        plan_code: {type: [string, "null"]}
+        plan_version_id: {type: [string, "null"], format: uuid}
+        price_id: {type: string, format: uuid}
+        amount_minor: {type: [string, "null"]}
+        extra_store_quantity: {type: integer, minimum: 0}
+    StoreCapacity:
+      type: object
+      additionalProperties: false
+      required: [limit, stores, paused, choice_required]
+      properties:
+        limit: {type: [integer, "null"], description: "Stores the plan allows; null when not limited (also in pilot mode)"}
+        stores: {type: integer}
+        paused: {type: integer}
+        choice_required: {type: boolean, description: "More stores run than the plan allows and the owner has not chosen: browser checks of the organisation are paused"}
     Entitlements:
       type: object
       additionalProperties: false
@@ -4088,6 +4317,7 @@ components:
         default_currency: {type: string, pattern: "^[A-Z]{3}$"}
         status: {enum: [onboarding, active, paused, degraded, deleted]}
         verified_at: {type: [string, "null"], format: date-time}
+        capacity_paused_at: {type: [string, "null"], format: date-time, description: "Set while the plan allows fewer stores and the owner did not keep this one: scheduled and manual browser checks are paused, history and setup stay (ADR 0037)"}
         browser_enabled: {type: boolean}
         telemetry_enabled: {type: boolean}
         config_version: {type: integer, minimum: 1}

@@ -73,7 +73,7 @@ class CheckRunController extends Controller
             $status = match ($run) {
                 CheckScheduler::ERROR_RATE_LIMITED => 429,
                 CheckScheduler::ERROR_RUN_ACTIVE => 409,
-                CheckScheduler::ERROR_NOT_IN_PLAN => 403,
+                CheckScheduler::ERROR_NOT_IN_PLAN, CheckScheduler::ERROR_CAPACITY => 403,
                 default => 422,
             };
 

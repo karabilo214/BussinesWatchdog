@@ -51,7 +51,7 @@ php artisan migrate --force
 * * * * * cd /path/to/apps/backend && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Он сам запускает: доставку событий (`outbox:dispatch`, 10 с), пересчёт сверки (`reconciliation:process-dirty`, 30 с), уведомления (`notifications:deliver`, 30 с; `notifications:remind`, час), ночную сверку (02:30), проверку подтверждения магазинов и свежести коннекторов (минута), планирование браузерных проверок (минута), синхронизацию Stripe / PayPal / WooCommerce REST / Shopware, события Paddle (`billing:paddle-events`, минута; `billing:process-events`, 30 с), скидки следующего периода подписок (`billing:plan-discounts`, 15 мин), очистку старых скриншотов и экспортов (ежедневно). Вручную их запускать не нужно.
+Он сам запускает: доставку событий (`outbox:dispatch`, 10 с), пересчёт сверки (`reconciliation:process-dirty`, 30 с), уведомления (`notifications:deliver`, 30 с; `notifications:remind`, час), ночную сверку (02:30), проверку подтверждения магазинов и свежести коннекторов (минута), планирование браузерных проверок (минута), синхронизацию Stripe / PayPal / WooCommerce REST / Shopware, события Paddle (`billing:paddle-events`, минута; `billing:process-events`, 30 с), скидки следующего периода подписок (`billing:plan-discounts`, 15 мин), смены тарифа и отмены подписок (`billing:plan-changes`, минута: переход на более дешёвый тариф в начале нового периода, проверка изменений с неизвестным ответом Paddle, пересчёт скидок), очистку старых скриншотов и экспортов (ежедневно). Вручную их запускать не нужно.
 
 ### 4. Первый владелец сервиса (вход в `/owner`)
 

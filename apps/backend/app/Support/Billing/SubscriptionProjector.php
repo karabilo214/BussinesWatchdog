@@ -3,7 +3,9 @@
 namespace App\Support\Billing;
 
 use App\Models\BillingCustomer;
+use App\Models\BillingPlanChange;
 use App\Models\BillingPlanVersion;
+use App\Models\BillingPrice;
 use App\Models\BillingSubscriptionContract;
 use App\Models\Subscription;
 use Illuminate\Support\Carbon;
@@ -11,7 +13,8 @@ use Illuminate\Support\Carbon;
 /**
  * Provider-neutral: turns the tenant's provider contracts of one mode into the single `subscriptions` row the
  * entitlement calculator reads. A live contract (active, trial, past due) wins over an ended one; among equals the one
- * with the latest period end. A contract in an unknown state never changes the row (no grant, no cut).
+ * with the latest period end. A contract in an unknown state never changes the row (no grant, no cut). A cheaper plan
+ * scheduled for the next period is already on the provider subscription; the paid plan stays until the change is due.
  */
 class SubscriptionProjector
 {
@@ -41,8 +44,16 @@ class SubscriptionProjector
             return null;
         }
 
+        /** @var BillingPlanChange|null $scheduled */
+        $scheduled = BillingPlanChange::query()
+            ->where('contract_id', $contract->id)
+            ->where('status', BillingPlanChange::STATUS_SCHEDULED)
+            ->where('effective_at', '>', $now)
+            ->first();
+        $versionId = $scheduled === null ? $contract->plan_version_id : BillingPrice::query()->whereKey($scheduled->from_price_id)->value('plan_version_id');
+        $extraStores = $scheduled === null ? $contract->extra_store_quantity : $scheduled->from_extra_store_quantity;
         /** @var BillingPlanVersion $version */
-        $version = BillingPlanVersion::query()->with('plan')->findOrFail($contract->plan_version_id);
+        $version = BillingPlanVersion::query()->with('plan')->findOrFail($versionId);
         /** @var Subscription|null $row */
         $row = Subscription::query()->where('tenant_id', $tenantId)->lockForUpdate()->first();
         $status = self::STATUS[$contract->normalized_state];
@@ -53,7 +64,7 @@ class SubscriptionProjector
             'plan_code' => $version->plan->code,
             'plan_version_id' => $version->id,
             'entitlements' => FeatureCatalog::normalize($version->entitlements),
-            'extra_store_quantity' => $contract->extra_store_quantity,
+            'extra_store_quantity' => $extraStores,
             'status' => $status,
             'period_start' => $contract->period_start,
             'period_end' => $contract->paid_until ?? $contract->period_end,

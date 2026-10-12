@@ -11,6 +11,7 @@ export function makeStore(overrides: Partial<Store> = {}): Store {
     default_currency: 'EUR',
     status: 'onboarding',
     verified_at: null,
+    capacity_paused_at: null,
     browser_enabled: false,
     telemetry_enabled: false,
     config_version: 3,

@@ -33,6 +33,34 @@ class BillingCatalog
             ->whereIn('state', self::sellableStates());
     }
 
+    public function sellableBasePrice(string $priceId): BillingPrice
+    {
+        /** @var BillingPrice|null $price */
+        $price = $this->prices()
+            ->with('planVersion.plan')
+            ->whereKey($priceId)
+            ->where('price_kind', BillingPrice::KIND_BASE)
+            ->whereHas('planVersion', fn ($query) => $query->whereIn('state', self::sellableStates())
+                ->whereHas('plan', fn ($query) => $query->whereIn('state', self::sellableStates())))
+            ->first();
+
+        return $price ?? throw new BillingCheckoutRejected('price_not_available');
+    }
+
+    public function extraStorePriceFor(BillingPrice $base): BillingPrice
+    {
+        /** @var BillingPrice|null $price */
+        $price = $this->prices()
+            ->where('plan_version_id', $base->plan_version_id)
+            ->where('price_kind', BillingPrice::KIND_EXTRA_STORE)
+            ->where('billing_interval', $base->billing_interval)
+            ->where('billing_interval_count', $base->billing_interval_count)
+            ->where('currency', $base->currency)
+            ->first();
+
+        return $price ?? throw new BillingCheckoutRejected('extra_stores_out_of_range');
+    }
+
     /**
      * @return list<BillingPlanVersion>
      */

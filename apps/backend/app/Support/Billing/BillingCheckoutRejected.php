@@ -20,9 +20,32 @@ class BillingCheckoutRejected extends RuntimeException
         'discount_expired' => 422,
         'discount_not_applicable' => 422,
         'discount_used_up' => 409,
+        'no_active_subscription' => 409,
+        'subscription_past_due' => 409,
+        'subscription_unknown' => 409,
+        'plan_unchanged' => 422,
+        'scheduled_change_pending' => 409,
+        'currency_change_unsupported' => 422,
+        'interval_change_unsupported' => 422,
+        'retained_stores_required' => 422,
+        'retained_stores_invalid' => 422,
+        'preview_not_found' => 404,
+        'preview_expired' => 409,
+        'preview_stale' => 409,
+        'preview_used' => 409,
+        'no_scheduled_change' => 409,
+        'cancel_not_scheduled' => 409,
+        'version_conflict' => 409,
+        'provider_unavailable' => 502,
+        'provider_outcome_unknown' => 502,
+        'payment_failed' => 402,
+        'plan_change_rejected' => 422,
     ];
 
-    public function __construct(public readonly string $reasonCode)
+    /**
+     * @param  array<string, mixed>  $details
+     */
+    public function __construct(public readonly string $reasonCode, public readonly array $details = [])
     {
         parent::__construct($reasonCode);
     }

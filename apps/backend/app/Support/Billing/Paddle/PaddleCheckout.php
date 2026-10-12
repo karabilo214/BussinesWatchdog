@@ -12,7 +12,6 @@ use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Billing\DiscountLedger;
 use App\Support\Billing\DiscountResolver;
 use App\Support\Billing\FeatureCatalog;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -60,7 +59,7 @@ class PaddleCheckout
                 throw new BillingCheckoutRejected('subscription_exists');
             }
 
-            $base = $this->basePrice($priceId);
+            $base = $this->catalog->sellableBasePrice($priceId);
             /** @var BillingPlanVersion $version */
             $version = $base->planVersion;
             $maxExtra = $version->entitlements['limits'][FeatureCatalog::MAX_EXTRA_STORES] ?? null;
@@ -69,7 +68,7 @@ class PaddleCheckout
                 throw new BillingCheckoutRejected('extra_stores_out_of_range');
             }
 
-            $extra = $extraStores > 0 ? $this->extraStorePrice($base) : null;
+            $extra = $extraStores > 0 ? $this->catalog->extraStorePriceFor($base) : null;
             $discounts = $this->discounts->stack($tenantId, $base, $discountCode);
             $pending = BillingCheckoutSession::query()
                 ->where('tenant_id', $tenantId)
@@ -132,49 +131,6 @@ class PaddleCheckout
         }
 
         return $session;
-    }
-
-    private function basePrice(string $priceId): BillingPrice
-    {
-        /** @var BillingPrice|null $price */
-        $price = $this->prices()
-            ->whereKey($priceId)
-            ->where('price_kind', BillingPrice::KIND_BASE)
-            ->whereHas('planVersion', fn ($query) => $query->whereIn('state', $this->sellableStates())
-                ->whereHas('plan', fn ($query) => $query->whereIn('state', $this->sellableStates())))
-            ->first();
-
-        return $price ?? throw new BillingCheckoutRejected('price_not_available');
-    }
-
-    private function extraStorePrice(BillingPrice $base): BillingPrice
-    {
-        /** @var BillingPrice|null $price */
-        $price = $this->prices()
-            ->where('plan_version_id', $base->plan_version_id)
-            ->where('price_kind', BillingPrice::KIND_EXTRA_STORE)
-            ->where('billing_interval', $base->billing_interval)
-            ->where('billing_interval_count', $base->billing_interval_count)
-            ->where('currency', $base->currency)
-            ->first();
-
-        return $price ?? throw new BillingCheckoutRejected('extra_stores_out_of_range');
-    }
-
-    /**
-     * @return Builder<BillingPrice>
-     */
-    private function prices(): Builder
-    {
-        return $this->catalog->prices();
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function sellableStates(): array
-    {
-        return BillingCatalog::sellableStates();
     }
 
     private function cancelQuietly(string $transactionRef): void

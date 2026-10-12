@@ -31,6 +31,7 @@ class Store extends Model
     {
         return [
             'verified_at' => 'datetime',
+            'capacity_paused_at' => 'datetime',
             'browser_enabled' => 'boolean',
             'telemetry_enabled' => 'boolean',
             'config_version' => 'integer',

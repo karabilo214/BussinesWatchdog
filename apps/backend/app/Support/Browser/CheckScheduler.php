@@ -8,6 +8,7 @@ use App\Models\Store;
 use App\Models\Tenant;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Billing\UsageMeter;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -26,10 +27,13 @@ class CheckScheduler
 
     public const ERROR_USAGE_LIMIT = UsageMeter::ERROR_LIMIT_REACHED;
 
+    public const ERROR_CAPACITY = 'store_capacity_paused';
+
     public function __construct(
         private readonly ScenarioDefinition $definition,
         private readonly EntitlementCalculator $entitlements,
         private readonly UsageMeter $usage,
+        private readonly StoreCapacity $capacity,
     ) {}
 
     /**
@@ -68,6 +72,10 @@ class CheckScheduler
 
             if ($store === null || ! $locked->enabled) {
                 return self::ERROR_NOT_ELIGIBLE;
+            }
+
+            if ($store->capacity_paused_at !== null || $this->capacity->choiceRequired($locked->tenant_id)) {
+                return self::ERROR_CAPACITY;
             }
 
             $entitlements = $this->entitlements->forTenant($locked->tenant_id);
@@ -113,7 +121,10 @@ class CheckScheduler
 
             $store = $this->eligibleStore($scenario);
 
-            if ($store === null || ! $this->entitlements->forTenant($scenario->tenant_id, $now)->allows(FeatureCatalog::CHECKOUT_MONITORING)) {
+            if ($store === null
+                || $store->capacity_paused_at !== null
+                || ! $this->entitlements->forTenant($scenario->tenant_id, $now)->allows(FeatureCatalog::CHECKOUT_MONITORING)
+                || $this->capacity->choiceRequired($scenario->tenant_id)) {
                 $scenario->forceFill(['next_due_at' => $this->nextDue($scenario, $now)])->save();
 
                 return false;

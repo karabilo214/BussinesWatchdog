@@ -4,13 +4,19 @@ import { useI18n } from 'vue-i18n';
 import { newIdempotencyKey } from '@bw/api-client';
 import { formatMinor, parseMinor, StatusBadge, type Tone } from '@bw/ui';
 import {
+  cancelSubscription,
   checkDiscount,
+  confirmPlanChange,
   fetchCheckout,
   fetchEntitlements,
   fetchPlans,
   fetchSubscription,
+  previewPlanChange,
+  resumeSubscription,
+  retainStores,
   startCheckout,
   startTrial,
+  withdrawPlanChange,
   type AccessState,
   type BillingCatalog,
   type BillingCheckout,
@@ -19,11 +25,14 @@ import {
   type BillingPrice,
   type BillingSubscription,
   type Entitlements,
+  type PlanChange,
   type SubscriptionStatus,
 } from '@/api/billing';
 import { listStores } from '@/api/stores';
+import type { Store } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
+import StoreChoice from '@/components/billing/StoreChoice.vue';
 import { openPaddleCheckout } from '@/composables/paddle';
 import { useFormat } from '@/composables/useFormat';
 import { useRole } from '@/composables/useRole';
@@ -62,7 +71,8 @@ const isOwner = computed(() => role.value === 'owner');
 const entitlements = ref<Entitlements | null>(null);
 const catalog = ref<BillingCatalog | null>(null);
 const subscription = ref<BillingSubscription | null>(null);
-const activeStores = ref<number | null>(null);
+const storeList = ref<Store[]>([]);
+const activeStores = computed<number | null>(() => (loading.value ? null : storeList.value.length));
 const loading = ref(true);
 const loadError = ref<unknown>(null);
 const actionError = ref<unknown>(null);
@@ -75,11 +85,17 @@ const promo = reactive({ input: '', code: null as string | null, results: {} as 
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let polls = 0;
 let pendingKey: { selection: string; key: string } | null = null;
+const change = reactive({ plan: null as BillingPlan | null, extra: 0, limit: null as number | null, retained: [] as string[], preview: null as PlanChange | null, key: '' });
+const notice = ref<'applied' | 'scheduled' | 'withdrawn' | 'cancelled' | 'resumed' | 'retained' | null>(null);
+const cancelForm = reactive({ open: false, reason: '' });
+const capacityChoice = ref<string[]>([]);
 
 const paid = computed(() => subscription.value !== null && ['active', 'past_due'].includes(subscription.value.status) && subscription.value.provider !== 'internal');
 const currentPlan = computed(() => catalog.value?.data.find((plan) => plan.plan_version_id === subscription.value?.plan_version_id) ?? null);
 const canTrial = computed(() => isOwner.value && catalog.value?.trial_available === true && subscription.value === null);
 const canBuy = computed(() => isOwner.value && catalog.value?.checkout_available === true && !paid.value);
+const canChange = computed(() => isOwner.value && paid.value && subscription.value?.status === 'active');
+const changingPlan = computed(() => catalog.value?.data.find((plan) => plan.plan_version_id === subscription.value?.scheduled_change?.to.plan_version_id) ?? null);
 
 function planName(plan: BillingPlan | null, code: string | null): string {
   if (plan === null) {
@@ -243,6 +259,118 @@ const usageRows = computed(() => {
   ];
 });
 
+function isCurrent(plan: BillingPlan): boolean {
+  return plan.plan_version_id === subscription.value?.plan_version_id;
+}
+
+function sameInterval(plan: BillingPlan): boolean {
+  const base = price(plan, 'base');
+  const current = subscription.value?.price;
+
+  return base !== null && (current === null || current === undefined || (base.interval === current.billing_interval && base.interval_count === current.billing_interval_count && base.currency === current.currency));
+}
+
+function storeLimit(plan: BillingPlan, extra: number): number | null {
+  const included = plan.entitlements.limits.max_active_stores;
+
+  return included === null || included === undefined ? null : included + extra;
+}
+
+function changeMoney(minor: string): string {
+  const current = change.preview;
+
+  return current === null ? minor : (formatMinor(minor, current.currency, current.currency_exponent, locale.value) ?? `${minor} ${current.currency}`);
+}
+
+function selectedExtra(plan: BillingPlan): number {
+  return Math.max(0, Math.min(maxExtra(plan), Math.trunc(extraStores[plan.plan_version_id] ?? 0)));
+}
+
+function unchanged(plan: BillingPlan): boolean {
+  return isCurrent(plan) && selectedExtra(plan) === subscription.value?.extra_store_quantity && subscription.value?.scheduled_change === null;
+}
+
+function closeChange(): void {
+  Object.assign(change, { plan: null, extra: 0, limit: null, retained: [], preview: null, key: '' });
+}
+
+async function beginChange(plan: BillingPlan): Promise<void> {
+  const extra = selectedExtra(plan);
+  const limit = storeLimit(plan, extra);
+  Object.assign(change, { plan, extra, limit: limit !== null && storeList.value.length > limit ? limit : null, retained: [], preview: null, key: '' });
+  notice.value = null;
+
+  if (change.limit === null) {
+    await requestPreview();
+  }
+}
+
+async function requestPreview(): Promise<void> {
+  const plan = change.plan;
+  const base = plan === null ? null : price(plan, 'base');
+
+  if (base === null) {
+    return;
+  }
+
+  busy.value = 'preview';
+  actionError.value = null;
+
+  try {
+    change.preview = await previewPlanChange(base.id, change.extra, change.limit === null ? null : change.retained);
+    change.key = newIdempotencyKey();
+  } catch (caught) {
+    actionError.value = caught;
+  } finally {
+    busy.value = null;
+  }
+}
+
+async function confirmChange(): Promise<void> {
+  const token = change.preview?.preview_token;
+
+  if (!token) {
+    return;
+  }
+
+  busy.value = 'confirm';
+  actionError.value = null;
+
+  try {
+    const result = await confirmPlanChange(token, change.key);
+    closeChange();
+    await load();
+    notice.value = result.change.status === 'scheduled' ? 'scheduled' : 'applied';
+  } catch (caught) {
+    actionError.value = caught;
+  } finally {
+    busy.value = null;
+  }
+}
+
+async function subscriptionAction(name: string, action: () => Promise<unknown>, done: NonNullable<typeof notice.value>): Promise<void> {
+  busy.value = name;
+  actionError.value = null;
+  notice.value = null;
+
+  try {
+    await action();
+    cancelForm.open = false;
+    cancelForm.reason = '';
+    await load();
+    notice.value = done;
+  } catch (caught) {
+    actionError.value = caught;
+  } finally {
+    busy.value = null;
+  }
+}
+
+const withdraw = () => subscriptionAction('withdraw', withdrawPlanChange, 'withdrawn');
+const cancelRenewal = () => subscriptionAction('cancel', () => cancelSubscription(cancelForm.reason.trim() === '' ? null : cancelForm.reason.trim()), 'cancelled');
+const resume = () => subscriptionAction('resume', () => resumeSubscription(subscription.value?.version ?? 1), 'resumed');
+const keepStores = () => subscriptionAction('retain', () => retainStores(capacityChoice.value), 'retained');
+
 async function load(): Promise<void> {
   loadError.value = null;
 
@@ -256,10 +384,11 @@ async function load(): Promise<void> {
     entitlements.value = loadedEntitlements;
     catalog.value = loadedCatalog;
     subscription.value = loadedSubscription;
-    activeStores.value = stores.filter((store) => store.status !== 'deleted').length;
+    storeList.value = stores.filter((store) => store.status !== 'deleted');
+    capacityChoice.value = storeList.value.filter((store) => !store.capacity_paused_at).map((store) => store.id);
 
     for (const plan of loadedCatalog.data) {
-      extraStores[plan.plan_version_id] ??= 0;
+      extraStores[plan.plan_version_id] = plan.plan_version_id === loadedSubscription?.plan_version_id ? loadedSubscription.extra_store_quantity : (extraStores[plan.plan_version_id] ?? 0);
     }
   } catch (caught) {
     loadError.value = caught;
@@ -446,12 +575,144 @@ onBeforeUnmount(stopPolling);
               <dt class="text-text-muted">{{ $t('billing.extra_stores') }}</dt>
               <dd>{{ count(subscription.extra_store_quantity) }}</dd>
             </div>
+            <div v-if="paid && subscription.price" class="flex flex-col gap-0.5">
+              <dt class="text-text-muted">{{ $t('billing.base_price') }}</dt>
+              <dd class="tabular-nums">
+                {{ formatMinor(subscription.price.amount_minor, subscription.price.currency, subscription.price.currency_exponent, locale) }}
+                {{ period(subscription.price.billing_interval, subscription.price.billing_interval_count) }}
+              </dd>
+            </div>
           </dl>
           <p v-else-if="isOwner" class="text-sm text-text-muted">{{ $t('billing.no_subscription') }}</p>
           <p v-else class="text-sm text-text-muted">
             {{ $t('billing.plan') }}: <span class="font-medium text-text">{{ planName(null, entitlements.plan_code) }}</span>. {{ $t('billing.owner_manages') }}
           </p>
-          <p v-if="subscription?.cancel_at_period_end" class="text-sm text-warn">{{ $t('billing.cancel_scheduled') }}</p>
+          <p v-if="notice" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" :data-notice="`change-${notice}`">{{ $t(`billing.change.done.${notice}`) }}</p>
+
+          <div v-if="subscription?.scheduled_change" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-note-border bg-note-soft px-3 py-2 text-sm text-note" data-scheduled="change">
+            <span>
+              {{
+                $t('billing.change.scheduled', {
+                  date: dateTime(subscription.scheduled_change.effective_at),
+                  plan: planName(changingPlan, subscription.scheduled_change.to.plan_code),
+                  stores: count(subscription.scheduled_change.to.extra_store_quantity),
+                })
+              }}
+            </span>
+            <button v-if="isOwner" type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy !== null" data-action="withdraw-change" @click="withdraw">
+              {{ $t('billing.change.withdraw') }}
+            </button>
+          </div>
+
+          <div v-if="subscription?.capacity?.choice_required && subscription.capacity.limit !== null" class="flex flex-col gap-3 rounded-md border border-crit-border bg-crit-soft p-3 text-sm" data-capacity="choice">
+            <p class="text-crit">{{ $t('billing.capacity.required', { limit: count(subscription.capacity.limit), stores: count(subscription.capacity.stores) }) }}</p>
+            <StoreChoice v-if="isOwner" v-model="capacityChoice" :stores="storeList" :limit="subscription.capacity.limit" />
+            <button
+              v-if="isOwner"
+              type="button"
+              class="self-start rounded-md bg-primary px-3 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"
+              :disabled="busy !== null || capacityChoice.length === 0 || capacityChoice.length > subscription.capacity.limit"
+              data-action="retain-stores"
+              @click="keepStores"
+            >
+              {{ $t('billing.capacity.save') }}
+            </button>
+          </div>
+          <p v-else-if="(subscription?.capacity?.paused ?? 0) > 0" class="text-sm text-text-muted" data-capacity="paused">
+            {{ $t('billing.capacity.paused', { n: count(subscription?.capacity?.paused ?? 0) }) }}
+          </p>
+
+          <template v-if="canChange && subscription">
+            <div v-if="subscription.cancel_at_period_end" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm text-warn" data-scheduled="cancel">
+              <span>{{ $t('billing.cancel.scheduled', { date: dateTime(subscription.period_end) }) }}</span>
+              <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy !== null" data-action="resume" @click="resume">
+                {{ $t('billing.cancel.resume') }}
+              </button>
+            </div>
+            <div v-else-if="cancelForm.open" class="flex flex-col gap-3 rounded-md border border-border p-3 text-sm" data-form="cancel">
+              <p class="font-medium">{{ $t('billing.cancel.title') }}</p>
+              <ul class="flex list-disc flex-col gap-1 pl-5 text-text-muted">
+                <li>{{ $t('billing.cancel.until', { date: dateTime(subscription.period_end) }) }}</li>
+                <li>{{ $t('billing.cancel.after') }}</li>
+                <li>{{ $t('billing.cancel.kept') }}</li>
+                <li>{{ $t('billing.cancel.no_refund') }}</li>
+              </ul>
+              <label class="flex flex-col gap-1.5">
+                <span>{{ $t('billing.cancel.reason') }}</span>
+                <textarea v-model="cancelForm.reason" maxlength="2000" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="cancel-reason" />
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" class="rounded-md border border-crit-border bg-crit-soft px-3 py-2 font-semibold text-crit hover:bg-surface disabled:opacity-60" :disabled="busy !== null" data-action="confirm-cancel" @click="cancelRenewal">
+                  {{ $t('billing.cancel.confirm') }}
+                </button>
+                <button type="button" class="rounded-md border border-border-strong px-3 py-2 font-medium hover:bg-surface-muted" data-action="keep-subscription" @click="cancelForm.open = false">
+                  {{ $t('billing.cancel.keep') }}
+                </button>
+              </div>
+            </div>
+            <button v-else type="button" class="self-start text-sm font-medium text-crit underline-offset-2 hover:underline" data-action="cancel-subscription" @click="cancelForm.open = true">
+              {{ $t('billing.cancel.open') }}
+            </button>
+          </template>
+          <p v-else-if="subscription?.cancel_at_period_end" class="text-sm text-warn">{{ $t('billing.cancel_scheduled') }}</p>
+        </section>
+
+        <section v-if="change.plan" class="flex flex-col gap-4 rounded-xl border border-primary bg-surface p-5" aria-labelledby="change-title" data-panel="plan-change">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="change-title" class="text-lg font-semibold">{{ $t('billing.change.title', { plan: planName(change.plan, change.plan.plan_code) }) }}</h2>
+            <button type="button" class="text-sm text-text-muted hover:text-text" data-action="close-change" @click="closeChange">{{ $t('billing.change.close') }}</button>
+          </div>
+
+          <template v-if="change.limit !== null && change.preview === null">
+            <p class="text-sm">{{ $t('billing.change.fewer_stores', { limit: count(change.limit), stores: count(storeList.length) }) }}</p>
+            <StoreChoice v-model="change.retained" :stores="storeList" :limit="change.limit" />
+            <button
+              type="button"
+              class="self-start rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
+              :disabled="busy !== null || change.retained.length === 0"
+              data-action="preview-change"
+              @click="requestPreview"
+            >
+              {{ $t('billing.change.show_price') }}
+            </button>
+          </template>
+
+          <p v-else-if="change.preview === null" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
+
+          <template v-else>
+            <dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2" data-preview="change">
+              <div class="flex flex-col gap-0.5">
+                <dt class="text-text-muted">{{ $t('billing.change.when') }}</dt>
+                <dd class="font-medium">{{ change.preview.kind === 'immediate' ? $t('billing.change.now') : $t('billing.change.from_date', { date: dateTime(change.preview.effective_at) }) }}</dd>
+              </div>
+              <div class="flex flex-col gap-0.5">
+                <dt class="text-text-muted">{{ $t('billing.change.due_now') }}</dt>
+                <dd class="font-medium tabular-nums" data-preview="due-now">{{ changeMoney(change.preview.due_now_minor) }}</dd>
+              </div>
+              <div class="flex flex-col gap-0.5">
+                <dt class="text-text-muted">{{ $t('billing.change.next_payment') }}</dt>
+                <dd class="tabular-nums" data-preview="next">
+                  <s v-if="change.preview.next_amount_before_minor !== change.preview.next_amount_minor" class="text-text-muted">{{ changeMoney(change.preview.next_amount_before_minor) }}</s>
+                  {{ changeMoney(change.preview.next_amount_minor) }}
+                </dd>
+              </div>
+              <div class="flex flex-col gap-0.5">
+                <dt class="text-text-muted">{{ $t('billing.extra_stores') }}</dt>
+                <dd>{{ count(change.preview.to.extra_store_quantity) }}</dd>
+              </div>
+            </dl>
+            <p class="text-[13px] text-text-muted">{{ change.preview.kind === 'immediate' ? $t('billing.change.immediate_note') : $t('billing.change.next_period_note') }}</p>
+            <p v-if="change.preview.retained_store_ids" class="text-[13px] text-text-muted">{{ $t('billing.change.retained_note', { n: count(change.preview.retained_store_ids.length) }) }}</p>
+            <button
+              type="button"
+              class="self-start rounded-md bg-primary px-3 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"
+              :disabled="busy !== null"
+              data-action="confirm-change"
+              @click="confirmChange"
+            >
+              {{ change.preview.kind === 'immediate' ? $t('billing.change.confirm_pay', { amount: changeMoney(change.preview.due_now_minor) }) : $t('billing.change.confirm_schedule') }}
+            </button>
+          </template>
         </section>
 
         <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="usage-title" data-panel="usage">
@@ -477,7 +738,7 @@ onBeforeUnmount(stopPolling);
           <div class="flex flex-col gap-1">
             <h2 id="plans-title" class="text-lg font-semibold">{{ $t('billing.plans') }}</h2>
             <p class="text-sm text-text-muted">{{ $t('billing.tax_note') }}</p>
-            <p v-if="paid" class="text-sm text-text-muted">{{ $t('billing.change_later') }}</p>
+            <p v-if="canChange" class="text-sm text-text-muted">{{ $t('billing.change.hint') }}</p>
             <p v-else-if="!isOwner" class="text-sm text-text-muted">{{ $t('billing.owner_manages') }}</p>
             <p v-else-if="!catalog.checkout_available" class="text-sm text-text-muted">{{ $t('billing.checkout_unavailable') }}</p>
           </div>
@@ -575,6 +836,33 @@ onBeforeUnmount(stopPolling);
                     @click="buy(plan)"
                   >
                     {{ busy === `buy:${plan.plan_version_id}` ? $t('billing.opening_checkout') : $t('billing.buy') }}
+                  </button>
+                </template>
+
+                <template v-if="canChange && price(plan, 'base')">
+                  <label v-if="price(plan, 'extra_store') && maxExtra(plan) > 0" class="flex items-center justify-between gap-3 text-sm">
+                    <span>{{ $t('billing.extra_stores') }}</span>
+                    <input
+                      v-model.number="extraStores[plan.plan_version_id]"
+                      type="number"
+                      min="0"
+                      :max="maxExtra(plan)"
+                      step="1"
+                      class="w-20 rounded-md border border-border-strong bg-surface px-2 py-1.5 text-right text-sm"
+                      :data-extra="plan.plan_code"
+                    />
+                  </label>
+                  <p class="text-sm">{{ $t('billing.total', { price: total(plan), period: period(price(plan, 'base')!.interval, price(plan, 'base')!.interval_count) }) }}</p>
+                  <p v-if="!sameInterval(plan)" class="text-[13px] text-text-muted">{{ $t('billing.change.interval_unsupported') }}</p>
+                  <button
+                    v-else
+                    type="button"
+                    class="rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
+                    :disabled="busy !== null || unchanged(plan)"
+                    :data-action="`change-${plan.plan_code}`"
+                    @click="beginChange(plan)"
+                  >
+                    {{ isCurrent(plan) ? $t('billing.change.stores_only') : $t('billing.change.switch') }}
                   </button>
                 </template>
               </div>

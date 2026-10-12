@@ -46,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         RateLimiter::for('discount-check', fn (Request $request): Limit => Limit::perMinute(10)->by('discount-check|'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('plan-change-preview', fn (Request $request): Limit => Limit::perMinute(20)->by('plan-change-preview|'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         RateLimiter::for('platform-step-up', fn (Request $request): Limit => Limit::perMinute(10)->by('platform-step-up|'.$request->ip()));
 

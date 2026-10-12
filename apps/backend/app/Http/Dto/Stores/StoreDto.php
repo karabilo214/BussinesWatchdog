@@ -30,6 +30,7 @@ class StoreDto
             'default_currency' => $store->default_currency,
             'status' => $store->status,
             'verified_at' => $store->verified_at?->toJSON(),
+            'capacity_paused_at' => $store->capacity_paused_at?->toJSON(),
             'browser_enabled' => $store->browser_enabled,
             'telemetry_enabled' => $store->telemetry_enabled,
             'config_version' => $store->config_version,

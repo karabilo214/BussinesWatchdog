@@ -3,6 +3,8 @@
 # apps/backend/.env): a fresh verified owner buys the Start plan with one extra store through Paddle.js with Paddle's
 # test card; the page must show the payment as confirmed only after the backend has read the subscription from Paddle.
 # With BW_PROMO=<code> the buyer applies that promo code first (create one with control `run-live.sh discounts`).
+# With BW_CHANGE=1 the owner then upgrades to Pro (prorated charge), schedules Start for the next period, withdraws it,
+# cancels the renewal and resumes it.
 set -eu
 
 cd "$(dirname "$0")/../../../../.."
@@ -44,5 +46,5 @@ docker build -q -t bw-browser-worker:smoke apps/browser-worker >/dev/null
 docker run --rm --add-host host.docker.internal:host-gateway \
     -v "$ROOT/apps/frontend/customer/tests/e2e/billing-live.mjs:/app/billing-live.mjs:ro" -v "$OUT:/shots" \
     -e BW_SMOKE_SCREENSHOTS=/shots -e BW_APP_URL=http://host.docker.internal:5173 \
-    -e BW_SMOKE_EMAIL="$EMAIL" -e BW_SMOKE_PASSWORD="$PASSWORD" -e BW_PROMO="${BW_PROMO:-}" -e BW_EXPECT_AFTER="${BW_EXPECT_AFTER:-22,40}" \
+    -e BW_SMOKE_EMAIL="$EMAIL" -e BW_SMOKE_PASSWORD="$PASSWORD" -e BW_PROMO="${BW_PROMO:-}" -e BW_CHANGE="${BW_CHANGE:-}" -e BW_EXPECT_AFTER="${BW_EXPECT_AFTER:-22,40}" \
     bw-browser-worker:smoke node billing-live.mjs

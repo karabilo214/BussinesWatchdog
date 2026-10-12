@@ -134,12 +134,23 @@ class DiscountLedger
             ->get();
         $first = DB::table('billing_discount_grants')->where('contract_id', $contract->id)->value('checkout_session_id');
         $amount = $this->periodAmount($contract);
+        /** @var BillingPrice|null $base */
+        $base = $contract->price_id === null ? null : BillingPrice::query()->with('planVersion')->find($contract->price_id);
 
-        if ($grants->isEmpty() || $first === null || $amount === null) {
+        if ($grants->isEmpty() || $first === null || $amount === null || $base === null) {
             return null;
         }
 
-        $discounts = BillingDiscount::query()->whereKey($grants->pluck('discount_id'))->get()->all();
+        $discounts = BillingDiscount::query()->whereKey($grants->pluck('discount_id'))->get()
+            ->filter(fn (BillingDiscount $discount): bool => self::appliesTo($discount, $base))
+            ->values()
+            ->all();
+        $grants = $grants->filter(fn (object $grant): bool => collect($discounts)->contains('id', $grant->discount_id))->values();
+
+        if ($grants->isEmpty()) {
+            return null;
+        }
+
         $calculation = DiscountResolver::calculate($discounts, $amount['amount']);
         $periodNumber = (int) DB::table('billing_discount_applications')->where('checkout_session_id', $first)->max('period_number') + ($existing === null ? 1 : 0);
 
@@ -183,6 +194,72 @@ class DiscountLedger
         });
 
         return self::STATUS_APPLIED;
+    }
+
+    /**
+     * After a plan change the next period's combined discount was computed on the old price: the not yet billed period
+     * is planned again on the contract's current price (its uses are given back first), and a Paddle discount that no
+     * longer fits is removed from the subscription.
+     *
+     * @return self::STATUS_APPLIED|self::STATUS_FAILED|null
+     */
+    public function replanNextPeriod(BillingSubscriptionContract $contract): ?string
+    {
+        $existing = DB::table('billing_discount_applications')->where('contract_id', $contract->id)->where('period_start', $contract->period_end)->first();
+
+        if ($existing !== null && $existing->provider_discount_ref !== null) {
+            try {
+                $this->client->patch('/subscriptions/'.$contract->provider_subscription_ref, ['discount' => null, 'proration_billing_mode' => 'do_not_bill']);
+            } catch (PaddleRequestFailed) {
+                return self::STATUS_FAILED;
+            }
+        }
+
+        if ($existing !== null) {
+            DB::transaction(function () use ($existing, $contract): void {
+                if ($existing->status === self::STATUS_APPLIED) {
+                    $discountIds = DB::table('billing_discount_application_lines')->where('application_id', $existing->id)->pluck('discount_id');
+                    DB::table('billing_discount_grants')->where('contract_id', $contract->id)->whereIn('discount_id', $discountIds)->where('periods_used', '>', 0)->decrement('periods_used');
+                }
+
+                DB::table('billing_discount_application_lines')->where('application_id', $existing->id)->delete();
+                DB::table('billing_discount_applications')->where('id', $existing->id)->delete();
+            });
+        }
+
+        if ($contract->cancel_at_period_end || $contract->period_end === null || $contract->period_end->isPast()) {
+            return null;
+        }
+
+        return $this->planNextPeriod($contract);
+    }
+
+    /**
+     * What the next period would cost on another price with the discounts this contract still holds (counting the uses
+     * the already planned next period took), for a plan change preview.
+     *
+     * @return array{amount_before: int, saving: int, amount_after: int, lines: list<array{discount: BillingDiscount, position: int, amount_before: int, saving: int, amount_after: int}>}
+     */
+    public function nextPeriodQuote(BillingSubscriptionContract $contract, BillingPrice $base, int $amount): array
+    {
+        $planned = DB::table('billing_discount_applications')->where('contract_id', $contract->id)->where('period_start', $contract->period_end)->where('status', self::STATUS_APPLIED)->value('id');
+        $takenByPlanned = $planned === null ? collect() : DB::table('billing_discount_application_lines')->where('application_id', $planned)->pluck('discount_id');
+        $open = DB::table('billing_discount_grants')
+            ->where('contract_id', $contract->id)
+            ->get()
+            ->filter(fn (object $grant): bool => $grant->periods_total === null || (int) $grant->periods_used - ($takenByPlanned->contains($grant->discount_id) ? 1 : 0) < (int) $grant->periods_total);
+        $discounts = BillingDiscount::query()->whereKey($open->pluck('discount_id'))->get()
+            ->filter(fn (BillingDiscount $discount): bool => self::appliesTo($discount, $base))
+            ->values()
+            ->all();
+
+        return DiscountResolver::calculate($discounts, $amount);
+    }
+
+    public static function appliesTo(BillingDiscount $discount, BillingPrice $base): bool
+    {
+        return (empty($discount->plan_ids) || in_array($base->planVersion?->plan_id, $discount->plan_ids, true))
+            && ($discount->kind !== BillingDiscount::KIND_FLAT || $discount->currency === $base->currency);
     }
 
     /**

@@ -121,7 +121,9 @@
     },
     "latest_incidents": "Latest active incidents",
     "no_active_incidents": "No active incidents.",
-    "recent_checks": "Recent checks"
+    "recent_checks": "Recent checks",
+    "capacity_paused": "Checks paused: the plan includes fewer stores.",
+    "capacity_choose": "Choose stores"
   },
   "store_status": {
     "onboarding": "Onboarding",
@@ -504,7 +506,26 @@
     "discount_code_invalid": "This promo code does not exist or is not active yet.",
     "discount_expired": "The promo code has expired.",
     "discount_not_applicable": "The promo code does not apply to this plan.",
-    "discount_used_up": "The promo code has been used the maximum number of times."
+    "discount_used_up": "The promo code has been used the maximum number of times.",
+    "no_active_subscription": "There is no active paid subscription.",
+    "subscription_past_due": "Pay the current period first, then you can change the plan.",
+    "subscription_unknown": "Paddle has not confirmed the subscription state yet. Try again shortly.",
+    "plan_unchanged": "This is your current plan with the same number of stores.",
+    "scheduled_change_pending": "A plan change is already scheduled. Withdraw it to choose something else.",
+    "currency_change_unsupported": "Changing the subscription currency is not available yet.",
+    "interval_change_unsupported": "Changing the billing period is not available yet.",
+    "retained_stores_required": "Choose the stores that keep being checked.",
+    "retained_stores_invalid": "Choose no more stores than the plan includes.",
+    "preview_expired": "The price is out of date. Open the plan change again.",
+    "preview_stale": "The subscription changed after the price was shown. Open the plan change again.",
+    "preview_used": "This change is already confirmed.",
+    "payment_failed": "Paddle could not take the payment. The plan did not change.",
+    "plan_change_rejected": "Paddle rejected the change. The subscription stays as it was.",
+    "provider_unavailable": "Paddle is unavailable right now. Try again later.",
+    "provider_outcome_unknown": "Paddle did not answer. We will check the subscription ourselves — do not repeat the action, reload the page in a minute.",
+    "no_scheduled_change": "No plan change is scheduled.",
+    "cancel_not_scheduled": "The subscription is not cancelled.",
+    "store_capacity_paused": "This store is paused by the plan: choose it on the subscription page to check it again."
   },
   "incidents": {
     "title": "Incidents",
@@ -1407,7 +1428,6 @@
     "events_over": "The plan's event volume is exceeded. Events are still accepted and checked, but the plan is sized for less — choose a larger plan or add stores.",
     "plans": "Plans",
     "tax_note": "For consumers in the EU the price includes VAT; businesses with a VAT ID pay without VAT. Paddle shows the total with taxes before payment.",
-    "change_later": "Changing the plan and cancelling will be available in the dashboard later.",
     "checkout_unavailable": "Payments are not connected yet.",
     "no_plans": "No plans are published yet.",
     "current": "Current",
@@ -1463,6 +1483,57 @@
         "tenant": "Your discount",
         "code": "Promo code"
       }
+    },
+    "base_price": "Plan price for the current period",
+    "change": {
+      "hint": "A more expensive plan starts at once: Paddle charges the difference for the rest of the period. A cheaper one starts with the next period; until then the paid plan stays.",
+      "switch": "Switch to this plan",
+      "stores_only": "Change number of stores",
+      "interval_unsupported": "Changing the billing period is not available yet.",
+      "title": "Change plan: {plan}",
+      "close": "Close",
+      "fewer_stores": "The new plan includes {limit} store(s) — you have {stores}. Choose which stores keep being checked. The others are paused, not deleted.",
+      "choose_stores": "Stores that keep being checked (at most {n})",
+      "stores_kept": "Paused stores keep their history and setup; you can change the choice later.",
+      "show_price": "Show the price",
+      "when": "Takes effect",
+      "now": "Right after payment",
+      "from_date": "From {date}",
+      "due_now": "Charged now",
+      "next_payment": "Next payment",
+      "immediate_note": "The difference for the rest of the current period is charged now, without discounts. The next payment is the new plan with the discounts that apply to it. If the payment fails, the plan does not change.",
+      "next_period_note": "Nothing is charged now. The current plan stays until the paid period ends; the next payment is the new plan.",
+      "retained_note": "Chosen stores keep being checked: {n}.",
+      "confirm_pay": "Confirm and pay {amount}",
+      "confirm_schedule": "Confirm the change from the next period",
+      "scheduled": "From {date} the plan changes to “{plan}” (extra stores: {stores}). The current plan stays until then.",
+      "withdraw": "Withdraw change",
+      "done": {
+        "applied": "Plan changed. Paddle confirmed the payment.",
+        "scheduled": "The plan change is scheduled for the next period.",
+        "withdrawn": "The scheduled plan change was withdrawn.",
+        "cancelled": "Renewal cancelled.",
+        "resumed": "The subscription will renew again.",
+        "retained": "Store choice saved."
+      }
+    },
+    "cancel": {
+      "open": "Cancel subscription",
+      "title": "Cancel the subscription renewal?",
+      "until": "Access, checks and notifications keep working until {date}.",
+      "after": "After that the subscription does not renew and checks stop.",
+      "kept": "Stores, history, incidents and settings are kept — you can subscribe again.",
+      "no_refund": "The paid period is not refunded automatically.",
+      "reason": "Why are you cancelling? (optional)",
+      "confirm": "Cancel renewal",
+      "keep": "Keep subscription",
+      "scheduled": "Renewal cancelled: the subscription ends on {date}.",
+      "resume": "Resume subscription"
+    },
+    "capacity": {
+      "required": "The plan includes {limit} store(s) and you have {stores}. Checks are paused until you choose which stores keep being checked.",
+      "save": "Save choice",
+      "paused": "Stores paused by the plan: {n}. Their history and setup are kept."
     }
   }
 }

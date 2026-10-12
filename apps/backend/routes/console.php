@@ -120,3 +120,8 @@ Schedule::command('billing:plan-discounts')
     ->everyFifteenMinutes()
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('billing:plan-changes')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->onOneServer();

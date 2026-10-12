@@ -121,7 +121,9 @@
     },
     "latest_incidents": "Neueste aktive Vorfälle",
     "no_active_incidents": "Keine aktiven Vorfälle.",
-    "recent_checks": "Letzte Prüfungen"
+    "recent_checks": "Letzte Prüfungen",
+    "capacity_paused": "Prüfungen pausiert: Der Tarif umfasst weniger Shops.",
+    "capacity_choose": "Shops auswählen"
   },
   "store_status": {
     "onboarding": "Einrichtung",
@@ -504,7 +506,26 @@
     "discount_code_invalid": "Diesen Gutscheincode gibt es nicht oder er gilt noch nicht.",
     "discount_expired": "Der Gutscheincode ist abgelaufen.",
     "discount_not_applicable": "Der Gutscheincode gilt nicht für diesen Tarif.",
-    "discount_used_up": "Der Gutscheincode wurde bereits maximal oft verwendet."
+    "discount_used_up": "Der Gutscheincode wurde bereits maximal oft verwendet.",
+    "no_active_subscription": "Es gibt kein aktives bezahltes Abonnement.",
+    "subscription_past_due": "Bezahlen Sie zuerst den aktuellen Zeitraum, dann können Sie den Tarif wechseln.",
+    "subscription_unknown": "Paddle hat den Abonnementstatus noch nicht bestätigt. Versuchen Sie es gleich noch einmal.",
+    "plan_unchanged": "Das ist Ihr aktueller Tarif mit derselben Anzahl Shops.",
+    "scheduled_change_pending": "Ein Tarifwechsel ist bereits geplant. Nehmen Sie ihn zurück, um etwas anderes zu wählen.",
+    "currency_change_unsupported": "Ein Wechsel der Abonnementwährung ist noch nicht möglich.",
+    "interval_change_unsupported": "Ein Wechsel des Abrechnungszeitraums ist noch nicht möglich.",
+    "retained_stores_required": "Wählen Sie die Shops, die weiter geprüft werden.",
+    "retained_stores_invalid": "Wählen Sie nicht mehr Shops, als der Tarif umfasst.",
+    "preview_expired": "Der Preis ist veraltet. Öffnen Sie den Tarifwechsel erneut.",
+    "preview_stale": "Das Abonnement hat sich nach der Berechnung geändert. Öffnen Sie den Tarifwechsel erneut.",
+    "preview_used": "Dieser Wechsel ist bereits bestätigt.",
+    "payment_failed": "Paddle konnte die Zahlung nicht einziehen. Der Tarif wurde nicht geändert.",
+    "plan_change_rejected": "Paddle hat die Änderung abgelehnt. Das Abonnement bleibt unverändert.",
+    "provider_unavailable": "Paddle ist gerade nicht erreichbar. Versuchen Sie es später.",
+    "provider_outcome_unknown": "Paddle hat nicht geantwortet. Wir prüfen das Abonnement selbst — wiederholen Sie die Aktion nicht, laden Sie die Seite in einer Minute neu.",
+    "no_scheduled_change": "Es ist kein Tarifwechsel geplant.",
+    "cancel_not_scheduled": "Das Abonnement ist nicht gekündigt.",
+    "store_capacity_paused": "Dieser Shop ist durch den Tarif pausiert: Wählen Sie ihn auf der Abonnementseite aus, um ihn wieder zu prüfen."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -1407,7 +1428,6 @@
     "events_over": "Das Ereignisvolumen des Tarifs ist überschritten. Ereignisse werden weiterhin angenommen und geprüft, aber der Tarif ist für weniger ausgelegt — wählen Sie einen größeren Tarif oder fügen Sie Shops hinzu.",
     "plans": "Tarife",
     "tax_note": "Für Verbraucher in der EU enthält der Preis die MwSt.; Unternehmen mit USt-IdNr. zahlen ohne MwSt. Paddle zeigt den Gesamtbetrag mit Steuern vor der Zahlung.",
-    "change_later": "Tarifwechsel und Kündigung kommen später ins Dashboard.",
     "checkout_unavailable": "Zahlungen sind noch nicht angebunden.",
     "no_plans": "Es sind noch keine Tarife veröffentlicht.",
     "current": "Aktuell",
@@ -1463,6 +1483,57 @@
         "tenant": "Ihr Rabatt",
         "code": "Gutscheincode"
       }
+    },
+    "base_price": "Tarifpreis für den aktuellen Zeitraum",
+    "change": {
+      "hint": "Ein teurerer Tarif gilt sofort: Paddle berechnet die Differenz für den Rest des Zeitraums. Ein günstigerer gilt ab dem nächsten Zeitraum; bis dahin bleibt der bezahlte Tarif.",
+      "switch": "Zu diesem Tarif wechseln",
+      "stores_only": "Anzahl der Shops ändern",
+      "interval_unsupported": "Ein Wechsel des Abrechnungszeitraums ist noch nicht möglich.",
+      "title": "Tarifwechsel: {plan}",
+      "close": "Schließen",
+      "fewer_stores": "Der neue Tarif umfasst {limit} Shop(s) — Sie haben {stores}. Wählen Sie, welche Shops weiter geprüft werden. Die anderen werden pausiert, nicht gelöscht.",
+      "choose_stores": "Shops, die weiter geprüft werden (höchstens {n})",
+      "stores_kept": "Pausierte Shops behalten Verlauf und Einstellungen; die Auswahl lässt sich später ändern.",
+      "show_price": "Preis anzeigen",
+      "when": "Gilt ab",
+      "now": "Sofort nach der Zahlung",
+      "from_date": "Ab {date}",
+      "due_now": "Jetzt fällig",
+      "next_payment": "Nächste Zahlung",
+      "immediate_note": "Jetzt wird die Differenz für den Rest des aktuellen Zeitraums berechnet, ohne Rabatte. Die nächste Zahlung erfolgt zum neuen Tarif mit den dafür geltenden Rabatten. Schlägt die Zahlung fehl, ändert sich der Tarif nicht.",
+      "next_period_note": "Jetzt wird nichts berechnet. Bis zum Ende des bezahlten Zeitraums gilt der aktuelle Tarif, die nächste Zahlung erfolgt zum neuen.",
+      "retained_note": "Ausgewählte Shops werden weiter geprüft: {n}.",
+      "confirm_pay": "Bestätigen und {amount} zahlen",
+      "confirm_schedule": "Wechsel ab dem nächsten Zeitraum bestätigen",
+      "scheduled": "Ab {date} wechselt der Tarif zu „{plan}“ (zusätzliche Shops: {stores}). Bis dahin gilt der aktuelle.",
+      "withdraw": "Wechsel zurücknehmen",
+      "done": {
+        "applied": "Tarif geändert. Paddle hat die Zahlung bestätigt.",
+        "scheduled": "Der Tarifwechsel ist für den nächsten Zeitraum geplant.",
+        "withdrawn": "Der geplante Tarifwechsel wurde zurückgenommen.",
+        "cancelled": "Verlängerung gekündigt.",
+        "resumed": "Das Abonnement verlängert sich wieder.",
+        "retained": "Shop-Auswahl gespeichert."
+      }
+    },
+    "cancel": {
+      "open": "Abonnement kündigen",
+      "title": "Verlängerung des Abonnements kündigen?",
+      "until": "Zugang, Prüfungen und Benachrichtigungen laufen bis {date}.",
+      "after": "Danach verlängert sich das Abonnement nicht und die Prüfungen enden.",
+      "kept": "Shops, Verlauf, Vorfälle und Einstellungen bleiben erhalten — Sie können wieder abonnieren.",
+      "no_refund": "Der bezahlte Zeitraum wird nicht automatisch erstattet.",
+      "reason": "Warum kündigen Sie? (optional)",
+      "confirm": "Verlängerung kündigen",
+      "keep": "Abonnement behalten",
+      "scheduled": "Verlängerung gekündigt: Das Abonnement endet am {date}.",
+      "resume": "Abonnement fortsetzen"
+    },
+    "capacity": {
+      "required": "Der Tarif umfasst {limit} Shop(s), Sie haben {stores}. Die Prüfungen sind pausiert, bis Sie auswählen, welche Shops weiter geprüft werden.",
+      "save": "Auswahl speichern",
+      "paused": "Durch den Tarif pausierte Shops: {n}. Verlauf und Einstellungen bleiben erhalten."
     }
   }
 }

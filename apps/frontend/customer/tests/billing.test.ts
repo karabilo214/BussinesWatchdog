@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import * as billing from '@/api/billing';
-import type { BillingCatalog, BillingPlan, Entitlements } from '@/api/billing';
+import type { BillingCatalog, BillingPlan, BillingSubscription, Entitlements, PlanChange } from '@/api/billing';
 import * as stores from '@/api/stores';
 import type { AuthSession } from '@/api/types';
 import * as paddle from '@/composables/paddle';
@@ -20,6 +20,12 @@ vi.mock('@/api/billing', () => ({
   startCheckout: vi.fn(),
   fetchCheckout: vi.fn(),
   checkDiscount: vi.fn(),
+  previewPlanChange: vi.fn(),
+  confirmPlanChange: vi.fn(),
+  withdrawPlanChange: vi.fn(),
+  cancelSubscription: vi.fn(),
+  resumeSubscription: vi.fn(),
+  retainStores: vi.fn(),
 }));
 vi.mock('@/api/stores', () => ({ listStores: vi.fn() }));
 vi.mock('@/composables/paddle', () => ({ openPaddleCheckout: vi.fn() }));
@@ -66,6 +72,67 @@ const START: BillingPlan = {
   ],
   discounts: [],
 };
+
+const PRO: BillingPlan = {
+  ...START,
+  plan_code: 'pro',
+  plan_version_id: 'v-pro',
+  name: { ru: 'Про', en: 'Pro' },
+  entitlements: { features: ['checkout_monitoring'], limits: { max_active_stores: 3, max_extra_stores: 4 } },
+  prices: [
+    { ...START.prices[0]!, id: 'p-pro', amount_minor: '4900' },
+    { ...START.prices[1]!, id: 'p-pro-extra', amount_minor: '700' },
+  ],
+};
+
+function paidSubscription(overrides: Partial<BillingSubscription> = {}): BillingSubscription {
+  return {
+    id: 'sub-1',
+    provider: 'paddle',
+    plan_code: 'start',
+    plan_version_id: 'v-start',
+    status: 'active',
+    access_state: 'active',
+    access_reason_codes: ['paid_period'],
+    paid_until: '2026-11-11T00:00:00Z',
+    trial_ends_at: null,
+    grace_until: null,
+    period_end: '2026-11-11T00:00:00Z',
+    cancel_at_period_end: false,
+    extra_store_quantity: 0,
+    price: { id: 'p-base', amount_minor: '1900', currency: 'EUR', currency_exponent: 2, billing_interval: 'month', billing_interval_count: 1 },
+    scheduled_change: null,
+    capacity: { limit: 1, stores: 1, paused: 0, choice_required: false },
+    version: 3,
+    entitlements: { features: [], limits: {} },
+    ...overrides,
+  };
+}
+
+function planChange(overrides: Partial<PlanChange> = {}): PlanChange {
+  return {
+    id: 'ch-1',
+    preview_token: 'ch-1',
+    kind: 'immediate',
+    status: 'previewed',
+    from: { plan_code: 'start', plan_version_id: 'v-start', price_id: 'p-base', amount_minor: '1900', extra_store_quantity: 0 },
+    to: { plan_code: 'pro', plan_version_id: 'v-pro', price_id: 'p-pro', amount_minor: '4900', extra_store_quantity: 1 },
+    currency: 'EUR',
+    currency_exponent: 2,
+    due_now_minor: '3341',
+    next_amount_before_minor: '5600',
+    next_amount_minor: '5040',
+    effective_at: null,
+    expires_at: '2026-10-20T12:10:00Z',
+    retained_store_ids: null,
+    error_code: null,
+    ...overrides,
+  };
+}
+
+function storeRow(id: string, name: string, paused = false) {
+  return { id, name, base_url: `https://${id}.example`, status: 'active', capacity_paused_at: paused ? '2026-10-20T00:00:00Z' : null };
+}
 
 function catalog(overrides: Partial<BillingCatalog> = {}): BillingCatalog {
   return { data: [START], mode: 'test', checkout_available: true, trial_available: true, ...overrides };
@@ -249,5 +316,118 @@ describe('BillingView', () => {
     expect(lines[0]!.text()).toMatch(/Акция «Осень»: скидка 5,00\s€ на первый платёж\s*−5,00\s€/);
     expect(lines[1]!.text()).toMatch(/Ваша скидка: скидка 15\s% навсегда\s*−2,10\s€/);
     expect(wrapper.get('[data-total="discounted"]').text()).toMatch(/19,00\s€\s+11,90\s€/);
+  });
+
+  it('previews an upgrade, shows the charge now and the next payment, and confirms with one key', async () => {
+    session.value = sessionFor('owner');
+    api.fetchPlans.mockResolvedValue(catalog({ data: [START, PRO] }));
+    api.fetchSubscription.mockResolvedValue(paidSubscription());
+    api.previewPlanChange.mockResolvedValue(planChange());
+    api.confirmPlanChange.mockResolvedValue({ change: planChange({ status: 'applied', preview_token: null }), subscription: null });
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-action="buy-pro"]').exists()).toBe(false);
+    expect(wrapper.get('[data-action="change-start"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-extra="pro"]').setValue(1);
+    await wrapper.get('[data-action="change-pro"]').trigger('click');
+    await flushPromises();
+
+    expect(api.previewPlanChange).toHaveBeenCalledWith('p-pro', 1, null);
+    const panel = wrapper.get('[data-panel="plan-change"]');
+    expect(panel.get('[data-preview="due-now"]').text()).toMatch(/33,41\s€/);
+    expect(panel.get('[data-preview="next"]').text()).toMatch(/56,00\s€\s+50,40\s€/);
+    expect(panel.text()).toContain('без скидок');
+
+    await panel.get('[data-action="confirm-change"]').trigger('click');
+    await flushPromises();
+
+    expect(api.confirmPlanChange).toHaveBeenCalledWith('ch-1', expect.any(String));
+    expect(wrapper.get('[data-notice="change-applied"]').text()).toContain('Тариф изменён');
+    expect(wrapper.find('[data-panel="plan-change"]').exists()).toBe(false);
+  });
+
+  it('asks which stores stay before previewing a plan with fewer stores', async () => {
+    session.value = sessionFor('owner');
+    vi.mocked(stores.listStores).mockResolvedValue([storeRow('s-1', 'Main'), storeRow('s-2', 'Second'), storeRow('s-3', 'Third')] as never);
+    api.fetchPlans.mockResolvedValue(catalog({ data: [START, PRO] }));
+    api.fetchSubscription.mockResolvedValue(paidSubscription({ plan_code: 'pro', plan_version_id: 'v-pro', price: { ...paidSubscription().price!, id: 'p-pro', amount_minor: '4900' }, capacity: { limit: 3, stores: 3, paused: 0, choice_required: false } }));
+    api.previewPlanChange.mockResolvedValue(planChange({ kind: 'next_period', due_now_minor: '0', next_amount_before_minor: '1900', next_amount_minor: '1900', effective_at: '2026-11-11T00:00:00Z', retained_store_ids: ['s-2'] }));
+    const wrapper = await mountView();
+
+    await wrapper.get('[data-action="change-start"]').trigger('click');
+    await flushPromises();
+
+    expect(api.previewPlanChange).not.toHaveBeenCalled();
+    const panel = wrapper.get('[data-panel="plan-change"]');
+    expect(panel.text()).toContain('Новый тариф включает 1 маг. — у вас 3');
+    expect(panel.get('[data-action="preview-change"]').attributes('disabled')).toBeDefined();
+    await panel.get('[data-store-choice="s-2"]').setValue(true);
+    expect(panel.get('[data-store-choice="s-1"]').attributes('disabled')).toBeDefined();
+    await panel.get('[data-action="preview-change"]').trigger('click');
+    await flushPromises();
+
+    expect(api.previewPlanChange).toHaveBeenCalledWith('p-base', 0, ['s-2']);
+    expect(wrapper.get('[data-panel="plan-change"]').text()).toContain('Сейчас ничего не списывается');
+    expect(wrapper.get('[data-action="confirm-change"]').text()).toContain('со следующего периода');
+  });
+
+  it('shows a scheduled cheaper plan and withdraws it', async () => {
+    session.value = sessionFor('owner');
+    api.fetchPlans.mockResolvedValue(catalog({ data: [START, PRO] }));
+    api.fetchSubscription.mockResolvedValue(
+      paidSubscription({ plan_code: 'pro', plan_version_id: 'v-pro', scheduled_change: planChange({ kind: 'next_period', status: 'scheduled', preview_token: null, to: { plan_code: 'start', plan_version_id: 'v-start', price_id: 'p-base', amount_minor: '1900', extra_store_quantity: 0 }, effective_at: '2026-11-11T00:00:00Z' }) }),
+    );
+    api.withdrawPlanChange.mockResolvedValue({ change: planChange({ status: 'cancelled' }), subscription: null });
+    const wrapper = await mountView();
+
+    expect(wrapper.get('[data-scheduled="change"]').text()).toContain('тариф сменится на «Старт»');
+    await wrapper.get('[data-action="withdraw-change"]').trigger('click');
+    await flushPromises();
+
+    expect(api.withdrawPlanChange).toHaveBeenCalled();
+    expect(wrapper.find('[data-notice="change-withdrawn"]').exists()).toBe(true);
+  });
+
+  it('explains what cancelling means, sends the optional reason and offers to resume', async () => {
+    session.value = sessionFor('owner');
+    api.fetchSubscription.mockResolvedValue(paidSubscription());
+    api.cancelSubscription.mockResolvedValue(null);
+    const wrapper = await mountView();
+
+    await wrapper.get('[data-action="cancel-subscription"]').trigger('click');
+    const form = wrapper.get('[data-form="cancel"]');
+    expect(form.text()).toContain('Магазины, история, инциденты и настройки сохраняются');
+    expect(form.text()).toContain('не возвращается автоматически');
+    await form.get('[data-field="cancel-reason"]').setValue('  дорого ');
+    api.fetchSubscription.mockResolvedValue(paidSubscription({ cancel_at_period_end: true, version: 4 }));
+    await form.get('[data-action="confirm-cancel"]').trigger('click');
+    await flushPromises();
+
+    expect(api.cancelSubscription).toHaveBeenCalledWith('дорого');
+    expect(wrapper.get('[data-scheduled="cancel"]').text()).toContain('подписка закончится');
+
+    api.resumeSubscription.mockResolvedValue(null);
+    await wrapper.get('[data-action="resume"]').trigger('click');
+    await flushPromises();
+    expect(api.resumeSubscription).toHaveBeenCalledWith(4);
+  });
+
+  it('pauses nothing by itself: the owner chooses the stores that stay', async () => {
+    session.value = sessionFor('owner');
+    vi.mocked(stores.listStores).mockResolvedValue([storeRow('s-1', 'Main'), storeRow('s-2', 'Second')] as never);
+    api.fetchSubscription.mockResolvedValue(paidSubscription({ capacity: { limit: 1, stores: 2, paused: 0, choice_required: true } }));
+    api.retainStores.mockResolvedValue({ limit: 1, stores: 2, paused: 1, choice_required: false });
+    const wrapper = await mountView();
+
+    const choice = wrapper.get('[data-capacity="choice"]');
+    expect(choice.text()).toContain('Проверки остановлены');
+    expect(choice.get('[data-action="retain-stores"]').attributes('disabled')).toBeDefined();
+    await choice.get('[data-store-choice="s-1"]').setValue(false);
+    await choice.get('[data-store-choice="s-2"]').setValue(false);
+    await choice.get('[data-store-choice="s-2"]').setValue(true);
+    await choice.get('[data-action="retain-stores"]').trigger('click');
+    await flushPromises();
+
+    expect(api.retainStores).toHaveBeenCalledWith(['s-2']);
   });
 });

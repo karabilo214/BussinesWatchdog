@@ -75,6 +75,49 @@ try {
   await shot('4-confirmed');
   console.log('ok   payment confirmed by the backend, subscription shown as paid');
 
+  if (process.env.BW_CHANGE) {
+    await page.locator('[data-extra="pro"]').fill('0');
+    await page.locator('[data-action="change-pro"]').click();
+    const panel = page.locator('[data-panel="plan-change"]');
+    await panel.locator('[data-preview="due-now"]').waitFor({ timeout: 30000 });
+    console.log(`ok   upgrade preview: charged now ${(await panel.locator('[data-preview="due-now"]').innerText()).trim()}, next payment ${(await panel.locator('[data-preview="next"]').innerText()).trim()}`);
+    await shot('5-upgrade-preview');
+    await panel.locator('[data-action="confirm-change"]').click();
+    await page.locator('[data-notice="change-applied"]').waitFor({ timeout: 60000 });
+    await page.locator('[data-plan="pro"]').getByText('Текущий').waitFor();
+    await shot('6-upgraded');
+    console.log('ok   upgrade paid at Paddle and Pro read back as the current plan');
+
+    await page.locator('[data-extra="start"]').fill('0');
+    await page.locator('[data-action="change-start"]').click();
+    await panel.locator('[data-preview="due-now"]').waitFor({ timeout: 30000 });
+    await panel.getByText('Сейчас ничего не списывается').waitFor();
+    await panel.locator('[data-action="confirm-change"]').click();
+    await page.locator('[data-notice="change-scheduled"]').waitFor({ timeout: 60000 });
+    await page.locator('[data-scheduled="change"]').getByText(/сменится на «Start»|сменится на «Старт»/).waitFor();
+    await page.locator('[data-plan="pro"]').getByText('Текущий').waitFor();
+    await shot('7-downgrade-scheduled');
+    console.log('ok   cheaper plan scheduled for the next period, Pro stays until then');
+
+    await page.locator('[data-action="withdraw-change"]').click();
+    await page.locator('[data-notice="change-withdrawn"]').waitFor({ timeout: 60000 });
+    if (await page.locator('[data-scheduled="change"]').count()) throw new Error('scheduled change still shown');
+    console.log('ok   scheduled change withdrawn');
+
+    await page.locator('[data-action="cancel-subscription"]').click();
+    await page.locator('[data-field="cancel-reason"]').fill('live check');
+    await page.locator('[data-action="confirm-cancel"]').click();
+    await page.locator('[data-scheduled="cancel"]').waitFor({ timeout: 60000 });
+    await shot('8-cancel-scheduled');
+    console.log('ok   renewal cancelled at the period end');
+
+    await page.locator('[data-action="resume"]').click();
+    await page.locator('[data-notice="change-resumed"]').waitFor({ timeout: 60000 });
+    if (await page.locator('[data-scheduled="cancel"]').count()) throw new Error('cancellation still shown');
+    await shot('9-resumed');
+    console.log('ok   subscription resumed');
+  }
+
   if (errors.length > 0) throw new Error(`page errors: ${errors.join('; ')}`);
   console.log('PASS');
 } catch (error) {

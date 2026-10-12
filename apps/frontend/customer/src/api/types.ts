@@ -61,6 +61,7 @@ export interface Store {
   default_currency: string;
   status: 'onboarding' | 'active' | 'paused' | 'degraded' | 'deleted';
   verified_at: string | null;
+  capacity_paused_at: string | null;
   browser_enabled: boolean;
   telemetry_enabled: boolean;
   config_version: number;

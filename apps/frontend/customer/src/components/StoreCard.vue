@@ -27,6 +27,11 @@ const host = computed(() => storeHost(props.store.base_url));
       <StatusBadge v-else tone="ok" :label="$t('overview.no_incidents')" />
     </header>
 
+    <p v-if="store.capacity_paused_at" class="rounded-md border border-unknown-border bg-unknown-soft px-3 py-2 text-sm text-unknown" data-store-paused="capacity">
+      {{ $t('overview.capacity_paused') }}
+      <RouterLink :to="{ name: 'billing' }" class="font-medium underline">{{ $t('overview.capacity_choose') }}</RouterLink>
+    </p>
+
     <CoverageList :coverage="store.coverage" />
 
     <p class="border-t border-border pt-3 text-[13px] text-text-muted">

@@ -91,8 +91,44 @@ export interface BillingSubscription {
   period_end: string | null;
   cancel_at_period_end: boolean;
   extra_store_quantity: number;
+  price: { id: string; amount_minor: string; currency: string; currency_exponent: number; billing_interval: string; billing_interval_count: number } | null;
+  scheduled_change: PlanChange | null;
+  capacity: StoreCapacity;
   version: number;
   entitlements: { features: string[]; limits: Partial<Record<LimitCode, number | null>> };
+}
+
+export interface StoreCapacity {
+  limit: number | null;
+  stores: number;
+  paused: number;
+  choice_required: boolean;
+}
+
+export interface PlanChangeSide {
+  plan_code: string | null;
+  plan_version_id: string | null;
+  price_id: string;
+  amount_minor: string | null;
+  extra_store_quantity: number;
+}
+
+export interface PlanChange {
+  id: string;
+  preview_token: string | null;
+  kind: 'immediate' | 'next_period';
+  status: 'previewed' | 'applying' | 'applied' | 'scheduled' | 'failed' | 'unknown' | 'cancelled' | 'expired';
+  from: PlanChangeSide;
+  to: PlanChangeSide;
+  currency: string;
+  currency_exponent: number;
+  due_now_minor: string;
+  next_amount_before_minor: string;
+  next_amount_minor: string;
+  effective_at: string | null;
+  expires_at: string;
+  retained_store_ids: string[] | null;
+  error_code: string | null;
 }
 
 export type CheckoutStatus = 'creating' | 'pending' | 'requires_action' | 'confirmed' | 'failed' | 'cancelled' | 'expired' | 'unknown';
@@ -139,4 +175,32 @@ export async function checkDiscount(code: string, priceId: string): Promise<Bill
 
 export async function fetchCheckout(id: string): Promise<BillingCheckout> {
   return (await request<BillingCheckout>('GET', `/api/v1/billing/checkouts/${encodeURIComponent(id)}`)).data;
+}
+
+export async function previewPlanChange(priceId: string, extraStores: number, retainedStoreIds: string[] | null): Promise<PlanChange> {
+  return (
+    await request<PlanChange>('POST', '/api/v1/billing/plan-change-preview', {
+      body: retainedStoreIds === null ? { price_id: priceId, extra_stores: extraStores } : { price_id: priceId, extra_stores: extraStores, retained_store_ids: retainedStoreIds },
+    })
+  ).data;
+}
+
+export async function confirmPlanChange(previewToken: string, idempotencyKey: string): Promise<{ change: PlanChange; subscription: BillingSubscription | null }> {
+  return (await request<{ change: PlanChange; subscription: BillingSubscription | null }>('POST', '/api/v1/billing/plan-change', { body: { preview_token: previewToken }, idempotencyKey })).data;
+}
+
+export async function withdrawPlanChange(): Promise<{ change: PlanChange; subscription: BillingSubscription | null }> {
+  return (await request<{ change: PlanChange; subscription: BillingSubscription | null }>('POST', '/api/v1/billing/plan-change/cancel', { idempotencyKey: newIdempotencyKey() })).data;
+}
+
+export async function cancelSubscription(reason: string | null): Promise<BillingSubscription | null> {
+  return (await request<BillingSubscription | null>('POST', '/api/v1/billing/cancel', { body: { at_period_end: true, reason }, idempotencyKey: newIdempotencyKey() })).data;
+}
+
+export async function resumeSubscription(expectedVersion: number): Promise<BillingSubscription | null> {
+  return (await request<BillingSubscription | null>('POST', '/api/v1/billing/resume', { body: { expected_version: expectedVersion }, idempotencyKey: newIdempotencyKey() })).data;
+}
+
+export async function retainStores(storeIds: string[]): Promise<StoreCapacity> {
+  return (await request<StoreCapacity>('PUT', '/api/v1/billing/retained-stores', { body: { store_ids: storeIds } })).data;
 }

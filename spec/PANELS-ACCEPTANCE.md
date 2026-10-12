@@ -1,6 +1,6 @@
 # Приёмка панелей и SaaS billing
 
-Версия 1.1. Обновлено: 2026-10-11, Step 87.
+Версия 1.1. Обновлено: 2026-10-12, Step 108.
 
 Это добавочные критерии к `ACCEPTANCE.md`. Матрица теперь показывает текущее evidence. Большая часть SaaS billing/platform панели всё ещё находится на уровне ТЗ и контрактов; customer cabinet реализован существенно дальше.
 
@@ -27,8 +27,8 @@
 | EXT-13 | partial | Duplicates и out-of-order events | Core monitoring ingestion has idempotency/revision evidence: `IngestEventsApiTest`, provider connector tests | SaaS billing event inbox not implemented |
 | EXT-14 | partial | LIVE/TEST и чужой account | Store Stripe/PayPal connectors isolate mode/account; Steps 65-72 | Commercial SaaS billing account isolation not implemented |
 | EXT-15 | not_done | Failed renewal и grace expiry | — | Subscription lifecycle/access projection not implemented |
-| EXT-16 | not_done | Scheduled cancellation | — | Billing cancellation lifecycle not implemented |
-| EXT-17 | not_done | Downgrade превышает store limit | — | Entitlements/quota downgrade flow not implemented |
+| EXT-16 | partial | Scheduled cancellation | `PlanChangeTest` (cancel at period end, repeat is a no-op, resume with expected version, audit), `billing.test.ts`; live Paddle sandbox cancel + resume, Step 108 (ADR 0037) | Contract end after the period and a new subscription after it (EXT-21) not exercised live |
+| EXT-17 | partial | Downgrade превышает store limit | `PlanChangeTest` (retained stores required, pause only at the period end, nothing deleted, `capacity_choice_required` pauses scheduled and manual browser checks, owner re-chooses), `billing.test.ts`; Step 108 (ADR 0037) | Downgrade with a store choice not run live; trial/expiry-driven limit drops do not ask for a choice yet |
 | EXT-18 | not_done | Temporary override истёк | — | Platform overrides not implemented |
 | EXT-19 | not_done | Refund request billing staff | — | SaaS refund approval workflow not implemented |
 | EXT-20 | not_done | Refund concurrency | — | SaaS refund reservations not implemented |

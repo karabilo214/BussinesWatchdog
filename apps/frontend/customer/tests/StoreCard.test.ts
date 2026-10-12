@@ -15,6 +15,7 @@ function store(overrides: Partial<Store> = {}): Store {
     default_currency: 'EUR',
     status: 'active',
     verified_at: '2026-10-01T10:00:00Z',
+    capacity_paused_at: null,
     browser_enabled: true,
     telemetry_enabled: false,
     config_version: 3,

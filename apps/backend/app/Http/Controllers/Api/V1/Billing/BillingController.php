@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Billing;
 
 use App\Http\Controllers\Controller;
 use App\Models\BillingCheckoutSession;
+use App\Models\BillingPlanChange;
 use App\Models\BillingPrice;
 use App\Models\Subscription;
 use App\Models\Tenant;
@@ -14,6 +15,8 @@ use App\Support\Billing\DiscountResolver;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\Paddle\PaddleCheckout;
 use App\Support\Billing\Paddle\PaddleConfig;
+use App\Support\Billing\Paddle\PaddleSubscriptionActions;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Billing\TrialService;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -127,12 +130,130 @@ class BillingController extends Controller
         return $subscription === null ? response()->noContent() : response()->json($this->subscriptionDto($subscription, $calculator));
     }
 
+    public function previewPlanChange(Request $request, TenantContext $tenantContext, PaddleSubscriptionActions $actions): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('preview plan change');
+        $validated = $request->validate([
+            'price_id' => ['required', 'uuid'],
+            'extra_stores' => ['sometimes', 'integer', 'min:0', 'max:1000'],
+            'retained_store_ids' => ['sometimes', 'nullable', 'array', 'max:1000'],
+            'retained_store_ids.*' => ['string', 'uuid'],
+        ]);
+
+        return $this->rejectable(fn (): JsonResponse => response()->json(PaddleSubscriptionActions::dto($actions->preview(
+            $tenantId,
+            (string) $request->user()->getAuthIdentifier(),
+            $validated['price_id'],
+            (int) ($validated['extra_stores'] ?? 0),
+            $validated['retained_store_ids'] ?? null,
+        ))));
+    }
+
+    public function changePlan(Request $request, TenantContext $tenantContext, PaddleSubscriptionActions $actions, EntitlementCalculator $calculator): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('change plan');
+        $key = trim((string) $request->header('Idempotency-Key'));
+
+        if ($key === '' || strlen($key) > 128) {
+            return response()->json(['code' => 'idempotency_key_required', 'message' => 'Idempotency-Key header is required.'], 400);
+        }
+
+        $validated = $request->validate(['preview_token' => ['required', 'string', 'max:64']]);
+
+        return $this->rejectable(function () use ($actions, $tenantId, $request, $validated, $key, $calculator): JsonResponse {
+            $change = $actions->confirm($tenantId, (string) $request->user()->getAuthIdentifier(), $validated['preview_token'], $key);
+            $calculator->forget();
+
+            return response()->json(['change' => PaddleSubscriptionActions::dto($change), 'subscription' => $this->currentSubscription($tenantId, $calculator)], 202);
+        });
+    }
+
+    public function cancelPlanChange(Request $request, TenantContext $tenantContext, PaddleSubscriptionActions $actions, EntitlementCalculator $calculator): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('cancel plan change');
+
+        return $this->rejectable(function () use ($actions, $tenantId, $request, $calculator): JsonResponse {
+            $change = $actions->cancelScheduledChange($tenantId, (string) $request->user()->getAuthIdentifier());
+            $calculator->forget();
+
+            return response()->json(['change' => PaddleSubscriptionActions::dto($change), 'subscription' => $this->currentSubscription($tenantId, $calculator)]);
+        });
+    }
+
+    public function cancel(Request $request, TenantContext $tenantContext, PaddleSubscriptionActions $actions, EntitlementCalculator $calculator): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('cancel subscription');
+        $validated = $request->validate(['at_period_end' => ['required', 'accepted'], 'reason' => ['sometimes', 'nullable', 'string', 'max:2000']]);
+
+        return $this->rejectable(function () use ($actions, $tenantId, $request, $validated, $calculator): JsonResponse {
+            $actions->cancel($tenantId, (string) $request->user()->getAuthIdentifier(), isset($validated['reason']) ? trim($validated['reason']) : null);
+            $calculator->forget();
+
+            return response()->json($this->currentSubscription($tenantId, $calculator));
+        });
+    }
+
+    public function resume(Request $request, TenantContext $tenantContext, PaddleSubscriptionActions $actions, EntitlementCalculator $calculator): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('resume subscription');
+        $validated = $request->validate(['expected_version' => ['sometimes', 'nullable', 'integer', 'min:1']]);
+
+        return $this->rejectable(function () use ($actions, $tenantId, $request, $validated, $calculator): JsonResponse {
+            $actions->resume($tenantId, (string) $request->user()->getAuthIdentifier(), isset($validated['expected_version']) ? (int) $validated['expected_version'] : null);
+            $calculator->forget();
+
+            return response()->json($this->currentSubscription($tenantId, $calculator));
+        });
+    }
+
+    public function retainStores(Request $request, TenantContext $tenantContext, StoreCapacity $capacity): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('retain stores');
+        $validated = $request->validate(['store_ids' => ['required', 'array', 'min:1', 'max:1000'], 'store_ids.*' => ['string', 'uuid']]);
+
+        return $this->rejectable(function () use ($capacity, $tenantId, $validated): JsonResponse {
+            $capacity->retain($tenantId, $validated['store_ids']);
+
+            return response()->json($capacity->state($tenantId));
+        });
+    }
+
+    /**
+     * @param  callable(): JsonResponse  $action
+     */
+    private function rejectable(callable $action): JsonResponse
+    {
+        try {
+            return $action();
+        } catch (BillingCheckoutRejected $exception) {
+            return response()->json(array_filter([
+                'code' => $exception->reasonCode,
+                'message' => 'The subscription cannot be changed.',
+                'details' => $exception->details === [] ? null : $exception->details,
+            ], fn (mixed $value): bool => $value !== null), $exception->status());
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function currentSubscription(string $tenantId, EntitlementCalculator $calculator): ?array
+    {
+        /** @var Subscription|null $subscription */
+        $subscription = Subscription::query()->where('tenant_id', $tenantId)->first();
+
+        return $subscription === null ? null : $this->subscriptionDto($subscription, $calculator);
+    }
+
     /**
      * @return array<string, mixed>
      */
     private function subscriptionDto(Subscription $subscription, EntitlementCalculator $calculator): array
     {
         $entitlements = $calculator->forTenant($subscription->tenant_id);
+        $actions = app(PaddleSubscriptionActions::class);
+        $contract = $actions->liveContract($subscription->tenant_id);
+        $scheduled = $contract === null ? null : $actions->scheduledChange($contract->id);
 
         return [
             'id' => $subscription->id,
@@ -149,8 +270,32 @@ class BillingController extends Controller
             'period_end' => $subscription->period_end?->toJSON(),
             'cancel_at_period_end' => $subscription->cancel_at_period_end,
             'extra_store_quantity' => $subscription->extra_store_quantity,
+            'price' => $this->priceDto($actions->liveContract($subscription->tenant_id)?->price_id, $scheduled),
+            'scheduled_change' => $scheduled === null ? null : PaddleSubscriptionActions::dto($scheduled),
+            'capacity' => app(StoreCapacity::class)->state($subscription->tenant_id),
             'version' => $subscription->version,
             'entitlements' => EntitlementCalculator::withStores($subscription->entitlements, $subscription->extra_store_quantity),
+        ];
+    }
+
+    /**
+     * The price the tenant pays for the current period: with a cheaper plan scheduled, the provider already holds the
+     * next period's price, the period being paid is still the old one.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function priceDto(?string $priceId, ?BillingPlanChange $scheduled): ?array
+    {
+        /** @var BillingPrice|null $price */
+        $price = BillingPrice::query()->find($scheduled?->from_price_id ?? $priceId);
+
+        return $price === null ? null : [
+            'id' => $price->id,
+            'amount_minor' => (string) $price->amount_minor,
+            'currency' => $price->currency,
+            'currency_exponent' => $price->currency_exponent,
+            'billing_interval' => $price->billing_interval,
+            'billing_interval_count' => $price->billing_interval_count,
         ];
     }
 
