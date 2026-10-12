@@ -1,7 +1,7 @@
 #!/bin/sh
 # Live checks of the control panel through the Vite dev server and the real backend with a staff owner who has an
-# authenticator: `run-live.sh login` (sign-in, own cookies, sign-out) or `run-live.sh plans` (create, price, publish to
-# the Paddle sandbox and retire a plan; needs the sandbox keys). Screenshots land in tests/e2e/.out.
+# authenticator: `run-live.sh login` (sign-in, own cookies, sign-out), `run-live.sh plans` (create, price, publish to
+# the Paddle sandbox and retire a plan) or `run-live.sh discounts` (create a promo code there); the last two need the sandbox keys. Screenshots land in tests/e2e/.out.
 set -eu
 SCRIPT="${1:-login}"
 

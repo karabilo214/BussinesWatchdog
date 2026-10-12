@@ -21,6 +21,11 @@ vi.mock('@/api', () => ({
   removePrice: vi.fn(),
   publishVersion: vi.fn(),
   retireVersion: vi.fn(),
+  fetchDiscounts: vi.fn(),
+  createDiscount: vi.fn(),
+  updateDiscount: vi.fn(),
+  archiveDiscount: vi.fn(),
+  lookupTenants: vi.fn(),
 }));
 
 const mocked = vi.mocked(api);
@@ -153,5 +158,38 @@ describe('plans', () => {
     expect(wrapper.get('[data-field="name-ru"]').attributes('disabled')).toBeDefined();
     expect(wrapper.find('[data-action="save"]').exists()).toBe(false);
     expect(wrapper.find('[data-panel="actions"]').exists()).toBe(false);
+  });
+});
+
+describe('discounts', () => {
+  it('creates a discount for chosen organisations after the confirmation code', async () => {
+    mocked.fetchDiscounts.mockResolvedValue({ data: [], mode: 'test' });
+    mocked.lookupTenants.mockResolvedValue([{ id: 't-1', name: 'Kaffee Lindner' }]);
+    mocked.createDiscount.mockResolvedValue({} as never);
+    const wrapper = await open('/owner/discounts');
+
+    await wrapper.get('[data-action="new-discount"]').trigger('click');
+    await wrapper.get('[data-field="name"]').setValue('Agentur Lindner');
+    await wrapper.get('[data-audience="tenant"]').setValue(true);
+    await wrapper.get('[data-field="tenant-search"]').setValue('lindner');
+    await wrapper.get('[data-action="find-tenants"]').trigger('click');
+    await flushPromises();
+    await wrapper.get('[data-add-tenant="Kaffee Lindner"]').trigger('click');
+    await wrapper.get('[data-field="percent"]').setValue('12,5');
+    await wrapper.get('[data-field="duration"]').setValue('periods');
+    await wrapper.get('[data-field="periods"]').setValue(6);
+    await wrapper.get('[data-plan-option="team"]').setValue(true);
+    await wrapper.get('[data-form="discount"]').trigger('submit');
+    expect(mocked.createDiscount).not.toHaveBeenCalled();
+
+    await wrapper.get('[data-field="reason"]').setValue('Partner deal');
+    await wrapper.get('[data-field="step-up"]').setValue('123456');
+    await wrapper.get('[data-form="confirm"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.createDiscount).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Agentur Lindner', audience: 'tenant', code: null, kind: 'percentage', percent_bps: 1250, amount_minor: null, duration: 'periods', duration_periods: 6, usage_limit: null, plan_ids: ['p-1'], tenant_ids: ['t-1'] }),
+      { reason: 'Partner deal', confirmation_code: '123456' },
+    );
   });
 });

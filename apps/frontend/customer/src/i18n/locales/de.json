@@ -500,7 +500,11 @@
     "extra_stores_out_of_range": "So viele zusätzliche Shops sind in diesem Tarif nicht möglich.",
     "subscription_exists": "Die Organisation hat bereits ein Abonnement.",
     "billing_not_configured": "Zahlungen sind noch nicht angebunden.",
-    "paddle_unavailable": "Das Zahlungsfenster konnte nicht geöffnet werden. Prüfen Sie Ihren Werbeblocker und versuchen Sie es erneut."
+    "paddle_unavailable": "Das Zahlungsfenster konnte nicht geöffnet werden. Prüfen Sie Ihren Werbeblocker und versuchen Sie es erneut.",
+    "discount_code_invalid": "Diesen Gutscheincode gibt es nicht oder er gilt noch nicht.",
+    "discount_expired": "Der Gutscheincode ist abgelaufen.",
+    "discount_not_applicable": "Der Gutscheincode gilt nicht für diesen Tarif.",
+    "discount_used_up": "Der Gutscheincode wurde bereits maximal oft verwendet."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -1440,6 +1444,20 @@
     "opening_checkout": "Zahlung wird geöffnet…",
     "checkout_confirming": "Die Zahlung wird bei Paddle bestätigt. Der Zugang ändert sich erst nach der Bestätigung.",
     "checkout_confirmed": "Zahlung bestätigt, das Abonnement ist aktiv.",
-    "checkout_failed": "Die Zahlung wurde nicht abgeschlossen. Sie können es erneut versuchen."
+    "checkout_failed": "Die Zahlung wurde nicht abgeschlossen. Sie können es erneut versuchen.",
+    "discount": {
+      "promo": "Gutscheincode",
+      "apply": "Anwenden",
+      "applied": "Gutscheincode {code} gilt für die passenden Tarife.",
+      "terms": "{value} Rabatt {duration}",
+      "duration": {
+        "once": "auf die erste Zahlung",
+        "periods": "für {n} Zeiträume",
+        "forever": "dauerhaft"
+      },
+      "until": "(bis {date})",
+      "total_prefix": "Gesamt:",
+      "first_payment": "für die erste Zahlung; Paddle zeigt den Gesamtbetrag mit Steuern."
+    }
   }
 }

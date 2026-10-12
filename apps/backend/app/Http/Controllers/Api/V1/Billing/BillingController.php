@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\V1\Billing;
 
 use App\Http\Controllers\Controller;
 use App\Models\BillingCheckoutSession;
+use App\Models\BillingDiscount;
+use App\Models\BillingPrice;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Support\Billing\BillingCatalog;
 use App\Support\Billing\BillingCheckoutRejected;
+use App\Support\Billing\DiscountResolver;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\Paddle\PaddleCheckout;
 use App\Support\Billing\Paddle\PaddleConfig;
@@ -36,10 +39,11 @@ class BillingController extends Controller
         $validated = $request->validate([
             'price_id' => ['required', 'uuid'],
             'extra_stores' => ['sometimes', 'integer', 'min:0', 'max:1000'],
+            'discount_code' => ['sometimes', 'nullable', 'string', 'max:32'],
         ]);
 
         try {
-            $session = $checkout->start($tenantId, (string) $request->user()->getAuthIdentifier(), $validated['price_id'], (int) ($validated['extra_stores'] ?? 0), $key);
+            $session = $checkout->start($tenantId, (string) $request->user()->getAuthIdentifier(), $validated['price_id'], (int) ($validated['extra_stores'] ?? 0), $key, $validated['discount_code'] ?? null);
         } catch (BillingCheckoutRejected $exception) {
             return response()->json(['code' => $exception->reasonCode, 'message' => 'The checkout cannot be started.'], $exception->status());
         }
@@ -80,6 +84,26 @@ class BillingController extends Controller
         return response()->json($this->subscriptionDto($subscription, $calculator), 201);
     }
 
+    public function checkDiscount(Request $request, TenantContext $tenantContext, BillingCatalog $catalog, DiscountResolver $discounts): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('check discount');
+        $validated = $request->validate(['code' => ['required', 'string', 'max:32'], 'price_id' => ['required', 'uuid']]);
+        /** @var BillingPrice|null $price */
+        $price = $catalog->prices()->with('planVersion')->whereKey($validated['price_id'])->where('price_kind', BillingPrice::KIND_BASE)->first();
+
+        if ($price === null) {
+            return response()->json(['code' => 'price_not_available', 'message' => 'The price is not available.'], 422);
+        }
+
+        try {
+            $discount = $discounts->forCheckout($tenantId, $price, $validated['code']);
+        } catch (BillingCheckoutRejected $exception) {
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The code cannot be used.'], $exception->status());
+        }
+
+        return response()->json(DiscountResolver::dto($discount));
+    }
+
     public function plans(TenantContext $tenantContext, BillingCatalog $catalog): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('read plans');
@@ -87,7 +111,7 @@ class BillingController extends Controller
             && ! Subscription::query()->where('tenant_id', $tenantId)->exists();
 
         return response()->json([
-            'data' => $catalog->plans(),
+            'data' => $catalog->plans($tenantId),
             'mode' => PaddleConfig::mode(),
             'checkout_available' => PaddleConfig::configured() && PaddleConfig::clientToken() !== null,
             'trial_available' => $trialAvailable,
@@ -143,6 +167,7 @@ class BillingController extends Controller
             'error_code' => $session->error_code,
             'expires_at' => $session->expires_at->toJSON(),
             'extra_store_quantity' => $session->extra_store_quantity,
+            'discount' => $session->discount_id === null ? null : DiscountResolver::dto(BillingDiscount::query()->findOrFail($session->discount_id)),
             'access_state' => app(EntitlementCalculator::class)->forTenant($tenantId)->access,
             'provider_checkout' => $open ? [
                 'provider' => $session->provider,

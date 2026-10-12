@@ -107,7 +107,19 @@
     "base_price_missing": "Add a base price for the current payment mode.",
     "billing_not_configured": "Paddle is not connected — publishing is not possible.",
     "provider_unavailable": "Paddle did not answer. The version is still a draft; try again.",
-    "not_found": "Not found."
+    "not_found": "Not found.",
+    "discount_code_taken": "A promo code with this code exists.",
+    "discount_code_invalid_format": "Promo code: 3–32 characters, Latin letters, digits, “-” and “_”.",
+    "discount_amount_invalid": "Discount: a percentage from 0.01 to 100 or an amount above zero.",
+    "discount_kind_invalid": "Choose the kind of discount.",
+    "discount_duration_invalid": "Duration: one payment, 1–1000 periods or forever.",
+    "discount_usage_limit_invalid": "The usage limit is a whole number above zero.",
+    "discount_window_invalid": "Check the dates: the end is after the start and in the future.",
+    "discount_tenants_invalid": "Choose at least one organisation.",
+    "discount_plan_unknown": "One of the plans was not found.",
+    "discount_audience_invalid": "Choose who gets the discount.",
+    "discount_name_invalid": "Enter a discount name (up to 100 characters).",
+    "discount_archived": "The discount is archived and does not change."
   },
   "period": {
     "per": {
@@ -200,6 +212,78 @@
     "confirm_retire": "Stop selling this version? New customers cannot buy it; subscribers ({n}) stay.",
     "reason": "Reason (for the log)",
     "code_confirm": "Code from the authenticator app",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "tab": {
+      "owner-plans": "Plans",
+      "owner-discounts": "Discounts"
+    }
+  },
+  "discounts": {
+    "hint": "Promo codes, discounts for specific customers and offers. Our server applies the discount at purchase and sends it to Paddle with the order.",
+    "new": "New discount",
+    "create": "Create discount",
+    "name": "Name (only you see it)",
+    "name_hint": "E.g. “Launch, October” or “Agency Lindner”.",
+    "label": "Text for the customer",
+    "audience": "For whom",
+    "audience_name": {
+      "code": "Promo code",
+      "tenant": "Specific customers",
+      "automatic": "Offer for everyone"
+    },
+    "audience_hint": {
+      "code": "the customer enters the code when buying",
+      "tenant": "applied automatically for the chosen organisations",
+      "automatic": "applied automatically for everyone buying the chosen plans"
+    },
+    "code": "Code",
+    "tenants": "Organisations",
+    "tenant_search": "Organisation name or id",
+    "find": "Find",
+    "add": "Add",
+    "remove": "Remove",
+    "kind": "Kind",
+    "kind_name": {
+      "percentage": "Percentage",
+      "flat": "Amount"
+    },
+    "percent": "Percent",
+    "amount": "Amount",
+    "currency": "Currency",
+    "duration": "Duration",
+    "duration_name": {
+      "once": "One payment",
+      "periods": "Several periods",
+      "forever": "Forever"
+    },
+    "periods": "Periods",
+    "usage_limit": "Usage limit",
+    "no_limit": "no limit",
+    "starts_at": "Start (optional)",
+    "expires_at": "End (optional)",
+    "plans": "Plans",
+    "plans_hint": "Nothing selected means all plans.",
+    "confirm_create": "Create the discount? It appears in Paddle right away and applies on its terms.",
+    "confirm_archive": "Archive “{name}”? New purchases do not get it; subscriptions that have it keep it until it ends.",
+    "confirm_edit": "Change the limit and end of “{name}”?",
+    "created": "Discount created.",
+    "archived": "Discount archived.",
+    "updated": "Discount changed.",
+    "empty": "No discounts yet.",
+    "all_plans": "all plans",
+    "used": "used {used} of {limit}",
+    "from": "from {date}",
+    "until": "until {date}",
+    "edit": "Change limit and end",
+    "archive": "Archive",
+    "state": {
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "duration_text": {
+      "once": "on the first payment",
+      "periods": "for {n} periods",
+      "forever": "forever"
+    }
   }
 }

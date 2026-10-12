@@ -7,6 +7,7 @@ use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
 use App\Support\Billing\Paddle\PaddleConfig;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class BillingCatalog
 {
@@ -52,7 +53,7 @@ class BillingCatalog
     /**
      * @return list<array<string, mixed>>
      */
-    public function plans(): array
+    public function plans(?string $tenantId = null): array
     {
         $versions = $this->versions();
         $prices = $this->prices()
@@ -62,7 +63,7 @@ class BillingCatalog
             ->get()
             ->groupBy('plan_version_id');
 
-        $plans = array_map(fn (BillingPlanVersion $version): array => [
+        $plans = array_map(fn (BillingPlanVersion $version): array => $this->withDiscount([
             'plan_code' => $version->plan->code,
             'plan_version_id' => $version->id,
             'name' => $version->localized_content['name'] ?? [],
@@ -80,11 +81,24 @@ class BillingCatalog
                 'interval_count' => $price->billing_interval_count,
                 'tax_behavior' => $price->tax_behavior,
             ])->values()->all(),
-        ], $versions);
+        ], $tenantId, $prices[$version->id] ?? collect()), $versions);
 
         usort($plans, fn (array $left, array $right): int => [$this->basePrice($left) === null, $this->basePrice($left), $left['plan_code']] <=> [$this->basePrice($right) === null, $this->basePrice($right), $right['plan_code']]);
 
         return $plans;
+    }
+
+    /**
+     * @param  array<string, mixed>  $plan
+     * @param  Collection<int, BillingPrice>  $prices
+     * @return array<string, mixed>
+     */
+    private function withDiscount(array $plan, ?string $tenantId, Collection $prices): array
+    {
+        $base = $prices->firstWhere('price_kind', BillingPrice::KIND_BASE);
+        $discount = $tenantId === null || $base === null ? null : app(DiscountResolver::class)->bestAutomatic($tenantId, $base);
+
+        return $plan + ['discount' => $discount === null ? null : DiscountResolver::dto($discount)];
     }
 
     /**

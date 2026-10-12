@@ -32,6 +32,19 @@ export interface BillingPrice {
   tax_behavior: string;
 }
 
+export interface BillingDiscount {
+  id: string;
+  label: Record<string, string>;
+  kind: 'percentage' | 'flat';
+  percent: string | null;
+  amount_minor: string | null;
+  currency: string | null;
+  currency_exponent: number | null;
+  duration: 'once' | 'periods' | 'forever';
+  duration_periods: number | null;
+  expires_at: string | null;
+}
+
 export interface BillingPlan {
   plan_code: string;
   plan_version_id: string;
@@ -40,6 +53,7 @@ export interface BillingPlan {
   trial_days: number;
   entitlements: { features: string[]; limits: Partial<Record<LimitCode, number | null>> };
   prices: BillingPrice[];
+  discount: BillingDiscount | null;
 }
 
 export interface BillingCatalog {
@@ -75,6 +89,7 @@ export interface BillingCheckout {
   error_code: string | null;
   expires_at: string;
   extra_store_quantity: number;
+  discount: BillingDiscount | null;
   access_state: AccessState;
   provider_checkout: { provider: string; environment: 'sandbox' | 'production'; client_token: string | null; transaction_id: string } | null;
 }
@@ -95,8 +110,17 @@ export async function startTrial(planVersionId: string): Promise<BillingSubscrip
   return (await request<BillingSubscription>('POST', '/api/v1/billing/trial', { body: { plan_version_id: planVersionId }, idempotencyKey: newIdempotencyKey() })).data;
 }
 
-export async function startCheckout(priceId: string, extraStores: number, idempotencyKey: string): Promise<BillingCheckout> {
-  return (await request<BillingCheckout>('POST', '/api/v1/billing/checkout', { body: { price_id: priceId, extra_stores: extraStores }, idempotencyKey })).data;
+export async function startCheckout(priceId: string, extraStores: number, idempotencyKey: string, discountCode: string | null = null): Promise<BillingCheckout> {
+  return (
+    await request<BillingCheckout>('POST', '/api/v1/billing/checkout', {
+      body: discountCode === null ? { price_id: priceId, extra_stores: extraStores } : { price_id: priceId, extra_stores: extraStores, discount_code: discountCode },
+      idempotencyKey,
+    })
+  ).data;
+}
+
+export async function checkDiscount(code: string, priceId: string): Promise<BillingDiscount> {
+  return (await request<BillingDiscount>('GET', '/api/v1/billing/discounts/check', { query: { code, price_id: priceId } })).data;
 }
 
 export async function fetchCheckout(id: string): Promise<BillingCheckout> {

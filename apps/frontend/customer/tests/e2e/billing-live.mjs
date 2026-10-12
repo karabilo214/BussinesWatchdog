@@ -25,6 +25,15 @@ try {
   await shot('1-plans');
   console.log('ok   plans shown, Start with one extra store totals 28,00 €');
 
+  if (process.env.BW_PROMO) {
+    await page.locator('[data-field="promo"]').fill(process.env.BW_PROMO.toLowerCase());
+    await page.locator('[data-action="apply-promo"]').click();
+    await page.locator('[data-promo="applied"]').waitFor();
+    await page.locator('[data-plan="start"] [data-total="discounted"]').getByText(/28,00\s€\s+22,40\s€/).waitFor();
+    await shot('1b-promo');
+    console.log('ok   promo code applied: 28,00 € → 22,40 € for the first payment');
+  }
+
   await page.locator('[data-action="buy-start"]').click();
   const frame = page.frameLocator('iframe[name="paddle_frame"], iframe.paddle-frame').first();
   await frame.locator('body').waitFor({ timeout: 30000 });

@@ -131,6 +131,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
     Route::get('/billing/checkouts/{checkout}', [BillingController::class, 'showCheckout'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+    Route::get('/billing/discounts/check', [BillingController::class, 'checkDiscount'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'throttle:discount-check']);
     Route::get('/billing/plans', [BillingController::class, 'plans'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
     Route::get('/billing/subscription', [BillingController::class, 'subscription'])

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { StatusBadge, type Tone } from '@bw/ui';
 import { createPlan, fetchPlans, type PlanCatalog, type PlanState } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import PlansTabs from '@/components/PlansTabs.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useStaff } from '@/composables/useStaff';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -66,6 +67,8 @@ onMounted(load);
           {{ $t('plans.new') }}
         </button>
       </div>
+
+      <PlansTabs />
 
       <p v-if="catalog && !catalog.provider_configured" class="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm text-warn">{{ $t('plans.provider_missing') }}</p>
 

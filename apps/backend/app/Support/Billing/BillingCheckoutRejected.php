@@ -16,6 +16,10 @@ class BillingCheckoutRejected extends RuntimeException
         'trial_store_already_used' => 409,
         'plan_not_available' => 422,
         'email_not_verified' => 403,
+        'discount_code_invalid' => 422,
+        'discount_expired' => 422,
+        'discount_not_applicable' => 422,
+        'discount_used_up' => 409,
     ];
 
     public function __construct(public readonly string $reasonCode)

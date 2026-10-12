@@ -38,6 +38,8 @@ class AppServiceProvider extends ServiceProvider
             Limit::perHour(30)->by('platform-email|'.mb_strtolower(trim((string) $request->input('email')))),
         ]);
 
+        RateLimiter::for('discount-check', fn (Request $request): Limit => Limit::perMinute(10)->by('discount-check|'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         RateLimiter::for('platform-step-up', fn (Request $request): Limit => Limit::perMinute(10)->by('platform-step-up|'.$request->ip()));
 
         RateLimiter::for('platform-mfa', fn (Request $request): Limit => Limit::perMinute(10)->by('platform-mfa|'.$request->ip()));

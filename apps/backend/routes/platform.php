@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Platform\DiscountController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformAuthController;
 use App\Support\Platform\PlatformCapabilities;
@@ -16,6 +17,8 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     });
 
     Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_READ)->get('/plans', [PlanController::class, 'index']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_READ)->get('/discounts', [DiscountController::class, 'index']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/lookup', [DiscountController::class, 'tenants']);
 
     Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_MANAGE)->group(function (): void {
         Route::post('/plans', [PlanController::class, 'store']);
@@ -25,5 +28,8 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::delete('/plan-prices/{price}', [PlanController::class, 'removePrice']);
         Route::post('/plan-versions/{version}/publish', [PlanController::class, 'publish'])->middleware('throttle:platform-step-up');
         Route::post('/plan-versions/{version}/retire', [PlanController::class, 'retire'])->middleware('throttle:platform-step-up');
+        Route::post('/discounts', [DiscountController::class, 'store'])->middleware('throttle:platform-step-up');
+        Route::patch('/discounts/{discount}', [DiscountController::class, 'update'])->middleware('throttle:platform-step-up');
+        Route::post('/discounts/{discount}/archive', [DiscountController::class, 'archive'])->middleware('throttle:platform-step-up');
     });
 });

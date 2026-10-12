@@ -21,7 +21,7 @@ class BillingCheckoutSession extends Model
 
     public const STATUS_UNKNOWN = 'unknown';
 
-    protected $fillable = ['tenant_id', 'actor_user_id', 'contract_id', 'plan_version_id', 'price_id', 'extra_store_price_id', 'extra_store_quantity', 'provider', 'provider_account_ref', 'provider_session_ref', 'mode', 'status', 'error_code', 'idempotency_key', 'request_hash', 'expires_at', 'confirmed_at'];
+    protected $fillable = ['tenant_id', 'actor_user_id', 'contract_id', 'plan_version_id', 'price_id', 'extra_store_price_id', 'extra_store_quantity', 'provider', 'provider_account_ref', 'provider_session_ref', 'mode', 'status', 'error_code', 'idempotency_key', 'request_hash', 'expires_at', 'confirmed_at', 'discount_id'];
 
     protected function casts(): array
     {

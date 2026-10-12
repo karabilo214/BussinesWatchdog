@@ -131,3 +131,77 @@ export async function publishVersion(versionId: string, reason: string, code: st
 export async function retireVersion(versionId: string, reason: string, code: string): Promise<PlanVersion> {
   return (await request<PlanVersion>('POST', `/platform-api/v1/plan-versions/${encodeURIComponent(versionId)}/retire`, { body: { reason, code } })).data;
 }
+
+export type DiscountAudience = 'code' | 'tenant' | 'automatic';
+export type DiscountDuration = 'once' | 'periods' | 'forever';
+
+export interface Discount {
+  id: string;
+  name: string;
+  label: Localized;
+  audience: DiscountAudience;
+  code: string | null;
+  kind: 'percentage' | 'flat';
+  percent: string | null;
+  amount_minor: string | null;
+  currency: string | null;
+  currency_exponent: number | null;
+  duration: DiscountDuration;
+  duration_periods: number | null;
+  usage_limit: number | null;
+  used: number;
+  plan_ids: string[];
+  tenants: { id: string; name: string }[];
+  starts_at: string | null;
+  expires_at: string | null;
+  state: 'active' | 'archived';
+  mode: 'test' | 'live';
+  created_at: string | null;
+}
+
+export interface NewDiscount {
+  name: string;
+  label: Localized;
+  audience: DiscountAudience;
+  code: string | null;
+  kind: Discount['kind'];
+  percent_bps: number | null;
+  amount_minor: string | null;
+  currency: string | null;
+  duration: DiscountDuration;
+  duration_periods: number | null;
+  usage_limit: number | null;
+  plan_ids: string[];
+  tenant_ids: string[];
+  starts_at: string | null;
+  expires_at: string | null;
+}
+
+export interface Confirmation {
+  reason: string;
+  confirmation_code: string;
+}
+
+export async function fetchDiscounts(): Promise<{ data: Discount[]; mode: 'test' | 'live' }> {
+  return (await request<{ data: Discount[]; mode: 'test' | 'live' }>('GET', '/platform-api/v1/discounts')).data;
+}
+
+export async function createDiscount(discount: NewDiscount, confirmation: Confirmation): Promise<Discount> {
+  return (await request<Discount>('POST', '/platform-api/v1/discounts', { body: { ...discount, ...confirmation } })).data;
+}
+
+export async function updateDiscount(
+  id: string,
+  changes: Partial<Pick<NewDiscount, 'usage_limit' | 'expires_at' | 'tenant_ids' | 'plan_ids'>>,
+  confirmation: Confirmation,
+): Promise<Discount> {
+  return (await request<Discount>('PATCH', `/platform-api/v1/discounts/${encodeURIComponent(id)}`, { body: { ...changes, ...confirmation } })).data;
+}
+
+export async function archiveDiscount(id: string, confirmation: Confirmation): Promise<Discount> {
+  return (await request<Discount>('POST', `/platform-api/v1/discounts/${encodeURIComponent(id)}/archive`, { body: confirmation })).data;
+}
+
+export async function lookupTenants(query: string): Promise<{ id: string; name: string }[]> {
+  return (await request<{ data: { id: string; name: string }[] }>('GET', '/platform-api/v1/tenants/lookup', { query: { query } })).data.data;
+}

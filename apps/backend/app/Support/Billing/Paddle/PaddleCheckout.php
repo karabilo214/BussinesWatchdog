@@ -3,12 +3,14 @@
 namespace App\Support\Billing\Paddle;
 
 use App\Models\BillingCheckoutSession;
+use App\Models\BillingDiscount;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
 use App\Models\BillingSubscriptionContract;
 use App\Models\Tenant;
 use App\Support\Billing\BillingCatalog;
 use App\Support\Billing\BillingCheckoutRejected;
+use App\Support\Billing\DiscountResolver;
 use App\Support\Billing\FeatureCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -24,18 +26,20 @@ class PaddleCheckout
     public function __construct(
         private readonly PaddleClient $client,
         private readonly BillingCatalog $catalog,
+        private readonly DiscountResolver $discounts,
     ) {}
 
-    public function start(string $tenantId, string $userId, string $priceId, int $extraStores, string $idempotencyKey): BillingCheckoutSession
+    public function start(string $tenantId, string $userId, string $priceId, int $extraStores, string $idempotencyKey, ?string $discountCode = null): BillingCheckoutSession
     {
         if (! PaddleConfig::configured() || PaddleConfig::clientToken() === null) {
             throw new BillingCheckoutRejected('billing_not_configured');
         }
 
-        $request = compact('priceId', 'extraStores');
+        $discountCode = $discountCode === null || trim($discountCode) === '' ? null : DiscountResolver::normalizeCode($discountCode);
+        $request = $discountCode === null ? compact('priceId', 'extraStores') : compact('priceId', 'extraStores', 'discountCode');
         $hash = hash('sha256', json_encode($request, JSON_THROW_ON_ERROR));
 
-        [$session, $superseded] = DB::transaction(function () use ($tenantId, $userId, $priceId, $extraStores, $idempotencyKey, $hash): array {
+        [$session, $superseded] = DB::transaction(function () use ($tenantId, $userId, $priceId, $extraStores, $idempotencyKey, $hash, $discountCode): array {
             Tenant::query()->whereKey($tenantId)->lockForUpdate()->firstOrFail();
 
             /** @var BillingCheckoutSession|null $replay */
@@ -65,6 +69,7 @@ class PaddleCheckout
             }
 
             $extra = $extraStores > 0 ? $this->extraStorePrice($base) : null;
+            $discount = $this->discounts->forCheckout($tenantId, $base, $discountCode);
             $pending = BillingCheckoutSession::query()
                 ->where('tenant_id', $tenantId)
                 ->where('mode', PaddleConfig::mode())
@@ -79,6 +84,7 @@ class PaddleCheckout
                 'price_id' => $base->id,
                 'extra_store_price_id' => $extra?->id,
                 'extra_store_quantity' => $extraStores,
+                'discount_id' => $discount?->id,
                 'provider' => PaddleConfig::PROVIDER,
                 'provider_account_ref' => PaddleConfig::accountRef(),
                 'mode' => PaddleConfig::mode(),
@@ -106,11 +112,13 @@ class PaddleCheckout
         }
 
         try {
-            $result = $this->client->post('/transactions', [
+            $discountRef = $session->discount_id === null ? null : BillingDiscount::query()->whereKey($session->discount_id)->value('provider_discount_ref');
+            $result = $this->client->post('/transactions', array_filter([
                 'items' => $items,
+                'discount_id' => $discountRef,
                 'collection_mode' => 'automatic',
                 'custom_data' => ['tenant_id' => $tenantId, 'checkout_id' => $session->id],
-            ]);
+            ], fn (mixed $value): bool => $value !== null));
             $session->forceFill(['status' => BillingCheckoutSession::STATUS_PENDING, 'provider_session_ref' => (string) $result['data']['id']])->save();
         } catch (PaddleRequestFailed $exception) {
             $session->forceFill([

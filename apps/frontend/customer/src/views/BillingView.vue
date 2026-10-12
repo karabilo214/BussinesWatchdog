@@ -2,8 +2,9 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { newIdempotencyKey } from '@bw/api-client';
-import { formatMinor, StatusBadge, type Tone } from '@bw/ui';
+import { formatMinor, parseMinor, StatusBadge, type Tone } from '@bw/ui';
 import {
+  checkDiscount,
   fetchCheckout,
   fetchEntitlements,
   fetchPlans,
@@ -13,6 +14,7 @@ import {
   type AccessState,
   type BillingCatalog,
   type BillingCheckout,
+  type BillingDiscount,
   type BillingPlan,
   type BillingPrice,
   type BillingSubscription,
@@ -69,6 +71,7 @@ const extraStores = reactive<Record<string, number>>({});
 const checkout = ref<BillingCheckout | null>(null);
 const checkoutPhase = ref<'idle' | 'open' | 'confirming' | 'confirmed' | 'failed'>('idle');
 const trialStarted = ref(false);
+const promo = reactive({ input: '', code: null as string | null, results: {} as Record<string, BillingDiscount | 'invalid'>, busy: false, error: null as unknown });
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let polls = 0;
 let pendingKey: { selection: string; key: string } | null = null;
@@ -94,7 +97,7 @@ function money(item: BillingPrice, minor = item.amount_minor): string {
   return formatMinor(minor, item.currency, item.currency_exponent, locale.value) ?? `${minor} ${item.currency}`;
 }
 
-function total(plan: BillingPlan): string | null {
+function totalMinor(plan: BillingPlan): bigint | null {
   const base = price(plan, 'base');
   const extra = price(plan, 'extra_store');
 
@@ -103,9 +106,84 @@ function total(plan: BillingPlan): string | null {
   }
 
   const quantity = BigInt(extraStores[plan.plan_version_id] ?? 0);
-  const sum = BigInt(base.amount_minor) + (extra === null ? 0n : BigInt(extra.amount_minor) * quantity);
 
-  return money(base, sum.toString());
+  return BigInt(base.amount_minor) + (extra === null ? 0n : BigInt(extra.amount_minor) * quantity);
+}
+
+function total(plan: BillingPlan): string | null {
+  const sum = totalMinor(plan);
+  const base = price(plan, 'base');
+
+  return sum === null || base === null ? null : money(base, sum.toString());
+}
+
+function discountFor(plan: BillingPlan): BillingDiscount | null {
+  const promoted = promo.results[plan.plan_version_id];
+
+  return typeof promoted === 'object' ? promoted : plan.discount;
+}
+
+function discountedTotal(plan: BillingPlan, discount: BillingDiscount): string | null {
+  const sum = totalMinor(plan);
+  const base = price(plan, 'base');
+
+  if (sum === null || base === null) {
+    return null;
+  }
+
+  if (discount.kind === 'flat') {
+    const amount = BigInt(discount.amount_minor ?? '0');
+
+    return money(base, (sum > amount ? sum - amount : 0n).toString());
+  }
+
+  const bps = BigInt(parseMinor(discount.percent ?? '0', 2) ?? '0');
+
+  return money(base, (sum - (sum * bps + 5000n) / 10000n).toString());
+}
+
+function discountText(discount: BillingDiscount): string {
+  const own = discount.label[locale.value] ?? discount.label.en;
+  const value =
+    discount.kind === 'percentage'
+      ? `${new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }).format(Number(discount.percent))} %`
+      : (formatMinor(discount.amount_minor ?? '0', discount.currency ?? 'EUR', discount.currency_exponent ?? 2, locale.value) ?? '');
+  const terms = t('billing.discount.terms', { value, duration: t(`billing.discount.duration.${discount.duration}`, { n: discount.duration_periods ?? 0 }) });
+  const until = discount.expires_at === null ? '' : ` ${t('billing.discount.until', { date: dateTime(discount.expires_at) })}`;
+
+  return `${own ? `${own}: ` : ''}${terms}${until}`;
+}
+
+async function applyPromo(): Promise<void> {
+  const code = promo.input.trim();
+
+  if (code === '' || catalog.value === null) {
+    return;
+  }
+
+  promo.busy = true;
+  promo.error = null;
+  promo.results = {};
+  let firstError: unknown = null;
+
+  for (const plan of catalog.value.data) {
+    const base = price(plan, 'base');
+
+    if (base === null) {
+      continue;
+    }
+
+    try {
+      promo.results[plan.plan_version_id] = await checkDiscount(code, base.id);
+    } catch (caught) {
+      promo.results[plan.plan_version_id] = 'invalid';
+      firstError ??= caught;
+    }
+  }
+
+  promo.code = Object.values(promo.results).some((result) => typeof result === 'object') ? code : null;
+  promo.error = promo.code === null ? firstError : null;
+  promo.busy = false;
 }
 
 function maxExtra(plan: BillingPlan): number {
@@ -257,7 +335,8 @@ async function buy(plan: BillingPlan): Promise<void> {
   }
 
   const quantity = Math.max(0, Math.min(maxExtra(plan), Math.trunc(extraStores[plan.plan_version_id] ?? 0)));
-  const selection = `${base.id}:${quantity}`;
+  const code = typeof promo.results[plan.plan_version_id] === 'object' ? promo.code : null;
+  const selection = `${base.id}:${quantity}:${code ?? ''}`;
 
   if (pendingKey === null || pendingKey.selection !== selection) {
     pendingKey = { selection, key: newIdempotencyKey() };
@@ -268,7 +347,7 @@ async function buy(plan: BillingPlan): Promise<void> {
   stopPolling();
 
   try {
-    checkout.value = await startCheckout(base.id, quantity, pendingKey.key);
+    checkout.value = await startCheckout(base.id, quantity, pendingKey.key, code);
 
     if (checkout.value.provider_checkout === null) {
       checkoutPhase.value = 'confirming';
@@ -392,6 +471,18 @@ onBeforeUnmount(stopPolling);
             <p v-else-if="!catalog.checkout_available" class="text-sm text-text-muted">{{ $t('billing.checkout_unavailable') }}</p>
           </div>
 
+          <form v-if="canBuy && catalog.data.length > 0" class="flex flex-wrap items-end gap-2" data-form="promo" @submit.prevent="applyPromo">
+            <label class="flex flex-col gap-1.5 text-sm">
+              <span class="font-medium">{{ $t('billing.discount.promo') }}</span>
+              <input v-model="promo.input" maxlength="32" autocapitalize="characters" class="w-48 rounded-md border border-border-strong bg-surface px-3 py-2 font-mono uppercase" data-field="promo" />
+            </label>
+            <button type="submit" class="rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="promo.busy || promo.input.trim() === ''" data-action="apply-promo">
+              {{ $t('billing.discount.apply') }}
+            </button>
+            <p v-if="promo.code" role="status" class="w-full text-sm text-ok" data-promo="applied">{{ $t('billing.discount.applied', { code: promo.code.toUpperCase() }) }}</p>
+            <ErrorNotice v-if="promo.error" :error="promo.error" class="w-full" />
+          </form>
+
           <p v-if="catalog.data.length === 0" class="rounded-xl border border-border bg-surface p-5 text-sm text-text-muted">{{ $t('billing.no_plans') }}</p>
 
           <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -417,6 +508,7 @@ onBeforeUnmount(stopPolling);
                 </p>
               </div>
               <p v-else class="text-sm text-text-muted">{{ $t('billing.no_price') }}</p>
+              <p v-if="discountFor(plan)" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" :data-discount="plan.plan_code">{{ discountText(discountFor(plan)!) }}</p>
 
               <ul class="flex flex-col gap-1 text-sm">
                 <li v-for="code in PLAN_LIMITS" :key="code" class="flex justify-between gap-3">
@@ -454,7 +546,11 @@ onBeforeUnmount(stopPolling);
                       :data-extra="plan.plan_code"
                     />
                   </label>
-                  <p class="text-sm">{{ $t('billing.total', { price: total(plan), period: period(price(plan, 'base')!.interval, price(plan, 'base')!.interval_count) }) }}</p>
+                  <p v-if="discountFor(plan)" class="text-sm" data-total="discounted">
+                    {{ $t('billing.discount.total_prefix') }} <s class="text-text-muted">{{ total(plan) }}</s> {{ discountedTotal(plan, discountFor(plan)!) }}
+                    {{ $t('billing.discount.first_payment') }}
+                  </p>
+                  <p v-else class="text-sm">{{ $t('billing.total', { price: total(plan), period: period(price(plan, 'base')!.interval, price(plan, 'base')!.interval_count) }) }}</p>
                   <button
                     type="button"
                     class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"

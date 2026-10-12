@@ -2089,3 +2089,20 @@ Verification:
 - `tests/Feature/Platform/PlanAdminTest.php` — 4 tests (draft → prices for any period → step-up → Paddle billing cycle → customer catalog; new version retires the old one without moving subscribers; Paddle failure keeps the draft; roles). Billing tests moved to published fixtures; seeder test.
 - Backend SQLite: 457 passed, 4 skipped; PostgreSQL 18: 461 of 461. Control: 9 tests; customer: 99 tests; builds pass.
 - Live: `apps/frontend/control/tests/e2e/run-live.sh plans` — PASS in the Paddle sandbox (plan created in the browser, 45,50 € every 2 weeks + 5,00 € per extra store, wrong code refused, published, retired); Paddle API confirms the price `billing_cycle {week, 2}`. `run-billing-live.sh` — PASS after the change. `make frontend-smoke`: 42/42 on the third run; the first two runs failed at different steps of the owner's two-factor section (log-out click, ownership transfer) without backend errors — a flaky part of the smoke scenario, not touched by this step.
+
+### Step 105: Discounts in the Owner Panel
+
+Status: complete
+
+- ADR 0036. Migration `2026_10_12_140000_create_billing_discounts`: `billing_discounts` (percentage in basis points or flat amount with currency, audience code/tenant/automatic, duration once/periods/forever, usage limit, start/end, plans, Paddle id, state; PostgreSQL CHECKs), `billing_discount_tenants`, `billing_checkout_sessions.discount_id`.
+- Paddle API verified in the sandbox before coding (discount fields, archiving, a server-created transaction with `discount_id`: 19.00 € − 20 % = 15.20 €).
+- `DiscountAdmin` (create in Paddle with `enabled_for_checkout: false`, then locally; change name/text/plans/organisations/dates/limit; archive), `DiscountResolver` (code > organisation's own > best public offer by saving; reasons `discount_code_invalid`, `discount_expired`, `discount_not_applicable`, `discount_used_up`; uses from confirmed checkouts). `PaddleCheckout` takes an optional code, stores the discount and sends `discount_id`.
+- API: platform `GET/POST /discounts`, `PATCH /discounts/{id}`, `POST /discounts/{id}/archive` (reason + `confirmation_code`), `GET /tenants/lookup`; customer `GET /billing/discounts/check`, `discount_code` on checkout, `discount` in the catalog and the checkout. OpenAPI (both copies).
+- Control app: "Скидки" tab with list (value, plans, organisations, uses, dates, state), creation form (audience, organisation search, percent or amount parsed without floats, duration, limit, dates, plans) and change/archive with confirmation. Customer: promo code field, discount on plan cards, crossed-out and discounted first payment, code sent with the purchase.
+- Found on PostgreSQL only: the organisation lookup compared the uuid id with free text — the id is compared only for UUID queries now.
+
+Verification:
+
+- `tests/Feature/Platform/DiscountTest.php` — 4 tests (creation with Paddle terms, step-up, duplicates and validation, change, archive, audit; promo code applicability, expiry and usage limit; organisation discount beats public offers, best saving, start/end, archived; lookup). Control 10 tests, customer 102 tests.
+- Backend SQLite: 461 passed, 4 skipped; PostgreSQL 18: 465 of 465 (twice).
+- Live in the Paddle sandbox: `run-live.sh discounts` created promo code E2EMV4WAY65 (20 %, 2 periods, Start only, 5 uses) in the browser; `BW_PROMO=E2EMV4WAY65 run-billing-live.sh` applied it (28.00 € → 22.40 €) and paid with the test card — PASS. Paddle: transaction total 22.40 €, discount on it, `times_used` 1, the subscription carries the discount until two monthly periods end.

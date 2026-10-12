@@ -107,7 +107,19 @@
     "base_price_missing": "Fügen Sie einen Grundpreis für den aktuellen Zahlungsmodus hinzu.",
     "billing_not_configured": "Paddle ist nicht angebunden — Veröffentlichen nicht möglich.",
     "provider_unavailable": "Paddle hat nicht geantwortet. Die Version bleibt ein Entwurf; versuchen Sie es erneut.",
-    "not_found": "Nicht gefunden."
+    "not_found": "Nicht gefunden.",
+    "discount_code_taken": "Ein Gutscheincode mit diesem Code existiert bereits.",
+    "discount_code_invalid_format": "Gutscheincode: 3–32 Zeichen, lateinische Buchstaben, Ziffern, „-“ und „_“.",
+    "discount_amount_invalid": "Rabatt: Prozent von 0,01 bis 100 oder ein Betrag über null.",
+    "discount_kind_invalid": "Wählen Sie die Rabattart.",
+    "discount_duration_invalid": "Dauer: eine Zahlung, 1–1000 Zeiträume oder dauerhaft.",
+    "discount_usage_limit_invalid": "Das Nutzungslimit ist eine ganze Zahl über null.",
+    "discount_window_invalid": "Prüfen Sie die Daten: Ende nach dem Beginn und in der Zukunft.",
+    "discount_tenants_invalid": "Wählen Sie mindestens eine Organisation.",
+    "discount_plan_unknown": "Einer der Tarife wurde nicht gefunden.",
+    "discount_audience_invalid": "Wählen Sie, wer den Rabatt erhält.",
+    "discount_name_invalid": "Geben Sie einen Rabattnamen ein (bis 100 Zeichen).",
+    "discount_archived": "Der Rabatt ist archiviert und ändert sich nicht."
   },
   "period": {
     "per": {
@@ -200,6 +212,78 @@
     "confirm_retire": "Verkauf dieser Version einstellen? Neue Kunden können sie nicht kaufen; Abonnenten ({n}) bleiben.",
     "reason": "Grund (für das Protokoll)",
     "code_confirm": "Code aus der Authenticator-App",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "tab": {
+      "owner-plans": "Tarife",
+      "owner-discounts": "Rabatte"
+    }
+  },
+  "discounts": {
+    "hint": "Gutscheincodes, Rabatte für bestimmte Kunden und Aktionen. Unser Server wendet den Rabatt beim Kauf an und übergibt ihn mit der Bestellung an Paddle.",
+    "new": "Neuer Rabatt",
+    "create": "Rabatt anlegen",
+    "name": "Name (nur für Sie sichtbar)",
+    "name_hint": "Z. B. „Start, Oktober“ oder „Agentur Lindner“.",
+    "label": "Text für den Kunden",
+    "audience": "Für wen",
+    "audience_name": {
+      "code": "Gutscheincode",
+      "tenant": "Bestimmte Kunden",
+      "automatic": "Aktion für alle"
+    },
+    "audience_hint": {
+      "code": "der Kunde gibt den Code beim Kauf ein",
+      "tenant": "gilt automatisch für die gewählten Organisationen",
+      "automatic": "gilt automatisch für alle Käufer der gewählten Tarife"
+    },
+    "code": "Code",
+    "tenants": "Organisationen",
+    "tenant_search": "Name oder ID der Organisation",
+    "find": "Suchen",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "kind": "Art",
+    "kind_name": {
+      "percentage": "Prozent",
+      "flat": "Betrag"
+    },
+    "percent": "Prozent",
+    "amount": "Betrag",
+    "currency": "Währung",
+    "duration": "Dauer",
+    "duration_name": {
+      "once": "Eine Zahlung",
+      "periods": "Mehrere Zeiträume",
+      "forever": "Dauerhaft"
+    },
+    "periods": "Zeiträume",
+    "usage_limit": "Nutzungslimit",
+    "no_limit": "ohne Limit",
+    "starts_at": "Beginn (optional)",
+    "expires_at": "Ende (optional)",
+    "plans": "Tarife",
+    "plans_hint": "Nichts gewählt bedeutet alle Tarife.",
+    "confirm_create": "Rabatt anlegen? Er erscheint sofort bei Paddle und gilt zu seinen Bedingungen.",
+    "confirm_archive": "„{name}“ archivieren? Neue Käufe erhalten ihn nicht; Abos mit diesem Rabatt behalten ihn bis zum Ende.",
+    "confirm_edit": "Limit und Ende von „{name}“ ändern?",
+    "created": "Rabatt angelegt.",
+    "archived": "Rabatt archiviert.",
+    "updated": "Rabatt geändert.",
+    "empty": "Noch keine Rabatte.",
+    "all_plans": "alle Tarife",
+    "used": "genutzt {used} von {limit}",
+    "from": "ab {date}",
+    "until": "bis {date}",
+    "edit": "Limit und Ende ändern",
+    "archive": "Archivieren",
+    "state": {
+      "active": "Aktiv",
+      "archived": "Archiviert"
+    },
+    "duration_text": {
+      "once": "auf die erste Zahlung",
+      "periods": "für {n} Zeiträume",
+      "forever": "dauerhaft"
+    }
   }
 }

@@ -500,7 +500,11 @@
     "extra_stores_out_of_range": "This plan cannot include that many extra stores.",
     "subscription_exists": "The organisation already has a subscription.",
     "billing_not_configured": "Payments are not connected yet.",
-    "paddle_unavailable": "The payment window could not be opened. Check your ad blocker and try again."
+    "paddle_unavailable": "The payment window could not be opened. Check your ad blocker and try again.",
+    "discount_code_invalid": "This promo code does not exist or is not active yet.",
+    "discount_expired": "The promo code has expired.",
+    "discount_not_applicable": "The promo code does not apply to this plan.",
+    "discount_used_up": "The promo code has been used the maximum number of times."
   },
   "incidents": {
     "title": "Incidents",
@@ -1440,6 +1444,20 @@
     "opening_checkout": "Opening checkout…",
     "checkout_confirming": "Confirming the payment with Paddle. Access changes only after confirmation.",
     "checkout_confirmed": "Payment confirmed, the subscription is active.",
-    "checkout_failed": "The payment was not completed. You can try again."
+    "checkout_failed": "The payment was not completed. You can try again.",
+    "discount": {
+      "promo": "Promo code",
+      "apply": "Apply",
+      "applied": "Promo code {code} is applied to the plans it fits.",
+      "terms": "{value} off {duration}",
+      "duration": {
+        "once": "the first payment",
+        "periods": "for {n} periods",
+        "forever": "forever"
+      },
+      "until": "(until {date})",
+      "total_prefix": "Total:",
+      "first_payment": "for the first payment; Paddle shows the total with taxes."
+    }
   }
 }
