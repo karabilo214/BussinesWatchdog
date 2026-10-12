@@ -10,6 +10,8 @@ use App\Models\PairingCode;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Account\MfaService;
+use App\Support\Account\Totp;
 use App\Support\Security\Keyring;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -177,6 +179,22 @@ class CredentialRotationTest extends TestCase
 
         $this->assertSame(2, IntegrationCredential::query()->where('key_id', $paired['key_id'])->value('key_version'));
         $this->signed('/api/v1/ingest/heartbeat', $paired['key_id'], $paired['secret'])->assertOk();
+    }
+
+    public function test_reencrypt_command_moves_authenticator_secrets_so_codes_keep_working(): void
+    {
+        [$user] = $this->owner();
+        $mfa = app(MfaService::class);
+        $secret = $mfa->beginSetup($user)['secret'];
+        $totp = new Totp;
+        $mfa->confirm($user, $totp->codeAt($secret, $totp->step(time()) - 1));
+        $this->useKeyringV2();
+
+        $this->artisan('security:reencrypt-secrets')->expectsOutputToContain('authenticators=1')->assertSuccessful();
+
+        $user->refresh();
+        $this->assertSame(2, (int) $user->mfa_key_version);
+        $this->assertTrue(app(MfaService::class)->verify($user, $totp->codeAt($secret, $totp->step(time()))));
     }
 
     public function test_keyring_is_not_ready_when_the_current_version_has_no_key(): void

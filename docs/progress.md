@@ -2068,3 +2068,8 @@ Verification:
 - `tests/Feature/Platform/PlatformAuthTest.php` — 7 tests (two-step sign-in and audit, customer session/account refused, own cookies, no authenticator / disabled, idle 30 min / 8 h / permission change, rate limit, bootstrap command with enrollment).
 - Backend SQLite: 447 passed, 4 skipped; PostgreSQL 18: 451 of 451. Control `npm run check`: 4 passed, build completed; customer: 98 passed.
 - `apps/frontend/control/tests/e2e/run-login.sh` (real backend + Vite + Chromium, real TOTP): redirect to sign-in, wrong password refused, password + code open `/owner/plans`, only `bw-platform-session` and `BW-PLATFORM-XSRF` cookies, sign-out ends the session — PASS.
+
+### Release README and Authenticator Re-encryption
+
+- `README.md` rewritten as the release and operations guide: environment variables, migrations, scheduler, first platform owner (`platform:create-owner`), browser worker token, Telegram webhook, Paddle setup, mail check, plugin ZIP and release checks, frontend builds, maintenance commands, local tests and live checks. `CLAUDE.md`: every new command, variable or manual step goes into the README right away (owner request 2026-10-12).
+- Found while writing it: `security:reencrypt-secrets` did not re-encrypt users' authenticator secrets, so removing an old key after rotation would have locked out everyone with two-factor sign-in, including platform staff. The command now also re-encrypts `users.mfa_secret_ciphertext`; test `test_reencrypt_command_moves_authenticator_secrets_so_codes_keep_working`.

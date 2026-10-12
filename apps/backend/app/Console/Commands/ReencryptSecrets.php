@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\IntegrationCredential;
 use App\Models\NotificationChannel;
+use App\Models\User;
 use App\Support\Security\Keyring;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +13,7 @@ class ReencryptSecrets extends Command
 {
     protected $signature = 'security:reencrypt-secrets {--chunk=200}';
 
-    protected $description = 'Re-encrypt integration credential secrets and notification destinations with the current keyring version.';
+    protected $description = 'Re-encrypt integration credential secrets, notification destinations and authenticator secrets with the current keyring version.';
 
     public function handle(Keyring $keyring): int
     {
@@ -20,6 +21,7 @@ class ReencryptSecrets extends Command
         $chunk = max(1, (int) $this->option('chunk'));
         $credentials = 0;
         $channels = 0;
+        $authenticators = 0;
 
         IntegrationCredential::query()
             ->where('key_version', '!=', $current)
@@ -52,11 +54,28 @@ class ReencryptSecrets extends Command
                 }
             });
 
+        User::query()
+            ->whereNotNull('mfa_secret_ciphertext')
+            ->where('mfa_key_version', '!=', $current)
+            ->chunkById($chunk, function ($items) use ($keyring, &$authenticators): void {
+                foreach ($items as $user) {
+                    DB::transaction(function () use ($keyring, $user, &$authenticators): void {
+                        $encrypted = $keyring->encrypt($keyring->decrypt((string) $user->mfa_secret_ciphertext, (int) $user->mfa_key_version));
+                        $user->forceFill([
+                            'mfa_secret_ciphertext' => $encrypted['ciphertext'],
+                            'mfa_key_version' => $encrypted['key_version'],
+                        ])->save();
+                        $authenticators++;
+                    });
+                }
+            });
+
         $this->components->info(sprintf(
-            'Re-encrypted to keyring v%d: credentials=%d notification_channels=%d',
+            'Re-encrypted to keyring v%d: credentials=%d notification_channels=%d authenticators=%d',
             $current,
             $credentials,
             $channels,
+            $authenticators,
         ));
 
         return self::SUCCESS;
