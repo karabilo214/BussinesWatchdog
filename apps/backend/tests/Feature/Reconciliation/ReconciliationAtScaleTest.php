@@ -117,6 +117,7 @@ class ReconciliationAtScaleTest extends TestCase
         Order::query()->whereKey($changedSince->id)->update(['updated_at' => now()->addMinute()]);
         ReconciliationSubjectState::query()->where('subject_id', $oldRules->id)->update(['algorithm_version' => 'v0']);
         ReconciliationSubjectState::query()->where('subject_id', $planChanged->id)->update(['entitled' => false]);
+        ReconciliationSubjectState::query()->update(['recheck_slot' => (ReconciliationResultRecorder::slotOf(now()) + 1) % ReconciliationResultRecorder::RECHECK_DAYS]);
         ReconciliationSubjectState::query()->whereIn('subject_id', [$monthOld->id, $outside->id])->update(['evaluated_at' => now()->subDays(40)]);
         ReconciliationDirtySubject::query()->delete();
 
@@ -129,24 +130,47 @@ class ReconciliationAtScaleTest extends TestCase
         $this->assertSame(1, ReconciliationDirtySubject::query()->where('subject_type', ReconciliationDirtySubject::TYPE_STORE_UNMATCHED_PAYMENTS)->count());
     }
 
-    public function test_the_monthly_recheck_takes_the_longest_unchecked_orders_within_a_nightly_budget(): void
+    public function test_orders_checked_on_one_day_are_rechecked_once_each_spread_over_the_next_thirty_nights(): void
     {
         $context = $this->context();
         $service = app(OrderReconciliationService::class);
-        $orders = collect(range(1, NightlyReconciliationSweep::MIN_RECHECK_PER_STORE + 20))->map(fn (int $day): Order => $this->order($context, ['paid_marked_at' => now()->subHour(), 'source_created_at' => now()->subDays(60), 'source_updated_at' => now()->subDays(60), 'updated_at' => now()->subDays(200)]));
+        $orders = collect(range(1, 300))->map(fn () => $this->order($context, ['paid_marked_at' => now()->subHour(), 'source_created_at' => now()->subDays(10), 'source_updated_at' => now()->subDays(10), 'updated_at' => now()->subDays(10)]));
+        $orders->each(fn (Order $order) => $service->evaluate($order));
+        ReconciliationDirtySubject::query()->delete();
+        $checked = array_fill_keys($orders->pluck('id')->all(), 0);
+        $perNight = [];
 
-        foreach ($orders as $index => $order) {
-            $service->evaluate($order);
-            ReconciliationSubjectState::query()->where('subject_id', $order->id)->update(['evaluated_at' => now()->subDays(31 + $index)]);
+        foreach (range(1, ReconciliationResultRecorder::RECHECK_DAYS) as $night) {
+            Carbon::setTestNow(Carbon::parse('2026-10-20 02:30:00')->addDays($night));
+            $perNight[] = app(NightlyReconciliationSweep::class)->run()['orders_rechecked'];
+            $due = ReconciliationDirtySubject::query()->where('subject_type', ReconciliationDirtySubject::TYPE_ORDER)->pluck('subject_id')->all();
+
+            foreach ($due as $id) {
+                $checked[$id]++;
+            }
+
+            ReconciliationSubjectState::query()->whereIn('subject_id', $due)->update(['evaluated_at' => now()]);
+            ReconciliationDirtySubject::query()->delete();
         }
 
+        $this->assertSame([1], array_values(array_unique($checked)));
+        $this->assertSame(300, array_sum($perNight));
+        $this->assertLessThanOrEqual(30, max($perNight));
+    }
+
+    public function test_an_order_whose_night_did_not_run_is_taken_on_the_next_night(): void
+    {
+        $context = $this->context();
+        $order = $this->order($context, ['paid_marked_at' => now()->subHour(), 'source_created_at' => now()->subDays(10), 'source_updated_at' => now()->subDays(10), 'updated_at' => now()->subDays(10)]);
+        app(OrderReconciliationService::class)->evaluate($order);
+        $missedNight = now()->copy()->addDays(30)->startOfDay();
+        ReconciliationSubjectState::query()->update(['recheck_slot' => ReconciliationResultRecorder::slotOf($missedNight), 'evaluated_at' => $missedNight->copy()->subDays(30)->addHours(2)]);
         ReconciliationDirtySubject::query()->delete();
+
+        Carbon::setTestNow($missedNight->copy()->addDay()->addHours(2));
         $result = app(NightlyReconciliationSweep::class)->run();
 
-        $this->assertSame(NightlyReconciliationSweep::MIN_RECHECK_PER_STORE, $result['orders_rechecked']);
-        $marked = ReconciliationDirtySubject::query()->where('subject_type', ReconciliationDirtySubject::TYPE_ORDER)->pluck('subject_id');
-        $this->assertFalse($marked->contains($orders->first()->id));
-        $this->assertTrue($marked->contains($orders->last()->id));
+        $this->assertSame(1, $result['orders_rechecked']);
     }
 
     public function test_workers_process_until_empty_and_a_second_pass_writes_nothing(): void

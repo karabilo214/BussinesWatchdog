@@ -2226,3 +2226,12 @@ Verification:
 - Live in Docker against Redis and the dev database: `stripe:sync`, `paypal:sync` and a repeated `stripe:sync` requested 5 jobs, the repeated two were dropped as duplicates, `queue:work` ran 3 syncs against the Stripe/PayPal sandboxes (PayPal 38 s); two `reconciliation:work` processes split 388 subjects (188 + 200) without overlap; a nightly sweep over 153 stores queued 70 orders + the store scans and the re-check wrote no new runs (409 before and after).
 - `spec/validate_spec.py` fails on its platform-billing operation count before and after this change (pre-existing, unrelated).
 
+### Step 113: Fixes After Review of Step 112
+
+Status: complete
+
+- Sync dispatch skipped and repeated integrations: `IntegrationSyncRunner::dispatch` paged with `chunk(500)` ordered by `last_successful_sync_at` while workers updated that column, so rows moved between pages (the owner reproduced 100 of 1000 skipped and 100 repeated). The ids are now read in one query in the required order before any job is queued. New test: 1201 integrations with the synchronous test queue — each job updates its sync time during the dispatch — every integration is requested exactly once (the test fails on the old code).
+- The monthly re-check did not guarantee a month: an order entered it only after 30 days and then a nightly budget applied, so orders checked on one day could wait longer. Each subject state now has a fixed `recheck_slot` (crc32 of the subject id mod 30, backfilled by a migration) and the sweep re-checks the orders of tonight's slot, plus any order not checked for more than 30 days (a night that did not run). Tests: 300 orders checked on one day are each re-checked exactly once over the next 30 nights, at most 30 a night; an order whose night was missed is taken the next night. ADR 0040 and README updated.
+
+Verification: backend SQLite 505 passed, 4 skipped; PostgreSQL 18: 509 of 509.
+

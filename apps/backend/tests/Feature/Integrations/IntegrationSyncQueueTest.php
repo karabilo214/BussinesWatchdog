@@ -9,7 +9,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Tests\Feature\Notifications\NotificationTestContext;
 use Tests\TestCase;
 
@@ -41,6 +43,51 @@ class IntegrationSyncQueueTest extends TestCase
         Queue::assertPushedOn(SyncIntegration::QUEUE, SyncIntegration::class);
         Queue::assertNotPushed(SyncIntegration::class, fn (SyncIntegration $job): bool => $job->integrationId === $disabled->id);
         Queue::assertPushed(SyncIntegration::class, fn (SyncIntegration $job): bool => $job->integrationId === $woo->id && $job->mode === 'recent');
+    }
+
+    public function test_every_integration_is_requested_exactly_once_while_workers_update_sync_times(): void
+    {
+        $context = $this->context();
+        $rows = [];
+        $stores = [];
+
+        foreach (range(1, 1200) as $index) {
+            $storeId = (string) Str::uuid7();
+            $stores[] = ['id' => $storeId, 'tenant_id' => $context['tenant']->id, 'name' => "Shop {$index}", 'base_url' => "https://shop-{$index}.example", 'timezone' => 'UTC', 'default_currency' => 'EUR', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()];
+            $rows[] = [
+                'id' => (string) Str::uuid7(), 'tenant_id' => $context['tenant']->id, 'store_id' => $storeId, 'provider' => 'stripe',
+                'install_id' => (string) Str::uuid(), 'mode' => 'live', 'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+                'status' => Integration::STATUS_ACTIVE, 'capabilities' => '[]', 'connector_version' => '1.0.0', 'health' => '{}',
+                'last_successful_sync_at' => Carbon::now()->subMinutes(2000 - $index), 'created_at' => Carbon::now(), 'updated_at' => Carbon::now(),
+            ];
+        }
+
+        foreach (array_chunk($stores, 300) as $chunk) {
+            DB::table('stores')->insert($chunk);
+        }
+
+        foreach (array_chunk($rows, 300) as $chunk) {
+            DB::table('integrations')->insert($chunk);
+        }
+
+        $synced = [];
+        $this->app->instance(IntegrationSyncRunner::class, new class($synced) extends IntegrationSyncRunner
+        {
+            public function __construct(private array &$synced) {}
+
+            public function run(Integration $integration, string $mode): array
+            {
+                $this->synced[] = $integration->id;
+                $integration->forceFill(['last_successful_sync_at' => Carbon::now()])->save();
+
+                return ['status' => 'ok', 'emitted' => 0, 'unchanged' => 0, 'complete' => true];
+            }
+        });
+
+        $this->artisan('stripe:sync')->expectsOutput('stripe delta requested=1201')->assertSuccessful();
+
+        $this->assertCount(1201, $synced);
+        $this->assertCount(1201, array_unique($synced));
     }
 
     public function test_a_job_is_unique_per_integration_and_mode_and_never_overlaps_another_mode_of_the_same_integration(): void

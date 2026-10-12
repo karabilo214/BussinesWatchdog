@@ -43,22 +43,21 @@ class IntegrationSyncRunner
     }
 
     /**
-     * Requests one job per integration; a request for an integration and mode that is still queued is dropped.
+     * Requests one job per integration; a request for an integration and mode that is still queued is dropped. The
+     * ids are read in one query before anything is queued: workers update `last_successful_sync_at` meanwhile, and
+     * paging over that order would skip some integrations and repeat others.
      *
      * @return array{requested: int}
      */
     public function dispatch(string $provider, string $mode): array
     {
-        $requested = 0;
+        $ids = $this->due($provider)->pluck('id')->all();
 
-        $this->due($provider)->select('id')->chunk(500, function ($integrations) use ($mode, &$requested): void {
-            foreach ($integrations as $integration) {
-                SyncIntegration::dispatch($integration->id, $mode);
-                $requested++;
-            }
-        });
+        foreach ($ids as $id) {
+            SyncIntegration::dispatch($id, $mode);
+        }
 
-        return ['requested' => $requested];
+        return ['requested' => count($ids)];
     }
 
     public function eligible(Integration $integration): bool

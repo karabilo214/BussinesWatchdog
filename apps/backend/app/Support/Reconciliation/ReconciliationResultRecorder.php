@@ -20,6 +20,8 @@ class ReconciliationResultRecorder
 
     public const SUBJECT_STORE_UNMATCHED_PAYMENTS = 'store_unmatched_payments';
 
+    public const RECHECK_DAYS = 30;
+
     private const STATUS_WEIGHT = [
         ReconciliationFinding::STATUS_OK => 0,
         ReconciliationFinding::STATUS_UNSUPPORTED => 1,
@@ -88,6 +90,7 @@ class ReconciliationResultRecorder
                 'tenant_id' => $run['tenant_id'],
                 'subject_type' => $subjectType,
                 'subject_id' => $subjectId,
+                'recheck_slot' => self::recheckSlot($subjectId),
             ]);
         } else {
             $state->forceFill($values)->save();
@@ -96,6 +99,20 @@ class ReconciliationResultRecorder
         $model->resultChanged = true;
 
         return $model;
+    }
+
+    /**
+     * The night of the monthly re-check cycle (0 … RECHECK_DAYS − 1) a subject belongs to: fixed by its id and spread
+     * evenly, so each night re-checks about one thirtieth of the subjects however many were checked on the same day.
+     */
+    public static function recheckSlot(string $subjectId): int
+    {
+        return crc32($subjectId) % self::RECHECK_DAYS;
+    }
+
+    public static function slotOf(\DateTimeInterface $night): int
+    {
+        return intdiv($night->getTimestamp(), 86400) % self::RECHECK_DAYS;
     }
 
     /**

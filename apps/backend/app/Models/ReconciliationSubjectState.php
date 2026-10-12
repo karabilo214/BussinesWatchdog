@@ -14,13 +14,14 @@ class ReconciliationSubjectState extends Model
 
     protected $fillable = [
         'id', 'tenant_id', 'store_id', 'subject_type', 'subject_id', 'run_id', 'result_hash', 'worst_status', 'finding_count',
-        'algorithm_version', 'config_version', 'entitled', 'store_data_stale', 'evaluated_at', 'changed_at',
+        'algorithm_version', 'config_version', 'entitled', 'store_data_stale', 'recheck_slot', 'evaluated_at', 'changed_at',
     ];
 
     protected function casts(): array
     {
         return [
             'finding_count' => 'integer',
+            'recheck_slot' => 'integer',
             'config_version' => 'integer',
             'entitled' => 'boolean',
             'store_data_stale' => 'boolean',

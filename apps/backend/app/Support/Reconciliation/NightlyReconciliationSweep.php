@@ -20,8 +20,10 @@ use Illuminate\Support\Facades\DB;
  * The nightly safety net (ADR 0040, replaces "every order of 90 days every night" from ADR 0003). Within the 90-day
  * window it queues only the orders whose result can differ from the stored one — never checked, still pending or
  * unknown, changed after their last check, checked under older rules, or checked while the plan allowed/denied money
- * reconciliation or the store data was fresh/stale differently than now — plus the orders checked longest ago, about
- * a thirtieth of the window per night, so that every order is fully re-checked at least once a month. The
+ * reconciliation or the store data was fresh/stale differently than now — plus the orders whose fixed night of the
+ * 30-night cycle it is (`recheck_slot`), so every order is fully re-checked once per cycle and each night takes about
+ * a thirtieth however many orders were checked on one day; an order not checked for longer than the cycle (a night
+ * that did not run) is taken as well. The
  * unmatched-payment scan of every store is queued as before; unchanged results are not written again
  * (ReconciliationResultRecorder).
  */
@@ -30,10 +32,6 @@ class NightlyReconciliationSweep
     public const JOB = 'reconciliation.nightly_sweep';
 
     public const LOOKBACK_DAYS = 90;
-
-    public const RECHECK_DAYS = 30;
-
-    public const MIN_RECHECK_PER_STORE = 100;
 
     public const STORE_STATUSES = ['onboarding', 'active', 'degraded'];
 
@@ -50,15 +48,15 @@ class NightlyReconciliationSweep
      */
     public function run(?Carbon $windowDate = null): ?array
     {
-        $windowKey = ($windowDate ?? Carbon::now())->copy()->utc()->toDateString();
+        $night = ($windowDate ?? Carbon::now())->copy()->utc()->startOfDay();
 
-        return $this->guard->runOnce(self::JOB, $windowKey, fn (): array => $this->sweep());
+        return $this->guard->runOnce(self::JOB, $night->toDateString(), fn (): array => $this->sweep(ReconciliationResultRecorder::slotOf($night)));
     }
 
     /**
      * @return array{stores: int, orders_marked: int, orders_rechecked: int}
      */
-    private function sweep(): array
+    private function sweep(int $slot): array
     {
         $totals = ['stores' => 0, 'orders_marked' => 0, 'orders_rechecked' => 0];
 
@@ -67,13 +65,13 @@ class NightlyReconciliationSweep
             ->whereIn('tenant_id', Tenant::query()->where('status', 'active')->select('id'))
             ->orderBy('id')
             ->select(['id', 'tenant_id'])
-            ->chunk(100, function ($chunk) use (&$totals): void {
+            ->chunk(100, function ($chunk) use (&$totals, $slot): void {
                 foreach ($chunk as $store) {
                     $totals['stores']++;
                     $this->matcher->matchUnlinkedCaptures($store->tenant_id, $store->id);
                     $this->marker->markStoreUnmatchedPayments($store->tenant_id, $store->id, ReconciliationDirtySubject::REASON_NIGHTLY_SWEEP, Carbon::now());
                     $totals['orders_marked'] += $this->markChangeable($store);
-                    $totals['orders_rechecked'] += $this->markOldest($store);
+                    $totals['orders_rechecked'] += $this->markCycle($store, $slot);
                 }
             });
 
@@ -103,17 +101,21 @@ class NightlyReconciliationSweep
         return $marked;
     }
 
-    private function markOldest(Store $store): int
+    private function markCycle(Store $store, int $slot): int
     {
-        $budget = max(self::MIN_RECHECK_PER_STORE, (int) ceil($this->window($store)->count() / self::RECHECK_DAYS));
-        $ids = $this->window($store)
-            ->where('states.evaluated_at', '<', Carbon::now()->subDays(self::RECHECK_DAYS))
-            ->orderBy('states.evaluated_at')
-            ->limit($budget)
-            ->pluck('orders.id')
-            ->all();
+        $marked = 0;
 
-        return $this->marker->markOrdersIfAbsent($store->tenant_id, $store->id, $ids, ReconciliationDirtySubject::REASON_NIGHTLY_SWEEP);
+        $this->window($store)
+            ->whereNotNull('states.id')
+            ->where(fn (Builder $query) => $query
+                ->where('states.recheck_slot', $slot)
+                ->orWhere('states.evaluated_at', '<', Carbon::now()->subDays(ReconciliationResultRecorder::RECHECK_DAYS)))
+            ->select('orders.id')
+            ->chunkById(DirtySubjectMarker::BULK_CHUNK, function ($orders) use ($store, &$marked): void {
+                $marked += $this->marker->markOrdersIfAbsent($store->tenant_id, $store->id, $orders->pluck('id')->all(), ReconciliationDirtySubject::REASON_NIGHTLY_SWEEP);
+            }, 'orders.id', 'id');
+
+        return $marked;
     }
 
     private function window(Store $store): Builder
