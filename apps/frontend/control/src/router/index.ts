@@ -24,6 +24,7 @@ export function buildRouter(): Router {
       })),
       { path: '/owner/plans', name: 'owner-plans', component: () => import('@/views/PlansView.vue') },
       { path: '/owner/discounts', name: 'owner-discounts', component: () => import('@/views/DiscountsView.vue') },
+      { path: '/owner/discounts/history', name: 'owner-discount-history', component: () => import('@/views/DiscountHistoryView.vue') },
       { path: '/owner/plans/versions/:id', name: 'owner-plan-version', component: () => import('@/views/PlanVersionView.vue'), props: true },
       { path: '/admin', redirect: { name: 'owner-overview' } },
       { path: '/:pathMatch(.*)*', redirect: { name: 'owner-overview' } },

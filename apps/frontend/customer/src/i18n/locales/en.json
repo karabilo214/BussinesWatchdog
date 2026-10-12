@@ -1448,7 +1448,7 @@
     "discount": {
       "promo": "Promo code",
       "apply": "Apply",
-      "applied": "Promo code {code} is applied to the plans it fits.",
+      "applied": "Promo code {code} is applied to the plans it fits — after the offer and your discount.",
       "terms": "{value} off {duration}",
       "duration": {
         "once": "the first payment",
@@ -1457,7 +1457,12 @@
       },
       "until": "(until {date})",
       "total_prefix": "Total:",
-      "first_payment": "for the first payment; Paddle shows the total with taxes."
+      "first_payment": "for the first payment; discounts apply one after another, Paddle shows the total with taxes.",
+      "kind": {
+        "automatic": "Offer",
+        "tenant": "Your discount",
+        "code": "Promo code"
+      }
     }
   }
 }

@@ -51,7 +51,7 @@ php artisan migrate --force
 * * * * * cd /path/to/apps/backend && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Он сам запускает: доставку событий (`outbox:dispatch`, 10 с), пересчёт сверки (`reconciliation:process-dirty`, 30 с), уведомления (`notifications:deliver`, 30 с; `notifications:remind`, час), ночную сверку (02:30), проверку подтверждения магазинов и свежести коннекторов (минута), планирование браузерных проверок (минута), синхронизацию Stripe / PayPal / WooCommerce REST / Shopware, события Paddle (`billing:paddle-events`, минута; `billing:process-events`, 30 с), очистку старых скриншотов и экспортов (ежедневно). Вручную их запускать не нужно.
+Он сам запускает: доставку событий (`outbox:dispatch`, 10 с), пересчёт сверки (`reconciliation:process-dirty`, 30 с), уведомления (`notifications:deliver`, 30 с; `notifications:remind`, час), ночную сверку (02:30), проверку подтверждения магазинов и свежести коннекторов (минута), планирование браузерных проверок (минута), синхронизацию Stripe / PayPal / WooCommerce REST / Shopware, события Paddle (`billing:paddle-events`, минута; `billing:process-events`, 30 с), скидки следующего периода подписок (`billing:plan-discounts`, 15 мин), очистку старых скриншотов и экспортов (ежедневно). Вручную их запускать не нужно.
 
 ### 4. Первый владелец сервиса (вход в `/owner`)
 
@@ -81,7 +81,7 @@ php artisan telegram:webhook info    # проверить
 
 - В кабинете Paddle: ссылка оплаты по умолчанию (Checkout settings), домен сервиса одобрен, webhook на `https://<APP_URL>/api/v1/webhooks/paddle` с секретом из `PADDLE_WEBHOOK_SECRET`.
 - Тарифы, цены, периоды оплаты, лимиты и пробный период создаются в панели владельца: `/owner/plans` → «Новый тариф» → заполнить черновик → добавить цены → «Опубликовать» (причина + код из приложения). При публикации товар и цены создаются в Paddle текущего режима (`PADDLE_ENVIRONMENT`); клиентам видны только опубликованные версии.
-- Скидки — там же, вкладка «Скидки» (`/owner/discounts`): промокод, скидка выбранным организациям или акция для всех; процент или сумма; на один платёж, N периодов или навсегда; лимит использований, даты, тарифы. Создание, изменение и архив — с причиной и кодом из приложения; скидка сразу создаётся в Paddle и применяется только нашим сервером при покупке.
+- Скидки — там же, вкладка «Скидки» (`/owner/discounts`): промокод, скидка выбранным организациям или акция для всех; процент или сумма; на один платёж, N периодов или навсегда; лимит использований, даты, тарифы. Создание, изменение и архив — с причиной и кодом из приложения; скидка сразу создаётся в Paddle и применяется только нашим сервером. Скидки складываются по очереди: акция → личная → промокод; перед каждым продлением `billing:plan-discounts` пересчитывает общую скидку следующего периода. Расшифровка по каждому платежу — вкладка «История скидок».
 - `php artisan billing:paddle-catalog` — дозаводит в Paddle цены, которые по какой-то причине не создались (обычно не нужна).
 - Только для sandbox: `php artisan billing:seed-placeholder-plans --test-prices` — черновые тарифы Free / Start / Pro с тестовыми ценами, опубликованные для проверки покупки.
 
@@ -121,6 +121,7 @@ npm run build -w @bw/public     # публичный сайт
 | `php artisan browser:worker-create <name> --rotate` | Сменить токен воркера |
 | `php artisan telegram:webhook info\|set\|delete` | Проверить или перерегистрировать webhook Telegram |
 | `php artisan billing:paddle-events` / `billing:process-events` | Вручную дочитать события Paddle (обычно делает планировщик) |
+| `php artisan billing:plan-discounts` | Внеочередной пересчёт скидок следующего периода подписок (обычно делает планировщик; повторяет неудачные попытки) |
 | `php artisan stripe:sync`, `paypal:sync`, `woocommerce-api:sync`, `shopware:sync` (`--audit`) | Внеочередная синхронизация (обычно делает планировщик) |
 | `php artisan reconciliation:process-dirty` / `reconciliation:nightly-sweep` | Внеочередной пересчёт сверки |
 | `php artisan artifacts:purge` / `exports:purge` | Внеочередная очистка просроченных файлов |
@@ -141,6 +142,6 @@ make egress-test                    # проверка egress-прокси
 
 Живые проверки (нужен интернет и ключи sandbox):
 
-- `apps/frontend/customer/tests/e2e/run-billing-live.sh` — покупка подписки через sandbox Paddle тестовой картой; `BW_PROMO=<код> run-billing-live.sh` — покупка с промокодом.
+- `apps/frontend/customer/tests/e2e/run-billing-live.sh` — покупка подписки через sandbox Paddle тестовой картой; `BW_PROMO=<код> BW_EXPECT_AFTER=<итог, например 20,16> run-billing-live.sh` — покупка с промокодом (и действующими акциями).
 - `apps/frontend/control/tests/e2e/run-live.sh login` — вход в панель владельца с настоящим кодом TOTP; `run-live.sh plans` — создание, цены, публикация в sandbox Paddle и снятие тарифа с продажи; `run-live.sh discounts` — создание промокода (выводит `PROMO <код>`).
 - `plugins/woocommerce-watchdog/tests/matrix/*.sh`, `plugins/shopware-app/tests/**` — матрица версий и сквозные прогоны с настоящими магазинами и провайдерами.

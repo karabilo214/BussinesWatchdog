@@ -452,6 +452,38 @@ paths:
         "422": {$ref: "#/components/responses/Problem"}
         "502": {$ref: "#/components/responses/Problem"}
         "503": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/discount-applications:
+    get:
+      tags: [Platform]
+      operationId: platformListDiscountApplications
+      description: "Capability billing.read. What every paid purchase and every renewal got (ADR 0036): per period the amount before discounts, each discount in order (offer, personal, promo code) with the amount before it, its saving and the amount after it, the total saving, the amount after discounts, the combined Paddle discount and its status (`applied`, `failed` with the reason; failed renewals are retried). Newest first, 50 per page."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant_id, in: query, schema: {type: string, format: uuid}}
+        - {name: cursor, in: query, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Applications
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - {$ref: "#/components/schemas/DiscountBreakdown"}
+                        - type: object
+                          properties:
+                            tenant: {type: object, properties: {id: {type: string}, name: {type: string}}}
+                            created_at: {type: string, format: date-time}
+                            applied_at: {type: [string, "null"], format: date-time}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/discounts/{discount_id}:
     patch:
       tags: [Platform]
@@ -1817,7 +1849,7 @@ paths:
               properties:
                 price_id: {type: string, format: uuid, description: A base price}
                 extra_stores: {type: integer, minimum: 0, maximum: 1000, default: 0}
-                discount_code: {type: [string, "null"], maxLength: 32, description: "Optional promo code; without it the organisation's own or the best public discount applies (ADR 0036)"}
+                discount_code: {type: [string, "null"], maxLength: 32, description: "Optional promo code; it is applied after the best public offer and the organisation's own discount (ADR 0036)"}
       responses:
         "202":
           description: Checkout session
@@ -1882,7 +1914,7 @@ paths:
     get:
       tags: [Billing]
       operationId: checkBillingDiscount
-      description: "Tenant owner only, 10 per minute. Whether a promo code can be used with a published base price for this organisation (ADR 0036): 422 `discount_code_invalid` (unknown, not started or archived), `discount_expired`, `discount_not_applicable` (other plan or other currency), 409 `discount_used_up`. Only an indication: the checkout checks again."
+      description: "Tenant owner only, 10 per minute. Whether a promo code can be used with a published base price for this organisation (ADR 0036): 422 `discount_code_invalid` (unknown, not started or archived), `discount_expired`, `discount_not_applicable` (other plan or other currency), 409 `discount_used_up`. Only an indication: the checkout checks again and applies the code after the offer and the personal discount."
       security:
         - {UserSession: []}
       parameters:
@@ -3699,13 +3731,13 @@ components:
     BillingPlan:
       type: object
       additionalProperties: false
-      required: [plan_code, plan_version_id, name, description, placeholder, trial_days, entitlements, prices, discount]
+      required: [plan_code, plan_version_id, name, description, placeholder, trial_days, entitlements, prices, discounts]
       properties:
         plan_code: {type: string}
         plan_version_id: {type: string, format: uuid}
         name: {type: object, additionalProperties: {type: string}, description: Localized names by locale}
         description: {type: object, additionalProperties: {type: string}, description: Localized descriptions by locale}
-        discount: {oneOf: [{$ref: "#/components/schemas/BillingDiscount"}, {type: "null"}], description: "The organisation's own discount or the best public offer for this plan, without codes"}
+        discounts: {type: array, items: {$ref: "#/components/schemas/BillingDiscount"}, description: "The best public offer and the organisation's own discount for this plan, in application order; a promo code comes third"}
         placeholder: {type: boolean, description: "Draft content not approved by the owner"}
         trial_days: {type: integer, minimum: 0}
         entitlements:
@@ -3732,9 +3764,11 @@ components:
     BillingDiscount:
       type: object
       additionalProperties: false
-      required: [id, label, kind, percent, amount_minor, currency, currency_exponent, duration, duration_periods, expires_at]
+      required: [id, position, audience, label, kind, percent, amount_minor, currency, currency_exponent, duration, duration_periods, expires_at]
       properties:
         id: {type: string, format: uuid}
+        position: {type: integer, enum: [1, 2, 3], description: "Application order: 1 offer, 2 personal, 3 promo code"}
+        audience: {enum: [automatic, tenant, code]}
         label: {type: object, additionalProperties: {type: string}, description: Customer-facing text by locale}
         kind: {enum: [percentage, flat]}
         percent: {type: [string, "null"], description: "Percentage as a decimal string, e.g. \"12.5\""}
@@ -3761,13 +3795,39 @@ components:
             state: {enum: [active, archived]}
             mode: {enum: [test, live]}
             created_at: {type: [string, "null"], format: date-time}
+    DiscountBreakdown:
+      type: object
+      required: [id, period_number, period_start, currency, currency_exponent, amount_before_minor, saving_minor, amount_after_minor, status, error_code, lines]
+      properties:
+        id: {type: string, format: uuid}
+        period_number: {type: integer, minimum: 1, description: "1 = the purchase, 2 = the first renewal, ..."}
+        period_start: {type: [string, "null"], format: date-time}
+        currency: {type: string}
+        currency_exponent: {type: integer}
+        amount_before_minor: {$ref: "#/components/schemas/MoneyMinor"}
+        saving_minor: {$ref: "#/components/schemas/MoneyMinor"}
+        amount_after_minor: {$ref: "#/components/schemas/MoneyMinor"}
+        status: {enum: [planned, applied, failed]}
+        error_code: {type: [string, "null"]}
+        lines:
+          type: array
+          description: In application order; each line starts from the previous line's amount after
+          items:
+            type: object
+            required: [discount, position, amount_before_minor, saving_minor, amount_after_minor]
+            properties:
+              discount: {oneOf: [{$ref: "#/components/schemas/BillingDiscount"}, {type: "null"}]}
+              position: {type: integer, enum: [1, 2, 3]}
+              amount_before_minor: {$ref: "#/components/schemas/MoneyMinor"}
+              saving_minor: {$ref: "#/components/schemas/MoneyMinor"}
+              amount_after_minor: {$ref: "#/components/schemas/MoneyMinor"}
     BillingCheckout:
       type: object
       additionalProperties: false
-      required: [id, status, error_code, expires_at, extra_store_quantity, discount, access_state, provider_checkout]
+      required: [id, status, error_code, expires_at, extra_store_quantity, discounts, access_state, provider_checkout]
       properties:
         id: {type: string, format: uuid}
-        discount: {oneOf: [{$ref: "#/components/schemas/BillingDiscount"}, {type: "null"}]}
+        discounts: {oneOf: [{$ref: "#/components/schemas/DiscountBreakdown"}, {type: "null"}], description: "The first payment's discounts as charged: one combined Paddle discount"}
         status: {enum: [creating, pending, requires_action, confirmed, failed, cancelled, expired, unknown]}
         error_code: {type: [string, "null"]}
         expires_at: {type: string, format: date-time}

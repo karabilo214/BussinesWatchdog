@@ -205,3 +205,30 @@ export async function archiveDiscount(id: string, confirmation: Confirmation): P
 export async function lookupTenants(query: string): Promise<{ id: string; name: string }[]> {
   return (await request<{ data: { id: string; name: string }[] }>('GET', '/platform-api/v1/tenants/lookup', { query: { query } })).data.data;
 }
+
+export interface DiscountApplication {
+  id: string;
+  period_number: number;
+  period_start: string | null;
+  currency: string;
+  currency_exponent: number;
+  amount_before_minor: string;
+  saving_minor: string;
+  amount_after_minor: string;
+  status: 'planned' | 'applied' | 'failed';
+  error_code: string | null;
+  tenant: { id: string; name: string };
+  created_at: string;
+  applied_at: string | null;
+  lines: {
+    discount: { id: string; name: string; code: string | null; audience: DiscountAudience } | null;
+    position: number;
+    amount_before_minor: string;
+    saving_minor: string;
+    amount_after_minor: string;
+  }[];
+}
+
+export async function fetchDiscountApplications(cursor?: string): Promise<{ data: DiscountApplication[]; next_cursor: string | null }> {
+  return (await request<{ data: DiscountApplication[]; next_cursor: string | null }>('GET', '/platform-api/v1/discount-applications', { query: { cursor } })).data;
+}

@@ -215,7 +215,8 @@
     "confirm": "Bestätigen",
     "tab": {
       "owner-plans": "Tarife",
-      "owner-discounts": "Rabatte"
+      "owner-discounts": "Rabatte",
+      "owner-discount-history": "Rabattverlauf"
     }
   },
   "discounts": {
@@ -285,5 +286,28 @@
       "periods": "für {n} Zeiträume",
       "forever": "dauerhaft"
     }
+  },
+  "history": {
+    "hint": "Jeder Kauf und jede Verlängerung: Betrag vor Rabatten, jeder Rabatt der Reihe nach (Aktion → persönlich → Gutscheincode) und der an Paddle übergebene Betrag.",
+    "empty": "Noch keine Rabatte angewendet.",
+    "purchase": "Kauf",
+    "renewal": "Verlängerung, Zeitraum {n}",
+    "from": "Zeitraum ab {date}",
+    "status": {
+      "planned": "Wartet auf Zahlung",
+      "applied": "An Paddle übergeben",
+      "failed": "Paddle-Fehler — wird wiederholt"
+    },
+    "before": "Preis ohne Rabatte",
+    "kind": {
+      "automatic": "Aktion",
+      "tenant": "Persönlicher Rabatt",
+      "code": "Gutscheincode",
+      "unknown": "Rabatt"
+    },
+    "of": "von {amount}",
+    "after": "Gesamt (Rabatt {saving})",
+    "failed": "Paddle meldete {code}; der Planer versucht es erneut.",
+    "more": "Mehr anzeigen"
   }
 }

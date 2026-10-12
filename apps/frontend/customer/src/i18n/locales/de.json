@@ -1448,7 +1448,7 @@
     "discount": {
       "promo": "Gutscheincode",
       "apply": "Anwenden",
-      "applied": "Gutscheincode {code} gilt für die passenden Tarife.",
+      "applied": "Gutscheincode {code} gilt für die passenden Tarife — nach der Aktion und Ihrem Rabatt.",
       "terms": "{value} Rabatt {duration}",
       "duration": {
         "once": "auf die erste Zahlung",
@@ -1457,7 +1457,12 @@
       },
       "until": "(bis {date})",
       "total_prefix": "Gesamt:",
-      "first_payment": "für die erste Zahlung; Paddle zeigt den Gesamtbetrag mit Steuern."
+      "first_payment": "für die erste Zahlung; Rabatte gelten nacheinander, Paddle zeigt den Gesamtbetrag mit Steuern.",
+      "kind": {
+        "automatic": "Aktion",
+        "tenant": "Ihr Rabatt",
+        "code": "Gutscheincode"
+      }
     }
   }
 }

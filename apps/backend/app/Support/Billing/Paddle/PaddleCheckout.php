@@ -3,13 +3,13 @@
 namespace App\Support\Billing\Paddle;
 
 use App\Models\BillingCheckoutSession;
-use App\Models\BillingDiscount;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
 use App\Models\BillingSubscriptionContract;
 use App\Models\Tenant;
 use App\Support\Billing\BillingCatalog;
 use App\Support\Billing\BillingCheckoutRejected;
+use App\Support\Billing\DiscountLedger;
 use App\Support\Billing\DiscountResolver;
 use App\Support\Billing\FeatureCatalog;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,6 +27,7 @@ class PaddleCheckout
         private readonly PaddleClient $client,
         private readonly BillingCatalog $catalog,
         private readonly DiscountResolver $discounts,
+        private readonly DiscountLedger $ledger,
     ) {}
 
     public function start(string $tenantId, string $userId, string $priceId, int $extraStores, string $idempotencyKey, ?string $discountCode = null): BillingCheckoutSession
@@ -69,7 +70,7 @@ class PaddleCheckout
             }
 
             $extra = $extraStores > 0 ? $this->extraStorePrice($base) : null;
-            $discount = $this->discounts->forCheckout($tenantId, $base, $discountCode);
+            $discounts = $this->discounts->stack($tenantId, $base, $discountCode);
             $pending = BillingCheckoutSession::query()
                 ->where('tenant_id', $tenantId)
                 ->where('mode', PaddleConfig::mode())
@@ -84,7 +85,6 @@ class PaddleCheckout
                 'price_id' => $base->id,
                 'extra_store_price_id' => $extra?->id,
                 'extra_store_quantity' => $extraStores,
-                'discount_id' => $discount?->id,
                 'provider' => PaddleConfig::PROVIDER,
                 'provider_account_ref' => PaddleConfig::accountRef(),
                 'mode' => PaddleConfig::mode(),
@@ -93,6 +93,9 @@ class PaddleCheckout
                 'request_hash' => $hash,
                 'expires_at' => Carbon::now()->addHours((int) config('watchdog.billing.checkout_expires_hours')),
             ]);
+
+            $amount = (int) $base->amount_minor + ($extra === null ? 0 : (int) $extra->amount_minor * $extraStores);
+            $this->ledger->recordCheckout($session, $discounts, $amount, $base->currency, $base->currency_exponent);
 
             return [$session, $pending->pluck('provider_session_ref')->filter()->values()->all()];
         });
@@ -112,7 +115,8 @@ class PaddleCheckout
         }
 
         try {
-            $discountRef = $session->discount_id === null ? null : BillingDiscount::query()->whereKey($session->discount_id)->value('provider_discount_ref');
+            $applicationId = DB::table('billing_discount_applications')->where('checkout_session_id', $session->id)->where('period_number', 1)->value('id');
+            $discountRef = $applicationId === null ? null : $this->ledger->checkoutDiscountRef($applicationId);
             $result = $this->client->post('/transactions', array_filter([
                 'items' => $items,
                 'discount_id' => $discountRef,

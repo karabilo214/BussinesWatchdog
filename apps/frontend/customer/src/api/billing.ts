@@ -34,6 +34,8 @@ export interface BillingPrice {
 
 export interface BillingDiscount {
   id: string;
+  position: 1 | 2 | 3;
+  audience: 'automatic' | 'tenant' | 'code';
   label: Record<string, string>;
   kind: 'percentage' | 'flat';
   percent: string | null;
@@ -45,6 +47,18 @@ export interface BillingDiscount {
   expires_at: string | null;
 }
 
+export interface DiscountBreakdown {
+  id: string;
+  period_number: number;
+  currency: string;
+  currency_exponent: number;
+  amount_before_minor: string;
+  saving_minor: string;
+  amount_after_minor: string;
+  status: 'planned' | 'applied' | 'failed';
+  lines: { discount: BillingDiscount | null; position: number; amount_before_minor: string; saving_minor: string; amount_after_minor: string }[];
+}
+
 export interface BillingPlan {
   plan_code: string;
   plan_version_id: string;
@@ -53,7 +67,7 @@ export interface BillingPlan {
   trial_days: number;
   entitlements: { features: string[]; limits: Partial<Record<LimitCode, number | null>> };
   prices: BillingPrice[];
-  discount: BillingDiscount | null;
+  discounts: BillingDiscount[];
 }
 
 export interface BillingCatalog {
@@ -89,7 +103,7 @@ export interface BillingCheckout {
   error_code: string | null;
   expires_at: string;
   extra_store_quantity: number;
-  discount: BillingDiscount | null;
+  discounts: DiscountBreakdown | null;
   access_state: AccessState;
   provider_checkout: { provider: string; environment: 'sandbox' | 'production'; client_token: string | null; transaction_id: string } | null;
 }

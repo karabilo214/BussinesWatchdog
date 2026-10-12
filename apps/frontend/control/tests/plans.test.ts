@@ -26,6 +26,7 @@ vi.mock('@/api', () => ({
   updateDiscount: vi.fn(),
   archiveDiscount: vi.fn(),
   lookupTenants: vi.fn(),
+  fetchDiscountApplications: vi.fn(),
 }));
 
 const mocked = vi.mocked(api);
@@ -191,5 +192,30 @@ describe('discounts', () => {
       expect.objectContaining({ name: 'Agentur Lindner', audience: 'tenant', code: null, kind: 'percentage', percent_bps: 1250, amount_minor: null, duration: 'periods', duration_periods: 6, usage_limit: null, plan_ids: ['p-1'], tenant_ids: ['t-1'] }),
       { reason: 'Partner deal', confirmation_code: '123456' },
     );
+  });
+});
+
+describe('discount history', () => {
+  it('shows each discount of a payment in order with what it saved', async () => {
+    mocked.fetchDiscountApplications.mockResolvedValue({
+      data: [
+        {
+          id: 'a-1', period_number: 2, period_start: '2026-11-12T10:00:00Z', currency: 'EUR', currency_exponent: 2, amount_before_minor: '3700', saving_minor: '1036', amount_after_minor: '2664',
+          status: 'applied', error_code: null, tenant: { id: 't-1', name: 'Kaffee Lindner' }, created_at: '2026-10-12T10:00:00Z', applied_at: '2026-10-12T10:00:00Z',
+          lines: [
+            { discount: { id: 'd-1', name: 'Herbst', code: null, audience: 'automatic' }, position: 1, amount_before_minor: '3700', saving_minor: '370', amount_after_minor: '3330' },
+            { discount: { id: 'd-2', name: 'Partner', code: null, audience: 'tenant' }, position: 2, amount_before_minor: '3330', saving_minor: '666', amount_after_minor: '2664' },
+          ],
+        },
+      ],
+      next_cursor: null,
+    });
+    const wrapper = await open('/owner/discounts/history');
+
+    const card = wrapper.get('[data-application="2"]');
+    expect(card.text()).toContain('Продление, период 2');
+    expect(card.get('[data-line="automatic"]').text()).toMatch(/Акция: Herbst · от 37,00\s€\s*−3,70\s€/);
+    expect(card.get('[data-line="tenant"]').text()).toMatch(/Личная скидка: Partner · от 33,30\s€\s*−6,66\s€/);
+    expect(card.text()).toMatch(/Итого \(скидка 10,36\s€\)\s*26,64\s€/);
   });
 });

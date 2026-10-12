@@ -117,29 +117,40 @@ function total(plan: BillingPlan): string | null {
   return sum === null || base === null ? null : money(base, sum.toString());
 }
 
-function discountFor(plan: BillingPlan): BillingDiscount | null {
+function discountsFor(plan: BillingPlan): BillingDiscount[] {
   const promoted = promo.results[plan.plan_version_id];
 
-  return typeof promoted === 'object' ? promoted : plan.discount;
+  return [...plan.discounts, ...(typeof promoted === 'object' ? [promoted] : [])].sort((a, b) => a.position - b.position);
 }
 
-function discountedTotal(plan: BillingPlan, discount: BillingDiscount): string | null {
+function stacked(plan: BillingPlan): { lines: { discount: BillingDiscount; saving: string }[]; after: string } | null {
   const sum = totalMinor(plan);
   const base = price(plan, 'base');
+  const discounts = discountsFor(plan);
 
-  if (sum === null || base === null) {
+  if (sum === null || base === null || discounts.length === 0) {
     return null;
   }
 
-  if (discount.kind === 'flat') {
-    const amount = BigInt(discount.amount_minor ?? '0');
+  let remaining = sum;
+  const lines = discounts.map((discount) => {
+    let saving: bigint;
 
-    return money(base, (sum > amount ? sum - amount : 0n).toString());
-  }
+    if (discount.kind === 'flat') {
+      const amount = BigInt(discount.amount_minor ?? '0');
+      saving = amount < remaining ? amount : remaining;
+    } else {
+      const bps = BigInt(parseMinor(discount.percent ?? '0', 2) ?? '0');
+      const raw = (remaining * bps + 5000n) / 10000n;
+      saving = raw < remaining ? raw : remaining;
+    }
 
-  const bps = BigInt(parseMinor(discount.percent ?? '0', 2) ?? '0');
+    remaining -= saving;
 
-  return money(base, (sum - (sum * bps + 5000n) / 10000n).toString());
+    return { discount, saving: money(base, saving.toString()) };
+  });
+
+  return { lines, after: money(base, remaining.toString()) };
 }
 
 function discountText(discount: BillingDiscount): string {
@@ -151,7 +162,7 @@ function discountText(discount: BillingDiscount): string {
   const terms = t('billing.discount.terms', { value, duration: t(`billing.discount.duration.${discount.duration}`, { n: discount.duration_periods ?? 0 }) });
   const until = discount.expires_at === null ? '' : ` ${t('billing.discount.until', { date: dateTime(discount.expires_at) })}`;
 
-  return `${own ? `${own}: ` : ''}${terms}${until}`;
+  return `${t(`billing.discount.kind.${discount.audience}`)}${own ? ` «${own}»` : ''}: ${terms}${until}`;
 }
 
 async function applyPromo(): Promise<void> {
@@ -508,7 +519,12 @@ onBeforeUnmount(stopPolling);
                 </p>
               </div>
               <p v-else class="text-sm text-text-muted">{{ $t('billing.no_price') }}</p>
-              <p v-if="discountFor(plan)" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" :data-discount="plan.plan_code">{{ discountText(discountFor(plan)!) }}</p>
+              <ul v-if="stacked(plan)" class="flex flex-col gap-1 rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" :data-discount="plan.plan_code">
+                <li v-for="line in stacked(plan)!.lines" :key="line.discount.id" class="flex justify-between gap-3" :data-discount-line="line.discount.audience">
+                  <span>{{ discountText(line.discount) }}</span>
+                  <span class="whitespace-nowrap tabular-nums">−{{ line.saving }}</span>
+                </li>
+              </ul>
 
               <ul class="flex flex-col gap-1 text-sm">
                 <li v-for="code in PLAN_LIMITS" :key="code" class="flex justify-between gap-3">
@@ -546,8 +562,8 @@ onBeforeUnmount(stopPolling);
                       :data-extra="plan.plan_code"
                     />
                   </label>
-                  <p v-if="discountFor(plan)" class="text-sm" data-total="discounted">
-                    {{ $t('billing.discount.total_prefix') }} <s class="text-text-muted">{{ total(plan) }}</s> {{ discountedTotal(plan, discountFor(plan)!) }}
+                  <p v-if="stacked(plan)" class="text-sm" data-total="discounted">
+                    {{ $t('billing.discount.total_prefix') }} <s class="text-text-muted">{{ total(plan) }}</s> {{ stacked(plan)!.after }}
                     {{ $t('billing.discount.first_payment') }}
                   </p>
                   <p v-else class="text-sm">{{ $t('billing.total', { price: total(plan), period: period(price(plan, 'base')!.interval, price(plan, 'base')!.interval_count) }) }}</p>

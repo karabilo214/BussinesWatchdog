@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api\V1\Billing;
 
 use App\Http\Controllers\Controller;
 use App\Models\BillingCheckoutSession;
-use App\Models\BillingDiscount;
 use App\Models\BillingPrice;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Support\Billing\BillingCatalog;
 use App\Support\Billing\BillingCheckoutRejected;
+use App\Support\Billing\DiscountLedger;
 use App\Support\Billing\DiscountResolver;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\Paddle\PaddleCheckout;
@@ -96,7 +96,7 @@ class BillingController extends Controller
         }
 
         try {
-            $discount = $discounts->forCheckout($tenantId, $price, $validated['code']);
+            $discount = $discounts->byCode($price, $validated['code']);
         } catch (BillingCheckoutRejected $exception) {
             return response()->json(['code' => $exception->reasonCode, 'message' => 'The code cannot be used.'], $exception->status());
         }
@@ -167,7 +167,7 @@ class BillingController extends Controller
             'error_code' => $session->error_code,
             'expires_at' => $session->expires_at->toJSON(),
             'extra_store_quantity' => $session->extra_store_quantity,
-            'discount' => $session->discount_id === null ? null : DiscountResolver::dto(BillingDiscount::query()->findOrFail($session->discount_id)),
+            'discounts' => app(DiscountLedger::class)->checkoutBreakdown($session->id),
             'access_state' => app(EntitlementCalculator::class)->forTenant($tenantId)->access,
             'provider_checkout' => $open ? [
                 'provider' => $session->provider,

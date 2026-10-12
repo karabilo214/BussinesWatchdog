@@ -8,48 +8,86 @@ use App\Models\BillingPrice;
 use App\Support\Billing\Paddle\PaddleConfig;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DiscountResolver
 {
-    public function forCheckout(string $tenantId, BillingPrice $base, ?string $code): ?BillingDiscount
+    public const POSITIONS = [
+        BillingDiscount::AUDIENCE_AUTOMATIC => 1,
+        BillingDiscount::AUDIENCE_TENANT => 2,
+        BillingDiscount::AUDIENCE_CODE => 3,
+    ];
+
+    /**
+     * @return list<BillingDiscount>
+     */
+    public function stack(string $tenantId, BillingPrice $base, ?string $code): array
     {
+        $stack = $this->automatic($tenantId, $base);
         $code = $code === null ? '' : self::normalizeCode($code);
 
         if ($code !== '') {
-            /** @var BillingDiscount|null $discount */
-            $discount = $this->current()->where('audience', BillingDiscount::AUDIENCE_CODE)->where('code', $code)->first();
-
-            if ($discount === null) {
-                throw new BillingCheckoutRejected('discount_code_invalid');
-            }
-
-            $reason = $this->unavailableReason($discount, $base);
-
-            if ($reason !== null) {
-                throw new BillingCheckoutRejected($reason);
-            }
-
-            return $discount;
+            $stack[] = $this->byCode($base, $code);
         }
 
-        return $this->bestAutomatic($tenantId, $base);
+        return $stack;
     }
 
-    public function bestAutomatic(string $tenantId, BillingPrice $base): ?BillingDiscount
+    public function byCode(BillingPrice $base, string $code): BillingDiscount
     {
-        $assigned = $this->current()
-            ->where('audience', BillingDiscount::AUDIENCE_TENANT)
-            ->whereHas('tenants', fn (Builder $query) => $query->whereKey($tenantId))
-            ->get()
-            ->filter(fn (BillingDiscount $discount): bool => $this->unavailableReason($discount, $base) === null);
+        /** @var BillingDiscount|null $discount */
+        $discount = $this->current()->where('audience', BillingDiscount::AUDIENCE_CODE)->where('code', self::normalizeCode($code))->first();
 
-        $candidates = $assigned->isNotEmpty()
-            ? $assigned
-            : $this->current()->where('audience', BillingDiscount::AUDIENCE_AUTOMATIC)->get()->filter(fn (BillingDiscount $discount): bool => $this->unavailableReason($discount, $base) === null);
+        if ($discount === null) {
+            throw new BillingCheckoutRejected('discount_code_invalid');
+        }
 
-        return $candidates
-            ->sortBy([fn (BillingDiscount $a, BillingDiscount $b): int => self::saving($b, $base) <=> self::saving($a, $base), fn (BillingDiscount $a, BillingDiscount $b): int => strcmp((string) $a->id, (string) $b->id)])
-            ->first();
+        $reason = $this->unavailableReason($discount, $base);
+
+        if ($reason !== null) {
+            throw new BillingCheckoutRejected($reason);
+        }
+
+        return $discount;
+    }
+
+    /**
+     * @return list<BillingDiscount>
+     */
+    public function automatic(string $tenantId, BillingPrice $base): array
+    {
+        $offer = $this->best($this->current()->where('audience', BillingDiscount::AUDIENCE_AUTOMATIC), $base);
+        $personal = $this->best($this->current()->where('audience', BillingDiscount::AUDIENCE_TENANT)->whereHas('tenants', fn (Builder $query) => $query->whereKey($tenantId)), $base);
+
+        return array_values(array_filter([$offer, $personal]));
+    }
+
+    /**
+     * @param  list<BillingDiscount>  $discounts
+     * @return array{amount_before: int, saving: int, amount_after: int, lines: list<array{discount: BillingDiscount, position: int, amount_before: int, saving: int, amount_after: int}>}
+     */
+    public static function calculate(array $discounts, int $amountBefore): array
+    {
+        usort($discounts, fn (BillingDiscount $a, BillingDiscount $b): int => self::POSITIONS[$a->audience] <=> self::POSITIONS[$b->audience]);
+        $remaining = $amountBefore;
+        $lines = [];
+
+        foreach ($discounts as $discount) {
+            $saving = self::savingOn($discount, $remaining);
+            $lines[] = ['discount' => $discount, 'position' => self::POSITIONS[$discount->audience], 'amount_before' => $remaining, 'saving' => $saving, 'amount_after' => $remaining - $saving];
+            $remaining -= $saving;
+        }
+
+        return ['amount_before' => $amountBefore, 'saving' => $amountBefore - $remaining, 'amount_after' => $remaining, 'lines' => $lines];
+    }
+
+    public static function savingOn(BillingDiscount $discount, int $amount): int
+    {
+        if ($discount->kind === BillingDiscount::KIND_FLAT) {
+            return min((int) $discount->amount_minor, $amount);
+        }
+
+        return min($amount, intdiv($amount * (int) $discount->percent_bps + 5000, 10000));
     }
 
     public function unavailableReason(BillingDiscount $discount, BillingPrice $base, ?Carbon $now = null): ?string
@@ -83,16 +121,11 @@ class DiscountResolver
 
     public static function used(string $discountId): int
     {
-        return BillingCheckoutSession::query()->where('discount_id', $discountId)->where('status', BillingCheckoutSession::STATUS_CONFIRMED)->count();
-    }
-
-    public static function saving(BillingDiscount $discount, BillingPrice $base): int
-    {
-        if ($discount->kind === BillingDiscount::KIND_FLAT) {
-            return min((int) $discount->amount_minor, (int) $base->amount_minor);
-        }
-
-        return intdiv((int) $base->amount_minor * (int) $discount->percent_bps + 5000, 10000);
+        return DB::table('billing_discount_grants')
+            ->join('billing_checkout_sessions', 'billing_checkout_sessions.id', '=', 'billing_discount_grants.checkout_session_id')
+            ->where('billing_discount_grants.discount_id', $discountId)
+            ->where('billing_checkout_sessions.status', BillingCheckoutSession::STATUS_CONFIRMED)
+            ->count();
     }
 
     public static function normalizeCode(string $code): string
@@ -100,16 +133,13 @@ class DiscountResolver
         return strtoupper(trim($code));
     }
 
-    /**
-     * @return Builder<BillingDiscount>
-     */
-    private function current(): Builder
+    public static function periods(BillingDiscount $discount): ?int
     {
-        return BillingDiscount::query()
-            ->where('provider', PaddleConfig::PROVIDER)
-            ->where('provider_account_ref', PaddleConfig::accountRef())
-            ->where('mode', PaddleConfig::mode())
-            ->where('state', BillingDiscount::STATE_ACTIVE);
+        return match ($discount->duration) {
+            BillingDiscount::DURATION_ONCE => 1,
+            BillingDiscount::DURATION_PERIODS => $discount->duration_periods,
+            default => null,
+        };
     }
 
     /**
@@ -119,6 +149,8 @@ class DiscountResolver
     {
         return [
             'id' => $discount->id,
+            'position' => self::POSITIONS[$discount->audience],
+            'audience' => $discount->audience,
             'label' => $discount->label,
             'kind' => $discount->kind,
             'percent' => $discount->percent_bps === null ? null : self::percent($discount->percent_bps),
@@ -136,5 +168,25 @@ class DiscountResolver
         $fraction = rtrim(str_pad((string) ($bps % 100), 2, '0', STR_PAD_LEFT), '0');
 
         return intdiv($bps, 100).($fraction === '' ? '' : '.'.$fraction);
+    }
+
+    private function best(Builder $query, BillingPrice $base): ?BillingDiscount
+    {
+        return $query->get()
+            ->filter(fn (BillingDiscount $discount): bool => $this->unavailableReason($discount, $base) === null)
+            ->sortBy([fn (BillingDiscount $a, BillingDiscount $b): int => self::savingOn($b, (int) $base->amount_minor) <=> self::savingOn($a, (int) $base->amount_minor), fn (BillingDiscount $a, BillingDiscount $b): int => strcmp((string) $a->id, (string) $b->id)])
+            ->first();
+    }
+
+    /**
+     * @return Builder<BillingDiscount>
+     */
+    private function current(): Builder
+    {
+        return BillingDiscount::query()
+            ->where('provider', PaddleConfig::PROVIDER)
+            ->where('provider_account_ref', PaddleConfig::accountRef())
+            ->where('mode', PaddleConfig::mode())
+            ->where('state', BillingDiscount::STATE_ACTIVE);
     }
 }

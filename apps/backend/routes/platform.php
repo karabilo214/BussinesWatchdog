@@ -18,6 +18,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
 
     Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_READ)->get('/plans', [PlanController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_READ)->get('/discounts', [DiscountController::class, 'index']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/discount-applications', [DiscountController::class, 'applications']);
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/lookup', [DiscountController::class, 'tenants']);
 
     Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_MANAGE)->group(function (): void {

@@ -44,5 +44,5 @@ docker build -q -t bw-browser-worker:smoke apps/browser-worker >/dev/null
 docker run --rm --add-host host.docker.internal:host-gateway \
     -v "$ROOT/apps/frontend/customer/tests/e2e/billing-live.mjs:/app/billing-live.mjs:ro" -v "$OUT:/shots" \
     -e BW_SMOKE_SCREENSHOTS=/shots -e BW_APP_URL=http://host.docker.internal:5173 \
-    -e BW_SMOKE_EMAIL="$EMAIL" -e BW_SMOKE_PASSWORD="$PASSWORD" -e BW_PROMO="${BW_PROMO:-}" \
+    -e BW_SMOKE_EMAIL="$EMAIL" -e BW_SMOKE_PASSWORD="$PASSWORD" -e BW_PROMO="${BW_PROMO:-}" -e BW_EXPECT_AFTER="${BW_EXPECT_AFTER:-22,40}" \
     bw-browser-worker:smoke node billing-live.mjs

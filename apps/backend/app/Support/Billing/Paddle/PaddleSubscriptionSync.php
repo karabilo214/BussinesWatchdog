@@ -6,6 +6,7 @@ use App\Models\BillingCheckoutSession;
 use App\Models\BillingCustomer;
 use App\Models\BillingPrice;
 use App\Models\BillingSubscriptionContract;
+use App\Support\Billing\DiscountLedger;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Billing\SubscriptionProjector;
@@ -116,6 +117,7 @@ class PaddleSubscriptionSync
 
             if ($session !== null) {
                 $session->forceFill(['contract_id' => $contract->id])->save();
+                app(DiscountLedger::class)->linkContract($session, $contract);
             }
 
             $this->projector->project($tenantId, PaddleConfig::mode());

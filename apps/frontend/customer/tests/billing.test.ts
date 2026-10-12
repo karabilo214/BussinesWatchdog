@@ -64,7 +64,7 @@ const START: BillingPlan = {
     { id: 'p-base', kind: 'base', currency: 'EUR', currency_exponent: 2, amount_minor: '1900', interval: 'month', interval_count: 1, tax_behavior: 'provider_calculated' },
     { id: 'p-extra', kind: 'extra_store', currency: 'EUR', currency_exponent: 2, amount_minor: '900', interval: 'month', interval_count: 1, tax_behavior: 'provider_calculated' },
   ],
-  discount: null,
+  discounts: [],
 };
 
 function catalog(overrides: Partial<BillingCatalog> = {}): BillingCatalog {
@@ -138,8 +138,8 @@ describe('BillingView', () => {
   it('opens Paddle for a server-created checkout and trusts only the confirmed backend state', async () => {
     session.value = sessionFor('owner');
     const providerCheckout = { provider: 'paddle', environment: 'sandbox' as const, client_token: 'tok', transaction_id: 'txn_1' };
-    api.startCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 2, discount: null, access_state: 'onboarding', provider_checkout: providerCheckout });
-    api.fetchCheckout.mockResolvedValue({ id: 'c-1', status: 'confirmed', error_code: null, expires_at: '', extra_store_quantity: 2, discount: null, access_state: 'active', provider_checkout: null });
+    api.startCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 2, discounts: null, access_state: 'onboarding', provider_checkout: providerCheckout });
+    api.fetchCheckout.mockResolvedValue({ id: 'c-1', status: 'confirmed', error_code: null, expires_at: '', extra_store_quantity: 2, discounts: null, access_state: 'active', provider_checkout: null });
     let emit: (name: string) => void = () => undefined;
     vi.mocked(paddle.openPaddleCheckout).mockImplementation(async (_checkout, onEvent) => {
       emit = onEvent;
@@ -194,9 +194,9 @@ describe('BillingView', () => {
 
   it('applies a promo code, shows the discounted first payment and sends the code with the purchase', async () => {
     session.value = sessionFor('owner');
-    api.checkDiscount.mockResolvedValue({ id: 'd-1', label: { ru: 'Запуск' }, kind: 'percentage', percent: '12.5', amount_minor: null, currency: null, currency_exponent: null, duration: 'periods', duration_periods: 3, expires_at: null });
-    api.startCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 0, discount: null, access_state: 'onboarding', provider_checkout: null });
-    api.fetchCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 0, discount: null, access_state: 'onboarding', provider_checkout: null });
+    api.checkDiscount.mockResolvedValue({ id: 'd-1', position: 3, audience: 'code', label: { ru: 'Запуск' }, kind: 'percentage', percent: '12.5', amount_minor: null, currency: null, currency_exponent: null, duration: 'periods', duration_periods: 3, expires_at: null });
+    api.startCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 0, discounts: null, access_state: 'onboarding', provider_checkout: null });
+    api.fetchCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 0, discounts: null, access_state: 'onboarding', provider_checkout: null });
     const wrapper = await mountView();
 
     await wrapper.get('[data-field="promo"]').setValue('launch');
@@ -205,7 +205,7 @@ describe('BillingView', () => {
 
     expect(api.checkDiscount).toHaveBeenCalledWith('launch', 'p-base');
     expect(wrapper.get('[data-promo="applied"]').text()).toContain('LAUNCH');
-    expect(wrapper.get('[data-discount="start"]').text()).toMatch(/Запуск: скидка 12,5\s% на 3 периодов/);
+    expect(wrapper.get('[data-discount-line="code"]').text()).toMatch(/Промокод «Запуск»: скидка 12,5\s% на 3 периодов\s*−2,38\s€/);
     expect(wrapper.get('[data-total="discounted"]').text()).toMatch(/19,00\s€\s+16,62\s€/);
 
     await wrapper.get('[data-action="buy-start"]').trigger('click');
@@ -227,12 +227,27 @@ describe('BillingView', () => {
     expect(wrapper.find('[data-total="discounted"]').exists()).toBe(false);
   });
 
-  it('shows the organisation\'s own discount without a code', async () => {
+  it('applies the offer, then the organisation\'s own discount, without a code', async () => {
     session.value = sessionFor('owner');
-    api.fetchPlans.mockResolvedValue(catalog({ data: [{ ...START, discount: { id: 'd-2', label: {}, kind: 'flat', percent: null, amount_minor: '500', currency: 'EUR', currency_exponent: 2, duration: 'once', duration_periods: null, expires_at: null } }] }));
+    api.fetchPlans.mockResolvedValue(
+      catalog({
+        data: [
+          {
+            ...START,
+            discounts: [
+              { id: 'd-3', position: 2, audience: 'tenant', label: {}, kind: 'percentage', percent: '15', amount_minor: null, currency: null, currency_exponent: null, duration: 'forever', duration_periods: null, expires_at: null },
+              { id: 'd-2', position: 1, audience: 'automatic', label: { ru: 'Осень' }, kind: 'flat', percent: null, amount_minor: '500', currency: 'EUR', currency_exponent: 2, duration: 'once', duration_periods: null, expires_at: null },
+            ],
+          },
+        ],
+      }),
+    );
     const wrapper = await mountView();
 
-    expect(wrapper.get('[data-discount="start"]').text()).toMatch(/скидка 5,00\s€ на первый платёж/);
-    expect(wrapper.get('[data-total="discounted"]').text()).toMatch(/14,00\s€/);
+    const lines = wrapper.findAll('[data-discount-line]');
+    expect(lines.map((line) => line.attributes('data-discount-line'))).toEqual(['automatic', 'tenant']);
+    expect(lines[0]!.text()).toMatch(/Акция «Осень»: скидка 5,00\s€ на первый платёж\s*−5,00\s€/);
+    expect(lines[1]!.text()).toMatch(/Ваша скидка: скидка 15\s% навсегда\s*−2,10\s€/);
+    expect(wrapper.get('[data-total="discounted"]').text()).toMatch(/19,00\s€\s+11,90\s€/);
   });
 });

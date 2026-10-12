@@ -215,7 +215,8 @@
     "confirm": "Confirm",
     "tab": {
       "owner-plans": "Plans",
-      "owner-discounts": "Discounts"
+      "owner-discounts": "Discounts",
+      "owner-discount-history": "Discount history"
     }
   },
   "discounts": {
@@ -285,5 +286,28 @@
       "periods": "for {n} periods",
       "forever": "forever"
     }
+  },
+  "history": {
+    "hint": "Every purchase and renewal: the amount before discounts, each discount in order (offer → personal → promo code) and the total sent to Paddle.",
+    "empty": "No discounts applied yet.",
+    "purchase": "Purchase",
+    "renewal": "Renewal, period {n}",
+    "from": "period from {date}",
+    "status": {
+      "planned": "Awaiting payment",
+      "applied": "Sent to Paddle",
+      "failed": "Paddle error — will retry"
+    },
+    "before": "Price before discounts",
+    "kind": {
+      "automatic": "Offer",
+      "tenant": "Personal discount",
+      "code": "Promo code",
+      "unknown": "Discount"
+    },
+    "of": "of {amount}",
+    "after": "Total (discount {saving})",
+    "failed": "Paddle returned {code}; the scheduler will retry.",
+    "more": "Show more"
   }
 }

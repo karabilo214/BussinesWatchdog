@@ -2,6 +2,7 @@
 
 namespace App\Support\Billing;
 
+use App\Models\BillingDiscount;
 use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
@@ -96,9 +97,9 @@ class BillingCatalog
     private function withDiscount(array $plan, ?string $tenantId, Collection $prices): array
     {
         $base = $prices->firstWhere('price_kind', BillingPrice::KIND_BASE);
-        $discount = $tenantId === null || $base === null ? null : app(DiscountResolver::class)->bestAutomatic($tenantId, $base);
+        $discounts = $tenantId === null || $base === null ? [] : app(DiscountResolver::class)->automatic($tenantId, $base);
 
-        return $plan + ['discount' => $discount === null ? null : DiscountResolver::dto($discount)];
+        return $plan + ['discounts' => array_map(fn (BillingDiscount $discount): array => DiscountResolver::dto($discount), $discounts)];
     }
 
     /**

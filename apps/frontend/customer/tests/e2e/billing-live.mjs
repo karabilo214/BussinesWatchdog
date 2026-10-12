@@ -29,9 +29,10 @@ try {
     await page.locator('[data-field="promo"]').fill(process.env.BW_PROMO.toLowerCase());
     await page.locator('[data-action="apply-promo"]').click();
     await page.locator('[data-promo="applied"]').waitFor();
-    await page.locator('[data-plan="start"] [data-total="discounted"]').getByText(/28,00\s€\s+22,40\s€/).waitFor();
+    const expected = process.env.BW_EXPECT_AFTER ?? '22,40';
+    await page.locator('[data-plan="start"] [data-total="discounted"]').getByText(new RegExp(`28,00\\s€\\s+${expected}\\s€`)).waitFor();
     await shot('1b-promo');
-    console.log('ok   promo code applied: 28,00 € → 22,40 € for the first payment');
+    console.log(`ok   discounts applied one after another: 28,00 € → ${expected} € for the first payment`);
   }
 
   await page.locator('[data-action="buy-start"]').click();

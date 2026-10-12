@@ -2106,3 +2106,19 @@ Verification:
 - `tests/Feature/Platform/DiscountTest.php` — 4 tests (creation with Paddle terms, step-up, duplicates and validation, change, archive, audit; promo code applicability, expiry and usage limit; organisation discount beats public offers, best saving, start/end, archived; lookup). Control 10 tests, customer 102 tests.
 - Backend SQLite: 461 passed, 4 skipped; PostgreSQL 18: 465 of 465 (twice).
 - Live in the Paddle sandbox: `run-live.sh discounts` created promo code E2EMV4WAY65 (20 %, 2 periods, Start only, 5 uses) in the browser; `BW_PROMO=E2EMV4WAY65 run-billing-live.sh` applied it (28.00 € → 22.40 €) and paid with the test card — PASS. Paddle: transaction total 22.40 €, discount on it, `times_used` 1, the subscription carries the discount until two monthly periods end.
+
+### Step 106: Stacked Discounts and Per-Period Discount Ledger
+
+Status: complete
+
+- Owner decision 2026-10-12: discounts stack — offer, then the organisation's own discount, then the promo code, each on the amount left by the previous one; each keeps its own duration; before every renewal the server recomputes the next period's combined discount and sets it at Paddle; every period is recorded in a readable form. ADR 0036 updated.
+- Sandbox checks before coding: a flat discount lowers a tax-inclusive total by exactly its amount (28.00 € − 5.60 € = 22.40 € for a German buyer); a subscription refuses a one-time discount but accepts `recur: true, maximum_recurring_intervals: 1` with `effective_from: next_billing_period` (next payment 25.00 €, the one after back to 28.00 €).
+- Migration `2026_10_12_150000_create_discount_stacking_tables`: `billing_discount_grants` (discounts a purchase got, periods total/used), `billing_discount_applications` (per period: before, saving, after, Paddle discount, status) and `billing_discount_application_lines` (per discount in order); `billing_checkout_sessions.discount_id` removed.
+- `DiscountResolver::stack/calculate` (best offer + best personal + code, sequential, half up), `DiscountLedger` (records the purchase, creates the purchase's one-time combined Paddle discount, links grants to the contract when the subscription is linked, `planRenewals` creates the next period's one-period discount and patches the subscription, retries failures, never duplicates a period), command `billing:plan-discounts` every 15 minutes. Checkout returns `discounts` (breakdown); the catalog lists `discounts`; platform `GET /discount-applications`.
+- Customer page: every discount line with its saving in order and the total after discounts. Control: "История скидок" tab.
+
+Verification:
+
+- `DiscountTest` — 5 tests (promo code breakdown and Paddle combined discount; offer → personal → code 2800 → 2300 → 1955 → 1655; renewal planning without the one-time code, no duplicate, Paddle failure then retry, history endpoint). Control 11, customer 102.
+- Backend SQLite: 462 passed, 4 skipped; PostgreSQL 18: 466 of 466.
+- Live in the Paddle sandbox: offer 10 % forever + promo code 20 % for 2 periods created in the panel; purchase 28.00 € → 25.20 € → 20.16 € paid (Paddle total 2016); `billing:plan-discounts` set the second period's combined discount, Paddle's next transaction 20.16 €, the second run planned nothing; ledger rows for periods 1 and 2 match.

@@ -115,3 +115,8 @@ Schedule::command('billing:process-events')
     ->everyThirtySeconds()
     ->withoutOverlapping(10)
     ->onOneServer();
+
+Schedule::command('billing:plan-discounts')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();

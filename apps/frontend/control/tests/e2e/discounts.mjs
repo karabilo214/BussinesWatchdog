@@ -59,6 +59,27 @@ try {
   await page.screenshot({ path: `${shots}/discounts-1-created.png`, fullPage: true });
   console.log(`ok   promo code ${promo} (20 %, 2 periods, Start only, 5 uses) created in the Paddle sandbox`);
 
+  const offerName = `Live offer ${promo}`;
+  const until = await page.evaluate(() => {
+    const date = new Date(Date.now() + 2 * 3600 * 1000);
+    const pad = (part) => String(part).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  });
+  await page.locator('[data-action="new-discount"]').click();
+  await page.locator('[data-field="name"]').fill(offerName);
+  await page.locator('[data-audience="automatic"]').check();
+  await page.locator('[data-field="percent"]').fill('10');
+  await page.locator('[data-field="duration"]').selectOption('forever');
+  await page.locator('[data-field="expires-at"]').fill(until);
+  await page.locator('[data-plan-option="start"]').check();
+  await page.locator('[data-action="create-discount"]').click();
+  await page.locator('[data-field="reason"]').fill('Live check offer');
+  await page.locator('[data-field="step-up"]').fill(await code(process.env.BW_TOTP_SECRET));
+  await page.locator('[data-action="confirm"]').click();
+  await page.locator(`[data-discount="${offerName}"]`).getByText(/10\s% · навсегда/).waitFor({ timeout: 60000 });
+  await page.screenshot({ path: `${shots}/discounts-2-offer.png`, fullPage: true });
+  console.log('ok   offer for everyone (10 %, forever, Start only, ends in 2 hours) created');
+
   if (errors.length > 0) throw new Error(`page errors: ${errors.join('; ')}`);
   console.log(`PROMO ${promo}`);
   console.log('PASS');
