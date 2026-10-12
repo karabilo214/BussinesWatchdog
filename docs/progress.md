@@ -2073,3 +2073,19 @@ Verification:
 
 - `README.md` rewritten as the release and operations guide: environment variables, migrations, scheduler, first platform owner (`platform:create-owner`), browser worker token, Telegram webhook, Paddle setup, mail check, plugin ZIP and release checks, frontend builds, maintenance commands, local tests and live checks. `CLAUDE.md`: every new command, variable or manual step goes into the README right away (owner request 2026-10-12).
 - Found while writing it: `security:reencrypt-secrets` did not re-encrypt users' authenticator secrets, so removing an old key after rotation would have locked out everyone with two-factor sign-in, including platform staff. The command now also re-encrypts `users.mfa_secret_ciphertext`; test `test_reencrypt_command_moves_authenticator_secrets_so_codes_keep_working`.
+
+### Step 104: Plans, Prices and Billing Periods in the Owner Panel
+
+Status: complete (discounts are the next step)
+
+- ADR 0035. Migration `2026_10_12_130000_add_billing_interval_count`: prices billed every 1–365 days/weeks/months/years (`billing_interval_count`, unique key includes the period); trial 0–365 days.
+- `PlanAdmin` + `PlanController` (`/platform-api/v1/plans`, `plans/{id}/versions`, `plan-versions/{id}` PATCH, `…/prices`, `plan-prices/{id}` DELETE, `…/publish`, `…/retire`): create (immutable code), edit drafts (ru/en/de texts, trial, features, limits with minimums), prices (Paddle currencies, ISO exponent, minor-unit strings, any period), new version from the latest, publish with reason + authenticator code (Paddle product per plan shared by versions, prices with the billing cycle created before the local switch; previous version retired for new buyers, subscribers untouched), retire. Capabilities `plans.read` / `plans.manage`; every change audited.
+- Customers see only published versions and prices in every environment; the sandbox seeder publishes placeholder plans and their test prices (also prices left as drafts by older runs — found by the live purchase rerun). `PaddleCheckout` matches the extra-store price by period too. Customer catalog DTO: `interval_count`, `description`; the subscription page prints any period ("каждые 2 недели", "каждый 21 день").
+- Control app: "Тарифы и скидки" list and version editor (content, features, limits with "unlimited", prices with amount parsing, period preview, publish/retire confirmation with code). `formatMinor` moved to `@bw/ui` together with the new string-only `parseMinor`.
+- README: plan management replaces the catalog command in the release steps; `run-live.sh login|plans`.
+
+Verification:
+
+- `tests/Feature/Platform/PlanAdminTest.php` — 4 tests (draft → prices for any period → step-up → Paddle billing cycle → customer catalog; new version retires the old one without moving subscribers; Paddle failure keeps the draft; roles). Billing tests moved to published fixtures; seeder test.
+- Backend SQLite: 457 passed, 4 skipped; PostgreSQL 18: 461 of 461. Control: 9 tests; customer: 99 tests; builds pass.
+- Live: `apps/frontend/control/tests/e2e/run-live.sh plans` — PASS in the Paddle sandbox (plan created in the browser, 45,50 € every 2 weeks + 5,00 € per extra store, wrong code refused, published, retired); Paddle API confirms the price `billing_cycle {week, 2}`. `run-billing-live.sh` — PASS after the change. `make frontend-smoke`: 42/42 on the third run; the first two runs failed at different steps of the owner's two-factor section (log-out click, ownership transfer) without backend errors — a flaky part of the smoke scenario, not touched by this step.

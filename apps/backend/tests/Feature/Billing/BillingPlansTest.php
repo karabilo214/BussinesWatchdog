@@ -28,11 +28,12 @@ class BillingPlansTest extends TestCase
     public function test_members_see_the_latest_sellable_version_of_each_plan_with_its_prices(): void
     {
         $context = $this->context('viewer');
-        $pro = $this->plan('pro', 1, ['base' => 4900, 'extra_store' => 700]);
+        $pro = $this->plan('pro', 1, ['base' => 4900, 'extra_store' => 700], null, BillingPlan::STATE_RETIRED);
         $this->plan('pro', 2, ['base' => 5900], $pro);
         $this->plan('start', 1, ['base' => 1900]);
         $this->plan('free', 1, []);
         $this->plan('old', 1, ['base' => 100], null, BillingPlan::STATE_RETIRED);
+        $this->plan('beta', 1, ['base' => 9900], null, BillingPlan::STATE_DRAFT);
         BillingPrice::query()->where('amount_minor', 1900)->update(['provider_price_ref' => null]);
 
         $response = $this->actingAs($context['user'])->withSession(['active_tenant_id' => $context['tenant']->id])
@@ -44,7 +45,7 @@ class BillingPlansTest extends TestCase
 
         $plans = collect($response->json('data'))->keyBy('plan_code');
         $this->assertSame(['pro', 'free', 'start'], $plans->keys()->all());
-        $this->assertSame([['id' => $plans['pro']['prices'][0]['id'], 'kind' => 'base', 'currency' => 'EUR', 'currency_exponent' => 2, 'amount_minor' => '5900', 'interval' => 'month', 'tax_behavior' => 'provider_calculated']], $plans['pro']['prices']);
+        $this->assertSame([['id' => $plans['pro']['prices'][0]['id'], 'kind' => 'base', 'currency' => 'EUR', 'currency_exponent' => 2, 'amount_minor' => '5900', 'interval' => 'month', 'interval_count' => 1, 'tax_behavior' => 'provider_calculated']], $plans['pro']['prices']);
         $this->assertSame(2, BillingPlanVersion::query()->whereKey($plans['pro']['plan_version_id'])->value('version'));
         $this->assertSame([], $plans['start']['prices']);
         $this->assertSame(['ru' => 'Pro'], $plans['pro']['name']);
@@ -56,15 +57,31 @@ class BillingPlansTest extends TestCase
 
         config()->set('watchdog.billing.paddle.environment', 'production');
         $this->actingAs($context['user'])->withSession(['active_tenant_id' => $context['tenant']->id])
-            ->getJson('/api/v1/billing/plans')->assertJsonPath('data', []);
+            ->getJson('/api/v1/billing/plans')->assertJsonPath('data.0.prices', []);
+    }
+
+    public function test_sandbox_placeholder_plans_are_published_with_their_test_prices_and_never_in_production(): void
+    {
+        $this->artisan('billing:seed-placeholder-plans')->assertSuccessful();
+        $start = BillingPlanVersion::query()->whereHas('plan', fn ($query) => $query->where('code', 'start'))->firstOrFail();
+        BillingPrice::query()->create(['plan_version_id' => $start->id, 'provider' => 'paddle', 'provider_account_ref' => 'default', 'price_kind' => 'base', 'mode' => 'test', 'currency' => 'EUR', 'currency_exponent' => 2, 'amount_minor' => 1900, 'billing_interval' => 'month', 'billing_interval_count' => 1, 'tax_behavior' => 'provider_calculated', 'state' => BillingPlan::STATE_DRAFT]);
+
+        $this->artisan('billing:seed-placeholder-plans', ['--test-prices' => true])->assertSuccessful();
+
+        $this->assertSame(BillingPlan::STATE_PUBLISHED, $start->fresh()->state);
+        $this->assertSame([BillingPlan::STATE_PUBLISHED], BillingPrice::query()->where('plan_version_id', $start->id)->distinct()->pluck('state')->all());
+        $this->assertSame(BillingPlan::STATE_DRAFT, BillingPlan::query()->where('code', 'free')->value('state'));
+
+        config()->set('watchdog.billing.paddle.environment', 'production');
+        $this->artisan('billing:seed-placeholder-plans', ['--test-prices' => true])->assertFailed();
     }
 
     /**
      * @param  array<string, int>  $prices
      */
-    private function plan(string $code, int $version, array $prices, ?BillingPlanVersion $existing = null, string $state = BillingPlan::STATE_DRAFT): BillingPlanVersion
+    private function plan(string $code, int $version, array $prices, ?BillingPlanVersion $existing = null, string $state = BillingPlan::STATE_PUBLISHED): BillingPlanVersion
     {
-        $plan = $existing?->plan ?? BillingPlan::query()->create(['code' => $code, 'state' => $state]);
+        $plan = $existing?->plan ?? BillingPlan::query()->create(['code' => $code, 'state' => $state === BillingPlan::STATE_DRAFT ? $state : BillingPlan::STATE_PUBLISHED]);
         $model = BillingPlanVersion::query()->create([
             'plan_id' => $plan->id,
             'version' => $version,

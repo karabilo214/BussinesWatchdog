@@ -17,11 +17,11 @@ class BillingPrice extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['plan_version_id', 'provider', 'provider_account_ref', 'provider_price_ref', 'price_kind', 'mode', 'currency', 'currency_exponent', 'amount_minor', 'billing_interval', 'tax_behavior', 'state', 'provider_product_ref', 'created_at'];
+    protected $fillable = ['plan_version_id', 'provider', 'provider_account_ref', 'provider_price_ref', 'price_kind', 'mode', 'currency', 'currency_exponent', 'amount_minor', 'billing_interval', 'billing_interval_count', 'tax_behavior', 'state', 'provider_product_ref', 'created_at'];
 
     protected function casts(): array
     {
-        return ['currency_exponent' => 'integer', 'amount_minor' => 'integer', 'created_at' => 'datetime'];
+        return ['currency_exponent' => 'integer', 'amount_minor' => 'integer', 'billing_interval_count' => 'integer', 'created_at' => 'datetime'];
     }
 
     public function planVersion(): BelongsTo

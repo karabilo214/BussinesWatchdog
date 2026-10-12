@@ -1,0 +1,157 @@
+import { flushPromises, mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { parseMinor } from '@bw/ui';
+import * as api from '@/api';
+import type { PlanCatalog, PlanVersion, StaffMe } from '@/api';
+import App from '@/App.vue';
+import { useStaff } from '@/composables/useStaff';
+import { localization } from '@/i18n';
+import { buildRouter } from '@/router';
+
+vi.mock('@/api', () => ({
+  fetchMe: vi.fn(),
+  login: vi.fn(),
+  submitMfa: vi.fn(),
+  logout: vi.fn(),
+  fetchPlans: vi.fn(),
+  createPlan: vi.fn(),
+  createVersion: vi.fn(),
+  updateVersion: vi.fn(),
+  addPrice: vi.fn(),
+  removePrice: vi.fn(),
+  publishVersion: vi.fn(),
+  retireVersion: vi.fn(),
+}));
+
+const mocked = vi.mocked(api);
+
+function staff(capabilities: string[]): StaffMe {
+  return { staff_id: 's-1', name: 'Founder', email: 'f@example.test', locale: 'ru', role: 'platform_owner', mfa_enabled: true, capabilities, billing_mode: 'test', session: { idle_minutes: 30, absolute_hours: 8 } };
+}
+
+const DRAFT: PlanVersion = {
+  id: 'v-1',
+  version: 1,
+  state: 'draft',
+  name: { ru: 'Команда', en: 'Team' },
+  description: {},
+  placeholder: false,
+  trial_days: 14,
+  entitlements: { features: ['checkout_monitoring'], limits: { max_active_stores: 2 } },
+  published_at: null,
+  subscribers: 0,
+  prices: [],
+};
+
+function catalog(version: PlanVersion = DRAFT): PlanCatalog {
+  return {
+    data: [{ id: 'p-1', code: 'team', state: version.state === 'draft' ? 'draft' : 'published', versions: [version] }],
+    mode: 'test',
+    provider_configured: true,
+    catalog: {
+      features: ['checkout_monitoring', 'money_reconciliation'],
+      limits: ['max_active_stores', 'monthly_event_budget'],
+      per_store_limits: ['monthly_event_budget'],
+      currencies: ['EUR', 'JPY'],
+      intervals: ['day', 'week', 'month', 'year'],
+      max_interval_count: 365,
+      max_trial_days: 365,
+    },
+  };
+}
+
+async function open(path: string, capabilities = ['plans.manage', 'plans.read']) {
+  mocked.fetchMe.mockResolvedValue(staff(capabilities));
+  await useStaff().load(true);
+  const router = buildRouter();
+  await router.push(path);
+  await router.isReady();
+  const wrapper = mount(App, { global: { plugins: [localization, router] } });
+  await flushPromises();
+  await vi.waitFor(() => expect(wrapper.find('h1').exists()).toBe(true));
+  await flushPromises();
+
+  return wrapper;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  useStaff().forget();
+  localization.setLocale('ru');
+  mocked.fetchPlans.mockResolvedValue(catalog());
+});
+
+describe('parseMinor', () => {
+  it('turns typed amounts into minor units with string arithmetic only', () => {
+    expect(parseMinor('19,90', 2)).toBe('1990');
+    expect(parseMinor('19.9', 2)).toBe('1990');
+    expect(parseMinor('1 200', 2)).toBe('120000');
+    expect(parseMinor('0,05', 2)).toBe('5');
+    expect(parseMinor('1500', 0)).toBe('1500');
+    expect(parseMinor('19,999', 2)).toBeNull();
+    expect(parseMinor('-1', 2)).toBeNull();
+    expect(parseMinor('1e3', 2)).toBeNull();
+    expect(parseMinor('9999999999999', 2)).toBeNull();
+  });
+});
+
+describe('plans', () => {
+  it('lists plans with their versions and state', async () => {
+    const wrapper = await open('/owner/plans');
+
+    expect(wrapper.get('[data-plan="team"]').text()).toContain('Команда');
+    expect(wrapper.get('[data-plan="team"]').text()).toContain('Черновик');
+    expect(wrapper.find('[data-action="new-plan"]').exists()).toBe(true);
+  });
+
+  it('saves the draft with unlimited limits as null and adds a price for any period', async () => {
+    mocked.updateVersion.mockResolvedValue(DRAFT);
+    mocked.addPrice.mockResolvedValue(DRAFT);
+    const wrapper = await open('/owner/plans/versions/v-1');
+
+    await wrapper.get('[data-field="name-de"]').setValue('Team');
+    await wrapper.get('[data-feature="money_reconciliation"]').setValue(true);
+    await wrapper.get('[data-action="save"]').trigger('click');
+    await flushPromises();
+
+    expect(mocked.updateVersion).toHaveBeenCalledWith('v-1', {
+      name: { ru: 'Команда', en: 'Team', de: 'Team' },
+      description: { ru: '', en: '', de: '' },
+      trial_days: 14,
+      entitlements: { features: ['checkout_monitoring', 'money_reconciliation'], limits: { max_active_stores: 2, monthly_event_budget: null } },
+    });
+
+    await wrapper.get('[data-field="amount"]').setValue('45,50');
+    await wrapper.get('[data-field="count"]').setValue(2);
+    await wrapper.get('[data-field="interval"]').setValue('week');
+    expect(wrapper.get('[data-form="price"]').text()).toContain('каждые 2 недели');
+    await wrapper.get('[data-form="price"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.addPrice).toHaveBeenCalledWith('v-1', { kind: 'base', currency: 'EUR', amount_minor: '4550', interval: 'week', interval_count: 2 });
+  });
+
+  it('publishes only with a reason and an authenticator code', async () => {
+    mocked.publishVersion.mockResolvedValue({ ...DRAFT, state: 'published' });
+    const wrapper = await open('/owner/plans/versions/v-1');
+
+    await wrapper.get('[data-action="publish"]').trigger('click');
+    expect(wrapper.get('[data-action="confirm"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-field="reason"]').setValue('Launch');
+    await wrapper.get('[data-field="step-up"]').setValue('123456');
+    await wrapper.get('[data-form="confirm"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.publishVersion).toHaveBeenCalledWith('v-1', 'Launch', '123456');
+  });
+
+  it('shows a published version read-only to staff who can only read plans', async () => {
+    mocked.fetchPlans.mockResolvedValue(catalog({ ...DRAFT, state: 'published', subscribers: 3 }));
+    const wrapper = await open('/owner/plans/versions/v-1', ['plans.read']);
+
+    expect(wrapper.text()).toContain('Подписчиков на ней: 3');
+    expect(wrapper.get('[data-field="name-ru"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('[data-action="save"]').exists()).toBe(false);
+    expect(wrapper.find('[data-panel="actions"]').exists()).toBe(false);
+  });
+});

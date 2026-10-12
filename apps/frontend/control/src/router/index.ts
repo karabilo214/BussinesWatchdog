@@ -16,12 +16,14 @@ export function buildRouter(): Router {
     routes: [
       { path: '/', redirect: { name: 'owner-overview' } },
       { path: '/owner/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
-      ...OWNER_SECTIONS.map((section) => ({
+      ...OWNER_SECTIONS.filter((section) => section !== 'plans').map((section) => ({
         path: section === 'overview' ? '/owner' : `/owner/${section}`,
         name: `owner-${section}`,
         component: () => import('@/views/SectionView.vue'),
         props: { section },
       })),
+      { path: '/owner/plans', name: 'owner-plans', component: () => import('@/views/PlansView.vue') },
+      { path: '/owner/plans/versions/:id', name: 'owner-plan-version', component: () => import('@/views/PlanVersionView.vue'), props: true },
       { path: '/admin', redirect: { name: 'owner-overview' } },
       { path: '/:pathMatch(.*)*', redirect: { name: 'owner-overview' } },
     ],

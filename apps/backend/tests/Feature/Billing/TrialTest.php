@@ -188,12 +188,12 @@ class TrialTest extends TestCase
 
     private function version(): BillingPlanVersion
     {
-        $plan = BillingPlan::query()->create(['code' => 'pro', 'state' => BillingPlan::STATE_DRAFT]);
+        $plan = BillingPlan::query()->create(['code' => 'pro', 'state' => BillingPlan::STATE_PUBLISHED]);
 
         return BillingPlanVersion::query()->create([
             'plan_id' => $plan->id,
             'version' => 1,
-            'state' => BillingPlan::STATE_DRAFT,
+            'state' => BillingPlan::STATE_PUBLISHED,
             'localized_content' => ['name' => ['en' => 'Pro']],
             'entitlements' => FeatureCatalog::normalize(['features' => [FeatureCatalog::CHECKOUT_MONITORING], 'limits' => [FeatureCatalog::MAX_ACTIVE_STORES => 3]]),
             'trial_days' => 14,

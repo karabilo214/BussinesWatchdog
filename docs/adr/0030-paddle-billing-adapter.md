@@ -8,7 +8,7 @@ ADR 0028 chose Paddle as merchant of record; ADR 0029 added plans, extra-store p
 
 ## Facts from the sandbox (2026-10-11, real calls and a real test-card payment)
 
-- A product per plan version; prices carry amount in minor units as a string, a monthly cycle and quantity bounds (base 1..1, extra store 1..`max_extra_stores`). `tax_mode: account_setting` came back as `location`.
+- A product per plan version (since ADR 0035: one product per plan, shared by its versions); prices carry amount in minor units as a string, a monthly cycle and quantity bounds (base 1..1, extra store 1..`max_extra_stores`). `tax_mode: account_setting` came back as `location`.
 - A transaction needs a default payment link in the account (Checkout settings); it may be any https URL, the overlay checkout runs on our page by transaction id.
 - Paying the transaction (19 € + 2 × 9 €) produced a customer, a subscription `active` for one month with both items and quantities, and `custom_data` copied from the transaction to the subscription.
 - For a German buyer the 37 € were **gross**: 5.90 € VAT inside, Paddle fee 2.30 €, earnings 28.80 €.

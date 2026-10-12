@@ -1,6 +1,6 @@
 import { useI18n } from 'vue-i18n';
 import type { Incident } from '@/api/types';
-import { formatMinor } from '@/composables/money';
+import { formatMinor } from '@bw/ui';
 import { AUTO_RESOLUTIONS } from './tones';
 
 export function useIncidentText() {

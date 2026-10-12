@@ -80,8 +80,9 @@ php artisan telegram:webhook info    # проверить
 ### 7. Paddle (оплата подписки)
 
 - В кабинете Paddle: ссылка оплаты по умолчанию (Checkout settings), домен сервиса одобрен, webhook на `https://<APP_URL>/api/v1/webhooks/paddle` с секретом из `PADDLE_WEBHOOK_SECRET`.
-- Тарифы и цены создаются в панели владельца (раздел «Тарифы и скидки»); товары и цены в Paddle создаются при публикации. До появления этого раздела: `php artisan billing:paddle-catalog` создаёт в Paddle недостающие товары и цены.
-- Только для sandbox: `php artisan billing:seed-placeholder-plans --test-prices` — черновые тарифы Free / Start / Pro с тестовыми ценами.
+- Тарифы, цены, периоды оплаты, лимиты и пробный период создаются в панели владельца: `/owner/plans` → «Новый тариф» → заполнить черновик → добавить цены → «Опубликовать» (причина + код из приложения). При публикации товар и цены создаются в Paddle текущего режима (`PADDLE_ENVIRONMENT`); клиентам видны только опубликованные версии.
+- `php artisan billing:paddle-catalog` — дозаводит в Paddle цены, которые по какой-то причине не создались (обычно не нужна).
+- Только для sandbox: `php artisan billing:seed-placeholder-plans --test-prices` — черновые тарифы Free / Start / Pro с тестовыми ценами, опубликованные для проверки покупки.
 
 ### 8. Почта
 
@@ -140,5 +141,5 @@ make egress-test                    # проверка egress-прокси
 Живые проверки (нужен интернет и ключи sandbox):
 
 - `apps/frontend/customer/tests/e2e/run-billing-live.sh` — покупка подписки через sandbox Paddle тестовой картой.
-- `apps/frontend/control/tests/e2e/run-login.sh` — вход в панель владельца с настоящим кодом TOTP.
+- `apps/frontend/control/tests/e2e/run-live.sh login` — вход в панель владельца с настоящим кодом TOTP; `run-live.sh plans` — создание, цены, публикация в sandbox Paddle и снятие тарифа с продажи.
 - `plugins/woocommerce-watchdog/tests/matrix/*.sh`, `plugins/shopware-app/tests/**` — матрица версий и сквозные прогоны с настоящими магазинами и провайдерами.

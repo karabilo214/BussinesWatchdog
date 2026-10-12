@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { newIdempotencyKey } from '@bw/api-client';
-import { StatusBadge, type Tone } from '@bw/ui';
+import { formatMinor, StatusBadge, type Tone } from '@bw/ui';
 import {
   fetchCheckout,
   fetchEntitlements,
@@ -22,7 +22,6 @@ import {
 import { listStores } from '@/api/stores';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
-import { formatMinor } from '@/composables/money';
 import { openPaddleCheckout } from '@/composables/paddle';
 import { useFormat } from '@/composables/useFormat';
 import { useRole } from '@/composables/useRole';
@@ -54,7 +53,7 @@ const STATUS_TONES: Record<SubscriptionStatus, Tone> = {
 const PLAN_LIMITS = ['max_active_stores', 'min_check_interval_minutes', 'manual_runs_per_day', 'monthly_event_budget', 'retention_days'] as const;
 
 const { locale, t } = useI18n();
-const { dateTime } = useFormat();
+const { dateTime, period } = useFormat();
 const { role } = useRole();
 const isOwner = computed(() => role.value === 'owner');
 
@@ -412,9 +411,9 @@ onBeforeUnmount(stopPolling);
               </div>
 
               <div v-if="price(plan, 'base')" class="flex flex-col gap-1">
-                <p class="text-2xl font-semibold tabular-nums">{{ money(price(plan, 'base')!) }} <span class="text-sm font-normal text-text-muted">{{ $t(`billing.per.${price(plan, 'base')!.interval}`) }}</span></p>
+                <p class="text-2xl font-semibold tabular-nums">{{ money(price(plan, 'base')!) }} <span class="text-sm font-normal text-text-muted">{{ period(price(plan, 'base')!.interval, price(plan, 'base')!.interval_count) }}</span></p>
                 <p v-if="price(plan, 'extra_store')" class="text-[13px] text-text-muted">
-                  {{ $t('billing.extra_store_price', { price: money(price(plan, 'extra_store')!), max: count(maxExtra(plan)) }) }}
+                  {{ $t('billing.extra_store_price', { price: money(price(plan, 'extra_store')!), period: period(price(plan, 'extra_store')!.interval, price(plan, 'extra_store')!.interval_count), max: count(maxExtra(plan)) }) }}
                 </p>
               </div>
               <p v-else class="text-sm text-text-muted">{{ $t('billing.no_price') }}</p>
@@ -455,7 +454,7 @@ onBeforeUnmount(stopPolling);
                       :data-extra="plan.plan_code"
                     />
                   </label>
-                  <p class="text-sm">{{ $t('billing.total', { price: total(plan) }) }}</p>
+                  <p class="text-sm">{{ $t('billing.total', { price: total(plan), period: period(price(plan, 'base')!.interval, price(plan, 'base')!.interval_count) }) }}</p>
                   <button
                     type="button"
                     class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"

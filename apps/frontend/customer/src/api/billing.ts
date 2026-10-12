@@ -28,6 +28,7 @@ export interface BillingPrice {
   currency_exponent: number;
   amount_minor: string;
   interval: string;
+  interval_count: number;
   tax_behavior: string;
 }
 

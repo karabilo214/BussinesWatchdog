@@ -7,7 +7,7 @@ use App\Models\BillingPrice;
 use App\Support\Billing\FeatureCatalog;
 
 /**
- * Creates the Paddle product of a plan version and its prices for every local Paddle price of the current mode that has
+ * Creates the Paddle product of a plan (shared by its versions) and its prices for every local Paddle price of the current mode that has
  * no Paddle id yet. Each id is stored right after its create call, so a rerun continues where it stopped.
  */
 class PaddleCatalogSync
@@ -17,10 +17,11 @@ class PaddleCatalogSync
     /**
      * @return list<array{price_id: string, provider_price_ref: string}>
      */
-    public function sync(): array
+    public function sync(?string $planVersionId = null): array
     {
         $created = [];
         $prices = BillingPrice::query()
+            ->when($planVersionId !== null, fn ($query) => $query->where('plan_version_id', $planVersionId))
             ->where('provider', PaddleConfig::PROVIDER)
             ->where('provider_account_ref', PaddleConfig::accountRef())
             ->where('mode', PaddleConfig::mode())
@@ -35,9 +36,9 @@ class PaddleCatalogSync
             $productRef = $price->provider_product_ref ?? $this->productFor($version);
             $result = $this->client->post('/prices', [
                 'product_id' => $productRef,
-                'description' => $version->plan->code.' v'.$version->version.' '.$price->price_kind.' '.$price->billing_interval,
+                'description' => $version->plan->code.' v'.$version->version.' '.$price->price_kind.' every '.$price->billing_interval_count.' '.$price->billing_interval,
                 'unit_price' => ['amount' => (string) $price->amount_minor, 'currency_code' => $price->currency],
-                'billing_cycle' => ['interval' => $price->billing_interval, 'frequency' => 1],
+                'billing_cycle' => ['interval' => $price->billing_interval, 'frequency' => $price->billing_interval_count],
                 'quantity' => $price->price_kind === BillingPrice::KIND_EXTRA_STORE
                     ? ['minimum' => 1, 'maximum' => max(1, (int) ($version->entitlements['limits'][FeatureCatalog::MAX_EXTRA_STORES] ?? 100))]
                     : ['minimum' => 1, 'maximum' => 1],
@@ -55,7 +56,7 @@ class PaddleCatalogSync
     private function productFor(BillingPlanVersion $version): string
     {
         $existing = BillingPrice::query()
-            ->where('plan_version_id', $version->id)
+            ->whereIn('plan_version_id', BillingPlanVersion::query()->where('plan_id', $version->plan_id)->select('id'))
             ->where('provider', PaddleConfig::PROVIDER)
             ->where('provider_account_ref', PaddleConfig::accountRef())
             ->where('mode', PaddleConfig::mode())

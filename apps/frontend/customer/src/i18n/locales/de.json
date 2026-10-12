@@ -33,7 +33,15 @@
     "save": "Speichern",
     "saved": "Gespeichert.",
     "continue": "Weiter",
-    "back": "Zurück"
+    "back": "Zurück",
+    "per": {
+      "day": "pro Tag",
+      "week": "pro Woche",
+      "month": "pro Monat",
+      "year": "pro Jahr",
+      "every": "alle {duration}",
+      "every_one": "alle {duration}"
+    }
   },
   "auth": {
     "title": "Anmelden",
@@ -1401,11 +1409,7 @@
     "current": "Aktuell",
     "placeholder": "Entwurf",
     "no_price": "Kein Preis festgelegt",
-    "per": {
-      "month": "pro Monat",
-      "year": "pro Jahr"
-    },
-    "extra_store_price": "+ {price} pro Monat für jeden zusätzlichen Shop (bis zu {max})",
+    "extra_store_price": "+ {price} {period} für jeden zusätzlichen Shop (bis zu {max})",
     "limit": {
       "max_active_stores": "Shops",
       "min_check_interval_minutes": "Checkout-Prüfung",
@@ -1431,7 +1435,7 @@
     },
     "start_trial": "Testzeitraum starten ({days} Tage)",
     "trial_started": "Ihr Testzeitraum hat begonnen.",
-    "total": "Gesamt: {price} pro Monat",
+    "total": "Gesamt: {price} {period}",
     "buy": "Abonnieren",
     "opening_checkout": "Zahlung wird geöffnet…",
     "checkout_confirming": "Die Zahlung wird bei Paddle bestätigt. Der Zugang ändert sich erst nach der Bestätigung.",

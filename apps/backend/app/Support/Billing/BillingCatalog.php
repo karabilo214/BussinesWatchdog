@@ -15,7 +15,7 @@ class BillingCatalog
      */
     public static function sellableStates(): array
     {
-        return PaddleConfig::sandbox() ? [BillingPlan::STATE_PUBLISHED, BillingPlan::STATE_DRAFT] : [BillingPlan::STATE_PUBLISHED];
+        return [BillingPlan::STATE_PUBLISHED];
     }
 
     /**
@@ -66,6 +66,7 @@ class BillingCatalog
             'plan_code' => $version->plan->code,
             'plan_version_id' => $version->id,
             'name' => $version->localized_content['name'] ?? [],
+            'description' => $version->localized_content['description'] ?? [],
             'placeholder' => (bool) ($version->localized_content['placeholder'] ?? false),
             'trial_days' => $version->trial_days,
             'entitlements' => FeatureCatalog::normalize($version->entitlements),
@@ -76,6 +77,7 @@ class BillingCatalog
                 'currency_exponent' => $price->currency_exponent,
                 'amount_minor' => (string) $price->amount_minor,
                 'interval' => $price->billing_interval,
+                'interval_count' => $price->billing_interval_count,
                 'tax_behavior' => $price->tax_behavior,
             ])->values()->all(),
         ], $versions);

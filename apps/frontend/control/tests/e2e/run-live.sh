@@ -1,7 +1,9 @@
 #!/bin/sh
-# Live check of the control panel sign-in: a staff owner with an authenticator signs in at /owner through the Vite
-# dev server and the real backend, with the panel's own session and CSRF cookies. Screenshots land in tests/e2e/.out.
+# Live checks of the control panel through the Vite dev server and the real backend with a staff owner who has an
+# authenticator: `run-live.sh login` (sign-in, own cookies, sign-out) or `run-live.sh plans` (create, price, publish to
+# the Paddle sandbox and retire a plan; needs the sandbox keys). Screenshots land in tests/e2e/.out.
 set -eu
+SCRIPT="${1:-login}"
 
 cd "$(dirname "$0")/../../../../.."
 ROOT="$(pwd)"
@@ -37,7 +39,7 @@ sleep 5
 
 docker build -q -t bw-browser-worker:smoke apps/browser-worker >/dev/null
 docker run --rm --add-host host.docker.internal:host-gateway \
-    -v "$ROOT/apps/frontend/control/tests/e2e/login.mjs:/app/login.mjs:ro" -v "$OUT:/shots" \
+    -v "$ROOT/apps/frontend/control/tests/e2e/$SCRIPT.mjs:/app/live.mjs:ro" -v "$OUT:/shots" \
     -e BW_SHOTS=/shots -e BW_CONTROL_URL=http://host.docker.internal:5174 \
     -e BW_EMAIL="$EMAIL" -e BW_PASSWORD="$PASSWORD" -e BW_TOTP_SECRET="$SECRET" \
-    bw-browser-worker:smoke node login.mjs
+    bw-browser-worker:smoke node live.mjs

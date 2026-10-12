@@ -12,11 +12,11 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Draft plans to build the public pricing, the owner panel and the provider adapter against (ADR 0029). They are
- * placeholders: nothing is published and no price exists until the owner sets contents and prices.
+ * placeholders: drafts without prices; only in the Paddle sandbox `--test-prices` adds test prices and publishes them.
  */
 class SeedPlaceholderPlans extends Command
 {
-    protected $signature = 'billing:seed-placeholder-plans {--test-prices : Also add placeholder Paddle sandbox prices (EUR, monthly)}';
+    protected $signature = 'billing:seed-placeholder-plans {--test-prices : Sandbox only: add placeholder prices (EUR, monthly) and publish the placeholder plans}';
 
     protected $description = 'Create draft placeholder plans (Free / Start / Pro) if they do not exist';
 
@@ -55,6 +55,12 @@ class SeedPlaceholderPlans extends Command
         }
 
         if ($this->option('test-prices')) {
+            if (! PaddleConfig::sandbox()) {
+                $this->error('Test prices are only for the Paddle sandbox.');
+
+                return self::FAILURE;
+            }
+
             $this->testPrices();
         }
 
@@ -73,6 +79,7 @@ class SeedPlaceholderPlans extends Command
                     'price_kind' => $kind,
                     'currency' => 'EUR',
                     'billing_interval' => 'month',
+                    'billing_interval_count' => 1,
                     'mode' => 'test',
                 ], [
                     'provider' => PaddleConfig::PROVIDER,
@@ -80,9 +87,13 @@ class SeedPlaceholderPlans extends Command
                     'currency_exponent' => 2,
                     'amount_minor' => $amount,
                     'tax_behavior' => 'provider_calculated',
-                    'state' => BillingPlan::STATE_DRAFT,
+                    'state' => BillingPlan::STATE_PUBLISHED,
                 ]);
             }
+
+            BillingPrice::query()->where('plan_version_id', $version->id)->where('mode', 'test')->where('state', BillingPlan::STATE_DRAFT)->update(['state' => BillingPlan::STATE_PUBLISHED]);
+            $version->forceFill(['state' => BillingPlan::STATE_PUBLISHED, 'published_at' => $version->published_at ?? now()])->save();
+            $version->plan->forceFill(['state' => BillingPlan::STATE_PUBLISHED])->save();
 
             $this->line($code.' test prices');
         }

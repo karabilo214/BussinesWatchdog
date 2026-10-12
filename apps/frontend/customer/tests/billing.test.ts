@@ -60,8 +60,8 @@ const START: BillingPlan = {
   trial_days: 14,
   entitlements: { features: ['checkout_monitoring'], limits: { max_active_stores: 1, max_extra_stores: 4, min_check_interval_minutes: 15 } },
   prices: [
-    { id: 'p-base', kind: 'base', currency: 'EUR', currency_exponent: 2, amount_minor: '1900', interval: 'month', tax_behavior: 'provider_calculated' },
-    { id: 'p-extra', kind: 'extra_store', currency: 'EUR', currency_exponent: 2, amount_minor: '900', interval: 'month', tax_behavior: 'provider_calculated' },
+    { id: 'p-base', kind: 'base', currency: 'EUR', currency_exponent: 2, amount_minor: '1900', interval: 'month', interval_count: 1, tax_behavior: 'provider_calculated' },
+    { id: 'p-extra', kind: 'extra_store', currency: 'EUR', currency_exponent: 2, amount_minor: '900', interval: 'month', interval_count: 1, tax_behavior: 'provider_calculated' },
   ],
 };
 
@@ -107,7 +107,17 @@ describe('BillingView', () => {
     expect(card.text()).toContain('Проверка оформления заказа в браузере');
 
     await card.get('[data-extra="start"]').setValue(2);
-    expect(card.text()).toMatch(/Итого: 37,00\s€/);
+    expect(card.text()).toMatch(/Итого: 37,00\s€ в месяц/);
+  });
+
+  it('shows any billing period the owner set', async () => {
+    session.value = sessionFor('owner');
+    const biweekly: BillingPlan = { ...START, prices: [{ ...START.prices[0]!, interval: 'week', interval_count: 2 }, { ...START.prices[1]!, interval: 'day', interval_count: 21 }] };
+    api.fetchPlans.mockResolvedValue(catalog({ data: [biweekly] }));
+    const wrapper = await mountView();
+
+    expect(wrapper.get('[data-plan="start"]').text()).toContain('каждые 2 недели');
+    expect(wrapper.get('[data-plan="start"]').text()).toContain('каждый 21 день');
   });
 
   it('starts a trial and reloads the subscription', async () => {

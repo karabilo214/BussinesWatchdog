@@ -169,6 +169,224 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/plans:
+    get:
+      tags: [Platform]
+      operationId: platformListPlans
+      description: "Capability plans.read (owner, admin, billing). Every plan with its versions (newest first), prices of all modes, subscribers per version (trial/active/past_due) and the editable catalog: features, limits, per-store limits, supported currencies, intervals (day/week/month/year, every 1–365) and the trial maximum (365 days). ADR 0035."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Plans
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, mode, provider_configured, catalog]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, code, state, versions]
+                      properties:
+                        id: {type: string, format: uuid}
+                        code: {type: string}
+                        state: {enum: [draft, published, retired]}
+                        versions: {type: array, items: {$ref: "#/components/schemas/PlatformPlanVersion"}}
+                  mode: {enum: [test, live]}
+                  provider_configured: {type: boolean}
+                  catalog: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Platform]
+      operationId: platformCreatePlan
+      description: "Capability plans.manage. Creates a plan with an immutable code (`^[a-z0-9][a-z0-9_-]{1,31}$`, 422 `plan_code_invalid`, 409 `plan_code_taken`) and its version 1 draft (no features, no limits, 14 trial days)."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: {type: string}
+                name: {type: object, additionalProperties: {type: string}}
+      responses:
+        "201":
+          description: Draft version
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformPlanVersion"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/plans/{plan_id}/versions:
+    post:
+      tags: [Platform]
+      operationId: platformCreatePlanVersion
+      description: "Capability plans.manage. New draft copying the latest version (content, entitlements, trial and this mode's prices as drafts). 409 `draft_exists` while a draft exists."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: plan_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "201":
+          description: Draft version
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformPlanVersion"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/plan-versions/{version_id}:
+    patch:
+      tags: [Platform]
+      operationId: platformUpdatePlanVersion
+      description: "Capability plans.manage. Drafts only (409 `version_not_draft`). Names up to 80 and descriptions up to 500 characters per locale (ru/en/de, HTML stripped), trial 0–365 days, entitlements validated against the catalog with minimums: stores ≥ 1, check interval ≥ 5 minutes, history ≥ 1 day; null means unlimited."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: version_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: object, additionalProperties: {type: string}}
+                description: {type: object, additionalProperties: {type: string}}
+                trial_days: {type: integer, minimum: 0, maximum: 365}
+                entitlements:
+                  type: object
+                  properties:
+                    features: {type: array, items: {type: string}}
+                    limits: {type: object, additionalProperties: {type: [integer, "null"]}}
+      responses:
+        "200":
+          description: Updated draft
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformPlanVersion"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/plan-versions/{version_id}/prices:
+    post:
+      tags: [Platform]
+      operationId: platformAddPlanPrice
+      description: "Capability plans.manage. Draft only. A base or extra-store price for the current payment mode: supported currency (exponent from ISO 4217), amount in minor units as a decimal string, billing period every 1–365 days, weeks, months or years. 409 `price_exists` for the same kind, currency and period."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: version_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, currency, amount_minor, interval, interval_count]
+              properties:
+                kind: {enum: [base, extra_store]}
+                currency: {type: string}
+                amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+                interval: {enum: [day, week, month, year]}
+                interval_count: {type: integer, minimum: 1, maximum: 365}
+      responses:
+        "201":
+          description: Draft version with the price
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformPlanVersion"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/plan-prices/{price_id}:
+    delete:
+      tags: [Platform]
+      operationId: platformRemovePlanPrice
+      description: "Capability plans.manage. Draft prices not yet created at Paddle only."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: price_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "204": {description: Removed}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/plan-versions/{version_id}/publish:
+    post:
+      tags: [Platform]
+      operationId: platformPublishPlanVersion
+      description: "Capability plans.manage, confirmed by a current authenticator code (403 `step_up_failed`) and a reason for the audit log. Requires names in ru/en/de and a base price for the current mode. Creates the plan's Paddle product (shared by its versions) and the prices with their billing cycle; on a Paddle failure the version stays a draft (502 `provider_unavailable`). Then the version and its prices are published and the previously published version of the plan is retired for new buyers — its subscribers keep their version."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: version_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PlatformConfirmation"}
+      responses:
+        "200":
+          description: Published version
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformPlanVersion"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "502": {$ref: "#/components/responses/Problem"}
+        "503": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/plan-versions/{version_id}/retire:
+    post:
+      tags: [Platform]
+      operationId: platformRetirePlanVersion
+      description: "Capability plans.manage, confirmed like publishing. Stops selling a published version; its subscribers keep it. The plan is retired when no version of it is on sale."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: version_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PlatformConfirmation"}
+      responses:
+        "200":
+          description: Retired version
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformPlanVersion"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/me:
     get:
       tags: [Platform]
@@ -1499,7 +1717,7 @@ paths:
     get:
       tags: [Billing]
       operationId: listBillingPlans
-      description: "Any member. The latest sellable version of each plan (published; drafts too in the Paddle sandbox) with its sellable prices for the current mode. Plans with a base price come first, cheapest first. Amounts are minor units as strings; `tax_behavior` tells whether taxes are included (ADR 0030: gross for consumers). `trial_available` is false once the organisation had a trial or any subscription; the store domain check (ADR 0031) happens when the trial starts."
+      description: "Any member. The latest published version of each plan (managed in the owner panel, ADR 0035) with its published prices for the current mode; any billing period `every interval_count interval`. Plans with a base price come first, cheapest first. Amounts are minor units as strings; `tax_behavior` tells whether taxes are included (ADR 0030: gross for consumers). `trial_available` is false once the organisation had a trial or any subscription; the store domain check (ADR 0031) happens when the trial starts."
       security:
         - {UserSession: []}
       responses:
@@ -3235,6 +3453,44 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    PlatformConfirmation:
+      type: object
+      additionalProperties: false
+      required: [reason, code]
+      properties:
+        reason: {type: string, minLength: 3, maxLength: 500}
+        code: {type: string, maxLength: 32, description: Current authenticator code or an unused recovery code}
+    PlatformPlanVersion:
+      type: object
+      required: [id, version, state, name, description, placeholder, trial_days, entitlements, published_at, subscribers, prices]
+      properties:
+        id: {type: string, format: uuid}
+        plan_id: {type: string, format: uuid}
+        version: {type: integer}
+        state: {enum: [draft, published, retired]}
+        name: {type: object, additionalProperties: {type: string}}
+        description: {type: object, additionalProperties: {type: string}}
+        placeholder: {type: boolean}
+        trial_days: {type: integer}
+        entitlements: {type: object}
+        published_at: {type: [string, "null"], format: date-time}
+        subscribers: {type: integer}
+        prices:
+          type: array
+          items:
+            type: object
+            required: [id, kind, mode, currency, currency_exponent, amount_minor, interval, interval_count, state, at_provider]
+            properties:
+              id: {type: string, format: uuid}
+              kind: {enum: [base, extra_store]}
+              mode: {enum: [test, live]}
+              currency: {type: string}
+              currency_exponent: {type: integer}
+              amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
+              interval: {enum: [day, week, month, year]}
+              interval_count: {type: integer}
+              state: {enum: [draft, published, retired]}
+              at_provider: {type: boolean}
     PlatformMe:
       type: object
       additionalProperties: false
@@ -3257,11 +3513,12 @@ components:
     BillingPlan:
       type: object
       additionalProperties: false
-      required: [plan_code, plan_version_id, name, placeholder, trial_days, entitlements, prices]
+      required: [plan_code, plan_version_id, name, description, placeholder, trial_days, entitlements, prices]
       properties:
         plan_code: {type: string}
         plan_version_id: {type: string, format: uuid}
         name: {type: object, additionalProperties: {type: string}, description: Localized names by locale}
+        description: {type: object, additionalProperties: {type: string}, description: Localized descriptions by locale}
         placeholder: {type: boolean, description: "Draft content not approved by the owner"}
         trial_days: {type: integer, minimum: 0}
         entitlements:
@@ -3275,14 +3532,15 @@ components:
           items:
             type: object
             additionalProperties: false
-            required: [id, kind, currency, currency_exponent, amount_minor, interval, tax_behavior]
+            required: [id, kind, currency, currency_exponent, amount_minor, interval, interval_count, tax_behavior]
             properties:
               id: {type: string, format: uuid}
               kind: {enum: [base, extra_store]}
               currency: {type: string, pattern: '^[A-Z]{3}$'}
               currency_exponent: {type: integer}
               amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
-              interval: {type: string}
+              interval: {enum: [day, week, month, year]}
+              interval_count: {type: integer, minimum: 1}
               tax_behavior: {type: string}
     BillingCheckout:
       type: object

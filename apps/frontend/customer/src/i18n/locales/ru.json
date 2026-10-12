@@ -33,7 +33,15 @@
     "save": "Сохранить",
     "saved": "Сохранено.",
     "continue": "Продолжить",
-    "back": "Назад"
+    "back": "Назад",
+    "per": {
+      "day": "в день",
+      "week": "в неделю",
+      "month": "в месяц",
+      "year": "в год",
+      "every": "каждые {duration}",
+      "every_one": "каждый {duration}"
+    }
   },
   "auth": {
     "title": "Вход в кабинет",
@@ -1401,11 +1409,7 @@
     "current": "Текущий",
     "placeholder": "Черновик",
     "no_price": "Цена не задана",
-    "per": {
-      "month": "в месяц",
-      "year": "в год"
-    },
-    "extra_store_price": "+ {price} в месяц за каждый дополнительный магазин (до {max})",
+    "extra_store_price": "+ {price} {period} за каждый дополнительный магазин (до {max})",
     "limit": {
       "max_active_stores": "Магазинов",
       "min_check_interval_minutes": "Проверка оформления заказа",
@@ -1431,7 +1435,7 @@
     },
     "start_trial": "Начать пробный период ({days} дн.)",
     "trial_started": "Пробный период начался.",
-    "total": "Итого: {price} в месяц",
+    "total": "Итого: {price} {period}",
     "buy": "Оформить подписку",
     "opening_checkout": "Открываем оплату…",
     "checkout_confirming": "Подтверждаем платёж у Paddle. Доступ изменится только после подтверждения.",

@@ -310,11 +310,11 @@ class PaddleBillingTest extends TestCase
      */
     private function plan(bool $withRefs = true): array
     {
-        $plan = BillingPlan::query()->create(['code' => 'start', 'state' => BillingPlan::STATE_DRAFT]);
+        $plan = BillingPlan::query()->create(['code' => 'start', 'state' => BillingPlan::STATE_PUBLISHED]);
         $version = BillingPlanVersion::query()->create([
             'plan_id' => $plan->id,
             'version' => 1,
-            'state' => BillingPlan::STATE_DRAFT,
+            'state' => BillingPlan::STATE_PUBLISHED,
             'localized_content' => ['name' => ['en' => 'Start']],
             'entitlements' => FeatureCatalog::normalize(['features' => [FeatureCatalog::CHECKOUT_MONITORING], 'limits' => [FeatureCatalog::MAX_ACTIVE_STORES => 1, FeatureCatalog::MAX_EXTRA_STORES => 4]]),
         ]);
@@ -330,7 +330,7 @@ class PaddleBillingTest extends TestCase
             'amount_minor' => $amount,
             'billing_interval' => 'month',
             'tax_behavior' => 'provider_calculated',
-            'state' => BillingPlan::STATE_DRAFT,
+            'state' => BillingPlan::STATE_PUBLISHED,
         ]);
 
         return ['version' => $version, 'base' => $price(BillingPrice::KIND_BASE, 1900, 'pri_base'), 'extra' => $price(BillingPrice::KIND_EXTRA_STORE, 900, 'pri_extra')];

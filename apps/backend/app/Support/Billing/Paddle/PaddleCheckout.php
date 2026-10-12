@@ -142,6 +142,7 @@ class PaddleCheckout
             ->where('plan_version_id', $base->plan_version_id)
             ->where('price_kind', BillingPrice::KIND_EXTRA_STORE)
             ->where('billing_interval', $base->billing_interval)
+            ->where('billing_interval_count', $base->billing_interval_count)
             ->where('currency', $base->currency)
             ->first();
 

@@ -33,7 +33,15 @@
     "save": "Save",
     "saved": "Saved.",
     "continue": "Continue",
-    "back": "Back"
+    "back": "Back",
+    "per": {
+      "day": "per day",
+      "week": "per week",
+      "month": "per month",
+      "year": "per year",
+      "every": "every {duration}",
+      "every_one": "every {duration}"
+    }
   },
   "auth": {
     "title": "Sign in",
@@ -1401,11 +1409,7 @@
     "current": "Current",
     "placeholder": "Draft",
     "no_price": "No price set",
-    "per": {
-      "month": "per month",
-      "year": "per year"
-    },
-    "extra_store_price": "+ {price} per month for each extra store (up to {max})",
+    "extra_store_price": "+ {price} {period} for each extra store (up to {max})",
     "limit": {
       "max_active_stores": "Stores",
       "min_check_interval_minutes": "Checkout check",
@@ -1431,7 +1435,7 @@
     },
     "start_trial": "Start trial ({days} days)",
     "trial_started": "Your trial has started.",
-    "total": "Total: {price} per month",
+    "total": "Total: {price} {period}",
     "buy": "Subscribe",
     "opening_checkout": "Opening checkout…",
     "checkout_confirming": "Confirming the payment with Paddle. Access changes only after confirmation.",

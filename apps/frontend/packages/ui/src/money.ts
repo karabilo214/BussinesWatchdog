@@ -26,3 +26,27 @@ export function formatMinor(minor: string, currency: string, exponent: number, l
     return `${decimal} ${currency}`;
   }
 }
+
+/**
+ * Parses an amount typed by a person ("19,90", "19.9", "1 200") into a minor-unit decimal string for the given exponent,
+ * using string operations only. Returns null for anything that is not a plain non-negative amount with at most
+ * `exponent` fraction digits.
+ */
+export function parseMinor(input: string, exponent: number): string | null {
+  const compact = input.replace(/[\s  ]/g, '');
+  const match = /^(\d+)(?:[.,](\d*))?$/.exec(compact);
+
+  if (match === null || !Number.isInteger(exponent) || exponent < 0 || exponent > 6) {
+    return null;
+  }
+
+  const fraction = match[2] ?? '';
+
+  if (fraction.length > exponent) {
+    return null;
+  }
+
+  const digits = `${match[1]}${fraction.padEnd(exponent, '0')}`.replace(/^0+(?=\d)/, '');
+
+  return digits.length > 12 ? null : digits;
+}

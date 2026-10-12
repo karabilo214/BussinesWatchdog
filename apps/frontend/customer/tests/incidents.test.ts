@@ -7,7 +7,7 @@ import type { IncidentDetail } from '@/api/types';
 import IncidentActions from '@/components/incidents/IncidentActions.vue';
 import IncidentEvidence from '@/components/incidents/IncidentEvidence.vue';
 import IncidentTimeline from '@/components/incidents/IncidentTimeline.vue';
-import { formatMinor } from '@/composables/money';
+import { formatMinor } from '@bw/ui';
 import en from '@/i18n/locales/en.json';
 import { localization, setLocale } from '@/i18n';
 
