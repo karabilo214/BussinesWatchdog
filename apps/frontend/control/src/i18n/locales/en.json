@@ -45,12 +45,10 @@
       "body": "Revenue, customers and service health. This section comes in later steps."
     },
     "tenants": {
-      "title": "Customers",
-      "body": "Customer organisations, their plans and subscription state. This section comes in later steps."
+      "title": "Customers"
     },
     "subscriptions": {
-      "title": "Subscriptions",
-      "body": "Active customer subscriptions. This section comes in later steps."
+      "title": "Subscriptions"
     },
     "payments": {
       "title": "Payments",
@@ -119,7 +117,19 @@
     "discount_plan_unknown": "One of the plans was not found.",
     "discount_audience_invalid": "Choose who gets the discount.",
     "discount_name_invalid": "Enter a discount name (up to 100 characters).",
-    "discount_archived": "The discount is archived and does not change."
+    "discount_archived": "The discount is archived and does not change.",
+    "tenant_not_active": "The organisation's service is already suspended.",
+    "tenant_not_suspended": "The organisation's service is not suspended.",
+    "override_period_invalid": "Temporary access lasts from now up to 180 days.",
+    "override_active": "The organisation already has active temporary access. Revoke it first.",
+    "override_not_found": "No active temporary access found.",
+    "trial_not_running": "The organisation has no trial of ours.",
+    "trial_date_invalid": "The new date must be later than the current one and at most 90 days ahead.",
+    "cancel_already_scheduled": "Cancellation is already scheduled.",
+    "no_active_subscription": "There is no active paid subscription.",
+    "plan_not_available": "Plan not found.",
+    "provider_outcome_unknown": "Paddle did not answer. Refresh later, do not repeat the action.",
+    "plan_change_rejected": "Paddle rejected the request."
   },
   "period": {
     "per": {
@@ -309,5 +319,213 @@
     "after": "Total (discount {saving})",
     "failed": "Paddle returned {code}; the scheduler will retry.",
     "more": "Show more"
+  },
+  "tenants": {
+    "hint": "Customer organisations. Access state and payment state are shown separately. Store details (findings, orders, screenshots) are not shown here.",
+    "search": "Search",
+    "search_hint": "Name, organisation ID or the owner's verified email",
+    "filter": {
+      "service": "Service",
+      "any": "All",
+      "subscription": "Subscription",
+      "trial_ends": "Trial ends",
+      "within_days": "within {n} days",
+      "cancel_scheduled": "Cancellation scheduled"
+    },
+    "apply": "Show",
+    "empty": "No organisations found.",
+    "col": {
+      "organisation": "Organisation",
+      "access": "Access",
+      "subscription": "Subscription",
+      "until": "Paid / trial until",
+      "stores": "Stores",
+      "incidents": "Open incidents"
+    },
+    "created": "Created {date}",
+    "override": "Temporary access",
+    "cancel_scheduled": "Cancels at period end",
+    "no_subscription": "No subscription",
+    "capacity_choice": "Waiting for a store choice",
+    "more": "Show more"
+  },
+  "subscriptions": {
+    "hint": "Each organisation's current subscription: plan, payment state, access and next charge.",
+    "empty": "No subscriptions found."
+  },
+  "tenant_status": {
+    "active": "Running",
+    "suspended": "Suspended manually",
+    "deleting": "Being deleted"
+  },
+  "subscription_status": {
+    "trial": "Trial",
+    "active": "Paid",
+    "past_due": "Past due",
+    "suspended": "Unpaid",
+    "cancelled": "Ended"
+  },
+  "access": {
+    "pilot": "Pilot",
+    "active": "Active",
+    "override": "Temporary access",
+    "trial": "Trial",
+    "grace": "Grace period",
+    "paused_billing": "Paused: unpaid",
+    "paused_manual": "Paused: manually",
+    "no_service": "No service",
+    "onboarding": "No subscription"
+  },
+  "reason": {
+    "paid_period": "paid period",
+    "cancel_at_period_end": "cancels at period end",
+    "override_active": "temporary access",
+    "trial": "trial",
+    "renewal_failed_grace": "renewal failed, grace period",
+    "no_subscription": "no subscription",
+    "tenant_suspended": "suspended manually",
+    "pilot_manual_grant": "pilot mode"
+  },
+  "store_status": {
+    "onboarding": "Connecting",
+    "active": "Running",
+    "paused": "Paused",
+    "degraded": "Incomplete data",
+    "deleted": "Deleted"
+  },
+  "contract_state": {
+    "trial": "Trial",
+    "active": "Active",
+    "past_due": "Past due",
+    "unpaid": "Unpaid",
+    "cancelled": "Ended",
+    "unknown": "Unknown"
+  },
+  "member_role": {
+    "owner": "Owner",
+    "admin": "Administrator",
+    "operator": "Operator",
+    "viewer": "Viewer"
+  },
+  "audit_result": {
+    "succeeded": "Done",
+    "denied": "Denied",
+    "failed": "Failed"
+  },
+  "tenant": {
+    "tab": {
+      "overview": "Overview",
+      "stores": "Stores",
+      "subscription": "Subscription",
+      "members": "Team",
+      "audit": "Audit"
+    },
+    "access_reasons": "Why this access",
+    "created": "Created",
+    "locale": "Language and time zone",
+    "trial_used": "Trial used",
+    "no": "no",
+    "capacity": "Stores",
+    "capacity_value": "{stores} of {limit}, paused by the plan: {paused}",
+    "pilot": "Pilot mode: plan limits are not enforced.",
+    "stores_hint": "Summary only. Store findings, orders and screenshots open only with a support grant.",
+    "no_stores": "No stores.",
+    "store": {
+      "name": "Store",
+      "platform": "Platform",
+      "state": "State",
+      "verified": "Verified",
+      "unverified": "Not verified",
+      "capacity_paused": "Paused by plan"
+    },
+    "test_mode": "Paddle test mode (sandbox).",
+    "sub": {
+      "plan": "Plan",
+      "extra": "{n} extra store(s)",
+      "provider": "Provider",
+      "paid_until": "Paid until",
+      "trial_until": "Trial until",
+      "next_charge": "Next charge",
+      "past_due_since": "Past due since",
+      "cancel_scheduled": "Cancellation scheduled: the subscription ends on {date}.",
+      "scheduled_change": "From {date} the plan changes to {plan}.",
+      "contracts": "Provider contracts",
+      "none": "None.",
+      "changes": "Plan changes",
+      "change_status": {
+        "applying": "applying",
+        "applied": "applied",
+        "scheduled": "scheduled",
+        "failed": "failed",
+        "unknown": "Paddle answer unknown",
+        "cancelled": "withdrawn"
+      },
+      "charged": "charged {amount}",
+      "overrides": "Temporary access",
+      "override_active": "Active",
+      "override_revoked": "Revoked",
+      "override_ended": "Ended"
+    },
+    "audit_empty": "No staff actions on this organisation yet.",
+    "actions": {
+      "title": "Actions",
+      "hint": "Review the consequences first, then give a reason and the authenticator code. Everything is audited.",
+      "name": {
+        "suspend": "Suspend service",
+        "resume": "Resume service",
+        "grant_override": "Grant temporary access",
+        "revoke_override": "Revoke temporary access",
+        "extend_trial": "Extend trial",
+        "cancel_subscription": "Cancel subscription at period end",
+        "refresh_billing": "Refresh from Paddle"
+      },
+      "explain": {
+        "suspend": "Checks, notifications and features stop. The subscription and its charges are not cancelled — that is a separate action.",
+        "resume": "Lifts the manual pause. Access is calculated from payment and plan again; nothing is marked as paid.",
+        "grant_override": "Access of the chosen plan for a limited time (up to 180 days). Does not change the subscription and is not revenue.",
+        "revoke_override": "Temporary access ends now; access follows the subscription again.",
+        "extend_trial": "Only our own trial without payment; the new date is later than the current one and at most 90 days ahead.",
+        "cancel_subscription": "Renewal stops at Paddle; access stays until the paid period ends, nothing is refunded.",
+        "refresh_billing": "Reads the organisation's subscriptions from Paddle again. Changes nothing at the provider."
+      },
+      "plan": "Plan",
+      "extra_stores": "Extra stores",
+      "until": "Valid until",
+      "trial_until": "Trial until",
+      "access": "Access:",
+      "stores_affected": "Stores of the organisation: {n}",
+      "effective": {
+        "suspend": "From {date}",
+        "resume": "From {date}",
+        "grant_override": "Until {date}",
+        "revoke_override": "From {date}",
+        "extend_trial": "Trial until {date}",
+        "cancel_subscription": "The subscription ends on {date}",
+        "refresh_billing": "{date}"
+      },
+      "reason": "Reason (shown in the audit)",
+      "preview": "Show consequences",
+      "confirm": "Confirm",
+      "done": {
+        "suspend": "Service suspended.",
+        "resume": "Service resumed.",
+        "grant_override": "Temporary access granted.",
+        "revoke_override": "Temporary access revoked.",
+        "extend_trial": "Trial extended.",
+        "cancel_subscription": "Cancellation at period end scheduled.",
+        "refresh_billing": "Refreshed from Paddle."
+      }
+    }
+  },
+  "audit_action": {
+    "tenant": {
+      "suspend": "Service suspended",
+      "resume": "Service resumed",
+      "grant_override": "Temporary access granted",
+      "revoke_override": "Temporary access revoked",
+      "extend_trial": "Trial extended",
+      "cancel_subscription": "Subscription cancellation",
+      "refresh_billing": "Refresh from Paddle"
+    }
   }
 }

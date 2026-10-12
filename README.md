@@ -156,5 +156,5 @@ make egress-test                    # проверка egress-прокси
 Живые проверки (нужен интернет и ключи sandbox):
 
 - `apps/frontend/customer/tests/e2e/run-billing-live.sh` — покупка подписки через sandbox Paddle тестовой картой; `BW_PROMO=<код> BW_EXPECT_AFTER=<итог, например 20,16> run-billing-live.sh` — покупка с промокодом (и действующими акциями).
-- `apps/frontend/control/tests/e2e/run-live.sh login` — вход в панель владельца с настоящим кодом TOTP; `run-live.sh plans` — создание, цены, публикация в sandbox Paddle и снятие тарифа с продажи; `run-live.sh discounts` — создание промокода (выводит `PROMO <код>`).
+- `apps/frontend/control/tests/e2e/run-live.sh login` — вход в панель владельца с настоящим кодом TOTP; `run-live.sh plans` — создание, цены, публикация в sandbox Paddle и снятие тарифа с продажи; `run-live.sh discounts` — создание промокода (выводит `PROMO <код>`); `run-live.sh tenants` — поиск организации, продление пробного периода, приостановка и возобновление сервиса, аудит.
 - `plugins/woocommerce-watchdog/tests/matrix/*.sh`, `plugins/shopware-app/tests/**` — матрица версий и сквозные прогоны с настоящими магазинами и провайдерами.

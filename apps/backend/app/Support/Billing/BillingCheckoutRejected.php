@@ -40,6 +40,15 @@ class BillingCheckoutRejected extends RuntimeException
         'provider_outcome_unknown' => 502,
         'payment_failed' => 402,
         'plan_change_rejected' => 422,
+        'tenant_not_active' => 409,
+        'tenant_not_suspended' => 409,
+        'override_period_invalid' => 422,
+        'override_active' => 409,
+        'override_not_found' => 404,
+        'trial_not_running' => 409,
+        'trial_date_invalid' => 422,
+        'cancel_already_scheduled' => 409,
+        'action_unknown' => 404,
     ];
 
     /**

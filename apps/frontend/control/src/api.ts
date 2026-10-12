@@ -232,3 +232,145 @@ export interface DiscountApplication {
 export async function fetchDiscountApplications(cursor?: string): Promise<{ data: DiscountApplication[]; next_cursor: string | null }> {
   return (await request<{ data: DiscountApplication[]; next_cursor: string | null }>('GET', '/platform-api/v1/discount-applications', { query: { cursor } })).data;
 }
+
+export type AccessState = 'pilot' | 'active' | 'override' | 'trial' | 'grace' | 'paused_billing' | 'paused_manual' | 'no_service' | 'onboarding';
+export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'suspended' | 'cancelled';
+
+export interface TenantAccess {
+  state: AccessState;
+  reasons: string[];
+  enforced?: boolean;
+}
+
+export interface StoreCapacity {
+  limit: number | null;
+  stores: number;
+  paused: number;
+  choice_required: boolean;
+}
+
+export interface Contact {
+  name: string | null;
+  email: string | null;
+  email_verified: boolean;
+}
+
+export interface SubscriptionSummary {
+  id: string;
+  provider: string;
+  plan_code: string;
+  plan_version_id: string | null;
+  status: SubscriptionStatus;
+  paid_until: string | null;
+  trial_ends_at: string | null;
+  period_end: string | null;
+  past_due_since: string | null;
+  cancel_at_period_end: boolean;
+  extra_store_quantity: number;
+}
+
+export interface TenantRow {
+  id: string;
+  name: string;
+  status: 'active' | 'suspended' | 'deleting';
+  created_at: string | null;
+  owner: Contact;
+  access: TenantAccess;
+  subscription: SubscriptionSummary | null;
+  stores: StoreCapacity;
+  open_incidents: number;
+  override_active: boolean;
+}
+
+export interface PlanChangeEntry {
+  id: string;
+  kind: 'immediate' | 'next_period';
+  status: string;
+  from: { plan_code: string | null; extra_store_quantity: number };
+  to: { plan_code: string | null; extra_store_quantity: number };
+  currency: string;
+  currency_exponent: number;
+  due_now_minor: string;
+  effective_at: string | null;
+  created_at?: string | null;
+}
+
+export interface Override {
+  id: string;
+  entitlements: { features: string[]; limits: Record<string, number | null> };
+  reason: string;
+  starts_at: string;
+  ends_at: string;
+  revoked_at: string | null;
+  active: boolean;
+}
+
+export interface TenantCard {
+  id: string;
+  name: string;
+  status: TenantRow['status'];
+  locale: string;
+  timezone: string;
+  created_at: string | null;
+  trial_consumed_at: string | null;
+  access: TenantAccess;
+  capacity: StoreCapacity;
+  members: (Contact & { role: string; joined_at: string | null })[];
+  stores: { id: string; name: string; host: string; platform: string; status: string; verified: boolean; browser_enabled: boolean; capacity_paused_at: string | null; open_incidents: number; created_at: string | null }[];
+  billing: {
+    mode: 'test' | 'live';
+    subscription: (SubscriptionSummary & { provider_subscription_ref: string | null; next_charge_at: string | null; scheduled_change: PlanChangeEntry | null }) | null;
+    contracts: { id: string; provider: string; provider_subscription_ref: string | null; mode: string; state: string; provider_state: string | null; plan_code: string | null; extra_store_quantity: number; period_start: string | null; period_end: string | null; paid_until: string | null; cancel_at_period_end: boolean; problem_code: string | null }[];
+    plan_changes: PlanChangeEntry[];
+    overrides: Override[];
+  } | null;
+  audit: { id: string; action: string; actor: string | null; reason: string | null; result: string; changes: Record<string, unknown> | null; created_at: string }[];
+}
+
+export type TenantAction = 'suspend' | 'resume' | 'grant_override' | 'revoke_override' | 'extend_trial' | 'cancel_subscription' | 'refresh_billing';
+
+export interface TenantActionInput {
+  plan_version_id?: string;
+  extra_stores?: number;
+  ends_at?: string;
+  override_id?: string;
+  trial_ends_at?: string;
+}
+
+export interface ActionPreview {
+  action: TenantAction;
+  access_before: TenantAccess;
+  access_after: TenantAccess;
+  stores: number;
+  effective_at: string | null;
+}
+
+export interface SubscriptionRow extends SubscriptionSummary {
+  tenant: { id: string; name: string; status: string };
+  access: TenantAccess;
+  next_charge_at: string | null;
+  provider_subscription_ref: string | null;
+  mode: string | null;
+}
+
+export type TenantFilters = Partial<Record<'q' | 'tenant_status' | 'subscription' | 'plan' | 'cancel_scheduled' | 'trial_ends_before' | 'cursor', string>>;
+
+export async function fetchTenants(filters: TenantFilters): Promise<{ data: TenantRow[]; next_cursor: string | null }> {
+  return (await request<{ data: TenantRow[]; next_cursor: string | null }>('GET', '/platform-api/v1/tenants', { query: filters })).data;
+}
+
+export async function fetchTenant(id: string): Promise<TenantCard> {
+  return (await request<TenantCard>('GET', `/platform-api/v1/tenants/${encodeURIComponent(id)}`)).data;
+}
+
+export async function previewTenantAction(id: string, action: TenantAction, input: TenantActionInput): Promise<ActionPreview> {
+  return (await request<ActionPreview>('POST', `/platform-api/v1/tenants/${encodeURIComponent(id)}/actions/${action}/preview`, { body: input })).data;
+}
+
+export async function applyTenantAction(id: string, action: TenantAction, input: TenantActionInput, confirmation: Confirmation): Promise<TenantCard> {
+  return (await request<TenantCard>('POST', `/platform-api/v1/tenants/${encodeURIComponent(id)}/actions/${action}`, { body: { ...input, ...confirmation } })).data;
+}
+
+export async function fetchSubscriptions(filters: Partial<Record<'status' | 'plan' | 'cancel_scheduled' | 'cursor', string>>): Promise<{ data: SubscriptionRow[]; next_cursor: string | null }> {
+  return (await request<{ data: SubscriptionRow[]; next_cursor: string | null }>('GET', '/platform-api/v1/subscriptions', { query: filters })).data;
+}

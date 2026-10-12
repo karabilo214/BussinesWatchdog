@@ -1,0 +1,18 @@
+# ADR 0038: Customers and subscriptions in the owner panel
+
+Status: implemented (Step 109); points 4–6 are policy assumptions waiting for the owner's review
+
+## Context
+
+spec/panels/OWNER-PANEL.md §2 and §4: a customer list with access and billing state apart, filters kept in the address without personal data, an organisation card (overview, stores/health, subscription, members, audit) and staff actions — suspend/resume service, temporary entitlement override, extend trial, billing reminder, cancel at period end through the billing adapter, billing refresh — each with a reason, a preview of the affected access, stores and dates, and audit. Owner reads commercial data; store findings and screenshots need a support grant; provider secrets are never shown. Platform staff sign-in and capabilities from ADR 0034, entitlements from ADR 0029, plan change and cancellation from ADR 0037.
+
+## Decisions
+
+1. **Endpoints**: `GET /platform-api/v1/tenants` (tenants.read; search by name, organisation id or the owner's verified email; filters service state, subscription state incl. "none", plan, cancellation scheduled, trial ending before; 50 per page, cursor), `GET /tenants/{id}`, `GET /subscriptions` (billing.read), `POST /tenants/{id}/actions/{action}/preview` and `POST /tenants/{id}/actions/{action}` (new capability `tenants.manage`, platform owner only; reason + authenticator code).
+2. **What staff see**: access state and reasons from the entitlement calculator next to the billing state; stores only as a summary (host, platform, state, verification, capacity pause, open incident count); members with role; platform audit of this organisation. Subscription, provider contracts, plan changes and overrides only with `billing.read`. Contact emails in full for the platform owner, masked (`a***@domain`) for other roles. No credentials, tokens or secrets in any response.
+3. **Preview**: database-only actions are applied inside a transaction that is rolled back, so the preview shows exactly the access the calculator would give afterwards; billing actions show the effective date. Every attempt (denied code, rejected, succeeded) is in `platform_audit_log` with the reason and access before/after.
+4. **Suspend / resume** (assumption): suspension sets the organisation `suspended` — checks, notifications and features stop (`paused_manual`), billing is untouched; resume sets it `active` and access is calculated again by the usual policy, nothing is marked paid.
+5. **Temporary access** (assumption): the entitlements of a chosen published plan version plus extra stores, from now until a date at most 180 days ahead; one active override at a time (revoke first); shown as "temporary access", not revenue; it ends by itself at `ends_at`.
+6. **Trial extension** (assumption): only our own trial (no payment method), later than the current end and at most 90 days from now.
+7. **Cancel at period end**: through the same billing adapter as the customer's own cancellation; the customer's audit shows a system actor with `by: platform`. **Refresh** reads the organisation's provider subscriptions again; it changes nothing at the provider.
+8. **Not in this step**: billing reminder email (no template yet), invoices/payments tab, support grants for store details, "last activity" column (no activity tracking), commercial notes.

@@ -270,7 +270,10 @@ class PaddleSubscriptionActions
         return $scheduled->refresh();
     }
 
-    public function cancel(string $tenantId, string $userId, ?string $reason): void
+    /**
+     * `$userId` null means platform staff acted (recorded on their side); the tenant's audit then shows a system actor.
+     */
+    public function cancel(string $tenantId, ?string $userId, ?string $reason): void
     {
         $contract = $this->activeContract($tenantId);
 
@@ -284,7 +287,7 @@ class PaddleSubscriptionActions
             throw new BillingCheckoutRejected($exception->outcomeUnknown() ? 'provider_outcome_unknown' : 'provider_unavailable');
         }
 
-        $this->audit($tenantId, $userId, 'billing.subscription_cancel_scheduled', $contract->id, ['reason' => $reason, 'effective_at' => $contract->period_end?->toJSON()]);
+        $this->audit($tenantId, $userId, 'billing.subscription_cancel_scheduled', $contract->id, ['reason' => $reason, 'effective_at' => $contract->period_end?->toJSON()] + ($userId === null ? ['by' => 'platform'] : []));
         $this->syncQuietly((string) $contract->provider_subscription_ref);
     }
 
@@ -531,12 +534,12 @@ class PaddleSubscriptionActions
     /**
      * @param  array<string, mixed>  $changes
      */
-    private function audit(string $tenantId, string $userId, string $action, string $entityId, array $changes): void
+    private function audit(string $tenantId, ?string $userId, string $action, string $entityId, array $changes): void
     {
         AuditLog::query()->create([
             'tenant_id' => $tenantId,
             'actor_user_id' => $userId,
-            'actor_type' => AuditLog::ACTOR_USER,
+            'actor_type' => $userId === null ? AuditLog::ACTOR_SYSTEM : AuditLog::ACTOR_USER,
             'action' => $action,
             'entity_type' => 'billing_subscription',
             'entity_id' => $entityId,

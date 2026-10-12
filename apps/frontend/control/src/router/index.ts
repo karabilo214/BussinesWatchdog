@@ -16,12 +16,15 @@ export function buildRouter(): Router {
     routes: [
       { path: '/', redirect: { name: 'owner-overview' } },
       { path: '/owner/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
-      ...OWNER_SECTIONS.filter((section) => section !== 'plans').map((section) => ({
+      ...OWNER_SECTIONS.filter((section) => !['plans', 'tenants', 'subscriptions'].includes(section)).map((section) => ({
         path: section === 'overview' ? '/owner' : `/owner/${section}`,
         name: `owner-${section}`,
         component: () => import('@/views/SectionView.vue'),
         props: { section },
       })),
+      { path: '/owner/tenants', name: 'owner-tenants', component: () => import('@/views/TenantsView.vue') },
+      { path: '/owner/tenants/:id', name: 'owner-tenant', component: () => import('@/views/TenantView.vue'), props: true },
+      { path: '/owner/subscriptions', name: 'owner-subscriptions', component: () => import('@/views/SubscriptionsView.vue') },
       { path: '/owner/plans', name: 'owner-plans', component: () => import('@/views/PlansView.vue') },
       { path: '/owner/discounts', name: 'owner-discounts', component: () => import('@/views/DiscountsView.vue') },
       { path: '/owner/discounts/history', name: 'owner-discount-history', component: () => import('@/views/DiscountHistoryView.vue') },

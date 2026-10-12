@@ -13,6 +13,8 @@ class AuditLog extends Model
 
     public const ACTOR_CONNECTOR = 'connector';
 
+    public const ACTOR_SYSTEM = 'system';
+
     public const ENTITY_INTEGRATION = 'integration';
 
     public const ENTITY_PAYMENT_ALLOCATION = 'payment_allocation';

@@ -45,12 +45,10 @@
       "body": "Umsatz, Kunden und Zustand des Dienstes. Dieser Bereich folgt in späteren Schritten."
     },
     "tenants": {
-      "title": "Kunden",
-      "body": "Kundenorganisationen, ihre Tarife und der Abo-Status. Dieser Bereich folgt in späteren Schritten."
+      "title": "Kunden"
     },
     "subscriptions": {
-      "title": "Abonnements",
-      "body": "Aktive Kundenabonnements. Dieser Bereich folgt in späteren Schritten."
+      "title": "Abonnements"
     },
     "payments": {
       "title": "Zahlungen",
@@ -119,7 +117,19 @@
     "discount_plan_unknown": "Einer der Tarife wurde nicht gefunden.",
     "discount_audience_invalid": "Wählen Sie, wer den Rabatt erhält.",
     "discount_name_invalid": "Geben Sie einen Rabattnamen ein (bis 100 Zeichen).",
-    "discount_archived": "Der Rabatt ist archiviert und ändert sich nicht."
+    "discount_archived": "Der Rabatt ist archiviert und ändert sich nicht.",
+    "tenant_not_active": "Der Dienst der Organisation ist bereits pausiert.",
+    "tenant_not_suspended": "Der Dienst der Organisation ist nicht pausiert.",
+    "override_period_invalid": "Befristeter Zugang gilt ab jetzt bis höchstens 180 Tage.",
+    "override_active": "Die Organisation hat bereits einen aktiven befristeten Zugang. Widerrufen Sie ihn zuerst.",
+    "override_not_found": "Kein aktiver befristeter Zugang gefunden.",
+    "trial_not_running": "Die Organisation hat keine Testphase von uns.",
+    "trial_date_invalid": "Das neue Datum muss nach dem aktuellen liegen und höchstens 90 Tage voraus.",
+    "cancel_already_scheduled": "Die Kündigung ist bereits geplant.",
+    "no_active_subscription": "Es gibt kein aktives bezahltes Abonnement.",
+    "plan_not_available": "Tarif nicht gefunden.",
+    "provider_outcome_unknown": "Paddle hat nicht geantwortet. Später aktualisieren, die Aktion nicht wiederholen.",
+    "plan_change_rejected": "Paddle hat die Anfrage abgelehnt."
   },
   "period": {
     "per": {
@@ -309,5 +319,213 @@
     "after": "Gesamt (Rabatt {saving})",
     "failed": "Paddle meldete {code}; der Planer versucht es erneut.",
     "more": "Mehr anzeigen"
+  },
+  "tenants": {
+    "hint": "Kundenorganisationen. Zugangs- und Zahlungsstatus werden getrennt angezeigt. Shop-Details (Befunde, Bestellungen, Screenshots) werden hier nicht gezeigt.",
+    "search": "Suche",
+    "search_hint": "Name, Organisations-ID oder bestätigte E-Mail des Inhabers",
+    "filter": {
+      "service": "Dienst",
+      "any": "Alle",
+      "subscription": "Abonnement",
+      "trial_ends": "Testphase endet",
+      "within_days": "in {n} Tagen",
+      "cancel_scheduled": "Kündigung geplant"
+    },
+    "apply": "Anzeigen",
+    "empty": "Keine Organisationen gefunden.",
+    "col": {
+      "organisation": "Organisation",
+      "access": "Zugang",
+      "subscription": "Abonnement",
+      "until": "Bezahlt / Test bis",
+      "stores": "Shops",
+      "incidents": "Offene Vorfälle"
+    },
+    "created": "Erstellt {date}",
+    "override": "Befristeter Zugang",
+    "cancel_scheduled": "Endet zum Periodenende",
+    "no_subscription": "Kein Abonnement",
+    "capacity_choice": "Wartet auf Shop-Auswahl",
+    "more": "Mehr anzeigen"
+  },
+  "subscriptions": {
+    "hint": "Das aktuelle Abonnement jeder Organisation: Tarif, Zahlungsstatus, Zugang und nächste Abbuchung.",
+    "empty": "Keine Abonnements gefunden."
+  },
+  "tenant_status": {
+    "active": "Aktiv",
+    "suspended": "Manuell pausiert",
+    "deleting": "Wird gelöscht"
+  },
+  "subscription_status": {
+    "trial": "Testphase",
+    "active": "Bezahlt",
+    "past_due": "Überfällig",
+    "suspended": "Unbezahlt",
+    "cancelled": "Beendet"
+  },
+  "access": {
+    "pilot": "Pilot",
+    "active": "Aktiv",
+    "override": "Befristeter Zugang",
+    "trial": "Testphase",
+    "grace": "Kulanzfrist",
+    "paused_billing": "Pausiert: unbezahlt",
+    "paused_manual": "Pausiert: manuell",
+    "no_service": "Kein Dienst",
+    "onboarding": "Kein Abonnement"
+  },
+  "reason": {
+    "paid_period": "bezahlter Zeitraum",
+    "cancel_at_period_end": "endet zum Periodenende",
+    "override_active": "befristeter Zugang",
+    "trial": "Testphase",
+    "renewal_failed_grace": "Verlängerung fehlgeschlagen, Kulanzfrist",
+    "no_subscription": "kein Abonnement",
+    "tenant_suspended": "manuell pausiert",
+    "pilot_manual_grant": "Pilotmodus"
+  },
+  "store_status": {
+    "onboarding": "Wird verbunden",
+    "active": "Aktiv",
+    "paused": "Pausiert",
+    "degraded": "Unvollständige Daten",
+    "deleted": "Gelöscht"
+  },
+  "contract_state": {
+    "trial": "Test",
+    "active": "Aktiv",
+    "past_due": "Überfällig",
+    "unpaid": "Unbezahlt",
+    "cancelled": "Beendet",
+    "unknown": "Unbekannt"
+  },
+  "member_role": {
+    "owner": "Inhaber",
+    "admin": "Administrator",
+    "operator": "Operator",
+    "viewer": "Betrachter"
+  },
+  "audit_result": {
+    "succeeded": "Erledigt",
+    "denied": "Abgelehnt",
+    "failed": "Fehler"
+  },
+  "tenant": {
+    "tab": {
+      "overview": "Übersicht",
+      "stores": "Shops",
+      "subscription": "Abonnement",
+      "members": "Team",
+      "audit": "Audit"
+    },
+    "access_reasons": "Grund für den Zugang",
+    "created": "Erstellt",
+    "locale": "Sprache und Zeitzone",
+    "trial_used": "Testphase genutzt",
+    "no": "nein",
+    "capacity": "Shops",
+    "capacity_value": "{stores} von {limit}, durch Tarif pausiert: {paused}",
+    "pilot": "Pilotmodus: Tariflimits werden nicht angewendet.",
+    "stores_hint": "Nur eine Übersicht. Befunde, Bestellungen und Screenshots der Shops öffnen sich nur mit Support-Freigabe.",
+    "no_stores": "Keine Shops.",
+    "store": {
+      "name": "Shop",
+      "platform": "Plattform",
+      "state": "Status",
+      "verified": "Bestätigt",
+      "unverified": "Nicht bestätigt",
+      "capacity_paused": "Durch Tarif pausiert"
+    },
+    "test_mode": "Paddle-Testmodus (Sandbox).",
+    "sub": {
+      "plan": "Tarif",
+      "extra": "{n} zusätzliche(r) Shop(s)",
+      "provider": "Anbieter",
+      "paid_until": "Bezahlt bis",
+      "trial_until": "Testphase bis",
+      "next_charge": "Nächste Abbuchung",
+      "past_due_since": "Überfällig seit",
+      "cancel_scheduled": "Kündigung geplant: Das Abonnement endet am {date}.",
+      "scheduled_change": "Ab {date} wechselt der Tarif zu {plan}.",
+      "contracts": "Verträge beim Anbieter",
+      "none": "Keine.",
+      "changes": "Tarifwechsel",
+      "change_status": {
+        "applying": "wird angewendet",
+        "applied": "angewendet",
+        "scheduled": "geplant",
+        "failed": "fehlgeschlagen",
+        "unknown": "Antwort von Paddle unbekannt",
+        "cancelled": "zurückgenommen"
+      },
+      "charged": "berechnet {amount}",
+      "overrides": "Befristeter Zugang",
+      "override_active": "Aktiv",
+      "override_revoked": "Widerrufen",
+      "override_ended": "Abgelaufen"
+    },
+    "audit_empty": "Noch keine Mitarbeiteraktionen für diese Organisation.",
+    "actions": {
+      "title": "Aktionen",
+      "hint": "Prüfen Sie zuerst die Folgen, dann Grund und Code aus der Authenticator-App angeben. Alles wird protokolliert.",
+      "name": {
+        "suspend": "Dienst pausieren",
+        "resume": "Dienst fortsetzen",
+        "grant_override": "Befristeten Zugang gewähren",
+        "revoke_override": "Befristeten Zugang widerrufen",
+        "extend_trial": "Testphase verlängern",
+        "cancel_subscription": "Abonnement zum Periodenende kündigen",
+        "refresh_billing": "Aus Paddle aktualisieren"
+      },
+      "explain": {
+        "suspend": "Prüfungen, Benachrichtigungen und Funktionen stoppen. Abonnement und Abbuchungen werden nicht gekündigt — dafür gibt es eine eigene Aktion.",
+        "resume": "Hebt die manuelle Pause auf. Der Zugang wird wieder aus Zahlung und Tarif berechnet; nichts wird als bezahlt markiert.",
+        "grant_override": "Zugang des gewählten Tarifs für begrenzte Zeit (bis 180 Tage). Ändert das Abonnement nicht und zählt nicht als Umsatz.",
+        "revoke_override": "Der befristete Zugang endet jetzt; danach gilt wieder das Abonnement.",
+        "extend_trial": "Nur unsere eigene Testphase ohne Zahlung; das neue Datum liegt nach dem aktuellen und höchstens 90 Tage voraus.",
+        "cancel_subscription": "Die Verlängerung endet bei Paddle; der Zugang bleibt bis zum Ende des bezahlten Zeitraums, nichts wird erstattet.",
+        "refresh_billing": "Liest die Abonnements der Organisation erneut aus Paddle. Ändert nichts beim Anbieter."
+      },
+      "plan": "Tarif",
+      "extra_stores": "Zusätzliche Shops",
+      "until": "Gültig bis",
+      "trial_until": "Testphase bis",
+      "access": "Zugang:",
+      "stores_affected": "Shops der Organisation: {n}",
+      "effective": {
+        "suspend": "Ab {date}",
+        "resume": "Ab {date}",
+        "grant_override": "Bis {date}",
+        "revoke_override": "Ab {date}",
+        "extend_trial": "Testphase bis {date}",
+        "cancel_subscription": "Das Abonnement endet am {date}",
+        "refresh_billing": "{date}"
+      },
+      "reason": "Grund (im Audit sichtbar)",
+      "preview": "Folgen anzeigen",
+      "confirm": "Bestätigen",
+      "done": {
+        "suspend": "Dienst pausiert.",
+        "resume": "Dienst fortgesetzt.",
+        "grant_override": "Befristeter Zugang gewährt.",
+        "revoke_override": "Befristeter Zugang widerrufen.",
+        "extend_trial": "Testphase verlängert.",
+        "cancel_subscription": "Kündigung zum Periodenende geplant.",
+        "refresh_billing": "Aus Paddle aktualisiert."
+      }
+    }
+  },
+  "audit_action": {
+    "tenant": {
+      "suspend": "Dienst pausiert",
+      "resume": "Dienst fortgesetzt",
+      "grant_override": "Befristeter Zugang gewährt",
+      "revoke_override": "Befristeter Zugang widerrufen",
+      "extend_trial": "Testphase verlängert",
+      "cancel_subscription": "Kündigung des Abonnements",
+      "refresh_billing": "Aktualisierung aus Paddle"
+    }
   }
 }
