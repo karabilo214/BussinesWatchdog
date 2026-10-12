@@ -33,7 +33,7 @@ class OpenApiRoutesTest extends TestCase
         foreach (Route::getRoutes() as $route) {
             $uri = '/'.ltrim($route->uri(), '/');
 
-            if (! str_starts_with($uri, '/api/') && ! str_starts_with($uri, '/internal/')) {
+            if (! str_starts_with($uri, '/api/') && ! str_starts_with($uri, '/internal/') && ! str_starts_with($uri, '/platform-api/')) {
                 continue;
             }
 

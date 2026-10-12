@@ -102,6 +102,98 @@ paths:
               schema: {$ref: "#/components/schemas/AuthSession"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/csrf-cookie:
+    get:
+      tags: [Platform]
+      operationId: platformCsrfCookie
+      description: "Starts the control panel session: sets the `bw-platform-session` cookie (host-only, SameSite=Strict, ends with the browser) and the `BW-PLATFORM-XSRF` CSRF cookie whose value goes back in `X-XSRF-TOKEN`. Customer cookies are never set or accepted here (ADR 0034)."
+      security: []
+      responses:
+        "204": {description: Cookies set}
+  /platform-api/v1/auth/login:
+    post:
+      tags: [Platform]
+      operationId: platformLogin
+      description: "First step for platform staff: email and password of the linked account. Wrong credentials, a customer account without a staff role and a disabled staff member all get the same 422 `platform_login_failed`. Staff without an authenticator get 403 `platform_mfa_enrollment_required` (enrollment happens only through `php artisan platform:create-owner` or a staff invitation, never after a password alone). 5 per minute per IP, 30 per hour per email."
+      security: []
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, password]
+              properties:
+                email: {type: string, format: email}
+                password: {type: string, maxLength: 128}
+      responses:
+        "200":
+          description: Password accepted; the authenticator code is required next
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mfa_required]
+                properties:
+                  mfa_required: {const: true}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/auth/mfa:
+    post:
+      tags: [Platform]
+      operationId: platformLoginMfa
+      description: "Second step: an authenticator code or an unused recovery code. Valid for 5 minutes and 5 attempts after the password (401 `platform_mfa_expired`); a wrong code is 422 `mfa_code_invalid`. Success starts the staff session (idle 30 min, absolute 8 h, ended by a permission change)."
+      security: []
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: {type: string, maxLength: 32}
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformMe"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/me:
+    get:
+      tags: [Platform]
+      operationId: platformMe
+      description: "The signed-in staff member. 401 `platform_unauthenticated` without a staff session, 401 `platform_session_expired` after 30 idle minutes, 8 hours or a permission change."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Staff member
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformMe"}
+        "401": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/auth/logout:
+    post:
+      tags: [Platform]
+      operationId: platformLogout
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "204": {description: Signed out}
+        "401": {$ref: "#/components/responses/Problem"}
   /api/v1/auth/login:
     post:
       tags: [Auth]
@@ -3069,6 +3161,11 @@ components:
       in: header
       name: X-BW-Key-Id
       description: Key ID plus mandatory raw-body HMAC signature headers; key ID alone never authenticates.
+    StaffSession:
+      type: apiKey
+      in: cookie
+      name: bw-platform-session
+      description: Control panel session, separate from the customer session; CSRF via the BW-PLATFORM-XSRF cookie and X-XSRF-TOKEN.
     UserSession:
       type: apiKey
       in: cookie
@@ -3138,6 +3235,25 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    PlatformMe:
+      type: object
+      additionalProperties: false
+      required: [staff_id, name, email, locale, role, mfa_enabled, capabilities, billing_mode, session]
+      properties:
+        staff_id: {type: string, format: uuid}
+        name: {type: string}
+        email: {type: string}
+        locale: {type: string}
+        role: {enum: [platform_owner, platform_admin, platform_support, platform_billing]}
+        mfa_enabled: {const: true}
+        capabilities: {type: array, items: {type: string}}
+        billing_mode: {enum: [test, live]}
+        session:
+          type: object
+          required: [idle_minutes, absolute_hours]
+          properties:
+            idle_minutes: {type: integer}
+            absolute_hours: {type: integer}
     BillingPlan:
       type: object
       additionalProperties: false

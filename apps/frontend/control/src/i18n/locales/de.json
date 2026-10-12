@@ -1,16 +1,80 @@
 {
   "app": {
-    "name": "Business Watchdog Steuerung"
+    "name": "Business Watchdog Verwaltung"
   },
   "nav": {
-    "main": "Hauptnavigation",
-    "owner": "Dienstinhaber",
-    "admin": "Support"
+    "main": "Bereiche",
+    "menu": "Menü"
+  },
+  "mode": {
+    "test": "TEST — Zahlungs-Sandbox",
+    "live": "LIVE — echte Zahlungen"
+  },
+  "role": {
+    "platform_owner": "Inhaber des Dienstes",
+    "platform_admin": "Administrator",
+    "platform_support": "Support",
+    "platform_billing": "Finanzen"
+  },
+  "auth": {
+    "tagline": "Panel des Dienstinhabers",
+    "title": "Anmeldung für Mitarbeiter",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "continue": "Weiter",
+    "submitting": "Wird geprüft…",
+    "mfa_title": "Bestätigungscode",
+    "mfa_subtitle": "Geben Sie den Code aus Ihrer Authenticator-App ein.",
+    "code": "Code",
+    "recovery_hint": "Kein Zugriff auf die App? Geben Sie einen Ihrer Wiederherstellungscodes ein.",
+    "sign_in": "Anmelden",
+    "back": "Zurück",
+    "sign_out": "Abmelden",
+    "failed": "E-Mail oder Passwort ist falsch.",
+    "mfa_invalid": "Der Code hat nicht funktioniert. Versuchen Sie es erneut.",
+    "mfa_expired": "Die Zeit für die Codeeingabe ist abgelaufen. Melden Sie sich erneut an.",
+    "expired": "Ihre Sitzung ist beendet. Melden Sie sich erneut an.",
+    "rate_limited": "Zu viele Versuche. Warten Sie eine Minute.",
+    "enrollment_required": "Für dieses Konto ist keine Authenticator-App eingerichtet. Sie wird per Befehl auf dem Server eingerichtet.",
+    "network": "Keine Verbindung zum Server.",
+    "generic": "Anmeldung fehlgeschlagen. Versuchen Sie es erneut."
   },
   "section": {
-    "owner_title": "Panel des Dienstinhabers",
-    "owner_body": "Tarife, Kundenabos, Umsatz unseres Dienstes und Audit. Dieser Bereich kommt mit der Plattform-API.",
-    "admin_title": "Support-Panel",
-    "admin_body": "Dienstzustand, Datenzustellung der Kunden, Prüfungen und Zugriff mit Kundenfreigabe. Dieser Bereich kommt mit der Plattform-API."
+    "overview": {
+      "title": "Übersicht",
+      "body": "Umsatz, Kunden und Zustand des Dienstes. Dieser Bereich folgt in späteren Schritten."
+    },
+    "tenants": {
+      "title": "Kunden",
+      "body": "Kundenorganisationen, ihre Tarife und der Abo-Status. Dieser Bereich folgt in späteren Schritten."
+    },
+    "subscriptions": {
+      "title": "Abonnements",
+      "body": "Aktive Kundenabonnements. Dieser Bereich folgt in späteren Schritten."
+    },
+    "payments": {
+      "title": "Zahlungen",
+      "body": "Rechnungen, Zahlungen und Erstattungen unseres Dienstes. Dieser Bereich folgt in späteren Schritten."
+    },
+    "plans": {
+      "title": "Tarife und Rabatte",
+      "body": "Pakete, Preise, Abrechnungszeiträume, Limits und Rabatte. Dieser Bereich folgt als Nächstes."
+    },
+    "service": {
+      "title": "Dienst",
+      "body": "Warteschlangen, Datenlieferung und Prüfungen. Dieser Bereich folgt in späteren Schritten."
+    },
+    "staff": {
+      "title": "Mitarbeiter",
+      "body": "Mitarbeiter des Dienstes und ihre Rollen. Dieser Bereich folgt in späteren Schritten."
+    },
+    "audit": {
+      "title": "Audit",
+      "body": "Protokoll der Mitarbeiteraktionen. Dieser Bereich folgt in späteren Schritten."
+    },
+    "settings": {
+      "title": "Einstellungen",
+      "body": "Einstellungen des Dienstes. Dieser Bereich folgt in späteren Schritten."
+    }
   }
 }

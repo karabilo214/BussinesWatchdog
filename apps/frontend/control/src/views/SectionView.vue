@@ -1,10 +1,15 @@
 <script setup lang="ts">
-defineProps<{ section: 'owner' | 'admin' }>();
+import OwnerLayout from '@/layouts/OwnerLayout.vue';
+import type { OwnerSection } from '@/router';
+
+defineProps<{ section: OwnerSection }>();
 </script>
 
 <template>
-  <section class="flex flex-col gap-2 rounded-xl border border-dashed border-border-strong bg-surface p-8">
-    <h1 class="text-2xl font-semibold">{{ $t(`section.${section}_title`) }}</h1>
-    <p class="max-w-2xl text-sm text-text-muted">{{ $t(`section.${section}_body`) }}</p>
-  </section>
+  <OwnerLayout>
+    <section class="flex max-w-3xl flex-col gap-2 rounded-xl border border-dashed border-border-strong bg-surface p-8">
+      <h1 class="text-2xl font-semibold">{{ $t(`section.${section}.title`) }}</h1>
+      <p class="text-sm text-text-muted">{{ $t(`section.${section}.body`) }}</p>
+    </section>
+  </OwnerLayout>
 </template>

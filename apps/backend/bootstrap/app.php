@@ -14,6 +14,9 @@ use App\Http\Middleware\Auth\RequireStatefulSession;
 use App\Http\Middleware\Browser\AuthenticateBrowserWorker;
 use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
 use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
+use App\Http\Middleware\Platform\RequirePlatformStaff;
+use App\Http\Middleware\Platform\UsePlatformSession;
+use App\Http\Middleware\Platform\ValidatePlatformCsrfToken;
 use App\Http\Middleware\Tenancy\RequireTenantRole;
 use App\Http\Middleware\Tenancy\SetTenantContextFromSession;
 use Illuminate\Foundation\Application;
@@ -30,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function (): void {
             Route::middleware([])->group(__DIR__.'/../routes/internal.php');
+            Route::group([], __DIR__.'/../routes/platform.php');
         },
     )
     ->withCommands([
@@ -45,7 +49,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         $middleware->api(prepend: [AssignRequestId::class]);
+        $middleware->group('platform', [
+            AssignRequestId::class,
+            UsePlatformSession::class,
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+            ValidatePlatformCsrfToken::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ]);
         $middleware->alias([
+            'platform.staff' => RequirePlatformStaff::class,
             'browser.worker' => AuthenticateBrowserWorker::class,
             'idempotency' => EnsureIdempotencyKey::class,
             'stateful.session' => RequireStatefulSession::class,
@@ -56,7 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->is('internal/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*') || $request->is('internal/*') || $request->is('platform-api/*') || $request->expectsJson(),
         );
 
         $exceptions->render(fn (MissingTenantContext $exception, Request $request) => $request->is('api/*')

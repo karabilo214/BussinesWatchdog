@@ -115,6 +115,16 @@ return [
         ],
     ],
 
+    'platform' => [
+        'session_cookie' => env('WATCHDOG_PLATFORM_SESSION_COOKIE', 'bw-platform-session'),
+        'csrf_cookie' => env('WATCHDOG_PLATFORM_CSRF_COOKIE', 'BW-PLATFORM-XSRF'),
+        'idle_minutes' => (int) env('WATCHDOG_PLATFORM_IDLE_MINUTES', 30),
+        'absolute_hours' => (int) env('WATCHDOG_PLATFORM_ABSOLUTE_HOURS', 8),
+        'login_per_minute' => (int) env('WATCHDOG_PLATFORM_LOGIN_PER_MINUTE', 5),
+        'mfa_pending_seconds' => 300,
+        'mfa_max_attempts' => 5,
+    ],
+
     'shopware' => [
         'timeout_seconds' => 20,
         'page_size' => 100,

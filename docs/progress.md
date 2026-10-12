@@ -2051,3 +2051,20 @@ Verification:
 - Backend: `tests/Feature/Billing/BillingPlansTest.php` (new). SQLite 440 passed, 4 skipped; PostgreSQL 18 444 of 444.
 - Customer: `tests/billing.test.ts` 5 tests; `npm run check` 98 passed, build completed; `make frontend-smoke` 42/42.
 - Live Paddle sandbox: `run-billing-live.sh` PASS (first run found that the checkout is confirmed by the transaction event a moment before the subscription is projected; the page now waits for the subscription).
+
+### Step 103: Control Panel Sign-in for Platform Staff
+
+Status: complete
+
+- Owner decision (2026-10-12): everything sold — packages, prices, billing periods (any "every N days/weeks/months/years"), limits, trial days, discounts — is managed in the owner's panel. Order: sign-in (this step), plans and prices, discounts.
+- ADR 0034. Migration `2026_10_12_120000_create_platform_staff_tables` (`platform_staff`, `platform_audit_log`, PostgreSQL CHECKs). `PlatformStaff`, `PlatformAudit`, `PlatformCapabilities`, `PlatformSession`.
+- `/platform-api/v1` (`routes/platform.php`, middleware group `platform`): own session cookie and CSRF cookie (`UsePlatformSession` restores the session config after the request, `ValidatePlatformCsrfToken`), guard `platform`, `RequirePlatformStaff` (active staff, authenticator on, idle/absolute/permission-version limits, capabilities). Endpoints: `csrf-cookie`, `auth/login`, `auth/mfa`, `me`, `auth/logout`; rate limiters `platform-login`, `platform-mfa`. OpenAPI (both copies) with `StaffSession`; the route contract test now covers `/platform-api`.
+- `php artisan platform:create-owner <email>`: creates or attaches the account, hidden password, enrollment of the authenticator on the server, recovery codes once, system audit entry.
+- `@bw/api-client` `configureCsrf()`; control app: two-step sign-in, `/owner` layout with payment mode, staff and role, section placeholders, redirect back after sign-in, expired-session handling; ru/en/de.
+- Found while testing: an unauthenticated `/me` call between password and code ended the session and dropped the pending sign-in — the session is now ended only when a signed-in user is no longer valid.
+
+Verification:
+
+- `tests/Feature/Platform/PlatformAuthTest.php` — 7 tests (two-step sign-in and audit, customer session/account refused, own cookies, no authenticator / disabled, idle 30 min / 8 h / permission change, rate limit, bootstrap command with enrollment).
+- Backend SQLite: 447 passed, 4 skipped; PostgreSQL 18: 451 of 451. Control `npm run check`: 4 passed, build completed; customer: 98 passed.
+- `apps/frontend/control/tests/e2e/run-login.sh` (real backend + Vite + Chromium, real TOTP): redirect to sign-in, wrong password refused, password + code open `/owner/plans`, only `bw-platform-session` and `BW-PLATFORM-XSRF` cookies, sign-out ends the session — PASS.

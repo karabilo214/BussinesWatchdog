@@ -33,6 +33,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('platform-login', fn (Request $request): array => [
+            Limit::perMinute((int) config('watchdog.platform.login_per_minute'))->by('platform|'.$request->ip()),
+            Limit::perHour(30)->by('platform-email|'.mb_strtolower(trim((string) $request->input('email')))),
+        ]);
+
+        RateLimiter::for('platform-mfa', fn (Request $request): Limit => Limit::perMinute(10)->by('platform-mfa|'.$request->ip()));
+
         RateLimiter::for('auth-login', fn (Request $request): Limit => Limit::perMinute((int) config('watchdog.rate_limits.login_per_minute'))
             ->by(mb_strtolower(trim((string) $request->input('email'))).'|'.$request->ip()));
 

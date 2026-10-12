@@ -37,13 +37,20 @@ function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
 }
 
-/** Sanctum SPA: the XSRF-TOKEN cookie must exist before the first state-changing request. */
+let csrf = { cookie: 'XSRF-TOKEN', endpoint: '/sanctum/csrf-cookie' };
+
+/** The control panel has its own session and CSRF cookie; the customer app keeps the Sanctum defaults. */
+export function configureCsrf(options: { cookie: string; endpoint: string }): void {
+  csrf = { ...options };
+}
+
+/** The CSRF cookie must exist before the first state-changing request. */
 async function ensureCsrfCookie(): Promise<string> {
-  let token = readCookie('XSRF-TOKEN');
+  let token = readCookie(csrf.cookie);
 
   if (token === null) {
-    await fetch('/sanctum/csrf-cookie', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
-    token = readCookie('XSRF-TOKEN');
+    await fetch(csrf.endpoint, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+    token = readCookie(csrf.cookie);
   }
 
   if (token === null) {

@@ -3,14 +3,78 @@
     "name": "Business Watchdog Control"
   },
   "nav": {
-    "main": "Main navigation",
-    "owner": "Service owner",
-    "admin": "Support"
+    "main": "Sections",
+    "menu": "Menu"
+  },
+  "mode": {
+    "test": "TEST — payment sandbox",
+    "live": "LIVE — real payments"
+  },
+  "role": {
+    "platform_owner": "service owner",
+    "platform_admin": "administrator",
+    "platform_support": "support",
+    "platform_billing": "finance"
+  },
+  "auth": {
+    "tagline": "Service owner panel",
+    "title": "Staff sign-in",
+    "email": "Email",
+    "password": "Password",
+    "continue": "Continue",
+    "submitting": "Checking…",
+    "mfa_title": "Verification code",
+    "mfa_subtitle": "Enter the code from your authenticator app.",
+    "code": "Code",
+    "recovery_hint": "No access to the app? Enter one of your recovery codes.",
+    "sign_in": "Sign in",
+    "back": "Back",
+    "sign_out": "Sign out",
+    "failed": "Wrong email or password.",
+    "mfa_invalid": "The code did not work. Try again.",
+    "mfa_expired": "The time to enter the code has run out. Sign in again.",
+    "expired": "Your session has ended. Sign in again.",
+    "rate_limited": "Too many attempts. Wait a minute.",
+    "enrollment_required": "No authenticator app is set up for this account. It is set up with a command on the server.",
+    "network": "No connection to the server.",
+    "generic": "Could not sign in. Try again."
   },
   "section": {
-    "owner_title": "Service owner panel",
-    "owner_body": "Plans, customer subscriptions, our service revenue and audit. This section arrives with the platform API.",
-    "admin_title": "Support panel",
-    "admin_body": "Service health, customer data delivery, checks and access granted by customers. This section arrives with the platform API."
+    "overview": {
+      "title": "Overview",
+      "body": "Revenue, customers and service health. This section comes in later steps."
+    },
+    "tenants": {
+      "title": "Customers",
+      "body": "Customer organisations, their plans and subscription state. This section comes in later steps."
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "body": "Active customer subscriptions. This section comes in later steps."
+    },
+    "payments": {
+      "title": "Payments",
+      "body": "Invoices, payments and refunds of our service. This section comes in later steps."
+    },
+    "plans": {
+      "title": "Plans and discounts",
+      "body": "Packages, prices, billing periods, limits and discounts. This section comes next."
+    },
+    "service": {
+      "title": "Service",
+      "body": "Queues, data delivery and checks. This section comes in later steps."
+    },
+    "staff": {
+      "title": "Staff",
+      "body": "Service staff and their roles. This section comes in later steps."
+    },
+    "audit": {
+      "title": "Audit",
+      "body": "Log of staff actions. This section comes in later steps."
+    },
+    "settings": {
+      "title": "Settings",
+      "body": "Service settings. This section comes in later steps."
+    }
   }
 }
