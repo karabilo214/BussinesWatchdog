@@ -3,10 +3,17 @@ import { computed, onBeforeUnmount, reactive, watch } from 'vue';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import { CONTAINER_STYLES, LINK_STYLES, TEXT_STYLES, editorExtensions } from './extensions';
 
-const props = defineProps<{ modelValue: string; label: string }>();
+export interface InsertableBlock {
+  id: string;
+  name: string;
+  category: string;
+  html: string;
+}
+
+const props = withDefaults(defineProps<{ modelValue: string; label: string; blocks?: InsertableBlock[] }>(), { blocks: () => [] });
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
-const panel = reactive({ open: null as 'link' | 'image' | null, href: '', linkStyle: '' as string, src: '', alt: '' });
+const panel = reactive({ open: null as 'link' | 'image' | 'blocks' | null, href: '', linkStyle: '' as string, src: '', alt: '' });
 
 const editor = useEditor({
   content: props.modelValue,
@@ -104,6 +111,22 @@ function applyImage(): void {
   panel.open = null;
 }
 
+function insertBlock(block: InsertableBlock): void {
+  const current = editor.value;
+  if (!current) return;
+  const { $from } = current.state.selection;
+
+  if ($from.depth === 0) {
+    current.chain().focus().insertContentAt($from.pos, block.html).run();
+  } else {
+    const top = $from.node(1);
+    const range = top.isTextblock && top.content.size === 0 ? { from: $from.before(1), to: $from.after(1) } : $from.after(1);
+    current.chain().focus().insertContentAt(range, block.html).run();
+  }
+
+  panel.open = null;
+}
+
 function insertTable(): void {
   editor.value?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
 }
@@ -139,6 +162,7 @@ defineExpose({ editor });
       <button type="button" :class="[buttonClass, editor.isActive('link') && activeClass]" data-tool="link" @click="openLink">{{ $t('editor.link') }}</button>
       <button type="button" :class="buttonClass" data-tool="image" @click="openImage">{{ $t('editor.image') }}</button>
       <button type="button" :class="buttonClass" data-tool="table" @click="insertTable">{{ $t('editor.table') }}</button>
+      <button v-if="blocks.length > 0" type="button" :class="[buttonClass, 'text-primary', panel.open === 'blocks' && activeClass]" data-tool="blocks" @click="panel.open = panel.open === 'blocks' ? null : 'blocks'">{{ $t('editor.insert_block') }}</button>
       <template v-if="editor.isActive('table')">
         <button type="button" :class="buttonClass" data-tool="row" @click="editor.chain().focus().addRowAfter().run()">{{ $t('editor.add_row') }}</button>
         <button type="button" :class="buttonClass" data-tool="column" @click="editor.chain().focus().addColumnAfter().run()">{{ $t('editor.add_column') }}</button>
@@ -186,6 +210,18 @@ defineExpose({ editor });
       <button type="submit" class="rounded bg-primary px-3 py-1 font-semibold text-text-inverse" data-action="apply-image">{{ $t('editor.apply') }}</button>
       <button type="button" class="rounded border border-border-strong px-3 py-1" @click="panel.open = null">{{ $t('common.cancel') }}</button>
     </form>
+
+    <div v-if="panel.open === 'blocks'" class="flex flex-col gap-2 border-b border-border bg-surface-muted px-3 py-2 text-sm" data-panel="blocks">
+      <p class="text-text-muted">{{ $t('editor.insert_block_hint') }}</p>
+      <ul class="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <li v-for="block in blocks" :key="block.id">
+          <button type="button" class="flex w-full flex-col items-start rounded-md border border-border bg-surface px-3 py-2 text-left hover:border-primary hover:bg-primary-soft" :data-block="block.id" @click="insertBlock(block)">
+            <span class="font-medium">{{ block.name }}</span>
+            <span class="text-xs text-text-muted">{{ $te(`editor.category.${block.category}`) ? $t(`editor.category.${block.category}`) : block.category }}</span>
+          </button>
+        </li>
+      </ul>
+    </div>
 
     <EditorContent :editor="editor" class="max-h-[44rem] overflow-y-auto bg-canvas" />
   </div>

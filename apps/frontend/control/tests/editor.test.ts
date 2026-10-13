@@ -73,6 +73,41 @@ describe('visual page editor', () => {
     wrapper.unmount();
   });
 
+  it('inserts a ready block template at the cursor', async () => {
+    localization.setLocale('ru');
+    const blocks = [
+      { id: 'b-1', name: 'Первый экран', category: 'hero', html: '<section class="hero"><h1>Обещание</h1><p class="actions"><a class="button" href="/ru/signup">Начать</a></p></section>' },
+      { id: 'b-2', name: 'Свой блок', category: 'custom', html: '<p class="note">Важно</p>' },
+    ];
+    const wrapper = mount(RichEditor, { props: { modelValue: '<p>Текст</p>', label: 'Содержимое', blocks }, global: { plugins: [localization] }, attachTo: document.body });
+    await flushPromises();
+    const editor = (wrapper.vm as unknown as { editor: { commands: { setTextSelection(position: number): boolean } } }).editor;
+    editor.commands.setTextSelection(6);
+
+    await wrapper.get('[data-tool="blocks"]').trigger('click');
+    const panel = wrapper.get('[data-panel="blocks"]');
+    expect(panel.text()).toContain('Первый экран');
+    expect(panel.text()).toContain('custom');
+    await wrapper.get('[data-block="b-1"]').trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')!.at(-1)![0]).toBe('<p>Текст</p><section class="hero"><h1>Обещание</h1><p class="actions"><a class="button" href="/ru/signup">Начать</a></p></section>');
+    expect(wrapper.find('[data-panel="blocks"]').exists()).toBe(false);
+
+    await wrapper.setProps({ modelValue: '<section class="card"><p>В карточке</p></section><p></p>' });
+    await flushPromises();
+    editor.commands.setTextSelection(4);
+    await wrapper.get('[data-tool="blocks"]').trigger('click');
+    await wrapper.get('[data-block="b-2"]').trigger('click');
+    expect(wrapper.emitted('update:modelValue')!.at(-1)![0]).toBe('<section class="card"><p>В карточке</p></section><p class="note">Важно</p>');
+    wrapper.unmount();
+  });
+
+  it('has no block button without templates', async () => {
+    const wrapper = await mountEditor('<p>Текст</p>');
+    expect(wrapper.find('[data-tool="blocks"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it('follows changes made outside, for example in HTML mode, without reporting them back', async () => {
     const wrapper = await mountEditor('<p>Старый</p>');
     await wrapper.setProps({ modelValue: '<h2>Новый</h2>' });

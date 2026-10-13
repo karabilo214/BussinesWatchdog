@@ -59,3 +59,14 @@ Status: complete
 - ru/en/de texts; the body hint no longer talks about code.
 
 Verification: `tests/editor.test.ts` (3: the site markup of the home page with sections, grid, features, buttons, image and table survives; toolbar applies lead, heading, card section, button link, unwrap and undo; outside changes followed without reporting back). Existing site tests run in HTML mode. Frontend check: palette, customer 112, control 32, builds, site stylesheet. Backend SQLite 532 passed, 4 skipped (unchanged). Live in Chromium (`run-live.sh site`): home opens in the visual editor with its built-in text, pricing shows "edited in code", text typed in the visual editor styled as a lead paragraph in a card and shown in the preview, HTML mode, then the existing publish/site/contact flow — PASS.
+
+### Step 123: Block Templates Inserted From the Page Editor
+
+Status: complete
+
+- ADR 0046 (accepted for now, to be confirmed by the owner). Migration `page_blocks` (category, name, `bodies` per language, sort, created/updated by, archived) with eight built-in templates from `database/data/page_blocks.php`: hero, three features, three steps, plan comparison without prices (links to the pricing page), FAQ, call to action, two cards, note — ru/en/de with links to the same language.
+- `GET /platform-api/v1/page-blocks` (`content.manage`); OpenAPI updated.
+- Visual editor: «+ Блок» opens a list of templates with their category; a click inserts the template of the page language after the top-level block with the cursor (or in place of an empty paragraph). Page editor loads templates once; without templates the button is hidden.
+- Found while testing: inserting at the cursor nested a template section into the card the cursor was in — insertion moved after the top-level block; PostgreSQL `jsonb` reorders language keys (test compares them as a set).
+
+Verification: `tests/Feature/Site/PageBlockTest.php` (2: every built-in template in three languages, kept by the sanitizer, links only to its language, no prices; owner-only). Control 35 tests (`editor.test.ts` +2, `site.test.ts` +1). Frontend check green. Backend SQLite 534 passed, 4 skipped; PostgreSQL 18: 538 of 538. Live in Chromium (`run-live.sh site`): FAQ template inserted in the visual editor, shown in the preview and in the HTML — PASS.

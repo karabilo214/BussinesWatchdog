@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { StatusBadge } from '@bw/ui';
-import { archivePage, discardPageDraft, fetchPage, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, type PageCard, type PageMenu, type PolicyType, type SiteLocale } from '@/api';
+import { archivePage, discardPageDraft, fetchPage, fetchPageBlocks, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, type PageBlock, type PageCard, type PageMenu, type PolicyType, type SiteLocale } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import RichEditor from '@/components/editor/RichEditor.vue';
 import { CONTENT_CLASSES, SITE_LOCALES, publicUrl } from '@/components/site';
@@ -29,6 +29,12 @@ const confirm = reactive({ action: null as 'publish' | 'unpublish' | 'archive' |
 const previewHtml = ref('');
 const previewError = ref<unknown>(null);
 const editorMode = ref<'visual' | 'html'>(storedMode());
+const blocks = ref<PageBlock[]>([]);
+const insertable = computed(() =>
+  blocks.value
+    .map((block) => ({ id: block.id, name: block.name, category: block.category, html: block.bodies[locale.value] ?? Object.values(block.bodies)[0] ?? '' }))
+    .filter((block) => block.html !== ''),
+);
 let previewTimer: ReturnType<typeof setTimeout> | null = null;
 
 function storedMode(): 'visual' | 'html' {
@@ -68,8 +74,17 @@ function accept(card: PageCard): void {
   settings.sort = card.sort;
 }
 
+async function loadBlocks(): Promise<void> {
+  try {
+    blocks.value = await fetchPageBlocks();
+  } catch {
+    blocks.value = [];
+  }
+}
+
 async function load(): Promise<void> {
   error.value = null;
+  void loadBlocks();
 
   try {
     accept(await fetchPage(props.id));
@@ -256,7 +271,7 @@ onBeforeUnmount(() => {
                     <button v-for="mode in (['visual', 'html'] as const)" :key="mode" type="button" class="px-3 py-1 font-medium first:rounded-l-md last:rounded-r-md" :class="editorMode === mode ? 'bg-primary text-text-inverse' : 'text-primary hover:bg-primary-soft'" :aria-pressed="editorMode === mode" :data-mode="mode" @click="setEditorMode(mode)">{{ $t(`site.mode.${mode}`) }}</button>
                   </div>
                 </div>
-                <RichEditor v-if="editorMode === 'visual'" v-model="form.body" :label="$t('site.field.content')" />
+                <RichEditor v-if="editorMode === 'visual'" v-model="form.body" :label="$t('site.field.content')" :blocks="insertable" />
                 <textarea
                   v-else
                   v-model="form.body"

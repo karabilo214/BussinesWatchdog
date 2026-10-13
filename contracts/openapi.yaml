@@ -695,6 +695,25 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/page-blocks:
+    get:
+      tags: [Platform]
+      operationId: platformListPageBlocks
+      description: "Capability content.manage. Block templates for the page editor (ADR 0046), not archived, by order: category (hero, features, steps, pricing, faq, cta, text, other), name and per language (ru, en, de) the HTML on the content classes that the editor inserts at the cursor. Built-in templates come from the migration."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Block templates
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: {type: array, items: {type: object}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/pages:
     get:
       tags: [Platform]

@@ -66,11 +66,18 @@ try {
   await page.locator('[data-tool="section-style"]').selectOption('card');
   await page.locator('[data-visual] section.card p.lead').getByText('Мы пишем текст без HTML.').waitFor();
   await page.frameLocator('[data-preview]').locator('section.card p.lead').getByText('Мы пишем текст без HTML.').waitFor();
+  await page.locator('[data-tool="blocks"]').click();
+  await page.locator('[data-panel="blocks"]').getByRole('button', { name: /Вопросы и ответы/ }).click();
+  await page.locator('[data-visual] h2').getByText('Частые вопросы').waitFor();
+  await page.frameLocator('[data-preview]').getByText('Частые вопросы').waitFor();
+  await page.locator('[data-tool="blocks"]').click();
   await shot(page, '0-visual-editor');
-  console.log('ok   visual editor: typed text styled as a lead paragraph inside a card, shown in the preview');
+  await page.locator('[data-tool="blocks"]').click();
+  console.log('ok   visual editor: typed text styled as a lead paragraph inside a card, FAQ block template inserted, shown in the preview');
 
   await page.locator('[data-mode="html"]').click();
-  if (!(await page.locator('[data-field="body"]').inputValue()).includes('<section class="card"><p class="lead">Мы пишем текст без HTML.</p></section>')) throw new Error('visual edit did not reach the HTML');
+  const visualHtml = await page.locator('[data-field="body"]').inputValue();
+  if (!visualHtml.includes('<section class="card"><p class="lead">Мы пишем текст без HTML.</p></section>') || !visualHtml.includes('<h2>Частые вопросы</h2>')) throw new Error('visual edit did not reach the HTML');
   await page.locator('[data-field="body"]').fill('<p class="lead">Мы следим за оплатой в интернет-магазинах.</p><div class="grid-2"><div class="card"><h3>Честно</h3><p>Нет данных — так и пишем.</p></div><div class="card"><h3>Безопасно</h3><p>Без настоящих покупок.</p></div></div><script>window.hacked = 1</script><p onclick="window.hacked = 2">Клик</p>');
   await page.frameLocator('[data-preview]').getByText('Мы следим за оплатой').waitFor();
   await page.locator('[data-mode="visual"]').click();

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Platform\ContactRequestController;
 use App\Http\Controllers\Platform\DiscountController;
+use App\Http\Controllers\Platform\PageBlockController;
 use App\Http\Controllers\Platform\PageController;
 use App\Http\Controllers\Platform\PaymentController;
 use App\Http\Controllers\Platform\RefundController;
@@ -42,6 +43,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
 
     Route::middleware('platform.staff:'.PlatformCapabilities::CONTENT_MANAGE)->group(function (): void {
         Route::get('/pages', [PageController::class, 'index']);
+        Route::get('/page-blocks', [PageBlockController::class, 'index']);
         Route::post('/pages', [PageController::class, 'store']);
         Route::get('/pages/{page}', [PageController::class, 'show'])->whereUuid('page');
         Route::patch('/pages/{page}', [PageController::class, 'update'])->whereUuid('page');

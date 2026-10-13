@@ -15,6 +15,7 @@ vi.mock('@/api', () => ({
   fetchPages: vi.fn(),
   createPage: vi.fn(),
   fetchPage: vi.fn(),
+  fetchPageBlocks: vi.fn(),
   updatePage: vi.fn(),
   savePageDraft: vi.fn(),
   discardPageDraft: vi.fn(),
@@ -77,6 +78,7 @@ beforeEach(() => {
   useStaff().forget();
   localization.setLocale('ru');
   mocked.previewPage.mockResolvedValue({ body: '', html: '<p>preview</p>' });
+  mocked.fetchPageBlocks.mockResolvedValue([]);
 });
 
 describe('site', () => {
@@ -158,6 +160,24 @@ describe('site', () => {
     await wrapper.get('[data-form="page-draft"]').trigger('submit');
     await flushPromises();
     expect(mocked.savePageDraft).toHaveBeenCalledWith('home', 'ru', { title: 'Business Watchdog', description: 'Контроль оплаты', body: '<section class="hero"><h1>Своя главная</h1></section>' });
+  });
+
+  it('offers block templates of the page language in the visual editor', async () => {
+    window.localStorage.setItem('bw.page-editor-mode', 'visual');
+    mocked.fetchPage.mockResolvedValue(card());
+    mocked.fetchPageBlocks.mockResolvedValue([
+      { id: 'b-1', category: 'faq', name: 'Вопросы и ответы', bodies: { ru: '<h2>Вопросы</h2>', de: '<h2>Fragen</h2>' }, sort: 10, updated_at: null },
+      { id: 'b-2', category: 'cta', name: 'Только немецкий', bodies: { de: '<h2>Los</h2>' }, sort: 20, updated_at: null },
+    ]);
+    const { wrapper } = await open('/owner/site/pages/p-1');
+
+    await wrapper.get('[data-tool="blocks"]').trigger('click');
+    expect(wrapper.get('[data-panel="blocks"]').text()).toContain('Вопросы и ответы');
+    expect(wrapper.get('[data-panel="blocks"]').text()).toContain('Только немецкий');
+    expect(wrapper.findAll('[data-block]')).toHaveLength(2);
+    await wrapper.get('[data-block="b-1"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-unsaved]').exists()).toBe(true);
   });
 
   it('shows pricing and contact as edited in code with only the menu settings', async () => {

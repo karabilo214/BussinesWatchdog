@@ -441,6 +441,21 @@ export async function createPage(input: { slug: string; parent_id: string | null
   return (await request<PageCard>('POST', '/platform-api/v1/pages', { body: input })).data;
 }
 
+export type PageBlockCategory = 'hero' | 'features' | 'steps' | 'pricing' | 'faq' | 'cta' | 'text' | 'other';
+
+export interface PageBlock {
+  id: string;
+  category: PageBlockCategory;
+  name: string;
+  bodies: Partial<Record<SiteLocale, string>>;
+  sort: number;
+  updated_at: string | null;
+}
+
+export async function fetchPageBlocks(): Promise<PageBlock[]> {
+  return (await request<{ data: PageBlock[] }>('GET', '/platform-api/v1/page-blocks')).data.data;
+}
+
 export async function fetchPage(id: string): Promise<PageCard> {
   return (await request<PageCard>('GET', `/platform-api/v1/pages/${encodeURIComponent(id)}`)).data;
 }

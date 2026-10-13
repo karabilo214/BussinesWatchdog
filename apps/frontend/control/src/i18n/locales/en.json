@@ -815,6 +815,18 @@
     },
     "image_src": "Image address (https)",
     "image_alt": "Description for blind readers",
-    "apply": "Apply"
+    "apply": "Apply",
+    "insert_block": "+ Block",
+    "insert_block_hint": "A ready block is inserted after the block with the cursor. Replace its text and links with your own.",
+    "category": {
+      "hero": "Hero",
+      "features": "Features",
+      "steps": "Steps",
+      "pricing": "Plans",
+      "faq": "FAQ",
+      "cta": "Call to action",
+      "text": "Text",
+      "other": "Other"
+    }
   }
 }

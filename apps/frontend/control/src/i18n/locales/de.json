@@ -815,6 +815,18 @@
     },
     "image_src": "Bildadresse (https)",
     "image_alt": "Beschreibung für blinde Leser",
-    "apply": "Übernehmen"
+    "apply": "Übernehmen",
+    "insert_block": "+ Block",
+    "insert_block_hint": "Ein fertiger Block wird nach dem Block mit dem Cursor eingefügt. Ersetzen Sie Text und Links durch Ihre eigenen.",
+    "category": {
+      "hero": "Startbereich",
+      "features": "Vorteile",
+      "steps": "Schritte",
+      "pricing": "Tarife",
+      "faq": "Häufige Fragen",
+      "cta": "Handlungsaufruf",
+      "text": "Text",
+      "other": "Sonstiges"
+    }
   }
 }
