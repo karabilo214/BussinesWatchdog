@@ -118,3 +118,5 @@ Status: complete
 - Owner panel, page history: «Удалить» next to «В черновик» for old versions of non-legal pages, with the reason confirmation showing the version number. ru/en/de, error texts.
 
 Verification: `PublicSiteTest::test_old_page_versions_can_be_deleted_except_the_current_ones_and_legal_documents` (reason required, old version gone from history, published/draft refused, repeated 404, site unchanged, legal page and accepted version refused). Control 55 tests (+1). Frontend check green. Backend SQLite 559 passed, 4 skipped; PostgreSQL 18: 563 of 563.
+
+- Follow-up: the owner started their own «remove» button in the page history (`data-action="remove"`, `removeHistory`, `isAllowRemove`) on an older copy of `PageView.vue`; it is finished on top of Step 139: shown only for retired versions of non-legal pages, opens the same reason confirmation and calls the version deletion; label key `site.action.remove`. Control 55 tests, backend unchanged (559 passed, 4 skipped).

@@ -741,7 +741,7 @@
       "restore": "In Entwurf",
       "save_settings": "Speichern",
       "archive": "Seite löschen",
-      "delete_version": "Löschen"
+      "remove": "Löschen"
     },
     "confirm": {
       "publish": "Entwurf ({locale}) unter {path} veröffentlichen? Die aktuelle Version wandert in den Verlauf.",

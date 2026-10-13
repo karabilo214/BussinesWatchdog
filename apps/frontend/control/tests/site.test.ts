@@ -210,8 +210,8 @@ describe('site', () => {
     mocked.deletePageVersion.mockResolvedValue(card({ history: [history[0]!] }));
     const { wrapper } = await open('/owner/site/pages/p-1');
 
-    expect(wrapper.get('[data-version="2"]').find('[data-action="delete-version"]').exists()).toBe(false);
-    await wrapper.get('[data-version="1"] [data-action="delete-version"]').trigger('click');
+    expect(wrapper.get('[data-version="2"]').find('[data-action="remove"]').exists()).toBe(false);
+    await wrapper.get('[data-version="1"] [data-action="remove"]').trigger('click');
     expect(wrapper.get('[data-form="delete_version"]').text()).toContain('версия 1');
     await wrapper.get('[data-field="reason"]').setValue('Устарела');
     await wrapper.get('[data-form="delete_version"]').trigger('submit');
@@ -222,7 +222,7 @@ describe('site', () => {
 
     mocked.fetchPage.mockResolvedValue(card({ history, policy_type: 'service_terms' }));
     const legal = await open('/owner/site/pages/p-1');
-    expect(legal.wrapper.find('[data-action="delete-version"]').exists()).toBe(false);
+    expect(legal.wrapper.find('[data-action="remove"]').exists()).toBe(false);
   });
 
   it('marks a page as the terms of service in its settings', async () => {

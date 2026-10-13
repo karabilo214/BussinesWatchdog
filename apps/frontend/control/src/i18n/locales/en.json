@@ -741,7 +741,7 @@
       "restore": "To draft",
       "save_settings": "Save",
       "archive": "Delete page",
-      "delete_version": "Delete"
+      "remove": "Delete"
     },
     "confirm": {
       "publish": "Publish the draft ({locale}) at {path}? The current version moves to the history.",

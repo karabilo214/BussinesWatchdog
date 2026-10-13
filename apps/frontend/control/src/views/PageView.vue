@@ -196,6 +196,14 @@ function ask(action: 'publish' | 'unpublish' | 'archive' | 'delete_version', ver
   actionError.value = null;
 }
 
+function isAllowRemove(row: PageCard['history'][number]): boolean {
+  return row.state === 'retired' && !page.value?.policy_type;
+}
+
+function removeHistory(versionId: string): void {
+  ask('delete_version', versionId);
+}
+
 function switchLocale(next: SiteLocale): void {
   if (dirty.value && !window.confirm(t('site.unsaved_switch'))) return;
   locale.value = next;
@@ -357,7 +365,7 @@ onBeforeUnmount(() => {
                   <td class="py-2 pr-4 whitespace-nowrap">{{ dateTime(row.retired_at) }}</td>
                   <td class="py-2 text-right">
                     <button type="button" class="rounded-md border border-border-strong px-3 py-1 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="restore" @click="restore(row.id)">{{ $t('site.action.restore') }}</button>
-                    <button v-if="row.state === 'retired' && !page.policy_type" type="button" class="ml-1 rounded-md border border-crit-border px-3 py-1 text-sm font-medium text-crit hover:bg-crit-soft disabled:opacity-60" :disabled="busy" data-action="delete-version" @click="ask('delete_version', row.id)">{{ $t('site.action.delete_version') }}</button>
+                    <button v-if="isAllowRemove(row)" type="button" class="ml-1 rounded-md border border-crit-border px-3 py-1 text-sm font-medium text-crit hover:bg-crit-soft disabled:opacity-60" :disabled="busy" data-action="remove" @click="removeHistory(row.id)">{{ $t('site.action.remove') }}</button>
                   </td>
                 </tr>
               </tbody>
