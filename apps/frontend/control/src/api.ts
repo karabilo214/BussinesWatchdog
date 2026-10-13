@@ -765,6 +765,51 @@ export function auditExportUrl(filters: AuditFilters): string {
   return `/platform-api/v1/audit/export${query ? `?${query}` : ''}`;
 }
 
+export interface SecretState {
+  configured: boolean;
+  fingerprint: string | null;
+}
+
+export interface MaintenanceNoticeRow {
+  id: string;
+  version: number;
+  starts_at: string;
+  ends_at: string;
+  messages: Record<SiteLocale, string>;
+  reason: string;
+  created_by: string | null;
+  created_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+}
+
+export interface PlatformSettingsView {
+  configuration: {
+    environment: string;
+    release: string;
+    app_url: string;
+    billing: { enforcement: string; paddle_environment: string; paddle_account: string; api_key: SecretState; client_token: SecretState; webhook_secret: SecretState };
+    mail: { mailer: string; from: string };
+    telegram: { bot: string; token: SecretState; webhook_secret: SecretState };
+    sessions: { idle_minutes: number; absolute_hours: number };
+    retention: { screenshots_days: number; exports_days: number; contact_days: number };
+    site: { contact_notify: number; cache_seconds: number };
+  };
+  maintenance: { current: MaintenanceNoticeRow | null; history: MaintenanceNoticeRow[]; limits: { max_hours: number; max_days_ahead: number } };
+}
+
+export async function fetchPlatformSettings(): Promise<PlatformSettingsView> {
+  return (await request<PlatformSettingsView>('GET', '/platform-api/v1/settings')).data;
+}
+
+export async function scheduleMaintenance(input: { starts_at: string; ends_at: string; messages: Record<SiteLocale, string>; reason: string; confirmation_code: string }): Promise<PlatformSettingsView> {
+  return (await request<PlatformSettingsView>('POST', '/platform-api/v1/settings/maintenance', { body: input })).data;
+}
+
+export async function cancelMaintenance(input: { reason: string; confirmation_code: string }): Promise<PlatformSettingsView> {
+  return (await request<PlatformSettingsView>('POST', '/platform-api/v1/settings/maintenance/cancel', { body: input })).data;
+}
+
 export type ReminderTopic = 'subscription' | 'payment' | 'other';
 
 export interface ReminderInput {

@@ -1580,5 +1580,9 @@
       },
       "refunded": "refunded {amount}"
     }
+  },
+  "maintenance": {
+    "planned": "Planned maintenance {from} — {to}.",
+    "now": "Maintenance in progress until {to}."
   }
 }

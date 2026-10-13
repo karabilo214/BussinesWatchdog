@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\Integrations\WooCommerceApiIntegrationController
 use App\Http\Controllers\Api\V1\Notifications\NotificationChannelController;
 use App\Http\Controllers\Api\V1\Notifications\NotificationDeliveryController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
+use App\Http\Controllers\Api\V1\Overview\MaintenanceController;
 use App\Http\Controllers\Api\V1\Overview\OverviewController;
 use App\Http\Controllers\Api\V1\Pairing\PairingCodeController;
 use App\Http\Controllers\Api\V1\Pairing\PairingExchangeController;
@@ -232,6 +233,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::post('/invitations/{invitation}/revoke', [TeamController::class, 'revoke'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::teamManage()));
     Route::get('/overview', [OverviewController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+    Route::get('/maintenance', [MaintenanceController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::get('/incidents', [IncidentController::class, 'index'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::incidentRead()));

@@ -32,8 +32,10 @@ final class PlatformCapabilities
 
     public const SERVICE_READ = 'service.read';
 
+    public const SETTINGS_MANAGE = 'settings.manage';
+
     private const ROLES = [
-        PlatformStaff::ROLE_OWNER => [self::PLANS_MANAGE, self::PLANS_READ, self::STAFF_MANAGE, self::AUDIT_READ, self::TENANTS_READ, self::TENANTS_MANAGE, self::BILLING_READ, self::CONTENT_MANAGE, self::CONTACTS_READ, self::CONTACTS_MANAGE, self::REFUNDS_REQUEST, self::REFUNDS_APPROVE, self::SERVICE_READ],
+        PlatformStaff::ROLE_OWNER => [self::PLANS_MANAGE, self::PLANS_READ, self::STAFF_MANAGE, self::AUDIT_READ, self::TENANTS_READ, self::TENANTS_MANAGE, self::BILLING_READ, self::CONTENT_MANAGE, self::CONTACTS_READ, self::CONTACTS_MANAGE, self::REFUNDS_REQUEST, self::REFUNDS_APPROVE, self::SERVICE_READ, self::SETTINGS_MANAGE],
         PlatformStaff::ROLE_ADMIN => [self::PLANS_READ, self::TENANTS_READ, self::AUDIT_READ, self::CONTACTS_READ, self::SERVICE_READ],
         PlatformStaff::ROLE_SUPPORT => [self::TENANTS_READ, self::CONTACTS_READ, self::CONTACTS_MANAGE],
         PlatformStaff::ROLE_BILLING => [self::PLANS_READ, self::TENANTS_READ, self::BILLING_READ, self::REFUNDS_REQUEST],

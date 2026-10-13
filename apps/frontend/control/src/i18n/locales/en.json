@@ -42,7 +42,7 @@
   "section": {
     "overview": {
       "title": "Overview",
-      "body": "Revenue, customers and service health. This section comes in later steps."
+      "body": "Business figures are available to the service owner and billing staff. Choose a section in the menu."
     },
     "tenants": {
       "title": "Customers"
@@ -54,24 +54,19 @@
       "title": "Payments"
     },
     "plans": {
-      "title": "Plans and discounts",
-      "body": "Packages, prices, billing periods, limits and discounts. This section comes next."
+      "title": "Plans and discounts"
     },
     "service": {
-      "title": "Service",
-      "body": "Queues, data delivery and checks. This section comes in later steps."
+      "title": "Service"
     },
     "staff": {
-      "title": "Staff",
-      "body": "Service staff and their roles. This section comes in later steps."
+      "title": "Staff"
     },
     "audit": {
-      "title": "Audit",
-      "body": "Log of staff actions. This section comes in later steps."
+      "title": "Audit"
     },
     "settings": {
-      "title": "Settings",
-      "body": "Service settings. This section comes in later steps."
+      "title": "Settings"
     },
     "site": {
       "title": "Website"
@@ -182,7 +177,10 @@
     "invitation_not_started": "Start again: reload the page from the email link.",
     "mfa_code_invalid": "The code did not match. Check the phone time and try again.",
     "name_required": "Enter a name.",
-    "staff_not_found": "Staff member not found."
+    "staff_not_found": "Staff member not found.",
+    "maintenance_window_invalid": "Check the times: end after start and in the future, at most 24 h, start at most 90 days ahead.",
+    "maintenance_message_invalid": "The message in every language needs 3 to 300 characters.",
+    "maintenance_not_scheduled": "No maintenance is planned."
   },
   "period": {
     "per": {
@@ -662,6 +660,10 @@
     },
     "audit": {
       "exported": "Audit exported"
+    },
+    "settings": {
+      "maintenance_scheduled": "Maintenance planned",
+      "maintenance_cancelled": "Maintenance cancelled"
     }
   },
   "site": {
@@ -1313,5 +1315,52 @@
     "less": "Hide",
     "reason": "Reason",
     "load_more": "Show more"
+  },
+  "settings": {
+    "hint": "Maintenance window for customers and the service configuration. Secrets are never shown — only whether a key is set and a short fingerprint; they are changed on the server.",
+    "forbidden": "This section is available to the service owner.",
+    "maintenance": {
+      "title": "Planned maintenance",
+      "hint": "All customers see the message in their account from publishing until the end. At most {hours} h long and at most {days} days ahead; a new version replaces the current one. Needs a reason and the app code.",
+      "plan": "Plan maintenance",
+      "current": "Planned: {from} — {to} (version {version})",
+      "none": "No maintenance planned.",
+      "cancel": "Cancel maintenance",
+      "starts": "Start",
+      "ends": "End",
+      "message": "Message to customers ({locale})",
+      "publish": "Publish",
+      "history": "Version history",
+      "cancelled_at": "cancelled {date}, {name}",
+      "scheduled": "Maintenance published.",
+      "cancelled": "Maintenance cancelled."
+    },
+    "config": {
+      "title": "Configuration",
+      "hint": "Read only. Values come from the server environment (README, «Release»).",
+      "environment": "Environment and release",
+      "app_url": "Application address",
+      "enforcement": "Plan limits",
+      "enforcement_mode": {
+        "pilot": "pilot — limits not applied",
+        "enforce": "applied"
+      },
+      "paddle": {
+        "api_key": "Paddle API key",
+        "client_token": "Paddle client token",
+        "webhook_secret": "Paddle webhook secret"
+      },
+      "set": "set",
+      "missing": "not set",
+      "mail": "Mail",
+      "sessions": "Staff sessions",
+      "sessions_value": "idle {idle_minutes} min, at most {absolute_hours} h",
+      "retention": "Retention",
+      "retention_value": "screenshots {screenshots_days} days, exports {exports_days} days, messages {contact_days} days after closing",
+      "site": "Site",
+      "site_value": "message notification recipients: {contact_notify}, page cache {cache_seconds} s",
+      "site_value_owners": "message notifications go to every service owner, page cache {cache_seconds} s"
+    },
+    "later": "Browser check worker limits are set only in the server environment for now."
   }
 }

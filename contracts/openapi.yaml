@@ -1463,6 +1463,85 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/settings:
+    get:
+      tags: [Platform]
+      operationId: platformSettings
+      description: "Capability settings.manage (owner). Read-only configuration (ADR 0054): environment, release, billing enforcement, Paddle environment/account with configured flags and short sha256 fingerprints of the key, client token and webhook secret (never the values), mail, Telegram, session limits, retention, site notification recipients count; and the maintenance window: current, last 20 versions with who/when/why, limits. no-store."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/settings/maintenance:
+    post:
+      tags: [Platform]
+      operationId: platformScheduleMaintenance
+      description: "Capability settings.manage. Publishes a new version of the maintenance window (replaces a current one): start and end (end after start and in the future, at most 24 h long, start at most 90 days ahead: 422 maintenance_window_invalid), a message in ru, en and de (3–300 characters: 422 maintenance_message_invalid), reason and authenticator code. Customers see the message in their account until the end. Audited."
+      security:
+        - {StaffSession: []}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [starts_at, ends_at, messages, reason, confirmation_code]
+              properties:
+                starts_at: {type: string, format: date-time}
+                ends_at: {type: string, format: date-time}
+                messages:
+                  type: object
+                  required: [ru, en, de]
+                  properties:
+                    ru: {type: string, minLength: 3, maxLength: 300}
+                    en: {type: string, minLength: 3, maxLength: 300}
+                    de: {type: string, minLength: 3, maxLength: 300}
+                reason: {type: string, minLength: 3, maxLength: 500}
+                confirmation_code: {type: string, maxLength: 32}
+      responses:
+        "201":
+          description: Settings
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/settings/maintenance/cancel:
+    post:
+      tags: [Platform]
+      operationId: platformCancelMaintenance
+      description: "Capability settings.manage. Cancels the current or upcoming maintenance window with a reason and the authenticator code (409 maintenance_not_scheduled). Audited."
+      security:
+        - {StaffSession: []}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, confirmation_code]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+                confirmation_code: {type: string, maxLength: 32}
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/pages:
     get:
       tags: [Platform]
@@ -4265,6 +4344,25 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/maintenance:
+    get:
+      tags: [Incidents]
+      operationId: getMaintenanceNotice
+      description: "Planned maintenance of the service announced by the platform owner (ADR 0054): start, end, message in the user's language and whether it is running now; null when nothing is planned."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Notice
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [notice]
+                properties:
+                  notice: {type: [object, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
   /api/v1/overview:
     get:
       tags: [Incidents]

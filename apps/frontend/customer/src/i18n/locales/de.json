@@ -1580,5 +1580,9 @@
       },
       "refunded": "erstattet {amount}"
     }
+  },
+  "maintenance": {
+    "planned": "Geplante Wartung {from} — {to}.",
+    "now": "Wartung läuft bis {to}."
   }
 }

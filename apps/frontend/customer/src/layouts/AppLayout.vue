@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LocaleSwitch } from '@bw/i18n';
 import { resendEmailVerification } from '@/api/account';
+import { getMaintenance, type MaintenanceNotice } from '@/api/maintenance';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import { useFormat } from '@/composables/useFormat';
 import { useSession } from '@/composables/useSession';
 
 const router = useRouter();
@@ -13,6 +15,16 @@ const menuOpen = ref(false);
 const verifyState = ref<'idle' | 'sent'>('idle');
 const verifyError = ref<unknown>(null);
 const verifiedNotice = ref<'1' | '0' | null>(null);
+const maintenance = ref<MaintenanceNotice | null>(null);
+const { dateTime } = useFormat();
+
+onMounted(async () => {
+  try {
+    maintenance.value = await getMaintenance();
+  } catch {
+    maintenance.value = null;
+  }
+});
 
 if (route.query.email_verified === '1' || route.query.email_verified === '0') {
   verifiedNotice.value = route.query.email_verified;
@@ -134,6 +146,10 @@ watch(() => route.fullPath, () => {
       </div>
     </header>
     <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      <p v-if="maintenance" role="status" class="mb-6 rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm" data-maintenance>
+        <span class="font-medium">{{ $t(maintenance.active ? 'maintenance.now' : 'maintenance.planned', { from: dateTime(maintenance.starts_at), to: dateTime(maintenance.ends_at) }) }}</span>
+        {{ maintenance.message }}
+      </p>
       <p v-if="verifiedNotice" role="status" class="mb-6 rounded-md border px-3 py-2 text-sm" :class="verifiedNotice === '1' ? 'border-ok-border bg-ok-soft text-ok' : 'border-warn-border bg-warn-soft'" data-verified-notice>
         {{ verifiedNotice === '1' ? $t('account.verify.done') : $t('account.verify.failed') }}
       </p>

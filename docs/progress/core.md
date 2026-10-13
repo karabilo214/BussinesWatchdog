@@ -766,3 +766,14 @@ Status: complete
 - Found while testing on PostgreSQL: `EntitlementsTest::test_checks_need_checkout_monitoring_and_respect_the_interval_floor` compared the scheduler's next run with a later real `now()` and failed when a second boundary passed in between — the test now freezes the time (scheduler unchanged).
 
 Verification: `tests/Feature/Platform/AuditJournalTest.php` (2: paging over 58 entries, filters by action/organisation/result/dates/system actor, CSV of the filter with a quoted formula cell and the export audited; support forbidden). Control 52 tests (`tests/audit.test.ts`, 2). Frontend check green. Backend SQLite 553 passed, 4 skipped; PostgreSQL 18: 557 of 557. Live in Chromium (`run-live.sh staff`): audit filtered by «Изменён сотрудник» shows the disabling with its reason; CSV export of the same filter — PASS.
+
+### Step 134: «Настройки» — Read-Only Configuration and a Versioned Maintenance Window
+
+Status: complete
+
+- ADR 0054 (accepted for now, to be confirmed by the owner). Migration `maintenance_notices` (version, start, end, messages ru/en/de, author, reason, cancellation). `PlatformSettings` (configuration with fingerprints only, current/history, schedule with bounds, cancel, customer view), `SettingsController` (`settings.manage`, step-up code), customer `GET /api/v1/maintenance` (`MaintenanceController`). New capability `settings.manage` (owner). OpenAPI: 4 operations.
+- Owner panel: «Настройки» — maintenance block (plan with start/end, messages in three languages, reason, code; current window with cancel; version history) and configuration (set/not set + fingerprints, environment, mail, Telegram, sessions, retention, site). The placeholder view `SectionView` and its texts are gone — every section of the panel is now real; «Обзор» for staff without billing access shows a short explanation. ru/en/de.
+- Customer account: maintenance banner in the layout ("planned" / "in progress" with times and the message in the user's language); failures to load it are silent.
+- Found on the live stand: the Telegram bot name already starts with «@» in the environment (shown once now); zero notification recipients means all owners (worded so).
+
+Verification: `tests/Feature/Platform/PlatformSettingsTest.php` (2: configuration without secret values, bounds and messages validated, step-up, versions replace each other, customer sees German message planned then running, cancel, audit order; admin forbidden). Control 54 tests (`tests/settings.test.ts`, 2), customer 114 (`tests/maintenance.test.ts`, 2). Frontend check green. Backend SQLite 555 passed, 4 skipped; PostgreSQL 18: 559 of 559. Live in Chromium (`run-live.sh overview`): settings shown with fingerprints, maintenance published and cancelled with fresh codes — PASS.

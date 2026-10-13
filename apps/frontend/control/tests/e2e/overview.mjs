@@ -56,6 +56,31 @@ try {
   await shot(page, '3-service');
   console.log(`ok   service summary: ${(await page.locator('[data-state]').innerText()).split('\n')[0]}, release ${(await page.locator('[data-section="version"]').innerText()).split('\n').pop()}`);
 
+  await page.goto(`${base}/owner/settings`);
+  await page.locator('[data-section="configuration"]').waitFor();
+  await page.locator('[data-action="plan"]').click();
+  const local = (hours) => { const date = new Date(Date.now() + hours * 3600000); date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); return date.toISOString().slice(0, 16); };
+  await page.locator('[data-field="starts"]').fill(local(24));
+  await page.locator('[data-field="ends"]').fill(local(26));
+  await page.locator('[data-field="message-ru"]').fill('Плановые работы, проверки приостановлены.');
+  await page.locator('[data-field="message-en"]').fill('Planned maintenance, checks paused.');
+  await page.locator('[data-field="message-de"]').fill('Geplante Wartung, Prüfungen pausiert.');
+  await page.locator('[data-field="reason"]').fill('Live check');
+  const used = code(process.env.BW_TOTP_SECRET);
+  while (code(process.env.BW_TOTP_SECRET) === used) await new Promise((resolve) => setTimeout(resolve, 1000));
+  await page.locator('[data-field="code"]').fill(code(process.env.BW_TOTP_SECRET));
+  await page.locator('[data-action="publish"]').click();
+  await page.locator('[data-current]').waitFor();
+  await shot(page, '4-settings');
+  const again = code(process.env.BW_TOTP_SECRET);
+  while (code(process.env.BW_TOTP_SECRET) === again) await new Promise((resolve) => setTimeout(resolve, 1000));
+  await page.locator('[data-action="cancel"]').click();
+  await page.locator('[data-field="cancel-reason"]').fill('Live check done');
+  await page.locator('[data-field="cancel-code"]').fill(code(process.env.BW_TOTP_SECRET));
+  await page.locator('[data-action="confirm-cancel"]').click();
+  await page.locator('[data-none]').waitFor();
+  console.log('ok   settings: configuration with fingerprints; maintenance window published and cancelled with the authenticator code');
+
   if (errors.length > 0) throw new Error(`page errors: ${errors.join('; ')}`);
   console.log('PASS');
 } catch (error) {

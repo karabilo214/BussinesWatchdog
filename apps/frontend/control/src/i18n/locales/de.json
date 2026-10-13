@@ -42,7 +42,7 @@
   "section": {
     "overview": {
       "title": "Übersicht",
-      "body": "Umsatz, Kunden und Zustand des Dienstes. Dieser Bereich folgt in späteren Schritten."
+      "body": "Geschäftszahlen stehen dem Inhaber und den Finanz-Mitarbeitenden zur Verfügung. Wählen Sie einen Bereich im Menü."
     },
     "tenants": {
       "title": "Kunden"
@@ -54,24 +54,19 @@
       "title": "Zahlungen"
     },
     "plans": {
-      "title": "Tarife und Rabatte",
-      "body": "Pakete, Preise, Abrechnungszeiträume, Limits und Rabatte. Dieser Bereich folgt als Nächstes."
+      "title": "Tarife und Rabatte"
     },
     "service": {
-      "title": "Dienst",
-      "body": "Warteschlangen, Datenlieferung und Prüfungen. Dieser Bereich folgt in späteren Schritten."
+      "title": "Dienst"
     },
     "staff": {
-      "title": "Mitarbeiter",
-      "body": "Mitarbeiter des Dienstes und ihre Rollen. Dieser Bereich folgt in späteren Schritten."
+      "title": "Mitarbeiter"
     },
     "audit": {
-      "title": "Audit",
-      "body": "Protokoll der Mitarbeiteraktionen. Dieser Bereich folgt in späteren Schritten."
+      "title": "Audit"
     },
     "settings": {
-      "title": "Einstellungen",
-      "body": "Einstellungen des Dienstes. Dieser Bereich folgt in späteren Schritten."
+      "title": "Einstellungen"
     },
     "site": {
       "title": "Website"
@@ -182,7 +177,10 @@
     "invitation_not_started": "Beginnen Sie neu: Laden Sie die Seite über den Link in der E-Mail.",
     "mfa_code_invalid": "Der Code passt nicht. Prüfen Sie die Uhrzeit des Telefons und versuchen Sie es erneut.",
     "name_required": "Geben Sie einen Namen ein.",
-    "staff_not_found": "Mitarbeitende nicht gefunden."
+    "staff_not_found": "Mitarbeitende nicht gefunden.",
+    "maintenance_window_invalid": "Prüfen Sie die Zeiten: Ende nach Beginn und in der Zukunft, höchstens 24 h, Beginn höchstens 90 Tage voraus.",
+    "maintenance_message_invalid": "Die Nachricht braucht in jeder Sprache 3 bis 300 Zeichen.",
+    "maintenance_not_scheduled": "Keine Wartung geplant."
   },
   "period": {
     "per": {
@@ -662,6 +660,10 @@
     },
     "audit": {
       "exported": "Audit exportiert"
+    },
+    "settings": {
+      "maintenance_scheduled": "Wartung geplant",
+      "maintenance_cancelled": "Wartung abgesagt"
     }
   },
   "site": {
@@ -1313,5 +1315,52 @@
     "less": "Ausblenden",
     "reason": "Grund",
     "load_more": "Mehr anzeigen"
+  },
+  "settings": {
+    "hint": "Wartungsfenster für Kunden und Konfiguration des Dienstes. Geheimnisse werden nie angezeigt — nur ob ein Schlüssel gesetzt ist und ein kurzer Fingerabdruck; geändert werden sie auf dem Server.",
+    "forbidden": "Dieser Bereich steht dem Inhaber des Dienstes zur Verfügung.",
+    "maintenance": {
+      "title": "Geplante Wartung",
+      "hint": "Alle Kunden sehen die Nachricht im Kundenkonto ab Veröffentlichung bis zum Ende. Höchstens {hours} h lang und höchstens {days} Tage im Voraus; eine neue Version ersetzt die aktuelle. Grund und App-Code nötig.",
+      "plan": "Wartung planen",
+      "current": "Geplant: {from} — {to} (Version {version})",
+      "none": "Keine Wartung geplant.",
+      "cancel": "Wartung absagen",
+      "starts": "Beginn",
+      "ends": "Ende",
+      "message": "Nachricht an Kunden ({locale})",
+      "publish": "Veröffentlichen",
+      "history": "Versionsverlauf",
+      "cancelled_at": "abgesagt {date}, {name}",
+      "scheduled": "Wartung veröffentlicht.",
+      "cancelled": "Wartung abgesagt."
+    },
+    "config": {
+      "title": "Konfiguration",
+      "hint": "Nur Ansicht. Werte kommen aus der Serverumgebung (README, „Release“).",
+      "environment": "Umgebung und Release",
+      "app_url": "Adresse der Anwendung",
+      "enforcement": "Tariflimits",
+      "enforcement_mode": {
+        "pilot": "Pilot — Limits nicht angewendet",
+        "enforce": "angewendet"
+      },
+      "paddle": {
+        "api_key": "Paddle-API-Schlüssel",
+        "client_token": "Paddle-Client-Token",
+        "webhook_secret": "Paddle-Webhook-Geheimnis"
+      },
+      "set": "gesetzt",
+      "missing": "nicht gesetzt",
+      "mail": "E-Mail",
+      "sessions": "Sitzungen der Mitarbeitenden",
+      "sessions_value": "Leerlauf {idle_minutes} Min., höchstens {absolute_hours} h",
+      "retention": "Aufbewahrung",
+      "retention_value": "Screenshots {screenshots_days} Tage, Exporte {exports_days} Tage, Anfragen {contact_days} Tage nach Abschluss",
+      "site": "Website",
+      "site_value": "Empfänger für Anfragen: {contact_notify}, Seiten-Cache {cache_seconds} s",
+      "site_value_owners": "Benachrichtigungen zu Anfragen an alle Inhaber, Seiten-Cache {cache_seconds} s"
+    },
+    "later": "Worker-Limits für Browserprüfungen werden vorerst nur in der Serverumgebung festgelegt."
   }
 }
