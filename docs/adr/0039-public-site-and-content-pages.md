@@ -25,3 +25,7 @@ spec/panels/PUBLIC-SUBSCRIPTION-FRONTEND.md §1, §2, §3, §8 and ADMIN-BACKEND
 ## Amendment (2026-10-13, Step 121, owner's decision)
 
 14. **System pages**: the home page is edited in the owner panel like an ordinary page; its built-in text is no longer separate Blade markup but ordinary page HTML built from the translations with the content classes (`resources/views/site/builtin/home.blade.php`, `SiteDefaults`). The site shows it until a version is published, and the editor starts from it, so the owner edits exactly what visitors see. An empty home body still means the built-in text. The pricing and contact pages are changed only in code: the API refuses drafts, publication, preview and restore for them (409 `edited_in_code`), the site ignores any stored versions of them (text and menu label come from the translations), and the panel shows only their menu settings with an “edited in code” note. Discarding a draft and unpublishing stay allowed so leftovers can be cleared.
+
+## Amendment (2026-10-13, Step 139, owner's backlog)
+
+15. **Deleting old versions**: an old (retired) version of a page can be deleted for good with a reason (audited with version and content hash). The published version and drafts cannot be deleted. Versions of a page marked as a legal document, and any version a customer accepted (`policy_acceptances`), are never deleted — they are the evidence of what was agreed (ADR 0042). Version numbers are not reused for the history that remains.

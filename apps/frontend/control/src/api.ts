@@ -883,6 +883,10 @@ export async function unpublishPage(id: string, locale: SiteLocale, reason: stri
   return (await request<PageCard>('POST', `/platform-api/v1/pages/${encodeURIComponent(id)}/locales/${locale}/unpublish`, { body: { reason } })).data;
 }
 
+export async function deletePageVersion(id: string, versionId: string, reason: string): Promise<PageCard> {
+  return (await request<PageCard>('POST', `/platform-api/v1/pages/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/delete`, { body: { reason } })).data;
+}
+
 export async function restorePageVersion(id: string, versionId: string): Promise<PageCard> {
   return (await request<PageCard>('POST', `/platform-api/v1/pages/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`)).data;
 }

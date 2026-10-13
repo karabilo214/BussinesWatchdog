@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -222,6 +223,34 @@ class PublicSiteTest extends TestCase
         $this->plan('live', ['en' => 'Live'], [['month', 2900]], mode: 'live');
         $this->plan('live-example', ['en' => 'Live example'], [['month', 100]], placeholder: true, mode: 'live');
         $this->get('/en/pricing')->assertSee('data-plan="live"', false)->assertSee('€29.00')->assertDontSee('data-plan="live-example"', false)->assertDontSee('data-plan="start"', false)->assertDontSee('Test mode');
+    }
+
+    public function test_old_page_versions_can_be_deleted_except_the_current_ones_and_legal_documents(): void
+    {
+        $this->signIn();
+        $page = $this->postJson('/platform-api/v1/pages', ['slug' => 'about'])->assertCreated()->json('id');
+        foreach (['Erste', 'Zweite', 'Dritte'] as $title) {
+            $this->putJson("/platform-api/v1/pages/{$page}/locales/de/draft", ['title' => $title, 'body' => "<p>{$title}</p>"])->assertOk();
+            $this->postJson("/platform-api/v1/pages/{$page}/locales/de/publish", ['reason' => 'Neu'])->assertOk();
+        }
+        $this->putJson("/platform-api/v1/pages/{$page}/locales/de/draft", ['title' => 'Entwurf', 'body' => '<p>Entwurf</p>'])->assertOk();
+        $versions = PublicPageVersion::query()->where('page_id', $page)->orderBy('version')->get()->keyBy('version');
+
+        $this->postJson("/platform-api/v1/pages/{$page}/versions/{$versions[1]->id}/delete", [])->assertStatus(422);
+        $card = $this->postJson("/platform-api/v1/pages/{$page}/versions/{$versions[1]->id}/delete", ['reason' => 'Alt'])->assertOk()->json();
+        $this->assertSame([3, 2], array_column($card['history'], 'version'));
+        $this->postJson("/platform-api/v1/pages/{$page}/versions/{$versions[3]->id}/delete", ['reason' => 'Aktuell'])->assertStatus(409)->assertJsonPath('code', 'version_not_retired');
+        $this->postJson("/platform-api/v1/pages/{$page}/versions/{$versions[4]->id}/delete", ['reason' => 'Entwurf'])->assertStatus(409)->assertJsonPath('code', 'version_not_retired');
+        $this->postJson("/platform-api/v1/pages/{$page}/versions/{$versions[1]->id}/delete", ['reason' => 'Nochmal'])->assertNotFound();
+        $this->get('/de/about')->assertSee('Dritte');
+        $this->assertSame(1, DB::table('platform_audit_log')->where('action', 'site.page.version_deleted')->where('reason', 'Alt')->count());
+
+        $this->patchJson("/platform-api/v1/pages/{$page}", ['policy_type' => 'service_terms'])->assertOk();
+        $this->postJson("/platform-api/v1/pages/{$page}/versions/{$versions[2]->id}/delete", ['reason' => 'Dokument'])->assertStatus(409)->assertJsonPath('code', 'version_is_legal');
+        $user = User::query()->create(['name' => 'Kunde', 'email' => 'kunde@shop.test', 'password_hash' => Hash::make('kunde-password-1234'), 'locale' => 'de']);
+        DB::table('policy_acceptances')->insert(['id' => (string) Str::uuid7(), 'user_id' => $user->id, 'policy_type' => 'service_terms', 'page_version_id' => $versions[2]->id, 'locale' => 'de', 'version' => 2, 'content_hash' => $versions[2]->content_hash, 'purpose' => 'signup', 'accepted_at' => now()]);
+        $this->patchJson("/platform-api/v1/pages/{$page}", ['policy_type' => null])->assertOk();
+        $this->postJson("/platform-api/v1/pages/{$page}/versions/{$versions[2]->id}/delete", ['reason' => 'Dokument'])->assertStatus(409)->assertJsonPath('code', 'version_is_legal');
     }
 
     public function test_pricing_recalculates_the_price_for_extra_stores_without_javascript_within_the_plan_limit(): void

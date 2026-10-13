@@ -180,7 +180,9 @@
     "staff_not_found": "Mitarbeitende nicht gefunden.",
     "maintenance_window_invalid": "Prüfen Sie die Zeiten: Ende nach Beginn und in der Zukunft, höchstens 24 h, Beginn höchstens 90 Tage voraus.",
     "maintenance_message_invalid": "Die Nachricht braucht in jeder Sprache 3 bis 300 Zeichen.",
-    "maintenance_not_scheduled": "Keine Wartung geplant."
+    "maintenance_not_scheduled": "Keine Wartung geplant.",
+    "version_is_legal": "Versionen rechtlicher Dokumente und Versionen, denen Kunden zugestimmt haben, können nicht gelöscht werden.",
+    "version_not_retired": "Löschen kann man nur eine alte, bereits ersetzte Version."
   },
   "period": {
     "per": {
@@ -738,13 +740,15 @@
       "refresh": "Aktualisieren",
       "restore": "In Entwurf",
       "save_settings": "Speichern",
-      "archive": "Seite löschen"
+      "archive": "Seite löschen",
+      "delete_version": "Löschen"
     },
     "confirm": {
       "publish": "Entwurf ({locale}) unter {path} veröffentlichen? Die aktuelle Version wandert in den Verlauf.",
       "unpublish": "Veröffentlichung von {path} zurückziehen? Besucher sehen „Seite nicht gefunden“.",
       "archive": "Seite in allen Sprachen löschen? Veröffentlichte Versionen bleiben im Verlauf, die Adresse wird frei.",
-      "reason": "Grund (im Audit sichtbar)"
+      "reason": "Grund (im Audit sichtbar)",
+      "delete_version": "Die alte Version {version} wird endgültig gelöscht. Veröffentlichte Version und Entwurf bleiben unberührt."
     },
     "done": {
       "saved": "Entwurf gespeichert.",
@@ -752,7 +756,8 @@
       "restored": "Die Version wurde in den Entwurf kopiert — prüfen und veröffentlichen.",
       "settings": "Einstellungen gespeichert.",
       "publish": "Veröffentlicht.",
-      "unpublish": "Zurückgezogen."
+      "unpublish": "Zurückgezogen.",
+      "delete_version": "Alte Version gelöscht."
     },
     "history": {
       "title": "Versionsverlauf ({locale})",

@@ -111,6 +111,17 @@ class PageController extends Controller
         }, $request);
     }
 
+    public function deleteVersion(Request $request, string $page, string $version): JsonResponse|Response
+    {
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);
+
+        return $this->guard(function (PlatformStaff $staff) use ($page, $version, $validated): JsonResponse {
+            $this->pages->deleteVersion($staff->id, $page, $version, trim($validated['reason']));
+
+            return response()->json($this->pages->page($page));
+        }, $request);
+    }
+
     public function archive(Request $request, string $page): JsonResponse|Response
     {
         $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);

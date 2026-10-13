@@ -109,3 +109,12 @@ Status: complete
 - Owner's backlog item. The pricing page has a «Дополнительных магазинов» number field with «Пересчитать» — a plain GET form (`?stores=N`, kept by the period and currency switches), so it works without JavaScript like the rest of the site (ADR 0039). `PricingTable::build()` takes the number (0–100, non-digits ignored), clamps it per plan to the plan's `max_extra_stores` limit and shows «С N доп. магазинами: total per period» = base + N × extra-store price of the same period and currency, in integer minor units formatted by `MoneyFormat`; a note says when the plan allows fewer. Plans without an extra-store price show no total; the field appears only when some plan offers extra stores. ru/en/de texts, site styles.
 
 Verification: `PublicSiteTest::test_pricing_recalculates_the_price_for_extra_stores_without_javascript_within_the_plan_limit` (field and max, monthly total, cap with note, yearly total, invalid input). Backend SQLite 558 passed, 4 skipped; PostgreSQL 18: 562 of 562; frontend check green (site stylesheet). Local stand: `/ru/pricing?stores=2` shows 37,00 € and 63,00 € for the sandbox plans (19 + 2 × 9, 49 + 2 × 7).
+
+### Step 139: Deleting Old Page Versions (Except Legal Documents)
+
+Status: complete
+
+- Owner's backlog item (added during the run): the archive of old page versions can be cleaned up. ADR 0039 p. 15. `PageAdmin::deleteVersion()` under the page lock: only `retired` versions (409 `version_not_retired` for published and drafts), never for a legal-document page or a version referenced by `policy_acceptances` (409 `version_is_legal`), audit `site.page.version_deleted` with version and content hash, reason required. `POST /platform-api/v1/pages/{page}/versions/{version}/delete`; OpenAPI updated.
+- Owner panel, page history: «Удалить» next to «В черновик» for old versions of non-legal pages, with the reason confirmation showing the version number. ru/en/de, error texts.
+
+Verification: `PublicSiteTest::test_old_page_versions_can_be_deleted_except_the_current_ones_and_legal_documents` (reason required, old version gone from history, published/draft refused, repeated 404, site unchanged, legal page and accepted version refused). Control 55 tests (+1). Frontend check green. Backend SQLite 559 passed, 4 skipped; PostgreSQL 18: 563 of 563.

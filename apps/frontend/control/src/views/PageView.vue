@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { StatusBadge } from '@bw/ui';
-import { archivePage, discardPageDraft, fetchPage, fetchPageBlocks, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, type PageBlock, type PageCard, type PageMenu, type PolicyType, type SiteLocale } from '@/api';
+import { archivePage, deletePageVersion, discardPageDraft, fetchPage, fetchPageBlocks, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, type PageBlock, type PageCard, type PageMenu, type PolicyType, type SiteLocale } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import RichEditor from '@/components/editor/RichEditor.vue';
 import { CONTENT_CLASSES, SITE_LOCALES, publicUrl } from '@/components/site';
@@ -25,7 +25,7 @@ const locale = ref<SiteLocale>('ru');
 const form = reactive({ title: '', description: '', body: '' });
 const saved = ref({ title: '', description: '', body: '' });
 const settings = reactive({ menu: 'none' as PageMenu, sort: 0, policy: '' as PolicyType | '' });
-const confirm = reactive({ action: null as 'publish' | 'unpublish' | 'archive' | null, reason: '' });
+const confirm = reactive({ action: null as 'publish' | 'unpublish' | 'archive' | 'delete_version' | null, reason: '', version: '' });
 const previewHtml = ref('');
 const previewError = ref<unknown>(null);
 const editorMode = ref<'visual' | 'html'>(storedMode());
@@ -179,13 +179,19 @@ async function confirmAction(): Promise<void> {
     return;
   }
 
-  await run(() => (action === 'publish' ? publishPage(id, locale.value, reason) : unpublishPage(id, locale.value, reason)), `site.done.${action}`, true);
+  if (action === 'delete_version') {
+    await run(() => deletePageVersion(id, confirm.version, reason), 'site.done.delete_version');
+  } else {
+    await run(() => (action === 'publish' ? publishPage(id, locale.value, reason) : unpublishPage(id, locale.value, reason)), `site.done.${action}`, true);
+  }
+
   confirm.action = null;
   confirm.reason = '';
 }
 
-function ask(action: 'publish' | 'unpublish' | 'archive'): void {
+function ask(action: 'publish' | 'unpublish' | 'archive' | 'delete_version', version = ''): void {
   confirm.action = action;
+  confirm.version = version;
   confirm.reason = '';
   actionError.value = null;
 }
@@ -319,7 +325,7 @@ onBeforeUnmount(() => {
           </div>
 
           <form v-if="confirm.action" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-5 text-sm" :data-form="confirm.action" @submit.prevent="confirmAction">
-            <p class="font-medium">{{ $t(`site.confirm.${confirm.action}`, { locale: locale.toUpperCase(), path: publicUrl(locale, page.path) }) }}</p>
+            <p class="font-medium">{{ $t(`site.confirm.${confirm.action}`, { locale: locale.toUpperCase(), path: publicUrl(locale, page.path), version: page.history.find((row) => row.id === confirm.version)?.version ?? '' }) }}</p>
             <label class="flex flex-col gap-1.5">
               <span class="font-medium">{{ $t('site.confirm.reason') }}</span>
               <textarea v-model="confirm.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="reason" />
@@ -351,6 +357,7 @@ onBeforeUnmount(() => {
                   <td class="py-2 pr-4 whitespace-nowrap">{{ dateTime(row.retired_at) }}</td>
                   <td class="py-2 text-right">
                     <button type="button" class="rounded-md border border-border-strong px-3 py-1 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="restore" @click="restore(row.id)">{{ $t('site.action.restore') }}</button>
+                    <button v-if="row.state === 'retired' && !page.policy_type" type="button" class="ml-1 rounded-md border border-crit-border px-3 py-1 text-sm font-medium text-crit hover:bg-crit-soft disabled:opacity-60" :disabled="busy" data-action="delete-version" @click="ask('delete_version', row.id)">{{ $t('site.action.delete_version') }}</button>
                   </td>
                 </tr>
               </tbody>

@@ -22,6 +22,7 @@ vi.mock('@/api', () => ({
   publishPage: vi.fn(),
   unpublishPage: vi.fn(),
   restorePageVersion: vi.fn(),
+  deletePageVersion: vi.fn(),
   archivePage: vi.fn(),
   previewPage: vi.fn(),
   fetchContactRequests: vi.fn(),
@@ -198,6 +199,30 @@ describe('site', () => {
     await wrapper.get('[data-form="page-settings"]').trigger('submit');
     await flushPromises();
     expect(mocked.updatePage).toHaveBeenCalledWith('pricing', { menu: 'footer', sort: 0 });
+  });
+
+  it('deletes an old version with a reason but offers nothing for the current version or a legal document', async () => {
+    const history = [
+      { id: 'v-2', locale: 'ru' as const, version: 2, state: 'published' as const, title: 'О компании', published_at: '2026-10-12T11:00:00Z', retired_at: null, published_by: 'Founder' },
+      { id: 'v-1', locale: 'ru' as const, version: 1, state: 'retired' as const, title: 'О компании', published_at: '2026-10-12T10:00:00Z', retired_at: '2026-10-12T11:00:00Z', published_by: 'Founder' },
+    ];
+    mocked.fetchPage.mockResolvedValue(card({ history }));
+    mocked.deletePageVersion.mockResolvedValue(card({ history: [history[0]!] }));
+    const { wrapper } = await open('/owner/site/pages/p-1');
+
+    expect(wrapper.get('[data-version="2"]').find('[data-action="delete-version"]').exists()).toBe(false);
+    await wrapper.get('[data-version="1"] [data-action="delete-version"]').trigger('click');
+    expect(wrapper.get('[data-form="delete_version"]').text()).toContain('версия 1');
+    await wrapper.get('[data-field="reason"]').setValue('Устарела');
+    await wrapper.get('[data-form="delete_version"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.deletePageVersion).toHaveBeenCalledWith('p-1', 'v-1', 'Устарела');
+    expect(wrapper.find('[data-version="1"]').exists()).toBe(false);
+    expect(wrapper.get('[data-notice]').text()).toBe('Старая версия удалена.');
+
+    mocked.fetchPage.mockResolvedValue(card({ history, policy_type: 'service_terms' }));
+    const legal = await open('/owner/site/pages/p-1');
+    expect(legal.wrapper.find('[data-action="delete-version"]').exists()).toBe(false);
   });
 
   it('marks a page as the terms of service in its settings', async () => {

@@ -101,6 +101,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/pages/{page}/locales/{locale}/publish', [PageController::class, 'publish'])->whereUuid('page');
         Route::post('/pages/{page}/locales/{locale}/unpublish', [PageController::class, 'unpublish'])->whereUuid('page');
         Route::post('/pages/{page}/versions/{version}/restore', [PageController::class, 'restore'])->whereUuid(['page', 'version']);
+        Route::post('/pages/{page}/versions/{version}/delete', [PageController::class, 'deleteVersion'])->whereUuid(['page', 'version']);
         Route::post('/pages/{page}/archive', [PageController::class, 'archive'])->whereUuid('page');
     });
     Route::middleware('platform.staff:'.PlatformCapabilities::CONTACTS_READ)->group(function (): void {

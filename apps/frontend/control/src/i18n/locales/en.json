@@ -180,7 +180,9 @@
     "staff_not_found": "Staff member not found.",
     "maintenance_window_invalid": "Check the times: end after start and in the future, at most 24 h, start at most 90 days ahead.",
     "maintenance_message_invalid": "The message in every language needs 3 to 300 characters.",
-    "maintenance_not_scheduled": "No maintenance is planned."
+    "maintenance_not_scheduled": "No maintenance is planned.",
+    "version_is_legal": "Versions of legal documents and versions customers accepted cannot be deleted.",
+    "version_not_retired": "Only an old, already replaced version can be deleted."
   },
   "period": {
     "per": {
@@ -738,13 +740,15 @@
       "refresh": "Refresh",
       "restore": "To draft",
       "save_settings": "Save",
-      "archive": "Delete page"
+      "archive": "Delete page",
+      "delete_version": "Delete"
     },
     "confirm": {
       "publish": "Publish the draft ({locale}) at {path}? The current version moves to the history.",
       "unpublish": "Unpublish {path}? Visitors will see “page not found”.",
       "archive": "Delete the page in all languages? Published versions stay in the history and the address becomes free.",
-      "reason": "Reason (shown in the audit)"
+      "reason": "Reason (shown in the audit)",
+      "delete_version": "The old version {version} will be deleted for good. The published version and the draft are not affected."
     },
     "done": {
       "saved": "Draft saved.",
@@ -752,7 +756,8 @@
       "restored": "The version was copied to the draft — check it and publish.",
       "settings": "Settings saved.",
       "publish": "Published.",
-      "unpublish": "Unpublished."
+      "unpublish": "Unpublished.",
+      "delete_version": "Old version deleted."
     },
     "history": {
       "title": "Version history ({locale})",

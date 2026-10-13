@@ -279,6 +279,32 @@ class PageAdmin
         return $draft;
     }
 
+    public function deleteVersion(string $staffId, string $pageId, string $versionId, string $reason): void
+    {
+        $page = $this->find($pageId);
+
+        DB::transaction(function () use ($staffId, $page, $versionId, $reason): void {
+            $this->lock($page);
+            /** @var PublicPageVersion|null $version */
+            $version = PublicPageVersion::query()->where('page_id', $page->id)->whereKey($versionId)->lockForUpdate()->first();
+
+            if ($version === null) {
+                throw new SiteRejected('version_not_found', 404);
+            }
+
+            if ($version->state !== PublicPageVersion::STATE_RETIRED) {
+                throw new SiteRejected('version_not_retired', 409);
+            }
+
+            if ($page->policy_type !== null || DB::table('policy_acceptances')->where('page_version_id', $version->id)->exists()) {
+                throw new SiteRejected('version_is_legal', 409);
+            }
+
+            $version->delete();
+            $this->audit->record($staffId, 'site.page.version_deleted', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['locale' => $version->locale, 'version' => $version->version, 'content_hash' => $version->content_hash], $reason);
+        });
+    }
+
     public function archive(string $staffId, string $pageId, string $reason): void
     {
         $page = $this->find($pageId);
