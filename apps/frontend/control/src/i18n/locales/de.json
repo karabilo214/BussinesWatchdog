@@ -618,8 +618,9 @@
       "description": "Beschreibung für Suchmaschinen",
       "description_hint": "Bis 300 Zeichen; erscheint in Suchergebnissen.",
       "body": "HTML der Seite",
-      "body_hint": "Der Seitentitel wird automatisch angezeigt — beginnen Sie mit Text oder einem <h2>.",
-      "body_hint_system": "Wenn Sie das Feld leeren, behält die Website den eingebauten Text der Startseite."
+      "body_hint": "Der Seitentitel wird automatisch angezeigt — beginnen Sie mit Text oder einer Zwischenüberschrift (Überschrift 2).",
+      "body_hint_system": "Wenn Sie das Feld leeren, behält die Website den eingebauten Text der Startseite.",
+      "content": "Seiteninhalt"
     },
     "help": {
       "title": "Was im HTML erlaubt ist",
@@ -674,7 +675,13 @@
       "recurring_payment": "Abo-Bedingungen (automatische Verlängerung)",
       "hint": "Kunden akzeptieren die veröffentlichte Version dieser Seite: bei der Registrierung Nutzungsbedingungen und Datenschutzerklärung, bei Testphase, Kauf und Tarifwechsel Nutzungsbedingungen und Abo-Bedingungen. Jeder Typ gehört zu einer Seite. Eine neue Veröffentlichung ist eine neue Fassung: Kunden akzeptieren sie bei der nächsten Aktion."
     },
-    "in_code": "Der Text dieser Seite wird nur im Code der Website geändert. Hier legen Sie fest, in welchem Menü und an welcher Stelle sie erscheint."
+    "in_code": "Der Text dieser Seite wird nur im Code der Website geändert. Hier legen Sie fest, in welchem Menü und an welcher Stelle sie erscheint.",
+    "mode": {
+      "label": "Bearbeitungsmodus",
+      "visual": "Visuell",
+      "html": "HTML-Code",
+      "html_hint": "Markup, das der visuelle Editor nicht kennt, kann beim Zurückwechseln vereinfacht werden. Prüfen Sie die Vorschau."
+    }
   },
   "contacts": {
     "hint": "Nachrichten aus dem Kontaktformular der Website. Neue Nachrichten werden per E-Mail gemeldet. Geschlossene Anfragen werden nach einem Jahr gelöscht.",
@@ -751,5 +758,63 @@
       "failed": "Fehler",
       "unknown": "Keine Antwort erhalten"
     }
+  },
+  "editor": {
+    "block": "Textart",
+    "paragraph": "Normaler Text",
+    "heading": "Überschrift {level}",
+    "text_style": "Textstil",
+    "style": {
+      "none": "Ohne Stil",
+      "lead": "Einleitung",
+      "muted": "Gedämpft",
+      "small": "Klein",
+      "center": "Zentriert",
+      "eyebrow": "Dachzeile",
+      "note": "Hinweis",
+      "warning": "Warnung"
+    },
+    "bold": "Fett",
+    "italic": "Kursiv",
+    "underline": "Unterstrichen",
+    "bullet_list": "Aufzählung",
+    "ordered_list": "Nummerierte Liste",
+    "quote": "Zitat",
+    "rule": "Trennlinie",
+    "link": "Link",
+    "image": "Bild",
+    "table": "Tabelle",
+    "add_row": "+ Zeile",
+    "add_column": "+ Spalte",
+    "delete_table": "Tabelle löschen",
+    "wrap_section": "In Abschnitt",
+    "unwrap_section": "Abschnitt entfernen",
+    "section_style": "Abschnittsstil",
+    "section": {
+      "none": "Einfacher Abschnitt",
+      "hero": "Startbereich",
+      "band": "Hervorgehobenes Band",
+      "card": "Karte",
+      "feature": "Vorteil",
+      "actions": "Schaltflächenreihe",
+      "grid-2": "Zwei Spalten",
+      "grid-3": "Drei Spalten",
+      "note": "Hinweis",
+      "warning": "Warnung",
+      "center": "Zentriert"
+    },
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "link_href": "Linkadresse",
+    "link_style": "Aussehen",
+    "link_hint": "Eine Seite der Website, z. B. /de/pricing; externe Adressen beginnen mit https://. Leere Adresse entfernt den Link.",
+    "link_styles": {
+      "plain": "Normaler Link",
+      "button": "Schaltfläche",
+      "secondary": "Zweite Schaltfläche"
+    },
+    "image_src": "Bildadresse (https)",
+    "image_alt": "Beschreibung für blinde Leser",
+    "apply": "Übernehmen"
   }
 }

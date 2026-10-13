@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import { StatusBadge } from '@bw/ui';
 import { archivePage, discardPageDraft, fetchPage, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, type PageCard, type PageMenu, type PolicyType, type SiteLocale } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import RichEditor from '@/components/editor/RichEditor.vue';
 import { CONTENT_CLASSES, SITE_LOCALES, publicUrl } from '@/components/site';
 import { useFormat } from '@/composables/useFormat';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -27,7 +28,25 @@ const settings = reactive({ menu: 'none' as PageMenu, sort: 0, policy: '' as Pol
 const confirm = reactive({ action: null as 'publish' | 'unpublish' | 'archive' | null, reason: '' });
 const previewHtml = ref('');
 const previewError = ref<unknown>(null);
+const editorMode = ref<'visual' | 'html'>(storedMode());
 let previewTimer: ReturnType<typeof setTimeout> | null = null;
+
+function storedMode(): 'visual' | 'html' {
+  try {
+    return window.localStorage.getItem('bw.page-editor-mode') === 'html' ? 'html' : 'visual';
+  } catch {
+    return 'visual';
+  }
+}
+
+function setEditorMode(mode: 'visual' | 'html'): void {
+  editorMode.value = mode;
+  try {
+    window.localStorage.setItem('bw.page-editor-mode', mode);
+  } catch {
+    return;
+  }
+}
 
 const content = computed(() => page.value?.content[locale.value] ?? null);
 const dirty = computed(() => form.title !== saved.value.title || form.description !== saved.value.description || form.body !== saved.value.body);
@@ -219,7 +238,7 @@ onBeforeUnmount(() => {
             <a v-if="content?.published" :href="publicUrl(locale, page.path)" target="_blank" rel="noopener" class="text-primary hover:underline">{{ $t('site.open') }}</a>
           </div>
 
-          <div class="grid gap-6 xl:grid-cols-2">
+          <div class="grid gap-6" :class="editorMode === 'html' && 'xl:grid-cols-2'">
             <form class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 text-sm" data-form="page-draft" @submit.prevent="save">
               <label class="flex flex-col gap-1.5">
                 <span class="font-medium">{{ $t('site.field.title') }}</span>
@@ -230,18 +249,27 @@ onBeforeUnmount(() => {
                 <input v-model="form.description" maxlength="300" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="description" />
                 <span class="text-text-muted">{{ $t('site.field.description_hint') }}</span>
               </label>
-              <label class="flex flex-col gap-1.5">
-                <span class="font-medium">{{ $t('site.field.body') }}</span>
+              <div class="flex flex-col gap-1.5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="font-medium" id="page-body-label">{{ $t('site.field.content') }}</span>
+                  <div class="flex rounded-md border border-border-strong text-sm" role="group" :aria-label="$t('site.mode.label')">
+                    <button v-for="mode in (['visual', 'html'] as const)" :key="mode" type="button" class="px-3 py-1 font-medium first:rounded-l-md last:rounded-r-md" :class="editorMode === mode ? 'bg-primary text-text-inverse' : 'text-primary hover:bg-primary-soft'" :aria-pressed="editorMode === mode" :data-mode="mode" @click="setEditorMode(mode)">{{ $t(`site.mode.${mode}`) }}</button>
+                  </div>
+                </div>
+                <RichEditor v-if="editorMode === 'visual'" v-model="form.body" :label="$t('site.field.content')" />
                 <textarea
+                  v-else
                   v-model="form.body"
                   rows="22"
                   spellcheck="false"
+                  aria-labelledby="page-body-label"
                   class="min-h-80 rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-[13px] leading-5"
                   data-field="body"
                 />
                 <span class="text-text-muted">{{ $t(page.kind === 'page' ? 'site.field.body_hint' : 'site.field.body_hint_system') }}</span>
-              </label>
-              <details class="rounded-md border border-border p-3 text-text-muted">
+                <span v-if="editorMode === 'html'" class="text-text-muted">{{ $t('site.mode.html_hint') }}</span>
+              </div>
+              <details v-if="editorMode === 'html'" class="rounded-md border border-border p-3 text-text-muted">
                 <summary class="cursor-pointer font-medium text-text">{{ $t('site.help.title') }}</summary>
                 <p class="mt-2">{{ $t('site.help.allowed') }}</p>
                 <p class="mt-2">{{ $t('site.help.classes') }}</p>

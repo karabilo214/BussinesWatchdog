@@ -73,6 +73,7 @@ async function open(path: string, capabilities = ['content.manage', 'contacts.re
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.setItem('bw.page-editor-mode', 'html');
   useStaff().forget();
   localization.setLocale('ru');
   mocked.previewPage.mockResolvedValue({ body: '', html: '<p>preview</p>' });

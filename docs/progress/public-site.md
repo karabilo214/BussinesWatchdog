@@ -47,3 +47,15 @@ Status: complete
 - Found while testing: the backend suite already finished close to the default 128 MB PHP memory limit (memory grows by about 0.2 MB per test), and the new test pushed it over; `phpunit.xml` now sets `memory_limit` to 512M. The growth itself is not investigated.
 
 Verification: `PublicSiteTest::test_home_is_edited_from_its_built_in_text_and_pricing_and_contact_only_in_code` (replaces the old system-pages test). Control 29 tests (2 new in `tests/site.test.ts`), typecheck and build; site stylesheet build and check. Backend SQLite 532 passed, 4 skipped; PostgreSQL 18: 536 of 536. Local stand: `/ru` renders the new markup; screenshots at 1280 and 390 px look like before.
+
+### Step 122: Visual Page Editor
+
+Status: complete
+
+- ADR 0045 (accepted for now, to be confirmed by the owner): TipTap 3.31.4 in the owner panel instead of the HTML field; HTML mode stays as a switch ("Визуально" / "HTML-код", remembered in the browser).
+- `components/editor/extensions.ts`: StarterKit without code blocks, links without auto-link and forced target/rel, images, tables, a `container` node for section/div/article/aside/header/footer/figure/nav with class and id, class/id on text blocks, lists, images and tables, `span` with a class — the content classes survive a round trip.
+- `components/editor/RichEditor.vue`: toolbar (text type, text look, bold/italic/underline, lists, quote, divider, link with plain/button/secondary look, image by https with alt, table with rows/columns, into/out of a section with a section look, undo/redo); no update emitted for normalizing loaded HTML; trailing empty paragraphs are not saved.
+- Site styles in the editor: the `.site-content` rules moved to `@bw/design/content.css`, imported by the site stylesheet and the panel; in visual mode the editor is full width and the preview below it.
+- ru/en/de texts; the body hint no longer talks about code.
+
+Verification: `tests/editor.test.ts` (3: the site markup of the home page with sections, grid, features, buttons, image and table survives; toolbar applies lead, heading, card section, button link, unwrap and undo; outside changes followed without reporting back). Existing site tests run in HTML mode. Frontend check: palette, customer 112, control 32, builds, site stylesheet. Backend SQLite 532 passed, 4 skipped (unchanged). Live in Chromium (`run-live.sh site`): home opens in the visual editor with its built-in text, pricing shows "edited in code", text typed in the visual editor styled as a lead paragraph in a card and shown in the preview, HTML mode, then the existing publish/site/contact flow — PASS.

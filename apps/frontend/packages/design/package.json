@@ -5,6 +5,7 @@
   "exports": {
     "./palette.css": "./palette.css",
     "./base.css": "./base.css",
+    "./content.css": "./content.css",
     "./palette.json": "./palette.json"
   },
   "scripts": {

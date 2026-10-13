@@ -41,14 +41,40 @@ try {
   for (const path of ['/', 'pricing', 'contact']) await page.locator(`[data-page="${path}"]`).waitFor();
   console.log('ok   site section lists the home, pricing and contact pages');
 
+  await page.locator('[data-page="/"] a').click();
+  await page.locator('[data-visual]').getByText('Узнайте, что оплата сломалась').waitFor();
+  await page.locator('[data-visual] section.hero a.button').first().waitFor();
+  await shot(page, '0-home-editor');
+  await page.goto(`${base}/owner/site`);
+  await page.locator('[data-page="pricing"] a').click();
+  await page.locator('[data-in-code]').waitFor();
+  if ((await page.locator('[data-form="page-draft"]').count()) !== 0) throw new Error('pricing must not have an editor');
+  await page.goto(`${base}/owner/site`);
+  await page.locator('[data-field="slug"]').waitFor();
+  console.log('ok   home opens in the visual editor with its built-in text; pricing is edited in code');
+
   await page.locator('[data-field="slug"]').fill(slug);
   await page.locator('[data-field="menu"]').first().selectOption('header');
   await page.locator('[data-action="create"]').click();
   await page.waitForURL(/\/owner\/site\/pages\//);
   await page.locator('[data-field="title"]').fill('О компании');
   await page.locator('[data-field="description"]').fill('Кто делает Business Watchdog');
+  await page.locator('[data-visual]').click();
+  await page.keyboard.type('Мы пишем текст без HTML.');
+  await page.locator('[data-tool="text-style"]').selectOption('lead');
+  await page.locator('[data-tool="section"]').click();
+  await page.locator('[data-tool="section-style"]').selectOption('card');
+  await page.locator('[data-visual] section.card p.lead').getByText('Мы пишем текст без HTML.').waitFor();
+  await page.frameLocator('[data-preview]').locator('section.card p.lead').getByText('Мы пишем текст без HTML.').waitFor();
+  await shot(page, '0-visual-editor');
+  console.log('ok   visual editor: typed text styled as a lead paragraph inside a card, shown in the preview');
+
+  await page.locator('[data-mode="html"]').click();
+  if (!(await page.locator('[data-field="body"]').inputValue()).includes('<section class="card"><p class="lead">Мы пишем текст без HTML.</p></section>')) throw new Error('visual edit did not reach the HTML');
   await page.locator('[data-field="body"]').fill('<p class="lead">Мы следим за оплатой в интернет-магазинах.</p><div class="grid-2"><div class="card"><h3>Честно</h3><p>Нет данных — так и пишем.</p></div><div class="card"><h3>Безопасно</h3><p>Без настоящих покупок.</p></div></div><script>window.hacked = 1</script><p onclick="window.hacked = 2">Клик</p>');
   await page.frameLocator('[data-preview]').getByText('Мы следим за оплатой').waitFor();
+  await page.locator('[data-mode="visual"]').click();
+  await page.locator('[data-visual] .grid-2 .card h3').first().waitFor();
   await shot(page, '1-editor');
   console.log('ok   draft shown in the sandboxed preview while typing');
 

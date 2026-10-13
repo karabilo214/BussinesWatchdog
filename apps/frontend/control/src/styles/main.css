@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@bw/design/palette.css";
 @import "@bw/design/base.css";
+@import "@bw/design/content.css";
 
 @source "../../../packages/ui/src";
 @source "../../../packages/i18n/src";

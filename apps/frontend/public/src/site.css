@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @import "@bw/design/palette.css";
 @import "@bw/design/base.css";
+@import "@bw/design/content.css";
 
 @layer components {
   body.site {
@@ -103,51 +104,4 @@
   .site-footer-nav, .site-languages { display: flex; flex-wrap: wrap; gap: 1rem; }
   .site-languages a[aria-current="true"] { font-weight: 600; color: var(--color-text); }
   .site-copy { margin: 0; color: var(--color-text-subtle); }
-
-  .site-content { overflow-wrap: anywhere; }
-  .site-content-wide { padding-top: 1rem; padding-bottom: 3rem; }
-  .site-content > :first-child { margin-top: 0; }
-  .site-content h1 { font-size: 2rem; line-height: 1.2; font-weight: 600; margin: 1.5rem 0 1rem; }
-  .site-content h2 { font-size: 1.5rem; line-height: 1.3; font-weight: 600; margin: 2rem 0 0.75rem; }
-  .site-content h3 { font-size: 1.125rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
-  .site-content h4 { font-size: 1rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
-  .site-content p, .site-content ul, .site-content ol, .site-content blockquote, .site-content table, .site-content figure { margin: 0 0 1rem; max-width: 48rem; }
-  .site-content ul, .site-content ol { padding-left: 1.5rem; }
-  .site-content li + li { margin-top: 0.25rem; }
-  .site-content img { max-width: 100%; height: auto; border-radius: 0.5rem; }
-  .site-content figcaption { font-size: 0.875rem; color: var(--color-text-muted); margin-top: 0.375rem; }
-  .site-content blockquote { border-left: 3px solid var(--color-brand-200); padding-left: 1rem; color: var(--color-text-muted); }
-  .site-content hr { border: 0; border-top: 1px solid var(--color-border); margin: 2rem 0; }
-  .site-content code { font-family: var(--font-mono); font-size: 0.875em; background: var(--color-surface-muted); padding: 0.125rem 0.25rem; border-radius: 0.25rem; }
-  .site-content table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
-  .site-content th, .site-content td { border: 1px solid var(--color-border); padding: 0.5rem 0.75rem; text-align: left; vertical-align: top; }
-  .site-content th { background: var(--color-surface-muted); font-weight: 600; }
-
-  .site-content .lead { font-size: 1.125rem; color: var(--color-text-muted); }
-  .site-content .muted { color: var(--color-text-muted); }
-  .site-content .small { font-size: 0.875rem; }
-  .site-content .center { text-align: center; margin-left: auto; margin-right: auto; }
-  .site-content .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-link); }
-  .site-content .hero { padding: 3rem 0; }
-  .site-content .hero h1 { font-size: 2rem; margin-top: 0; }
-  @media (min-width: 640px) { .site-content .hero h1 { font-size: 3rem; } }
-  .site-content .hero p { font-size: 1.125rem; color: var(--color-text-muted); }
-  .site-content .band { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 0.75rem; padding: 2rem 1.5rem; margin: 2rem 0; }
-  .site-content .button { display: inline-block; border-radius: 0.375rem; background: var(--color-primary); color: var(--color-text-inverse); padding: 0.625rem 1.125rem; font-weight: 600; text-decoration: none; border: 1px solid var(--color-primary); }
-  .site-content .button:hover { background: var(--color-primary-hover); text-decoration: none; }
-  .site-content .button-secondary { background: var(--color-surface); color: var(--color-primary); border-color: var(--color-border-strong); }
-  .site-content .button-secondary:hover { background: var(--color-primary-soft); }
-  .site-content .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem 0; }
-  .site-content .grid-2, .site-content .grid-3 { display: grid; gap: 1.5rem; margin: 1.5rem 0; }
-  @media (min-width: 640px) { .site-content .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (min-width: 768px) { .site-content .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  .site-content .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 0.75rem; padding: 1.25rem; }
-  .site-content .card > :first-child { margin-top: 0; }
-  .site-content .card > :last-child { margin-bottom: 0; }
-  .site-content .feature { border-left: 2px solid var(--color-brand-200); padding-left: 1rem; }
-  .site-content .feature h3 { margin: 0 0 0.25rem; font-size: 1rem; }
-  .site-content .feature p { margin: 0; color: var(--color-text-muted); font-size: 0.9375rem; }
-  .site-content .band > :first-child { margin-top: 0; }
-  .site-content .note { padding: 0.75rem 1rem; border: 1px solid var(--color-note-border); background: var(--color-note-soft); color: var(--color-note); border-radius: 0.5rem; }
-  .site-content .warning { padding: 0.75rem 1rem; border: 1px solid var(--color-warn-border); background: var(--color-warn-soft); color: var(--color-warn); border-radius: 0.5rem; }
 }

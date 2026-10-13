@@ -618,8 +618,9 @@
       "description": "Description for search engines",
       "description_hint": "Up to 300 characters; shown in search results.",
       "body": "Page HTML",
-      "body_hint": "The page title is shown automatically — start the code with text or an <h2>.",
-      "body_hint_system": "If you empty the field, the site keeps the built-in home text."
+      "body_hint": "The page title is shown automatically — start with text or a subheading (Heading 2).",
+      "body_hint_system": "If you empty the field, the site keeps the built-in home text.",
+      "content": "Page content"
     },
     "help": {
       "title": "What you can use in the HTML",
@@ -674,7 +675,13 @@
       "recurring_payment": "Subscription terms (auto-renewal)",
       "hint": "Customers accept the published version of this page: at sign-up the terms of service and privacy notice, at trial, purchase and plan change the terms of service and subscription terms. Each type belongs to one page. A new publication is a new version: customers accept it at their next action."
     },
-    "in_code": "The text of this page is changed only in the site code. Here you set which menu shows it and in what order."
+    "in_code": "The text of this page is changed only in the site code. Here you set which menu shows it and in what order.",
+    "mode": {
+      "label": "Editing mode",
+      "visual": "Visual",
+      "html": "HTML code",
+      "html_hint": "Markup the visual editor does not know may be simplified when you switch back. Check the preview."
+    }
   },
   "contacts": {
     "hint": "Messages from the contact form of the website. New messages are announced by email. Closed messages are deleted after a year.",
@@ -751,5 +758,63 @@
       "failed": "Failed",
       "unknown": "No answer received"
     }
+  },
+  "editor": {
+    "block": "Text type",
+    "paragraph": "Normal text",
+    "heading": "Heading {level}",
+    "text_style": "Text style",
+    "style": {
+      "none": "No style",
+      "lead": "Lead paragraph",
+      "muted": "Muted",
+      "small": "Small",
+      "center": "Centered",
+      "eyebrow": "Eyebrow",
+      "note": "Note",
+      "warning": "Warning"
+    },
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "bullet_list": "Bulleted list",
+    "ordered_list": "Numbered list",
+    "quote": "Quote",
+    "rule": "Divider",
+    "link": "Link",
+    "image": "Image",
+    "table": "Table",
+    "add_row": "+ row",
+    "add_column": "+ column",
+    "delete_table": "Delete table",
+    "wrap_section": "Into section",
+    "unwrap_section": "Remove section",
+    "section_style": "Section look",
+    "section": {
+      "none": "Plain section",
+      "hero": "Hero",
+      "band": "Highlighted band",
+      "card": "Card",
+      "feature": "Feature",
+      "actions": "Button row",
+      "grid-2": "Two columns",
+      "grid-3": "Three columns",
+      "note": "Note",
+      "warning": "Warning",
+      "center": "Centered"
+    },
+    "undo": "Undo",
+    "redo": "Redo",
+    "link_href": "Link address",
+    "link_style": "Look",
+    "link_hint": "A site page, e.g. /en/pricing; an external address starts with https://. An empty address removes the link.",
+    "link_styles": {
+      "plain": "Plain link",
+      "button": "Button",
+      "secondary": "Secondary button"
+    },
+    "image_src": "Image address (https)",
+    "image_alt": "Description for blind readers",
+    "apply": "Apply"
   }
 }
