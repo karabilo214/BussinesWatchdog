@@ -18,18 +18,28 @@
                 @if (count($pricing['periods']) > 1)
                     <nav aria-label="{{ __('site.pricing.period_label') }}" class="site-switch">
                         @foreach ($pricing['periods'] as $period)
-                            <a href="?{{ http_build_query(['period' => $period, 'currency' => $pricing['currency']]) }}" @if ($period === $pricing['period']) aria-current="true" @endif>{{ \App\Support\Site\PricingTable::periodLabel($period, $locale) }}</a>
+                            <a href="?{{ http_build_query(array_filter(['period' => $period, 'currency' => $pricing['currency'], 'stores' => $pricing['extra_stores'] ?: null])) }}" @if ($period === $pricing['period']) aria-current="true" @endif>{{ \App\Support\Site\PricingTable::periodLabel($period, $locale) }}</a>
                         @endforeach
                     </nav>
                 @endif
                 @if (count($pricing['currencies']) > 1)
                     <nav aria-label="{{ __('site.pricing.currency_label') }}" class="site-switch">
                         @foreach ($pricing['currencies'] as $currency)
-                            <a href="?{{ http_build_query(['period' => $pricing['period'], 'currency' => $currency]) }}" @if ($currency === $pricing['currency']) aria-current="true" @endif>{{ $currency }}</a>
+                            <a href="?{{ http_build_query(array_filter(['period' => $pricing['period'], 'currency' => $currency, 'stores' => $pricing['extra_stores'] ?: null])) }}" @if ($currency === $pricing['currency']) aria-current="true" @endif>{{ $currency }}</a>
                         @endforeach
                     </nav>
                 @endif
             </div>
+        @endif
+
+        @if ($pricing['extra_stores_max'] > 0)
+            <form method="get" class="site-stores" data-form="stores">
+                <input type="hidden" name="period" value="{{ $pricing['period'] }}">
+                <input type="hidden" name="currency" value="{{ $pricing['currency'] }}">
+                <label for="extra-stores">{{ __('site.pricing.stores_label') }}</label>
+                <input id="extra-stores" type="number" name="stores" min="0" max="{{ $pricing['extra_stores_max'] }}" value="{{ $pricing['extra_stores'] }}" inputmode="numeric">
+                <button type="submit" class="site-button site-button-secondary">{{ __('site.pricing.stores_apply') }}</button>
+            </form>
         @endif
 
         @if ($pricing['plans'] === [])
@@ -61,6 +71,12 @@
                         @endif
                         @if ($plan['extra_store'])
                             <p class="site-small">{{ __('site.pricing.extra_store', ['amount' => $plan['extra_store']]) }}</p>
+                        @endif
+                        @if ($plan['with_extra_stores'])
+                            <p class="site-total" data-total="{{ $plan['code'] }}">{{ trans_choice('site.pricing.with_stores', $plan['with_extra_stores']['count'], ['n' => $plan['with_extra_stores']['count']]) }} <strong>{{ $plan['with_extra_stores']['price'] }}</strong> <span>{{ $plan['per'] }}</span></p>
+                            @if ($plan['with_extra_stores']['capped'])
+                                <p class="site-small site-muted">{{ __('site.pricing.stores_capped', ['max' => $plan['extra_stores_max']]) }}</p>
+                            @endif
                         @endif
                         @if ($plan['faster_checks'])
                             <p class="site-small">{{ __('site.pricing.faster_checks', ['minutes' => $plan['faster_checks']['minutes'], 'amount' => $plan['faster_checks']['price']]) }}</p>

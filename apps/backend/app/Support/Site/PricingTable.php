@@ -16,13 +16,16 @@ use App\Support\Billing\Paddle\PaddleConfig;
  */
 class PricingTable
 {
+    public const EXTRA_STORES_CEILING = 100;
+
     public function __construct(private readonly BillingCatalog $catalog) {}
 
     /**
-     * @return array{plans: list<array<string, mixed>>, periods: list<string>, period: ?string, currencies: list<string>, currency: ?string, test_mode: bool}
+     * @return array{plans: list<array<string, mixed>>, periods: list<string>, period: ?string, currencies: list<string>, currency: ?string, test_mode: bool, extra_stores: int, extra_stores_max: int}
      */
-    public function build(string $locale, ?string $period, ?string $currency): array
+    public function build(string $locale, ?string $period, ?string $currency, int $extraStores = 0): array
     {
+        $extraStores = max(0, min(self::EXTRA_STORES_CEILING, $extraStores));
         $live = PaddleConfig::mode() === 'live';
         $all = array_values(array_filter($this->catalog->plans(), fn (array $plan): bool => ! $plan['placeholder'] || ! $live));
         $plans = array_values(array_filter($all, fn (array $plan): bool => $this->bases($plan) !== []));
@@ -57,15 +60,21 @@ class PricingTable
             $base = $this->find($plan, BillingPrice::KIND_BASE, $period, $currency);
 
             if ($base !== null) {
-                $rows[] = $this->row($plan, $base, $locale);
+                $rows[] = $this->row($plan, $base, $locale, $extraStores);
             }
         }
 
         foreach ($individual as $plan) {
-            $rows[] = $this->row($plan, null, $locale);
+            $rows[] = $this->row($plan, null, $locale, 0);
         }
 
-        return ['plans' => $rows, 'periods' => $periods, 'period' => $period, 'currencies' => $currencies, 'currency' => $currency, 'test_mode' => ! $live];
+        $offered = array_filter($rows, fn (array $row): bool => $row['extra_store'] !== null);
+
+        return [
+            'plans' => $rows, 'periods' => $periods, 'period' => $period, 'currencies' => $currencies, 'currency' => $currency, 'test_mode' => ! $live,
+            'extra_stores' => $offered === [] ? 0 : $extraStores,
+            'extra_stores_max' => $offered === [] ? 0 : max(array_map(fn (array $row): int => $row['extra_stores_max'], $offered)),
+        ];
     }
 
     /**
@@ -73,7 +82,7 @@ class PricingTable
      * @param  array<string, mixed>|null  $base  null for a package with an individual price
      * @return array<string, mixed>
      */
-    private function row(array $plan, ?array $base, string $locale): array
+    private function row(array $plan, ?array $base, string $locale, int $extraStores): array
     {
         $format = fn (string $minor): string => $base === null ? '' : MoneyFormat::format($minor, (int) $base['currency_exponent'], $base['currency'], $locale);
         $count = (int) ($base['interval_count'] ?? 1);
@@ -93,6 +102,14 @@ class PricingTable
         }
 
         $extra = $base === null ? null : $this->find($plan, BillingPrice::KIND_EXTRA_STORE, self::period($base), $base['currency']);
+        $limit = $plan['entitlements']['limits'][FeatureCatalog::MAX_EXTRA_STORES] ?? null;
+        $extraMax = $extra === null ? 0 : ($limit === null ? self::EXTRA_STORES_CEILING : max(0, min(self::EXTRA_STORES_CEILING, (int) $limit)));
+        $chosen = min($extraStores, $extraMax);
+        $total = $extra === null || $chosen === 0 ? null : [
+            'count' => $chosen,
+            'price' => $format((string) ((int) $base['amount_minor'] + $chosen * (int) $extra['amount_minor'])),
+            'capped' => $chosen < $extraStores,
+        ];
         $faster = $base === null || ($plan['faster_check_interval_minutes'] ?? null) === null ? null : $this->find($plan, BillingPrice::KIND_FASTER_CHECKS, self::period($base), $base['currency']);
         $limits = [];
 
@@ -119,6 +136,8 @@ class PricingTable
             'monthly' => $monthly,
             'saving' => $saving,
             'extra_store' => $extra === null ? null : $format((string) $extra['amount_minor']),
+            'extra_stores_max' => $extraMax,
+            'with_extra_stores' => $total,
             'faster_checks' => $faster === null ? null : ['price' => $format((string) $faster['amount_minor']), 'minutes' => (int) $plan['faster_check_interval_minutes']],
             'tax' => $base === null ? null : trans('site.pricing.tax.'.$base['tax_behavior'], [], $locale),
             'trial_days' => (int) ($plan['trial_days'] ?? 0),

@@ -224,6 +224,26 @@ class PublicSiteTest extends TestCase
         $this->get('/en/pricing')->assertSee('data-plan="live"', false)->assertSee('€29.00')->assertDontSee('data-plan="live-example"', false)->assertDontSee('data-plan="start"', false)->assertDontSee('Test mode');
     }
 
+    public function test_pricing_recalculates_the_price_for_extra_stores_without_javascript_within_the_plan_limit(): void
+    {
+        $start = $this->plan('start', ['en' => 'Start', 'de' => 'Start'], [['month', 1900], ['year', 19000]], extra: 500);
+        $start->forceFill(['entitlements' => FeatureCatalog::normalize(['features' => [FeatureCatalog::CHECKOUT_MONITORING], 'limits' => [FeatureCatalog::MAX_ACTIVE_STORES => 1, FeatureCatalog::MAX_EXTRA_STORES => 4]])])->save();
+        $this->plan('solo', ['en' => 'Solo', 'de' => 'Solo'], [['month', 900]]);
+
+        $plain = $this->get('/de/pricing')->assertOk();
+        $plain->assertSee('data-form="stores"', false)->assertSee('max="4"', false)->assertDontSee('data-total=', false);
+
+        $three = $this->get('/de/pricing?stores=3')->assertOk();
+        $three->assertSee('data-total="start"', false)->assertSee('Mit 3 zusätzlichen Shops:')->assertSee('34,00')->assertDontSee('data-total="solo"', false);
+        $three->assertSee('stores=3', false);
+        $this->assertStringContainsString('value="3"', (string) $three->getContent());
+
+        $this->get('/de/pricing?stores=10')->assertSee('Mit 4 zusätzlichen Shops:')->assertSee('39,00')->assertSee('höchstens 4 zusätzliche Shops');
+        $this->get('/de/pricing?stores=2&period=year:1')->assertSee('290,00');
+        $this->get('/de/pricing?stores=-2')->assertOk()->assertDontSee('data-total=', false);
+        $this->get('/de/pricing?stores=abc')->assertOk()->assertDontSee('data-total=', false);
+    }
+
     public function test_contact_form_stores_the_message_notifies_the_owner_and_resists_spam(): void
     {
         $this->get('/ru/contact')->assertOk()->assertSee('name="_token"', false)->assertHeader('Cache-Control', 'no-store, private');

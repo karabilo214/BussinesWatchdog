@@ -54,6 +54,10 @@ return [
         ],
         'monthly' => 'etwa :amount pro Monat',
         'saving' => ':n % günstiger als monatliche Zahlung',
+        'stores_label' => 'Zusätzliche Shops',
+        'stores_apply' => 'Neu berechnen',
+        'with_stores' => 'Mit :n zusätzlichen Shop:|Mit :n zusätzlichen Shops:',
+        'stores_capped' => 'Dieser Tarif erlaubt höchstens :max zusätzliche Shops.',
         'extra_store' => 'Zusätzlicher Shop: :amount',
         'trial' => ':n Tag kostenlos, ohne Karte|:n Tage kostenlos, ohne Karte',
         'tax' => [

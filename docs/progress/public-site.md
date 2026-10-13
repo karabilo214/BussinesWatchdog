@@ -101,3 +101,11 @@ Status: complete
 - Live stand: the migration moved the earlier notes (9 entries) and dropped the column. While re-running the live script, the contact form limit (5 an hour per IP) was exhausted by repeated runs and a failed run left published test pages — cleared on the local stand; no code change.
 
 Verification: `PublicSiteTest` (notes added one by one with author and time, empty refused, audit without text, status-only PATCH, admin cannot add). Control 43 tests. Frontend check green. Backend SQLite 541 passed, 4 skipped; PostgreSQL 18: 545 of 545. Live in Chromium (`run-live.sh site`): two notes added and listed, message closed — PASS.
+
+### Step 138: Pricing Page — Extra Stores Field With the Recalculated Price
+
+Status: complete
+
+- Owner's backlog item. The pricing page has a «Дополнительных магазинов» number field with «Пересчитать» — a plain GET form (`?stores=N`, kept by the period and currency switches), so it works without JavaScript like the rest of the site (ADR 0039). `PricingTable::build()` takes the number (0–100, non-digits ignored), clamps it per plan to the plan's `max_extra_stores` limit and shows «С N доп. магазинами: total per period» = base + N × extra-store price of the same period and currency, in integer minor units formatted by `MoneyFormat`; a note says when the plan allows fewer. Plans without an extra-store price show no total; the field appears only when some plan offers extra stores. ru/en/de texts, site styles.
+
+Verification: `PublicSiteTest::test_pricing_recalculates_the_price_for_extra_stores_without_javascript_within_the_plan_limit` (field and max, monthly total, cap with note, yearly total, invalid input). Backend SQLite 558 passed, 4 skipped; PostgreSQL 18: 562 of 562; frontend check green (site stylesheet). Local stand: `/ru/pricing?stores=2` shows 37,00 € and 63,00 € for the sandbox plans (19 + 2 × 9, 49 + 2 × 7).

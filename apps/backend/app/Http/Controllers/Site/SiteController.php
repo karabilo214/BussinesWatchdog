@@ -56,10 +56,11 @@ class SiteController extends Controller
         $version = $this->content->published($page, $locale);
         $period = $request->query('period');
         $currency = $request->query('currency');
+        $stores = $request->query('stores');
 
         return $this->render('site.pricing', $locale, $page, $version, [
             'title' => $version?->title ?? trans('site.pricing.title', [], $locale),
-            'pricing' => $pricing->build($locale, is_string($period) ? $period : null, is_string($currency) ? $currency : null),
+            'pricing' => $pricing->build($locale, is_string($period) ? $period : null, is_string($currency) ? $currency : null, is_string($stores) && ctype_digit($stores) && strlen($stores) <= 3 ? (int) $stores : 0),
         ]);
     }
 

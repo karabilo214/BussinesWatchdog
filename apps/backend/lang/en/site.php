@@ -54,6 +54,10 @@ return [
         ],
         'monthly' => 'about :amount per month',
         'saving' => 'Save :n % compared with paying monthly',
+        'stores_label' => 'Extra stores',
+        'stores_apply' => 'Recalculate',
+        'with_stores' => 'With :n extra store:|With :n extra stores:',
+        'stores_capped' => 'This plan allows at most :max extra stores.',
         'extra_store' => 'Additional store: :amount',
         'trial' => ':n day free, no card|:n days free, no card',
         'tax' => [

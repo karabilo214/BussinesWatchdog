@@ -63,6 +63,11 @@
   .site-switch { display: inline-flex; border: 1px solid var(--color-border-strong); border-radius: 0.5rem; overflow: hidden; background: var(--color-surface); }
   .site-switch a { padding: 0.5rem 1rem; color: var(--color-text) !important; text-decoration: none !important; font-weight: 500; font-size: 0.9375rem; }
   .site-switch a + a { border-left: 1px solid var(--color-border); }
+  .site-stores { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 1.5rem 0 0; }
+  .site-stores label { font-weight: 500; }
+  .site-stores input { width: 6rem; padding: 0.5rem 0.75rem; border: 1px solid var(--color-border-strong); border-radius: 0.375rem; font: inherit; background: var(--color-surface); color: var(--color-text); }
+  .site-total { margin: 0.25rem 0 0; font-size: 0.9375rem; }
+  .site-total strong { font-size: 1.125rem; }
   .site-switch a[aria-current="true"] { background: var(--color-primary); color: var(--color-text-inverse) !important; }
 
   .site-plans { display: grid; gap: 1.5rem; margin-top: 2rem; }
