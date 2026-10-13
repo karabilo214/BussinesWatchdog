@@ -327,6 +327,7 @@ export interface TenantCard {
     contracts: { id: string; provider: string; provider_subscription_ref: string | null; mode: string; state: string; provider_state: string | null; plan_code: string | null; extra_store_quantity: number; period_start: string | null; period_end: string | null; paid_until: string | null; cancel_at_period_end: boolean; problem_code: string | null }[];
     plan_changes: PlanChangeEntry[];
     overrides: Override[];
+    transactions?: Payment[];
   } | null;
   audit: { id: string; action: string; actor: string | null; reason: string | null; result: string; changes: Record<string, unknown> | null; created_at: string }[];
 }
@@ -501,4 +502,40 @@ export async function fetchContactRequest(id: string): Promise<ContactRequest> {
 
 export async function updateContactRequest(id: string, input: { status?: ContactStatus; note?: string | null }): Promise<ContactRequest> {
   return (await request<ContactRequest>('PATCH', `/platform-api/v1/contact-requests/${encodeURIComponent(id)}`, { body: input })).data;
+}
+
+export type PaymentStatus = 'draft' | 'ready' | 'billed' | 'paid' | 'completed' | 'canceled' | 'past_due';
+
+export interface Payment {
+  id: string;
+  provider_transaction_ref: string;
+  status: PaymentStatus;
+  origin: string | null;
+  invoice_number: string | null;
+  currency: string;
+  currency_exponent: number;
+  subtotal_minor: string | null;
+  discount_minor: string | null;
+  tax_minor: string | null;
+  total_minor: string | null;
+  fee_minor: string | null;
+  earnings_minor: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  billed_at: string | null;
+  tenant?: { id: string; name: string };
+}
+
+export interface PaymentMonth {
+  currency: string;
+  currency_exponent: number;
+  payments: number;
+  total_minor: string;
+  tax_minor: string | null;
+  fee_minor: string | null;
+  earnings_minor: string | null;
+}
+
+export async function fetchPayments(filters: Partial<Record<'status' | 'tenant_id' | 'cursor', string>>): Promise<{ data: Payment[]; next_cursor: string | null; month: PaymentMonth[]; mode: 'test' | 'live' }> {
+  return (await request<{ data: Payment[]; next_cursor: string | null; month: PaymentMonth[]; mode: 'test' | 'live' }>('GET', '/platform-api/v1/payments', { query: filters })).data;
 }

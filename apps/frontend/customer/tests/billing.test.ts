@@ -26,6 +26,9 @@ vi.mock('@/api/billing', () => ({
   cancelSubscription: vi.fn(),
   resumeSubscription: vi.fn(),
   retainStores: vi.fn(),
+  listInvoices: vi.fn(),
+  invoiceLink: vi.fn(),
+  paymentMethodCheckout: vi.fn(),
 }));
 vi.mock('@/api/stores', () => ({ listStores: vi.fn() }));
 vi.mock('@/composables/paddle', () => ({ openPaddleCheckout: vi.fn() }));
@@ -151,6 +154,7 @@ async function mountView() {
 }
 
 beforeEach(() => {
+  api.listInvoices.mockResolvedValue({ data: [], next_cursor: null });
   vi.clearAllMocks();
   setLocale('ru');
   vi.mocked(stores.listStores).mockResolvedValue([{ status: 'active' }, { status: 'deleted' }] as never);
@@ -220,6 +224,44 @@ describe('BillingView', () => {
     await flushPromises();
 
     expect(api.startTrial).toHaveBeenCalledWith('v-start', ['pv-terms', 'pv-recurring']);
+  });
+
+  it('lists invoices with tax and discount, opens the PDF link and changes the payment method through Paddle', async () => {
+    session.value = sessionFor('owner');
+    api.fetchSubscription.mockResolvedValue(paidSubscription());
+    api.listInvoices.mockResolvedValue({ data: [
+      { id: 'i-2', status: 'past_due', origin: 'subscription_recurring', invoice_number: null, currency: 'EUR', currency_exponent: 2, subtotal_minor: '1900', discount_minor: '0', tax_minor: '361', total_minor: '2261', period_start: '2026-11-11T00:00:00Z', period_end: '2026-12-11T00:00:00Z', billed_at: '2026-11-11T00:00:00Z', invoice_available: true },
+      { id: 'i-1', status: 'completed', origin: 'web', invoice_number: 'INV-1', currency: 'EUR', currency_exponent: 2, subtotal_minor: '2300', discount_minor: '400', tax_minor: '437', total_minor: '2737', period_start: '2026-10-11T00:00:00Z', period_end: '2026-11-11T00:00:00Z', billed_at: '2026-10-11T12:00:00Z', invoice_available: true },
+    ], next_cursor: null });
+    api.invoiceLink.mockResolvedValue('https://sandbox-invoice.paddle.com/inv_1.pdf');
+    api.paymentMethodCheckout.mockResolvedValue({ provider: 'paddle', environment: 'sandbox', client_token: 'tok', transaction_id: 'txn_pm' });
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    let emit: (name: string) => void = () => undefined;
+    vi.mocked(paddle.openPaddleCheckout).mockImplementation(async (_checkout, onEvent) => {
+      emit = onEvent;
+    });
+    const wrapper = await mountView();
+
+    const paid = wrapper.get('[data-invoice="INV-1"]').text();
+    expect(paid).toContain('27,37');
+    expect(paid).toContain('в т. ч. налог 4,37');
+    expect(paid).toContain('скидка 4,00');
+    expect(paid).toContain('Оплачен');
+    expect(wrapper.get('[data-invoice="i-2"]').text()).toContain('Не оплачен');
+
+    await wrapper.get('[data-invoice="INV-1"] [data-action="download-invoice"]').trigger('click');
+    await flushPromises();
+    expect(api.invoiceLink).toHaveBeenCalledWith('i-1');
+    expect(assign).toHaveBeenCalledWith('https://sandbox-invoice.paddle.com/inv_1.pdf');
+
+    await wrapper.get('[data-action="payment-method"]').trigger('click');
+    await flushPromises();
+    expect(paddle.openPaddleCheckout).toHaveBeenCalledWith({ provider: 'paddle', environment: 'sandbox', client_token: 'tok', transaction_id: 'txn_pm' }, expect.any(Function));
+    emit('checkout.completed');
+    await flushPromises();
+    expect(wrapper.find('[data-payment-method="updated"]').exists()).toBe(true);
+    vi.unstubAllGlobals();
   });
 
   it('shows any billing period the owner set', async () => {

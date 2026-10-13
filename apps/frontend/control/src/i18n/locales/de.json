@@ -51,8 +51,7 @@
       "title": "Abonnements"
     },
     "payments": {
-      "title": "Zahlungen",
-      "body": "Rechnungen, Zahlungen und Erstattungen unseres Dienstes. Dieser Bereich folgt in späteren Schritten."
+      "title": "Zahlungen"
     },
     "plans": {
       "title": "Tarife und Rabatte",
@@ -499,7 +498,8 @@
       "overrides": "Befristeter Zugang",
       "override_active": "Aktiv",
       "override_revoked": "Widerrufen",
-      "override_ended": "Abgelaufen"
+      "override_ended": "Abgelaufen",
+      "payments": "Zahlungen"
     },
     "audit_empty": "Noch keine Mitarbeiteraktionen für diese Organisation.",
     "actions": {
@@ -684,5 +684,30 @@
     "new": "Neu",
     "in_progress": "In Bearbeitung",
     "closed": "Geschlossen"
+  },
+  "payments": {
+    "hint": "Zahlungen der Kunden für unser Abonnement (aus Paddle). Beträge in der Zahlungswährung; verschiedene Währungen werden nie addiert.",
+    "month": "Dieser Monat",
+    "test_mode": "Paddle-Testmodus",
+    "month_empty": "Diesen Monat noch keine Zahlungen.",
+    "count": "{n} Zahlungen",
+    "tax": "Steuer",
+    "fee": "Paddle-Gebühr",
+    "earnings": "Bleibt uns",
+    "unknown": "noch nicht bekannt",
+    "status_label": "Status",
+    "empty": "Keine Zahlungen.",
+    "date": "Datum",
+    "amount": "Betrag",
+    "tax_short": "Steuer {amount}",
+    "status": {
+      "draft": "Entwurf",
+      "ready": "Wartet auf Zahlung",
+      "billed": "Gestellt",
+      "paid": "Bezahlt",
+      "completed": "Bezahlt",
+      "canceled": "Storniert",
+      "past_due": "Unbezahlt"
+    }
   }
 }

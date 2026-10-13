@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { formatMinor, StatusBadge } from '@bw/ui';
 import { fetchTenant, type PlanChangeEntry, type TenantCard } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import { PAYMENT_TONES } from '@/components/payments';
 import TenantActions from '@/components/TenantActions.vue';
 import { ACCESS_TONES, SUBSCRIPTION_TONES } from '@/components/tones';
 import { useFormat } from '@/composables/useFormat';
@@ -159,6 +160,17 @@ onMounted(load);
               <span class="text-text-muted">{{ dateTime(contract.period_start) }} — {{ dateTime(contract.period_end) }}</span>
               <span class="text-text-muted">{{ contract.mode }}</span>
               <span v-if="contract.problem_code" class="text-crit">{{ contract.problem_code }}</span>
+            </li>
+          </ul>
+
+          <h2 class="text-base font-semibold">{{ $t('tenant.sub.payments') }}</h2>
+          <p v-if="(card.billing.transactions ?? []).length === 0" class="text-sm text-text-muted">{{ $t('tenant.sub.none') }}</p>
+          <ul v-else class="flex flex-col gap-2 text-sm">
+            <li v-for="payment in card.billing.transactions" :key="payment.id" class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-surface px-4 py-3" :data-payment="payment.provider_transaction_ref">
+              <span>{{ dateTime(payment.billed_at) }}</span>
+              <span class="font-medium tabular-nums">{{ formatMinor(payment.total_minor ?? '0', payment.currency, payment.currency_exponent, $i18n.locale) }}</span>
+              <StatusBadge :tone="PAYMENT_TONES[payment.status]" :label="$t(`payments.status.${payment.status}`)" />
+              <span class="font-mono text-[13px] text-text-muted">{{ payment.invoice_number ?? payment.provider_transaction_ref }}</span>
             </li>
           </ul>
 

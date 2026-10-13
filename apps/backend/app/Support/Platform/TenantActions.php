@@ -13,6 +13,7 @@ use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\OrderVolume;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Billing\Paddle\PaddleConfig;
+use App\Support\Billing\Paddle\PaddleTransactions;
 use App\Support\Billing\Paddle\PaddleRequestFailed;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
 use App\Support\Billing\Paddle\PaddleSubscriptionSync;
@@ -253,6 +254,7 @@ class TenantActions
         foreach ($refs as $ref) {
             try {
                 $this->sync->sync((string) $ref);
+                app(PaddleTransactions::class)->syncSubscription((string) $ref);
             } catch (PaddleRequestFailed $exception) {
                 throw new BillingCheckoutRejected($exception->outcomeUnknown() ? 'provider_unavailable' : 'plan_change_rejected');
             }

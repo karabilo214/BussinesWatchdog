@@ -2292,3 +2292,14 @@ Status: complete
 
 Verification: `tests/Feature/Site/PolicyAcceptanceTest.php` (7). Control 24 tests, customer 111. Backend SQLite 525 passed, 4 skipped; PostgreSQL 18: 529 of 529. Live in Chromium (`run-live.sh signup`): two pages published and marked in the panel, sign-up page without JavaScript refused without consent, then created the account, signed in and sent to the plan; consents stored with version 1 of both documents - PASS.
 
+### Step 119: Invoices and Payments
+
+Status: complete
+
+- ADR 0043. `billing_transactions` filled by `PaddleTransactions::project` from transaction events (payload now also keeps discount, grand total, invoice number, billed and created time) and by `syncSubscription` (paged `GET /transactions?subscription_id`), command `billing:paddle-transactions`, also from «Refresh from Paddle»; older reads never overwrite newer states; transactions without our organisation are skipped.
+- Cabinet API: `GET /api/v1/billing/invoices`, `GET /billing/invoices/{id}/download` (short-lived Paddle PDF link, 409 when not billed), `POST /billing/payment-method` (Paddle payment-method update transaction for Paddle.js). Cabinet block «Invoices and payments» with PDF download and «Change payment method».
+- Owner panel: `GET /platform-api/v1/payments` (billing.read; list with organisation, status filter, month per currency: charged, tax, fee, earnings), page «Payments» instead of the placeholder, payments in the organisation card. OpenAPI (both copies).
+- ADR 0042 points 6–8 accepted by the owner.
+
+Verification: `tests/Feature/Billing/BillingTransactionsTest.php` (5: events keep the newest state and skip foreign transactions, paged re-read, owner list/download/payment method with tenant isolation and roles, platform list and month per currency with unknown fees, support forbidden); `TenantAdminTest` fake extended. Control 25 (new `payments.test.ts`), customer 112 (new invoices test). Backend SQLite 530 passed, 4 skipped; PostgreSQL 18: 534 of 534. Real Paddle sandbox (dev database): 10 transactions of earlier test purchases read back with matching amounts (28 €, 22.40 € and 20.16 € with discounts, 21 € proration), tax, fee, earnings and invoice numbers; invoice PDF link returned; payment-method update transaction created; month: 261.56 € charged, 41.76 € tax, 17.58 € fee, 202.22 € earnings. The cabinet and panel pages were checked with tests, not in a live browser run.
+

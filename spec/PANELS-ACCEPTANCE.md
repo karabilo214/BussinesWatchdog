@@ -1,6 +1,6 @@
 # Приёмка панелей и SaaS billing
 
-Версия 1.1. Обновлено: 2026-10-13, Step 118.
+Версия 1.1. Обновлено: 2026-10-13, Step 119.
 
 Это добавочные критерии к `ACCEPTANCE.md`. Матрица теперь показывает текущее evidence. Большая часть SaaS billing/platform панели всё ещё находится на уровне ТЗ и контрактов; customer cabinet реализован существенно дальше.
 
@@ -33,7 +33,7 @@
 | EXT-19 | not_done | Refund request billing staff | — | SaaS refund approval workflow not implemented |
 | EXT-20 | not_done | Refund concurrency | — | SaaS refund reservations not implemented |
 | EXT-21 | not_done | New subscription после cancellation | — | Subscription contract history not implemented |
-| EXT-22 | not_done | KPI MRR/cash/refunds | — | Owner billing KPIs not implemented |
+| EXT-22 | partial | KPI MRR/cash/refunds | Step 119 (ADR 0043): owner panel «Payments» — every provider transaction and the month per currency (charged, tax, Paddle fee, earnings), never across currencies; `BillingTransactionsTest`, `payments.test.ts`; real Paddle sandbox transactions read back | MRR, refunds and «Overview» KPIs not implemented |
 | EXT-23 | partial | Technical replay | Core monitoring replay/idempotency exists; outbox/reconciliation tests | Platform replay tooling and billing replay not implemented |
 | EXT-24 | partial | Tenant_admin billing/delete/owner role action | Customer role policies, team management, ownership transfer tests; Step 64/69 | Billing/delete organization not implemented |
 | EXT-25 | partial | Workspace switch | Active tenant session exists; tenant activation tests; customer cache keys include tenant in API patterns | Multi-workspace switcher UI and complete cache isolation acceptance not implemented |

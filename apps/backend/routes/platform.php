@@ -3,6 +3,7 @@
 use App\Http\Controllers\Platform\ContactRequestController;
 use App\Http\Controllers\Platform\DiscountController;
 use App\Http\Controllers\Platform\PageController;
+use App\Http\Controllers\Platform\PaymentController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformAuthController;
 use App\Http\Controllers\Platform\TenantController;
@@ -26,6 +27,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants', [TenantController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/{tenant}', [TenantController::class, 'show']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/subscriptions', [TenantController::class, 'subscriptions']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/payments', [PaymentController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_MANAGE)->group(function (): void {
         Route::post('/tenants/{tenant}/actions/{action}/preview', [TenantController::class, 'preview']);
         Route::post('/tenants/{tenant}/actions/{action}', [TenantController::class, 'act'])->middleware('throttle:platform-step-up');

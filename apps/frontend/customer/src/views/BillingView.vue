@@ -32,6 +32,7 @@ import { listStores } from '@/api/stores';
 import type { Store } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
+import BillingInvoices from '@/components/billing/BillingInvoices.vue';
 import StoreChoice from '@/components/billing/StoreChoice.vue';
 import { openPaddleCheckout } from '@/composables/paddle';
 import { useFormat } from '@/composables/useFormat';
@@ -776,6 +777,8 @@ onBeforeUnmount(stopPolling);
             </li>
           </ul>
         </section>
+
+        <BillingInvoices v-if="isOwner && subscription" :can-change-payment-method="paid" />
 
         <section v-if="subscription?.order_volume && subscription.order_volume.stores.length > 0" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="volume-title" data-panel="order-volume">
           <div class="flex flex-col gap-1">

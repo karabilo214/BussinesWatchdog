@@ -51,8 +51,7 @@
       "title": "Subscriptions"
     },
     "payments": {
-      "title": "Payments",
-      "body": "Invoices, payments and refunds of our service. This section comes in later steps."
+      "title": "Payments"
     },
     "plans": {
       "title": "Plans and discounts",
@@ -499,7 +498,8 @@
       "overrides": "Temporary access",
       "override_active": "Active",
       "override_revoked": "Revoked",
-      "override_ended": "Ended"
+      "override_ended": "Ended",
+      "payments": "Payments"
     },
     "audit_empty": "No staff actions on this organisation yet.",
     "actions": {
@@ -684,5 +684,30 @@
     "new": "New",
     "in_progress": "In progress",
     "closed": "Closed"
+  },
+  "payments": {
+    "hint": "Customer payments for our subscription (from Paddle). Amounts are in the payment currency; different currencies are never added up.",
+    "month": "This month",
+    "test_mode": "Paddle test mode",
+    "month_empty": "No payments this month yet.",
+    "count": "{n} payments",
+    "tax": "Tax",
+    "fee": "Paddle fee",
+    "earnings": "Left for us",
+    "unknown": "not known yet",
+    "status_label": "Status",
+    "empty": "No payments.",
+    "date": "Date",
+    "amount": "Amount",
+    "tax_short": "tax {amount}",
+    "status": {
+      "draft": "Draft",
+      "ready": "Awaiting payment",
+      "billed": "Billed",
+      "paid": "Paid",
+      "completed": "Paid",
+      "canceled": "Cancelled",
+      "past_due": "Unpaid"
+    }
   }
 }

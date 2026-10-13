@@ -243,3 +243,32 @@ export interface OrderVolume {
 function withPolicies(policyVersionIds: string[]): { policy_version_ids?: string[] } {
   return policyVersionIds.length === 0 ? {} : { policy_version_ids: policyVersionIds };
 }
+
+export interface BillingInvoice {
+  id: string;
+  status: 'billed' | 'paid' | 'completed' | 'canceled' | 'past_due';
+  origin: string | null;
+  invoice_number: string | null;
+  currency: string;
+  currency_exponent: number;
+  subtotal_minor: string | null;
+  discount_minor: string | null;
+  tax_minor: string | null;
+  total_minor: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  billed_at: string | null;
+  invoice_available: boolean;
+}
+
+export async function listInvoices(cursor: string | null = null): Promise<{ data: BillingInvoice[]; next_cursor: string | null }> {
+  return (await request<{ data: BillingInvoice[]; next_cursor: string | null }>('GET', '/api/v1/billing/invoices', { query: cursor === null ? {} : { cursor } })).data;
+}
+
+export async function invoiceLink(id: string): Promise<string> {
+  return (await request<{ url: string }>('GET', `/api/v1/billing/invoices/${encodeURIComponent(id)}/download`)).data.url;
+}
+
+export async function paymentMethodCheckout(): Promise<{ provider: string; environment: 'sandbox' | 'production'; client_token: string | null; transaction_id: string }> {
+  return (await request<{ provider_checkout: { provider: string; environment: 'sandbox' | 'production'; client_token: string | null; transaction_id: string } }>('POST', '/api/v1/billing/payment-method', { idempotencyKey: newIdempotencyKey() })).data.provider_checkout;
+}

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Account\MfaController;
 use App\Http\Controllers\Api\V1\Account\TeamController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Billing\BillingController;
+use App\Http\Controllers\Api\V1\Billing\InvoiceController;
 use App\Http\Controllers\Api\V1\Billing\EntitlementController;
 use App\Http\Controllers\Api\V1\Billing\PaddleWebhookController;
 use App\Http\Controllers\Api\V1\Checks\CheckRunController;
@@ -137,6 +138,12 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
     Route::get('/billing/subscription', [BillingController::class, 'subscription'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+    Route::get('/billing/invoices', [InvoiceController::class, 'index'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+    Route::get('/billing/invoices/{invoice}/download', [InvoiceController::class, 'download'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'throttle:artifact-url']);
+    Route::post('/billing/payment-method', [InvoiceController::class, 'paymentMethod'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
     Route::post('/billing/plan-change-preview', [BillingController::class, 'previewPlanChange'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'throttle:plan-change-preview']);
     Route::post('/billing/plan-change', [BillingController::class, 'changePlan'])

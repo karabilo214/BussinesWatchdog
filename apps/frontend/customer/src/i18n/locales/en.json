@@ -527,7 +527,9 @@
     "cancel_not_scheduled": "The subscription is not cancelled.",
     "store_capacity_paused": "This store is paused by the plan: choose it on the subscription page to check it again.",
     "faster_checks_unavailable": "This package has no faster-checks add-on.",
-    "policy_acceptance_required": "The documents have changed. Read the new version and confirm your consent again."
+    "policy_acceptance_required": "The documents have changed. Read the new version and confirm your consent again.",
+    "invoice_not_available": "There is no invoice for this payment.",
+    "invoice_not_found": "Invoice not found."
   },
   "incidents": {
     "title": "Incidents",
@@ -1554,6 +1556,28 @@
     "faster_checks": "Faster checks — every {minutes} min (+{price})",
     "faster_checks_label": "Faster checks",
     "faster_checks_value": "every {minutes} min",
-    "consent": "I accept the"
+    "consent": "I accept the",
+    "invoices": {
+      "title": "Invoices and payments",
+      "hint": "Payments for your subscription: date, period, amount with tax and discount. The PDF invoice is issued by the payment service Paddle.",
+      "payment_method": "Change payment method",
+      "payment_method_updated": "The payment method was updated. Future charges use it.",
+      "empty": "No payments yet.",
+      "date": "Date",
+      "period": "Period",
+      "amount": "Amount",
+      "status_label": "Status",
+      "tax": "incl. tax {amount}",
+      "discount": "discount {amount}",
+      "download": "Invoice PDF",
+      "more": "Show more",
+      "status": {
+        "billed": "Billed",
+        "paid": "Paid",
+        "completed": "Paid",
+        "canceled": "Cancelled",
+        "past_due": "Unpaid"
+      }
+    }
   }
 }

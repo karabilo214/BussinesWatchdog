@@ -50,6 +50,10 @@ class TenantAdminTest extends TestCase
         config()->set('watchdog.billing.enforcement', 'enforce');
         Http::preventStrayRequests();
         Http::fake(function (Request $request) {
+            if ($request->method() === 'GET' && str_starts_with($request->url(), self::API.'/transactions')) {
+                return Http::response(['data' => [], 'meta' => ['pagination' => ['has_more' => false, 'next' => null]]]);
+            }
+
             if ($request->method() !== 'GET') {
                 $this->paddle['writes'][] = ['method' => $request->method(), 'url' => $request->url()];
             }

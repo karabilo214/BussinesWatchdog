@@ -16,7 +16,7 @@ export function buildRouter(): Router {
     routes: [
       { path: '/', redirect: { name: 'owner-overview' } },
       { path: '/owner/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
-      ...OWNER_SECTIONS.filter((section) => !['plans', 'tenants', 'subscriptions', 'site', 'contacts'].includes(section)).map((section) => ({
+      ...OWNER_SECTIONS.filter((section) => !['plans', 'tenants', 'subscriptions', 'payments', 'site', 'contacts'].includes(section)).map((section) => ({
         path: section === 'overview' ? '/owner' : `/owner/${section}`,
         name: `owner-${section}`,
         component: () => import('@/views/SectionView.vue'),
@@ -25,6 +25,7 @@ export function buildRouter(): Router {
       { path: '/owner/tenants', name: 'owner-tenants', component: () => import('@/views/TenantsView.vue') },
       { path: '/owner/tenants/:id', name: 'owner-tenant', component: () => import('@/views/TenantView.vue'), props: true },
       { path: '/owner/subscriptions', name: 'owner-subscriptions', component: () => import('@/views/SubscriptionsView.vue') },
+      { path: '/owner/payments', name: 'owner-payments', component: () => import('@/views/PaymentsView.vue') },
       { path: '/owner/site', name: 'owner-site', component: () => import('@/views/PagesView.vue') },
       { path: '/owner/site/pages/:id', name: 'owner-page', component: () => import('@/views/PageView.vue'), props: true },
       { path: '/owner/contacts', name: 'owner-contacts', component: () => import('@/views/ContactsView.vue') },

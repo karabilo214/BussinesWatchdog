@@ -527,7 +527,9 @@
     "cancel_not_scheduled": "Das Abonnement ist nicht gekündigt.",
     "store_capacity_paused": "Dieser Shop ist durch den Tarif pausiert: Wählen Sie ihn auf der Abonnementseite aus, um ihn wieder zu prüfen.",
     "faster_checks_unavailable": "Dieses Paket hat keinen Zusatz für häufigere Prüfungen.",
-    "policy_acceptance_required": "Die Dokumente wurden geändert. Lesen Sie die neue Fassung und bestätigen Sie erneut."
+    "policy_acceptance_required": "Die Dokumente wurden geändert. Lesen Sie die neue Fassung und bestätigen Sie erneut.",
+    "invoice_not_available": "Für diese Zahlung gibt es keine Rechnung.",
+    "invoice_not_found": "Rechnung nicht gefunden."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -1554,6 +1556,28 @@
     "faster_checks": "Häufigere Prüfungen — alle {minutes} Min. (+{price})",
     "faster_checks_label": "Häufigere Prüfungen",
     "faster_checks_value": "alle {minutes} Min.",
-    "consent": "Ich akzeptiere"
+    "consent": "Ich akzeptiere",
+    "invoices": {
+      "title": "Rechnungen und Zahlungen",
+      "hint": "Zahlungen für Ihr Abonnement: Datum, Zeitraum, Betrag mit Steuer und Rabatt. Die PDF-Rechnung stellt der Zahlungsdienst Paddle aus.",
+      "payment_method": "Zahlungsmethode ändern",
+      "payment_method_updated": "Die Zahlungsmethode wurde aktualisiert. Künftige Abbuchungen nutzen sie.",
+      "empty": "Noch keine Zahlungen.",
+      "date": "Datum",
+      "period": "Zeitraum",
+      "amount": "Betrag",
+      "status_label": "Status",
+      "tax": "inkl. Steuer {amount}",
+      "discount": "Rabatt {amount}",
+      "download": "Rechnung PDF",
+      "more": "Mehr anzeigen",
+      "status": {
+        "billed": "Gestellt",
+        "paid": "Bezahlt",
+        "completed": "Bezahlt",
+        "canceled": "Storniert",
+        "past_due": "Unbezahlt"
+      }
+    }
   }
 }

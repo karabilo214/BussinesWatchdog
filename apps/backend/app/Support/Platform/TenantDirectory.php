@@ -4,6 +4,7 @@ namespace App\Support\Platform;
 
 use App\Models\BillingPlanChange;
 use App\Models\BillingSubscriptionContract;
+use App\Models\BillingTransaction;
 use App\Models\EntitlementOverride;
 use App\Models\Incident;
 use App\Models\Membership;
@@ -228,6 +229,8 @@ class TenantDirectory
 
         return [
             'mode' => PaddleConfig::mode(),
+            'transactions' => BillingTransaction::query()->where('tenant_id', $tenant->id)->where('mode', PaddleConfig::mode())->whereNotIn('status', ['draft'])->orderByDesc('id')->limit(20)->get()
+                ->map(fn (BillingTransaction $transaction): array => PaymentLedger::dto($transaction))->values()->all(),
             'subscription' => $subscription === null ? null : $this->subscriptionSummary($subscription) + [
                 'provider_subscription_ref' => $subscription->provider_subscription_ref,
                 'next_charge_at' => $live?->next_charge_at?->toJSON(),

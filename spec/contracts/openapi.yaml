@@ -1048,6 +1048,33 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/payments:
+    get:
+      tags: [Platform]
+      operationId: platformListPayments
+      description: "Capability billing.read (ADR 0043). Every transaction of our subscriptions in the current mode, newest first, 50 per page, with the organisation; `month` sums the paid and completed transactions billed this calendar month (UTC) per currency — charged, tax, provider fee, earnings (fee and earnings null when a transaction has none yet) — never across currencies."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: status, in: query, schema: {enum: [draft, ready, billed, paid, completed, canceled, past_due]}}
+        - {name: tenant_id, in: query, schema: {type: string, format: uuid}}
+        - {name: cursor, in: query, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Payments
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor, month, mode]
+                properties:
+                  data: {type: array, items: {type: object}}
+                  next_cursor: {type: [string, "null"]}
+                  month: {type: array, items: {type: object}}
+                  mode: {enum: [test, live]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/lookup:
     get:
       tags: [Platform]
@@ -2470,6 +2497,68 @@ paths:
         "204": {description: No trial or paid subscription yet; the client shows onboarding}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/invoices:
+    get:
+      tags: [Billing]
+      operationId: listBillingInvoices
+      description: "Tenant owner only (ADR 0043). Transactions of the organisation's own subscription in the current billing mode, newest first, 50 per page; drafts and not yet billed transactions are left out. Amounts are minor-unit strings in the transaction currency; `total_minor` is what was charged (after discounts and credits, with tax)."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: cursor, in: query, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Invoices
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data: {type: array, items: {type: object}}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/invoices/{invoice}/download:
+    get:
+      tags: [Billing]
+      operationId: downloadBillingInvoice
+      description: "Tenant owner only. A short-lived link to the invoice PDF at the billing provider; 409 invoice_not_available for a transaction that was not billed, 404 for another organisation's invoice."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: invoice, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Link
+          content:
+            application/json:
+              schema: {type: object, required: [url], properties: {url: {type: string, format: uri}}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+        "503": {$ref: "#/components/responses/Problem"}
+  /api/v1/billing/payment-method:
+    post:
+      tags: [Billing]
+      operationId: changeBillingPaymentMethod
+      description: "Tenant owner only. Returns the provider's payment-method update transaction to open with Paddle.js like a checkout; nothing is charged. 409 no_active_subscription."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+      responses:
+        "200":
+          description: Provider checkout
+          content:
+            application/json:
+              schema: {type: object, required: [provider_checkout], properties: {provider_checkout: {type: object}}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "503": {$ref: "#/components/responses/Problem"}
   /api/v1/billing/plan-change-preview:
     post:
       tags: [Billing]
