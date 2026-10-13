@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Platform\AuditController;
 use App\Http\Controllers\Platform\ContactRequestController;
 use App\Http\Controllers\Platform\DiscountController;
 use App\Http\Controllers\Platform\OverviewController;
@@ -41,6 +42,10 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/payments', [PaymentController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/overview', [OverviewController::class, 'show']);
     Route::middleware('platform.staff:'.PlatformCapabilities::SERVICE_READ)->get('/health', [ServiceHealthController::class, 'show']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::AUDIT_READ)->group(function (): void {
+        Route::get('/audit', [AuditController::class, 'index']);
+        Route::get('/audit/export', [AuditController::class, 'export'])->middleware('throttle:platform-step-up');
+    });
     Route::middleware('platform.staff:'.PlatformCapabilities::STAFF_MANAGE)->group(function (): void {
         Route::get('/staff', [StaffController::class, 'index']);
         Route::post('/staff/invitations', [StaffController::class, 'invite'])->middleware('throttle:platform-step-up');

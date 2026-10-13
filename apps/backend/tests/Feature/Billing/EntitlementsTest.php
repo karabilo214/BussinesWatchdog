@@ -240,6 +240,7 @@ class EntitlementsTest extends TestCase
 
     public function test_checks_need_checkout_monitoring_and_respect_the_interval_floor(): void
     {
+        Carbon::setTestNow(Carbon::now()->startOfSecond());
         $this->enforce();
         $context = $this->context();
         $context['store']->forceFill(['base_url' => 'https://shop.example.test', 'status' => 'active', 'browser_enabled' => true, 'verified_at' => now()])->save();
@@ -256,6 +257,7 @@ class EntitlementsTest extends TestCase
         config()->set('watchdog.browser.schedule_jitter', 0);
         $this->assertSame(['due' => 1, 'created' => 1], app(CheckScheduler::class)->scheduleDue());
         $this->assertSame(now()->addMinutes(15)->getTimestamp(), $scenario->fresh()->next_due_at->getTimestamp());
+        Carbon::setTestNow();
     }
 
     public function test_reconciliation_without_the_feature_is_unknown_not_ok(): void

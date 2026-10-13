@@ -628,6 +628,40 @@
       "invitation_revoked": "Einladung widerrufen",
       "store_created": "Shop hinzugefügt",
       "store_viewed": "Shopdaten geöffnet"
+    },
+    "staff": {
+      "login": "Anmeldung",
+      "invited": "Mitarbeitende eingeladen",
+      "invitation_revoked": "Einladung widerrufen",
+      "joined": "Mitarbeitende beigetreten",
+      "updated": "Mitarbeitende geändert",
+      "sessions_revoked": "Sitzungen beendet",
+      "mfa_reset": "Authenticator zurückgesetzt",
+      "bootstrap_owner": "Erster Inhaber angelegt"
+    },
+    "site": {
+      "page": {
+        "created": "Seite angelegt",
+        "updated": "Seiteneinstellungen geändert",
+        "published": "Seite veröffentlicht",
+        "unpublished": "Veröffentlichung zurückgezogen",
+        "archived": "Seite gelöscht",
+        "restored": "Seitenversion wiederhergestellt",
+        "draft_discarded": "Entwurf verworfen"
+      },
+      "block": {
+        "created": "Blockvorlage angelegt",
+        "updated": "Blockvorlage geändert",
+        "archived": "Blockvorlage gelöscht"
+      },
+      "contact": {
+        "updated": "Status der Anfrage geändert",
+        "replied": "Anfrage beantwortet",
+        "noted": "Notiz zur Anfrage"
+      }
+    },
+    "audit": {
+      "exported": "Audit exportiert"
     }
   },
   "site": {
@@ -1259,5 +1293,25 @@
     "done_title": "Fertig, Sie sind im Team",
     "recovery": "Speichern Sie die Wiederherstellungscodes — sie werden einmal angezeigt und gebraucht, falls die App nicht verfügbar ist:",
     "sign_in": "In der Verwaltung anmelden"
+  },
+  "audit": {
+    "hint": "Protokoll der Aktionen von Mitarbeitenden und System: wer, was, an welchem Objekt, Ergebnis und Grund. Änderungen werden ohne Geheimnisse und personenbezogene Daten gespeichert.",
+    "forbidden": "Dieser Bereich steht dem Inhaber und den Administratoren des Dienstes zur Verfügung.",
+    "export": "CSV exportieren",
+    "actor": "Wer",
+    "action": "Aktion",
+    "result": "Ergebnis",
+    "from": "Von",
+    "to": "Bis",
+    "apply": "Anzeigen",
+    "reset": "Zurücksetzen",
+    "any": "Alle",
+    "system": "System",
+    "tenant_filter": "Nur für die gewählte Organisation",
+    "empty": "Keine Einträge für diese Filter.",
+    "more": "Details",
+    "less": "Ausblenden",
+    "reason": "Grund",
+    "load_more": "Mehr anzeigen"
   }
 }

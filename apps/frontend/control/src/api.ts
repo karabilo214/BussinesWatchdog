@@ -731,6 +731,40 @@ export async function confirmStaffInvitation(input: { token: string; code: strin
   return (await request<{ staff_id: string; recovery_codes: string[] }>('POST', '/platform-api/v1/staff-invitations/confirm', { body: input })).data;
 }
 
+export interface AuditEntry {
+  id: string;
+  created_at: string;
+  actor: { id: string; name: string | null; email: string | null } | null;
+  actor_kind: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  tenant: { id: string; name: string | null } | null;
+  result: 'requested' | 'succeeded' | 'failed' | 'denied' | 'unknown';
+  reason: string | null;
+  changes: unknown;
+  request_id: string;
+}
+
+export interface AuditPage {
+  data: AuditEntry[];
+  next_cursor: string | null;
+  actions: string[];
+  staff: { id: string; name: string | null }[];
+}
+
+export type AuditFilters = Partial<Record<'actor' | 'action' | 'result' | 'tenant' | 'from' | 'to' | 'cursor', string>>;
+
+export async function fetchAudit(filters: AuditFilters): Promise<AuditPage> {
+  return (await request<AuditPage>('GET', '/platform-api/v1/audit', { query: filters })).data;
+}
+
+export function auditExportUrl(filters: AuditFilters): string {
+  const query = new URLSearchParams(Object.entries(filters).filter(([key, value]) => key !== 'cursor' && value)).toString();
+
+  return `/platform-api/v1/audit/export${query ? `?${query}` : ''}`;
+}
+
 export type ReminderTopic = 'subscription' | 'payment' | 'other';
 
 export interface ReminderInput {

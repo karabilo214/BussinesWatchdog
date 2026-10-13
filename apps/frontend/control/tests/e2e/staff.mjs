@@ -100,6 +100,17 @@ try {
   await join.waitForURL(/\/owner\/login/);
   console.log('ok   member disabled with the authenticator code; their session ended at once');
 
+  await page.goto(`${base}/owner/audit`);
+  await page.locator('[data-entry]').first().waitFor();
+  await page.locator('[data-field="action"]').selectOption('staff.updated');
+  await page.locator('[data-action="apply"]').click();
+  await page.waitForURL(/action=staff\.updated/);
+  await page.locator('[data-entry="staff.updated"]').getByText('Live check done').first().waitFor();
+  await shot(page, '4-audit');
+  const csv = await page.request.get(`${base}${await page.locator('[data-action="export"]').getAttribute('href')}`);
+  if (!csv.ok() || !(await csv.text()).includes('staff.updated')) throw new Error('audit export failed');
+  console.log('ok   audit filtered by action shows the disabling with its reason; CSV export of the same filter');
+
   if (errors.length > 0) throw new Error(`page errors: ${errors.join('; ')}`);
   console.log('PASS');
 } catch (error) {

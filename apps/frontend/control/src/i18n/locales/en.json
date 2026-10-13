@@ -628,6 +628,40 @@
       "invitation_revoked": "Invitation revoked",
       "store_created": "Store added",
       "store_viewed": "Store data opened"
+    },
+    "staff": {
+      "login": "Staff sign-in",
+      "invited": "Staff member invited",
+      "invitation_revoked": "Staff invitation revoked",
+      "joined": "Staff member joined",
+      "updated": "Staff member changed",
+      "sessions_revoked": "Staff sessions ended",
+      "mfa_reset": "Authenticator reset",
+      "bootstrap_owner": "First owner created"
+    },
+    "site": {
+      "page": {
+        "created": "Page created",
+        "updated": "Page settings changed",
+        "published": "Page published",
+        "unpublished": "Page unpublished",
+        "archived": "Page deleted",
+        "restored": "Page version restored",
+        "draft_discarded": "Draft discarded"
+      },
+      "block": {
+        "created": "Block template created",
+        "updated": "Block template changed",
+        "archived": "Block template deleted"
+      },
+      "contact": {
+        "updated": "Message status changed",
+        "replied": "Message replied",
+        "noted": "Note on a message"
+      }
+    },
+    "audit": {
+      "exported": "Audit exported"
     }
   },
   "site": {
@@ -1259,5 +1293,25 @@
     "done_title": "Done, you are in the team",
     "recovery": "Save the recovery codes — they are shown once and needed if the app is unavailable:",
     "sign_in": "Sign in to the panel"
+  },
+  "audit": {
+    "hint": "Log of actions by service staff and the system: who, what, on which object, result and reason. Changes are kept without secrets or personal data.",
+    "forbidden": "This section is available to the service owner and administrators.",
+    "export": "Export CSV",
+    "actor": "Who",
+    "action": "Action",
+    "result": "Result",
+    "from": "From",
+    "to": "To",
+    "apply": "Show",
+    "reset": "Reset",
+    "any": "All",
+    "system": "System",
+    "tenant_filter": "Only for the selected organisation",
+    "empty": "No entries for these filters.",
+    "more": "Details",
+    "less": "Hide",
+    "reason": "Reason",
+    "load_more": "Show more"
   }
 }

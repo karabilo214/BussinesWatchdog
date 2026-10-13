@@ -756,3 +756,13 @@ Status: complete
 - Owner panel: «Сервис» replaces the placeholder: overall state and time, components, queues table with explanations, browser checks and connector sync cards, version; refreshes every minute and on demand; staff without access see a short notice. ru/en/de.
 
 Verification: `tests/Feature/Platform/ServiceHealthTest.php` (2: ages, problems, queued checks without workers, stale sync, release, no customer data in the response; support forbidden), `HealthEndpointTest` +1 (a component throwing `Error`). Control 47 tests (`tests/service.test.ts`, 2). Frontend check green. Backend SQLite 546 passed, 4 skipped; PostgreSQL 18: 550 of 550. Live (`run-live.sh overview`): the stand shows Redis as a problem from the host, 29 queued browser checks without a worker, dead outbox/inbox entries — PASS.
+
+### Step 133: «Аудит» — Platform Audit Viewer With Filters and CSV Export
+
+Status: complete
+
+- ADR 0053 (accepted for now, to be confirmed by the owner). `AuditJournal` (page of 50 with cursor, filters actor/system, exact action, target, organisation, result, dates; list of actions and staff for filters; export generator up to 10 000 rows), `AuditController` (`audit.read`): `GET /platform-api/v1/audit`, `GET /platform-api/v1/audit/export` (CSV, formula cells quoted, audited as `audit.exported`, step-up limiter). OpenAPI: 2 operations.
+- Owner panel: «Аудит» replaces the placeholder: filters kept in the address, entries with action label, result, actor or «Система», time, organisation link, reason, details (target, request id, changes), «Показать ещё», «Выгрузить CSV» with the same filters; staff without access see a notice. Labels for staff, site, block, contact and audit actions. ru/en/de.
+- Found while testing on PostgreSQL: `EntitlementsTest::test_checks_need_checkout_monitoring_and_respect_the_interval_floor` compared the scheduler's next run with a later real `now()` and failed when a second boundary passed in between — the test now freezes the time (scheduler unchanged).
+
+Verification: `tests/Feature/Platform/AuditJournalTest.php` (2: paging over 58 entries, filters by action/organisation/result/dates/system actor, CSV of the filter with a quoted formula cell and the export audited; support forbidden). Control 52 tests (`tests/audit.test.ts`, 2). Frontend check green. Backend SQLite 553 passed, 4 skipped; PostgreSQL 18: 557 of 557. Live in Chromium (`run-live.sh staff`): audit filtered by «Изменён сотрудник» shows the disabling with its reason; CSV export of the same filter — PASS.

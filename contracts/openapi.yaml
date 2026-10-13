@@ -1411,6 +1411,58 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/audit:
+    get:
+      tags: [Platform]
+      operationId: platformListAudit
+      description: "Capability audit.read (owner, admin). Platform audit (ADR 0053), newest first, 50 per page with next_cursor: time, actor (staff name/email or system), action, target type/id, organisation, result, reason, sanitized changes, request id; also the list of actions and staff for filters. Filters by actor, exact action, target, organisation, result and UTC dates (both included)."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: actor, in: query, required: false, schema: {type: string, maxLength: 64}, description: "staff id or system"}
+        - {name: action, in: query, required: false, schema: {type: string, maxLength: 100}}
+        - {name: target_type, in: query, required: false, schema: {type: string, maxLength: 64}}
+        - {name: target_id, in: query, required: false, schema: {type: string, maxLength: 128}}
+        - {name: tenant, in: query, required: false, schema: {type: string, format: uuid}}
+        - {name: result, in: query, required: false, schema: {enum: [requested, succeeded, failed, denied, unknown]}}
+        - {name: from, in: query, required: false, schema: {type: string, format: date}}
+        - {name: to, in: query, required: false, schema: {type: string, format: date}}
+        - {name: cursor, in: query, required: false, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Audit page
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/audit/export:
+    get:
+      tags: [Platform]
+      operationId: platformExportAudit
+      description: "Capability audit.read. CSV of the filtered audit (at most 10 000 newest rows; cells starting with = + - @ are prefixed with a quote), no-store; the export itself is audited as audit.exported with the filters."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: actor, in: query, required: false, schema: {type: string, maxLength: 64}, description: "staff id or system"}
+        - {name: action, in: query, required: false, schema: {type: string, maxLength: 100}}
+        - {name: target_type, in: query, required: false, schema: {type: string, maxLength: 64}}
+        - {name: target_id, in: query, required: false, schema: {type: string, maxLength: 128}}
+        - {name: tenant, in: query, required: false, schema: {type: string, format: uuid}}
+        - {name: result, in: query, required: false, schema: {enum: [requested, succeeded, failed, denied, unknown]}}
+        - {name: from, in: query, required: false, schema: {type: string, format: date}}
+        - {name: to, in: query, required: false, schema: {type: string, format: date}}
+      responses:
+        "200":
+          description: CSV
+          content:
+            text/csv:
+              schema: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/pages:
     get:
       tags: [Platform]
