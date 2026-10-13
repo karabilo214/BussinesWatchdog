@@ -526,7 +526,8 @@
     "no_scheduled_change": "Запланированной смены тарифа нет.",
     "cancel_not_scheduled": "Подписка не отменена.",
     "store_capacity_paused": "Магазин на паузе по тарифу: выберите его в подписке, чтобы проверки снова работали.",
-    "faster_checks_unavailable": "У этого пакета нет доплаты за частые проверки."
+    "faster_checks_unavailable": "У этого пакета нет доплаты за частые проверки.",
+    "policy_acceptance_required": "Документы обновились. Ознакомьтесь с новой редакцией и подтвердите согласие ещё раз."
   },
   "incidents": {
     "title": "Инциденты",
@@ -1552,6 +1553,7 @@
     },
     "faster_checks": "Частые проверки — раз в {minutes} мин (+{price})",
     "faster_checks_label": "Частые проверки",
-    "faster_checks_value": "раз в {minutes} мин"
+    "faster_checks_value": "раз в {minutes} мин",
+    "consent": "Я принимаю"
   }
 }

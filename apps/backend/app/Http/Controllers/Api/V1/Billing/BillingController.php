@@ -13,12 +13,14 @@ use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Billing\DiscountLedger;
 use App\Support\Billing\DiscountResolver;
 use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\OrderVolume;
 use App\Support\Billing\Paddle\PaddleCheckout;
 use App\Support\Billing\Paddle\PaddleConfig;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
-use App\Support\Billing\OrderVolume;
 use App\Support\Billing\StoreCapacity;
 use App\Support\Billing\TrialService;
+use App\Support\Site\Policies;
+use App\Support\Site\PolicyAcceptanceRequired;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +33,25 @@ use Illuminate\Support\Str;
  */
 class BillingController extends Controller
 {
+    private const POLICY_RULES = [
+        'policy_version_ids' => ['sometimes', 'array', 'max:10'],
+        'policy_version_ids.*' => ['string', 'uuid'],
+    ];
+
+    public function __construct(private readonly Policies $policies) {}
+
+    private function locale(Request $request): string
+    {
+        $locale = (string) ($request->user()?->locale ?? 'en');
+
+        return in_array($locale, ['ru', 'en', 'de'], true) ? $locale : 'en';
+    }
+
+    private function policyRequired(PolicyAcceptanceRequired $exception): JsonResponse
+    {
+        return response()->json(['code' => 'policy_acceptance_required', 'message' => 'Accept the current terms first.', 'details' => ['documents' => $exception->required]], 422);
+    }
+
     public function checkout(Request $request, TenantContext $tenantContext, PaddleCheckout $checkout): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('start checkout');
@@ -45,13 +66,22 @@ class BillingController extends Controller
             'extra_stores' => ['sometimes', 'integer', 'min:0', 'max:1000'],
             'discount_code' => ['sometimes', 'nullable', 'string', 'max:32'],
             'faster_checks' => ['sometimes', 'boolean'],
+            ...self::POLICY_RULES,
         ]);
+
+        try {
+            $accepted = $this->policies->verify(Policies::PURPOSE_PURCHASE, $validated['policy_version_ids'] ?? [], $this->locale($request));
+        } catch (PolicyAcceptanceRequired $exception) {
+            return $this->policyRequired($exception);
+        }
 
         try {
             $session = $checkout->start($tenantId, (string) $request->user()->getAuthIdentifier(), $validated['price_id'], (int) ($validated['extra_stores'] ?? 0), $key, $validated['discount_code'] ?? null, (bool) ($validated['faster_checks'] ?? false));
         } catch (BillingCheckoutRejected $exception) {
             return response()->json(['code' => $exception->reasonCode, 'message' => 'The checkout cannot be started.'], $exception->status());
         }
+
+        $this->policies->record((string) $request->user()->getAuthIdentifier(), $tenantId, Policies::PURPOSE_PURCHASE, $accepted, $session->id);
 
         return response()->json($this->checkoutDto($session, $tenantId), 202);
     }
@@ -72,14 +102,18 @@ class BillingController extends Controller
     public function trial(Request $request, TenantContext $tenantContext, TrialService $trials, EntitlementCalculator $calculator): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('start trial');
-        $validated = $request->validate(['plan_version_id' => ['required', 'uuid']]);
+        $validated = $request->validate(['plan_version_id' => ['required', 'uuid'], ...self::POLICY_RULES]);
 
         if ($request->user()->email_verified_at === null) {
             return response()->json(['code' => 'email_not_verified', 'message' => 'Confirm your email address first.'], 403);
         }
 
         try {
+            $accepted = $this->policies->verify(Policies::PURPOSE_TRIAL, $validated['policy_version_ids'] ?? [], $this->locale($request));
             $subscription = $trials->start($tenantId, $validated['plan_version_id']);
+            $this->policies->record((string) $request->user()->getAuthIdentifier(), $tenantId, Policies::PURPOSE_TRIAL, $accepted, $subscription->id);
+        } catch (PolicyAcceptanceRequired $exception) {
+            return $this->policyRequired($exception);
         } catch (BillingCheckoutRejected $exception) {
             return response()->json(['code' => $exception->reasonCode, 'message' => 'The trial cannot be started.'], $exception->status());
         }
@@ -120,6 +154,7 @@ class BillingController extends Controller
             'mode' => PaddleConfig::mode(),
             'checkout_available' => PaddleConfig::configured() && PaddleConfig::clientToken() !== null,
             'trial_available' => $trialAvailable,
+            'documents' => $this->policies->required(Policies::PURPOSE_PURCHASE, $this->locale(request())),
         ]);
     }
 
@@ -162,10 +197,17 @@ class BillingController extends Controller
             return response()->json(['code' => 'idempotency_key_required', 'message' => 'Idempotency-Key header is required.'], 400);
         }
 
-        $validated = $request->validate(['preview_token' => ['required', 'string', 'max:64']]);
+        $validated = $request->validate(['preview_token' => ['required', 'string', 'max:64'], ...self::POLICY_RULES]);
 
-        return $this->rejectable(function () use ($actions, $tenantId, $request, $validated, $key, $calculator): JsonResponse {
+        try {
+            $accepted = $this->policies->verify(Policies::PURPOSE_PLAN_CHANGE, $validated['policy_version_ids'] ?? [], $this->locale($request));
+        } catch (PolicyAcceptanceRequired $exception) {
+            return $this->policyRequired($exception);
+        }
+
+        return $this->rejectable(function () use ($actions, $tenantId, $request, $validated, $key, $calculator, $accepted): JsonResponse {
             $change = $actions->confirm($tenantId, (string) $request->user()->getAuthIdentifier(), $validated['preview_token'], $key);
+            $this->policies->record((string) $request->user()->getAuthIdentifier(), $tenantId, Policies::PURPOSE_PLAN_CHANGE, $accepted, $change->id);
             $calculator->forget();
 
             return response()->json(['change' => PaddleSubscriptionActions::dto($change), 'subscription' => $this->currentSubscription($tenantId, $calculator)], 202);

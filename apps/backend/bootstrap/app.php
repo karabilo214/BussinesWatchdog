@@ -49,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+        $middleware->redirectGuestsTo(fn (Request $request): ?string => $request->is('api/*') || $request->is('platform-api/*') || $request->is('internal/*') ? null : '/app/login');
         $middleware->api(prepend: [AssignRequestId::class]);
         $middleware->group('platform', [
             AssignRequestId::class,

@@ -26,6 +26,8 @@ class RegisterRequest extends FormRequest
             'timezone' => ['required_without:invitation_token', 'timezone'],
             'invitation_token' => ['sometimes', 'string', 'max:128'],
             'locale' => ['sometimes', 'string', 'in:ru,en,de'],
+            'policy_version_ids' => ['sometimes', 'array', 'max:10'],
+            'policy_version_ids.*' => ['string', 'uuid'],
         ];
     }
 

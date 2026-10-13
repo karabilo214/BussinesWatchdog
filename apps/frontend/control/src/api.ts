@@ -382,6 +382,7 @@ export async function fetchSubscriptions(filters: Partial<Record<'status' | 'pla
 export type SiteLocale = 'ru' | 'en' | 'de';
 export type PageKind = 'home' | 'pricing' | 'contact' | 'page';
 export type PageMenu = 'none' | 'header' | 'footer';
+export type PolicyType = 'service_terms' | 'privacy_notice' | 'recurring_payment';
 
 export interface PageSummary {
   id: string;
@@ -391,6 +392,7 @@ export interface PageSummary {
   path: string;
   menu: PageMenu;
   sort: number;
+  policy_type: PolicyType | null;
   created_at: string | null;
   locales: Record<SiteLocale, { published: string | null; draft: boolean; title: string | null }>;
 }
@@ -440,7 +442,7 @@ export async function fetchPage(id: string): Promise<PageCard> {
   return (await request<PageCard>('GET', `/platform-api/v1/pages/${encodeURIComponent(id)}`)).data;
 }
 
-export async function updatePage(id: string, input: { menu: PageMenu; sort: number }): Promise<PageCard> {
+export async function updatePage(id: string, input: { menu: PageMenu; sort: number; policy_type?: PolicyType | null }): Promise<PageCard> {
   return (await request<PageCard>('PATCH', `/platform-api/v1/pages/${encodeURIComponent(id)}`, { body: input })).data;
 }
 

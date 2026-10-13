@@ -73,11 +73,22 @@ export interface BillingPlan {
   discounts: BillingDiscount[];
 }
 
+export interface PolicyDocument {
+  type: 'service_terms' | 'privacy_notice' | 'recurring_payment';
+  version_id: string;
+  version: number;
+  locale: string;
+  title: string;
+  url: string;
+  published_at: string | null;
+}
+
 export interface BillingCatalog {
   data: BillingPlan[];
   mode: 'test' | 'live';
   checkout_available: boolean;
   trial_available: boolean;
+  documents?: PolicyDocument[];
 }
 
 export interface BillingSubscription {
@@ -162,14 +173,14 @@ export async function fetchSubscription(): Promise<BillingSubscription | null> {
   return (await request<BillingSubscription | null>('GET', '/api/v1/billing/subscription')).data;
 }
 
-export async function startTrial(planVersionId: string): Promise<BillingSubscription> {
-  return (await request<BillingSubscription>('POST', '/api/v1/billing/trial', { body: { plan_version_id: planVersionId }, idempotencyKey: newIdempotencyKey() })).data;
+export async function startTrial(planVersionId: string, policyVersionIds: string[] = []): Promise<BillingSubscription> {
+  return (await request<BillingSubscription>('POST', '/api/v1/billing/trial', { body: { plan_version_id: planVersionId, ...withPolicies(policyVersionIds) }, idempotencyKey: newIdempotencyKey() })).data;
 }
 
-export async function startCheckout(priceId: string, extraStores: number, idempotencyKey: string, discountCode: string | null = null, fasterChecks = false): Promise<BillingCheckout> {
+export async function startCheckout(priceId: string, extraStores: number, idempotencyKey: string, discountCode: string | null = null, fasterChecks = false, policyVersionIds: string[] = []): Promise<BillingCheckout> {
   return (
     await request<BillingCheckout>('POST', '/api/v1/billing/checkout', {
-      body: { price_id: priceId, extra_stores: extraStores, ...(discountCode === null ? {} : { discount_code: discountCode }), ...(fasterChecks ? { faster_checks: true } : {}) },
+      body: { price_id: priceId, extra_stores: extraStores, ...(discountCode === null ? {} : { discount_code: discountCode }), ...(fasterChecks ? { faster_checks: true } : {}), ...withPolicies(policyVersionIds) },
       idempotencyKey,
     })
   ).data;
@@ -191,8 +202,8 @@ export async function previewPlanChange(priceId: string, extraStores: number, re
   ).data;
 }
 
-export async function confirmPlanChange(previewToken: string, idempotencyKey: string): Promise<{ change: PlanChange; subscription: BillingSubscription | null }> {
-  return (await request<{ change: PlanChange; subscription: BillingSubscription | null }>('POST', '/api/v1/billing/plan-change', { body: { preview_token: previewToken }, idempotencyKey })).data;
+export async function confirmPlanChange(previewToken: string, idempotencyKey: string, policyVersionIds: string[] = []): Promise<{ change: PlanChange; subscription: BillingSubscription | null }> {
+  return (await request<{ change: PlanChange; subscription: BillingSubscription | null }>('POST', '/api/v1/billing/plan-change', { body: { preview_token: previewToken, ...withPolicies(policyVersionIds) }, idempotencyKey })).data;
 }
 
 export async function withdrawPlanChange(): Promise<{ change: PlanChange; subscription: BillingSubscription | null }> {
@@ -227,4 +238,8 @@ export interface OrderVolume {
   paused_at: string | null;
   stores: OrderVolumeStore[];
   recommended: { plan_code: string; name: Record<string, string>; contact_sales: boolean } | null;
+}
+
+function withPolicies(policyVersionIds: string[]): { policy_version_ids?: string[] } {
+  return policyVersionIds.length === 0 ? {} : { policy_version_ids: policyVersionIds };
 }

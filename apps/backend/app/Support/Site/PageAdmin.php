@@ -18,6 +18,9 @@ class PageAdmin
 {
     public const SLUG_PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
 
+    /** Top-level addresses served by the site itself. */
+    private const RESERVED = ['signup'];
+
     public function __construct(
         private readonly PageSanitizer $sanitizer,
         private readonly PlatformAudit $audit,
@@ -106,6 +109,10 @@ class PageAdmin
 
             $path = $parent === null ? $slug : $parent->path.'/'.$slug;
 
+            if ($parent === null && in_array($slug, self::RESERVED, true)) {
+                throw new SiteRejected('slug_taken', 409);
+            }
+
             if (PublicPage::query()->where('path', $path)->whereNull('archived_at')->exists()) {
                 throw new SiteRejected('slug_taken', 409);
             }
@@ -126,7 +133,7 @@ class PageAdmin
     }
 
     /**
-     * @param  array{menu?: string, sort?: int}  $input
+     * @param  array{menu?: string, sort?: int, policy_type?: ?string}  $input
      */
     public function update(string $staffId, string $pageId, array $input): PublicPage
     {
@@ -137,6 +144,21 @@ class PageAdmin
         }
 
         $changes = array_filter(['menu' => $input['menu'] ?? null, 'sort' => isset($input['sort']) ? (int) $input['sort'] : null], fn ($value): bool => $value !== null);
+
+        if (array_key_exists('policy_type', $input)) {
+            $type = $input['policy_type'];
+
+            if ($type !== null && (! in_array($type, PublicPage::POLICIES, true) || $page->kind !== PublicPage::KIND_PAGE)) {
+                throw new SiteRejected('policy_type_invalid');
+            }
+
+            if ($type !== null && PublicPage::query()->where('policy_type', $type)->whereNull('archived_at')->whereKeyNot($page->id)->exists()) {
+                throw new SiteRejected('policy_taken', 409);
+            }
+
+            $changes['policy_type'] = $type;
+        }
+
         $page->forceFill($changes)->save();
         $this->audit->record($staffId, 'site.page.updated', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, $changes);
 
@@ -277,7 +299,7 @@ class PageAdmin
             }
 
             PublicPageVersion::query()->where('page_id', $page->id)->where('state', PublicPageVersion::STATE_DRAFT)->delete();
-            $page->forceFill(['archived_at' => $now])->save();
+            $page->forceFill(['archived_at' => $now, 'policy_type' => null])->save();
             $this->audit->record($staffId, 'site.page.archived', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $page->path], $reason);
         });
     }
@@ -313,6 +335,7 @@ class PageAdmin
             'path' => $page->path,
             'menu' => $page->menu,
             'sort' => $page->sort,
+            'policy_type' => $page->policy_type,
             'created_at' => $page->created_at?->toJSON(),
             'locales' => $locales,
         ];

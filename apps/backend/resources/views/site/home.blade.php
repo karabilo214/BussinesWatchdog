@@ -10,7 +10,7 @@
             <p class="site-lead">{{ __('site.home.lead') }}</p>
             <p class="site-actions">
                 <a class="site-button" href="{{ \App\Support\Site\SiteContent::url($locale, 'pricing') }}">{{ __('site.home.cta_pricing') }}</a>
-                <a class="site-button site-button-secondary" href="/app/login">{{ __('site.nav.sign_in') }}</a>
+                <a class="site-button site-button-secondary" href="{{ \App\Support\Site\SiteContent::url($locale, 'signup') }}">{{ __('site.nav.sign_up') }}</a>
             </p>
         </section>
         <section class="site-band">

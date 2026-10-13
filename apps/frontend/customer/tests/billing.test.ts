@@ -195,7 +195,31 @@ describe('BillingView', () => {
     await card.get('[data-action="buy-start"]').trigger('click');
     await flushPromises();
 
-    expect(api.startCheckout).toHaveBeenCalledWith('p-base', 0, expect.any(String), null, true);
+    expect(api.startCheckout).toHaveBeenCalledWith('p-base', 0, expect.any(String), null, true, []);
+  });
+
+  it('asks to accept the current terms before a trial and sends the accepted versions', async () => {
+    session.value = sessionFor('owner');
+    api.fetchPlans.mockResolvedValue(catalog({
+      documents: [
+        { type: 'service_terms', version_id: 'pv-terms', version: 3, locale: 'ru', title: 'Условия использования', url: '/ru/terms', published_at: null },
+        { type: 'recurring_payment', version_id: 'pv-recurring', version: 1, locale: 'ru', title: 'Условия подписки', url: '/ru/subscription', published_at: null },
+      ],
+    }));
+    api.startTrial.mockResolvedValue(paidSubscription());
+    const wrapper = await mountView();
+
+    const consent = wrapper.get('[data-consent]');
+    expect(consent.get('[data-document="service_terms"]').attributes('href')).toBe('/ru/terms');
+    expect(consent.text()).toContain('Условия подписки');
+    expect(wrapper.get('[data-action="trial-start"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('[data-action="buy-start"]').attributes('disabled')).toBeDefined();
+
+    await wrapper.get('[data-field="consent"]').setValue(true);
+    await wrapper.get('[data-action="trial-start"]').trigger('click');
+    await flushPromises();
+
+    expect(api.startTrial).toHaveBeenCalledWith('v-start', ['pv-terms', 'pv-recurring']);
   });
 
   it('shows any billing period the owner set', async () => {
@@ -216,7 +240,7 @@ describe('BillingView', () => {
     await wrapper.get('[data-action="trial-start"]').trigger('click');
     await flushPromises();
 
-    expect(api.startTrial).toHaveBeenCalledWith('v-start');
+    expect(api.startTrial).toHaveBeenCalledWith('v-start', []);
     expect(api.fetchSubscription).toHaveBeenCalledTimes(2);
     expect(wrapper.text()).toContain('Пробный период начался.');
   });
@@ -296,7 +320,7 @@ describe('BillingView', () => {
 
     await wrapper.get('[data-action="buy-start"]').trigger('click');
     await flushPromises();
-    expect(api.startCheckout).toHaveBeenCalledWith('p-base', 0, expect.any(String), 'launch', false);
+    expect(api.startCheckout).toHaveBeenCalledWith('p-base', 0, expect.any(String), 'launch', false, []);
   });
 
   it('explains a promo code that does not work', async () => {
@@ -360,7 +384,7 @@ describe('BillingView', () => {
     await panel.get('[data-action="confirm-change"]').trigger('click');
     await flushPromises();
 
-    expect(api.confirmPlanChange).toHaveBeenCalledWith('ch-1', expect.any(String));
+    expect(api.confirmPlanChange).toHaveBeenCalledWith('ch-1', expect.any(String), []);
     expect(wrapper.get('[data-notice="change-applied"]').text()).toContain('Тариф изменён');
     expect(wrapper.find('[data-panel="plan-change"]').exists()).toBe(false);
   });

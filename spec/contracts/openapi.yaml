@@ -94,6 +94,7 @@ paths:
                 timezone: {type: string}
                 invitation_token: {type: string, maxLength: 128}
                 locale: {enum: [ru, en, de]}
+                policy_version_ids: {type: array, maxItems: 10, items: {type: string, format: uuid}, description: "Ids of the published legal page versions the person accepted (ADR 0042); required when the owner marked terms pages, otherwise 422 policy_acceptance_required with details.documents"}
       responses:
         "201":
           description: Registered; owner of a new tenant; session started
@@ -762,7 +763,7 @@ paths:
     patch:
       tags: [Platform]
       operationId: platformUpdatePage
-      description: "Capability content.manage. Changes the menu and the order; the slug and the parent never change."
+      description: "Capability content.manage. Changes the menu, the order and the legal document type (service_terms, privacy_notice, recurring_payment — one page per type, ordinary pages only: 409 policy_taken, 422 policy_type_invalid; ADR 0042); the slug and the parent never change."
       security:
         - {StaffSession: []}
       parameters:
@@ -776,6 +777,7 @@ paths:
               properties:
                 menu: {enum: [none, header, footer]}
                 sort: {type: integer, minimum: -1000, maximum: 1000}
+                policy_type: {type: [string, "null"], enum: [service_terms, privacy_notice, recurring_payment, null]}
       responses:
         "200":
           description: Page card
@@ -2343,6 +2345,8 @@ paths:
                 price_id: {type: string, format: uuid, description: A base price}
                 extra_stores: {type: integer, minimum: 0, maximum: 1000, default: 0}
                 discount_code: {type: [string, "null"], maxLength: 32, description: "Optional promo code; it is applied after the best public offer and the organisation's own discount (ADR 0036)"}
+                faster_checks: {type: boolean, default: false, description: "Add the package's faster-checks add-on (ADR 0041); 422 faster_checks_unavailable when the package has none"}
+                policy_version_ids: {type: array, maxItems: 10, items: {type: string, format: uuid}, description: "Ids of the published legal page versions the person accepted (ADR 0042); required when the owner marked terms pages, otherwise 422 policy_acceptance_required with details.documents"}
       responses:
         "202":
           description: Checkout session
@@ -2359,7 +2363,7 @@ paths:
     post:
       tags: [Billing]
       operationId: startBillingTrial
-      description: "Tenant owner with a verified email only. Our own trial without a payment method (ADR 0030): once per tenant (consumed under the tenant lock, kept even if the subscription row is later replaced) and once per store domain (ADR 0031: `www.` and the bare host are one domain; the tenant's verified stores claim their domains, 409 `trial_store_already_used` when another organisation already had a trial for one of them), for the trial days of the plan version. Policy acceptance is added when the legal pages exist."
+      description: "Tenant owner with a verified email only. Our own trial without a payment method (ADR 0030): once per tenant (consumed under the tenant lock, kept even if the subscription row is later replaced) and once per store domain (ADR 0031: `www.` and the bare host are one domain; the tenant's verified stores claim their domains, 409 `trial_store_already_used` when another organisation already had a trial for one of them), for the trial days of the plan version. Needs consent to the current service terms and subscription terms when the owner marked such pages (ADR 0042)."
       security:
         - {UserSession: []}
       parameters:
@@ -2373,6 +2377,7 @@ paths:
               additionalProperties: false
               required: [plan_version_id]
               properties:
+                policy_version_ids: {type: array, maxItems: 10, items: {type: string, format: uuid}, description: "Ids of the published legal page versions the person accepted (ADR 0042); required when the owner marked terms pages, otherwise 422 policy_acceptance_required with details.documents"}
                 plan_version_id: {type: string, format: uuid}
       responses:
         "201":
@@ -2484,6 +2489,7 @@ paths:
                 price_id: {type: string, format: uuid}
                 extra_stores: {type: integer, minimum: 0, maximum: 1000, default: 0}
                 retained_store_ids: {type: [array, "null"], items: {type: string, format: uuid}}
+                faster_checks: {type: boolean, default: false, description: "With the package's faster-checks add-on (ADR 0041)"}
       responses:
         "200":
           description: Preview
@@ -2514,6 +2520,7 @@ paths:
               additionalProperties: false
               required: [preview_token]
               properties:
+                policy_version_ids: {type: array, maxItems: 10, items: {type: string, format: uuid}, description: "Ids of the published legal page versions the person accepted (ADR 0042); required when the owner marked terms pages, otherwise 422 policy_acceptance_required with details.documents"}
                 preview_token: {type: string}
       responses:
         "202":

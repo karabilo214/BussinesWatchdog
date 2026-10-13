@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PublicPage;
 use App\Models\PublicPageVersion;
 use App\Support\Site\ContactInbox;
+use App\Support\Site\Policies;
 use App\Support\Site\PricingTable;
 use App\Support\Site\SiteContent;
 use Illuminate\Http\RedirectResponse;
@@ -64,12 +65,12 @@ class SiteController extends Controller
     {
         $page = $this->content->system(PublicPage::KIND_CONTACT);
         $version = $this->content->published($page, $locale);
-        $privacy = $this->content->page((string) config('watchdog.site.privacy_path'));
+        $privacy = app(Policies::class)->current(PublicPage::POLICY_PRIVACY_NOTICE, $locale);
 
         return $this->render('site.contact', $locale, $page, $version, [
             'title' => $version?->title ?? trans('site.contact.title', [], $locale),
             'sent' => $request->session()->get('contact_sent') === true,
-            'privacy' => $this->content->published($privacy, $locale) === null ? null : SiteContent::url($locale, (string) $privacy?->path),
+            'privacy' => $privacy === null ? null : SiteContent::url($privacy->locale, (string) app(Policies::class)->page(PublicPage::POLICY_PRIVACY_NOTICE)?->path),
         ], private: true);
     }
 

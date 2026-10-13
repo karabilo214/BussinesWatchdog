@@ -150,7 +150,9 @@
     "contact_request_not_found": "Message not found.",
     "grace_days_invalid": "The grace period is 0 to 365 days.",
     "faster_check_interval_invalid": "The faster check interval is 5 to 1440 minutes and below the package interval; a faster-checks price cannot be published without it.",
-    "faster_checks_unavailable": "This package has no faster-checks add-on."
+    "faster_checks_unavailable": "This package has no faster-checks add-on.",
+    "policy_taken": "Another page already has this document type.",
+    "policy_type_invalid": "Only an ordinary page can be a legal document."
   },
   "period": {
     "per": {
@@ -656,7 +658,15 @@
       "published_state": "Current"
     },
     "settings": "Page settings",
-    "slug_fixed": "The page address was set at creation and does not change."
+    "slug_fixed": "The page address was set at creation and does not change.",
+    "policy": {
+      "label": "Legal document",
+      "none": "Not a legal document",
+      "service_terms": "Terms of service",
+      "privacy_notice": "Privacy notice",
+      "recurring_payment": "Subscription terms (auto-renewal)",
+      "hint": "Customers accept the published version of this page: at sign-up the terms of service and privacy notice, at trial, purchase and plan change the terms of service and subscription terms. Each type belongs to one page. A new publication is a new version: customers accept it at their next action."
+    }
   },
   "contacts": {
     "hint": "Messages from the contact form of the website. New messages are announced by email. Closed messages are deleted after a year.",

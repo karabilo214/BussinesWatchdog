@@ -526,7 +526,8 @@
     "no_scheduled_change": "No plan change is scheduled.",
     "cancel_not_scheduled": "The subscription is not cancelled.",
     "store_capacity_paused": "This store is paused by the plan: choose it on the subscription page to check it again.",
-    "faster_checks_unavailable": "This package has no faster-checks add-on."
+    "faster_checks_unavailable": "This package has no faster-checks add-on.",
+    "policy_acceptance_required": "The documents have changed. Read the new version and confirm your consent again."
   },
   "incidents": {
     "title": "Incidents",
@@ -1552,6 +1553,7 @@
     },
     "faster_checks": "Faster checks — every {minutes} min (+{price})",
     "faster_checks_label": "Faster checks",
-    "faster_checks_value": "every {minutes} min"
+    "faster_checks_value": "every {minutes} min",
+    "consent": "I accept the"
   }
 }

@@ -37,7 +37,7 @@ function staff(capabilities: string[]): StaffMe {
 const NONE = { published: null, draft: false, title: null };
 
 function summary(overrides: Partial<PageSummary>): PageSummary {
-  return { id: 'p-1', kind: 'page', parent_id: null, slug: 'about', path: 'about', menu: 'header', sort: 0, created_at: null, locales: { ru: NONE, en: NONE, de: NONE }, ...overrides };
+  return { id: 'p-1', kind: 'page', parent_id: null, slug: 'about', path: 'about', menu: 'header', sort: 0, policy_type: null, created_at: null, locales: { ru: NONE, en: NONE, de: NONE }, ...overrides };
 }
 
 function card(overrides: Partial<PageCard> = {}): PageCard {
@@ -136,6 +136,19 @@ describe('site', () => {
 
     expect(mocked.publishPage).toHaveBeenCalledWith('p-1', 'ru', 'Новая редакция');
     expect(wrapper.get('[data-notice]').text()).toBe('Опубликовано.');
+  });
+
+  it('marks a page as the terms of service in its settings', async () => {
+    mocked.fetchPage.mockResolvedValue(card());
+    mocked.updatePage.mockResolvedValue(card({ policy_type: 'service_terms' }));
+    const { wrapper } = await open('/owner/site/pages/p-1');
+
+    await wrapper.get('[data-field="policy"]').setValue('service_terms');
+    await wrapper.get('[data-form="page-settings"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.updatePage).toHaveBeenCalledWith('p-1', { menu: 'header', sort: 0, policy_type: 'service_terms' });
+    expect(wrapper.text()).toContain('С опубликованной версией этой страницы клиент соглашается');
   });
 
   it('restores an old version into the draft and switches languages', async () => {

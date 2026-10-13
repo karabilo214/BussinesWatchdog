@@ -4,7 +4,8 @@
 # the Paddle sandbox and retire a plan), `run-live.sh discounts` (create a promo code there; these two need the sandbox keys)
 # `run-live.sh tenants` (find an organisation on a trial, extend the trial, suspend and resume it, read its audit) or
 # `run-live.sh site` (create and publish a page, read it on the public site, send the contact form, close the message,
-# delete the page; builds the site stylesheet first). Screenshots land in tests/e2e/.out.
+# delete the page; builds the site stylesheet first) or `run-live.sh signup` (mark terms and privacy pages in the
+# panel, sign up on the site with consent, signed in on the chosen plan). Screenshots land in tests/e2e/.out.
 set -eu
 SCRIPT="${1:-login}"
 
@@ -43,7 +44,7 @@ $v = App\Models\BillingPlanVersion::query()->whereHas("plan", fn ($q) => $q->whe
 App\Models\Subscription::query()->create(["tenant_id" => $t->id, "provider" => "internal", "plan_code" => "start", "plan_version_id" => $v->id, "entitlements" => $v->entitlements, "extra_store_quantity" => 0, "status" => "trial", "period_start" => now(), "trial_ends_at" => now()->addDays(3), "version" => 1]);' >/dev/null)
 fi
 
-if [ "$SCRIPT" = "site" ]; then
+if [ "$SCRIPT" = "site" ] || [ "$SCRIPT" = "signup" ]; then
     (cd apps/frontend && npm run build -w @bw/public >/dev/null)
 fi
 

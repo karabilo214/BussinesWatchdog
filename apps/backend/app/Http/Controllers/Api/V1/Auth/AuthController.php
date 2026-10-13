@@ -12,7 +12,9 @@ use App\Models\User;
 use App\Support\Account\AccountRejected;
 use App\Support\Account\EmailVerificationService;
 use App\Support\Account\MfaService;
+use App\Support\Account\Registration;
 use App\Support\Account\TeamService;
+use App\Support\Site\PolicyAcceptanceRequired;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -35,27 +37,11 @@ class AuthController extends Controller
             return $this->registerByInvitation($request, $validated, $team);
         }
 
-        $result = DB::transaction(function () use ($validated): array {
-            $user = User::query()->create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password_hash' => Hash::make($validated['password']),
-                'locale' => $validated['locale'],
-            ]);
-
-            $tenant = Tenant::query()->create([
-                'name' => $validated['organization_name'],
-                'timezone' => $validated['timezone'],
-                'locale' => $validated['locale'],
-            ]);
-
-            $tenant->memberships()->create([
-                'user_id' => $user->id,
-                'role' => 'owner',
-            ]);
-
-            return [$user->fresh(), $tenant];
-        });
+        try {
+            $result = app(Registration::class)->register($validated, array_values((array) ($validated['policy_version_ids'] ?? [])));
+        } catch (PolicyAcceptanceRequired $exception) {
+            return response()->json(['code' => 'policy_acceptance_required', 'message' => 'Accept the current terms first.', 'details' => ['documents' => $exception->required]], 422);
+        }
 
         [$user, $tenant] = $result;
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { newIdempotencyKey } from '@bw/api-client';
+import { ApiError, newIdempotencyKey } from '@bw/api-client';
 import { formatMinor, parseMinor, StatusBadge, type Tone } from '@bw/ui';
 import {
   cancelSubscription,
@@ -96,6 +96,10 @@ const currentPlan = computed(() => catalog.value?.data.find((plan) => plan.plan_
 const canTrial = computed(() => isOwner.value && catalog.value?.trial_available === true && subscription.value === null);
 const canBuy = computed(() => isOwner.value && catalog.value?.checkout_available === true && !paid.value);
 const canChange = computed(() => isOwner.value && paid.value && subscription.value?.status === 'active');
+const consent = ref(false);
+const documents = computed(() => catalog.value?.documents ?? []);
+const consentReady = computed(() => documents.value.length === 0 || consent.value);
+const policyIds = computed(() => (consent.value ? documents.value.map((document) => document.version_id) : []));
 const changingPlan = computed(() => catalog.value?.data.find((plan) => plan.plan_version_id === subscription.value?.scheduled_change?.to.plan_version_id) ?? null);
 
 function planName(plan: Pick<BillingPlan, 'name' | 'plan_code'> | null, code: string | null): string {
@@ -349,12 +353,13 @@ async function confirmChange(): Promise<void> {
   actionError.value = null;
 
   try {
-    const result = await confirmPlanChange(token, change.key);
+    const result = await confirmPlanChange(token, change.key, policyIds.value);
     closeChange();
     await load();
     notice.value = result.change.status === 'scheduled' ? 'scheduled' : 'applied';
   } catch (caught) {
     actionError.value = caught;
+    await refreshDocuments(caught);
   } finally {
     busy.value = null;
   }
@@ -410,16 +415,26 @@ async function load(): Promise<void> {
   }
 }
 
+async function refreshDocuments(caught: unknown): Promise<void> {
+  if (!(caught instanceof ApiError) || caught.code !== 'policy_acceptance_required') {
+    return;
+  }
+
+  consent.value = false;
+  catalog.value = await fetchPlans().catch(() => catalog.value);
+}
+
 async function trial(plan: BillingPlan): Promise<void> {
   busy.value = `trial:${plan.plan_version_id}`;
   actionError.value = null;
 
   try {
-    await startTrial(plan.plan_version_id);
+    await startTrial(plan.plan_version_id, policyIds.value);
     trialStarted.value = true;
     await load();
   } catch (caught) {
     actionError.value = caught;
+    await refreshDocuments(caught);
   } finally {
     busy.value = null;
   }
@@ -501,7 +516,7 @@ async function buy(plan: BillingPlan): Promise<void> {
   stopPolling();
 
   try {
-    checkout.value = await startCheckout(base.id, quantity, pendingKey.key, code, faster);
+    checkout.value = await startCheckout(base.id, quantity, pendingKey.key, code, faster, policyIds.value);
 
     if (checkout.value.provider_checkout === null) {
       checkoutPhase.value = 'confirming';
@@ -516,6 +531,7 @@ async function buy(plan: BillingPlan): Promise<void> {
   } catch (caught) {
     actionError.value = caught;
     checkoutPhase.value = 'idle';
+    await refreshDocuments(caught);
   } finally {
     busy.value = null;
   }
@@ -721,10 +737,19 @@ onBeforeUnmount(stopPolling);
             </dl>
             <p class="text-[13px] text-text-muted">{{ change.preview.kind === 'immediate' ? $t('billing.change.immediate_note') : $t('billing.change.next_period_note') }}</p>
             <p v-if="change.preview.retained_store_ids" class="text-[13px] text-text-muted">{{ $t('billing.change.retained_note', { n: count(change.preview.retained_store_ids.length) }) }}</p>
+          <div v-if="documents.length > 0" class="flex items-start gap-2 rounded-md border border-border bg-surface p-3 text-sm" data-consent="change">
+            <input id="billing-consent-change" v-model="consent" type="checkbox" class="mt-0.5 size-4 accent-primary" data-field="consent" />
+            <label for="billing-consent-change">
+              {{ $t('billing.consent') }}
+              <template v-for="(document, index) in documents" :key="document.type">
+                <a :href="document.url" target="_blank" rel="noopener" class="text-primary hover:underline" :data-document="document.type">{{ document.title }}</a><template v-if="index < documents.length - 1">, </template>
+              </template>
+            </label>
+          </div>
             <button
               type="button"
               class="self-start rounded-md bg-primary px-3 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"
-              :disabled="busy !== null"
+              :disabled="busy !== null || !consentReady"
               data-action="confirm-change"
               @click="confirmChange"
             >
@@ -783,6 +808,15 @@ onBeforeUnmount(stopPolling);
             <p v-if="canChange" class="text-sm text-text-muted">{{ $t('billing.change.hint') }}</p>
             <p v-else-if="!isOwner" class="text-sm text-text-muted">{{ $t('billing.owner_manages') }}</p>
             <p v-else-if="!catalog.checkout_available" class="text-sm text-text-muted">{{ $t('billing.checkout_unavailable') }}</p>
+          </div>
+          <div v-if="isOwner && documents.length > 0 && (canTrial || canBuy || canChange)" class="flex items-start gap-2 rounded-md border border-border bg-surface p-3 text-sm" data-consent>
+            <input id="billing-consent" v-model="consent" type="checkbox" class="mt-0.5 size-4 accent-primary" data-field="consent" />
+            <label for="billing-consent">
+              {{ $t('billing.consent') }}
+              <template v-for="(document, index) in documents" :key="document.type">
+                <a :href="document.url" target="_blank" rel="noopener" class="text-primary hover:underline" :data-document="document.type">{{ document.title }}</a><template v-if="index < documents.length - 1">, </template>
+              </template>
+            </label>
           </div>
 
           <form v-if="canBuy && catalog.data.length > 0" class="flex flex-wrap items-end gap-2" data-form="promo" @submit.prevent="applyPromo">
@@ -849,7 +883,7 @@ onBeforeUnmount(stopPolling);
                   v-if="canTrial && plan.trial_days > 0 && !plan.contact_sales"
                   type="button"
                   class="rounded-md border border-border-strong bg-surface px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
-                  :disabled="busy !== null"
+                  :disabled="busy !== null || !consentReady"
                   :data-action="`trial-${plan.plan_code}`"
                   @click="trial(plan)"
                 >
@@ -881,7 +915,7 @@ onBeforeUnmount(stopPolling);
                   <button
                     type="button"
                     class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"
-                    :disabled="busy !== null || checkoutPhase === 'confirming'"
+                    :disabled="busy !== null || checkoutPhase === 'confirming' || !consentReady"
                     :data-action="`buy-${plan.plan_code}`"
                     @click="buy(plan)"
                   >

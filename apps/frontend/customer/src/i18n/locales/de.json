@@ -526,7 +526,8 @@
     "no_scheduled_change": "Es ist kein Tarifwechsel geplant.",
     "cancel_not_scheduled": "Das Abonnement ist nicht gekündigt.",
     "store_capacity_paused": "Dieser Shop ist durch den Tarif pausiert: Wählen Sie ihn auf der Abonnementseite aus, um ihn wieder zu prüfen.",
-    "faster_checks_unavailable": "Dieses Paket hat keinen Zusatz für häufigere Prüfungen."
+    "faster_checks_unavailable": "Dieses Paket hat keinen Zusatz für häufigere Prüfungen.",
+    "policy_acceptance_required": "Die Dokumente wurden geändert. Lesen Sie die neue Fassung und bestätigen Sie erneut."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -1552,6 +1553,7 @@
     },
     "faster_checks": "Häufigere Prüfungen — alle {minutes} Min. (+{price})",
     "faster_checks_label": "Häufigere Prüfungen",
-    "faster_checks_value": "alle {minutes} Min."
+    "faster_checks_value": "alle {minutes} Min.",
+    "consent": "Ich akzeptiere"
   }
 }

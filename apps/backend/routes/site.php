@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\Site\SignupController;
 use App\Http\Controllers\Site\SiteController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function (): void {
     Route::get('/{locale}/contact', [SiteController::class, 'contact'])->where('locale', 'ru|en|de');
     Route::post('/{locale}/contact', [SiteController::class, 'submitContact'])->where('locale', 'ru|en|de');
+    Route::get('/{locale}/signup', [SignupController::class, 'show'])->where('locale', 'ru|en|de');
+    Route::post('/{locale}/signup', [SignupController::class, 'store'])->where('locale', 'ru|en|de');
 });
 
 Route::middleware([\Illuminate\Routing\Middleware\SubstituteBindings::class])->group(function (): void {

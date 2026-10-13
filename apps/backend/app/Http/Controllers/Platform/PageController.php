@@ -47,6 +47,7 @@ class PageController extends Controller
         $validated = $request->validate([
             'menu' => ['sometimes', 'string', Rule::in(PublicPage::MENUS)],
             'sort' => ['sometimes', 'integer', 'min:-1000', 'max:1000'],
+            'policy_type' => ['sometimes', 'nullable', 'string', Rule::in(PublicPage::POLICIES)],
         ]);
 
         return $this->guard(function (PlatformStaff $staff) use ($page, $validated): JsonResponse {

@@ -87,7 +87,7 @@
                         @if ($plan['individual'])
                             <p class="site-actions"><a class="site-button" href="{{ \App\Support\Site\SiteContent::url($locale, 'contact') }}">{{ __('site.pricing.contact_us') }}</a></p>
                         @else
-                            <p class="site-actions"><a class="site-button" href="/app/settings/billing?plan={{ urlencode($plan['code']) }}">{{ __('site.pricing.choose') }}</a></p>
+                            <p class="site-actions"><a class="site-button" href="{{ \App\Support\Site\SiteContent::url($locale, 'signup') }}?plan={{ urlencode($plan['code']) }}">{{ __('site.pricing.choose') }}</a></p>
                         @endif
                     </article>
                 @endforeach

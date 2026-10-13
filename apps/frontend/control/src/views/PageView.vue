@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { StatusBadge } from '@bw/ui';
-import { archivePage, discardPageDraft, fetchPage, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, type PageCard, type PageMenu, type SiteLocale } from '@/api';
+import { archivePage, discardPageDraft, fetchPage, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, type PageCard, type PageMenu, type PolicyType, type SiteLocale } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { CONTENT_CLASSES, SITE_LOCALES, publicUrl } from '@/components/site';
 import { useFormat } from '@/composables/useFormat';
@@ -23,7 +23,7 @@ const notice = ref<string | null>(null);
 const locale = ref<SiteLocale>('ru');
 const form = reactive({ title: '', description: '', body: '' });
 const saved = ref({ title: '', description: '', body: '' });
-const settings = reactive({ menu: 'none' as PageMenu, sort: 0 });
+const settings = reactive({ menu: 'none' as PageMenu, sort: 0, policy: '' as PolicyType | '' });
 const confirm = reactive({ action: null as 'publish' | 'unpublish' | 'archive' | null, reason: '' });
 const previewHtml = ref('');
 const previewError = ref<unknown>(null);
@@ -45,6 +45,7 @@ function fill(): void {
 function accept(card: PageCard): void {
   page.value = card;
   settings.menu = card.menu;
+  settings.policy = card.policy_type ?? '';
   settings.sort = card.sort;
 }
 
@@ -119,7 +120,7 @@ async function restore(versionId: string): Promise<void> {
 async function saveSettings(): Promise<void> {
   if (page.value === null) return;
   const id = page.value.id;
-  await run(() => updatePage(id, { menu: settings.menu, sort: settings.sort }), 'site.done.settings');
+  await run(() => updatePage(id, { menu: settings.menu, sort: settings.sort, ...(page.value?.kind === 'page' ? { policy_type: settings.policy === '' ? null : settings.policy } : {}) }), 'site.done.settings');
 }
 
 async function confirmAction(): Promise<void> {
@@ -319,9 +320,17 @@ onBeforeUnmount(() => {
             <span class="font-medium">{{ $t('site.sort') }}</span>
             <input v-model.number="settings.sort" type="number" min="-1000" max="1000" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="sort" />
           </label>
+          <label v-if="page.kind === 'page'" class="flex flex-col gap-1.5">
+            <span class="font-medium">{{ $t('site.policy.label') }}</span>
+            <select v-model="settings.policy" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="policy">
+              <option value="">{{ $t('site.policy.none') }}</option>
+              <option v-for="type in (['service_terms', 'privacy_notice', 'recurring_payment'] as const)" :key="type" :value="type">{{ $t(`site.policy.${type}`) }}</option>
+            </select>
+          </label>
           <button type="submit" class="rounded-md border border-border-strong px-4 py-2 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="save-settings">{{ $t('site.action.save_settings') }}</button>
           <button v-if="page.kind === 'page'" type="button" class="ml-auto rounded-md border border-crit-border px-4 py-2 font-medium text-crit hover:bg-crit-soft" data-action="archive" @click="ask('archive')">{{ $t('site.action.archive') }}</button>
           <p class="w-full text-text-muted">{{ $t('site.slug_fixed') }}</p>
+          <p v-if="page.kind === 'page'" class="w-full text-text-muted">{{ $t('site.policy.hint') }}</p>
         </form>
       </template>
     </div>

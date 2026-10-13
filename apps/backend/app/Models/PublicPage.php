@@ -29,7 +29,15 @@ class PublicPage extends Model
 
     public const LOCALES = ['ru', 'en', 'de'];
 
-    protected $fillable = ['kind', 'parent_id', 'slug', 'path', 'menu', 'sort', 'created_by', 'archived_at'];
+    public const POLICY_SERVICE_TERMS = 'service_terms';
+
+    public const POLICY_PRIVACY_NOTICE = 'privacy_notice';
+
+    public const POLICY_RECURRING_PAYMENT = 'recurring_payment';
+
+    public const POLICIES = [self::POLICY_SERVICE_TERMS, self::POLICY_PRIVACY_NOTICE, self::POLICY_RECURRING_PAYMENT];
+
+    protected $fillable = ['kind', 'parent_id', 'slug', 'path', 'menu', 'sort', 'policy_type', 'created_by', 'archived_at'];
 
     protected function casts(): array
     {

@@ -150,7 +150,9 @@
     "contact_request_not_found": "Anfrage nicht gefunden.",
     "grace_days_invalid": "Die Kulanzzeit beträgt 0 bis 365 Tage.",
     "faster_check_interval_invalid": "Das Intervall beträgt 5 bis 1440 Minuten und liegt unter dem Paket-Intervall; ohne es kann kein Preis für häufigere Prüfungen veröffentlicht werden.",
-    "faster_checks_unavailable": "Dieses Paket hat keinen Zusatz für häufigere Prüfungen."
+    "faster_checks_unavailable": "Dieses Paket hat keinen Zusatz für häufigere Prüfungen.",
+    "policy_taken": "Eine andere Seite hat diesen Dokumenttyp bereits.",
+    "policy_type_invalid": "Nur eine normale Seite kann ein Rechtsdokument sein."
   },
   "period": {
     "per": {
@@ -656,7 +658,15 @@
       "published_state": "Aktuell"
     },
     "settings": "Seiteneinstellungen",
-    "slug_fixed": "Die Adresse wurde beim Anlegen festgelegt und ändert sich nicht."
+    "slug_fixed": "Die Adresse wurde beim Anlegen festgelegt und ändert sich nicht.",
+    "policy": {
+      "label": "Rechtsdokument",
+      "none": "Kein Rechtsdokument",
+      "service_terms": "Nutzungsbedingungen",
+      "privacy_notice": "Datenschutzerklärung",
+      "recurring_payment": "Abo-Bedingungen (automatische Verlängerung)",
+      "hint": "Kunden akzeptieren die veröffentlichte Version dieser Seite: bei der Registrierung Nutzungsbedingungen und Datenschutzerklärung, bei Testphase, Kauf und Tarifwechsel Nutzungsbedingungen und Abo-Bedingungen. Jeder Typ gehört zu einer Seite. Eine neue Veröffentlichung ist eine neue Fassung: Kunden akzeptieren sie bei der nächsten Aktion."
+    }
   },
   "contacts": {
     "hint": "Nachrichten aus dem Kontaktformular der Website. Neue Nachrichten werden per E-Mail gemeldet. Geschlossene Anfragen werden nach einem Jahr gelöscht.",

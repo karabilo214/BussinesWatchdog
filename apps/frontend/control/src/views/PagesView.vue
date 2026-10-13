@@ -95,6 +95,7 @@ onMounted(load);
                 </RouterLink>
                 <span class="block font-mono text-[13px] text-text-muted">{{ publicUrl('ru', page.path).replace('/ru', '/{lang}') }}</span>
                 <StatusBadge v-if="page.kind !== 'page'" tone="unknown" :label="$t('site.system')" class="mt-1" />
+                <StatusBadge v-if="page.policy_type" tone="note" :label="$t(`site.policy.${page.policy_type}`)" class="mt-1" :data-policy="page.policy_type" />
               </td>
               <td class="px-4 py-3">{{ $t(`site.menu.${page.menu}`) }}</td>
               <td v-for="locale in SITE_LOCALES" :key="locale" class="px-4 py-3">
