@@ -452,6 +452,150 @@ export interface PageBlock {
   updated_at: string | null;
 }
 
+export interface CustomerStore {
+  id: string;
+  name: string;
+  base_url: string;
+  platform: string;
+  status: string;
+  default_currency: string;
+  timezone: string;
+  verified_at?: string | null;
+  [key: string]: unknown;
+}
+
+export interface Page<T> {
+  data: T[];
+  next_cursor: string | null;
+}
+
+export interface StoreFinding {
+  id: string;
+  order_id: string | null;
+  order_display_number?: string | null;
+  rule_code: string;
+  status: string;
+  reason_code: string | null;
+  currency: string | null;
+  currency_exponent: number | null;
+  difference_minor: string | null;
+  evaluated_at: string | null;
+}
+
+export interface StoreOrder {
+  id: string;
+  display_number: string | null;
+  status: string;
+  gateway: string | null;
+  mode: string;
+  currency: string;
+  currency_exponent: number;
+  total_minor: string;
+  paid_marked_at: string | null;
+  is_synthetic: boolean;
+  source_created_at: string | null;
+}
+
+export interface StoreOrderDetail extends StoreOrder {
+  transaction_ref: string | null;
+  financial_support: string;
+  findings: StoreFinding[];
+  captures: { id: string; kind: string; status: string; currency: string; currency_exponent: number; amount_minor: string; occurred_at: string | null }[];
+  refunds: { id: string; status: string; currency: string; currency_exponent: number; amount_minor: string; occurred_at: string | null }[];
+  revisions: unknown[];
+}
+
+export interface StoreCheck {
+  id: string;
+  trigger: string;
+  status: string;
+  error_code: string | null;
+  scheduled_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface StoreCheckDetail extends StoreCheck {
+  attempts: {
+    id: string;
+    attempt_number: number;
+    status: string;
+    error_code: string | null;
+    started_at: string;
+    finished_at: string | null;
+    artifacts: { id: string; kind: string; content_type: string; size_bytes: number; expires_at: string }[];
+    steps: { index: number; code: string; status: string; error_code: string | null }[];
+  }[];
+}
+
+export interface StoreIncident {
+  id: string;
+  family: string;
+  state: string;
+  severity: string;
+  title_code: string;
+  currency: string | null;
+  currency_exponent: number | null;
+  verified_discrepancy_minor: string | null;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  resolved_at: string | null;
+}
+
+export interface NewCustomerStore {
+  reason: string;
+  name: string;
+  base_url: string;
+  timezone: string;
+  default_currency: string;
+  locale: 'ru' | 'en' | 'de';
+  platform: 'woocommerce' | 'shopware';
+}
+
+function tenantPath(tenantId: string, path: string): string {
+  return `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/${path}`;
+}
+
+function paged(cursor?: string | null): string {
+  return cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+}
+
+export async function createCustomerStore(tenantId: string, input: NewCustomerStore): Promise<CustomerStore> {
+  return (await request<CustomerStore>('POST', tenantPath(tenantId, 'stores'), { body: input })).data;
+}
+
+export async function fetchCustomerStore(tenantId: string, storeId: string): Promise<CustomerStore> {
+  return (await request<CustomerStore>('GET', tenantPath(tenantId, `stores/${encodeURIComponent(storeId)}`))).data;
+}
+
+export async function fetchStoreFindings(tenantId: string, storeId: string, cursor?: string | null): Promise<Page<StoreFinding>> {
+  return (await request<Page<StoreFinding>>('GET', tenantPath(tenantId, `stores/${encodeURIComponent(storeId)}/findings${paged(cursor)}`))).data;
+}
+
+export async function fetchStoreOrders(tenantId: string, storeId: string, cursor?: string | null): Promise<Page<StoreOrder>> {
+  return (await request<Page<StoreOrder>>('GET', tenantPath(tenantId, `stores/${encodeURIComponent(storeId)}/orders${paged(cursor)}`))).data;
+}
+
+export async function fetchStoreChecks(tenantId: string, storeId: string, cursor?: string | null): Promise<Page<StoreCheck>> {
+  return (await request<Page<StoreCheck>>('GET', tenantPath(tenantId, `stores/${encodeURIComponent(storeId)}/checks${paged(cursor)}`))).data;
+}
+
+export async function fetchStoreIncidents(tenantId: string, storeId: string, cursor?: string | null): Promise<Page<StoreIncident>> {
+  return (await request<Page<StoreIncident>>('GET', tenantPath(tenantId, `stores/${encodeURIComponent(storeId)}/incidents${paged(cursor)}`))).data;
+}
+
+export async function fetchCustomerOrder(tenantId: string, orderId: string): Promise<StoreOrderDetail> {
+  return (await request<StoreOrderDetail>('GET', tenantPath(tenantId, `orders/${encodeURIComponent(orderId)}`))).data;
+}
+
+export async function fetchCustomerCheck(tenantId: string, checkId: string): Promise<StoreCheckDetail> {
+  return (await request<StoreCheckDetail>('GET', tenantPath(tenantId, `checks/${encodeURIComponent(checkId)}`))).data;
+}
+
+export async function fetchCustomerArtifactUrl(tenantId: string, artifactId: string): Promise<{ url: string; content_type: string }> {
+  return (await request<{ url: string; content_type: string }>('GET', tenantPath(tenantId, `artifacts/${encodeURIComponent(artifactId)}/download`))).data;
+}
+
 export type ReminderTopic = 'subscription' | 'payment' | 'other';
 
 export interface ReminderInput {

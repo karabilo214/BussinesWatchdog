@@ -24,6 +24,7 @@ export function buildRouter(): Router {
       })),
       { path: '/owner/tenants', name: 'owner-tenants', component: () => import('@/views/TenantsView.vue') },
       { path: '/owner/tenants/:id', name: 'owner-tenant', component: () => import('@/views/TenantView.vue'), props: true },
+      { path: '/owner/tenants/:id/stores/:storeId', name: 'owner-tenant-store', component: () => import('@/views/TenantStoreView.vue'), props: true },
       { path: '/owner/subscriptions', name: 'owner-subscriptions', component: () => import('@/views/SubscriptionsView.vue') },
       { path: '/owner/payments', name: 'owner-payments', component: () => import('@/views/PaymentsView.vue') },
       { path: '/owner/site', name: 'owner-site', component: () => import('@/views/PagesView.vue') },

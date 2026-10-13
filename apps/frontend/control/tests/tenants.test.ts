@@ -19,6 +19,15 @@ vi.mock('@/api', () => ({
   applyTenantAction: vi.fn(),
   previewTenantReminder: vi.fn(),
   sendTenantReminder: vi.fn(),
+  createCustomerStore: vi.fn(),
+  fetchCustomerStore: vi.fn(),
+  fetchStoreFindings: vi.fn(),
+  fetchStoreOrders: vi.fn(),
+  fetchStoreChecks: vi.fn(),
+  fetchStoreIncidents: vi.fn(),
+  fetchCustomerOrder: vi.fn(),
+  fetchCustomerCheck: vi.fn(),
+  fetchCustomerArtifactUrl: vi.fn(),
   fetchSubscriptions: vi.fn(),
 }));
 
@@ -174,6 +183,69 @@ describe('tenants', () => {
     await wrapper.get('[data-form="reminder"]').trigger('submit');
     await flushPromises();
     expect(mocked.previewTenantReminder).toHaveBeenLastCalledWith('t-1', { topic: 'other', subject: 'Новый отчёт', message: 'Мы добавили отчёт по возвратам.' });
+  });
+
+  it('adds a store for the customer with a reason', async () => {
+    mocked.createCustomerStore.mockResolvedValue({ id: 's-2', name: 'Zweiter Shop', base_url: 'https://zweiter.example', platform: 'shopware', status: 'onboarding', default_currency: 'EUR', timezone: 'Europe/Berlin' });
+    const { wrapper } = await open('/owner/tenants/t-1?tab=stores');
+
+    expect(wrapper.get('[data-open-store]').attributes('href')).toBe('/owner/tenants/t-1/stores/s-1');
+    await wrapper.get('[data-action="add-store"]').trigger('click');
+    expect(wrapper.get('[data-action="confirm-store"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-field="store-name"]').setValue('Zweiter Shop');
+    await wrapper.get('[data-field="store-url"]').setValue('https://zweiter.example');
+    await wrapper.get('[data-field="store-platform"]').setValue('shopware');
+    await wrapper.get('[data-field="reason"]').setValue('Kunde hat angerufen');
+    await wrapper.get('[data-form="add-store"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.createCustomerStore).toHaveBeenCalledWith('t-1', { reason: 'Kunde hat angerufen', name: 'Zweiter Shop', base_url: 'https://zweiter.example', timezone: 'Europe/Berlin', default_currency: 'EUR', locale: 'de', platform: 'shopware' });
+    expect(wrapper.get('[data-done="store"]').text()).toBe('Магазин добавлен.');
+    expect(mocked.fetchTenant).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows findings, orders with details, checks with screenshots and incidents of a customer store', async () => {
+    mocked.fetchCustomerStore.mockResolvedValue({ id: 's-1', name: 'Shop', base_url: 'https://kaffee.example', platform: 'woocommerce', status: 'active', default_currency: 'EUR', timezone: 'Europe/Berlin' });
+    mocked.fetchStoreFindings.mockResolvedValue({ data: [{ id: 'f-1', order_id: 'o-1', order_display_number: '#15238', rule_code: 'MONEY_CAPTURE_MISSING', status: 'mismatch', reason_code: 'x', currency: 'EUR', currency_exponent: 2, difference_minor: '18400', evaluated_at: '2026-10-20T10:00:00Z' }], next_cursor: 'c-2' });
+    mocked.fetchStoreOrders.mockResolvedValue({ data: [{ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: null, is_synthetic: false, source_created_at: '2026-10-20T07:00:00Z' }], next_cursor: null });
+    mocked.fetchCustomerOrder.mockResolvedValue({ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: null, is_synthetic: false, source_created_at: null, transaction_ref: null, financial_support: 'supported', findings: [], captures: [{ id: 'tx-1', kind: 'capture', status: 'succeeded', currency: 'EUR', currency_exponent: 2, amount_minor: '18400', occurred_at: null }], refunds: [], revisions: [{}, {}] });
+    mocked.fetchStoreChecks.mockResolvedValue({ data: [{ id: 'r-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z' }], next_cursor: null });
+    mocked.fetchCustomerCheck.mockResolvedValue({ id: 'r-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z', attempts: [{ id: 'a-1', attempt_number: 1, status: 'failed', error_code: 'site_failure', started_at: '2026-10-20T09:00:00Z', finished_at: null, artifacts: [{ id: 'art-1', kind: 'screenshot', content_type: 'image/jpeg', size_bytes: 2048, expires_at: '2026-11-19T00:00:00Z' }], steps: [{ index: 0, code: 'payment_form', status: 'failed', error_code: 'selector_changed' }] }] });
+    mocked.fetchCustomerArtifactUrl.mockResolvedValue({ url: 'https://objects.example.test/shot.jpg', content_type: 'image/jpeg' });
+    mocked.fetchStoreIncidents.mockResolvedValue({ data: [{ id: 'i-1', family: 'money', state: 'open', severity: 'warning', title_code: 'MONEY_CAPTURE_MISSING', currency: 'EUR', currency_exponent: 2, verified_discrepancy_minor: '18400', first_seen_at: null, last_seen_at: '2026-10-20T10:00:00Z', resolved_at: null }], next_cursor: null });
+    const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1');
+
+    expect(mocked.fetchCustomerStore).toHaveBeenCalledWith('t-1', 's-1');
+    expect(wrapper.get('h1').text()).toBe('Shop');
+    expect(wrapper.get('[data-finding="f-1"]').text()).toContain('#15238');
+    expect(wrapper.get('[data-finding="f-1"]').text()).toMatch(/184,00/);
+    mocked.fetchStoreFindings.mockResolvedValueOnce({ data: [], next_cursor: null });
+    await wrapper.get('[data-action="load-more"]').trigger('click');
+    await flushPromises();
+    expect(mocked.fetchStoreFindings).toHaveBeenLastCalledWith('t-1', 's-1', 'c-2');
+
+    await router.replace({ query: { tab: 'orders' } });
+    await flushPromises();
+    await wrapper.get('[data-order="o-1"] button').trigger('click');
+    await flushPromises();
+    expect(mocked.fetchCustomerOrder).toHaveBeenCalledWith('t-1', 'o-1');
+    expect(wrapper.get('[data-detail="order"]').text()).toContain('Заказ #15238');
+    expect(wrapper.get('[data-detail="order"]').text()).toContain('succeeded');
+
+    await router.replace({ query: { tab: 'checks' } });
+    await flushPromises();
+    await wrapper.get('[data-check="r-1"] button').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-attempt="1"]').text()).toContain('payment_form');
+    await wrapper.get('[data-action="show-screenshot"]').trigger('click');
+    await flushPromises();
+    expect(mocked.fetchCustomerArtifactUrl).toHaveBeenCalledWith('t-1', 'art-1');
+    expect(wrapper.get('[data-artifact="art-1"] img').attributes('src')).toBe('https://objects.example.test/shot.jpg');
+
+    await router.replace({ query: { tab: 'incidents' } });
+    await flushPromises();
+    await wrapper.get('[data-incident="i-1"] button').trigger('click');
+    expect(wrapper.get('[data-detail="incident"]').text()).toMatch(/184,00/);
   });
 
   it('grants temporary access of a published plan until a date', async () => {

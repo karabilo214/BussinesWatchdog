@@ -293,3 +293,12 @@ Status: complete
 - Live script: `run-live.sh` now points the backend at Mailpit on 127.0.0.1 and passes `BW_MAILPIT_URL` to the scenarios.
 
 Verification: `TenantAdminTest` +1 (preview per language, sending to active owners only, repeat blocked then allowed after 10 minutes, other with own text, audit without addresses, no recipients) and role check extended. Control 39 tests. Frontend check green. Backend SQLite 536 passed, 4 skipped; PostgreSQL 18: 540 of 540. Live in Chromium (`run-live.sh tenants`): German letter previewed, sent, found in Mailpit, in the organisation audit — PASS.
+
+### Step 126: Customer Stores in the Owner Panel — Add a Store, Findings, Orders, Checks With Screenshots, Incidents
+
+Status: complete
+
+- ADR 0048 (accepted for now, to be confirmed by the owner). `TenantStoreController`: `POST /tenants/{tenant}/stores` (reason, audited `tenant.store_created`, plan store limit), `GET /tenants/{tenant}/stores/{store}` (audited `tenant.store_viewed`), `…/stores/{store}/findings|orders|checks|incidents`, `GET /tenants/{tenant}/orders/{order}`, `…/checks/{check}`, `…/artifacts/{artifact}/download`, `…/incidents/{incident}` — `tenants.manage`. Each sets `TenantContext` to the organisation and calls the account action, so scoping, history window and redaction are the same; ids from another organisation answer 404. Orders list is new (cursor pages, history window). OpenAPI: 10 operations.
+- Owner panel: customer card → «Магазины»: «Добавить магазин» form (name, https address, platform, time zone, currency, store language, reason), store names open `/owner/tenants/{id}/stores/{storeId}` with tabs «Находки», «Заказы», «Проверки и скриншоты», «Инциденты» (labels copied from the account translations, amounts via `formatMinor`), «Показать ещё» paging, order details (findings, provider captures, store refunds, versions), check details (attempts, steps, redacted screenshots loaded by a short-lived URL on request), incident details. ru/en/de.
+
+Verification: `tests/Feature/Platform/TenantStoreDataTest.php` (3: every section with real rows incl. a screenshot URL, paging, foreign ids 404, store viewed audited; add a store with reason, https rule, plan limit, audit; support forbidden). Control 41 tests (+2). Frontend check green. Backend SQLite 539 passed, 4 skipped; PostgreSQL 18: 543 of 543. Live in Chromium (`run-live.sh tenants`): store added with a reason, store data opened and every tab loads, both actions in the organisation audit — PASS.

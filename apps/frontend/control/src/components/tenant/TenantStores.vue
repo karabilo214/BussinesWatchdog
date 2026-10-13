@@ -1,15 +1,94 @@
 <script setup lang="ts">
+import { computed, reactive, ref } from 'vue';
 import { StatusBadge } from '@bw/ui';
-import type { TenantCard } from '@/api';
+import { createCustomerStore, fetchTenant, type NewCustomerStore, type TenantCard } from '@/api';
+import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 
-defineProps<{ card: TenantCard }>();
+const props = defineProps<{ card: TenantCard; canManage?: boolean }>();
+const emit = defineEmits<{ updated: [card: TenantCard] }>();
 const { dateTime } = useFormat();
+
+const adding = ref(false);
+const busy = ref(false);
+const error = ref<unknown>(null);
+const added = ref(false);
+const form = reactive<NewCustomerStore>({ reason: '', name: '', base_url: 'https://', timezone: 'Europe/Berlin', default_currency: 'EUR', locale: 'de', platform: 'woocommerce' });
+const ready = computed(() => form.name.trim() !== '' && /^https:\/\/[^/\s]+/.test(form.base_url.trim()) && /^[A-Z]{3}$/.test(form.default_currency) && form.timezone.trim() !== '' && form.reason.trim().length >= 3);
+
+async function add(): Promise<void> {
+  if (!ready.value || busy.value) return;
+  busy.value = true;
+  error.value = null;
+
+  try {
+    await createCustomerStore(props.card.id, { ...form, name: form.name.trim(), base_url: form.base_url.trim(), timezone: form.timezone.trim(), reason: form.reason.trim() });
+    Object.assign(form, { reason: '', name: '', base_url: 'https://' });
+    adding.value = false;
+    added.value = true;
+    emit('updated', await fetchTenant(props.card.id));
+  } catch (caught) {
+    error.value = caught;
+  } finally {
+    busy.value = false;
+  }
+}
 </script>
 
 <template>
   <section class="flex flex-col gap-3" data-section="stores">
-    <p class="text-sm text-text-muted">{{ $t('tenant.stores_hint') }}</p>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <p class="text-sm text-text-muted">{{ $t('tenant.stores_hint') }}</p>
+      <button v-if="canManage && !adding" type="button" class="rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft" data-action="add-store" @click="adding = true; added = false">{{ $t('store_data.add.submit') }}</button>
+    </div>
+    <p v-if="added" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-done="store">{{ $t('store_data.add.done') }}</p>
+
+    <form v-if="adding" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 text-sm" data-form="add-store" @submit.prevent="add">
+      <div class="flex flex-col gap-1">
+        <h2 class="text-lg font-semibold">{{ $t('store_data.add.title') }}</h2>
+        <p class="text-text-muted">{{ $t('store_data.add.hint') }}</p>
+      </div>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="flex flex-col gap-1.5">
+          <span class="font-medium">{{ $t('store_data.add.name') }}</span>
+          <input v-model="form.name" maxlength="100" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="store-name" />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="font-medium">{{ $t('store_data.add.url') }}</span>
+          <input v-model="form.base_url" maxlength="2048" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono" data-field="store-url" />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="font-medium">{{ $t('store_data.add.platform') }}</span>
+          <select v-model="form.platform" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="store-platform">
+            <option value="woocommerce">WooCommerce</option>
+            <option value="shopware">Shopware</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="font-medium">{{ $t('store_data.add.timezone') }}</span>
+          <input v-model="form.timezone" maxlength="64" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="store-timezone" />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="font-medium">{{ $t('store_data.add.currency') }}</span>
+          <input v-model="form.default_currency" maxlength="3" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono uppercase" data-field="store-currency" @input="form.default_currency = form.default_currency.toUpperCase()" />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="font-medium">{{ $t('store_data.add.locale') }}</span>
+          <select v-model="form.locale" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="store-locale">
+            <option v-for="code in (['de', 'en', 'ru'] as const)" :key="code" :value="code">{{ code.toUpperCase() }}</option>
+          </select>
+        </label>
+      </div>
+      <label class="flex flex-col gap-1.5">
+        <span class="font-medium">{{ $t('store_data.add.reason') }}</span>
+        <textarea v-model="form.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="reason" />
+      </label>
+      <ErrorNotice v-if="error" :error="error" />
+      <div class="flex flex-wrap gap-2">
+        <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !ready" data-action="confirm-store">{{ $t('store_data.add.submit') }}</button>
+        <button type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted" @click="adding = false">{{ $t('common.cancel') }}</button>
+      </div>
+    </form>
     <p v-if="card.stores.length === 0" class="rounded-xl border border-border bg-surface p-5 text-sm text-text-muted">{{ $t('tenant.no_stores') }}</p>
     <div v-else class="overflow-x-auto rounded-xl border border-border bg-surface">
       <table class="w-full min-w-[40rem] text-sm">
@@ -24,7 +103,9 @@ const { dateTime } = useFormat();
         </thead>
         <tbody class="divide-y divide-border">
           <tr v-for="store in card.stores" :key="store.id" :data-store="store.host">
-            <td class="px-4 py-3"><span class="font-medium">{{ store.name }}</span><span class="block text-[13px] text-text-muted">{{ store.host }}</span></td>
+            <td class="px-4 py-3">
+              <RouterLink v-if="canManage" :to="{ name: 'owner-tenant-store', params: { id: card.id, storeId: store.id } }" class="font-medium text-primary hover:underline" data-open-store>{{ store.name }}</RouterLink>
+              <span v-else class="font-medium">{{ store.name }}</span><span class="block text-[13px] text-text-muted">{{ store.host }}</span></td>
             <td class="px-4 py-3">{{ store.platform }}</td>
             <td class="px-4 py-3">
               <div class="flex flex-wrap gap-1.5">

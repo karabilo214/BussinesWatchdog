@@ -165,7 +165,8 @@
     "category_invalid": "Wählen Sie eine Gruppe aus der Liste.",
     "block_not_found": "Die Vorlage wurde nicht gefunden oder ist bereits gelöscht.",
     "reminder_recently_sent": "Diese Erinnerung wurde gerade gesendet. Wiederholen ist in 10 Minuten möglich.",
-    "no_recipients": "Die Organisation hat keinen aktiven Inhaber — niemand kann angeschrieben werden."
+    "no_recipients": "Die Organisation hat keinen aktiven Inhaber — niemand kann angeschrieben werden.",
+    "plan_store_limit_reached": "Der Tarif des Kunden erlaubt keine weiteren Shops."
   },
   "period": {
     "per": {
@@ -877,5 +878,166 @@
     "archive": "Vorlage löschen",
     "archive_confirm": "Die Vorlage verschwindet aus dem Seiteneditor. Seiten, in die sie schon eingefügt wurde, ändern sich nicht.",
     "unsaved_leave": "Ungespeicherte Änderungen gehen verloren. Seite verlassen?"
+  },
+  "store_data": {
+    "open": "Shopdaten",
+    "back": "Shops des Kunden",
+    "tab": {
+      "findings": "Befunde",
+      "orders": "Bestellungen",
+      "checks": "Prüfungen und Screenshots",
+      "incidents": "Vorfälle"
+    },
+    "hint": "Nur Ansicht — das, was der Kunde im Kundenkonto sieht, innerhalb der Aufbewahrung seines Tarifs. Das Öffnen eines Shops wird im Audit erfasst.",
+    "empty": "Noch nichts.",
+    "load_more": "Mehr anzeigen",
+    "col": {
+      "time": "Wann",
+      "rule": "Regel",
+      "status": "Ergebnis",
+      "order": "Bestellung",
+      "difference": "Differenz",
+      "number": "Nummer",
+      "state": "Status im Shop",
+      "total": "Summe",
+      "gateway": "Zahlungsart",
+      "paid": "Als bezahlt markiert",
+      "trigger": "Auslöser",
+      "error": "Fehler",
+      "title": "Vorfall",
+      "severity": "Schwere",
+      "last_seen": "Zuletzt"
+    },
+    "order": {
+      "title": "Bestellung {number}",
+      "findings": "Letzter Abgleich",
+      "captures": "Abbuchungen beim Anbieter",
+      "refunds": "Erstattungen im Shop",
+      "revisions": "Versionen der Bestellung: {n}",
+      "synthetic": "Prüfbestellung",
+      "test": "Testmodus"
+    },
+    "check": {
+      "attempt": "Versuch {n}",
+      "steps": "Schritte",
+      "screenshots": "Screenshots (ohne personenbezogene Daten)",
+      "show": "Anzeigen",
+      "no_screenshots": "Keine Screenshots.",
+      "screenshot_alt": "Screenshot der Prüfung"
+    },
+    "incident": {
+      "first_seen": "Zuerst",
+      "resolved": "Geschlossen",
+      "discrepancy": "Differenz"
+    },
+    "close": "Schließen",
+    "add": {
+      "title": "Shop für den Kunden hinzufügen",
+      "hint": "Der Shop erscheint im Kundenkonto; es gelten dieselben Regeln und das Tariflimit. Das Plugin verbindet der Kunde selbst.",
+      "name": "Name",
+      "url": "Adresse (https://…)",
+      "timezone": "Zeitzone",
+      "currency": "Währung",
+      "locale": "Sprache des Shops",
+      "platform": "Plattform",
+      "reason": "Grund (für das Audit)",
+      "submit": "Shop hinzufügen",
+      "done": "Shop hinzugefügt."
+    },
+    "labels": {
+      "rule": {
+        "MONEY_CAPTURE_MISSING": "Abbuchung für bezahlte Bestellung",
+        "MONEY_CAPTURE_AMOUNT": "Abbuchungsbetrag",
+        "MONEY_MULTIPLE_CAPTURES": "Wiederholte Abbuchungen",
+        "MONEY_CURRENCY_MISMATCH": "Währung der Abbuchung",
+        "MONEY_ORDER_CHANGED": "Änderungen nach der Zahlung",
+        "MONEY_REFUND_MISSING": "Shop-Erstattungen beim Anbieter",
+        "MONEY_REFUND_EXTRA": "Anbieter-Erstattungen im Shop",
+        "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung ohne Bestellung",
+        "MONEY_UNSUPPORTED": "Abgleich möglich"
+      },
+      "finding_status": {
+        "ok": "stimmt",
+        "mismatch": "Abweichung",
+        "pending": "wartet auf Daten",
+        "unsupported": "nicht unterstützt",
+        "unknown": "unbekannt"
+      },
+      "incident_title": {
+        "MONEY_UNSUPPORTED": "Abgleich der Bestellung nicht möglich",
+        "MONEY_CAPTURE_MISSING": "Bestellung als bezahlt markiert, keine Abbuchung beim Anbieter gefunden",
+        "MONEY_CAPTURE_AMOUNT": "Abgebuchter Betrag weicht vom Bestellbetrag ab",
+        "MONEY_REFUND_MISSING": "Erstattung im Shop, beim Anbieter nicht gefunden",
+        "MONEY_REFUND_EXTRA": "Erstattung beim Anbieter, die der Shop nicht zeigt",
+        "MONEY_MULTIPLE_CAPTURES": "Mehrere verschiedene Abbuchungen für eine Bestellung",
+        "MONEY_CURRENCY_MISMATCH": "Währung der Abbuchung weicht von der Bestellwährung ab",
+        "MONEY_ORDER_CHANGED": "Bestellung nach der Abbuchung geändert",
+        "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung beim Anbieter keiner Bestellung zugeordnet",
+        "CHECKOUT_PAYMENTS_FAILING": "Zahlungen schlagen wiederholt fehl",
+        "CHECKOUT_FLOW_FAILED": "Die Prüfung hat das Zahlungsformular nicht erreicht",
+        "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Das Testprodukt für Prüfungen ist nicht verfügbar",
+        "CHECKOUT_MONITORING_BLOCKED": "Die Website blockiert die Prüfung",
+        "CHECKOUT_ADAPTER_UNSUPPORTED": "Der Checkout dieser Website wird von der Prüfung noch nicht unterstützt",
+        "INTEGRATION_STALE": "Das Shop-Plugin meldet sich nicht",
+        "INTEGRATION_DELIVERY_DELAYED": "Das Shop-Plugin übermittelt Daten verspätet",
+        "unknown": "Vorfall {code}"
+      },
+      "incident_severity": {
+        "critical": "kritisch",
+        "warning": "Warnung",
+        "info": "Hinweis"
+      },
+      "incident_state": {
+        "open": "offen",
+        "acknowledged": "bestätigt",
+        "resolved": "geschlossen"
+      },
+      "check_trigger": {
+        "scheduled": "geplant",
+        "manual": "manuell gestartet",
+        "incident": "Nachprüfung eines Vorfalls"
+      },
+      "check_status": {
+        "queued": "in Warteschlange",
+        "running": "läuft",
+        "passed": "bestanden",
+        "failed": "fehlgeschlagen",
+        "inconclusive": "unbestimmt",
+        "blocked": "von der Website blockiert",
+        "unsupported": "nicht unterstützt",
+        "cancelled": "abgebrochen"
+      },
+      "attempt_status": {
+        "running": "läuft",
+        "passed": "bestanden",
+        "failed": "fehlgeschlagen",
+        "inconclusive": "unbestimmt",
+        "blocked": "blockiert",
+        "unsupported": "nicht unterstützt",
+        "cancelled": "abgebrochen",
+        "expired": "unterbrochen"
+      },
+      "step_status": {
+        "passed": "bestanden",
+        "failed": "Fehler",
+        "skipped": "übersprungen",
+        "inconclusive": "unbestimmt",
+        "blocked": "blockiert"
+      },
+      "check_error": {
+        "site_failure": "Die Website ließ die Prüfung nicht bis zum Zahlungsformular.",
+        "product_unavailable": "Das Testprodukt ist nicht verfügbar.",
+        "worker_capacity": "Auf unserer Seite waren nicht genug Browser frei.",
+        "dns_failure": "Die Shop-Domain wurde nicht gefunden.",
+        "waf_challenge": "Die Website zeigte einen Bot-Schutz.",
+        "selector_changed": "Ein Seitenelement wurde nicht gefunden: Das Theme hat sich eventuell geändert.",
+        "adapter_unsupported": "Der Checkout der Website wird von der Prüfung nicht unterstützt.",
+        "forbidden_mutation": "Die Seite versuchte eine verbotene Aktion; die Prüfung wurde gestoppt.",
+        "blocked_external_origin": "Die Seite rief eine Adresse auf, die die Prüfung nicht erlaubt.",
+        "infra_timeout": "Die Prüfung lief wegen eines Fehlers auf unserer Seite in eine Zeitüberschreitung.",
+        "lease_expired": "Der Browser reagierte nicht mehr; der Versuch wurde abgebrochen.",
+        "cancelled_by_user": "Von einem Benutzer abgebrochen."
+      }
+    }
   }
 }

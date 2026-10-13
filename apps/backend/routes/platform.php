@@ -9,6 +9,7 @@ use App\Http\Controllers\Platform\RefundController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformAuthController;
 use App\Http\Controllers\Platform\TenantController;
+use App\Http\Controllers\Platform\TenantStoreController;
 use App\Support\Platform\PlatformCapabilities;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,16 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/tenants/{tenant}/actions/{action}', [TenantController::class, 'act'])->middleware('throttle:platform-step-up');
         Route::post('/tenants/{tenant}/reminders/preview', [TenantController::class, 'reminderPreview']);
         Route::post('/tenants/{tenant}/reminders', [TenantController::class, 'remind']);
+        Route::post('/tenants/{tenant}/stores', [TenantStoreController::class, 'create']);
+        Route::get('/tenants/{tenant}/stores/{store}', [TenantStoreController::class, 'show']);
+        Route::get('/tenants/{tenant}/stores/{store}/findings', [TenantStoreController::class, 'findings']);
+        Route::get('/tenants/{tenant}/stores/{store}/orders', [TenantStoreController::class, 'orders']);
+        Route::get('/tenants/{tenant}/stores/{store}/checks', [TenantStoreController::class, 'checks']);
+        Route::get('/tenants/{tenant}/stores/{store}/incidents', [TenantStoreController::class, 'incidents']);
+        Route::get('/tenants/{tenant}/orders/{order}', [TenantStoreController::class, 'order']);
+        Route::get('/tenants/{tenant}/checks/{check}', [TenantStoreController::class, 'check']);
+        Route::get('/tenants/{tenant}/artifacts/{artifact}/download', [TenantStoreController::class, 'artifact']);
+        Route::get('/tenants/{tenant}/incidents/{incident}', [TenantStoreController::class, 'incident']);
     });
 
     Route::middleware('platform.staff:'.PlatformCapabilities::CONTENT_MANAGE)->group(function (): void {

@@ -106,11 +106,34 @@ try {
   if (!mails.messages.some((mail) => mail.Subject.includes('Zahlungserinnerung') && mail.Subject.includes(process.env.BW_TENANT))) throw new Error('reminder email not found in Mailpit');
   console.log('ok   payment reminder previewed in the owner language (de), sent and delivered to Mailpit');
 
+  await page.locator('[data-tab="stores"]').click();
+  await page.locator('[data-action="add-store"]').click();
+  await page.locator('[data-field="store-name"]').fill('Zweiter Shop');
+  await page.locator('[data-field="store-url"]').fill(`https://second-${Date.now().toString(36)}.example`);
+  await page.locator('[data-field="reason"]').fill('Kunde hat angerufen');
+  await page.locator('[data-action="confirm-store"]').click();
+  await page.locator('[data-done="store"]').waitFor();
+  await page.locator('[data-open-store]', { hasText: 'Zweiter Shop' }).waitFor();
+  console.log('ok   store added for the customer with a reason');
+
+  await page.locator('[data-open-store]', { hasText: 'Live Shop' }).click();
+  await page.waitForURL(/\/owner\/tenants\/[0-9a-f-]+\/stores\/[0-9a-f-]+/);
+  await page.getByRole('heading', { level: 1, name: 'Live Shop' }).waitFor();
+  for (const item of ['findings', 'orders', 'checks', 'incidents']) {
+    await page.locator(`[data-tab="${item}"]`).click();
+    await page.locator(`[data-list="${item}"]`).waitFor();
+    await page.locator(`[data-list="${item}"] [data-empty], [data-list="${item}"] table`).first().waitFor();
+  }
+  await shot('3-store-data');
+  console.log('ok   store data opened: findings, orders, checks and incidents tabs load');
+  await page.getByRole('link', { name: /Магазины клиента/ }).click();
+  await page.locator('[data-tab="audit"]').waitFor();
+
   await page.locator('[data-tab="audit"]').click();
-  for (const action of ['tenant.extend_trial', 'tenant.suspend', 'tenant.resume', 'tenant.reminder_sent']) {
+  for (const action of ['tenant.extend_trial', 'tenant.suspend', 'tenant.resume', 'tenant.reminder_sent', 'tenant.store_created', 'tenant.store_viewed']) {
     await page.locator(`[data-audit="${action}"]`).first().waitFor();
   }
-  await shot('3-audit');
+  await shot('4-audit');
   console.log('ok   every action is in the organisation audit');
 
   if (errors.length > 0) throw new Error(`page errors: ${errors.join('; ')}`);

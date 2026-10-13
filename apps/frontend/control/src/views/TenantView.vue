@@ -73,7 +73,7 @@ onMounted(load);
         </nav>
 
         <TenantOverview v-if="tab === 'overview'" :card="card" :can-manage="canManage" @updated="card = $event" />
-        <TenantStores v-else-if="tab === 'stores'" :card="card" />
+        <TenantStores v-else-if="tab === 'stores'" :card="card" :can-manage="canManage" @updated="card = $event" />
         <TenantSubscription v-else-if="tab === 'subscription' && card.billing" :billing="card.billing" />
         <TenantMembers v-else-if="tab === 'members'" :card="card" />
         <TenantAudit v-else-if="tab === 'audit'" :card="card" />

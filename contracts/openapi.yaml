@@ -634,6 +634,217 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/stores:
+    post:
+      tags: [Platform]
+      operationId: platformCreateTenantStore
+      description: "Capability tenants.manage. Adds a store to the organisation on its behalf with the same rules as the account (https address, plan store limit: 403 plan_store_limit_reached) and a reason; audited as tenant.store_created."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, name, base_url, timezone, default_currency]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+                name: {type: string, maxLength: 100}
+                base_url: {type: string, format: uri}
+                timezone: {type: string}
+                locale: {enum: [ru, en, de]}
+                default_currency: {type: string, pattern: "^[A-Z]{3}$"}
+                platform: {enum: [woocommerce, shopware]}
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/stores/{store}:
+    get:
+      tags: [Platform]
+      operationId: platformShowTenantStore
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Opening a store is audited as tenant.store_viewed."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/stores/{store}/findings:
+    get:
+      tags: [Platform]
+      operationId: platformListTenantStoreFindings
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Reconciliation findings, newest first, with the filters of the account endpoint."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/stores/{store}/orders:
+    get:
+      tags: [Platform]
+      operationId: platformListTenantStoreOrders
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Orders of the store, newest first (amounts in minor units as strings); next_cursor for the next page."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: limit, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {name: cursor, in: query, required: false, schema: {type: string, maxLength: 128}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/stores/{store}/checks:
+    get:
+      tags: [Platform]
+      operationId: platformListTenantStoreChecks
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Browser check runs, newest first."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: limit, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {name: cursor, in: query, required: false, schema: {type: string, maxLength: 128}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/stores/{store}/incidents:
+    get:
+      tags: [Platform]
+      operationId: platformListTenantStoreIncidents
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Incidents of the store."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/orders/{order}:
+    get:
+      tags: [Platform]
+      operationId: platformShowTenantOrder
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Order with findings, captures, refunds, allocations and revisions."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: order, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/checks/{check}:
+    get:
+      tags: [Platform]
+      operationId: platformShowTenantCheck
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Check run with attempts, steps and redacted screenshots (ids only, no storage keys)."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: check, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/artifacts/{artifact}/download:
+    get:
+      tags: [Platform]
+      operationId: platformDownloadTenantArtifact
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Short-lived URL of a redacted screenshot (no-store)."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: artifact, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/incidents/{incident}:
+    get:
+      tags: [Platform]
+      operationId: platformShowTenantIncident
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Incident with its timeline."
+      security:
+        - {StaffSession: []}
+      parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: incident, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/reminders/preview:
     post:
       tags: [Platform]

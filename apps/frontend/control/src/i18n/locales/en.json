@@ -165,7 +165,8 @@
     "category_invalid": "Choose a group from the list.",
     "block_not_found": "The template was not found or is already deleted.",
     "reminder_recently_sent": "This reminder was just sent. It can be repeated in 10 minutes.",
-    "no_recipients": "The organisation has no active owner — there is nobody to email."
+    "no_recipients": "The organisation has no active owner — there is nobody to email.",
+    "plan_store_limit_reached": "The customer plan does not allow more stores."
   },
   "period": {
     "per": {
@@ -877,5 +878,166 @@
     "archive": "Delete template",
     "archive_confirm": "The template disappears from the page editor. Pages it was already inserted into do not change.",
     "unsaved_leave": "Unsaved changes will be lost. Leave the page?"
+  },
+  "store_data": {
+    "open": "Store data",
+    "back": "Customer stores",
+    "tab": {
+      "findings": "Findings",
+      "orders": "Orders",
+      "checks": "Checks and screenshots",
+      "incidents": "Incidents"
+    },
+    "hint": "Read only — what the customer sees in the account, within the retention of their plan. Opening a store is recorded in the audit.",
+    "empty": "Nothing yet.",
+    "load_more": "Show more",
+    "col": {
+      "time": "When",
+      "rule": "Rule",
+      "status": "Result",
+      "order": "Order",
+      "difference": "Difference",
+      "number": "Number",
+      "state": "Status in the store",
+      "total": "Total",
+      "gateway": "Payment method",
+      "paid": "Marked paid",
+      "trigger": "Trigger",
+      "error": "Error",
+      "title": "Incident",
+      "severity": "Severity",
+      "last_seen": "Last seen"
+    },
+    "order": {
+      "title": "Order {number}",
+      "findings": "Latest reconciliation",
+      "captures": "Provider captures",
+      "refunds": "Store refunds",
+      "revisions": "Order versions: {n}",
+      "synthetic": "check order",
+      "test": "test mode"
+    },
+    "check": {
+      "attempt": "Attempt {n}",
+      "steps": "Steps",
+      "screenshots": "Screenshots (no personal data)",
+      "show": "Show",
+      "no_screenshots": "No screenshots.",
+      "screenshot_alt": "Check screenshot"
+    },
+    "incident": {
+      "first_seen": "First seen",
+      "resolved": "Resolved",
+      "discrepancy": "Difference"
+    },
+    "close": "Close",
+    "add": {
+      "title": "Add a store for the customer",
+      "hint": "The store appears in the customer account; the same rules and plan limit apply. The customer connects the plugin themselves.",
+      "name": "Name",
+      "url": "Address (https://…)",
+      "timezone": "Time zone",
+      "currency": "Currency",
+      "locale": "Store language",
+      "platform": "Platform",
+      "reason": "Reason (for the audit)",
+      "submit": "Add store",
+      "done": "Store added."
+    },
+    "labels": {
+      "rule": {
+        "MONEY_CAPTURE_MISSING": "Capture for a paid order",
+        "MONEY_CAPTURE_AMOUNT": "Capture amount",
+        "MONEY_MULTIPLE_CAPTURES": "Repeated captures",
+        "MONEY_CURRENCY_MISMATCH": "Capture currency",
+        "MONEY_ORDER_CHANGED": "Order changes after payment",
+        "MONEY_REFUND_MISSING": "Store refunds at the provider",
+        "MONEY_REFUND_EXTRA": "Provider refunds in the store",
+        "MONEY_PAYMENT_WITHOUT_ORDER": "Payment without an order",
+        "MONEY_UNSUPPORTED": "Reconciliation possible"
+      },
+      "finding_status": {
+        "ok": "matches",
+        "mismatch": "discrepancy",
+        "pending": "awaiting data",
+        "unsupported": "not supported",
+        "unknown": "unknown"
+      },
+      "incident_title": {
+        "MONEY_UNSUPPORTED": "The order cannot be reconciled",
+        "MONEY_CAPTURE_MISSING": "Order marked as paid, no capture found at the provider",
+        "MONEY_CAPTURE_AMOUNT": "Captured amount differs from the order total",
+        "MONEY_REFUND_MISSING": "Refund in the store, not found at the provider",
+        "MONEY_REFUND_EXTRA": "Refund at the provider that the store does not show",
+        "MONEY_MULTIPLE_CAPTURES": "Several different captures for one order",
+        "MONEY_CURRENCY_MISMATCH": "Capture currency differs from the order currency",
+        "MONEY_ORDER_CHANGED": "Order changed after the capture",
+        "MONEY_PAYMENT_WITHOUT_ORDER": "Provider payment not matched to an order",
+        "CHECKOUT_PAYMENTS_FAILING": "Payments keep failing",
+        "CHECKOUT_FLOW_FAILED": "The check did not reach the payment form",
+        "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "The test product for checks is unavailable",
+        "CHECKOUT_MONITORING_BLOCKED": "The site blocks the check",
+        "CHECKOUT_ADAPTER_UNSUPPORTED": "This site's checkout is not supported by the check yet",
+        "INTEGRATION_STALE": "The store plugin is not reporting",
+        "INTEGRATION_DELIVERY_DELAYED": "The store plugin is sending data late",
+        "unknown": "Incident {code}"
+      },
+      "incident_severity": {
+        "critical": "critical",
+        "warning": "warning",
+        "info": "info"
+      },
+      "incident_state": {
+        "open": "open",
+        "acknowledged": "acknowledged",
+        "resolved": "resolved"
+      },
+      "check_trigger": {
+        "scheduled": "scheduled",
+        "manual": "started manually",
+        "incident": "incident recheck"
+      },
+      "check_status": {
+        "queued": "queued",
+        "running": "running",
+        "passed": "passed",
+        "failed": "failed",
+        "inconclusive": "inconclusive",
+        "blocked": "blocked by the site",
+        "unsupported": "not supported",
+        "cancelled": "cancelled"
+      },
+      "attempt_status": {
+        "running": "running",
+        "passed": "passed",
+        "failed": "failed",
+        "inconclusive": "inconclusive",
+        "blocked": "blocked",
+        "unsupported": "not supported",
+        "cancelled": "cancelled",
+        "expired": "interrupted"
+      },
+      "step_status": {
+        "passed": "passed",
+        "failed": "error",
+        "skipped": "skipped",
+        "inconclusive": "inconclusive",
+        "blocked": "blocked"
+      },
+      "check_error": {
+        "site_failure": "The site did not let the check reach the payment form.",
+        "product_unavailable": "The test product is unavailable.",
+        "worker_capacity": "Not enough free browsers on our side.",
+        "dns_failure": "The store domain could not be found.",
+        "waf_challenge": "The site showed bot protection.",
+        "selector_changed": "A page element was not found: the site theme may have changed.",
+        "adapter_unsupported": "The site's checkout is not supported by the check.",
+        "forbidden_mutation": "The page tried a forbidden action; the check stopped.",
+        "blocked_external_origin": "The page called an address the check does not allow.",
+        "infra_timeout": "The check ran out of time because of a failure on our side.",
+        "lease_expired": "The browser stopped responding; the attempt was interrupted.",
+        "cancelled_by_user": "Cancelled by a user."
+      }
+    }
   }
 }
