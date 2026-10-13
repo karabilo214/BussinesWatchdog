@@ -173,7 +173,16 @@
     "reply_not_sent": "Der Mailserver hat die E-Mail abgelehnt — die Antwort wurde weder gesendet noch gespeichert. Bitte später erneut versuchen.",
     "reply_invalid": "Geben Sie Betreff und Antworttext ein.",
     "note_invalid": "Schreiben Sie den Notiztext (bis zu 2000 Zeichen).",
-    "period_invalid": "Der Zeitraum muss 1 bis 366 Tage umfassen, Beginn vor Ende."
+    "period_invalid": "Der Zeitraum muss 1 bis 366 Tage umfassen, Beginn vor Ende.",
+    "already_staff": "Diese Person ist bereits Mitarbeitende des Dienstes.",
+    "self_change": "Sich selbst kann man nicht ändern — bitten Sie einen anderen Inhaber.",
+    "last_owner": "Der letzte Inhaber des Dienstes kann nicht deaktiviert oder herabgestuft werden.",
+    "password_wrong": "Falsches Passwort.",
+    "invitation_invalid": "Die Einladung ist ungültig.",
+    "invitation_not_started": "Beginnen Sie neu: Laden Sie die Seite über den Link in der E-Mail.",
+    "mfa_code_invalid": "Der Code passt nicht. Prüfen Sie die Uhrzeit des Telefons und versuchen Sie es erneut.",
+    "name_required": "Geben Sie einen Namen ein.",
+    "staff_not_found": "Mitarbeitende nicht gefunden."
   },
   "period": {
     "per": {
@@ -1188,5 +1197,67 @@
       "release": "Release"
     },
     "later": "Wartungsfenster und Worker-Limits werden später unter „Einstellungen“ konfiguriert."
+  },
+  "staff": {
+    "hint": "Mitarbeitende des Dienstes und ihre Rollen. Eine Einladung gilt 72 Stunden; das neue Mitglied legt ein Passwort fest und verbindet eine Authenticator-App. Rollenwechsel und Deaktivieren brauchen den Code aus der App; sich selbst und den letzten Inhaber kann man nicht ändern.",
+    "forbidden": "Dieser Bereich steht dem Inhaber des Dienstes zur Verfügung.",
+    "invite": "Mitarbeitende einladen",
+    "invite_hint": "Eine E-Mail mit dem Link geht an die Adresse. Die Rolle „Inhaber des Dienstes“ gibt vollen Zugriff.",
+    "email": "E-Mail",
+    "role": "Rolle",
+    "send": "Einladung senden",
+    "you": "Sie",
+    "col": {
+      "person": "Mitarbeitende",
+      "state": "Zustand",
+      "last_login": "Letzte Anmeldung"
+    },
+    "state": {
+      "active": "Aktiv",
+      "disabled": "Deaktiviert"
+    },
+    "no_mfa": "kein Authenticator",
+    "change_role": "Rolle ändern",
+    "sign_out": "Sitzungen beenden",
+    "disable": "Deaktivieren",
+    "enable": "Aktivieren",
+    "pending": "Offene Einladungen",
+    "expires": "gültig bis {date}",
+    "revoke": "Widerrufen",
+    "apply": "Bestätigen",
+    "mfa_reset": "Den Authenticator eines Mitglieds setzt man nur mit einem Serverbefehl zurück (siehe README, „Wartung“).",
+    "confirm": {
+      "role": "Die neue Rolle gilt sofort; alle Sitzungen des Mitglieds enden.",
+      "disable": "Das Mitglied kann sich nicht mehr anmelden; alle Sitzungen enden.",
+      "enable": "Das Mitglied kann sich wieder anmelden.",
+      "sessions": "Alle Sitzungen des Mitglieds enden; es muss sich neu anmelden.",
+      "revoke-invitation": "Der Link in der E-Mail funktioniert nicht mehr."
+    },
+    "done": {
+      "invited": "Einladung gesendet.",
+      "role": "Rolle geändert.",
+      "disabled": "Mitglied deaktiviert.",
+      "enabled": "Mitglied wieder aktiv.",
+      "sessions": "Sitzungen beendet.",
+      "invitation_revoked": "Einladung widerrufen."
+    }
+  },
+  "staff_join": {
+    "title": "Einladung ins Team",
+    "offer": "Adresse {email}, Rolle „{role}“. Der Link gilt bis {date}.",
+    "invalid_title": "Der Link funktioniert nicht",
+    "invalid": "Die Einladung wurde nicht gefunden, ist bereits benutzt, widerrufen oder abgelaufen. Bitten Sie den Inhaber des Dienstes um eine neue.",
+    "existing": "Für diese Adresse gibt es bereits ein Konto — geben Sie dessen Passwort ein.",
+    "name": "Ihr Name",
+    "new_password": "Neues Passwort (mindestens 12 Zeichen)",
+    "repeat": "Passwort wiederholen",
+    "mismatch": "Die Passwörter stimmen nicht überein.",
+    "mfa_title": "Authenticator-App",
+    "mfa_setup": "Scannen Sie den QR-Code in Ihrer App (Google Authenticator, 1Password …) oder geben Sie den Schlüssel ein, dann den Code aus der App.",
+    "mfa_existing": "Das Konto hat bereits einen Authenticator — geben Sie dessen Code ein.",
+    "join": "Beitreten",
+    "done_title": "Fertig, Sie sind im Team",
+    "recovery": "Speichern Sie die Wiederherstellungscodes — sie werden einmal angezeigt und gebraucht, falls die App nicht verfügbar ist:",
+    "sign_in": "In der Verwaltung anmelden"
   }
 }

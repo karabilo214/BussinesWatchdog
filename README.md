@@ -157,6 +157,7 @@ npm run build -w @bw/public     # стили публичного сайта →
 |---|---|
 | `php artisan security:reencrypt-secrets` | После добавления нового ключа шифрования (`WATCHDOG_KEYRING_KEYS="2:base64:…"`, затем `WATCHDOG_KEYRING_CURRENT=2`): перешифровать ключи интеграций, адреса уведомлений и секреты аутентификаторов. Старый ключ убирать только после неё |
 | `php artisan platform:create-owner <email>` | Добавить ещё одного владельца сервиса или восстановить доступ |
+| `php artisan platform:reset-mfa <email> --reason="…"` | Сбросить приложение-аутентификатор сотрудника сервиса (потерян телефон): старый код перестаёт работать, все сессии завершаются, сразу привязывается новый; записывается в аудит. Остальных сотрудников приглашают и отключают в админке, раздел «Сотрудники» |
 | `php artisan browser:worker-create <name> --rotate` | Сменить токен воркера |
 | `php artisan telegram:webhook info\|set\|delete` | Проверить или перерегистрировать webhook Telegram |
 | `php artisan billing:paddle-events` / `billing:process-events` | Вручную дочитать события Paddle (обычно делает планировщик) |

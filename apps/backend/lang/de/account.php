@@ -34,6 +34,16 @@ return [
         'body' => "Hallo,\n\n:message\n\nKundenkonto von „:tenant“: :link",
     ],
     'platform_inviter' => 'Das Business-Watchdog-Team',
+    'staff_invitation' => [
+        'subject' => 'Business Watchdog: Einladung ins Team des Dienstes',
+        'body' => ":inviter lädt Sie in die Verwaltung von Business Watchdog mit der Rolle „:role“ ein.\n\nZum Annehmen öffnen Sie den Link (gültig :hours h), legen ein Passwort fest und verbinden eine Authenticator-App:\n:link\n\nWenn Sie diese Einladung nicht erwartet haben, ignorieren Sie diese E-Mail.",
+    ],
+    'staff_roles' => [
+        'platform_owner' => 'Inhaber des Dienstes',
+        'platform_admin' => 'Administrator',
+        'platform_support' => 'Support',
+        'platform_billing' => 'Finanzen',
+    ],
     'roles' => [
         'owner' => 'Inhaber',
         'admin' => 'Administrator',

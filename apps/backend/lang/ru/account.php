@@ -34,6 +34,16 @@ return [
         'body' => "Здравствуйте!\n\n:message\n\nКабинет организации «:tenant»: :link",
     ],
     'platform_inviter' => 'Служба Business Watchdog',
+    'staff_invitation' => [
+        'subject' => 'Business Watchdog: приглашение в команду сервиса',
+        'body' => ":inviter приглашает вас в панель управления Business Watchdog с ролью «:role».\n\nЧтобы принять приглашение, откройте ссылку (действует :hours ч.), задайте пароль и подключите приложение-аутентификатор:\n:link\n\nЕсли вы не ждали приглашения, проигнорируйте это письмо.",
+    ],
+    'staff_roles' => [
+        'platform_owner' => 'владелец сервиса',
+        'platform_admin' => 'администратор',
+        'platform_support' => 'поддержка',
+        'platform_billing' => 'финансы',
+    ],
     'roles' => [
         'owner' => 'владелец',
         'admin' => 'администратор',

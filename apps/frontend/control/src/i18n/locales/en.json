@@ -173,7 +173,16 @@
     "reply_not_sent": "The mail server refused the letter — the reply was neither sent nor stored. Try again later.",
     "reply_invalid": "Enter a subject and the reply text.",
     "note_invalid": "Write the note text (up to 2000 characters).",
-    "period_invalid": "The period must be 1 to 366 days, start before end."
+    "period_invalid": "The period must be 1 to 366 days, start before end.",
+    "already_staff": "This person is already a service staff member.",
+    "self_change": "You cannot change yourself — ask another owner.",
+    "last_owner": "The last service owner cannot be disabled or demoted.",
+    "password_wrong": "Wrong password.",
+    "invitation_invalid": "The invitation is not valid.",
+    "invitation_not_started": "Start again: reload the page from the email link.",
+    "mfa_code_invalid": "The code did not match. Check the phone time and try again.",
+    "name_required": "Enter a name.",
+    "staff_not_found": "Staff member not found."
   },
   "period": {
     "per": {
@@ -1188,5 +1197,67 @@
       "release": "Release"
     },
     "later": "Maintenance windows and worker limits will be configured later in «Settings»."
+  },
+  "staff": {
+    "hint": "Service staff and their roles. An invitation is valid for 72 hours; the new member sets a password and connects an authenticator app. Changing a role or disabling needs the code from the app; you cannot change yourself or the last owner.",
+    "forbidden": "This section is available to the service owner.",
+    "invite": "Invite a staff member",
+    "invite_hint": "An email with the link goes to the address. The «Service owner» role gives full access.",
+    "email": "Email",
+    "role": "Role",
+    "send": "Send invitation",
+    "you": "you",
+    "col": {
+      "person": "Staff member",
+      "state": "State",
+      "last_login": "Last sign-in"
+    },
+    "state": {
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "no_mfa": "no authenticator",
+    "change_role": "Change role",
+    "sign_out": "End sessions",
+    "disable": "Disable",
+    "enable": "Enable",
+    "pending": "Pending invitations",
+    "expires": "valid until {date}",
+    "revoke": "Revoke",
+    "apply": "Confirm",
+    "mfa_reset": "Resetting a staff member’s authenticator is done only with a server command (see README, «Maintenance»).",
+    "confirm": {
+      "role": "The new role applies at once; all sessions of the member end.",
+      "disable": "The member can no longer sign in; all their sessions end.",
+      "enable": "The member can sign in again.",
+      "sessions": "All sessions of the member end; they need to sign in again.",
+      "revoke-invitation": "The link in the email stops working."
+    },
+    "done": {
+      "invited": "Invitation sent.",
+      "role": "Role changed.",
+      "disabled": "Staff member disabled.",
+      "enabled": "Staff member active again.",
+      "sessions": "Sessions ended.",
+      "invitation_revoked": "Invitation revoked."
+    }
+  },
+  "staff_join": {
+    "title": "Invitation to the team",
+    "offer": "Address {email}, role «{role}». The link is valid until {date}.",
+    "invalid_title": "The link does not work",
+    "invalid": "The invitation was not found, is already used, revoked or expired. Ask the service owner for a new one.",
+    "existing": "This address already has an account — enter its password.",
+    "name": "Your name",
+    "new_password": "New password (at least 12 characters)",
+    "repeat": "Repeat the password",
+    "mismatch": "The passwords do not match.",
+    "mfa_title": "Authenticator app",
+    "mfa_setup": "Scan the QR code in your app (Google Authenticator, 1Password, …) or type the key, then enter the code from the app.",
+    "mfa_existing": "The account already has an authenticator — enter its code.",
+    "join": "Join",
+    "done_title": "Done, you are in the team",
+    "recovery": "Save the recovery codes — they are shown once and needed if the app is unavailable:",
+    "sign_in": "Sign in to the panel"
   }
 }

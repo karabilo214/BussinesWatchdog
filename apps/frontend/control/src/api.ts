@@ -674,6 +674,63 @@ export async function fetchServiceHealth(): Promise<ServiceHealth> {
   return (await request<ServiceHealth>('GET', '/platform-api/v1/health')).data;
 }
 
+export interface StaffMember {
+  id: string;
+  name: string | null;
+  email: string | null;
+  role: StaffRole;
+  state: 'active' | 'disabled';
+  mfa_enabled: boolean;
+  created_at: string | null;
+  disabled_at: string | null;
+  last_login_at: string | null;
+}
+
+export interface StaffInvitation {
+  id: string;
+  email: string;
+  role: StaffRole;
+  expires_at: string;
+  created_at: string | null;
+}
+
+export interface StaffCatalog {
+  staff: StaffMember[];
+  invitations: StaffInvitation[];
+}
+
+export async function fetchStaff(): Promise<StaffCatalog> {
+  return (await request<StaffCatalog>('GET', '/platform-api/v1/staff')).data;
+}
+
+export async function inviteStaff(input: { email: string; role: StaffRole; reason: string; confirmation_code: string }): Promise<StaffInvitation> {
+  return (await request<StaffInvitation>('POST', '/platform-api/v1/staff/invitations', { body: input })).data;
+}
+
+export async function revokeStaffInvitation(id: string, reason: string): Promise<void> {
+  await request<null>('POST', `/platform-api/v1/staff/invitations/${encodeURIComponent(id)}/revoke`, { body: { reason } });
+}
+
+export async function updateStaff(id: string, input: { role?: StaffRole; state?: 'active' | 'disabled'; reason: string; confirmation_code: string }): Promise<StaffCatalog> {
+  return (await request<StaffCatalog>('PATCH', `/platform-api/v1/staff/${encodeURIComponent(id)}`, { body: input })).data;
+}
+
+export async function revokeStaffSessions(id: string, reason: string): Promise<void> {
+  await request<null>('POST', `/platform-api/v1/staff/${encodeURIComponent(id)}/sessions/revoke`, { body: { reason } });
+}
+
+export async function lookupStaffInvitation(token: string): Promise<{ email: string; role: StaffRole; expires_at: string; account_exists: boolean }> {
+  return (await request<{ email: string; role: StaffRole; expires_at: string; account_exists: boolean }>('GET', '/platform-api/v1/staff-invitations/lookup', { query: { token } })).data;
+}
+
+export async function startStaffInvitation(input: { token: string; name?: string; password: string }): Promise<{ mfa_enabled: boolean; otpauth_uri?: string; secret?: string; qr_svg?: string }> {
+  return (await request<{ mfa_enabled: boolean; otpauth_uri?: string; secret?: string; qr_svg?: string }>('POST', '/platform-api/v1/staff-invitations/start', { body: input })).data;
+}
+
+export async function confirmStaffInvitation(input: { token: string; code: string }): Promise<{ staff_id: string; recovery_codes: string[] }> {
+  return (await request<{ staff_id: string; recovery_codes: string[] }>('POST', '/platform-api/v1/staff-invitations/confirm', { body: input })).data;
+}
+
 export type ReminderTopic = 'subscription' | 'payment' | 'other';
 
 export interface ReminderInput {

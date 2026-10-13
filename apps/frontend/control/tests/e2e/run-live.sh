@@ -7,7 +7,8 @@
 # `run-live.sh site` (create and publish a page, read it on the public site, send the contact form, close the message,
 # delete the page; builds the site stylesheet first) or `run-live.sh signup` (mark terms and privacy pages in the
 # panel, sign up on the site with consent, signed in on the chosen plan) or `run-live.sh overview` (business KPIs in LIVE
-# and TEST, drill-down into subscriptions, then the service summary). Screenshots land in tests/e2e/.out.
+# and TEST, drill-down into subscriptions, then the service summary) or `run-live.sh staff` (invite a staff member, accept with an
+# authenticator, sign in, disable and see the session end). Screenshots land in tests/e2e/.out.
 set -eu
 SCRIPT="${1:-login}"
 

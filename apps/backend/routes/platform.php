@@ -5,6 +5,8 @@ use App\Http\Controllers\Platform\DiscountController;
 use App\Http\Controllers\Platform\OverviewController;
 use App\Http\Controllers\Platform\PageBlockController;
 use App\Http\Controllers\Platform\ServiceHealthController;
+use App\Http\Controllers\Platform\StaffController;
+use App\Http\Controllers\Platform\StaffInvitationController;
 use App\Http\Controllers\Platform\PageController;
 use App\Http\Controllers\Platform\PaymentController;
 use App\Http\Controllers\Platform\RefundController;
@@ -20,6 +22,9 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::get('/csrf-cookie', [PlatformAuthController::class, 'csrf']);
     Route::post('/auth/login', [PlatformAuthController::class, 'login'])->middleware('throttle:platform-login');
     Route::post('/auth/mfa', [PlatformAuthController::class, 'mfa'])->middleware('throttle:platform-mfa');
+    Route::get('/staff-invitations/lookup', [StaffInvitationController::class, 'lookup'])->middleware('throttle:platform-invitation');
+    Route::post('/staff-invitations/start', [StaffInvitationController::class, 'start'])->middleware('throttle:platform-invitation');
+    Route::post('/staff-invitations/confirm', [StaffInvitationController::class, 'confirm'])->middleware('throttle:platform-mfa');
 
     Route::middleware('platform.staff')->group(function (): void {
         Route::get('/me', [PlatformAuthController::class, 'show']);
@@ -36,6 +41,13 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/payments', [PaymentController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/overview', [OverviewController::class, 'show']);
     Route::middleware('platform.staff:'.PlatformCapabilities::SERVICE_READ)->get('/health', [ServiceHealthController::class, 'show']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::STAFF_MANAGE)->group(function (): void {
+        Route::get('/staff', [StaffController::class, 'index']);
+        Route::post('/staff/invitations', [StaffController::class, 'invite'])->middleware('throttle:platform-step-up');
+        Route::post('/staff/invitations/{invitation}/revoke', [StaffController::class, 'revokeInvitation'])->whereUuid('invitation');
+        Route::patch('/staff/{staff}', [StaffController::class, 'update'])->whereUuid('staff')->middleware('throttle:platform-step-up');
+        Route::post('/staff/{staff}/sessions/revoke', [StaffController::class, 'revokeSessions'])->whereUuid('staff');
+    });
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/refunds', [RefundController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::REFUNDS_REQUEST)->post('/payments/{payment}/refunds', [RefundController::class, 'store'])->whereUuid('payment');
     Route::middleware('platform.staff:'.PlatformCapabilities::REFUNDS_APPROVE)->group(function (): void {

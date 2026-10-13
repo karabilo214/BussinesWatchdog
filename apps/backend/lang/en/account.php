@@ -34,6 +34,16 @@ return [
         'body' => "Hello,\n\n:message\n\nAccount of “:tenant”: :link",
     ],
     'platform_inviter' => 'The Business Watchdog team',
+    'staff_invitation' => [
+        'subject' => 'Business Watchdog: invitation to the service team',
+        'body' => ":inviter invites you to the Business Watchdog control panel with the role “:role”.\n\nTo accept, open the link (valid for :hours h), set a password and connect an authenticator app:\n:link\n\nIf you did not expect this invitation, ignore this email.",
+    ],
+    'staff_roles' => [
+        'platform_owner' => 'service owner',
+        'platform_admin' => 'administrator',
+        'platform_support' => 'support',
+        'platform_billing' => 'billing',
+    ],
     'roles' => [
         'owner' => 'owner',
         'admin' => 'administrator',
