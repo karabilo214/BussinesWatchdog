@@ -2279,3 +2279,16 @@ Status: complete
 
 Verification: `tests/Feature/Billing/HistoryRetentionTest.php` (2: hidden lists and 404 cards, open incident still shown, back with a 365-day package; purge of 70-day-old run and closed incident, 45-day-old kept, current reconciliation result and the order kept, older past result deleted, pilot purges nothing). Backend SQLite 518 passed, 4 skipped; PostgreSQL 18: 522 of 522.
 
+### Step 118: Sign-Up on the Site and Consent to Versioned Legal Documents
+
+Status: complete
+
+- ADR 0042. `public_pages.policy_type` (service_terms / privacy_notice / recurring_payment, one active page per type, ordinary pages only, cleared on archive; reserved slug `signup`); `policy_acceptances` (insert-only: user, organisation, type, page version, language, version, content hash, purpose, context, time).
+- `Policies` (current version per language with fallback, required documents per purpose, verify + record), `Registration` (user, organisation, owner membership and sign-up consent in one transaction; used by the API and the site).
+- Site: `SignupController` + `site/signup.blade.php` (SSR, no JavaScript needed, honeypot, existing email -> sign-in/recovery hint, outdated version -> asks again, 3 real sign-ups an hour per IP counted after field validation, signed-in visitors go to the account); header «Sign up», home and pricing link to it; contact form links the page marked as privacy notice (`WATCHDOG_SITE_PRIVACY_PATH` removed).
+- API: `policy_version_ids` on register, trial, checkout and plan-change confirmation (422 `policy_acceptance_required` with current documents); `GET /billing/plans` returns `documents`. OpenAPI (both copies) updated, including `faster_checks` from Step 116.
+- Owner panel: «Legal document» in page settings, badge in the pages list. Cabinet: consent checkbox with links on the billing page and in the plan-change panel; trial, buy and confirm disabled until ticked; documents reloaded after a refusal.
+- Found while working: a guest calling the API without `Accept: application/json` got a 500 (`Route [login] not defined`) - the API now answers 401, other pages redirect guests to `/app/login`; the live script waited for `/owner/site` with a pattern that also matched the login page's `?redirect=` (fixed to the path); the shared sign-up limit counted failed form submissions (now only real attempts).
+
+Verification: `tests/Feature/Site/PolicyAcceptanceTest.php` (7). Control 24 tests, customer 111. Backend SQLite 525 passed, 4 skipped; PostgreSQL 18: 529 of 529. Live in Chromium (`run-live.sh signup`): two pages published and marked in the panel, sign-up page without JavaScript refused without consent, then created the account, signed in and sent to the plan; consents stored with version 1 of both documents - PASS.
+
