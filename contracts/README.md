@@ -2,9 +2,10 @@
 
 Working copies of API and event contracts.
 
+`openapi.yaml` lives only here (there is no copy in `spec/contracts`).
+
 Source reference files were copied from `spec/contracts`:
 
-- `openapi.yaml`
 - `platform-billing-api.yaml`
 - `event.schema.json`
 - `ui-api-catalog.md`

@@ -49,18 +49,6 @@ class OpenApiRoutesTest extends TestCase
         $this->assertSame([], array_values(array_diff($documented, $implemented)), 'Contract operations without a route');
     }
 
-    public function test_the_spec_copy_of_the_contract_is_identical(): void
-    {
-        $contract = base_path('../../contracts/openapi.yaml');
-        $spec = base_path('../../spec/contracts/openapi.yaml');
-
-        if (! is_file($contract) || ! is_file($spec)) {
-            $this->markTestSkipped('Repository contracts directory is not mounted.');
-        }
-
-        $this->assertFileEquals($contract, $spec);
-    }
-
     private function normalize(string $path): string
     {
         return (string) preg_replace('/\{[^}]+\}/', '{}', $path);

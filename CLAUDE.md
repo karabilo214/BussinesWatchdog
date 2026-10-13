@@ -12,13 +12,31 @@
 1. `PROJECT_STATE.md` — текущий статус, последний выполненный шаг, что дальше. Главная точка восстановления контекста в начале сессии.
 2. `AGENTS.md` — правила реализации и инварианты проекта.
 3. `spec/Business-Watchdog-TZ.md` — основное ТЗ (особое внимание разделам 2, 9–14, 18–20, 25–28, 36–39).
-4. `spec/database/schema.sql`, `spec/contracts/`, `spec/ACCEPTANCE.md`.
+4. `spec/database/schema.sql`, `contracts/` (рабочий OpenAPI — только `contracts/openapi.yaml`, копии в `spec/contracts/` нет), `spec/ACCEPTANCE.md`.
 5. Для панелей/биллинга: `spec/panels/*.md`, `spec/database/platform-billing-extension.sql`, `spec/contracts/platform-billing-api.yaml`, `spec/PANELS-ACCEPTANCE.md`.
-6. Реальный код, миграции и `docs/progress.md` — что фактически уже реализовано.
+6. Реальный код, миграции и история шагов — что фактически уже реализовано.
+
+## История шагов (`docs/progress/`)
+
+`docs/progress.md` — только индекс. Читать целиком не нужно: открывать один файл по теме задачи, обычно последние 1–2 шага в нём.
+
+| Тема задачи | Файл |
+|---|---|
+| Инфраструктура, auth/tenancy, магазины, pairing, приём событий, outbox, аудит, готовность API | `docs/progress/core.md` |
+| Проекции, allocations, сверка, инциденты, планировщик, масштабирование синхронизации | `docs/progress/reconciliation.md` |
+| WooCommerce-плагин и REST API, Shopware, Stripe, PayPal, spike-и | `docs/progress/connectors.md` |
+| Браузерные проверки, Playwright-воркер, скриншоты | `docs/progress/browser-checks.md` |
+| Email, Telegram, напоминания, почтовая аутентификация | `docs/progress/notifications.md` |
+| CSV-экспорты | `docs/progress/exports.md` |
+| Кабинет клиента (`apps/frontend/customer`), MFA, команда | `docs/progress/dashboard.md` |
+| Тарифы, Paddle, подписка, админка владельца, оплаты, возвраты | `docs/progress/billing.md` |
+| Публичный сайт, регистрация, юридические страницы | `docs/progress/public-site.md` |
+
+Новый шаг добавлять в конец файла своей темы и обновлять «Last step» в индексе. Если тема новая — завести файл и строку в индексе и в этой таблице.
 
 ## Поддержание контекста
 
-После каждой выполненной задачи обновлять `PROJECT_STATE.md` (статус, следующий шаг) и, как и раньше, `docs/progress.md` (подробная история шага) — так, как уже описано в `AGENTS.md`.
+После каждой выполненной задачи обновлять `PROJECT_STATE.md` (коротко: статус, ждущие решения владельца, следующий шаг — без истории шагов, файл должен оставаться небольшим) и файл темы в `docs/progress/` (подробная история шага).
 
 ## Инварианты проекта
 

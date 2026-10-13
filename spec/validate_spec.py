@@ -101,9 +101,9 @@ def split_fields(s):
     fields.append(s[start:].strip())
     return fields
 
-api=yaml.safe_load((ROOT/'contracts/openapi.yaml').read_text())
+api=yaml.safe_load((ROOT.parent/'contracts/openapi.yaml').read_text())
 assert api['openapi']=='3.1.0'
-refs(api,api,ROOT/'contracts')
+refs(api,api,ROOT.parent/'contracts')
 ops=[]
 for path,item in api['paths'].items():
     for method,op in item.items():
@@ -230,7 +230,7 @@ assert sections==[str(i) for i in range(1,43)]
 acc=(ROOT/'ACCEPTANCE.md').read_text()
 ids=re.findall(r'\| (ACC-\d+) \|',acc)
 assert ids==[f'ACC-{i:02d}' for i in range(1,51)]
-for path in ['database/schema.sql','contracts/openapi.yaml','contracts/event.schema.json','contracts/ui-api-catalog.md','examples/reconciliation-cases.json','CODEX-IMPLEMENTATION.md','ACCEPTANCE.md','README.md']:
+for path in ['database/schema.sql','contracts/event.schema.json','contracts/ui-api-catalog.md','examples/reconciliation-cases.json','CODEX-IMPLEMENTATION.md','ACCEPTANCE.md','README.md']:
     assert (ROOT/path).is_file(),path
 checked('42 numbered TZ sections, 50 unique acceptance IDs, all listed deliverables present')
 

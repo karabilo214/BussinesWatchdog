@@ -4,10 +4,12 @@ use App\Http\Controllers\Api\V1\Account\AccountController;
 use App\Http\Controllers\Api\V1\Account\MfaController;
 use App\Http\Controllers\Api\V1\Account\TeamController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
-use App\Http\Controllers\Api\V1\Billing\BillingController;
-use App\Http\Controllers\Api\V1\Billing\InvoiceController;
+use App\Http\Controllers\Api\V1\Billing\CheckoutController;
 use App\Http\Controllers\Api\V1\Billing\EntitlementController;
+use App\Http\Controllers\Api\V1\Billing\InvoiceController;
 use App\Http\Controllers\Api\V1\Billing\PaddleWebhookController;
+use App\Http\Controllers\Api\V1\Billing\PlanCatalogController;
+use App\Http\Controllers\Api\V1\Billing\SubscriptionController;
 use App\Http\Controllers\Api\V1\Checks\CheckRunController;
 use App\Http\Controllers\Api\V1\Checks\CheckScenarioController;
 use App\Http\Controllers\Api\V1\Exports\ExportController;
@@ -126,17 +128,17 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::post('/integrations/{integration}/sync', [ProviderSyncController::class, 'sync'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationManage()), 'throttle:provider-sync']);
-    Route::post('/billing/checkout', [BillingController::class, 'checkout'])
+    Route::post('/billing/checkout', [CheckoutController::class, 'checkout'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
-    Route::post('/billing/trial', [BillingController::class, 'trial'])
+    Route::post('/billing/trial', [PlanCatalogController::class, 'trial'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
-    Route::get('/billing/checkouts/{checkout}', [BillingController::class, 'showCheckout'])
+    Route::get('/billing/checkouts/{checkout}', [CheckoutController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
-    Route::get('/billing/discounts/check', [BillingController::class, 'checkDiscount'])
+    Route::get('/billing/discounts/check', [CheckoutController::class, 'checkDiscount'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'throttle:discount-check']);
-    Route::get('/billing/plans', [BillingController::class, 'plans'])
+    Route::get('/billing/plans', [PlanCatalogController::class, 'plans'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
-    Route::get('/billing/subscription', [BillingController::class, 'subscription'])
+    Route::get('/billing/subscription', [SubscriptionController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
     Route::get('/billing/invoices', [InvoiceController::class, 'index'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
@@ -144,17 +146,17 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'throttle:artifact-url']);
     Route::post('/billing/payment-method', [InvoiceController::class, 'paymentMethod'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
-    Route::post('/billing/plan-change-preview', [BillingController::class, 'previewPlanChange'])
+    Route::post('/billing/plan-change-preview', [SubscriptionController::class, 'previewPlanChange'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'throttle:plan-change-preview']);
-    Route::post('/billing/plan-change', [BillingController::class, 'changePlan'])
+    Route::post('/billing/plan-change', [SubscriptionController::class, 'changePlan'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
-    Route::post('/billing/plan-change/cancel', [BillingController::class, 'cancelPlanChange'])
+    Route::post('/billing/plan-change/cancel', [SubscriptionController::class, 'cancelPlanChange'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
-    Route::post('/billing/cancel', [BillingController::class, 'cancel'])
+    Route::post('/billing/cancel', [SubscriptionController::class, 'cancel'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
-    Route::post('/billing/resume', [BillingController::class, 'resume'])
+    Route::post('/billing/resume', [SubscriptionController::class, 'resume'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
-    Route::put('/billing/retained-stores', [BillingController::class, 'retainStores'])
+    Route::put('/billing/retained-stores', [SubscriptionController::class, 'retainStores'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
     Route::get('/entitlements', [EntitlementController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
