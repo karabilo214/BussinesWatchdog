@@ -1052,7 +1052,10 @@
       "email": "E-Mail",
       "note": "An die Adresse wird eine E-Mail mit einem sechsstelligen Code gesendet. Benachrichtigungen kommen nach der Bestätigung.",
       "telegram_note": "Ein sechsstelliger Code wird einmal angezeigt. Senden Sie ihn aus dem gewünschten Chat an den Telegram-Bot.",
-      "submit": "Code senden"
+      "submit": "Code senden",
+      "subscription_only": "mit Abonnement",
+      "telegram_plan": "Telegram-Benachrichtigungen gibt es nur mit einem Abonnement, das sie enthält.",
+      "to_billing": "Tarif wählen"
     },
     "telegram": {
       "ready": "Telegram-Code für {label}",

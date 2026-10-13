@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { fetchEntitlements, type Entitlements } from '@/api/billing';
 import { createEmailChannel, createTelegramChannel, listChannels } from '@/api/notifications';
 import { listStores } from '@/api/stores';
 import type { Locale, NotificationChannel, NotificationPreferences, Store, TelegramBinding } from '@/api/types';
@@ -27,6 +28,8 @@ const createError = ref<unknown>(null);
 const prefs = ref<InstanceType<typeof PreferencesForm> | null>(null);
 const refreshKey = ref(0);
 const telegramBinding = ref<(TelegramBinding & { label: string }) | null>(null);
+const entitlements = ref<Entitlements | null>(null);
+const telegramAllowed = computed(() => entitlements.value === null || !entitlements.value.enforced || entitlements.value.features.some((feature) => feature.code === 'notifications_telegram' && feature.included));
 
 const isOwner = computed(() => role.value === 'owner');
 const defaults = computed<NotificationPreferences>(() => ({
@@ -39,7 +42,7 @@ const defaults = computed<NotificationPreferences>(() => ({
   reminder_hours: null,
   store_ids: null,
 }));
-const formValid = computed(() => form.label.trim() !== '' && (form.kind === 'telegram' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())));
+const formValid = computed(() => form.label.trim() !== '' && (form.kind === 'telegram' ? telegramAllowed.value : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())));
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -47,6 +50,7 @@ async function load(): Promise<void> {
 
   try {
     [channels.value, stores.value] = await Promise.all([listChannels(), listStores()]);
+    entitlements.value = await fetchEntitlements().catch(() => null);
   } catch (caught) {
     error.value = caught;
   } finally {
@@ -139,6 +143,7 @@ if (canManageStores.value) {
           </button>
           <button type="button" class="rounded px-3 py-1.5 text-sm font-medium" :class="form.kind === 'telegram' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted'" @click="form.kind = 'telegram'">
             {{ $t('notifications.new.telegram_tab') }}
+            <span v-if="!telegramAllowed" class="ml-1 rounded bg-warn-soft px-1.5 py-0.5 text-[11px] text-warn" data-telegram-locked>{{ $t('notifications.new.subscription_only') }}</span>
           </button>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
@@ -152,6 +157,10 @@ if (canManageStores.value) {
           </label>
         </div>
         <PreferencesForm ref="prefs" id-prefix="new" :preferences="defaults" :stores="stores" :is-owner="isOwner" />
+        <p v-if="form.kind === 'telegram' && !telegramAllowed" class="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm" data-telegram-plan>
+          {{ $t('notifications.new.telegram_plan') }}
+          <RouterLink :to="{ name: 'billing' }" class="font-medium text-primary hover:underline">{{ $t('notifications.new.to_billing') }}</RouterLink>
+        </p>
         <p class="text-[13px] text-text-muted">{{ $t(form.kind === 'telegram' ? 'notifications.new.telegram_note' : 'notifications.new.note') }}</p>
         <ErrorNotice v-if="createError" :error="createError" />
         <div class="flex flex-wrap gap-2">

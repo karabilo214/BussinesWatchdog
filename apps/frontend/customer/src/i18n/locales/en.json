@@ -1052,7 +1052,10 @@
       "email": "Email",
       "note": "An email with a six-digit code is sent to the address. Notifications start once it is confirmed.",
       "telegram_note": "A six-digit code is shown once. Send it to the Telegram bot from the chat that should receive alerts.",
-      "submit": "Send code"
+      "submit": "Send code",
+      "subscription_only": "with a subscription",
+      "telegram_plan": "Telegram notifications are available only with a subscription that includes them.",
+      "to_billing": "Choose a plan"
     },
     "telegram": {
       "ready": "Telegram code for {label}",

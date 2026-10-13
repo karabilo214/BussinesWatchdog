@@ -189,3 +189,11 @@ Verification:
 - `tests/Feature/Mail/MailAuthenticationTest.php` — 10 tests: header added; a multipart HTML+text message sent through the Laravel mailer verifies cryptographically (relaxed body hash and header signature against the public key; tampered body or recipient fail); unreadable key sends unsigned and logs; inspector happy path, mismatched and revoked DKIM key, unreadable private key, provider-managed DKIM with a provider bounce subdomain, DMARC on the parent domain, strict failure and non-strict report.
 - Backend SQLite: 468 passed, 4 skipped; PostgreSQL 18: 472 of 472.
 - Real SMTP to local Mailpit with a freshly generated key: the raw message received by Mailpit verified with the independent `dkimpy` 1.1.8 verifier (`True`; with the recipient changed `False`). No real mail provider or public DNS was used.
+
+### Step 137: Telegram Recipients Shown as Subscription-Only When the Plan Lacks Them
+
+Status: complete
+
+- Owner's backlog item. Notifications → add recipient → Telegram now reads the account entitlements: when limits are enforced and the plan does not include `notifications_telegram`, the tab carries «по подписке», the form shows that Telegram needs a subscription that includes it with a link to the plans, and «Добавить» stays disabled. In pilot mode, with the feature included, or when entitlements cannot be loaded, the form works as before. The backend refusal (403 `feature_not_in_plan`, `EntitlementsTest::test_telegram_channel_needs_the_feature`) is unchanged and remains the real guard.
+
+Verification: `tests/notificationsPlan.test.ts` (2: locked without the feature; open with the feature and in pilot mode). Customer 119 tests; frontend check green. Backend SQLite 557 passed, 4 skipped (unchanged).
