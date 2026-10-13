@@ -8,7 +8,6 @@ use App\Models\PlatformStaff;
 use App\Models\PublicPage;
 use App\Support\Site\PageAdmin;
 use App\Support\Site\PageSanitizer;
-use App\Support\Site\PricingTable;
 use App\Support\Site\SiteRejected;
 use Closure;
 use Illuminate\Http\JsonResponse;
@@ -123,7 +122,7 @@ class PageController extends Controller
         }, $request);
     }
 
-    public function preview(Request $request, string $page, PageSanitizer $sanitizer, SiteController $site, PricingTable $pricing): JsonResponse
+    public function preview(Request $request, string $page, PageSanitizer $sanitizer, SiteController $site): JsonResponse
     {
         $validated = $request->validate([
             'locale' => ['required', 'string', Rule::in(PublicPage::LOCALES)],
@@ -132,19 +131,13 @@ class PageController extends Controller
             'body' => ['sometimes', 'nullable', 'string', 'max:'.PageSanitizer::MAX_LENGTH],
         ]);
 
-        return $this->guard(function () use ($page, $validated, $sanitizer, $site, $pricing): JsonResponse {
-            /** @var PublicPage|null $model */
-            $model = PublicPage::query()->whereKey($page)->whereNull('archived_at')->first();
-
-            if ($model === null) {
-                throw new SiteRejected('page_not_found', 404);
-            }
-
+        return $this->guard(function () use ($page, $validated, $sanitizer, $site): JsonResponse {
+            $model = $this->pages->editable($page);
             $body = $sanitizer->sanitize((string) ($validated['body'] ?? ''));
 
             return response()->json([
                 'body' => $body,
-                'html' => $site->previewHtml($model, $validated['locale'], $validated['title'], $validated['description'] ?? null, $body, $pricing),
+                'html' => $site->previewHtml($model, $validated['locale'], $validated['title'], $validated['description'] ?? null, $body),
             ]);
         });
     }

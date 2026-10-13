@@ -9,11 +9,11 @@ use App\Support\Site\ContactInbox;
 use App\Support\Site\Policies;
 use App\Support\Site\PricingTable;
 use App\Support\Site\SiteContent;
+use App\Support\Site\SiteDefaults;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\ViewErrorBag;
 
 /**
  * The public site rendered on the server (ADR 0039): every page is complete HTML without JavaScript.
@@ -38,13 +38,15 @@ class SiteController extends Controller
         return redirect(SiteContent::url($locale), 302)->header('Vary', 'Accept-Language');
     }
 
-    public function home(string $locale): Response
+    public function home(string $locale, SiteDefaults $defaults): Response
     {
         $page = $this->content->system(PublicPage::KIND_HOME);
         $version = $this->content->published($page, $locale);
+        $builtin = $page === null ? null : $defaults->content($page, $locale);
 
         return $this->render('site.home', $locale, $page, $version, [
             'title' => $version?->title ?? trans('site.home.title', [], $locale),
+            'body' => $version?->body ?? $builtin['body'] ?? '',
         ]);
     }
 
@@ -124,27 +126,20 @@ class SiteController extends Controller
         return $this->render('site.page', $locale, $page, $version, ['title' => $version->title]);
     }
 
-    public function previewHtml(PublicPage $page, string $locale, string $title, ?string $description, string $body, PricingTable $pricing): string
+    public function previewHtml(PublicPage $page, string $locale, string $title, ?string $description, string $body): string
     {
+        if ($page->kind === PublicPage::KIND_HOME && $body === '') {
+            $body = app(SiteDefaults::class)->content($page, $locale)['body'] ?? '';
+        }
+
         $data = $this->chrome($locale, $page, null);
         $data['preview'] = true;
         $data['canonical'] = null;
         $data['alternates'] = [];
-        $view = match ($page->kind) {
-            PublicPage::KIND_HOME => 'site.home',
-            PublicPage::KIND_PRICING => 'site.pricing',
-            PublicPage::KIND_CONTACT => 'site.contact',
-            default => 'site.page',
-        };
-
-        return view($view, $data + [
+        return view($page->kind === PublicPage::KIND_HOME ? 'site.home' : 'site.page', $data + [
             'title' => $title,
             'description' => $description,
-            'body' => $body === '' ? null : $body,
-            'pricing' => $page->kind === PublicPage::KIND_PRICING ? $pricing->build($locale, null, null) : null,
-            'sent' => false,
-            'privacy' => null,
-            'errors' => new ViewErrorBag(),
+            'body' => $body,
         ])->render();
     }
 

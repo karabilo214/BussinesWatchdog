@@ -583,9 +583,9 @@
     },
     "system": "System",
     "system_hint": {
-      "home": "The home page of the website. Until a text is published, the built-in text is shown.",
-      "pricing": "This text is shown above the plan cards. Plans and prices come from “Plans and discounts”.",
-      "contact": "This text is shown above the contact form. Messages from the form go to “Messages”."
+      "home": "Home page of the site. The editor holds its current text; until you publish your own version, the site shows the built-in text.",
+      "pricing": "Plan cards and prices come from “Plans and discounts”.",
+      "contact": "Messages from the form go to “Messages”."
     },
     "menu": {
       "none": "Not shown",
@@ -600,7 +600,8 @@
       "none": "Not published",
       "builtin": "Built-in text",
       "published_at": "Version {version} published: {date}",
-      "draft_version": "Draft (version {version})"
+      "draft_version": "Draft (version {version})",
+      "in_code": "Edited in code"
     },
     "create": {
       "title": "New page",
@@ -618,7 +619,7 @@
       "description_hint": "Up to 300 characters; shown in search results.",
       "body": "Page HTML",
       "body_hint": "The page title is shown automatically — start the code with text or an <h2>.",
-      "body_hint_system": "May stay empty — the built-in text is shown then."
+      "body_hint_system": "If you empty the field, the site keeps the built-in home text."
     },
     "help": {
       "title": "What you can use in the HTML",
@@ -672,7 +673,8 @@
       "privacy_notice": "Privacy notice",
       "recurring_payment": "Subscription terms (auto-renewal)",
       "hint": "Customers accept the published version of this page: at sign-up the terms of service and privacy notice, at trial, purchase and plan change the terms of service and subscription terms. Each type belongs to one page. A new publication is a new version: customers accept it at their next action."
-    }
+    },
+    "in_code": "The text of this page is changed only in the site code. Here you set which menu shows it and in what order."
   },
   "contacts": {
     "hint": "Messages from the contact form of the website. New messages are announced by email. Closed messages are deleted after a year.",

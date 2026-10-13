@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Pages of the public site edited in the owner panel (ADR 0039): a page has a slug fixed at creation and at most one
  * parent; every language has its own draft and at most one published version; a published version never changes,
- * publishing again retires it and keeps it in the history.
+ * publishing again retires it and keeps it in the history. The pricing and contact pages are changed only in code.
  */
 class PageAdmin
 {
@@ -24,6 +24,7 @@ class PageAdmin
     public function __construct(
         private readonly PageSanitizer $sanitizer,
         private readonly PlatformAudit $audit,
+        private readonly SiteDefaults $defaults,
     ) {}
 
     /**
@@ -61,6 +62,7 @@ class PageAdmin
 
         return $this->summary($page, $versions->whereIn('state', [PublicPageVersion::STATE_DRAFT, PublicPageVersion::STATE_PUBLISHED])) + [
             'content' => $locales,
+            'builtin' => $page->kind === PublicPage::KIND_HOME ? array_combine(PublicPage::LOCALES, array_map(fn (string $locale): ?array => $this->defaults->content($page, $locale), PublicPage::LOCALES)) : null,
             'history' => $versions->where('state', '!=', PublicPageVersion::STATE_DRAFT)->map(fn (PublicPageVersion $version): array => [
                 'id' => $version->id,
                 'locale' => $version->locale,
@@ -170,7 +172,7 @@ class PageAdmin
      */
     public function saveDraft(string $staffId, string $pageId, string $locale, array $input): PublicPageVersion
     {
-        $page = $this->find($pageId);
+        $page = $this->editable($pageId);
         $this->locale($locale);
         $title = trim($input['title']);
         $description = trim((string) ($input['description'] ?? ''));
@@ -223,7 +225,7 @@ class PageAdmin
 
     public function publish(string $staffId, string $pageId, string $locale, string $reason): PublicPageVersion
     {
-        $page = $this->find($pageId);
+        $page = $this->editable($pageId);
         $this->locale($locale);
 
         return DB::transaction(function () use ($staffId, $page, $locale, $reason): PublicPageVersion {
@@ -263,7 +265,7 @@ class PageAdmin
 
     public function restore(string $staffId, string $pageId, string $versionId): PublicPageVersion
     {
-        $page = $this->find($pageId);
+        $page = $this->editable($pageId);
         /** @var PublicPageVersion|null $source */
         $source = PublicPageVersion::query()->where('page_id', $page->id)->whereKey($versionId)->first();
 
@@ -336,6 +338,7 @@ class PageAdmin
             'menu' => $page->menu,
             'sort' => $page->sort,
             'policy_type' => $page->policy_type,
+            'editable' => $page->isEditable(),
             'created_at' => $page->created_at?->toJSON(),
             'locales' => $locales,
         ];
@@ -383,6 +386,13 @@ class PageAdmin
         $page = PublicPage::query()->whereKey($pageId)->whereNull('archived_at')->first();
 
         return $page ?? throw new SiteRejected('page_not_found', 404);
+    }
+
+    public function editable(string $pageId): PublicPage
+    {
+        $page = $this->find($pageId);
+
+        return $page->isEditable() ? $page : throw new SiteRejected('edited_in_code', 409);
     }
 
     private function lock(PublicPage $page): void

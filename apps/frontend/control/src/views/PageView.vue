@@ -35,7 +35,7 @@ const history = computed(() => page.value?.history.filter((row) => row.locale ==
 const titleReady = computed(() => form.title.trim() !== '' && (page.value?.kind !== 'page' || form.body.trim() !== ''));
 
 function fill(): void {
-  const source = content.value?.draft ?? content.value?.published ?? null;
+  const source = content.value?.draft ?? content.value?.published ?? page.value?.builtin?.[locale.value] ?? null;
   const values = { title: source?.title ?? '', description: source?.description ?? '', body: source?.body ?? '' };
   Object.assign(form, values);
   saved.value = { ...values };
@@ -68,7 +68,7 @@ function schedulePreview(delay = 600): void {
 }
 
 async function refreshPreview(): Promise<void> {
-  if (page.value === null || form.title.trim() === '') {
+  if (page.value === null || !page.value.editable || form.title.trim() === '') {
     previewHtml.value = '';
 
     return;
@@ -185,128 +185,135 @@ onBeforeUnmount(() => {
           <p v-if="page.kind !== 'page'" class="text-sm text-text-muted">{{ $t(`site.system_hint.${page.kind}`) }}</p>
         </div>
 
+        <p v-if="!page.editable" class="rounded-md border border-note-border bg-note-soft px-3 py-2 text-sm text-note" data-in-code>
+          {{ $t('site.in_code') }}
+          <a :href="publicUrl(locale, page.path)" target="_blank" rel="noopener" class="ml-1 font-medium underline">{{ $t('site.open') }}</a>
+        </p>
+
         <p v-if="notice" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-notice>{{ $t(notice) }}</p>
         <ErrorNotice v-if="actionError" :error="actionError" />
 
-        <div class="flex flex-wrap gap-2" role="tablist">
-          <button
-            v-for="code in SITE_LOCALES"
-            :key="code"
-            type="button"
-            role="tab"
-            :aria-selected="code === locale"
-            class="rounded-md border px-3 py-1.5 text-sm font-medium uppercase"
-            :class="code === locale ? 'border-primary bg-primary text-text-inverse' : 'border-border-strong text-primary hover:bg-primary-soft'"
-            :data-locale="code"
-            @click="switchLocale(code)"
-          >
-            {{ code }}
-            <span v-if="page.locales[code].published" class="ml-1 normal-case">✓</span>
-          </button>
-        </div>
+        <template v-if="page.editable">
+          <div class="flex flex-wrap gap-2" role="tablist">
+            <button
+              v-for="code in SITE_LOCALES"
+              :key="code"
+              type="button"
+              role="tab"
+              :aria-selected="code === locale"
+              class="rounded-md border px-3 py-1.5 text-sm font-medium uppercase"
+              :class="code === locale ? 'border-primary bg-primary text-text-inverse' : 'border-border-strong text-primary hover:bg-primary-soft'"
+              :data-locale="code"
+              @click="switchLocale(code)"
+            >
+              {{ code }}
+              <span v-if="page.locales[code].published" class="ml-1 normal-case">✓</span>
+            </button>
+          </div>
 
-        <div class="flex flex-wrap items-center gap-2 text-sm" data-state>
-          <StatusBadge v-if="content?.published" tone="ok" :label="$t('site.state.published_at', { date: dateTime(content.published.published_at), version: content.published.version })" />
-          <StatusBadge v-else tone="unknown" :label="$t(page.kind === 'page' ? 'site.state.none' : 'site.state.builtin')" />
-          <StatusBadge v-if="content?.draft" tone="note" :label="$t('site.state.draft_version', { version: content.draft.version })" />
-          <span v-if="dirty" class="text-warn" data-unsaved>{{ $t('site.unsaved') }}</span>
-          <a v-if="content?.published" :href="publicUrl(locale, page.path)" target="_blank" rel="noopener" class="text-primary hover:underline">{{ $t('site.open') }}</a>
-        </div>
+          <div class="flex flex-wrap items-center gap-2 text-sm" data-state>
+            <StatusBadge v-if="content?.published" tone="ok" :label="$t('site.state.published_at', { date: dateTime(content.published.published_at), version: content.published.version })" />
+            <StatusBadge v-else tone="unknown" :label="$t(page.kind === 'page' ? 'site.state.none' : 'site.state.builtin')" />
+            <StatusBadge v-if="content?.draft" tone="note" :label="$t('site.state.draft_version', { version: content.draft.version })" />
+            <span v-if="dirty" class="text-warn" data-unsaved>{{ $t('site.unsaved') }}</span>
+            <a v-if="content?.published" :href="publicUrl(locale, page.path)" target="_blank" rel="noopener" class="text-primary hover:underline">{{ $t('site.open') }}</a>
+          </div>
 
-        <div class="grid gap-6 xl:grid-cols-2">
-          <form class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 text-sm" data-form="page-draft" @submit.prevent="save">
-            <label class="flex flex-col gap-1.5">
-              <span class="font-medium">{{ $t('site.field.title') }}</span>
-              <input v-model="form.title" maxlength="200" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="title" />
-            </label>
-            <label class="flex flex-col gap-1.5">
-              <span class="font-medium">{{ $t('site.field.description') }}</span>
-              <input v-model="form.description" maxlength="300" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="description" />
-              <span class="text-text-muted">{{ $t('site.field.description_hint') }}</span>
-            </label>
-            <label class="flex flex-col gap-1.5">
-              <span class="font-medium">{{ $t('site.field.body') }}</span>
-              <textarea
-                v-model="form.body"
-                rows="22"
-                spellcheck="false"
-                class="min-h-80 rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-[13px] leading-5"
-                data-field="body"
-              />
-              <span class="text-text-muted">{{ $t(page.kind === 'page' ? 'site.field.body_hint' : 'site.field.body_hint_system') }}</span>
-            </label>
-            <details class="rounded-md border border-border p-3 text-text-muted">
-              <summary class="cursor-pointer font-medium text-text">{{ $t('site.help.title') }}</summary>
-              <p class="mt-2">{{ $t('site.help.allowed') }}</p>
-              <p class="mt-2">{{ $t('site.help.classes') }}</p>
-              <p class="mt-1 font-mono text-[13px]" data-classes>{{ CONTENT_CLASSES.join(' · ') }}</p>
-              <p class="mt-2">{{ $t('site.help.example') }}</p>
-              <pre class="mt-1 overflow-x-auto rounded bg-surface-muted p-2 font-mono text-[12px] text-text">&lt;section class="hero"&gt;
-  &lt;p class="eyebrow"&gt;…&lt;/p&gt;
-  &lt;h1&gt;…&lt;/h1&gt;
-  &lt;p&gt;…&lt;/p&gt;
-  &lt;p class="actions"&gt;&lt;a class="button" href="/ru/pricing"&gt;…&lt;/a&gt;&lt;/p&gt;
-&lt;/section&gt;
-&lt;div class="grid-3"&gt;&lt;div class="card"&gt;…&lt;/div&gt;…&lt;/div&gt;</pre>
-            </details>
+          <div class="grid gap-6 xl:grid-cols-2">
+            <form class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 text-sm" data-form="page-draft" @submit.prevent="save">
+              <label class="flex flex-col gap-1.5">
+                <span class="font-medium">{{ $t('site.field.title') }}</span>
+                <input v-model="form.title" maxlength="200" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="title" />
+              </label>
+              <label class="flex flex-col gap-1.5">
+                <span class="font-medium">{{ $t('site.field.description') }}</span>
+                <input v-model="form.description" maxlength="300" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="description" />
+                <span class="text-text-muted">{{ $t('site.field.description_hint') }}</span>
+              </label>
+              <label class="flex flex-col gap-1.5">
+                <span class="font-medium">{{ $t('site.field.body') }}</span>
+                <textarea
+                  v-model="form.body"
+                  rows="22"
+                  spellcheck="false"
+                  class="min-h-80 rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-[13px] leading-5"
+                  data-field="body"
+                />
+                <span class="text-text-muted">{{ $t(page.kind === 'page' ? 'site.field.body_hint' : 'site.field.body_hint_system') }}</span>
+              </label>
+              <details class="rounded-md border border-border p-3 text-text-muted">
+                <summary class="cursor-pointer font-medium text-text">{{ $t('site.help.title') }}</summary>
+                <p class="mt-2">{{ $t('site.help.allowed') }}</p>
+                <p class="mt-2">{{ $t('site.help.classes') }}</p>
+                <p class="mt-1 font-mono text-[13px]" data-classes>{{ CONTENT_CLASSES.join(' · ') }}</p>
+                <p class="mt-2">{{ $t('site.help.example') }}</p>
+                <pre class="mt-1 overflow-x-auto rounded bg-surface-muted p-2 font-mono text-[12px] text-text">&lt;section class="hero"&gt;
+    &lt;p class="eyebrow"&gt;…&lt;/p&gt;
+    &lt;h1&gt;…&lt;/h1&gt;
+    &lt;p&gt;…&lt;/p&gt;
+    &lt;p class="actions"&gt;&lt;a class="button" href="/ru/pricing"&gt;…&lt;/a&gt;&lt;/p&gt;
+  &lt;/section&gt;
+  &lt;div class="grid-3"&gt;&lt;div class="card"&gt;…&lt;/div&gt;…&lt;/div&gt;</pre>
+              </details>
 
+              <div class="flex flex-wrap gap-2">
+                <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !titleReady || !dirty" data-action="save">{{ $t('site.action.save') }}</button>
+                <button type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy || !content?.draft || dirty" data-action="publish" @click="ask('publish')">{{ $t('site.action.publish') }}</button>
+                <button v-if="content?.draft" type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted disabled:opacity-60" :disabled="busy" data-action="discard" @click="discard">{{ $t('site.action.discard') }}</button>
+                <button v-if="content?.published" type="button" class="rounded-md border border-crit-border px-4 py-2 font-medium text-crit hover:bg-crit-soft disabled:opacity-60" :disabled="busy" data-action="unpublish" @click="ask('unpublish')">{{ $t('site.action.unpublish') }}</button>
+              </div>
+              <p v-if="dirty && content?.draft" class="text-text-muted">{{ $t('site.save_first') }}</p>
+            </form>
+
+            <section class="flex flex-col gap-2" :aria-label="$t('site.preview')">
+              <div class="flex items-center justify-between gap-2 text-sm">
+                <span class="font-medium">{{ $t('site.preview') }}</span>
+                <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft" data-action="refresh-preview" @click="refreshPreview">{{ $t('site.action.refresh') }}</button>
+              </div>
+              <ErrorNotice v-if="previewError" :error="previewError" />
+              <iframe :srcdoc="previewHtml" sandbox="" :title="$t('site.preview')" class="h-[44rem] w-full rounded-xl border border-border bg-surface" data-preview />
+            </section>
+          </div>
+
+          <form v-if="confirm.action" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-5 text-sm" :data-form="confirm.action" @submit.prevent="confirmAction">
+            <p class="font-medium">{{ $t(`site.confirm.${confirm.action}`, { locale: locale.toUpperCase(), path: publicUrl(locale, page.path) }) }}</p>
+            <label class="flex flex-col gap-1.5">
+              <span class="font-medium">{{ $t('site.confirm.reason') }}</span>
+              <textarea v-model="confirm.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="reason" />
+            </label>
             <div class="flex flex-wrap gap-2">
-              <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !titleReady || !dirty" data-action="save">{{ $t('site.action.save') }}</button>
-              <button type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy || !content?.draft || dirty" data-action="publish" @click="ask('publish')">{{ $t('site.action.publish') }}</button>
-              <button v-if="content?.draft" type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted disabled:opacity-60" :disabled="busy" data-action="discard" @click="discard">{{ $t('site.action.discard') }}</button>
-              <button v-if="content?.published" type="button" class="rounded-md border border-crit-border px-4 py-2 font-medium text-crit hover:bg-crit-soft disabled:opacity-60" :disabled="busy" data-action="unpublish" @click="ask('unpublish')">{{ $t('site.action.unpublish') }}</button>
+              <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || confirm.reason.trim().length < 3" data-action="confirm">{{ $t(`site.action.${confirm.action}`) }}</button>
+              <button type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted" @click="confirm.action = null">{{ $t('common.cancel') }}</button>
             </div>
-            <p v-if="dirty && content?.draft" class="text-text-muted">{{ $t('site.save_first') }}</p>
           </form>
 
-          <section class="flex flex-col gap-2" :aria-label="$t('site.preview')">
-            <div class="flex items-center justify-between gap-2 text-sm">
-              <span class="font-medium">{{ $t('site.preview') }}</span>
-              <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft" data-action="refresh-preview" @click="refreshPreview">{{ $t('site.action.refresh') }}</button>
-            </div>
-            <ErrorNotice v-if="previewError" :error="previewError" />
-            <iframe :srcdoc="previewHtml" sandbox="" :title="$t('site.preview')" class="h-[44rem] w-full rounded-xl border border-border bg-surface" data-preview />
+          <section class="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 text-sm" data-history>
+            <h2 class="text-lg font-semibold">{{ $t('site.history.title', { locale: locale.toUpperCase() }) }}</h2>
+            <p v-if="history.length === 0" class="text-text-muted">{{ $t('site.history.empty') }}</p>
+            <table v-else class="w-full text-sm">
+              <thead class="border-b border-border text-left text-text-muted">
+                <tr>
+                  <th class="py-2 pr-4 font-medium">{{ $t('site.history.version') }}</th>
+                  <th class="py-2 pr-4 font-medium">{{ $t('site.field.title') }}</th>
+                  <th class="py-2 pr-4 font-medium">{{ $t('site.history.published') }}</th>
+                  <th class="py-2 pr-4 font-medium">{{ $t('site.history.retired') }}</th>
+                  <th class="py-2" />
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                <tr v-for="row in history" :key="row.id" :data-version="row.version">
+                  <td class="py-2 pr-4">v{{ row.version }} <StatusBadge :tone="row.state === 'published' ? 'ok' : 'unknown'" :label="$t(row.state === 'published' ? 'site.history.published_state' : 'site.history.retired')" /></td>
+                  <td class="py-2 pr-4">{{ row.title }}</td>
+                  <td class="py-2 pr-4 whitespace-nowrap">{{ dateTime(row.published_at) }}<span v-if="row.published_by" class="text-text-muted"> · {{ row.published_by }}</span></td>
+                  <td class="py-2 pr-4 whitespace-nowrap">{{ dateTime(row.retired_at) }}</td>
+                  <td class="py-2 text-right">
+                    <button type="button" class="rounded-md border border-border-strong px-3 py-1 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="restore" @click="restore(row.id)">{{ $t('site.action.restore') }}</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </section>
-        </div>
-
-        <form v-if="confirm.action" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-5 text-sm" :data-form="confirm.action" @submit.prevent="confirmAction">
-          <p class="font-medium">{{ $t(`site.confirm.${confirm.action}`, { locale: locale.toUpperCase(), path: publicUrl(locale, page.path) }) }}</p>
-          <label class="flex flex-col gap-1.5">
-            <span class="font-medium">{{ $t('site.confirm.reason') }}</span>
-            <textarea v-model="confirm.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="reason" />
-          </label>
-          <div class="flex flex-wrap gap-2">
-            <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || confirm.reason.trim().length < 3" data-action="confirm">{{ $t(`site.action.${confirm.action}`) }}</button>
-            <button type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted" @click="confirm.action = null">{{ $t('common.cancel') }}</button>
-          </div>
-        </form>
-
-        <section class="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 text-sm" data-history>
-          <h2 class="text-lg font-semibold">{{ $t('site.history.title', { locale: locale.toUpperCase() }) }}</h2>
-          <p v-if="history.length === 0" class="text-text-muted">{{ $t('site.history.empty') }}</p>
-          <table v-else class="w-full text-sm">
-            <thead class="border-b border-border text-left text-text-muted">
-              <tr>
-                <th class="py-2 pr-4 font-medium">{{ $t('site.history.version') }}</th>
-                <th class="py-2 pr-4 font-medium">{{ $t('site.field.title') }}</th>
-                <th class="py-2 pr-4 font-medium">{{ $t('site.history.published') }}</th>
-                <th class="py-2 pr-4 font-medium">{{ $t('site.history.retired') }}</th>
-                <th class="py-2" />
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <tr v-for="row in history" :key="row.id" :data-version="row.version">
-                <td class="py-2 pr-4">v{{ row.version }} <StatusBadge :tone="row.state === 'published' ? 'ok' : 'unknown'" :label="$t(row.state === 'published' ? 'site.history.published_state' : 'site.history.retired')" /></td>
-                <td class="py-2 pr-4">{{ row.title }}</td>
-                <td class="py-2 pr-4 whitespace-nowrap">{{ dateTime(row.published_at) }}<span v-if="row.published_by" class="text-text-muted"> · {{ row.published_by }}</span></td>
-                <td class="py-2 pr-4 whitespace-nowrap">{{ dateTime(row.retired_at) }}</td>
-                <td class="py-2 text-right">
-                  <button type="button" class="rounded-md border border-border-strong px-3 py-1 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="restore" @click="restore(row.id)">{{ $t('site.action.restore') }}</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+        </template>
 
         <form class="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-5 text-sm" data-form="page-settings" @submit.prevent="saveSettings">
           <h2 class="w-full text-lg font-semibold">{{ $t('site.settings') }}</h2>

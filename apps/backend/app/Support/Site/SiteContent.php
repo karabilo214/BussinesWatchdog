@@ -7,7 +7,7 @@ use App\Models\PublicPageVersion;
 
 /**
  * What the public site shows: the published version of a page in a language, the header and footer menus and the
- * languages a page exists in. Drafts are never read here.
+ * languages a page exists in. Drafts are never read here, nor stored versions of pages changed in code.
  */
 class SiteContent
 {
@@ -29,7 +29,7 @@ class SiteContent
 
     public function published(?PublicPage $page, string $locale): ?PublicPageVersion
     {
-        if ($page === null) {
+        if ($page === null || ! $page->isEditable()) {
             return null;
         }
 
@@ -63,7 +63,7 @@ class SiteContent
         $items = [];
 
         foreach ($pages as $page) {
-            $label = $titles[$page->id] ?? ($page->isSystem() ? trans("site.nav.{$page->kind}", [], $locale) : null);
+            $label = ($page->isEditable() ? $titles[$page->id] ?? null : null) ?? ($page->isSystem() ? trans("site.nav.{$page->kind}", [], $locale) : null);
 
             if ($label !== null) {
                 $items[] = ['href' => self::url($locale, $page->path), 'label' => (string) $label, 'path' => $page->path];

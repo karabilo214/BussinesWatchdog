@@ -37,7 +37,7 @@ function staff(capabilities: string[]): StaffMe {
 const NONE = { published: null, draft: false, title: null };
 
 function summary(overrides: Partial<PageSummary>): PageSummary {
-  return { id: 'p-1', kind: 'page', parent_id: null, slug: 'about', path: 'about', menu: 'header', sort: 0, policy_type: null, created_at: null, locales: { ru: NONE, en: NONE, de: NONE }, ...overrides };
+  return { id: 'p-1', kind: 'page', parent_id: null, slug: 'about', path: 'about', menu: 'header', sort: 0, policy_type: null, editable: true, created_at: null, locales: { ru: NONE, en: NONE, de: NONE }, ...overrides };
 }
 
 function card(overrides: Partial<PageCard> = {}): PageCard {
@@ -51,6 +51,7 @@ function card(overrides: Partial<PageCard> = {}): PageCard {
       en: { draft: null, published: null },
       de: { draft: null, published: null },
     },
+    builtin: null,
     history: [{ id: 'v-1', locale: 'ru', version: 1, state: 'published', title: 'О компании', published_at: '2026-10-12T10:00:00Z', retired_at: null, published_by: 'Founder' }],
     ...overrides,
   };
@@ -81,6 +82,7 @@ describe('site', () => {
   it('lists pages with their state per language and creates a nested page with a fixed address', async () => {
     mocked.fetchPages.mockResolvedValue([
       summary({ id: 'home', kind: 'home', slug: null, path: '', menu: 'none' }),
+      summary({ id: 'pricing', kind: 'pricing', slug: 'pricing', path: 'pricing', editable: false }),
       summary({ id: 'legal', slug: 'legal', path: 'legal', menu: 'none', locales: { ru: { published: '2026-10-12T10:00:00Z', draft: false, title: 'Документы' }, en: NONE, de: { published: null, draft: true, title: 'Rechtliches' } } }),
     ]);
     mocked.createPage.mockResolvedValue(card({ id: 'p-9' }));
@@ -88,6 +90,7 @@ describe('site', () => {
     const { wrapper, router } = await open('/owner/site');
 
     expect(wrapper.get('[data-page="/"]').text()).toContain('Встроенный текст');
+    expect(wrapper.get('[data-page="pricing"]').text()).toContain('Редактируется в коде');
     const legal = wrapper.get('[data-page="legal"]');
     expect(legal.text()).toContain('Документы');
     expect(legal.text()).toContain('Опубликовано');
@@ -136,6 +139,42 @@ describe('site', () => {
 
     expect(mocked.publishPage).toHaveBeenCalledWith('p-1', 'ru', 'Новая редакция');
     expect(wrapper.get('[data-notice]').text()).toBe('Опубликовано.');
+  });
+
+  it('opens the home page with its built-in text ready to edit', async () => {
+    const empty = { draft: null, published: null };
+    const builtin = { title: 'Business Watchdog', description: 'Контроль оплаты', body: '<section class="hero"><h1>Встроенная главная</h1></section>' };
+    mocked.fetchPage.mockResolvedValue(card({ ...summary({ id: 'home', kind: 'home', slug: null, path: '', menu: 'none' }), content: { ru: empty, en: empty, de: empty }, builtin: { ru: builtin, en: { ...builtin, body: '<h1>Built-in home</h1>' }, de: null }, history: [] }));
+    mocked.savePageDraft.mockResolvedValue(card());
+    const { wrapper } = await open('/owner/site/pages/home');
+
+    expect((wrapper.get('[data-field="title"]').element as HTMLInputElement).value).toBe('Business Watchdog');
+    expect((wrapper.get('[data-field="body"]').element as HTMLTextAreaElement).value).toBe(builtin.body);
+    await vi.waitFor(() => expect(mocked.previewPage).toHaveBeenCalledWith('home', 'ru', { title: 'Business Watchdog', description: 'Контроль оплаты', body: builtin.body }));
+    expect(wrapper.get('[data-action="save"]').attributes('disabled')).toBeDefined();
+
+    await wrapper.get('[data-field="body"]').setValue('<section class="hero"><h1>Своя главная</h1></section>');
+    await wrapper.get('[data-form="page-draft"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.savePageDraft).toHaveBeenCalledWith('home', 'ru', { title: 'Business Watchdog', description: 'Контроль оплаты', body: '<section class="hero"><h1>Своя главная</h1></section>' });
+  });
+
+  it('shows pricing and contact as edited in code with only the menu settings', async () => {
+    mocked.fetchPage.mockResolvedValue(card({ ...summary({ id: 'pricing', kind: 'pricing', slug: 'pricing', path: 'pricing', editable: false }), builtin: null, history: [] }));
+    mocked.updatePage.mockResolvedValue(card({ ...summary({ id: 'pricing', kind: 'pricing', slug: 'pricing', path: 'pricing', menu: 'footer', editable: false }), builtin: null, history: [] }));
+    const { wrapper } = await open('/owner/site/pages/pricing');
+
+    expect(wrapper.get('[data-in-code]').text()).toContain('меняется только в коде сайта');
+    expect(wrapper.find('[data-form="page-draft"]').exists()).toBe(false);
+    expect(wrapper.find('[data-preview]').exists()).toBe(false);
+    expect(wrapper.find('[data-history]').exists()).toBe(false);
+    expect(wrapper.find('[data-field="policy"]').exists()).toBe(false);
+    expect(mocked.previewPage).not.toHaveBeenCalled();
+
+    await wrapper.get('[data-field="menu"]').setValue('footer');
+    await wrapper.get('[data-form="page-settings"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.updatePage).toHaveBeenCalledWith('pricing', { menu: 'footer', sort: 0 });
   });
 
   it('marks a page as the terms of service in its settings', async () => {

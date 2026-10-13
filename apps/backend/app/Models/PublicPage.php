@@ -52,6 +52,11 @@ class PublicPage extends Model
         return $this->kind !== self::KIND_PAGE;
     }
 
+    public function isEditable(): bool
+    {
+        return in_array($this->kind, [self::KIND_PAGE, self::KIND_HOME], true);
+    }
+
     /**
      * @return BelongsTo<PublicPage, $this>
      */

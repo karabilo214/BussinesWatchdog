@@ -31,6 +31,7 @@ const ordered = computed(() => {
 function status(page: PageSummary, locale: SiteLocale): { tone: 'ok' | 'note' | 'unknown'; label: string } {
   const state = page.locales[locale];
 
+  if (!page.editable) return { tone: 'unknown', label: 'site.state.in_code' };
   if (state.published !== null) return { tone: 'ok', label: state.draft ? 'site.state.published_draft' : 'site.state.published' };
   if (state.draft) return { tone: 'note', label: 'site.state.draft' };
 

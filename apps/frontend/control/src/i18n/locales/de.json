@@ -583,9 +583,9 @@
     },
     "system": "System",
     "system_hint": {
-      "home": "Die Startseite der Website. Solange kein Text veröffentlicht ist, wird der eingebaute Text gezeigt.",
-      "pricing": "Dieser Text steht über den Tarifkarten. Tarife und Preise kommen aus „Tarife und Rabatte“.",
-      "contact": "Dieser Text steht über dem Kontaktformular. Nachrichten aus dem Formular landen unter „Anfragen“."
+      "home": "Startseite der Website. Im Editor steht ihr aktueller Text; bis Sie eine eigene Version veröffentlichen, zeigt die Website den eingebauten Text.",
+      "pricing": "Tarifkarten und Preise kommen aus „Tarife und Rabatte“.",
+      "contact": "Nachrichten aus dem Formular landen unter „Anfragen“."
     },
     "menu": {
       "none": "Nicht anzeigen",
@@ -600,7 +600,8 @@
       "none": "Nicht veröffentlicht",
       "builtin": "Eingebauter Text",
       "published_at": "Version {version} veröffentlicht: {date}",
-      "draft_version": "Entwurf (Version {version})"
+      "draft_version": "Entwurf (Version {version})",
+      "in_code": "Im Code bearbeitet"
     },
     "create": {
       "title": "Neue Seite",
@@ -618,7 +619,7 @@
       "description_hint": "Bis 300 Zeichen; erscheint in Suchergebnissen.",
       "body": "HTML der Seite",
       "body_hint": "Der Seitentitel wird automatisch angezeigt — beginnen Sie mit Text oder einem <h2>.",
-      "body_hint_system": "Kann leer bleiben — dann wird der eingebaute Text gezeigt."
+      "body_hint_system": "Wenn Sie das Feld leeren, behält die Website den eingebauten Text der Startseite."
     },
     "help": {
       "title": "Was im HTML erlaubt ist",
@@ -672,7 +673,8 @@
       "privacy_notice": "Datenschutzerklärung",
       "recurring_payment": "Abo-Bedingungen (automatische Verlängerung)",
       "hint": "Kunden akzeptieren die veröffentlichte Version dieser Seite: bei der Registrierung Nutzungsbedingungen und Datenschutzerklärung, bei Testphase, Kauf und Tarifwechsel Nutzungsbedingungen und Abo-Bedingungen. Jeder Typ gehört zu einer Seite. Eine neue Veröffentlichung ist eine neue Fassung: Kunden akzeptieren sie bei der nächsten Aktion."
-    }
+    },
+    "in_code": "Der Text dieser Seite wird nur im Code der Website geändert. Hier legen Sie fest, in welchem Menü und an welcher Stelle sie erscheint."
   },
   "contacts": {
     "hint": "Nachrichten aus dem Kontaktformular der Website. Neue Nachrichten werden per E-Mail gemeldet. Geschlossene Anfragen werden nach einem Jahr gelöscht.",

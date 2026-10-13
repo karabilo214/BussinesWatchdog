@@ -394,6 +394,7 @@ export interface PageSummary {
   menu: PageMenu;
   sort: number;
   policy_type: PolicyType | null;
+  editable: boolean;
   created_at: string | null;
   locales: Record<SiteLocale, { published: string | null; draft: boolean; title: string | null }>;
 }
@@ -422,6 +423,7 @@ export interface PageVersionRow {
 
 export interface PageCard extends PageSummary {
   content: Record<SiteLocale, { draft: PageContent | null; published: PageContent | null }>;
+  builtin: Record<SiteLocale, PageDraft | null> | null;
   history: PageVersionRow[];
 }
 

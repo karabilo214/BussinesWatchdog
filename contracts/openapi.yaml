@@ -699,7 +699,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListPages
-      description: "Capability content.manage. Pages of the public site (ADR 0039), not archived, by path: kind (home, pricing, contact are system pages; page), parent, slug fixed at creation, menu (none, header, footer), sort and per language whether a draft exists and when the current version was published."
+      description: "Capability content.manage. Pages of the public site (ADR 0039), not archived, by path: kind (home, pricing, contact are system pages; page), parent, slug fixed at creation, menu (none, header, footer), sort, editable (false for pricing and contact, whose text is changed only in code) and per language whether a draft exists and when the current version was published."
       security:
         - {StaffSession: []}
       responses:
@@ -746,7 +746,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformShowPage
-      description: "Capability content.manage. Page card: per language the draft and the published version (title, description, sanitized body), and the history of published and retired versions with who published them."
+      description: "Capability content.manage. Page card: per language the draft and the published version (title, description, sanitized body), and the history of published and retired versions with who published them. For the home page builtin holds per language the built-in title, description and body the site shows until a version is published, so the editor starts from it; null for other pages."
       security:
         - {StaffSession: []}
       parameters:
@@ -792,7 +792,7 @@ paths:
     post:
       tags: [Platform]
       operationId: platformPreviewPage
-      description: "Capability content.manage. Renders unsaved content with the site layout (noindex) after the same sanitizing as saving; nothing is stored. Returns the sanitized body and a complete HTML document for a sandboxed frame."
+      description: "Capability content.manage. Renders unsaved content with the site layout (noindex) after the same sanitizing as saving; nothing is stored; an empty home body shows the built-in text. Returns the sanitized body and a complete HTML document for a sandboxed frame. Pricing and contact: 409 edited_in_code."
       security:
         - {StaffSession: []}
       parameters:
@@ -823,13 +823,14 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/pages/{page}/locales/{locale}/draft:
     put:
       tags: [Platform]
       operationId: platformSavePageDraft
-      description: "Capability content.manage. Saves the draft of one language. The body is HTML sanitized on the server: scripts, frames, forms, event handlers, inline styles and links other than http(s), mailto, tel and relative are removed; images only over https or relative. An ordinary page needs a body (422 body_required)."
+      description: "Capability content.manage. Saves the draft of one language. The body is HTML sanitized on the server: scripts, frames, forms, event handlers, inline styles and links other than http(s), mailto, tel and relative are removed; images only over https or relative. An ordinary page needs a body (422 body_required); an empty home body keeps the built-in text. Pricing and contact are changed only in code (409 edited_in_code)."
       security:
         - {StaffSession: []}
       parameters:
@@ -855,6 +856,7 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
     delete:
       tags: [Platform]
@@ -878,7 +880,7 @@ paths:
     post:
       tags: [Platform]
       operationId: platformPublishPage
-      description: "Capability content.manage. Publishes the draft of one language with a reason (409 no_draft). The previously published version is retired, never changed, and stays in the history; the audit keeps version, previous version and content hash."
+      description: "Capability content.manage. Publishes the draft of one language with a reason (409 no_draft, 409 edited_in_code for pricing and contact). The previously published version is retired, never changed, and stays in the history; the audit keeps version, previous version and content hash."
       security:
         - {StaffSession: []}
       parameters:
@@ -938,7 +940,7 @@ paths:
     post:
       tags: [Platform]
       operationId: platformRestorePageVersion
-      description: "Capability content.manage. Copies an earlier version into the draft of its language; it goes live only when published."
+      description: "Capability content.manage. Copies an earlier version into the draft of its language; it goes live only when published. Pricing and contact: 409 edited_in_code."
       security:
         - {StaffSession: []}
       parameters:
@@ -953,6 +955,7 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/pages/{page}/archive:
     post:
       tags: [Platform]

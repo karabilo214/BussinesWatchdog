@@ -49,19 +49,11 @@
   .site-main { flex: 1; }
   .site-section { padding-top: 3rem; padding-bottom: 4rem; }
   .site-narrow { max-width: 44rem; }
-  .site-hero { display: flex; flex-direction: column; gap: 1.25rem; padding-top: 4rem; padding-bottom: 4rem; }
-  .site-hero h1, .site-section h1 { margin: 0; font-size: 2rem; line-height: 1.2; font-weight: 600; }
-  @media (min-width: 640px) { .site-hero h1 { font-size: 3rem; } .site-section h1 { font-size: 2.25rem; } }
-  .site-eyebrow { margin: 0; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-link); }
+  .site-section h1 { margin: 0; font-size: 2rem; line-height: 1.2; font-weight: 600; }
+  @media (min-width: 640px) { .site-section h1 { font-size: 2.25rem; } }
   .site-lead { margin: 1rem 0 0; max-width: 42rem; font-size: 1.125rem; color: var(--color-text-muted); }
   .site-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem 0 0; }
-  .site-band { background: var(--color-surface); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); padding: 3.5rem 0; }
-  .site-band h2, .site-section h2 { margin: 0 0 1.5rem; font-size: 1.5rem; font-weight: 600; }
-  .site-grid-2 { display: grid; gap: 1.5rem; }
-  @media (min-width: 640px) { .site-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .site-feature { border-left: 2px solid var(--color-brand-200); padding-left: 1rem; }
-  .site-feature h3 { margin: 0 0 0.25rem; font-weight: 600; font-size: 1rem; }
-  .site-feature p { margin: 0; color: var(--color-text-muted); font-size: 0.9375rem; }
+  .site-section h2 { margin: 0 0 1.5rem; font-size: 1.5rem; font-weight: 600; }
   .site-muted { color: var(--color-text-muted); }
   .site-small { font-size: 0.875rem; }
   .site-note { margin: 1.5rem 0 0; padding: 0.75rem 1rem; border: 1px solid var(--color-note-border); background: var(--color-note-soft); color: var(--color-note); border-radius: 0.5rem; }
@@ -153,6 +145,9 @@
   .site-content .card > :first-child { margin-top: 0; }
   .site-content .card > :last-child { margin-bottom: 0; }
   .site-content .feature { border-left: 2px solid var(--color-brand-200); padding-left: 1rem; }
+  .site-content .feature h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+  .site-content .feature p { margin: 0; color: var(--color-text-muted); font-size: 0.9375rem; }
+  .site-content .band > :first-child { margin-top: 0; }
   .site-content .note { padding: 0.75rem 1rem; border: 1px solid var(--color-note-border); background: var(--color-note-soft); color: var(--color-note); border-radius: 0.5rem; }
   .site-content .warning { padding: 0.75rem 1rem; border: 1px solid var(--color-warn-border); background: var(--color-warn-soft); color: var(--color-warn); border-radius: 0.5rem; }
 }

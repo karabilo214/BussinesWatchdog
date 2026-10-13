@@ -34,3 +34,16 @@ Status: complete
 - Found while working: a guest calling the API without `Accept: application/json` got a 500 (`Route [login] not defined`) - the API now answers 401, other pages redirect guests to `/app/login`; the live script waited for `/owner/site` with a pattern that also matched the login page's `?redirect=` (fixed to the path); the shared sign-up limit counted failed form submissions (now only real attempts).
 
 Verification: `tests/Feature/Site/PolicyAcceptanceTest.php` (7). Control 24 tests, customer 111. Backend SQLite 525 passed, 4 skipped; PostgreSQL 18: 529 of 529. Live in Chromium (`run-live.sh signup`): two pages published and marked in the panel, sign-up page without JavaScript refused without consent, then created the account, signed in and sent to the plan; consents stored with version 1 of both documents - PASS.
+
+### Step 121: Home Page Edited From Its Built-In Text, Pricing and Contact Only in Code
+
+Status: complete
+
+- Owner's backlog item (2026-10-13): system pages opened in the panel with empty fields — they had no stored versions, and their built-in text lived only in Blade, so the editor and the preview showed nothing. Owner's decision: the home page becomes editable; pricing and contact are changed only in code. ADR 0039 amended (point 14).
+- Home: the built-in text is now ordinary page HTML on the content classes (`resources/views/site/builtin/home.blade.php` + `SiteDefaults`, sanitized like a saved body). The site renders it until a version is published; `GET /pages/{home}` returns it per language in `builtin`, and the editor starts from it, so the owner edits exactly what visitors see. An empty body still falls back to it (site and preview). The old `site-hero`/`site-band`/`site-grid-2`/`site-feature`/`site-eyebrow` styles were removed; `.site-content .feature` got the old feature look.
+- Pricing and contact: `PublicPage::isEditable()`; `PageAdmin::editable()` refuses draft, publish, restore and preview with 409 `edited_in_code`; menu/order settings still work; discard and unpublish stay allowed for leftovers. The site ignores stored versions of these pages (text and menu label from translations). Preview no longer renders pricing/contact.
+- API: `editable` in page summaries and cards, `builtin` in the card; OpenAPI descriptions and 409 responses updated.
+- Owner panel: the home editor is filled from the built-in text (save enabled after a change); pricing and contact show an “edited in code” note with a link to the page and only the menu settings; the pages list marks them «Редактируется в коде»; ru/en/de.
+- Found while testing: the backend suite already finished close to the default 128 MB PHP memory limit (memory grows by about 0.2 MB per test), and the new test pushed it over; `phpunit.xml` now sets `memory_limit` to 512M. The growth itself is not investigated.
+
+Verification: `PublicSiteTest::test_home_is_edited_from_its_built_in_text_and_pricing_and_contact_only_in_code` (replaces the old system-pages test). Control 29 tests (2 new in `tests/site.test.ts`), typecheck and build; site stylesheet build and check. Backend SQLite 532 passed, 4 skipped; PostgreSQL 18: 536 of 536. Local stand: `/ru` renders the new markup; screenshots at 1280 and 390 px look like before.

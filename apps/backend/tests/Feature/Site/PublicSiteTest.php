@@ -154,20 +154,42 @@ class PublicSiteTest extends TestCase
         $this->getJson('/platform-api/v1/pages/not-a-uuid')->assertNotFound();
     }
 
-    public function test_home_pricing_and_contact_take_their_text_from_the_owner_panel(): void
+    public function test_home_is_edited_from_its_built_in_text_and_pricing_and_contact_only_in_code(): void
     {
         $this->signIn();
         $home = PublicPage::query()->where('kind', 'home')->value('id');
-        $this->putJson("/platform-api/v1/pages/{$home}/locales/en/draft", ['title' => 'Watchdog for shops', 'body' => '<section class="hero"><h1>Own home</h1></section>'])->assertOk();
+        $card = $this->getJson("/platform-api/v1/pages/{$home}")->assertOk()->assertJsonPath('editable', true)->json();
+        $builtin = $card['builtin']['ru'];
+        $this->assertSame('Business Watchdog — контроль оплаты в интернет-магазине', $builtin['title']);
+        $this->assertStringContainsString('<section class="hero">', $builtin['body']);
+        $this->assertStringContainsString('Узнайте, что оплата сломалась, раньше покупателей', $builtin['body']);
+        $this->assertStringContainsString('href="/ru/signup"', $builtin['body']);
+        $this->assertStringContainsString('Find out that payments broke before your customers do', $card['builtin']['en']['body']);
+        $this->assertStringContainsString(str_replace('&#34;', '"', $builtin['body']), str_replace('&#34;', '"', $this->get('/ru')->getContent()));
+
+        $preview = $this->postJson("/platform-api/v1/pages/{$home}/preview", ['locale' => 'ru', 'title' => 'Главная', 'body' => ''])->assertOk()->json('html');
+        $this->assertStringContainsString('Узнайте, что оплата сломалась', $preview);
+
+        $this->putJson("/platform-api/v1/pages/{$home}/locales/en/draft", ['title' => 'Watchdog for shops', 'body' => str_replace('Find out that payments broke before your customers do', 'Own home', $card['builtin']['en']['body'])])->assertOk();
         $this->postJson("/platform-api/v1/pages/{$home}/locales/en/publish", ['reason' => 'New home'])->assertOk();
 
-        $this->get('/en')->assertSee('Own home')->assertDontSee('Find out that payments broke')->assertSee('<title>Watchdog for shops — Business Watchdog</title>', false);
+        $this->get('/en')->assertSee('Own home')->assertDontSee('Find out that payments broke')->assertSee('Real payment attempts')->assertSee('<title>Watchdog for shops — Business Watchdog</title>', false);
         $this->get('/ru')->assertSee('Узнайте, что оплата сломалась');
 
+        foreach (['pricing', 'contact'] as $kind) {
+            $id = PublicPage::query()->where('kind', $kind)->value('id');
+            $this->getJson("/platform-api/v1/pages/{$id}")->assertOk()->assertJsonPath('editable', false)->assertJsonPath('builtin', null);
+            $this->putJson("/platform-api/v1/pages/{$id}/locales/en/draft", ['title' => 'Write to us', 'body' => '<p>Changed.</p>'])->assertStatus(409)->assertJsonPath('code', 'edited_in_code');
+            $this->postJson("/platform-api/v1/pages/{$id}/locales/en/publish", ['reason' => 'Try'])->assertStatus(409)->assertJsonPath('code', 'edited_in_code');
+            $this->postJson("/platform-api/v1/pages/{$id}/preview", ['locale' => 'en', 'title' => 'X'])->assertStatus(409)->assertJsonPath('code', 'edited_in_code');
+            $this->patchJson("/platform-api/v1/pages/{$id}", ['menu' => 'footer', 'sort' => 5])->assertOk()->assertJsonPath('menu', 'footer');
+        }
+
         $contact = PublicPage::query()->where('kind', 'contact')->value('id');
-        $this->putJson("/platform-api/v1/pages/{$contact}/locales/en/draft", ['title' => 'Write to us', 'body' => '<p>We answer within a day.</p>'])->assertOk();
-        $this->postJson("/platform-api/v1/pages/{$contact}/locales/en/publish", ['reason' => 'Contact text'])->assertOk();
-        $this->get('/en/contact')->assertSee('We answer within a day.')->assertSee('data-form="contact"', false)->assertSee('>Write to us</a>', false);
+        PublicPageVersion::query()->create(['page_id' => $contact, 'locale' => 'en', 'version' => 1, 'title' => 'Stored title', 'body' => '<p>Stored text.</p>', 'content_hash' => str_repeat('0', 64), 'state' => 'published', 'published_at' => Carbon::now()]);
+        $this->get('/en/contact')->assertDontSee('Stored text.')->assertDontSee('Stored title')->assertSee('data-form="contact"', false);
+        $version = PublicPageVersion::query()->where('page_id', $contact)->value('id');
+        $this->postJson("/platform-api/v1/pages/{$contact}/versions/{$version}/restore")->assertStatus(409)->assertJsonPath('code', 'edited_in_code');
     }
 
     public function test_pricing_shows_published_plans_with_the_real_yearly_charge_and_hides_drafts(): void
