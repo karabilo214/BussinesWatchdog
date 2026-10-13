@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\Ingest\CredentialRotationController;
 use App\Http\Controllers\Api\V1\Ingest\EventsController;
 use App\Http\Controllers\Api\V1\Ingest\HeartbeatController;
 use App\Http\Controllers\Api\V1\Integrations\IntegrationController;
+use App\Http\Controllers\Api\V1\Integrations\PluginDownloadController;
 use App\Http\Controllers\Api\V1\Integrations\PayPalIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\PayPalWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\ProviderSyncController;
@@ -190,6 +191,10 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware(['tenant.role:'.implode(',', TenantRoles::storeRead()), 'throttle:artifact-url']);
     Route::get('/stores/{store}/integrations', [IntegrationController::class, 'forStore'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+    Route::get('/downloads/woocommerce-plugin', [PluginDownloadController::class, 'show'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+    Route::get('/downloads/woocommerce-plugin/file', [PluginDownloadController::class, 'download'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationRead()), 'throttle:artifact-url']);
 
     Route::post('/payment-allocations', [PaymentAllocationController::class, 'store'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::allocationManage()), 'idempotency']);

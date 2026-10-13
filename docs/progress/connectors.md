@@ -287,3 +287,13 @@ Status: complete
 ### Fix: PayPal webhook URL empty on the store page
 
 - The webhook URL was only in the connect and sync responses; the store page loads the integration list, which lacked it, and the PayPal panel had no fallback, so the field next to "Copy" stayed empty after a reload. `IntegrationDto` now returns `webhook_url` for Stripe and PayPal (null for other connectors; OpenAPI `Integration` schema, both copies), and both panels fall back to building it in the browser. Regression tests: the list carries the URL (backend), the PayPal panel shows it when the field is missing (frontend). The old frontend fixture always contained `webhook_url`, which hid the bug.
+
+### Step 136: WooCommerce Plugin ZIP Downloadable From the Account
+
+Status: complete
+
+- Owner's backlog item. The release ZIP is built into `WATCHDOG_PLUGIN_DIR` (default `apps/backend/storage/app/plugins`, ignored by git); `PluginPackage` picks the highest `business-watchdog-X.Y.Z.zip` there (other names ignored). Customer API (any member who may read integrations): `GET /api/v1/downloads/woocommerce-plugin` (available, version, file, size, SHA-256 — never the server path) and `GET /api/v1/downloads/woocommerce-plugin/file` (application/zip, `X-Content-SHA256`, private no-store; 404 `plugin_not_available`). OpenAPI and README (build command now targets the plugin directory) updated.
+- Account: store → order source → «Плагин» shows «Скачать плагин» with version, size and checksum plus WordPress install steps, or a note that the archive is not published yet.
+- Local stand: the real 0.2.0 ZIP built with `build-release.sh` (PHP 7.4 lint passed) is picked up from the default directory.
+
+Verification: `tests/Feature/Integrations/PluginDownloadTest.php` (2: nothing published, newest of several versions with size and hash, download content and name; guests 401). Customer 117 tests (`tests/pluginDownload.test.ts`, 2). Frontend check green. Backend SQLite 557 passed, 4 skipped; PostgreSQL 18: 561 of 561.

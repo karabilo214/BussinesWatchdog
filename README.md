@@ -121,9 +121,11 @@ php artisan mail:auth-check --strict   # SPF, DKIM (ключ читается и
 ### 9. WooCommerce-плагин (ZIP для магазинов)
 
 ```sh
-plugins/woocommerce-watchdog/bin/build-release.sh plugins/woocommerce-watchdog dist/plugin
+plugins/woocommerce-watchdog/bin/build-release.sh plugins/woocommerce-watchdog apps/backend/storage/app/plugins
 plugins/woocommerce-watchdog/tests/matrix/release-checks.sh    # проверки выпуска на собранном ZIP
 ```
+
+ZIP кладётся в каталог `WATCHDOG_PLUGIN_DIR` (по умолчанию `apps/backend/storage/app/plugins`; в Docker — тот же каталог внутри контейнера бэкенда, он должен быть на постоянном томе). Кабинет показывает кнопку «Скачать плагин» с самой новой версией `business-watchdog-X.Y.Z.zip` из этого каталога; старые версии можно оставить или удалить.
 
 Shopware App отдельно не собирается: кабинет выдаёт архив приложения для каждого магазина.
 

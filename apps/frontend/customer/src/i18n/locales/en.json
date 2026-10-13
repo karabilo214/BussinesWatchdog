@@ -228,7 +228,13 @@
       "pairing_code": "Connection code",
       "code_expires": "Valid until {time}.",
       "waiting": "Waiting for the plugin to connect — the list updates by itself.",
-      "api_active": "Orders currently come through the REST API key. A store has one order source: to switch to the plugin, first disconnect the key in the \"REST API key\" tab."
+      "api_active": "Orders currently come through the REST API key. A store has one order source: to switch to the plugin, first disconnect the key in the \"REST API key\" tab.",
+      "download": {
+        "button": "Download plugin",
+        "meta": "WooCommerce plugin, version {version}, {size} KB",
+        "install": "In WordPress: Plugins → Add New → Upload Plugin, choose this ZIP and activate it. Then enter the connection code below.",
+        "missing": "The plugin archive is not published yet. Write to us and we will send it."
+      }
     },
     "verification": {
       "title": "Domain confirmation",

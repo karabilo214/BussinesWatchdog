@@ -6,6 +6,7 @@ import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
 import CopyField from './CopyField.vue';
 import ErrorNotice from './ErrorNotice.vue';
+import PluginDownload from './PluginDownload.vue';
 import { INTEGRATION_TONES, providerName } from './integrationTones';
 
 const POLL_MS = 15_000;
@@ -94,6 +95,7 @@ void load();
 <template>
   <div class="flex flex-col gap-4" data-connector="plugin">
     <p class="max-w-3xl text-sm text-text-muted">{{ $t('store.connector.subtitle') }}</p>
+    <PluginDownload />
 
     <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
     <ErrorNotice v-else-if="loadError" :error="loadError" />

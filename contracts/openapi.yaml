@@ -4344,6 +4344,46 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/downloads/woocommerce-plugin:
+    get:
+      tags: [Integrations]
+      operationId: getWooCommercePluginPackage
+      description: "Newest published WooCommerce plugin ZIP (the highest business-watchdog-X.Y.Z.zip in WATCHDOG_PLUGIN_DIR): available, version, file name, size and SHA-256; available false when no package is published."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Package
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [available]
+                properties:
+                  available: {type: boolean}
+                  version: {type: string}
+                  file: {type: string}
+                  size_bytes: {type: integer}
+                  sha256: {type: string}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+  /api/v1/downloads/woocommerce-plugin/file:
+    get:
+      tags: [Integrations]
+      operationId: downloadWooCommercePlugin
+      description: "Downloads the newest plugin ZIP (application/zip, X-Content-SHA256); 404 plugin_not_available when none is published."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: ZIP
+          content:
+            application/zip:
+              schema: {type: string, format: binary}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /api/v1/maintenance:
     get:
       tags: [Incidents]

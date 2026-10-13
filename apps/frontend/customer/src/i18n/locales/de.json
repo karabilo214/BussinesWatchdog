@@ -228,7 +228,13 @@
       "pairing_code": "Verbindungscode",
       "code_expires": "Gültig bis {time}.",
       "waiting": "Warten auf die Verbindung des Plugins – die Liste aktualisiert sich selbst.",
-      "api_active": "Bestellungen kommen derzeit über den REST-API-Schlüssel. Ein Shop hat eine Bestellquelle: Um zum Plugin zu wechseln, trennen Sie zuerst den Schlüssel im Reiter „REST-API-Schlüssel“."
+      "api_active": "Bestellungen kommen derzeit über den REST-API-Schlüssel. Ein Shop hat eine Bestellquelle: Um zum Plugin zu wechseln, trennen Sie zuerst den Schlüssel im Reiter „REST-API-Schlüssel“.",
+      "download": {
+        "button": "Plugin herunterladen",
+        "meta": "WooCommerce-Plugin, Version {version}, {size} KB",
+        "install": "In WordPress: Plugins → Installieren → Plugin hochladen, dieses ZIP wählen und aktivieren. Dann unten den Verbindungscode eingeben.",
+        "missing": "Das Plugin-Archiv ist noch nicht veröffentlicht. Schreiben Sie uns, wir senden es Ihnen."
+      }
     },
     "verification": {
       "title": "Domain-Bestätigung",
