@@ -75,7 +75,7 @@ watch(() => route.fullPath, () => {
   <div class="flex min-h-full flex-col">
     <header class="sticky top-0 z-10 border-b border-border bg-surface">
       <div class="mx-auto flex max-w-6xl items-center gap-x-8 gap-y-3 px-4 py-3 sm:px-6">
-        <RouterLink :to="{ name: 'overview' }" class="text-base font-semibold whitespace-nowrap text-brand-800">{{ $t('app.name') }}</RouterLink>
+        <a :href="`/${$i18n.locale}`" class="text-base font-semibold whitespace-nowrap text-brand-800" data-logo>{{ $t('app.name') }}</a>
 
         <nav :aria-label="$t('nav.main')" class="hidden flex-1 flex-wrap gap-1 md:flex">
           <RouterLink

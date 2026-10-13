@@ -17,6 +17,19 @@ async function mountLayout() {
   return wrapper;
 }
 
+describe('layout', () => {
+  it('links the logo to the public site home in the current language', async () => {
+    vi.mocked(maintenanceApi.getMaintenance).mockResolvedValue(null);
+    expect((await mountLayout()).get('[data-logo]').attributes('href')).toBe('/ru');
+    setLocale('de');
+    const router = createRouter({ history: createMemoryHistory('/app/'), routes: [{ path: '/:p(.*)*', name: 'overview', component: { template: '<div />' } }] });
+    await router.push('/');
+    const wrapper = mount(AppLayout, { global: { plugins: [localization, router], stubs: { RouterLink: RouterLinkStub } } });
+    await flushPromises();
+    expect(wrapper.get('[data-logo]').attributes('href')).toBe('/de');
+  });
+});
+
 describe('maintenance banner', () => {
   it('shows planned and running maintenance from the service owner', async () => {
     vi.mocked(maintenanceApi.getMaintenance).mockResolvedValue({ starts_at: '2026-10-21T22:00:00Z', ends_at: '2026-10-22T02:00:00Z', message: 'Проверки приостановлены.', active: false });

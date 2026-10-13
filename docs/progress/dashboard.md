@@ -178,3 +178,11 @@ Status: complete
 - Backend: TOTP (RFC 6238, own class tested on the RFC reference values) with keyring-encrypted secret, enrollment confirmed by a code, 10 hashed one-time recovery codes, replay protection by the last used step. Login with MFA answers `mfa_required` without a session; `POST /auth/mfa/challenge` (5 minutes, 5 attempts) signs in. Step-up (password + code) for disabling, new recovery codes and ownership transfer. `POST /ownership-transfer`: owner only, target is a member with a confirmed address, owner ↔ admin swap in one transaction, audited. New dependency `bacon/bacon-qr-code` for the QR SVG. Migration: `users.mfa_*` columns, `mfa_recovery_codes`.
 - Dashboard: second sign-in step (app or recovery code, return to the password on expiry), "Two-factor authentication" panel in the profile (QR + key, confirmation, recovery codes with copy/download, new codes, turning off; owners without MFA see a recommendation), "Transfer ownership" on the team page with password and code. ru/en/de.
 - Tests: 7 backend tests (RFC vectors, enrollment, sign-in with app and recovery codes, expiry, step-up, transfer with and without MFA). Backend: SQLite 346 + 4 skipped, PostgreSQL 18 350 passed. Customer unit tests 75. `make frontend-smoke` 41/41 with three new steps on the real backend (enable MFA with a computed TOTP code, sign in with a recovery code, transfer ownership to the invited operator); 5 of 6 runs green, one run hung on the reconciliation findings request in an older step (not MFA-related, not reproduced in the next three runs).
+
+### Step 135: Customer Account Logo Links to the Public Site
+
+Status: complete
+
+- Owner's backlog item. The «Business Watchdog» logo in the account header and on the sign-in/registration pages is now a plain link to the public site home in the current interface language (`/ru`, `/en`, `/de` on the same origin as `/app`) instead of the account overview.
+
+Verification: `tests/maintenance.test.ts` +1 (logo href follows the language). Customer 115 tests; frontend check green. Backend SQLite 555 passed, 4 skipped (unchanged).
