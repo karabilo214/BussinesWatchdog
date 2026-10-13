@@ -79,3 +79,14 @@ Status: complete
 - Owner panel: new menu section «Шаблоны блоков» (`/owner/blocks`): list with group, languages, order and change time; `/owner/blocks/new` and `/owner/blocks/{id}`: name, group, order, language tabs with ✓, visual editor or HTML per language, save, delete with a reason, warning before leaving with unsaved changes. ru/en/de.
 
 Verification: `PageBlockTest` +1 (create with sanitizing, validation, edit languages, remove a language, keep one, archive with reason, audit). Control 38 tests (`tests/blocks.test.ts`, 3). Frontend check green. Backend SQLite 535 passed, 4 skipped; PostgreSQL 18: 539 of 539. Live in Chromium (`run-live.sh site`): template created in the section with the visual editor (note style), inserted into a page from «+ Блок», deleted with a reason — PASS.
+
+### Step 128: Replying to Contact Messages From the Owner Panel
+
+Status: complete
+
+- ADR 0049 (accepted for now, to be confirmed by the owner). Migration `contact_request_replies` (cascade with the message, so retention also removes replies). `ContactInbox::replyTemplates()` (answer, more_details, resolved in the message language), `letter()` (greeting, text, team signature, original message with date and zone), `reply()` (validation, mail first — nothing stored if the server refuses: 502 `reply_not_sent` — then the reply, handler, new → in progress; audit `site.contact.replied` with a content hash). Card DTO has `replies` and `reply_templates`.
+- API: `POST /platform-api/v1/contact-requests/{id}/replies` (`contacts.manage`, `throttle:contact-replies` 60/h per staff member); OpenAPI updated.
+- Owner panel, message card: «Ответы» with history (when, who, template, subject, text) and «Ответить»: template select fills subject and text, hint about what the letter adds and its language, «Отправить на …». ru/en/de; error texts for refused mail.
+- Found while testing: `DomainOutboxResultRecorderTest::test_it_uses_exponential_backoff_with_jitter_by_default` failed once on PostgreSQL — the stored retry time is truncated to the second while the test compared with a time that had microseconds, so a jitter at the lower bound (96 s) looked too early; the test now compares from the start of the second (outbox logic unchanged).
+
+Verification: `PublicSiteTest` +1 (templates in German, validation, letter with greeting/text/original/signature, stored with sender, status, closed stays closed, refused mail stores nothing, purge removes replies) and admin cannot reply. Control 43 tests. Frontend check green. Backend SQLite 541 passed, 4 skipped; PostgreSQL 18: 545 of 545. Live in Chromium (`run-live.sh site`): reply sent from the «Нужны подробности» template, letter found in Mailpit in Russian with the quoted message, reply shown in the card — PASS.

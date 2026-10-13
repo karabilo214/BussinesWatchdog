@@ -4,6 +4,7 @@ namespace App\Support\Site;
 
 use App\Mail\NotificationMessageMail;
 use App\Models\ContactRequest;
+use App\Models\ContactRequestReply;
 use App\Models\PlatformStaff;
 use App\Support\Platform\PlatformAudit;
 use Illuminate\Support\Carbon;
@@ -96,6 +97,69 @@ class ContactInbox
     }
 
     /**
+     * @return list<array{code: string, subject: string, body: string}>
+     */
+    public function replyTemplates(ContactRequest $request): array
+    {
+        return array_map(fn (string $code): array => [
+            'code' => $code,
+            'subject' => trans("site.contact.reply.templates.{$code}.subject", [], $request->locale),
+            'body' => trans("site.contact.reply.templates.{$code}.body", [], $request->locale),
+        ], ContactRequestReply::TEMPLATES);
+    }
+
+    /**
+     * The letter as the person gets it: a greeting by name, the staff text, the signature and their original message.
+     */
+    public function letter(ContactRequest $request, string $body): string
+    {
+        return trans('site.contact.reply.letter', ['name' => $request->name, 'body' => trim($body), 'message' => $request->message, 'date' => $request->created_at?->format('d.m.Y H:i T')], $request->locale);
+    }
+
+    /**
+     * @param  array{template: string, subject: string, body: string}  $input
+     */
+    public function reply(string $staffId, string $id, array $input): ContactRequestReply
+    {
+        $request = $this->find($id);
+        $subject = trim($input['subject']);
+        $body = trim($input['body']);
+
+        if (! in_array($input['template'], ContactRequestReply::TEMPLATES, true)) {
+            throw new SiteRejected('template_invalid');
+        }
+
+        if ($subject === '' || mb_strlen($subject) > 200 || mb_strlen($body) < 2 || mb_strlen($body) > 10000) {
+            throw new SiteRejected('reply_invalid');
+        }
+
+        try {
+            Mail::to($request->email)->send(new NotificationMessageMail($subject, $this->letter($request, $body)));
+        } catch (Throwable $exception) {
+            Log::warning('site.contact_reply_failed', ['contact_request_id' => $request->id, 'exception' => $exception::class]);
+
+            throw new SiteRejected('reply_not_sent', 502);
+        }
+
+        $reply = DB::transaction(function () use ($staffId, $request, $input, $subject, $body): ContactRequestReply {
+            $reply = ContactRequestReply::query()->create([
+                'contact_request_id' => $request->id,
+                'staff_id' => $staffId,
+                'template' => $input['template'],
+                'subject' => $subject,
+                'body' => $body,
+                'sent_at' => Carbon::now(),
+            ]);
+            $request->forceFill(['handled_by' => $staffId] + ($request->status === ContactRequest::STATUS_NEW ? ['status' => ContactRequest::STATUS_IN_PROGRESS] : []))->save();
+
+            return $reply;
+        });
+        $this->audit->record($staffId, 'site.contact.replied', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, ['reply_id' => $reply->id, 'template' => $reply->template, 'content_hash' => hash('sha256', $subject."\n".$body)]);
+
+        return $reply;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function dto(ContactRequest $request, bool $full = true): array
@@ -115,7 +179,25 @@ class ContactInbox
             'created_at' => $request->created_at?->toJSON(),
             'updated_at' => $request->updated_at?->toJSON(),
             'closed_at' => $request->closed_at?->toJSON(),
-        ];
+        ] + ($full ? ['replies' => $this->replies($request), 'reply_templates' => $this->replyTemplates($request)] : []);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function replies(ContactRequest $request): array
+    {
+        $replies = ContactRequestReply::query()->where('contact_request_id', $request->id)->orderBy('sent_at')->orderBy('id')->get();
+        $staff = PlatformStaff::query()->with('user')->whereIn('id', $replies->pluck('staff_id')->filter()->unique())->get()->keyBy('id');
+
+        return $replies->map(fn (ContactRequestReply $reply): array => [
+            'id' => $reply->id,
+            'template' => $reply->template,
+            'subject' => $reply->subject,
+            'body' => $reply->body,
+            'sent_by' => $reply->staff_id === null ? null : $staff->get($reply->staff_id)?->user?->name,
+            'sent_at' => $reply->sent_at->toJSON(),
+        ])->values()->all();
     }
 
     /**

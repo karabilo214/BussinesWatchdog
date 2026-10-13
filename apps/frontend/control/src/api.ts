@@ -719,6 +719,29 @@ export interface ContactRequest {
   created_at: string | null;
   updated_at: string | null;
   closed_at: string | null;
+  replies?: ContactReply[];
+  reply_templates?: ContactReplyTemplate[];
+}
+
+export type ContactReplyTemplateCode = 'answer' | 'more_details' | 'resolved';
+
+export interface ContactReplyTemplate {
+  code: ContactReplyTemplateCode;
+  subject: string;
+  body: string;
+}
+
+export interface ContactReply {
+  id: string;
+  template: ContactReplyTemplateCode;
+  subject: string;
+  body: string;
+  sent_by: string | null;
+  sent_at: string;
+}
+
+export async function replyToContactRequest(id: string, input: { template: ContactReplyTemplateCode; subject: string; body: string }): Promise<ContactRequest> {
+  return (await request<ContactRequest>('POST', `/platform-api/v1/contact-requests/${encodeURIComponent(id)}/replies`, { body: input })).data;
 }
 
 export async function fetchContactRequests(filters: Partial<Record<'status' | 'cursor', string>>): Promise<{ data: ContactRequest[]; next_cursor: string | null; counts: Record<ContactStatus, number> }> {

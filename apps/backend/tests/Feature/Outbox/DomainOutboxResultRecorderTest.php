@@ -48,7 +48,7 @@ class DomainOutboxResultRecorderTest extends TestCase
     public function test_it_uses_exponential_backoff_with_jitter_by_default(): void
     {
         $message = $this->outbox(attempts: 3);
-        $before = now();
+        $before = now()->startOfSecond();
 
         $recorded = app(DomainOutboxResultRecorder::class)->markFailed(
             $message->id,

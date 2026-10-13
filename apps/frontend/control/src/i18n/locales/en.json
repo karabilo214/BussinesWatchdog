@@ -169,7 +169,9 @@
     "plan_store_limit_reached": "The customer plan does not allow more stores.",
     "already_member": "This person is already in the organisation.",
     "role_not_assignable": "This role cannot be given by invitation.",
-    "invitation_not_found": "Invitation not found."
+    "invitation_not_found": "Invitation not found.",
+    "reply_not_sent": "The mail server refused the letter — the reply was neither sent nor stored. Try again later.",
+    "reply_invalid": "Enter a subject and the reply text."
   },
   "period": {
     "per": {
@@ -741,7 +743,23 @@
     "save": "Save",
     "saved": "Saved.",
     "handled_by": "Last change: {name}",
-    "retention": "A closed message is deleted 365 days after it was closed."
+    "retention": "A closed message is deleted 365 days after it was closed.",
+    "replies": {
+      "title": "Replies",
+      "reply": "Reply",
+      "sent": "Reply sent to {email}.",
+      "template": "Template",
+      "subject": "Subject",
+      "body": "Reply text",
+      "frame": "A greeting to “{name}”, the team signature and the original message are added automatically; the letter language is {locale}.",
+      "send": "Send to {email}",
+      "none": "No replies yet.",
+      "templates": {
+        "answer": "Answer",
+        "more_details": "Need details",
+        "resolved": "Resolved"
+      }
+    }
   },
   "contact_status": {
     "new": "New",

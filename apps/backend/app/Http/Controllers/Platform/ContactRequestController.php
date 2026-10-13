@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContactRequest;
+use App\Models\ContactRequestReply;
 use App\Models\PlatformStaff;
 use App\Support\Site\ContactInbox;
 use App\Support\Site\SiteRejected;
@@ -31,6 +32,25 @@ class ContactRequestController extends Controller
             return response()->json($this->inbox->dto($this->inbox->find($contactRequest)));
         } catch (SiteRejected $exception) {
             return response()->json(['code' => $exception->reasonCode, 'message' => 'The message was not found.'], $exception->status);
+        }
+    }
+
+    public function reply(Request $request, string $contactRequest): JsonResponse
+    {
+        $validated = $request->validate([
+            'template' => ['required', 'string', Rule::in(ContactRequestReply::TEMPLATES)],
+            'subject' => ['required', 'string', 'max:200'],
+            'body' => ['required', 'string', 'min:2', 'max:10000'],
+        ]);
+        /** @var PlatformStaff $staff */
+        $staff = $request->attributes->get('platform_staff');
+
+        try {
+            $this->inbox->reply($staff->id, $contactRequest, $validated);
+
+            return response()->json($this->inbox->dto($this->inbox->find($contactRequest)), 201);
+        } catch (SiteRejected $exception) {
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The reply was not sent.'], $exception->status);
         }
     }
 

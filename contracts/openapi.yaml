@@ -1493,11 +1493,43 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/contact-requests/{contactRequest}/replies:
+    post:
+      tags: [Platform]
+      operationId: platformReplyContactRequest
+      description: "Capability contacts.manage. Emails a reply to the person who wrote: the subject and text start from a template (answer, more_details, resolved) in the language of the message and are edited by staff; the letter adds a greeting by name, the signature and the original message. Stored with the message (who, when, template, subject, text); a new message becomes in progress. 502 reply_not_sent when the mail server refuses (nothing stored). At most 60 replies an hour per staff member. Audited as site.contact.replied with a content hash. Returns the message card with replies."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: contactRequest, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [template, subject, body]
+              properties:
+                template: {enum: [answer, more_details, resolved]}
+                subject: {type: string, maxLength: 200}
+                body: {type: string, minLength: 2, maxLength: 10000}
+      responses:
+        "201":
+          description: Message card
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+        "502": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/contact-requests/{contactRequest}:
     get:
       tags: [Platform]
       operationId: platformShowContactRequest
-      description: "Capability contacts.read. One message in full with the internal note."
+      description: "Capability contacts.read. One message in full with the internal note. The card also has replies (sent by, when, template, subject, text) and reply_templates in the language of the message."
       security:
         - {StaffSession: []}
       parameters:

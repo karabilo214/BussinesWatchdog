@@ -27,6 +27,7 @@ vi.mock('@/api', () => ({
   fetchContactRequests: vi.fn(),
   fetchContactRequest: vi.fn(),
   updateContactRequest: vi.fn(),
+  replyToContactRequest: vi.fn(),
 }));
 
 const mocked = vi.mocked(api);
@@ -255,12 +256,40 @@ describe('site', () => {
     expect(wrapper.find('[data-saved]').exists()).toBe(true);
   });
 
+  it('replies to a message from a template and shows the reply in the message', async () => {
+    const templates = [
+      { code: 'answer' as const, subject: 'Antwort auf Ihre Nachricht an Business Watchdog', body: 'Vielen Dank für Ihre Nachricht.\n\n' },
+      { code: 'more_details' as const, subject: 'Business Watchdog: bitte ein paar Details', body: 'Wir brauchen noch ein paar Angaben.' },
+      { code: 'resolved' as const, subject: 'Business Watchdog: Ihre Frage ist geklärt', body: 'Geklärt.' },
+    ];
+    const message: ContactRequest = { id: 'c-1', locale: 'de', name: 'Jonas', email: 'jonas@shop.test', company: null, message: 'Wie verbinde ich zwei Shops?', status: 'new', note: null, handled_by: null, created_at: '2026-10-12T10:00:00Z', updated_at: null, closed_at: null, replies: [], reply_templates: templates };
+    mocked.fetchContactRequest.mockResolvedValue(message);
+    mocked.replyToContactRequest.mockResolvedValue({ ...message, status: 'in_progress', handled_by: 'Founder', replies: [{ id: 'r-1', template: 'more_details', subject: 'Business Watchdog: bitte ein paar Details', body: 'Welche Shop-Adresse?', sent_by: 'Founder', sent_at: '2026-10-12T11:00:00Z' }] });
+    const { wrapper } = await open('/owner/contact-requests/c-1');
+
+    expect(wrapper.text()).toContain('Ответов ещё не было.');
+    await wrapper.get('[data-action="reply"]').trigger('click');
+    expect((wrapper.get('[data-field="reply-subject"]').element as HTMLInputElement).value).toBe('Antwort auf Ihre Nachricht an Business Watchdog');
+    await wrapper.get('[data-field="reply-template"]').setValue('more_details');
+    expect((wrapper.get('[data-field="reply-body"]').element as HTMLTextAreaElement).value).toBe('Wir brauchen noch ein paar Angaben.');
+    await wrapper.get('[data-field="reply-body"]').setValue('Welche Shop-Adresse?');
+    await wrapper.get('[data-form="reply"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.replyToContactRequest).toHaveBeenCalledWith('c-1', { template: 'more_details', subject: 'Business Watchdog: bitte ein paar Details', body: 'Welche Shop-Adresse?' });
+    expect(wrapper.get('[data-sent]').text()).toContain('jonas@shop.test');
+    expect(wrapper.get('[data-reply-item="r-1"]').text()).toContain('Welche Shop-Adresse?');
+    expect(wrapper.get('[data-reply-item="r-1"]').text()).toContain('Нужны подробности');
+    expect((wrapper.get('[data-field="status"]').element as HTMLSelectElement).value).toBe('in_progress');
+  });
+
   it('shows a message without the form to staff who may only read', async () => {
     mocked.fetchContactRequest.mockResolvedValue({ id: 'c-1', locale: 'en', name: 'Ann', email: 'ann@shop.test', company: null, message: 'Hello there', status: 'in_progress', note: 'Called back', handled_by: 'Founder', created_at: null, updated_at: null, closed_at: null });
     const { wrapper } = await open('/owner/contact-requests/c-1', ['contacts.read']);
 
     expect(wrapper.get('[data-message]').text()).toBe('Hello there');
     expect(wrapper.find('[data-form="contact"]').exists()).toBe(false);
+    expect(wrapper.find('[data-action="reply"]').exists()).toBe(false);
     expect(wrapper.text()).toContain('Called back');
   });
 });

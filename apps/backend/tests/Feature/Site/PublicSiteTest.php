@@ -259,6 +259,39 @@ class PublicSiteTest extends TestCase
         $this->assertNull(ContactRequest::query()->find($stored->id)->notified_at);
     }
 
+    public function test_support_replies_to_a_message_by_email_from_a_template_and_the_reply_is_kept(): void
+    {
+        Mail::fake();
+        $request = ContactRequest::query()->create(['locale' => 'de', 'name' => 'Jonas', 'email' => 'jonas@shop.test', 'message' => 'Wie verbinde ich zwei Shops?', 'status' => 'new']);
+        $this->signIn(PlatformStaff::ROLE_SUPPORT);
+
+        $card = $this->getJson("/platform-api/v1/contact-requests/{$request->id}")->assertOk()->assertJsonPath('replies', [])->json();
+        $this->assertSame(['answer', 'more_details', 'resolved'], array_column($card['reply_templates'], 'code'));
+        $this->assertSame('Business Watchdog: bitte ein paar Details', $card['reply_templates'][1]['subject']);
+
+        $this->postJson("/platform-api/v1/contact-requests/{$request->id}/replies", ['template' => 'answer', 'subject' => 'Antwort', 'body' => ''])->assertStatus(422);
+        $this->postJson("/platform-api/v1/contact-requests/{$request->id}/replies", ['template' => 'other', 'subject' => 'Antwort', 'body' => 'Text'])->assertStatus(422);
+        Mail::assertNothingSent();
+
+        $sent = $this->postJson("/platform-api/v1/contact-requests/{$request->id}/replies", ['template' => 'answer', 'subject' => 'Antwort auf Ihre Frage', 'body' => 'Fügen Sie den zweiten Shop im Kundenkonto hinzu.'])
+            ->assertCreated()->assertJsonPath('status', 'in_progress')->assertJsonPath('replies.0.subject', 'Antwort auf Ihre Frage')->assertJsonPath('replies.0.sent_by', 'Staff')->assertJsonPath('replies.0.template', 'answer');
+        $this->assertSame('Fügen Sie den zweiten Shop im Kundenkonto hinzu.', $sent->json('replies.0.body'));
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('jonas@shop.test') && $mail->subjectLine === 'Antwort auf Ihre Frage'
+            && str_contains($mail->bodyText, 'Hallo Jonas,') && str_contains($mail->bodyText, 'zweiten Shop') && str_contains($mail->bodyText, 'Wie verbinde ich zwei Shops?') && str_contains($mail->bodyText, 'Business-Watchdog-Team'));
+        $this->assertSame('site.contact.replied', DB::table('platform_audit_log')->where('target_id', $request->id)->where('action', 'site.contact.replied')->value('action'));
+
+        $request->forceFill(['status' => 'closed', 'closed_at' => Carbon::now()])->save();
+        $this->postJson("/platform-api/v1/contact-requests/{$request->id}/replies", ['template' => 'resolved', 'subject' => 'Geklärt', 'body' => 'Alles erledigt.'])->assertCreated()->assertJsonPath('status', 'closed')->assertJsonCount(2, 'replies');
+
+        Mail::shouldReceive('to')->andThrow(new RuntimeException('smtp down'));
+        $this->postJson("/platform-api/v1/contact-requests/{$request->id}/replies", ['template' => 'answer', 'subject' => 'Noch was', 'body' => 'Text dazu'])->assertStatus(502)->assertJsonPath('code', 'reply_not_sent');
+        $this->assertSame(2, DB::table('contact_request_replies')->where('contact_request_id', $request->id)->count());
+
+        $request->forceFill(['closed_at' => Carbon::now()->subDays(400)])->save();
+        $this->artisan('site:contact-purge')->assertSuccessful();
+        $this->assertSame(0, DB::table('contact_request_replies')->count());
+    }
+
     public function test_messages_are_handled_in_the_owner_panel_by_role_and_closed_ones_expire(): void
     {
         $request = ContactRequest::query()->create(['locale' => 'de', 'name' => 'Jonas', 'email' => 'jonas@shop.test', 'message' => str_repeat('Frage zur Einrichtung. ', 20), 'status' => 'new']);
@@ -285,6 +318,7 @@ class PublicSiteTest extends TestCase
 
         $this->getJson('/platform-api/v1/contact-requests')->assertOk();
         $this->patchJson("/platform-api/v1/contact-requests/{$request->id}", ['status' => 'closed'])->assertForbidden();
+        $this->postJson("/platform-api/v1/contact-requests/{$request->id}/replies", ['template' => 'answer', 'subject' => 'Hi', 'body' => 'Text'])->assertForbidden();
         $this->postJson('/platform-api/v1/pages', ['slug' => 'about'])->assertForbidden();
     }
 

@@ -169,7 +169,9 @@
     "plan_store_limit_reached": "Der Tarif des Kunden erlaubt keine weiteren Shops.",
     "already_member": "Diese Person gehört bereits zur Organisation.",
     "role_not_assignable": "Diese Rolle kann nicht per Einladung vergeben werden.",
-    "invitation_not_found": "Einladung nicht gefunden."
+    "invitation_not_found": "Einladung nicht gefunden.",
+    "reply_not_sent": "Der Mailserver hat die E-Mail abgelehnt — die Antwort wurde weder gesendet noch gespeichert. Bitte später erneut versuchen.",
+    "reply_invalid": "Geben Sie Betreff und Antworttext ein."
   },
   "period": {
     "per": {
@@ -741,7 +743,23 @@
     "save": "Speichern",
     "saved": "Gespeichert.",
     "handled_by": "Letzte Änderung: {name}",
-    "retention": "Eine geschlossene Anfrage wird 365 Tage nach dem Schließen gelöscht."
+    "retention": "Eine geschlossene Anfrage wird 365 Tage nach dem Schließen gelöscht.",
+    "replies": {
+      "title": "Antworten",
+      "reply": "Antworten",
+      "sent": "Antwort an {email} gesendet.",
+      "template": "Vorlage",
+      "subject": "Betreff",
+      "body": "Antworttext",
+      "frame": "Eine Anrede an „{name}“, die Signatur des Teams und die ursprüngliche Nachricht werden automatisch ergänzt; Sprache der E-Mail: {locale}.",
+      "send": "An {email} senden",
+      "none": "Noch keine Antworten.",
+      "templates": {
+        "answer": "Antwort",
+        "more_details": "Details nötig",
+        "resolved": "Geklärt"
+      }
+    }
   },
   "contact_status": {
     "new": "Neu",

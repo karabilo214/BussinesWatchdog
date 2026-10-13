@@ -155,6 +155,15 @@ try {
   await row.waitFor();
   await row.getByRole('link', { name: 'Live Visitor' }).click();
   await page.locator('[data-message]').getByText('двух магазинов').waitFor();
+  await page.locator('[data-action="reply"]').click();
+  await page.locator('[data-field="reply-template"]').selectOption('more_details');
+  await page.locator('[data-field="reply-body"]').fill('Welche zwei Shops möchten Sie verbinden?');
+  await page.locator('[data-action="send-reply"]').click();
+  await page.locator('[data-sent]').waitFor();
+  await page.locator('[data-reply-item]').getByText('Welche zwei Shops').waitFor();
+  const replies = await (await fetch(`${process.env.BW_MAILPIT_URL}/api/v1/messages?limit=50`)).json();
+  if (!replies.messages.some((mail) => mail.To.some((to) => to.Address === visitor))) throw new Error('reply email not found in Mailpit');
+  console.log('ok   reply sent to the visitor from a template (email in Mailpit) and kept in the message');
   await page.locator('[data-field="status"]').selectOption('closed');
   await page.locator('[data-field="note"]').fill('Ответили письмом');
   await page.locator('[data-action="save"]').click();

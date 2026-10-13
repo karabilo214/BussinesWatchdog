@@ -98,6 +98,14 @@ return [
         'retention_days' => ':n days',
     ],
     'contact' => [
+        'reply' => [
+            'letter' => "Hello :name,\n\n:body\n\nBest regards,\nthe Business Watchdog team\n\n— Your message of :date —\n:message",
+            'templates' => [
+                'answer' => ['subject' => 'Reply to your message to Business Watchdog', 'body' => "Thank you for writing to us.\n\n"],
+                'more_details' => ['subject' => 'Business Watchdog: a few more details, please', 'body' => "Thank you for your message. To help you we need a little more information:\n\n— the address of the shop;\n— what exactly happened and when.\n\nJust reply to this email."],
+                'resolved' => ['subject' => 'Business Watchdog: your question is resolved', 'body' => "We are glad to tell you that your question is resolved.\n\nIf you need anything else, just reply to this email."],
+            ],
+        ],
         'title' => 'Contact us',
         'lead' => 'Ask about the service, pricing or setup — we will reply to the email you give.',
         'name' => 'Your name',

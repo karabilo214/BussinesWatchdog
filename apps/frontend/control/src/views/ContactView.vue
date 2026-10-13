@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { StatusBadge } from '@bw/ui';
 import { fetchContactRequest, updateContactRequest, type ContactRequest, type ContactStatus } from '@/api';
+import ContactReplies from '@/components/ContactReplies.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { CONTACT_TONES } from '@/components/tones';
 import { useFormat } from '@/composables/useFormat';
@@ -77,6 +78,8 @@ onMounted(load);
         <section class="rounded-xl border border-border bg-surface p-5 text-sm">
           <p class="whitespace-pre-wrap break-words" data-message>{{ item.message }}</p>
         </section>
+
+        <ContactReplies :item="item" :manage="manage" @updated="accept" />
 
         <form v-if="manage" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 text-sm" data-form="contact" @submit.prevent="save">
           <label class="flex max-w-xs flex-col gap-1.5">
