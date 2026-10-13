@@ -45,6 +45,7 @@ const draft = reactive({
   trialDays: 0,
   graceDays: 30,
   contactSales: false,
+  fasterMinutes: '' as string | number,
   features: [] as string[],
   limits: {} as Record<string, string>,
   unlimited: {} as Record<string, boolean>,
@@ -68,6 +69,7 @@ function fill(current: PlanVersion): void {
   draft.trialDays = current.trial_days;
   draft.graceDays = current.order_volume_grace_days;
   draft.contactSales = current.contact_sales;
+  draft.fasterMinutes = current.faster_check_interval_minutes ?? '';
   draft.features = [...current.entitlements.features];
 
   for (const limit of catalog.value?.catalog.limits ?? []) {
@@ -148,6 +150,7 @@ async function save(): Promise<void> {
       trial_days: draft.trialDays,
       order_volume_grace_days: draft.graceDays,
       contact_sales: draft.contactSales,
+      faster_check_interval_minutes: draft.fasterMinutes === '' ? null : Number(draft.fasterMinutes),
       entitlements: { features: draft.features, limits },
     });
     await load();
@@ -252,6 +255,11 @@ onMounted(load);
             <input v-model.number="draft.graceDays" :disabled="!editable" type="number" min="0" max="365" class="rounded-md border border-border-strong bg-surface px-3 py-2 disabled:bg-surface-muted" data-field="grace-days" />
             <span class="text-[13px] text-text-muted">{{ $t('plans.grace_hint') }}</span>
           </label>
+          <label class="flex max-w-xs flex-col gap-1.5 text-sm">
+            <span class="font-medium">{{ $t('plans.faster_minutes') }}</span>
+            <input v-model="draft.fasterMinutes" :disabled="!editable" type="number" min="5" max="1440" class="rounded-md border border-border-strong bg-surface px-3 py-2 disabled:bg-surface-muted" data-field="faster-minutes" />
+            <span class="text-[13px] text-text-muted">{{ $t('plans.faster_hint') }}</span>
+          </label>
           <label class="flex items-start gap-2 text-sm">
             <input v-model="draft.contactSales" :disabled="!editable" type="checkbox" class="mt-0.5 size-4 accent-primary" data-field="contact-sales" />
             <span class="flex flex-col gap-0.5">
@@ -334,6 +342,7 @@ onMounted(load);
               <select v-model="newPrice.kind" class="rounded-md border border-border-strong bg-surface px-2 py-2" data-field="kind">
                 <option value="base">{{ $t('plans.kind.base') }}</option>
                 <option value="extra_store">{{ $t('plans.kind.extra_store') }}</option>
+                <option value="faster_checks">{{ $t('plans.kind.faster_checks') }}</option>
               </select>
             </label>
             <label class="flex flex-col gap-1.5 text-sm">

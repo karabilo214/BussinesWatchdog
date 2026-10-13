@@ -80,6 +80,25 @@ class EntitlementCalculator
     }
 
     /**
+     * The faster-checks add-on (ADR 0041) lowers the minimum browser check interval of the plan to its own interval;
+     * it never raises it.
+     *
+     * @param  array{features: list<string>, limits: array<string, ?int>}  $entitlements
+     * @return array{features: list<string>, limits: array<string, ?int>}
+     */
+    public static function withFasterChecks(array $entitlements, ?int $minutes): array
+    {
+        if ($minutes === null) {
+            return $entitlements;
+        }
+
+        $current = $entitlements['limits'][FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES] ?? null;
+        $entitlements['limits'][FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES] = $current === null ? null : min($current, $minutes);
+
+        return $entitlements;
+    }
+
+    /**
      * Stores bought on top of the plan raise `max_active_stores` (capped by `max_extra_stores`); per-store limits are
      * multiplied by the resulting number of stores, because every store brings its own load.
      *
@@ -137,7 +156,7 @@ class EntitlementCalculator
             ->where('ends_at', '>', $now)
             ->latest('starts_at')
             ->first();
-        $snapshot = $subscription === null ? null : self::withStores(FeatureCatalog::normalize($subscription->entitlements ?? []), (int) $subscription->extra_store_quantity);
+        $snapshot = $subscription === null ? null : self::withFasterChecks(self::withStores(FeatureCatalog::normalize($subscription->entitlements ?? []), (int) $subscription->extra_store_quantity), $subscription->faster_check_interval_minutes);
         $paid = $subscription !== null && $subscription->status === Subscription::STATUS_ACTIVE && ($subscription->period_end === null || $subscription->period_end->greaterThan($now));
 
         if ($override !== null) {

@@ -36,7 +36,7 @@ export type Localized = Partial<Record<'ru' | 'en' | 'de', string>>;
 
 export interface PlanPrice {
   id: string;
-  kind: 'base' | 'extra_store';
+  kind: 'base' | 'extra_store' | 'faster_checks';
   mode: 'test' | 'live';
   currency: string;
   currency_exponent: number;
@@ -63,6 +63,7 @@ export interface PlanVersion {
   trial_days: number;
   order_volume_grace_days: number;
   contact_sales: boolean;
+  faster_check_interval_minutes: number | null;
   entitlements: PlanEntitlements;
   published_at: string | null;
   subscribers: number;
@@ -113,7 +114,7 @@ export async function createVersion(planId: string): Promise<PlanVersion> {
 
 export async function updateVersion(
   versionId: string,
-  changes: Partial<{ name: Localized; description: Localized; trial_days: number; order_volume_grace_days: number; contact_sales: boolean; entitlements: PlanEntitlements }>,
+  changes: Partial<{ name: Localized; description: Localized; trial_days: number; order_volume_grace_days: number; contact_sales: boolean; faster_check_interval_minutes: number | null; entitlements: PlanEntitlements }>,
 ): Promise<PlanVersion> {
   return (await request<PlanVersion>('PATCH', `/platform-api/v1/plan-versions/${encodeURIComponent(versionId)}`, { body: changes })).data;
 }

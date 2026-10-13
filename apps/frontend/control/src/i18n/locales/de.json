@@ -148,7 +148,9 @@
     "system_page": "Eine Systemseite kann nicht gelöscht werden.",
     "page_not_found": "Seite nicht gefunden.",
     "contact_request_not_found": "Anfrage nicht gefunden.",
-    "grace_days_invalid": "Die Kulanzzeit beträgt 0 bis 365 Tage."
+    "grace_days_invalid": "Die Kulanzzeit beträgt 0 bis 365 Tage.",
+    "faster_check_interval_invalid": "Das Intervall beträgt 5 bis 1440 Minuten und liegt unter dem Paket-Intervall; ohne es kann kein Preis für häufigere Prüfungen veröffentlicht werden.",
+    "faster_checks_unavailable": "Dieses Paket hat keinen Zusatz für häufigere Prüfungen."
   },
   "period": {
     "per": {
@@ -216,7 +218,8 @@
     "prices_hint": "Preise werden für den aktuellen Zahlungsmodus angelegt: {mode}.",
     "kind": {
       "base": "Grundpreis",
-      "extra_store": "Pro zusätzlichem Shop"
+      "extra_store": "Pro zusätzlichem Shop",
+      "faster_checks": "Häufigere Prüfungen (Zusatz)"
     },
     "at_provider": "bei Paddle angelegt",
     "remove": "Entfernen",
@@ -251,7 +254,9 @@
     "grace_days": "Kulanzzeit bei Überschreitung, Tage",
     "grace_hint": "Wie viele Tage nach dem Hinweis ein Shop über dem Bestelllimit laufen darf, während der Kunde ein Paket wählt. Der Schutz bleibt an, es wird nichts zusätzlich berechnet.",
     "contact_sales": "Individueller Preis",
-    "contact_sales_hint": "Erscheint auf der Website als „Individuell“ mit Kontakt-Button; braucht keine Preise und ist im Konto nicht kaufbar."
+    "contact_sales_hint": "Erscheint auf der Website als „Individuell“ mit Kontakt-Button; braucht keine Preise und ist im Konto nicht kaufbar.",
+    "faster_minutes": "Intervall häufigerer Prüfungen, Min.",
+    "faster_hint": "Zusatz „häufigere Prüfungen“: Der Kunde kann ihn mit dem Paket kaufen, dann laufen Checkout-Prüfungen in diesem Intervall. Kleiner als das Paket-Intervall setzen und einen Preis der Art „Häufigere Prüfungen“ hinzufügen. Leer — kein Zusatz."
   },
   "discounts": {
     "hint": "Gutscheincodes, Rabatte für bestimmte Kunden und Aktionen. Unser Server wendet den Rabatt beim Kauf an und übergibt ihn mit der Bestellung an Paddle.",

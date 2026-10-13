@@ -179,6 +179,25 @@ describe('BillingView', () => {
     expect(card.text()).toMatch(/Итого: 37,00\s€ в месяц/);
   });
 
+  it('adds faster checks to the purchase and to the total only for a package that offers them', async () => {
+    session.value = sessionFor('owner');
+    const withFaster: BillingPlan = { ...START, placeholder: false, faster_check_interval_minutes: 5, prices: [...START.prices, { ...START.prices[0]!, id: 'p-faster', kind: 'faster_checks', amount_minor: '500' }] };
+    api.fetchPlans.mockResolvedValue(catalog({ data: [withFaster, PRO] }));
+    api.startCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 0, discounts: null, access_state: 'onboarding', provider_checkout: null });
+    api.fetchCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 0, discounts: null, access_state: 'onboarding', provider_checkout: null });
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-faster="pro"]').exists()).toBe(false);
+    const card = wrapper.get('[data-plan="start"]');
+    expect(card.text()).toContain('Частые проверки — раз в 5 мин (+5,00');
+    await card.get('[data-faster="start"]').setValue(true);
+    expect(card.text()).toContain('24,00');
+    await card.get('[data-action="buy-start"]').trigger('click');
+    await flushPromises();
+
+    expect(api.startCheckout).toHaveBeenCalledWith('p-base', 0, expect.any(String), null, true);
+  });
+
   it('shows any billing period the owner set', async () => {
     session.value = sessionFor('owner');
     const biweekly: BillingPlan = { ...START, prices: [{ ...START.prices[0]!, interval: 'week', interval_count: 2 }, { ...START.prices[1]!, interval: 'day', interval_count: 21 }] };
@@ -277,7 +296,7 @@ describe('BillingView', () => {
 
     await wrapper.get('[data-action="buy-start"]').trigger('click');
     await flushPromises();
-    expect(api.startCheckout).toHaveBeenCalledWith('p-base', 0, expect.any(String), 'launch');
+    expect(api.startCheckout).toHaveBeenCalledWith('p-base', 0, expect.any(String), 'launch', false);
   });
 
   it('explains a promo code that does not work', async () => {
@@ -332,7 +351,7 @@ describe('BillingView', () => {
     await wrapper.get('[data-action="change-pro"]').trigger('click');
     await flushPromises();
 
-    expect(api.previewPlanChange).toHaveBeenCalledWith('p-pro', 1, null);
+    expect(api.previewPlanChange).toHaveBeenCalledWith('p-pro', 1, null, false);
     const panel = wrapper.get('[data-panel="plan-change"]');
     expect(panel.get('[data-preview="due-now"]').text()).toMatch(/33,41\s€/);
     expect(panel.get('[data-preview="next"]').text()).toMatch(/56,00\s€\s+50,40\s€/);
@@ -366,7 +385,7 @@ describe('BillingView', () => {
     await panel.get('[data-action="preview-change"]').trigger('click');
     await flushPromises();
 
-    expect(api.previewPlanChange).toHaveBeenCalledWith('p-base', 0, ['s-2']);
+    expect(api.previewPlanChange).toHaveBeenCalledWith('p-base', 0, ['s-2'], false);
     expect(wrapper.get('[data-panel="plan-change"]').text()).toContain('Сейчас ничего не списывается');
     expect(wrapper.get('[data-action="confirm-change"]').text()).toContain('со следующего периода');
   });

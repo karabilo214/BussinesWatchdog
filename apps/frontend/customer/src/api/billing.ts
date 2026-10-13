@@ -23,7 +23,7 @@ export interface Entitlements {
 
 export interface BillingPrice {
   id: string;
-  kind: 'base' | 'extra_store';
+  kind: 'base' | 'extra_store' | 'faster_checks';
   currency: string;
   currency_exponent: number;
   amount_minor: string;
@@ -66,6 +66,7 @@ export interface BillingPlan {
   placeholder: boolean;
   trial_days: number;
   contact_sales?: boolean;
+  faster_check_interval_minutes?: number | null;
   order_volume_grace_days?: number;
   entitlements: { features: string[]; limits: Partial<Record<LimitCode, number | null>> };
   prices: BillingPrice[];
@@ -93,6 +94,7 @@ export interface BillingSubscription {
   period_end: string | null;
   cancel_at_period_end: boolean;
   extra_store_quantity: number;
+  faster_check_interval_minutes?: number | null;
   price: { id: string; amount_minor: string; currency: string; currency_exponent: number; billing_interval: string; billing_interval_count: number } | null;
   scheduled_change: PlanChange | null;
   capacity: StoreCapacity;
@@ -114,6 +116,7 @@ export interface PlanChangeSide {
   price_id: string;
   amount_minor: string | null;
   extra_store_quantity: number;
+  faster_checks?: boolean;
 }
 
 export interface PlanChange {
@@ -163,10 +166,10 @@ export async function startTrial(planVersionId: string): Promise<BillingSubscrip
   return (await request<BillingSubscription>('POST', '/api/v1/billing/trial', { body: { plan_version_id: planVersionId }, idempotencyKey: newIdempotencyKey() })).data;
 }
 
-export async function startCheckout(priceId: string, extraStores: number, idempotencyKey: string, discountCode: string | null = null): Promise<BillingCheckout> {
+export async function startCheckout(priceId: string, extraStores: number, idempotencyKey: string, discountCode: string | null = null, fasterChecks = false): Promise<BillingCheckout> {
   return (
     await request<BillingCheckout>('POST', '/api/v1/billing/checkout', {
-      body: discountCode === null ? { price_id: priceId, extra_stores: extraStores } : { price_id: priceId, extra_stores: extraStores, discount_code: discountCode },
+      body: { price_id: priceId, extra_stores: extraStores, ...(discountCode === null ? {} : { discount_code: discountCode }), ...(fasterChecks ? { faster_checks: true } : {}) },
       idempotencyKey,
     })
   ).data;
@@ -180,10 +183,10 @@ export async function fetchCheckout(id: string): Promise<BillingCheckout> {
   return (await request<BillingCheckout>('GET', `/api/v1/billing/checkouts/${encodeURIComponent(id)}`)).data;
 }
 
-export async function previewPlanChange(priceId: string, extraStores: number, retainedStoreIds: string[] | null): Promise<PlanChange> {
+export async function previewPlanChange(priceId: string, extraStores: number, retainedStoreIds: string[] | null, fasterChecks = false): Promise<PlanChange> {
   return (
     await request<PlanChange>('POST', '/api/v1/billing/plan-change-preview', {
-      body: retainedStoreIds === null ? { price_id: priceId, extra_stores: extraStores } : { price_id: priceId, extra_stores: extraStores, retained_store_ids: retainedStoreIds },
+      body: { price_id: priceId, extra_stores: extraStores, ...(retainedStoreIds === null ? {} : { retained_store_ids: retainedStoreIds }), ...(fasterChecks ? { faster_checks: true } : {}) },
     })
   ).data;
 }

@@ -151,6 +151,28 @@ class PlanAdminTest extends TestCase
         $this->getJson('/platform-api/v1/plans')->assertOk()->assertJsonPath('catalog.limits', FeatureCatalog::LIMITS);
     }
 
+    public function test_owner_offers_faster_checks_as_an_add_on_with_its_own_interval_and_price(): void
+    {
+        $this->signIn('owner@example.test', PlatformStaff::ROLE_OWNER);
+        Http::fake([
+            self::API.'/products' => Http::response(['data' => ['id' => 'pro_growth']]),
+            self::API.'/prices' => Http::sequence()->push(['data' => ['id' => 'pri_growth']])->push(['data' => ['id' => 'pri_growth_faster']]),
+        ]);
+        $draft = $this->postJson('/platform-api/v1/plans', ['code' => 'growth', 'name' => ['ru' => 'Growth', 'en' => 'Growth', 'de' => 'Growth']])->assertCreated()->json();
+        $this->patchJson("/platform-api/v1/plan-versions/{$draft['id']}", ['entitlements' => ['features' => [FeatureCatalog::CHECKOUT_MONITORING], 'limits' => [FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES => 15]]])->assertOk();
+        $this->price($draft['id'], ['kind' => 'base', 'currency' => 'EUR', 'amount_minor' => '7900', 'interval' => 'month', 'interval_count' => 1])->assertCreated();
+        $this->price($draft['id'], ['kind' => 'faster_checks', 'currency' => 'EUR', 'amount_minor' => '1500', 'interval' => 'month', 'interval_count' => 1])->assertCreated();
+
+        $this->patchJson("/platform-api/v1/plan-versions/{$draft['id']}", ['faster_check_interval_minutes' => 2])->assertStatus(422)->assertJsonPath('code', 'faster_check_interval_invalid');
+        $this->patchJson("/platform-api/v1/plan-versions/{$draft['id']}", ['faster_check_interval_minutes' => 30])->assertOk()->assertJsonPath('faster_check_interval_minutes', 30);
+        $this->publish($draft['id'], 'owner@example.test')->assertStatus(422)->assertJsonPath('code', 'faster_check_interval_invalid');
+
+        $this->patchJson("/platform-api/v1/plan-versions/{$draft['id']}", ['faster_check_interval_minutes' => 5])->assertOk();
+        $this->publish($draft['id'], 'owner@example.test')->assertOk()->assertJsonPath('state', 'published');
+        Http::assertSent(fn ($request): bool => $request->url() === self::API.'/prices' && $request['unit_price']['amount'] === '1500' && $request['quantity'] === ['minimum' => 1, 'maximum' => 1]);
+        $this->get('/ru/pricing')->assertSee('Частые проверки оформления заказа (раз в 5 мин): 15,00');
+    }
+
     public function test_a_paddle_failure_keeps_the_version_a_draft(): void
     {
         $this->signIn('owner@example.test', PlatformStaff::ROLE_OWNER);

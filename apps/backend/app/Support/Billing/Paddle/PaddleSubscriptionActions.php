@@ -62,13 +62,14 @@ class PaddleSubscriptionActions
     /**
      * @param  list<string>|null  $retainedStoreIds
      */
-    public function preview(string $tenantId, string $userId, string $priceId, int $extraStores, ?array $retainedStoreIds): BillingPlanChange
+    public function preview(string $tenantId, string $userId, string $priceId, int $extraStores, ?array $retainedStoreIds, bool $fasterChecks = false): BillingPlanChange
     {
         $contract = $this->activeContract($tenantId);
         $scheduled = $this->scheduledChange($contract->id);
         /** @var BillingPrice|null $from */
         $from = BillingPrice::query()->with('planVersion.plan')->find($scheduled?->from_price_id ?? $contract->price_id);
         $fromExtra = $scheduled?->from_extra_store_quantity ?? (int) $contract->extra_store_quantity;
+        $fromFaster = $scheduled?->from_faster_checks ?? (bool) $contract->faster_checks;
 
         if ($from === null) {
             throw new BillingCheckoutRejected('subscription_unknown');
@@ -90,13 +91,14 @@ class PaddleSubscriptionActions
             throw new BillingCheckoutRejected('interval_change_unsupported');
         }
 
-        if ($target->id === $from->id && $extraStores === $fromExtra) {
+        if ($target->id === $from->id && $extraStores === $fromExtra && $fasterChecks === $fromFaster) {
             throw new BillingCheckoutRejected($scheduled === null ? 'plan_unchanged' : 'scheduled_change_pending');
         }
 
         $extraPrice = $extraStores > 0 ? $this->catalog->extraStorePriceFor($target) : null;
-        $fromAmount = $this->recurringAmount($from, $fromExtra);
-        $toAmount = (int) $target->amount_minor + ($extraPrice === null ? 0 : (int) $extraPrice->amount_minor * $extraStores);
+        $fasterPrice = $fasterChecks ? ($this->catalog->fasterChecksPriceFor($target) ?? throw new BillingCheckoutRejected('faster_checks_unavailable')) : null;
+        $fromAmount = $this->recurringAmount($from, $fromExtra, $fromFaster);
+        $toAmount = (int) $target->amount_minor + ($extraPrice === null ? 0 : (int) $extraPrice->amount_minor * $extraStores) + ($fasterPrice === null ? 0 : (int) $fasterPrice->amount_minor);
         $kind = $fromAmount !== null && $toAmount >= $fromAmount ? BillingPlanChange::KIND_IMMEDIATE : BillingPlanChange::KIND_NEXT_PERIOD;
 
         if ($scheduled !== null && $kind === BillingPlanChange::KIND_IMMEDIATE) {
@@ -107,7 +109,7 @@ class PaddleSubscriptionActions
 
         try {
             $preview = $this->client->patch('/subscriptions/'.rawurlencode((string) $contract->provider_subscription_ref).'/preview', [
-                'items' => $this->items($target, $extraPrice, $extraStores),
+                'items' => $this->items($target, $extraPrice, $extraStores, $fasterPrice),
                 'proration_billing_mode' => $kind === BillingPlanChange::KIND_IMMEDIATE ? 'prorated_immediately' : 'do_not_bill',
             ])['data'];
         } catch (PaddleRequestFailed) {
@@ -122,7 +124,7 @@ class PaddleSubscriptionActions
 
         $quote = $this->ledger->nextPeriodQuote($contract, $target, $toAmount);
 
-        return DB::transaction(function () use ($tenantId, $userId, $contract, $kind, $from, $fromExtra, $target, $extraPrice, $extraStores, $retained, $dueNow, $quote): BillingPlanChange {
+        return DB::transaction(function () use ($tenantId, $userId, $contract, $kind, $from, $fromExtra, $fromFaster, $target, $extraPrice, $extraStores, $fasterPrice, $retained, $dueNow, $quote): BillingPlanChange {
             BillingPlanChange::query()->where('tenant_id', $tenantId)->where('status', BillingPlanChange::STATUS_PREVIEWED)->update(['status' => BillingPlanChange::STATUS_EXPIRED, 'updated_at' => Carbon::now()]);
 
             return BillingPlanChange::query()->create([
@@ -137,6 +139,9 @@ class PaddleSubscriptionActions
                 'to_price_id' => $target->id,
                 'to_extra_store_price_id' => $extraPrice?->id,
                 'to_extra_store_quantity' => $extraStores,
+                'from_faster_checks' => $fromFaster,
+                'to_faster_checks' => $fasterPrice !== null,
+                'to_faster_checks_price_id' => $fasterPrice?->id,
                 'retained_store_ids' => $retained,
                 'currency' => $target->currency,
                 'currency_exponent' => $target->currency_exponent,
@@ -197,11 +202,12 @@ class PaddleSubscriptionActions
         /** @var BillingPrice $target */
         $target = BillingPrice::query()->findOrFail($change->to_price_id);
         $extraPrice = $change->to_extra_store_price_id === null ? null : BillingPrice::query()->find($change->to_extra_store_price_id);
+        $fasterPrice = $change->to_faster_checks_price_id === null ? null : BillingPrice::query()->find($change->to_faster_checks_price_id);
         $immediate = $change->kind === BillingPlanChange::KIND_IMMEDIATE;
 
         try {
             $this->client->patch('/subscriptions/'.rawurlencode((string) $contract->provider_subscription_ref), [
-                'items' => $this->items($target, $extraPrice, $change->to_extra_store_quantity),
+                'items' => $this->items($target, $extraPrice, $change->to_extra_store_quantity, $fasterPrice),
                 'proration_billing_mode' => $immediate ? 'prorated_immediately' : 'do_not_bill',
                 'on_payment_failure' => 'prevent_change',
             ]);
@@ -233,6 +239,7 @@ class PaddleSubscriptionActions
             'from_price_id' => $change->from_price_id,
             'to_price_id' => $change->to_price_id,
             'to_extra_store_quantity' => $change->to_extra_store_quantity,
+            'to_faster_checks' => $change->to_faster_checks,
             'due_now_minor' => $change->due_now_minor,
         ]);
         $this->syncQuietly((string) $contract->provider_subscription_ref);
@@ -253,12 +260,14 @@ class PaddleSubscriptionActions
         $from = BillingPrice::query()->findOrFail($scheduled->from_price_id);
         $extraPrice = $scheduled->from_extra_store_quantity > 0 ? $this->extraPriceOf($from) : null;
 
-        if ($scheduled->from_extra_store_quantity > 0 && $extraPrice === null) {
+        $fasterPrice = $scheduled->from_faster_checks ? $this->fasterPriceOf($from) : null;
+
+        if (($scheduled->from_extra_store_quantity > 0 && $extraPrice === null) || ($scheduled->from_faster_checks && $fasterPrice === null)) {
             throw new BillingCheckoutRejected('subscription_unknown');
         }
 
         $this->patchSubscription($contract, [
-            'items' => $this->items($from, $extraPrice, $scheduled->from_extra_store_quantity),
+            'items' => $this->items($from, $extraPrice, $scheduled->from_extra_store_quantity, $fasterPrice),
             'proration_billing_mode' => 'do_not_bill',
         ]);
 
@@ -339,7 +348,7 @@ class PaddleSubscriptionActions
             }
 
             $contract->refresh();
-            $landed = $contract->price_id === $change->to_price_id && (int) $contract->extra_store_quantity === $change->to_extra_store_quantity;
+            $landed = $contract->price_id === $change->to_price_id && (int) $contract->extra_store_quantity === $change->to_extra_store_quantity && (bool) $contract->faster_checks === (bool) $change->to_faster_checks;
             $change->forceFill(['status' => match (true) {
                 ! $landed => BillingPlanChange::STATUS_FAILED,
                 $change->kind === BillingPlanChange::KIND_IMMEDIATE => BillingPlanChange::STATUS_APPLIED,
@@ -369,8 +378,8 @@ class PaddleSubscriptionActions
             'preview_token' => $change->status === BillingPlanChange::STATUS_PREVIEWED ? $change->id : null,
             'kind' => $change->kind,
             'status' => $change->status,
-            'from' => self::planDto($change->from_price_id, $change->from_extra_store_quantity),
-            'to' => self::planDto($change->to_price_id, $change->to_extra_store_quantity),
+            'from' => self::planDto($change->from_price_id, $change->from_extra_store_quantity, (bool) $change->from_faster_checks),
+            'to' => self::planDto($change->to_price_id, $change->to_extra_store_quantity, (bool) $change->to_faster_checks),
             'currency' => $change->currency,
             'currency_exponent' => $change->currency_exponent,
             'due_now_minor' => $change->due_now_minor,
@@ -386,7 +395,7 @@ class PaddleSubscriptionActions
     /**
      * @return array<string, mixed>
      */
-    private static function planDto(string $priceId, int $extraStores): array
+    private static function planDto(string $priceId, int $extraStores, bool $fasterChecks = false): array
     {
         /** @var BillingPrice|null $price */
         $price = BillingPrice::query()->with('planVersion.plan')->find($priceId);
@@ -397,6 +406,7 @@ class PaddleSubscriptionActions
             'price_id' => $priceId,
             'amount_minor' => $price === null ? null : (string) $price->amount_minor,
             'extra_store_quantity' => $extraStores,
+            'faster_checks' => $fasterChecks,
         ];
     }
 
@@ -405,10 +415,10 @@ class PaddleSubscriptionActions
         /** @var BillingSubscriptionContract $contract */
         $contract = BillingSubscriptionContract::query()->findOrFail($change->contract_id);
         $expected = $change->status === BillingPlanChange::STATUS_CANCELLED
-            ? [$change->from_price_id, $change->from_extra_store_quantity]
-            : [$change->to_price_id, $change->to_extra_store_quantity];
+            ? [$change->from_price_id, $change->from_extra_store_quantity, (bool) $change->from_faster_checks]
+            : [$change->to_price_id, $change->to_extra_store_quantity, (bool) $change->to_faster_checks];
 
-        if ([$contract->price_id, (int) $contract->extra_store_quantity] !== $expected) {
+        if ([$contract->price_id, (int) $contract->extra_store_quantity, (bool) $contract->faster_checks] !== $expected) {
             return false;
         }
 
@@ -468,15 +478,46 @@ class PaddleSubscriptionActions
         return $requested;
     }
 
-    private function recurringAmount(BillingPrice $base, int $extra): ?int
+    private function recurringAmount(BillingPrice $base, int $extra, bool $faster = false): ?int
     {
-        if ($extra === 0) {
-            return (int) $base->amount_minor;
+        $amount = (int) $base->amount_minor;
+
+        if ($extra > 0) {
+            $price = $this->extraPriceOf($base);
+
+            if ($price === null) {
+                return null;
+            }
+
+            $amount += (int) $price->amount_minor * $extra;
         }
 
-        $price = $this->extraPriceOf($base);
+        if ($faster) {
+            $price = $this->fasterPriceOf($base);
 
-        return $price === null ? null : (int) $base->amount_minor + (int) $price->amount_minor * $extra;
+            if ($price === null) {
+                return null;
+            }
+
+            $amount += (int) $price->amount_minor;
+        }
+
+        return $amount;
+    }
+
+    private function fasterPriceOf(BillingPrice $base): ?BillingPrice
+    {
+        return BillingPrice::query()
+            ->where('plan_version_id', $base->plan_version_id)
+            ->where('price_kind', BillingPrice::KIND_FASTER_CHECKS)
+            ->where('provider', $base->provider)
+            ->where('provider_account_ref', $base->provider_account_ref)
+            ->where('mode', $base->mode)
+            ->where('currency', $base->currency)
+            ->where('billing_interval', $base->billing_interval)
+            ->where('billing_interval_count', $base->billing_interval_count)
+            ->whereNotNull('provider_price_ref')
+            ->first();
     }
 
     private function extraPriceOf(BillingPrice $base): ?BillingPrice
@@ -497,12 +538,16 @@ class PaddleSubscriptionActions
     /**
      * @return list<array{price_id: string, quantity: int}>
      */
-    private function items(BillingPrice $base, ?BillingPrice $extra, int $extraStores): array
+    private function items(BillingPrice $base, ?BillingPrice $extra, int $extraStores, ?BillingPrice $faster = null): array
     {
         $items = [['price_id' => (string) $base->provider_price_ref, 'quantity' => 1]];
 
         if ($extra !== null && $extraStores > 0) {
             $items[] = ['price_id' => (string) $extra->provider_price_ref, 'quantity' => $extraStores];
+        }
+
+        if ($faster !== null) {
+            $items[] = ['price_id' => (string) $faster->provider_price_ref, 'quantity' => 1];
         }
 
         return $items;

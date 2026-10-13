@@ -27,6 +27,8 @@ class PlanAdmin
 
     public const MAX_GRACE_DAYS = 365;
 
+    public const MIN_FASTER_CHECK_MINUTES = 5;
+
     public const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'PLN', 'CZK', 'SEK', 'NOK', 'DKK', 'HUF', 'UAH', 'CAD', 'AUD', 'NZD', 'JPY', 'CNY', 'HKD', 'SGD', 'INR', 'KRW', 'TWD', 'THB', 'VND', 'ILS', 'TRY', 'ZAR', 'BRL', 'MXN', 'ARS', 'COP'];
 
     private const LIMIT_MINIMUMS = [
@@ -145,6 +147,16 @@ class PlanAdmin
                 $attributes['contact_sales'] = (bool) $changes['contact_sales'];
             }
 
+            if (array_key_exists('faster_check_interval_minutes', $changes)) {
+                $minutes = $changes['faster_check_interval_minutes'];
+
+                if ($minutes !== null && (! is_int($minutes) || $minutes < self::MIN_FASTER_CHECK_MINUTES || $minutes > 1440)) {
+                    throw new PlanAdminRejected('faster_check_interval_invalid');
+                }
+
+                $attributes['faster_check_interval_minutes'] = $minutes;
+            }
+
             $version->forceFill($attributes)->save();
             $this->audit->record($staffId, 'plan_version.updated', 'billing_plan_version', $version->id, PlatformAudit::RESULT_SUCCEEDED, ['fields' => array_keys($changes)]);
 
@@ -157,7 +169,7 @@ class PlanAdmin
         $currency = strtoupper($currency);
         $exponent = $this->exponent($currency);
 
-        if (! in_array($kind, [BillingPrice::KIND_BASE, BillingPrice::KIND_EXTRA_STORE], true)) {
+        if (! in_array($kind, [BillingPrice::KIND_BASE, BillingPrice::KIND_EXTRA_STORE, BillingPrice::KIND_FASTER_CHECKS], true)) {
             throw new PlanAdminRejected('price_kind_invalid');
         }
 
@@ -255,6 +267,7 @@ class PlanAdmin
                 'trial_days' => $latest->trial_days,
                 'order_volume_grace_days' => $latest->order_volume_grace_days,
                 'contact_sales' => $latest->contact_sales,
+                'faster_check_interval_minutes' => $latest->faster_check_interval_minutes,
                 'created_by' => $staffId,
             ]);
 
@@ -367,6 +380,7 @@ class PlanAdmin
             'trial_days' => $version->trial_days,
             'order_volume_grace_days' => $version->order_volume_grace_days,
             'contact_sales' => (bool) $version->contact_sales,
+            'faster_check_interval_minutes' => $version->faster_check_interval_minutes,
             'entitlements' => FeatureCatalog::normalize($version->entitlements),
             'published_at' => $version->published_at?->toJSON(),
             'subscribers' => $subscribers,
@@ -426,6 +440,13 @@ class PlanAdmin
 
         if (! $hasBase && ! $version->contact_sales) {
             throw new PlanAdminRejected('base_price_missing');
+        }
+
+        $hasFaster = BillingPrice::query()->where('plan_version_id', $version->id)->where('mode', PaddleConfig::mode())->where('price_kind', BillingPrice::KIND_FASTER_CHECKS)->exists();
+        $planInterval = FeatureCatalog::normalize($version->entitlements)['limits'][FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES] ?? null;
+
+        if ($hasFaster && ($version->faster_check_interval_minutes === null || $planInterval === null || $version->faster_check_interval_minutes >= $planInterval)) {
+            throw new PlanAdminRejected('faster_check_interval_invalid');
         }
     }
 

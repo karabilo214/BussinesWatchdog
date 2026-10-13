@@ -525,7 +525,8 @@
     "provider_outcome_unknown": "Paddle hat nicht geantwortet. Wir prüfen das Abonnement selbst — wiederholen Sie die Aktion nicht, laden Sie die Seite in einer Minute neu.",
     "no_scheduled_change": "Es ist kein Tarifwechsel geplant.",
     "cancel_not_scheduled": "Das Abonnement ist nicht gekündigt.",
-    "store_capacity_paused": "Dieser Shop ist durch den Tarif pausiert: Wählen Sie ihn auf der Abonnementseite aus, um ihn wieder zu prüfen."
+    "store_capacity_paused": "Dieser Shop ist durch den Tarif pausiert: Wählen Sie ihn auf der Abonnementseite aus, um ihn wieder zu prüfen.",
+    "faster_checks_unavailable": "Dieses Paket hat keinen Zusatz für häufigere Prüfungen."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -1548,6 +1549,9 @@
       "recommended": "Das Paket „{plan}“ passt.",
       "recommended_individual": "Das Paket „{plan}“ passt — die Konditionen werden individuell vereinbart.",
       "paused": "Seit {date} ist der Dienst pausiert: Das Bestellvolumen eines Shops liegt über dem Paket und die Kulanzzeit ist abgelaufen. Shop-Daten werden weiter empfangen. Sobald ein passendes Paket gekauft ist, geht es sofort weiter."
-    }
+    },
+    "faster_checks": "Häufigere Prüfungen — alle {minutes} Min. (+{price})",
+    "faster_checks_label": "Häufigere Prüfungen",
+    "faster_checks_value": "alle {minutes} Min."
   }
 }

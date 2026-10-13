@@ -332,6 +332,23 @@ class DiscountLedger
             $amount += (int) $extra->amount_minor * $contract->extra_store_quantity;
         }
 
+        if ($contract->faster_checks) {
+            $faster = BillingPrice::query()
+                ->where('plan_version_id', $base->plan_version_id)
+                ->where('price_kind', BillingPrice::KIND_FASTER_CHECKS)
+                ->where('mode', $base->mode)
+                ->where('currency', $base->currency)
+                ->where('billing_interval', $base->billing_interval)
+                ->where('billing_interval_count', $base->billing_interval_count)
+                ->first();
+
+            if ($faster === null) {
+                return null;
+            }
+
+            $amount += (int) $faster->amount_minor;
+        }
+
         return ['amount' => $amount, 'currency' => $base->currency, 'exponent' => $base->currency_exponent];
     }
 

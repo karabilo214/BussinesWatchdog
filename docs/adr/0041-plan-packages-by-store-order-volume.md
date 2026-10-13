@@ -1,6 +1,6 @@
 # ADR 0041: Plan packages by store order volume (pricing option)
 
-Status: partly implemented (Step 114: order counting, package order limit, grace period, notice, recommendation, individual-price package — all configured in the owner panel). Prices and limits below are examples to be checked against cost; the check-frequency add-on and retention by plan are not implemented yet. The owner accepted the history rule and the pause after the grace period (2026-10-12); prices and boundaries are the owner's to set.
+Status: partly implemented (Step 114: order counting, package order limit, grace period, notice, recommendation, individual-price package — all configured in the owner panel). Prices and limits below are examples to be checked against cost; retention by plan is not implemented yet. The owner accepted the history rule and the pause after the grace period (2026-10-12); prices and boundaries are the owner's to set.
 
 ## Context
 
@@ -63,4 +63,12 @@ Open for the owner: final prices and boundaries after the cost check, the grace 
 7. **Not changed**: `monthly_event_budget` keeps metering events (it is not the order counter); pilot mode (`WATCHDOG_BILLING_ENFORCEMENT=pilot`) evaluates nothing because limits are not enforced.
 
 Still open: the check-frequency add-on (a new price kind next to the extra store, through Paddle checkout and plan change), retention by plan, and the owner's decisions on prices, boundaries and grace period.
+
+## Faster checks add-on (Step 116)
+
+- **Owner panel**: a plan version has `faster_check_interval_minutes` (5–1440, empty — no add-on) and prices of the kind `faster_checks` (quantity 1 at Paddle, one per period and currency like the base price). Publishing a version with such a price requires the interval, and it must be shorter than the package's `min_check_interval_minutes`.
+- **Buying**: checkout and plan change take `faster_checks`; the Paddle subscription gets one more item. Adding it raises the recurring amount, so it is charged at once with proration (like an upgrade); removing it lowers the amount, so it applies at the end of the paid period (like a downgrade) and the add-on stays active until then. Offered only by the package's own price in the same currency and period (`faster_checks_unavailable` otherwise).
+- **Effect**: the contract and the subscription record the add-on; `EntitlementCalculator::withFasterChecks` lowers the plan's minimum check interval to the add-on's interval (never raises it, never limits a package without a minimum), so check scheduling and the scenario form follow it without other changes. Discounts of the next period include the add-on amount.
+- **Shown**: cabinet plan cards (a checkbox with interval and price, included in the total), subscription block («Faster checks: every N min»), public pricing page (add-on line).
+- Verified with tests only (Paddle fixtures); not yet run against the Paddle sandbox.
 

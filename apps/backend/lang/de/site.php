@@ -62,6 +62,7 @@ return [
         ],
         'test_mode' => 'Testmodus: Die Preise dienen zum Testen und sind kein Angebot.',
         'placeholder' => 'Beispieltarif',
+        'faster_checks' => 'Häufigere Checkout-Prüfungen (alle :minutes Min.): :amount',
         'individual' => 'Individuell',
         'contact_us' => 'Konditionen besprechen',
         'choose' => 'Tarif wählen',

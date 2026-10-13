@@ -525,7 +525,8 @@
     "provider_outcome_unknown": "Paddle did not answer. We will check the subscription ourselves — do not repeat the action, reload the page in a minute.",
     "no_scheduled_change": "No plan change is scheduled.",
     "cancel_not_scheduled": "The subscription is not cancelled.",
-    "store_capacity_paused": "This store is paused by the plan: choose it on the subscription page to check it again."
+    "store_capacity_paused": "This store is paused by the plan: choose it on the subscription page to check it again.",
+    "faster_checks_unavailable": "This package has no faster-checks add-on."
   },
   "incidents": {
     "title": "Incidents",
@@ -1548,6 +1549,9 @@
       "recommended": "The “{plan}” package fits.",
       "recommended_individual": "The “{plan}” package fits — its terms are agreed individually.",
       "paused": "Since {date} the service is paused: a store's order volume is above what the package covers and the grace period has ended. Store data is still received. Work resumes as soon as a fitting package is bought."
-    }
+    },
+    "faster_checks": "Faster checks — every {minutes} min (+{price})",
+    "faster_checks_label": "Faster checks",
+    "faster_checks_value": "every {minutes} min"
   }
 }

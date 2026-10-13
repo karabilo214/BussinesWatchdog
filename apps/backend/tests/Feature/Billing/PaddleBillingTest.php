@@ -82,6 +82,27 @@ class PaddleBillingTest extends TestCase
         $this->asMember($context)->getJson('/api/v1/billing/checkouts/'.$response->json('id'))->assertOk()->assertJsonPath('status', 'pending');
     }
 
+    public function test_checkout_adds_the_faster_checks_item_only_when_the_package_offers_it(): void
+    {
+        $context = $this->context();
+        $plan = $this->plan();
+        Http::fake([self::API.'/transactions' => Http::response(['data' => ['id' => 'txn_1', 'status' => 'draft']], 201)]);
+
+        $this->checkout($context, ['price_id' => $plan['base']->id, 'faster_checks' => true])->assertStatus(422)->assertJsonPath('code', 'faster_checks_unavailable');
+
+        $plan['version']->forceFill(['faster_check_interval_minutes' => 5])->save();
+        BillingPrice::query()->create([
+            'plan_version_id' => $plan['version']->id, 'provider' => 'paddle', 'provider_account_ref' => 'default', 'provider_price_ref' => 'pri_faster',
+            'price_kind' => BillingPrice::KIND_FASTER_CHECKS, 'mode' => 'test', 'currency' => 'EUR', 'currency_exponent' => 2, 'amount_minor' => 500,
+            'billing_interval' => 'month', 'tax_behavior' => 'provider_calculated', 'state' => BillingPlan::STATE_PUBLISHED,
+        ]);
+
+        $response = $this->checkout($context, ['price_id' => $plan['base']->id, 'extra_stores' => 1, 'faster_checks' => true])->assertStatus(202);
+
+        Http::assertSent(fn (Request $request): bool => $request['items'] === [['price_id' => 'pri_base', 'quantity' => 1], ['price_id' => 'pri_extra', 'quantity' => 1], ['price_id' => 'pri_faster', 'quantity' => 1]]);
+        $this->assertNotNull(BillingCheckoutSession::query()->find($response->json('id'))->faster_checks_price_id);
+    }
+
     public function test_checkout_is_owner_only_idempotent_and_refuses_a_second_live_subscription(): void
     {
         $owner = $this->context();

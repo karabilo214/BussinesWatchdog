@@ -148,7 +148,9 @@
     "system_page": "A system page cannot be deleted.",
     "page_not_found": "Page not found.",
     "contact_request_not_found": "Message not found.",
-    "grace_days_invalid": "The grace period is 0 to 365 days."
+    "grace_days_invalid": "The grace period is 0 to 365 days.",
+    "faster_check_interval_invalid": "The faster check interval is 5 to 1440 minutes and below the package interval; a faster-checks price cannot be published without it.",
+    "faster_checks_unavailable": "This package has no faster-checks add-on."
   },
   "period": {
     "per": {
@@ -216,7 +218,8 @@
     "prices_hint": "Prices are created for the current payment mode: {mode}.",
     "kind": {
       "base": "Base price",
-      "extra_store": "Per extra store"
+      "extra_store": "Per extra store",
+      "faster_checks": "Faster checks (add-on)"
     },
     "at_provider": "created in Paddle",
     "remove": "Remove",
@@ -251,7 +254,9 @@
     "grace_days": "Grace period when over the volume, days",
     "grace_hint": "How many days after the notice a store may run above the order limit while the customer chooses a package. Protection stays on and nothing extra is charged.",
     "contact_sales": "Individual price",
-    "contact_sales_hint": "Shown on the website as “Individual” with a contact button; needs no prices and cannot be bought in the account."
+    "contact_sales_hint": "Shown on the website as “Individual” with a contact button; needs no prices and cannot be bought in the account.",
+    "faster_minutes": "Faster check interval, min",
+    "faster_hint": "The faster-checks add-on: the customer can buy it with the package and checkout checks run at this interval. Set it below the package interval and add a price of the kind “Faster checks”. Empty — no add-on."
   },
   "discounts": {
     "hint": "Promo codes, discounts for specific customers and offers. Our server applies the discount at purchase and sends it to Paddle with the order.",

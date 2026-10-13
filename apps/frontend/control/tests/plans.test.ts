@@ -45,6 +45,7 @@ const DRAFT: PlanVersion = {
   trial_days: 14,
   order_volume_grace_days: 30,
   contact_sales: false,
+  faster_check_interval_minutes: null,
   entitlements: { features: ['checkout_monitoring'], limits: { max_active_stores: 2 } },
   published_at: null,
   subscribers: 0,
@@ -123,6 +124,7 @@ describe('plans', () => {
     await wrapper.get('[data-limit="max_orders_per_month"] input:not([type="checkbox"])').setValue('1000');
     await wrapper.get('[data-field="grace-days"]').setValue(21);
     await wrapper.get('[data-field="contact-sales"]').setValue(true);
+    await wrapper.get('[data-field="faster-minutes"]').setValue(5);
     expect(wrapper.text()).toContain('Заказов в месяц на магазин');
     await wrapper.get('[data-action="save"]').trigger('click');
     await flushPromises();
@@ -133,6 +135,7 @@ describe('plans', () => {
       trial_days: 14,
       order_volume_grace_days: 21,
       contact_sales: true,
+      faster_check_interval_minutes: 5,
       entitlements: { features: ['checkout_monitoring', 'money_reconciliation'], limits: { max_active_stores: 2, monthly_event_budget: null, max_orders_per_month: 1000 } },
     });
 

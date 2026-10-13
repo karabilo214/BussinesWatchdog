@@ -15,6 +15,8 @@ class BillingPrice extends Model
     /** Per additional store above the stores included in the plan (sold as a quantity). */
     public const KIND_EXTRA_STORE = 'extra_store';
 
+    public const KIND_FASTER_CHECKS = 'faster_checks';
+
     public $timestamps = false;
 
     protected $fillable = ['plan_version_id', 'provider', 'provider_account_ref', 'provider_price_ref', 'price_kind', 'mode', 'currency', 'currency_exponent', 'amount_minor', 'billing_interval', 'billing_interval_count', 'tax_behavior', 'state', 'provider_product_ref', 'created_at'];

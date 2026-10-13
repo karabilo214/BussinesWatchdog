@@ -29,7 +29,7 @@ class PaddleCheckout
         private readonly DiscountLedger $ledger,
     ) {}
 
-    public function start(string $tenantId, string $userId, string $priceId, int $extraStores, string $idempotencyKey, ?string $discountCode = null): BillingCheckoutSession
+    public function start(string $tenantId, string $userId, string $priceId, int $extraStores, string $idempotencyKey, ?string $discountCode = null, bool $fasterChecks = false): BillingCheckoutSession
     {
         if (! PaddleConfig::configured() || PaddleConfig::clientToken() === null) {
             throw new BillingCheckoutRejected('billing_not_configured');
@@ -37,9 +37,14 @@ class PaddleCheckout
 
         $discountCode = $discountCode === null || trim($discountCode) === '' ? null : DiscountResolver::normalizeCode($discountCode);
         $request = $discountCode === null ? compact('priceId', 'extraStores') : compact('priceId', 'extraStores', 'discountCode');
+
+        if ($fasterChecks) {
+            $request['fasterChecks'] = true;
+        }
+
         $hash = hash('sha256', json_encode($request, JSON_THROW_ON_ERROR));
 
-        [$session, $superseded] = DB::transaction(function () use ($tenantId, $userId, $priceId, $extraStores, $idempotencyKey, $hash, $discountCode): array {
+        [$session, $superseded] = DB::transaction(function () use ($tenantId, $userId, $priceId, $extraStores, $idempotencyKey, $hash, $discountCode, $fasterChecks): array {
             Tenant::query()->whereKey($tenantId)->lockForUpdate()->firstOrFail();
 
             /** @var BillingCheckoutSession|null $replay */
@@ -69,6 +74,7 @@ class PaddleCheckout
             }
 
             $extra = $extraStores > 0 ? $this->catalog->extraStorePriceFor($base) : null;
+            $faster = $fasterChecks ? ($this->catalog->fasterChecksPriceFor($base) ?? throw new BillingCheckoutRejected('faster_checks_unavailable')) : null;
             $discounts = $this->discounts->stack($tenantId, $base, $discountCode);
             $pending = BillingCheckoutSession::query()
                 ->where('tenant_id', $tenantId)
@@ -84,6 +90,7 @@ class PaddleCheckout
                 'price_id' => $base->id,
                 'extra_store_price_id' => $extra?->id,
                 'extra_store_quantity' => $extraStores,
+                'faster_checks_price_id' => $faster?->id,
                 'provider' => PaddleConfig::PROVIDER,
                 'provider_account_ref' => PaddleConfig::accountRef(),
                 'mode' => PaddleConfig::mode(),
@@ -93,7 +100,7 @@ class PaddleCheckout
                 'expires_at' => Carbon::now()->addHours((int) config('watchdog.billing.checkout_expires_hours')),
             ]);
 
-            $amount = (int) $base->amount_minor + ($extra === null ? 0 : (int) $extra->amount_minor * $extraStores);
+            $amount = (int) $base->amount_minor + ($extra === null ? 0 : (int) $extra->amount_minor * $extraStores) + ($faster === null ? 0 : (int) $faster->amount_minor);
             $this->ledger->recordCheckout($session, $discounts, $amount, $base->currency, $base->currency_exponent);
 
             return [$session, $pending->pluck('provider_session_ref')->filter()->values()->all()];
@@ -111,6 +118,10 @@ class PaddleCheckout
 
         if ($session->extra_store_quantity > 0) {
             $items[] = ['price_id' => BillingPrice::query()->whereKey($session->extra_store_price_id)->value('provider_price_ref'), 'quantity' => $session->extra_store_quantity];
+        }
+
+        if ($session->faster_checks_price_id !== null) {
+            $items[] = ['price_id' => BillingPrice::query()->whereKey($session->faster_checks_price_id)->value('provider_price_ref'), 'quantity' => 1];
         }
 
         try {

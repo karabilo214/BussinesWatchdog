@@ -14,6 +14,7 @@ use App\Models\CheckScenario;
 use App\Models\Store;
 use App\Models\Subscription;
 use App\Support\Billing\DiscountLedger;
+use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
 use App\Support\Billing\Paddle\PaddleSubscriptionSync;
@@ -99,6 +100,37 @@ class PlanChangeTest extends TestCase
         $this->confirm($context, (string) Str::uuid(), $key)->assertStatus(409)->assertJsonPath('code', 'idempotency_conflict');
         $this->confirm($context, $preview['preview_token'])->assertStatus(409)->assertJsonPath('code', 'preview_used');
         $this->assertDatabaseHas('audit_log', ['tenant_id' => $context['tenant']->id, 'action' => 'billing.plan_change_applied']);
+    }
+
+    public function test_faster_checks_are_added_at_once_and_removed_at_the_end_of_the_period(): void
+    {
+        $version = $this->plans['start']['version'];
+        $version->forceFill(['faster_check_interval_minutes' => 5, 'entitlements' => FeatureCatalog::normalize(['features' => [FeatureCatalog::CHECKOUT_MONITORING], 'limits' => [FeatureCatalog::MAX_ACTIVE_STORES => 1, FeatureCatalog::MAX_EXTRA_STORES => 4, FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES => 15]])])->save();
+        $this->price($version, BillingPrice::KIND_FASTER_CHECKS, 500, 'pri_start_faster');
+        $context = $this->subscribed('start', 0);
+        $interval = fn (): ?int => app(EntitlementCalculator::class)->forTenant($context['tenant']->id, now())->limit(FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES);
+        $this->assertSame(15, $interval());
+
+        $this->asMember($context)->postJson('/api/v1/billing/plan-change-preview', ['price_id' => $this->plans['pro']['base']->id, 'faster_checks' => true])
+            ->assertStatus(422)->assertJsonPath('code', 'faster_checks_unavailable');
+        $add = $this->asMember($context)->postJson('/api/v1/billing/plan-change-preview', ['price_id' => $this->plans['start']['base']->id, 'faster_checks' => true])
+            ->assertOk()->assertJsonPath('kind', BillingPlanChange::KIND_IMMEDIATE)->assertJsonPath('from.faster_checks', false)->assertJsonPath('to.faster_checks', true)->json();
+        $this->confirm($context, $add['preview_token'])->assertStatus(202)->assertJsonPath('subscription.faster_check_interval_minutes', 5);
+
+        $patch = collect($this->paddleWrites())->where('url', self::API.'/subscriptions/sub_1')->last();
+        $this->assertSame([['price_id' => 'pri_start', 'quantity' => 1], ['price_id' => 'pri_start_faster', 'quantity' => 1]], $patch['body']['items']);
+        $this->assertTrue((bool) BillingSubscriptionContract::query()->where('provider_subscription_ref', 'sub_1')->value('faster_checks'));
+        $this->assertSame(5, $interval());
+
+        $remove = $this->asMember($context)->postJson('/api/v1/billing/plan-change-preview', ['price_id' => $this->plans['start']['base']->id])
+            ->assertOk()->assertJsonPath('kind', BillingPlanChange::KIND_NEXT_PERIOD)->json();
+        $this->confirm($context, $remove['preview_token'])->assertStatus(202)->assertJsonPath('change.status', BillingPlanChange::STATUS_SCHEDULED);
+        $this->assertSame(5, Subscription::query()->where('tenant_id', $context['tenant']->id)->value('faster_check_interval_minutes'));
+
+        Carbon::setTestNow('2026-11-11T00:00:01Z');
+        app(PaddleSubscriptionActions::class)->settle();
+        $this->assertNull(Subscription::query()->where('tenant_id', $context['tenant']->id)->value('faster_check_interval_minutes'));
+        $this->assertSame(15, $interval());
     }
 
     public function test_preview_expires_and_goes_stale_when_the_subscription_changes(): void

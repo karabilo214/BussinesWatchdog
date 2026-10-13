@@ -62,6 +62,9 @@
                         @if ($plan['extra_store'])
                             <p class="site-small">{{ __('site.pricing.extra_store', ['amount' => $plan['extra_store']]) }}</p>
                         @endif
+                        @if ($plan['faster_checks'])
+                            <p class="site-small">{{ __('site.pricing.faster_checks', ['minutes' => $plan['faster_checks']['minutes'], 'amount' => $plan['faster_checks']['price']]) }}</p>
+                        @endif
                         @if ($plan['trial_days'] > 0 && ! $plan['individual'])
                             <p class="site-small">{{ trans_choice('site.pricing.trial', $plan['trial_days'], ['n' => $plan['trial_days']]) }}</p>
                         @endif

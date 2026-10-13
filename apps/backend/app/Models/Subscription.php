@@ -19,13 +19,14 @@ class Subscription extends Model
 
     public const STATUS_CANCELLED = 'cancelled';
 
-    protected $fillable = ['tenant_id', 'provider', 'provider_customer_ref', 'provider_subscription_ref', 'plan_code', 'plan_version_id', 'entitlements', 'extra_store_quantity', 'status', 'period_start', 'period_end', 'trial_ends_at', 'past_due_since', 'cancel_at_period_end', 'version'];
+    protected $fillable = ['tenant_id', 'provider', 'provider_customer_ref', 'provider_subscription_ref', 'plan_code', 'plan_version_id', 'entitlements', 'extra_store_quantity', 'faster_check_interval_minutes', 'status', 'period_start', 'period_end', 'trial_ends_at', 'past_due_since', 'cancel_at_period_end', 'version'];
 
     protected function casts(): array
     {
         return [
             'entitlements' => 'array',
             'extra_store_quantity' => 'integer',
+            'faster_check_interval_minutes' => 'integer',
             'period_start' => 'datetime',
             'period_end' => 'datetime',
             'trial_ends_at' => 'datetime',

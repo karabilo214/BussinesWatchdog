@@ -63,7 +63,7 @@ class PaddleSubscriptionSync
             }
 
             $customer = $this->customer($tenantId, $subscription['customer_id'] ?? null, $updatedAt);
-            [$base, $extraQuantity, $problem] = $this->items($subscription['items'] ?? []);
+            [$base, $extraQuantity, $problem, $faster] = $this->items($subscription['items'] ?? []);
             $state = $problem === null ? (self::STATE[$subscription['status'] ?? ''] ?? BillingSubscriptionContract::STATE_UNKNOWN) : BillingSubscriptionContract::STATE_UNKNOWN;
             $period = is_array($subscription['current_billing_period'] ?? null) ? $subscription['current_billing_period'] : [];
             $periodEnd = isset($period['ends_at']) ? Carbon::parse($period['ends_at']) : null;
@@ -87,7 +87,8 @@ class PaddleSubscriptionSync
                     'plan_version_id' => $base->plan_version_id,
                     'price_id' => $base->id,
                     'extra_store_quantity' => $extraQuantity,
-                    'entitlement_snapshot' => EntitlementCalculator::withStores(FeatureCatalog::normalize($base->planVersion->entitlements), $extraQuantity),
+                    'faster_checks' => $faster,
+                    'entitlement_snapshot' => EntitlementCalculator::withFasterChecks(EntitlementCalculator::withStores(FeatureCatalog::normalize($base->planVersion->entitlements), $extraQuantity), $faster ? $base->planVersion->faster_check_interval_minutes : null),
                 ];
             }
 
@@ -169,12 +170,13 @@ class PaddleSubscriptionSync
     }
 
     /**
-     * @return array{0: ?BillingPrice, 1: int, 2: ?string}
+     * @return array{0: ?BillingPrice, 1: int, 2: ?string, 3: bool}
      */
     private function items(mixed $items): array
     {
         $base = null;
         $extra = 0;
+        $faster = false;
 
         foreach (is_array($items) ? $items : [] as $item) {
             $ref = $item['price']['id'] ?? null;
@@ -193,25 +195,27 @@ class PaddleSubscriptionSync
                 ->first();
 
             if ($price === null) {
-                return [null, 0, 'unknown_price'];
+                return [null, 0, 'unknown_price', false];
             }
 
             if ($price->price_kind === BillingPrice::KIND_BASE) {
                 if ($base !== null) {
-                    return [null, 0, 'several_base_prices'];
+                    return [null, 0, 'several_base_prices', false];
                 }
 
                 $base = $price;
+            } elseif ($price->price_kind === BillingPrice::KIND_FASTER_CHECKS) {
+                $faster = true;
             } else {
                 $extra += (int) ($item['quantity'] ?? 0);
             }
         }
 
         if ($base === null) {
-            return [null, 0, 'base_price_missing'];
+            return [null, 0, 'base_price_missing', false];
         }
 
-        return [$base, $extra, null];
+        return [$base, $extra, null, $faster];
     }
 
     private function customer(string $tenantId, mixed $customerRef, Carbon $updatedAt): ?BillingCustomer

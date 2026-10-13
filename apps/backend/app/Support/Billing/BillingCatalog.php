@@ -62,6 +62,24 @@ class BillingCatalog
     }
 
     /**
+     * The faster-checks add-on price of the same plan version, period and currency as the base price; null when the
+     * package offers no such add-on.
+     */
+    public function fasterChecksPriceFor(BillingPrice $base): ?BillingPrice
+    {
+        /** @var BillingPrice|null $price */
+        $price = $this->prices()
+            ->where('plan_version_id', $base->plan_version_id)
+            ->where('price_kind', BillingPrice::KIND_FASTER_CHECKS)
+            ->where('billing_interval', $base->billing_interval)
+            ->where('billing_interval_count', $base->billing_interval_count)
+            ->where('currency', $base->currency)
+            ->first();
+
+        return $price !== null && BillingPlanVersion::query()->whereKey($base->plan_version_id)->value('faster_check_interval_minutes') !== null ? $price : null;
+    }
+
+    /**
      * @return list<BillingPlanVersion>
      */
     public function versions(): array
@@ -101,6 +119,7 @@ class BillingCatalog
             'trial_days' => $version->trial_days,
             'order_volume_grace_days' => $version->order_volume_grace_days,
             'contact_sales' => (bool) $version->contact_sales,
+            'faster_check_interval_minutes' => $version->faster_check_interval_minutes,
             'entitlements' => FeatureCatalog::normalize($version->entitlements),
             'prices' => ($prices[$version->id] ?? collect())->map(fn (BillingPrice $price): array => [
                 'id' => $price->id,

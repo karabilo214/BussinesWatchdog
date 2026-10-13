@@ -78,6 +78,7 @@ const loadError = ref<unknown>(null);
 const actionError = ref<unknown>(null);
 const busy = ref<string | null>(null);
 const extraStores = reactive<Record<string, number>>({});
+const fasterChecks = reactive<Record<string, boolean>>({});
 const checkout = ref<BillingCheckout | null>(null);
 const checkoutPhase = ref<'idle' | 'open' | 'confirming' | 'confirmed' | 'failed'>('idle');
 const trialStarted = ref(false);
@@ -85,7 +86,7 @@ const promo = reactive({ input: '', code: null as string | null, results: {} as 
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let polls = 0;
 let pendingKey: { selection: string; key: string } | null = null;
-const change = reactive({ plan: null as BillingPlan | null, extra: 0, limit: null as number | null, retained: [] as string[], preview: null as PlanChange | null, key: '' });
+const change = reactive({ plan: null as BillingPlan | null, extra: 0, faster: false, limit: null as number | null, retained: [] as string[], preview: null as PlanChange | null, key: '' });
 const notice = ref<'applied' | 'scheduled' | 'withdrawn' | 'cancelled' | 'resumed' | 'retained' | null>(null);
 const cancelForm = reactive({ open: false, reason: '' });
 const capacityChoice = ref<string[]>([]);
@@ -122,8 +123,9 @@ function totalMinor(plan: BillingPlan): bigint | null {
   }
 
   const quantity = BigInt(extraStores[plan.plan_version_id] ?? 0);
+  const faster = fasterSelected(plan) ? price(plan, 'faster_checks') : null;
 
-  return BigInt(base.amount_minor) + (extra === null ? 0n : BigInt(extra.amount_minor) * quantity);
+  return BigInt(base.amount_minor) + (extra === null ? 0n : BigInt(extra.amount_minor) * quantity) + (faster === null ? 0n : BigInt(faster.amount_minor));
 }
 
 function total(plan: BillingPlan): string | null {
@@ -286,18 +288,28 @@ function selectedExtra(plan: BillingPlan): number {
   return Math.max(0, Math.min(maxExtra(plan), Math.trunc(extraStores[plan.plan_version_id] ?? 0)));
 }
 
+function offersFaster(plan: BillingPlan): boolean {
+  return price(plan, 'faster_checks') !== null && (plan.faster_check_interval_minutes ?? null) !== null;
+}
+
+function fasterSelected(plan: BillingPlan): boolean {
+  return offersFaster(plan) && fasterChecks[plan.plan_version_id] === true;
+}
+
 function unchanged(plan: BillingPlan): boolean {
-  return isCurrent(plan) && selectedExtra(plan) === subscription.value?.extra_store_quantity && subscription.value?.scheduled_change === null;
+  const currentFaster = (subscription.value?.faster_check_interval_minutes ?? null) !== null;
+
+  return isCurrent(plan) && selectedExtra(plan) === subscription.value?.extra_store_quantity && fasterSelected(plan) === currentFaster && subscription.value?.scheduled_change === null;
 }
 
 function closeChange(): void {
-  Object.assign(change, { plan: null, extra: 0, limit: null, retained: [], preview: null, key: '' });
+  Object.assign(change, { plan: null, extra: 0, faster: false, limit: null, retained: [], preview: null, key: '' });
 }
 
 async function beginChange(plan: BillingPlan): Promise<void> {
   const extra = selectedExtra(plan);
   const limit = storeLimit(plan, extra);
-  Object.assign(change, { plan, extra, limit: limit !== null && storeList.value.length > limit ? limit : null, retained: [], preview: null, key: '' });
+  Object.assign(change, { plan, extra, faster: fasterSelected(plan), limit: limit !== null && storeList.value.length > limit ? limit : null, retained: [], preview: null, key: '' });
   notice.value = null;
 
   if (change.limit === null) {
@@ -317,7 +329,7 @@ async function requestPreview(): Promise<void> {
   actionError.value = null;
 
   try {
-    change.preview = await previewPlanChange(base.id, change.extra, change.limit === null ? null : change.retained);
+    change.preview = await previewPlanChange(base.id, change.extra, change.limit === null ? null : change.retained, change.faster);
     change.key = newIdempotencyKey();
   } catch (caught) {
     actionError.value = caught;
@@ -389,6 +401,7 @@ async function load(): Promise<void> {
 
     for (const plan of loadedCatalog.data) {
       extraStores[plan.plan_version_id] = plan.plan_version_id === loadedSubscription?.plan_version_id ? loadedSubscription.extra_store_quantity : (extraStores[plan.plan_version_id] ?? 0);
+      fasterChecks[plan.plan_version_id] = plan.plan_version_id === loadedSubscription?.plan_version_id ? (loadedSubscription.faster_check_interval_minutes ?? null) !== null : (fasterChecks[plan.plan_version_id] ?? false);
     }
   } catch (caught) {
     loadError.value = caught;
@@ -476,7 +489,8 @@ async function buy(plan: BillingPlan): Promise<void> {
 
   const quantity = Math.max(0, Math.min(maxExtra(plan), Math.trunc(extraStores[plan.plan_version_id] ?? 0)));
   const code = typeof promo.results[plan.plan_version_id] === 'object' ? promo.code : null;
-  const selection = `${base.id}:${quantity}:${code ?? ''}`;
+  const faster = fasterSelected(plan);
+  const selection = `${base.id}:${quantity}:${code ?? ''}:${faster ? 'faster' : ''}`;
 
   if (pendingKey === null || pendingKey.selection !== selection) {
     pendingKey = { selection, key: newIdempotencyKey() };
@@ -487,7 +501,7 @@ async function buy(plan: BillingPlan): Promise<void> {
   stopPolling();
 
   try {
-    checkout.value = await startCheckout(base.id, quantity, pendingKey.key, code);
+    checkout.value = await startCheckout(base.id, quantity, pendingKey.key, code, faster);
 
     if (checkout.value.provider_checkout === null) {
       checkoutPhase.value = 'confirming';
@@ -570,6 +584,10 @@ onBeforeUnmount(stopPolling);
             <div v-if="subscription.status === 'past_due' && subscription.grace_until" class="flex flex-col gap-0.5">
               <dt class="text-text-muted">{{ $t('billing.grace_until') }}</dt>
               <dd class="text-warn">{{ dateTime(subscription.grace_until) }}</dd>
+            </div>
+            <div v-if="subscription.faster_check_interval_minutes" class="flex flex-col gap-0.5" data-subscription-faster>
+              <dt class="text-text-muted">{{ $t('billing.faster_checks_label') }}</dt>
+              <dd>{{ $t('billing.faster_checks_value', { minutes: subscription.faster_check_interval_minutes }) }}</dd>
             </div>
             <div v-if="subscription.extra_store_quantity > 0" class="flex flex-col gap-0.5">
               <dt class="text-text-muted">{{ $t('billing.extra_stores') }}</dt>
@@ -851,6 +869,10 @@ onBeforeUnmount(stopPolling);
                       :data-extra="plan.plan_code"
                     />
                   </label>
+                  <label v-if="offersFaster(plan)" class="flex items-center justify-between gap-3 text-sm">
+                    <span>{{ $t('billing.faster_checks', { minutes: plan.faster_check_interval_minutes, price: money(price(plan, 'faster_checks')!) }) }}</span>
+                    <input v-model="fasterChecks[plan.plan_version_id]" type="checkbox" class="size-4 accent-primary" :data-faster="plan.plan_code" />
+                  </label>
                   <p v-if="stacked(plan)" class="text-sm" data-total="discounted">
                     {{ $t('billing.discount.total_prefix') }} <s class="text-text-muted">{{ total(plan) }}</s> {{ stacked(plan)!.after }}
                     {{ $t('billing.discount.first_payment') }}
@@ -879,6 +901,10 @@ onBeforeUnmount(stopPolling);
                       class="w-20 rounded-md border border-border-strong bg-surface px-2 py-1.5 text-right text-sm"
                       :data-extra="plan.plan_code"
                     />
+                  </label>
+                  <label v-if="offersFaster(plan)" class="flex items-center justify-between gap-3 text-sm">
+                    <span>{{ $t('billing.faster_checks', { minutes: plan.faster_check_interval_minutes, price: money(price(plan, 'faster_checks')!) }) }}</span>
+                    <input v-model="fasterChecks[plan.plan_version_id]" type="checkbox" class="size-4 accent-primary" :data-faster="plan.plan_code" />
                   </label>
                   <p class="text-sm">{{ $t('billing.total', { price: total(plan), period: period(price(plan, 'base')!.interval, price(plan, 'base')!.interval_count) }) }}</p>
                   <p v-if="!sameInterval(plan)" class="text-[13px] text-text-muted">{{ $t('billing.change.interval_unsupported') }}</p>

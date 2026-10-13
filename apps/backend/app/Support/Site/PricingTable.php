@@ -93,6 +93,7 @@ class PricingTable
         }
 
         $extra = $base === null ? null : $this->find($plan, BillingPrice::KIND_EXTRA_STORE, self::period($base), $base['currency']);
+        $faster = $base === null || ($plan['faster_check_interval_minutes'] ?? null) === null ? null : $this->find($plan, BillingPrice::KIND_FASTER_CHECKS, self::period($base), $base['currency']);
         $limits = [];
 
         foreach ([FeatureCatalog::MAX_ORDERS_PER_MONTH, FeatureCatalog::MAX_ACTIVE_STORES, FeatureCatalog::MIN_CHECK_INTERVAL_MINUTES, FeatureCatalog::MANUAL_RUNS_PER_DAY, FeatureCatalog::MONTHLY_EVENT_BUDGET, FeatureCatalog::RETENTION_DAYS] as $key) {
@@ -118,6 +119,7 @@ class PricingTable
             'monthly' => $monthly,
             'saving' => $saving,
             'extra_store' => $extra === null ? null : $format((string) $extra['amount_minor']),
+            'faster_checks' => $faster === null ? null : ['price' => $format((string) $faster['amount_minor']), 'minutes' => (int) $plan['faster_check_interval_minutes']],
             'tax' => $base === null ? null : trans('site.pricing.tax.'.$base['tax_behavior'], [], $locale),
             'trial_days' => (int) ($plan['trial_days'] ?? 0),
             'features' => array_map(fn (string $feature): string => trans("site.features.{$feature}", [], $locale), $plan['entitlements']['features']),

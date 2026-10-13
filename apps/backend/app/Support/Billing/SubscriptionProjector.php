@@ -54,6 +54,7 @@ class SubscriptionProjector
             ->first();
         $versionId = $scheduled === null ? $contract->plan_version_id : BillingPrice::query()->whereKey($scheduled->from_price_id)->value('plan_version_id');
         $extraStores = $scheduled === null ? $contract->extra_store_quantity : $scheduled->from_extra_store_quantity;
+        $faster = $scheduled === null ? $contract->faster_checks : $scheduled->from_faster_checks;
         /** @var BillingPlanVersion $version */
         $version = BillingPlanVersion::query()->with('plan')->findOrFail($versionId);
         /** @var Subscription|null $row */
@@ -67,6 +68,7 @@ class SubscriptionProjector
             'plan_version_id' => $version->id,
             'entitlements' => FeatureCatalog::normalize($version->entitlements),
             'extra_store_quantity' => $extraStores,
+            'faster_check_interval_minutes' => $faster ? $version->faster_check_interval_minutes : null,
             'status' => $status,
             'period_start' => $contract->period_start,
             'period_end' => $contract->paid_until ?? $contract->period_end,

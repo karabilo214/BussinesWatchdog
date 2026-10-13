@@ -63,6 +63,7 @@ class PlanController extends Controller
             'trial_days' => ['sometimes', 'integer'],
             'order_volume_grace_days' => ['sometimes', 'integer'],
             'contact_sales' => ['sometimes', 'boolean'],
+            'faster_check_interval_minutes' => ['sometimes', 'nullable', 'integer'],
             'entitlements' => ['sometimes', 'array'],
             'entitlements.features' => ['sometimes', 'array'],
             'entitlements.limits' => ['sometimes', 'array'],

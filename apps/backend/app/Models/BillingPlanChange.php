@@ -30,13 +30,15 @@ class BillingPlanChange extends Model
 
     public const STATUS_EXPIRED = 'expired';
 
-    protected $fillable = ['tenant_id', 'contract_id', 'actor_user_id', 'kind', 'status', 'from_price_id', 'from_extra_store_quantity', 'to_plan_version_id', 'to_price_id', 'to_extra_store_price_id', 'to_extra_store_quantity', 'retained_store_ids', 'currency', 'currency_exponent', 'due_now_minor', 'next_amount_before_minor', 'next_amount_minor', 'contract_version', 'preview_expires_at', 'effective_at', 'idempotency_key', 'error_code', 'applied_at', 'discounts_settled_at'];
+    protected $fillable = ['tenant_id', 'contract_id', 'actor_user_id', 'kind', 'status', 'from_price_id', 'from_extra_store_quantity', 'to_plan_version_id', 'to_price_id', 'to_extra_store_price_id', 'to_extra_store_quantity', 'from_faster_checks', 'to_faster_checks', 'to_faster_checks_price_id', 'retained_store_ids', 'currency', 'currency_exponent', 'due_now_minor', 'next_amount_before_minor', 'next_amount_minor', 'contract_version', 'preview_expires_at', 'effective_at', 'idempotency_key', 'error_code', 'applied_at', 'discounts_settled_at'];
 
     protected function casts(): array
     {
         return [
             'from_extra_store_quantity' => 'integer',
             'to_extra_store_quantity' => 'integer',
+            'from_faster_checks' => 'boolean',
+            'to_faster_checks' => 'boolean',
             'retained_store_ids' => 'array',
             'currency_exponent' => 'integer',
             'due_now_minor' => 'string',

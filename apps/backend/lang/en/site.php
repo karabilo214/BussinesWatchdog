@@ -62,6 +62,7 @@ return [
         ],
         'test_mode' => 'Test mode: prices are shown for testing and are not an offer.',
         'placeholder' => 'Example plan',
+        'faster_checks' => 'Faster checkout checks (every :minutes min): :amount',
         'individual' => 'Individual',
         'contact_us' => 'Discuss terms',
         'choose' => 'Choose plan',

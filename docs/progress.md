@@ -2259,3 +2259,13 @@ Status: complete
 
 Verification: `OrderVolumeTest` 6 (pause after grace with features off and limits kept, stays paused while over, resume after a bigger package and after temporary access with reconciliation re-queued); cabinet test for the pause notice. Backend SQLite 513 passed, 4 skipped; PostgreSQL 18: 517 of 517; frontend check green. No live browser run.
 
+### Step 116: Faster Checks Add-On
+
+Status: complete
+
+- ADR 0041 (faster checks add-on). Migration: `billing_plan_versions.faster_check_interval_minutes`, price kind `faster_checks` (PostgreSQL check updated), `billing_checkout_sessions.faster_checks_price_id`, `billing_subscription_contracts.faster_checks`, `subscriptions.faster_check_interval_minutes`, `billing_plan_changes.from_faster_checks / to_faster_checks / to_faster_checks_price_id`.
+- Backend: `BillingCatalog::fasterChecksPriceFor`; `PaddleCheckout::start(..., fasterChecks)`; `PaddleSubscriptionSync` recognises the add-on item; `SubscriptionProjector` keeps the paid add-on until a scheduled removal takes effect; `EntitlementCalculator::withFasterChecks`; plan change preview/confirm/cancel-scheduled/settle/landed check/discount settlement and DTOs carry the add-on; `DiscountLedger` period amount includes it; `PlanAdmin` accepts the price kind and the interval with publish validation; pricing page line.
+- Owner panel: price kind «Faster checks», «Faster check interval, min». Cabinet: checkbox in plan cards for purchase and plan change, total, subscription line.
+
+Verification: `PlanChangeTest::test_faster_checks_are_added_at_once_and_removed_at_the_end_of_the_period` (unavailable for a package without it; immediate add with the Paddle item; interval 15 → 5; removal scheduled, kept until period end, then 15 again), `PaddleBillingTest::test_checkout_adds_the_faster_checks_item_only_when_the_package_offers_it`, `PlanAdminTest::test_owner_offers_faster_checks_as_an_add_on_with_its_own_interval_and_price` (validation, publish rule, Paddle price quantity 1, pricing page). Control 23, customer 110 tests (new add-on purchase test; three call expectations updated). Backend SQLite 516 passed, 4 skipped; PostgreSQL 18: 520 of 520. Paddle fixtures only — not run against the sandbox.
+

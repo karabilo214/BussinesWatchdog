@@ -44,10 +44,11 @@ class BillingController extends Controller
             'price_id' => ['required', 'uuid'],
             'extra_stores' => ['sometimes', 'integer', 'min:0', 'max:1000'],
             'discount_code' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'faster_checks' => ['sometimes', 'boolean'],
         ]);
 
         try {
-            $session = $checkout->start($tenantId, (string) $request->user()->getAuthIdentifier(), $validated['price_id'], (int) ($validated['extra_stores'] ?? 0), $key, $validated['discount_code'] ?? null);
+            $session = $checkout->start($tenantId, (string) $request->user()->getAuthIdentifier(), $validated['price_id'], (int) ($validated['extra_stores'] ?? 0), $key, $validated['discount_code'] ?? null, (bool) ($validated['faster_checks'] ?? false));
         } catch (BillingCheckoutRejected $exception) {
             return response()->json(['code' => $exception->reasonCode, 'message' => 'The checkout cannot be started.'], $exception->status());
         }
@@ -139,6 +140,7 @@ class BillingController extends Controller
             'extra_stores' => ['sometimes', 'integer', 'min:0', 'max:1000'],
             'retained_store_ids' => ['sometimes', 'nullable', 'array', 'max:1000'],
             'retained_store_ids.*' => ['string', 'uuid'],
+            'faster_checks' => ['sometimes', 'boolean'],
         ]);
 
         return $this->rejectable(fn (): JsonResponse => response()->json(PaddleSubscriptionActions::dto($actions->preview(
@@ -147,6 +149,7 @@ class BillingController extends Controller
             $validated['price_id'],
             (int) ($validated['extra_stores'] ?? 0),
             $validated['retained_store_ids'] ?? null,
+            (bool) ($validated['faster_checks'] ?? false),
         ))));
     }
 
@@ -271,6 +274,7 @@ class BillingController extends Controller
             'period_end' => $subscription->period_end?->toJSON(),
             'cancel_at_period_end' => $subscription->cancel_at_period_end,
             'extra_store_quantity' => $subscription->extra_store_quantity,
+            'faster_check_interval_minutes' => $subscription->faster_check_interval_minutes,
             'price' => $this->priceDto($actions->liveContract($subscription->tenant_id)?->price_id, $scheduled),
             'scheduled_change' => $scheduled === null ? null : PaddleSubscriptionActions::dto($scheduled),
             'capacity' => app(StoreCapacity::class)->state($subscription->tenant_id),
