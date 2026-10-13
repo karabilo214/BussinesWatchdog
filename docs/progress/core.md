@@ -746,3 +746,13 @@ Status: complete
 
 Verification: backend SQLite 532 passed, 4 skipped; PostgreSQL 18: 536 of 536 (the copy test removed); control 27, customer 112. `spec/validate_spec.py` still fails at the platform API operation count (unchanged).
 - Follow-up: `spec/contracts/event.schema.json` and `spec/contracts/platform-billing-api.yaml` (identical duplicates) removed; `validate_spec.py`, `spec/README.md`, `contracts/README.md`, `CLAUDE.md` and `AGENTS.md` point to `contracts/`. `spec/contracts/ui-api-catalog.md` stays (the original spec text; the working catalog in `contracts/` has diverged). The backend runtime copy of the event schema stays, guarded by `IngestEventsApiTest`.
+
+### Step 131: «Сервис» — Read-Only Service Summary in the Owner Panel
+
+Status: complete
+
+- ADR 0051 (accepted for now, to be confirmed by the owner). `ServiceHealth`: components from `ReadinessChecks`; queues (event inbox, domain outbox, Paddle events + last received, reconciliation backlog, notification deliveries, framework jobs) with waiting count, oldest age and problems; browser checks queued/running and workers seen in 5 minutes; stale connector syncs; thresholds; versions (`watchdog.release` from `WATCHDOG_RELEASE`, environment, PHP, Laravel). New capability `service.read` (owner, admin); `GET /platform-api/v1/health` (no-store). OpenAPI and README (`WATCHDOG_RELEASE`) updated.
+- `ReadinessChecks` now catches any `Throwable` per component: on the host PHP without the phpredis extension the Redis check threw `Error` and turned the whole summary into a 500; now Redis shows as a problem (also for `/health/ready`).
+- Owner panel: «Сервис» replaces the placeholder: overall state and time, components, queues table with explanations, browser checks and connector sync cards, version; refreshes every minute and on demand; staff without access see a short notice. ru/en/de.
+
+Verification: `tests/Feature/Platform/ServiceHealthTest.php` (2: ages, problems, queued checks without workers, stale sync, release, no customer data in the response; support forbidden), `HealthEndpointTest` +1 (a component throwing `Error`). Control 47 tests (`tests/service.test.ts`, 2). Frontend check green. Backend SQLite 546 passed, 4 skipped; PostgreSQL 18: 550 of 550. Live (`run-live.sh overview`): the stand shows Redis as a problem from the host, 29 queued browser checks without a worker, dead outbox/inbox entries — PASS.

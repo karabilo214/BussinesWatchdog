@@ -57,4 +57,14 @@ class HealthEndpointTest extends TestCase
             ->assertJsonPath('status', 'unavailable')
             ->assertJsonPath('checks.redis.ok', false);
     }
+
+    public function test_ready_endpoint_reports_a_component_that_throws_an_error_instead_of_failing(): void
+    {
+        \Illuminate\Support\Facades\Redis::shouldReceive('connection')->andThrow(new \Error('Class "Redis" not found'));
+
+        $checks = app(ReadinessChecks::class)->all();
+
+        $this->assertFalse($checks['redis']['ok']);
+        $this->assertTrue($checks['database']['ok']);
+    }
 }

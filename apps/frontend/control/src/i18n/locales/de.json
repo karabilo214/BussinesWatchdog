@@ -1129,5 +1129,64 @@
       "body": "Konversion der Testphasen — das Kohortenfenster muss bestätigt werden; Kosten und Marge — sobald echte Kosten erfasst werden."
     },
     "as_of": "Berechnet: {date}."
+  },
+  "service": {
+    "hint": "Übersicht des Dienstes: Komponenten, Warteschlangen und ihre Verzögerungen, Browserprüfungen, Connector-Synchronisierung, Version. Nur Summen, keine Kundendaten. Aktualisiert jede Minute.",
+    "forbidden": "Dieser Bereich steht dem Inhaber und den Administratoren des Dienstes zur Verfügung.",
+    "refresh": "Aktualisieren",
+    "as_of": "Stand: {date}",
+    "state": {
+      "ok": "In Ordnung",
+      "warn": "Achtung",
+      "crit": "Problem"
+    },
+    "components": {
+      "title": "Komponenten",
+      "database": "Datenbank",
+      "redis": "Redis",
+      "cache": "Cache",
+      "keyring": "Schlüssel"
+    },
+    "queues": {
+      "title": "Warteschlangen",
+      "hint": "Alter — wie lange der älteste Eintrag wartet. Länger als {warn} — Achtung, länger als {crit} — Problem; tote Einträge brauchen ebenfalls Aufmerksamkeit.",
+      "name": "Warteschlange",
+      "waiting": "Wartend",
+      "oldest": "Ältester",
+      "problems": "Probleme",
+      "state": "Zustand",
+      "last_received": "letztes Paddle-Ereignis: {date}",
+      "names": {
+        "event_inbox": "Shop-Ereignisse",
+        "domain_outbox": "Interne Aufgaben (Outbox)",
+        "billing_events": "Zahlungsereignisse (Paddle)",
+        "reconciliation": "Abgleich-Warteschlange",
+        "notifications": "Benachrichtigungen",
+        "jobs": "Hintergrundaufgaben"
+      },
+      "about": {
+        "event_inbox": "von Connectoren empfangen und noch nicht verarbeitet; Probleme sind in Quarantäne oder verworfen",
+        "domain_outbox": "Probleme haben alle Versuche aufgebraucht",
+        "billing_events": "Webhooks und Ereignisabruf; Probleme sind in Quarantäne oder verworfen",
+        "reconciliation": "Bestellungen, die neu geprüft werden; Alter — wie überfällig",
+        "notifications": "E-Mails und Nachrichten in der Warteschlange; Probleme wurden am letzten Tag nicht zugestellt",
+        "jobs": "Laravel-Warteschlange; Probleme sind am letzten Tag fehlgeschlagen"
+      }
+    },
+    "browser": {
+      "title": "Browserprüfungen",
+      "counts": "wartend: {waiting}, laufend: {running}",
+      "oldest": "älteste wartende: {age}",
+      "workers": "Worker in den letzten 5 Minuten gesehen: {n}"
+    },
+    "sync": {
+      "title": "Connector-Synchronisierung",
+      "counts": "aktive Verbindungen: {active}, seit mehr als {hours} h ohne erfolgreiche Synchronisierung: {stale}"
+    },
+    "version": {
+      "title": "Version",
+      "release": "Release"
+    },
+    "later": "Wartungsfenster und Worker-Limits werden später unter „Einstellungen“ konfiguriert."
   }
 }

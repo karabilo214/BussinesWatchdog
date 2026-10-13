@@ -3,14 +3,10 @@
 namespace App\Support\Health;
 
 use App\Support\Security\Keyring;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
-use InvalidArgumentException;
-use PDOException;
-use RedisClusterException;
-use RedisException;
+use Throwable;
 
 class ReadinessChecks
 {
@@ -40,7 +36,7 @@ class ReadinessChecks
             DB::select('select 1');
 
             return $this->ok();
-        } catch (QueryException|PDOException) {
+        } catch (Throwable) {
             return $this->failed();
         }
     }
@@ -54,7 +50,7 @@ class ReadinessChecks
             Redis::connection()->ping();
 
             return $this->ok();
-        } catch (RedisException|RedisClusterException) {
+        } catch (Throwable) {
             return $this->failed();
         }
     }
@@ -69,7 +65,7 @@ class ReadinessChecks
             Cache::get('health:ready');
 
             return $this->ok();
-        } catch (InvalidArgumentException|QueryException|PDOException|RedisException|RedisClusterException) {
+        } catch (Throwable) {
             return $this->failed();
         }
     }

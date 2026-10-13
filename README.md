@@ -36,6 +36,7 @@ SaaS для обнаружения денежных расхождений и п
 - **Оплата подписки (Paddle):** `PADDLE_ENVIRONMENT=production` (иначе sandbox), `PADDLE_API_KEY`, `PADDLE_CLIENT_TOKEN`, `PADDLE_WEBHOOK_SECRET`, `PADDLE_ACCOUNT_REF`.
 - **Ограничения тарифов:** `WATCHDOG_BILLING_ENFORCEMENT=enforce` включает лимиты тарифов; `pilot` (по умолчанию) — всё доступно всем.
 - **Панель владельца (по желанию):** `WATCHDOG_PLATFORM_IDLE_MINUTES` (30), `WATCHDOG_PLATFORM_ABSOLUTE_HOURS` (8), `WATCHDOG_PLATFORM_LOGIN_PER_MINUTE` (5).
+- **Версия релиза:** `WATCHDOG_RELEASE` — метка выпуска (например, `2026.10.20-1` или хеш коммита); показывается в админке в разделе «Сервис», по умолчанию `dev`.
 - **Публичный сайт (по желанию):** `WATCHDOG_SITE_CONTACT_NOTIFY` — куда слать письма о новых обращениях (несколько адресов через запятую; пусто — всем активным владельцам сервиса), `WATCHDOG_SITE_OWNER_URL` (адрес панели для ссылки в письме, по умолчанию `APP_URL/owner`), `WATCHDOG_SITE_CONTACT_RETENTION_DAYS` (365 — через сколько дней после закрытия удалять обращение), `WATCHDOG_SITE_CONTACT_PER_HOUR` (5 сообщений в час с одного IP), `WATCHDOG_SITE_CACHE_SECONDS` (60 — сколько браузер и прокси держат страницу).
 
 ### 2. База данных

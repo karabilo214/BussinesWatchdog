@@ -649,6 +649,31 @@ export async function fetchOverview(filters: { mode: 'live' | 'test'; from?: str
   return (await request<BusinessOverview>('GET', '/platform-api/v1/overview', { query: filters })).data;
 }
 
+export type HealthState = 'ok' | 'warn' | 'crit';
+
+export interface HealthQueue {
+  waiting: number;
+  oldest_age_seconds: number | null;
+  problems: number;
+  state: HealthState;
+  last_received_at?: string | null;
+}
+
+export interface ServiceHealth {
+  as_of: string;
+  state: HealthState;
+  components: Record<string, HealthState>;
+  queues: Record<'event_inbox' | 'domain_outbox' | 'billing_events' | 'reconciliation' | 'notifications' | 'jobs', HealthQueue>;
+  browser_checks: HealthQueue & { running: number; workers_seen: number };
+  connector_sync: { active: number; stale: number; state: HealthState };
+  thresholds: { warn_seconds: number; crit_seconds: number; sync_stale_hours: number };
+  version: { app: string; environment: string; php: string; laravel: string };
+}
+
+export async function fetchServiceHealth(): Promise<ServiceHealth> {
+  return (await request<ServiceHealth>('GET', '/platform-api/v1/health')).data;
+}
+
 export type ReminderTopic = 'subscription' | 'payment' | 'other';
 
 export interface ReminderInput {

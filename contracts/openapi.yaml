@@ -1202,6 +1202,21 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/health:
+    get:
+      tags: [Platform]
+      operationId: platformServiceHealth
+      description: "Capability service.read (owner, admin). Read-only service summary (ADR 0051, OWNER-PANEL §7): database/redis/cache/keyring, queues (event inbox, domain outbox, billing events with last received time, reconciliation backlog, notification deliveries, framework jobs) with waiting count, age of the oldest waiting entry and problem count (dead letters/quarantine, failed notifications and jobs in the last 24 h), browser checks waiting/running with workers seen in 5 minutes, connectors without a successful sync for 24 h, thresholds, release and runtime versions. Each part has state ok/warn/crit (older than 15 min warn, 60 min crit). Aggregates only, no customer data; no-store."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Service summary
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/pages:
     get:
       tags: [Platform]

@@ -50,6 +50,12 @@ try {
   await page.waitForURL(/\/owner\/subscriptions\?status=active/);
   console.log('ok   drill-down opens the subscriptions list filtered by status');
 
+  await page.goto(`${base}/owner/service`);
+  await page.locator('[data-state]').waitFor();
+  await page.locator('[data-queue="domain_outbox"]').waitFor();
+  await shot(page, '3-service');
+  console.log(`ok   service summary: ${(await page.locator('[data-state]').innerText()).split('\n')[0]}, release ${(await page.locator('[data-section="version"]').innerText()).split('\n').pop()}`);
+
   if (errors.length > 0) throw new Error(`page errors: ${errors.join('; ')}`);
   console.log('PASS');
 } catch (error) {

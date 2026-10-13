@@ -1129,5 +1129,64 @@
       "body": "Trial conversion — the cohort window needs approval; costs and margin — once real costs are recorded."
     },
     "as_of": "Calculated: {date}."
+  },
+  "service": {
+    "hint": "Service summary: components, queues and their delays, browser checks, connector sync, version. Aggregates only, no customer data. Refreshed every minute.",
+    "forbidden": "This section is available to the service owner and administrators.",
+    "refresh": "Refresh",
+    "as_of": "As of {date}",
+    "state": {
+      "ok": "Healthy",
+      "warn": "Attention",
+      "crit": "Problem"
+    },
+    "components": {
+      "title": "Components",
+      "database": "Database",
+      "redis": "Redis",
+      "cache": "Cache",
+      "keyring": "Encryption keys"
+    },
+    "queues": {
+      "title": "Queues",
+      "hint": "Age is how long the oldest entry has been waiting. Longer than {warn} — attention, longer than {crit} — problem; dead entries also need attention.",
+      "name": "Queue",
+      "waiting": "Waiting",
+      "oldest": "Oldest",
+      "problems": "Problems",
+      "state": "State",
+      "last_received": "last Paddle event: {date}",
+      "names": {
+        "event_inbox": "Store events",
+        "domain_outbox": "Internal tasks (outbox)",
+        "billing_events": "Billing events (Paddle)",
+        "reconciliation": "Reconciliation queue",
+        "notifications": "Notifications",
+        "jobs": "Background jobs"
+      },
+      "about": {
+        "event_inbox": "received from connectors and not processed yet; problems are quarantined or dropped",
+        "domain_outbox": "problems have run out of attempts",
+        "billing_events": "webhooks and event polling; problems are quarantined or dropped",
+        "reconciliation": "orders waiting to be re-checked; age is how overdue",
+        "notifications": "emails and messages queued; problems were not delivered in the last day",
+        "jobs": "Laravel queue jobs; problems failed in the last day"
+      }
+    },
+    "browser": {
+      "title": "Browser checks",
+      "counts": "queued: {waiting}, running: {running}",
+      "oldest": "oldest queued: {age}",
+      "workers": "workers seen in 5 minutes: {n}"
+    },
+    "sync": {
+      "title": "Connector sync",
+      "counts": "active connections: {active}, without a successful sync for more than {hours} h: {stale}"
+    },
+    "version": {
+      "title": "Version",
+      "release": "Release"
+    },
+    "later": "Maintenance windows and worker limits will be configured later in «Settings»."
   }
 }
