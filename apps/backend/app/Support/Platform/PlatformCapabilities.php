@@ -26,11 +26,15 @@ final class PlatformCapabilities
 
     public const CONTACTS_MANAGE = 'contacts.manage';
 
+    public const REFUNDS_REQUEST = 'refunds.request';
+
+    public const REFUNDS_APPROVE = 'refunds.approve';
+
     private const ROLES = [
-        PlatformStaff::ROLE_OWNER => [self::PLANS_MANAGE, self::PLANS_READ, self::STAFF_MANAGE, self::AUDIT_READ, self::TENANTS_READ, self::TENANTS_MANAGE, self::BILLING_READ, self::CONTENT_MANAGE, self::CONTACTS_READ, self::CONTACTS_MANAGE],
+        PlatformStaff::ROLE_OWNER => [self::PLANS_MANAGE, self::PLANS_READ, self::STAFF_MANAGE, self::AUDIT_READ, self::TENANTS_READ, self::TENANTS_MANAGE, self::BILLING_READ, self::CONTENT_MANAGE, self::CONTACTS_READ, self::CONTACTS_MANAGE, self::REFUNDS_REQUEST, self::REFUNDS_APPROVE],
         PlatformStaff::ROLE_ADMIN => [self::PLANS_READ, self::TENANTS_READ, self::AUDIT_READ, self::CONTACTS_READ],
         PlatformStaff::ROLE_SUPPORT => [self::TENANTS_READ, self::CONTACTS_READ, self::CONTACTS_MANAGE],
-        PlatformStaff::ROLE_BILLING => [self::PLANS_READ, self::TENANTS_READ, self::BILLING_READ],
+        PlatformStaff::ROLE_BILLING => [self::PLANS_READ, self::TENANTS_READ, self::BILLING_READ, self::REFUNDS_REQUEST],
     ];
 
     /**

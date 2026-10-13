@@ -1052,7 +1052,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListPayments
-      description: "Capability billing.read (ADR 0043). Every transaction of our subscriptions in the current mode, newest first, 50 per page, with the organisation; `month` sums the paid and completed transactions billed this calendar month (UTC) per currency — charged, tax, provider fee, earnings (fee and earnings null when a transaction has none yet) — never across currencies."
+      description: "Capability billing.read (ADR 0043). Every transaction of our subscriptions in the current mode, newest first, 50 per page, with the organisation; `month` sums the paid and completed transactions billed this calendar month (UTC) per currency — charged, tax, provider fee, earnings (fee and earnings null when a transaction has none yet) — never across currencies. `refunded_minor` per payment and per month counts refunds Paddle confirmed (ADR 0044)."
       security:
         - {StaffSession: []}
       parameters:
@@ -1074,6 +1074,138 @@ paths:
                   mode: {enum: [test, live]}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/refunds:
+    get:
+      tags: [Platform]
+      operationId: platformListRefunds
+      description: "Capability billing.read (ADR 0044). Up to 100 refunds of our subscriptions in the current mode, newest first, with the organisation, the payment, who requested and who decided. Status `requested` (waiting for the owner), `rejected`, `submitting`, `pending` (Paddle reviewing), `refunded`, `declined` (by Paddle), `failed` or `unknown` (Paddle's answer was lost; settled later from the transaction's adjustments). Refunds made in the Paddle dashboard appear here with no requester."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: status, in: query, schema: {enum: [requested, rejected, submitting, pending, refunded, declined, failed, unknown]}}
+        - {name: transaction_id, in: query, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Refunds
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: {type: array, items: {type: object}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/payments/{payment}/refunds:
+    post:
+      tags: [Platform]
+      operationId: platformRequestRefund
+      description: "Capability refunds.request (owner and billing staff, ADR 0044). Asks to refund a completed payment; nothing goes to Paddle until the owner approves. `amount_minor` is a minor-unit string in the payment currency, tax included; requested, sent and done refunds together never exceed the payment total (422 `refund_exceeds_payment` with `details.left_minor`). 409 `refund_not_available` when the payment is not completed, 422 `refund_amount_invalid`, 404 `payment_not_found`. `cancel_subscription` also cancels the subscription at the end of the paid period once the refund is approved; otherwise the subscription is untouched."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+        - {name: payment, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount_minor, reason]
+              properties:
+                amount_minor: {type: string, pattern: "^[1-9][0-9]{0,14}$"}
+                reason: {type: string, minLength: 3, maxLength: 500}
+                cancel_subscription: {type: boolean}
+      responses:
+        "201":
+          description: Requested
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: {type: string, format: uuid}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/refunds/{refund}/approve:
+    post:
+      tags: [Platform]
+      operationId: platformApproveRefund
+      description: "Capability refunds.approve (platform owner only), confirmed by `confirmation_code` (authenticator, 403 `step_up_failed`) and `reason`. Sends the refund to Paddle as an adjustment: a full refund when it covers the whole untouched payment, otherwise partial amounts spread over the line items. 409 `refund_already_decided`; 422 `refund_rejected_by_provider` when Paddle refuses; when Paddle's answer is lost the refund stays `unknown` and is settled later."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+        - {name: refund, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, confirmation_code]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+                confirmation_code: {type: string, maxLength: 32}
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id: {type: string, format: uuid}
+                  status: {enum: [pending, refunded, declined, failed, unknown]}
+                  provider_adjustment_ref: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/refunds/{refund}/reject:
+    post:
+      tags: [Platform]
+      operationId: platformRejectRefund
+      description: "Capability refunds.approve (platform owner only). Rejects a requested refund with a reason; its amount becomes refundable again. 409 `refund_already_decided`."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+        - {name: refund, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id: {type: string, format: uuid}
+                  status: {enum: [rejected]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/lookup:
     get:
@@ -2501,7 +2633,7 @@ paths:
     get:
       tags: [Billing]
       operationId: listBillingInvoices
-      description: "Tenant owner only (ADR 0043). Transactions of the organisation's own subscription in the current billing mode, newest first, 50 per page; drafts and not yet billed transactions are left out. Amounts are minor-unit strings in the transaction currency; `total_minor` is what was charged (after discounts and credits, with tax)."
+      description: "Tenant owner only (ADR 0043). Transactions of the organisation's own subscription in the current billing mode, newest first, 50 per page; drafts and not yet billed transactions are left out. Amounts are minor-unit strings in the transaction currency; `total_minor` is what was charged (after discounts and credits, with tax); `refunded_minor` is what was refunded of it (ADR 0044)."
       security:
         - {UserSession: []}
       parameters:

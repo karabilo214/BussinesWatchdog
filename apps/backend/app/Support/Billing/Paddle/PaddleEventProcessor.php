@@ -82,6 +82,10 @@ class PaddleEventProcessor
                 app(PaddleTransactions::class)->project($payload);
             }
 
+            if ($event->entity_type === 'adjustment') {
+                app(PaddleRefunds::class)->project($payload);
+            }
+
             return $this->finish($event, BillingEventInbox::STATUS_PROCESSED, null);
         } catch (PaddleRequestFailed $exception) {
             if ($exception->reasonCode === 'paddle_not_found') {

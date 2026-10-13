@@ -231,7 +231,7 @@ describe('BillingView', () => {
     api.fetchSubscription.mockResolvedValue(paidSubscription());
     api.listInvoices.mockResolvedValue({ data: [
       { id: 'i-2', status: 'past_due', origin: 'subscription_recurring', invoice_number: null, currency: 'EUR', currency_exponent: 2, subtotal_minor: '1900', discount_minor: '0', tax_minor: '361', total_minor: '2261', period_start: '2026-11-11T00:00:00Z', period_end: '2026-12-11T00:00:00Z', billed_at: '2026-11-11T00:00:00Z', invoice_available: true },
-      { id: 'i-1', status: 'completed', origin: 'web', invoice_number: 'INV-1', currency: 'EUR', currency_exponent: 2, subtotal_minor: '2300', discount_minor: '400', tax_minor: '437', total_minor: '2737', period_start: '2026-10-11T00:00:00Z', period_end: '2026-11-11T00:00:00Z', billed_at: '2026-10-11T12:00:00Z', invoice_available: true },
+      { id: 'i-1', status: 'completed', origin: 'web', invoice_number: 'INV-1', currency: 'EUR', currency_exponent: 2, subtotal_minor: '2300', discount_minor: '400', tax_minor: '437', total_minor: '2737', refunded_minor: '1240', period_start: '2026-10-11T00:00:00Z', period_end: '2026-11-11T00:00:00Z', billed_at: '2026-10-11T12:00:00Z', invoice_available: true },
     ], next_cursor: null });
     api.invoiceLink.mockResolvedValue('https://sandbox-invoice.paddle.com/inv_1.pdf');
     api.paymentMethodCheckout.mockResolvedValue({ provider: 'paddle', environment: 'sandbox', client_token: 'tok', transaction_id: 'txn_pm' });
@@ -247,6 +247,7 @@ describe('BillingView', () => {
     expect(paid).toContain('27,37');
     expect(paid).toContain('в т. ч. налог 4,37');
     expect(paid).toContain('скидка 4,00');
+    expect(paid).toContain('возвращено 12,40');
     expect(paid).toContain('Оплачен');
     expect(wrapper.get('[data-invoice="i-2"]').text()).toContain('Не оплачен');
 

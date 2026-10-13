@@ -255,6 +255,7 @@ export interface BillingInvoice {
   discount_minor: string | null;
   tax_minor: string | null;
   total_minor: string | null;
+  refunded_minor?: string;
   period_start: string | null;
   period_end: string | null;
   billed_at: string | null;

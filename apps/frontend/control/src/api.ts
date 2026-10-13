@@ -520,6 +520,7 @@ export interface Payment {
   total_minor: string | null;
   fee_minor: string | null;
   earnings_minor: string | null;
+  refunded_minor?: string;
   period_start: string | null;
   period_end: string | null;
   billed_at: string | null;
@@ -534,8 +535,50 @@ export interface PaymentMonth {
   tax_minor: string | null;
   fee_minor: string | null;
   earnings_minor: string | null;
+  refunded_minor?: string;
 }
 
 export async function fetchPayments(filters: Partial<Record<'status' | 'tenant_id' | 'cursor', string>>): Promise<{ data: Payment[]; next_cursor: string | null; month: PaymentMonth[]; mode: 'test' | 'live' }> {
   return (await request<{ data: Payment[]; next_cursor: string | null; month: PaymentMonth[]; mode: 'test' | 'live' }>('GET', '/platform-api/v1/payments', { query: filters })).data;
+}
+
+export type RefundStatus = 'requested' | 'rejected' | 'submitting' | 'pending' | 'refunded' | 'declined' | 'failed' | 'unknown';
+
+export interface Refund {
+  id: string;
+  tenant: { id: string; name: string };
+  transaction_id: string;
+  provider_transaction_ref: string;
+  invoice_number: string | null;
+  kind: 'full' | 'partial';
+  amount_minor: string;
+  tax_minor: string | null;
+  currency: string;
+  currency_exponent: number;
+  reason: string;
+  cancel_subscription: boolean;
+  status: RefundStatus;
+  provider_status: string | null;
+  error_code: string | null;
+  requested_by: string | null;
+  decided_by: string | null;
+  decision_reason: string | null;
+  created_at: string;
+  decided_at: string | null;
+}
+
+export async function fetchRefunds(filters: Partial<Record<'status' | 'transaction_id', string>> = {}): Promise<Refund[]> {
+  return (await request<{ data: Refund[] }>('GET', '/platform-api/v1/refunds', { query: filters })).data.data;
+}
+
+export async function requestRefund(paymentId: string, input: { amount_minor: string; reason: string; cancel_subscription: boolean }): Promise<{ id: string }> {
+  return (await request<{ id: string }>('POST', `/platform-api/v1/payments/${encodeURIComponent(paymentId)}/refunds`, { body: input })).data;
+}
+
+export async function approveRefund(id: string, confirmation: Confirmation): Promise<{ id: string; status: RefundStatus }> {
+  return (await request<{ id: string; status: RefundStatus }>('POST', `/platform-api/v1/refunds/${encodeURIComponent(id)}/approve`, { body: confirmation })).data;
+}
+
+export async function rejectRefund(id: string, reason: string): Promise<{ id: string; status: RefundStatus }> {
+  return (await request<{ id: string; status: RefundStatus }>('POST', `/platform-api/v1/refunds/${encodeURIComponent(id)}/reject`, { body: { reason } })).data;
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\Platform\ContactRequestController;
 use App\Http\Controllers\Platform\DiscountController;
 use App\Http\Controllers\Platform\PageController;
 use App\Http\Controllers\Platform\PaymentController;
+use App\Http\Controllers\Platform\RefundController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformAuthController;
 use App\Http\Controllers\Platform\TenantController;
@@ -28,6 +29,12 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/{tenant}', [TenantController::class, 'show']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/subscriptions', [TenantController::class, 'subscriptions']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/payments', [PaymentController::class, 'index']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/refunds', [RefundController::class, 'index']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::REFUNDS_REQUEST)->post('/payments/{payment}/refunds', [RefundController::class, 'store'])->whereUuid('payment');
+    Route::middleware('platform.staff:'.PlatformCapabilities::REFUNDS_APPROVE)->group(function (): void {
+        Route::post('/refunds/{refund}/approve', [RefundController::class, 'approve'])->whereUuid('refund')->middleware('throttle:platform-step-up');
+        Route::post('/refunds/{refund}/reject', [RefundController::class, 'reject'])->whereUuid('refund');
+    });
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_MANAGE)->group(function (): void {
         Route::post('/tenants/{tenant}/actions/{action}/preview', [TenantController::class, 'preview']);
         Route::post('/tenants/{tenant}/actions/{action}', [TenantController::class, 'act'])->middleware('throttle:platform-step-up');

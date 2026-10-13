@@ -151,7 +151,13 @@
     "faster_check_interval_invalid": "Das Intervall beträgt 5 bis 1440 Minuten und liegt unter dem Paket-Intervall; ohne es kann kein Preis für häufigere Prüfungen veröffentlicht werden.",
     "faster_checks_unavailable": "Dieses Paket hat keinen Zusatz für häufigere Prüfungen.",
     "policy_taken": "Eine andere Seite hat diesen Dokumenttyp bereits.",
-    "policy_type_invalid": "Nur eine normale Seite kann ein Rechtsdokument sein."
+    "policy_type_invalid": "Nur eine normale Seite kann ein Rechtsdokument sein.",
+    "refund_exceeds_payment": "Der Betrag ist höher als für diese Zahlung erstattbar.",
+    "refund_amount_invalid": "Betrag über null angeben.",
+    "refund_not_available": "Diese Zahlung kann nicht erstattet werden.",
+    "refund_already_decided": "Über diese Anfrage wurde bereits entschieden.",
+    "refund_rejected_by_provider": "Paddle hat die Erstattung abgelehnt.",
+    "payment_not_found": "Zahlung nicht gefunden."
   },
   "period": {
     "per": {
@@ -708,6 +714,40 @@
       "completed": "Bezahlt",
       "canceled": "Storniert",
       "past_due": "Unbezahlt"
+    },
+    "refunded": "Erstattet",
+    "refunded_short": "erstattet {amount}"
+  },
+  "refunds": {
+    "title": "Erstattungen",
+    "hint": "Geld geht erst nach Freigabe durch den Plattform-Inhaber mit Authenticator-Code an den Kunden zurück. Eine Erstattung kündigt das Abonnement nicht, außer es wird gewählt.",
+    "empty": "Keine Erstattungen.",
+    "with_cancel": "und Kündigung zum Periodenende",
+    "requested": "angefragt von {name} {date}",
+    "decided": "entschieden von {name} {date}",
+    "approve": "Erstattung freigeben",
+    "reject": "Ablehnen",
+    "approve_hint": "{amount} über Paddle an den Kunden erstatten?",
+    "reject_hint": "Anfrage über {amount} ablehnen?",
+    "decision_reason": "Grund der Entscheidung",
+    "action": "Erstatten",
+    "form_title": "Erstattung der Zahlung {payment} — {organisation}",
+    "amount": "Betrag, {currency}",
+    "left": "Höchstens {amount} erstattbar",
+    "reason": "Grund (im Audit und bei Paddle sichtbar)",
+    "cancel_subscription": "Abonnement auch zum Ende der bezahlten Periode kündigen",
+    "form_hint": "Die Anfrage erscheint unter «Erstattungen»; das Geld geht nach Freigabe raus.",
+    "submit": "Erstattung anfragen",
+    "requested_done": "Die Erstattungsanfrage wurde erstellt und wartet auf Freigabe.",
+    "status": {
+      "requested": "Wartet auf Freigabe",
+      "rejected": "Abgelehnt",
+      "submitting": "Wird gesendet",
+      "pending": "Paddle prüft",
+      "refunded": "Erstattet",
+      "declined": "Von Paddle abgelehnt",
+      "failed": "Fehler",
+      "unknown": "Keine Antwort erhalten"
     }
   }
 }

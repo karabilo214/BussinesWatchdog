@@ -1577,7 +1577,8 @@
         "completed": "Paid",
         "canceled": "Cancelled",
         "past_due": "Unpaid"
-      }
+      },
+      "refunded": "refunded {amount}"
     }
   }
 }

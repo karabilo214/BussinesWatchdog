@@ -151,7 +151,13 @@
     "faster_check_interval_invalid": "The faster check interval is 5 to 1440 minutes and below the package interval; a faster-checks price cannot be published without it.",
     "faster_checks_unavailable": "This package has no faster-checks add-on.",
     "policy_taken": "Another page already has this document type.",
-    "policy_type_invalid": "Only an ordinary page can be a legal document."
+    "policy_type_invalid": "Only an ordinary page can be a legal document.",
+    "refund_exceeds_payment": "The amount is more than can be refunded for this payment.",
+    "refund_amount_invalid": "Enter an amount above zero.",
+    "refund_not_available": "This payment cannot be refunded.",
+    "refund_already_decided": "This request has already been decided.",
+    "refund_rejected_by_provider": "Paddle declined the refund.",
+    "payment_not_found": "Payment not found."
   },
   "period": {
     "per": {
@@ -708,6 +714,40 @@
       "completed": "Paid",
       "canceled": "Cancelled",
       "past_due": "Unpaid"
+    },
+    "refunded": "Refunded",
+    "refunded_short": "refunded {amount}"
+  },
+  "refunds": {
+    "title": "Refunds",
+    "hint": "Money goes back to the customer only after the platform owner approves with an authenticator code. A refund does not cancel the subscription unless chosen.",
+    "empty": "No refunds.",
+    "with_cancel": "and cancellation at period end",
+    "requested": "requested by {name} {date}",
+    "decided": "decided by {name} {date}",
+    "approve": "Approve refund",
+    "reject": "Reject",
+    "approve_hint": "Refund {amount} to the customer through Paddle?",
+    "reject_hint": "Reject the request for {amount}?",
+    "decision_reason": "Reason for the decision",
+    "action": "Refund",
+    "form_title": "Refund of payment {payment} — {organisation}",
+    "amount": "Amount, {currency}",
+    "left": "At most {amount} can be refunded",
+    "reason": "Reason (shown in the audit and Paddle)",
+    "cancel_subscription": "Also cancel the subscription at the end of the paid period",
+    "form_hint": "The request appears under «Refunds»; money goes out after the owner approves.",
+    "submit": "Request refund",
+    "requested_done": "The refund request was created and awaits approval.",
+    "status": {
+      "requested": "Awaiting approval",
+      "rejected": "Rejected",
+      "submitting": "Being sent",
+      "pending": "Paddle reviewing",
+      "refunded": "Refunded",
+      "declined": "Declined by Paddle",
+      "failed": "Failed",
+      "unknown": "No answer received"
     }
   }
 }

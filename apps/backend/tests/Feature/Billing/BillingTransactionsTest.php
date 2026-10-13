@@ -134,8 +134,8 @@ class BillingTransactionsTest extends TestCase
         $this->assertCount(5, $response->json('data'));
         $this->assertSame($second['tenant']->name, $response->json('data.1.tenant.name'));
         $this->assertSame([
-            ['currency' => 'EUR', 'currency_exponent' => 2, 'payments' => 2, 'total_minor' => '5474', 'tax_minor' => '874', 'fee_minor' => '372', 'earnings_minor' => '5102'],
-            ['currency' => 'USD', 'currency_exponent' => 2, 'payments' => 1, 'total_minor' => '1900', 'tax_minor' => '0', 'fee_minor' => null, 'earnings_minor' => null],
+            ['currency' => 'EUR', 'currency_exponent' => 2, 'payments' => 2, 'total_minor' => '5474', 'tax_minor' => '874', 'fee_minor' => '372', 'earnings_minor' => '5102', 'refunded_minor' => '0'],
+            ['currency' => 'USD', 'currency_exponent' => 2, 'payments' => 1, 'total_minor' => '1900', 'tax_minor' => '0', 'fee_minor' => null, 'earnings_minor' => null, 'refunded_minor' => '0'],
         ], $response->json('month'));
         $this->assertCount(1, $this->getJson('/platform-api/v1/payments?status=past_due')->json('data'));
         $this->getJson("/platform-api/v1/tenants/{$first['tenant']->id}")->assertOk()->assertJsonPath('billing.transactions.0.provider_transaction_ref', 'txn_old');

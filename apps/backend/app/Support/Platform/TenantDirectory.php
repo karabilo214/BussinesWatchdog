@@ -219,6 +219,17 @@ class TenantDirectory
     /**
      * @return array<string, mixed>
      */
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function transactions(string $tenantId): array
+    {
+        $rows = BillingTransaction::query()->where('tenant_id', $tenantId)->where('mode', PaddleConfig::mode())->whereNotIn('status', ['draft'])->orderByDesc('id')->limit(20)->get();
+        $refunded = PaymentLedger::refunded($rows->pluck('id')->all());
+
+        return $rows->map(fn (BillingTransaction $transaction): array => PaymentLedger::dto($transaction, $refunded[$transaction->id] ?? 0))->values()->all();
+    }
+
     private function billing(Tenant $tenant): array
     {
         /** @var Subscription|null $subscription */
@@ -229,8 +240,7 @@ class TenantDirectory
 
         return [
             'mode' => PaddleConfig::mode(),
-            'transactions' => BillingTransaction::query()->where('tenant_id', $tenant->id)->where('mode', PaddleConfig::mode())->whereNotIn('status', ['draft'])->orderByDesc('id')->limit(20)->get()
-                ->map(fn (BillingTransaction $transaction): array => PaymentLedger::dto($transaction))->values()->all(),
+            'transactions' => $this->transactions($tenant->id),
             'subscription' => $subscription === null ? null : $this->subscriptionSummary($subscription) + [
                 'provider_subscription_ref' => $subscription->provider_subscription_ref,
                 'next_charge_at' => $live?->next_charge_at?->toJSON(),

@@ -13,18 +13,23 @@ vi.mock('@/api', () => ({
   submitMfa: vi.fn(),
   logout: vi.fn(),
   fetchPayments: vi.fn(),
+  fetchRefunds: vi.fn(),
+  requestRefund: vi.fn(),
+  approveRefund: vi.fn(),
+  rejectRefund: vi.fn(),
 }));
 
 const mocked = vi.mocked(api);
 
-function staff(): StaffMe {
-  return { staff_id: 's-1', name: 'Founder', email: 'f@example.test', locale: 'ru', role: 'platform_owner', mfa_enabled: true, capabilities: ['billing.read'], billing_mode: 'test', session: { idle_minutes: 30, absolute_hours: 8 } };
+function staff(capabilities: string[] = ['billing.read']): StaffMe {
+  return { staff_id: 's-1', name: 'Founder', email: 'f@example.test', locale: 'ru', role: 'platform_owner', mfa_enabled: true, capabilities, billing_mode: 'test', session: { idle_minutes: 30, absolute_hours: 8 } };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   useStaff().forget();
   localization.setLocale('ru');
+  mocked.fetchRefunds.mockResolvedValue([]);
 });
 
 describe('payments', () => {
@@ -64,5 +69,68 @@ describe('payments', () => {
     await flushPromises();
     expect(mocked.fetchPayments).toHaveBeenLastCalledWith({ status: 'past_due' });
     expect(router.currentRoute.value.query).toEqual({ status: 'past_due' });
+  });
+
+  it('lets billing staff request a partial refund and the owner approve it with a code', async () => {
+    mocked.fetchMe.mockResolvedValue(staff(['billing.read', 'refunds.request', 'refunds.approve']));
+    mocked.fetchPayments.mockResolvedValue({
+      data: [{ id: 'p-1', provider_transaction_ref: 'txn_1', status: 'completed', origin: 'web', invoice_number: 'INV-1', currency: 'EUR', currency_exponent: 2, subtotal_minor: '2300', discount_minor: '400', tax_minor: '437', total_minor: '2737', fee_minor: '186', earnings_minor: '2551', refunded_minor: '500', period_start: null, period_end: null, billed_at: '2026-10-11T12:00:00Z', tenant: { id: 't-1', name: 'Kaffee GmbH' } }],
+      next_cursor: null,
+      month: [],
+      mode: 'test',
+    });
+    const pending: api.Refund = { id: 'r-1', tenant: { id: 't-1', name: 'Kaffee GmbH' }, transaction_id: 'p-1', provider_transaction_ref: 'txn_1', invoice_number: 'INV-1', kind: 'partial', amount_minor: '1000', tax_minor: null, currency: 'EUR', currency_exponent: 2, reason: 'Ошибка тарифа', cancel_subscription: true, status: 'requested', provider_status: null, error_code: null, requested_by: 'Anna', decided_by: null, decision_reason: null, created_at: '2026-10-13T10:00:00Z', decided_at: null };
+    mocked.fetchRefunds.mockResolvedValue([pending]);
+    mocked.requestRefund.mockResolvedValue({ id: 'r-2' });
+    mocked.approveRefund.mockResolvedValue({ id: 'r-1', status: 'pending' });
+    await useStaff().load(true);
+    const router = buildRouter();
+    await router.push('/owner/payments');
+    await router.isReady();
+    const wrapper = mount(App, { global: { plugins: [localization, router] } });
+    await flushPromises();
+    await vi.waitFor(() => expect(wrapper.find('[data-payment="txn_1"]').exists()).toBe(true));
+
+    expect(wrapper.get('[data-payment="txn_1"]').text()).toContain('возвращено 5,00');
+    await wrapper.get('[data-payment="txn_1"] [data-action="refund"]').trigger('click');
+    expect((wrapper.get('[data-field="refund-amount"]').element as HTMLInputElement).value).toBe('22.37');
+    await wrapper.get('[data-field="refund-amount"]').setValue('10,5');
+    await wrapper.get('[data-field="refund-reason"]').setValue('Ошибка тарифа');
+    await wrapper.get('[data-field="refund-cancel"]').setValue(true);
+    await wrapper.get('[data-form="refund"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.requestRefund).toHaveBeenCalledWith('p-1', { amount_minor: '1050', reason: 'Ошибка тарифа', cancel_subscription: true });
+    expect(wrapper.find('[data-refund="requested"]').exists()).toBe(true);
+
+    const item = wrapper.get('[data-refund="r-1"]');
+    expect(item.text()).toContain('Ждёт подтверждения');
+    expect(item.text()).toContain('отмена подписки');
+    await item.get('[data-action="approve-refund"]').trigger('click');
+    await wrapper.get('[data-field="decision-reason"]').setValue('Согласовано');
+    await wrapper.get('[data-field="decision-code"]').setValue('123456');
+    await wrapper.get('[data-form="refund-approve"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.approveRefund).toHaveBeenCalledWith('r-1', { reason: 'Согласовано', confirmation_code: '123456' });
+  });
+
+  it('hides refund actions from staff without refund rights', async () => {
+    mocked.fetchMe.mockResolvedValue(staff());
+    mocked.fetchPayments.mockResolvedValue({
+      data: [{ id: 'p-1', provider_transaction_ref: 'txn_1', status: 'completed', origin: 'web', invoice_number: 'INV-1', currency: 'EUR', currency_exponent: 2, subtotal_minor: '2300', discount_minor: '400', tax_minor: '437', total_minor: '2737', fee_minor: '186', earnings_minor: '2551', period_start: null, period_end: null, billed_at: '2026-10-11T12:00:00Z', tenant: { id: 't-1', name: 'Kaffee GmbH' } }],
+      next_cursor: null,
+      month: [],
+      mode: 'test',
+    });
+    mocked.fetchRefunds.mockResolvedValue([{ id: 'r-1', tenant: { id: 't-1', name: 'Kaffee GmbH' }, transaction_id: 'p-1', provider_transaction_ref: 'txn_1', invoice_number: 'INV-1', kind: 'partial', amount_minor: '1000', tax_minor: null, currency: 'EUR', currency_exponent: 2, reason: 'Ошибка', cancel_subscription: false, status: 'requested', provider_status: null, error_code: null, requested_by: 'Anna', decided_by: null, decision_reason: null, created_at: '2026-10-13T10:00:00Z', decided_at: null }]);
+    await useStaff().load(true);
+    const router = buildRouter();
+    await router.push('/owner/payments');
+    await router.isReady();
+    const wrapper = mount(App, { global: { plugins: [localization, router] } });
+    await flushPromises();
+    await vi.waitFor(() => expect(wrapper.find('[data-refund="r-1"]').exists()).toBe(true));
+
+    expect(wrapper.find('[data-action="refund"]').exists()).toBe(false);
+    expect(wrapper.find('[data-action="approve-refund"]').exists()).toBe(false);
   });
 });

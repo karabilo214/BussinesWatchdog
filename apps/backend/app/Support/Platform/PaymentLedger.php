@@ -33,9 +33,10 @@ class PaymentLedger
             ->limit(51)
             ->get(['billing_transactions.*', 'tenants.name as tenant_name']);
         $page = $rows->take(50);
+        $refunded = self::refunded($page->pluck('id')->all());
 
         return [
-            'data' => $page->map(fn (BillingTransaction $transaction): array => self::dto($transaction) + ['tenant' => ['id' => $transaction->tenant_id, 'name' => $transaction->getAttribute('tenant_name')]])->values()->all(),
+            'data' => $page->map(fn (BillingTransaction $transaction): array => self::dto($transaction, $refunded[$transaction->id] ?? 0) + ['tenant' => ['id' => $transaction->tenant_id, 'name' => $transaction->getAttribute('tenant_name')]])->values()->all(),
             'next_cursor' => $rows->count() > 50 ? $page->last()?->id : null,
         ];
     }
@@ -48,7 +49,7 @@ class PaymentLedger
         $now ??= Carbon::now();
         $start = $now->copy()->utc()->startOfMonth();
 
-        return DB::table('billing_transactions')
+        $rows = DB::table('billing_transactions')
             ->where('mode', PaddleConfig::mode())
             ->whereIn('status', self::PAID)
             ->where('billed_at', '>=', $start)
@@ -56,7 +57,17 @@ class PaymentLedger
             ->groupBy('currency', 'currency_exponent')
             ->orderBy('currency')
             ->selectRaw('currency, currency_exponent, count(*) as payments, sum(total_minor) as total, sum(tax_minor) as tax, sum(fee_minor) as fee, sum(earnings_minor) as earnings, sum(case when fee_minor is null then 1 else 0 end) as fee_unknown')
-            ->get()
+            ->get();
+        $refunds = DB::table('billing_refunds')
+            ->where('mode', PaddleConfig::mode())
+            ->where('status', 'refunded')
+            ->where('source_updated_at', '>=', $start)
+            ->where('source_updated_at', '<', $start->copy()->addMonth())
+            ->groupBy('currency')
+            ->selectRaw('currency, sum(amount_minor) as refunded')
+            ->pluck('refunded', 'currency');
+
+        return $rows
             ->map(fn (object $row): array => [
                 'currency' => $row->currency,
                 'currency_exponent' => (int) $row->currency_exponent,
@@ -65,15 +76,28 @@ class PaymentLedger
                 'tax_minor' => $row->tax === null ? null : (string) $row->tax,
                 'fee_minor' => (int) $row->fee_unknown > 0 ? null : (string) $row->fee,
                 'earnings_minor' => (int) $row->fee_unknown > 0 ? null : (string) $row->earnings,
+                'refunded_minor' => (string) ($refunds[$row->currency] ?? 0),
             ])
             ->values()
             ->all();
     }
 
     /**
+     * Refunded amount of each payment (refunds Paddle approved).
+     *
+     * @param  list<string>  $transactionIds
+     * @return array<string, int>
+     */
+    public static function refunded(array $transactionIds): array
+    {
+        return DB::table('billing_refunds')->whereIn('transaction_id', $transactionIds)->where('status', 'refunded')->groupBy('transaction_id')
+            ->selectRaw('transaction_id, sum(amount_minor) as refunded')->pluck('refunded', 'transaction_id')->map(fn ($value): int => (int) $value)->all();
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    public static function dto(BillingTransaction $transaction): array
+    public static function dto(BillingTransaction $transaction, int $refunded = 0): array
     {
         $string = fn (?int $value): ?string => $value === null ? null : (string) $value;
 
@@ -91,6 +115,7 @@ class PaymentLedger
             'total_minor' => $string($transaction->total_minor),
             'fee_minor' => $string($transaction->fee_minor),
             'earnings_minor' => $string($transaction->earnings_minor),
+            'refunded_minor' => (string) $refunded,
             'period_start' => $transaction->period_start?->toJSON(),
             'period_end' => $transaction->period_end?->toJSON(),
             'billed_at' => ($transaction->billed_at ?? $transaction->provider_created_at)?->toJSON(),

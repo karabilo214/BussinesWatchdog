@@ -113,6 +113,7 @@ onMounted(() => void load());
               {{ money(invoice, invoice.total_minor) }}
               <span v-if="invoice.tax_minor && invoice.tax_minor !== '0'" class="block text-[13px] text-text-muted">{{ $t('billing.invoices.tax', { amount: money(invoice, invoice.tax_minor) }) }}</span>
               <span v-if="invoice.discount_minor && invoice.discount_minor !== '0'" class="block text-[13px] text-ok">{{ $t('billing.invoices.discount', { amount: money(invoice, invoice.discount_minor) }) }}</span>
+              <span v-if="invoice.refunded_minor && invoice.refunded_minor !== '0'" class="block text-[13px] text-warn" data-refunded>{{ $t('billing.invoices.refunded', { amount: money(invoice, invoice.refunded_minor) }) }}</span>
             </td>
             <td class="py-2 pr-4"><StatusBadge :tone="TONES[invoice.status]" :label="$t(`billing.invoices.status.${invoice.status}`)" /></td>
             <td class="py-2 text-right">

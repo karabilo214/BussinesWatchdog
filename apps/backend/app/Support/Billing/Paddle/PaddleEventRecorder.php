@@ -20,7 +20,7 @@ class PaddleEventRecorder
         'subscription.past_due', 'subscription.paused', 'subscription.resumed', 'subscription.canceled',
         'subscription.imported', 'transaction.created', 'transaction.updated', 'transaction.ready',
         'transaction.paid', 'transaction.completed', 'transaction.payment_failed', 'transaction.past_due',
-        'transaction.canceled', 'transaction.billed',
+        'transaction.canceled', 'transaction.billed', 'adjustment.created', 'adjustment.updated',
     ];
 
     /**
@@ -117,6 +117,29 @@ class PaddleEventRecorder
                     : null,
                 'paused_at' => self::string($data['paused_at'] ?? null),
                 'canceled_at' => self::string($data['canceled_at'] ?? null),
+            ];
+        }
+
+        if ($entity === 'adjustment') {
+            $adjustmentTotals = is_array($data['totals'] ?? null) ? $data['totals'] : [];
+
+            return [
+                'id' => $data['id'],
+                'action' => self::string($data['action'] ?? null),
+                'type' => self::string($data['type'] ?? null),
+                'status' => self::string($data['status'] ?? null),
+                'transaction_id' => self::string($data['transaction_id'] ?? null),
+                'subscription_id' => self::string($data['subscription_id'] ?? null),
+                'currency_code' => self::string($data['currency_code'] ?? null),
+                'reason' => is_string($data['reason'] ?? null) ? mb_substr($data['reason'], 0, 200) : null,
+                'totals' => array_filter([
+                    'total' => self::string($adjustmentTotals['total'] ?? null),
+                    'tax' => self::string($adjustmentTotals['tax'] ?? null),
+                    'fee' => self::string($adjustmentTotals['fee'] ?? null),
+                    'earnings' => self::string($adjustmentTotals['earnings'] ?? null),
+                ], fn (?string $value): bool => $value !== null),
+                'created_at' => self::string($data['created_at'] ?? null),
+                'updated_at' => self::string($data['updated_at'] ?? null),
             ];
         }
 

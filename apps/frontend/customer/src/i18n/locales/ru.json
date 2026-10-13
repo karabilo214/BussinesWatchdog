@@ -1577,7 +1577,8 @@
         "completed": "Оплачен",
         "canceled": "Отменён",
         "past_due": "Не оплачен"
-      }
+      },
+      "refunded": "возвращено {amount}"
     }
   }
 }

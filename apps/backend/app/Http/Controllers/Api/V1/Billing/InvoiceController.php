@@ -8,6 +8,7 @@ use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Billing\Paddle\PaddleConfig;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
 use App\Support\Billing\Paddle\PaddleTransactions;
+use App\Support\Platform\PaymentLedger;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,9 +32,10 @@ class InvoiceController extends Controller
             ->limit(51)
             ->get();
         $page = $rows->take(50);
+        $refunded = PaymentLedger::refunded($page->pluck('id')->all());
 
         return response()->json([
-            'data' => $page->map(fn (BillingTransaction $transaction): array => self::dto($transaction))->values()->all(),
+            'data' => $page->map(fn (BillingTransaction $transaction): array => self::dto($transaction) + ['refunded_minor' => (string) ($refunded[$transaction->id] ?? 0)])->values()->all(),
             'next_cursor' => $rows->count() > 50 ? $page->last()?->id : null,
         ]);
     }
