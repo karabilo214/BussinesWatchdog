@@ -12,8 +12,8 @@
 1. `PROJECT_STATE.md` — текущий статус, последний выполненный шаг, что дальше. Главная точка восстановления контекста в начале сессии.
 2. `AGENTS.md` — правила реализации и инварианты проекта.
 3. `spec/Business-Watchdog-TZ.md` — основное ТЗ (особое внимание разделам 2, 9–14, 18–20, 25–28, 36–39).
-4. `spec/database/schema.sql`, `contracts/` (рабочий OpenAPI — только `contracts/openapi.yaml`, копии в `spec/contracts/` нет), `spec/ACCEPTANCE.md`.
-5. Для панелей/биллинга: `spec/panels/*.md`, `spec/database/platform-billing-extension.sql`, `spec/contracts/platform-billing-api.yaml`, `spec/PANELS-ACCEPTANCE.md`.
+4. `spec/database/schema.sql`, `contracts/` (`openapi.yaml`, `platform-billing-api.yaml`, `event.schema.json` — только здесь, копий в `spec/contracts/` нет), `spec/ACCEPTANCE.md`.
+5. Для панелей/биллинга: `spec/panels/*.md`, `spec/database/platform-billing-extension.sql`, `contracts/platform-billing-api.yaml`, `spec/PANELS-ACCEPTANCE.md`.
 6. Реальный код, миграции и история шагов — что фактически уже реализовано.
 
 ## История шагов (`docs/progress/`)

@@ -7,8 +7,8 @@
 В комплекте:
 
 - `database/schema.sql` — 41 доменная таблица, FK, CHECK, unique constraints и indexes для PostgreSQL18.
-- `contracts/openapi.yaml` — основные внешние и внутренние API.
-- `contracts/event.schema.json` — versioned JSON Schema нормализованных событий.
+- `../contracts/openapi.yaml` — основные внешние и внутренние API (рабочий контракт живёт только в корневом `contracts/`).
+- `../contracts/event.schema.json` — versioned JSON Schema нормализованных событий.
 - `contracts/ui-api-catalog.md` — уточнения DTO остальных интерфейсов и правил API.
 - `examples/ingest-batch.json` — synthetic Woo snapshot batch.
 - `examples/reconciliation-cases.json` — 24 финансовых примера.
@@ -24,7 +24,7 @@
 - `panels/PUBLIC-SUBSCRIPTION-FRONTEND.md` — сайт, тарифы, регистрация, hosted checkout, продление и отмена подписки нашей услуги.
 - `panels/ADMIN-BACKEND.md` — backend, права, lifecycle биллинга, API и эксплуатация.
 - `database/platform-billing-extension.sql` —21 дополнительная таблица; вместе с base41 всего62.
-- `contracts/platform-billing-api.yaml` —20 дополнительных core операций.
+- `../contracts/platform-billing-api.yaml` —20 дополнительных core операций.
 - `examples/saas-billing-cases.json` —16 сценариев собственного биллинга.
 - `PANELS-ACCEPTANCE.md` — приёмка дополнения1.1.
 

@@ -28,7 +28,7 @@ def validate(value, schema, root):
         if schema['$ref'].startswith('#/'):
             return validate(value, resolve(root,schema['$ref']),root)
         assert schema['$ref']=='./event.schema.json'
-        event_schema=json.loads((ROOT/'contracts/event.schema.json').read_text())
+        event_schema=json.loads((ROOT.parent/'contracts/event.schema.json').read_text())
         return validate(value,event_schema,event_schema)
     if 'const' in schema: assert value==schema['const'], (value,schema['const'])
     if 'enum' in schema: assert value in schema['enum'], (value,schema['enum'])
@@ -118,8 +118,8 @@ for path,item in api['paths'].items():
 assert len(ops)==len(set(ops))
 checked(f'OpenAPI YAML, internal references, path parameters and unique operation IDs: {len(ops)} operations')
 
-extra_api=yaml.safe_load((ROOT/'contracts/platform-billing-api.yaml').read_text())
-refs(extra_api,extra_api,ROOT/'contracts')
+extra_api=yaml.safe_load((ROOT.parent/'contracts/platform-billing-api.yaml').read_text())
+refs(extra_api,extra_api,ROOT.parent/'contracts')
 extra_ops=[]
 for path,item in extra_api['paths'].items():
     for method,op in item.items():
@@ -143,8 +143,8 @@ except (AssertionError,ValueError,KeyError,TypeError):pass
 else:raise AssertionError('Arbitrary action parameter accepted')
 checked('Extension OpenAPI: 20 operations, references/paths and positive/negative purchase/action DTO fixtures')
 
-event_schema=json.loads((ROOT/'contracts/event.schema.json').read_text())
-refs(event_schema,event_schema,ROOT/'contracts')
+event_schema=json.loads((ROOT.parent/'contracts/event.schema.json').read_text())
+refs(event_schema,event_schema,ROOT.parent/'contracts')
 batch=json.loads((ROOT/'examples/ingest-batch.json').read_text())
 request=api['paths']['/api/v1/ingest/events']['post']['requestBody']['content']['application/json']['schema']
 validate(batch,request,api)
@@ -230,11 +230,11 @@ assert sections==[str(i) for i in range(1,43)]
 acc=(ROOT/'ACCEPTANCE.md').read_text()
 ids=re.findall(r'\| (ACC-\d+) \|',acc)
 assert ids==[f'ACC-{i:02d}' for i in range(1,51)]
-for path in ['database/schema.sql','contracts/event.schema.json','contracts/ui-api-catalog.md','examples/reconciliation-cases.json','CODEX-IMPLEMENTATION.md','ACCEPTANCE.md','README.md']:
+for path in ['database/schema.sql','contracts/ui-api-catalog.md','examples/reconciliation-cases.json','CODEX-IMPLEMENTATION.md','ACCEPTANCE.md','README.md']:
     assert (ROOT/path).is_file(),path
 checked('42 numbered TZ sections, 50 unique acceptance IDs, all listed deliverables present')
 
-extra_files=['panels/OWNER-PANEL.md','panels/ADMIN-PANEL.md','panels/CLIENT-PANELS.md','panels/PUBLIC-SUBSCRIPTION-FRONTEND.md','panels/ADMIN-BACKEND.md','database/platform-billing-extension.sql','contracts/platform-billing-api.yaml','examples/saas-billing-cases.json','PANELS-ACCEPTANCE.md']
+extra_files=['panels/OWNER-PANEL.md','panels/ADMIN-PANEL.md','panels/CLIENT-PANELS.md','panels/PUBLIC-SUBSCRIPTION-FRONTEND.md','panels/ADMIN-BACKEND.md','database/platform-billing-extension.sql','examples/saas-billing-cases.json','PANELS-ACCEPTANCE.md']
 for path in extra_files:assert (ROOT/path).is_file(),path
 billing_cases=json.loads((ROOT/'examples/saas-billing-cases.json').read_text())['cases']
 assert len(billing_cases)==16 and len({c['id'] for c in billing_cases})==16

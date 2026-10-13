@@ -5,8 +5,8 @@ This repository contains the specification package (`spec/`) and an in-progress 
 Before a task, read `PROJECT_STATE.md`, then:
 
 1. `spec/Business-Watchdog-TZ.md`, especially sections 2, 9-14, 18-20, 25-28 and 36-39.
-2. `spec/database/schema.sql`, `spec/contracts`, and `spec/ACCEPTANCE.md`.
-3. For customer panels and SaaS billing: `spec/panels`, `spec/database/platform-billing-extension.sql`, `spec/contracts/platform-billing-api.yaml`, and `spec/PANELS-ACCEPTANCE.md`.
+2. `spec/database/schema.sql`, `contracts/` (the only copy of `openapi.yaml`, `platform-billing-api.yaml` and `event.schema.json`), and `spec/ACCEPTANCE.md`.
+3. For customer panels and SaaS billing: `spec/panels`, `spec/database/platform-billing-extension.sql`, `contracts/platform-billing-api.yaml`, and `spec/PANELS-ACCEPTANCE.md`.
 
 Core invariants:
 

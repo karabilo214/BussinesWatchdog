@@ -745,3 +745,4 @@ Status: complete
 - Owner panel `TenantView` split into tab components `components/tenant/*`.
 
 Verification: backend SQLite 532 passed, 4 skipped; PostgreSQL 18: 536 of 536 (the copy test removed); control 27, customer 112. `spec/validate_spec.py` still fails at the platform API operation count (unchanged).
+- Follow-up: `spec/contracts/event.schema.json` and `spec/contracts/platform-billing-api.yaml` (identical duplicates) removed; `validate_spec.py`, `spec/README.md`, `contracts/README.md`, `CLAUDE.md` and `AGENTS.md` point to `contracts/`. `spec/contracts/ui-api-catalog.md` stays (the original spec text; the working catalog in `contracts/` has diverged). The backend runtime copy of the event schema stays, guarded by `IngestEventsApiTest`.
