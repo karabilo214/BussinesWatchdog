@@ -19,6 +19,7 @@ use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationSubjectState;
 use App\Models\Refund;
 use App\Models\RefundAllocation;
+use App\Support\Billing\HistoryWindow;
 use App\Support\Reconciliation\ReconciliationResultRecorder;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -40,6 +41,8 @@ class OrderController extends Controller
         $tenantId = $tenantContext->requireTenantId('read order');
 
         abort_unless($order->tenant_id === $tenantId, 404);
+        $cutoff = app(HistoryWindow::class)->cutoff($tenantId);
+        abort_if($cutoff !== null && $order->source_created_at !== null && $order->source_created_at->lessThan($cutoff), 404);
 
         $allocations = PaymentAllocation::query()
             ->where('order_id', $order->id)

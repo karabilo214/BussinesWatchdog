@@ -11,11 +11,13 @@ use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Store;
 use App\Support\Api\UuidCursor;
+use App\Support\Billing\HistoryWindow;
 use App\Support\Incidents\MoneyIncidentCorrelator;
 use App\Support\Reconciliation\GraceRecheckScheduler;
 use App\Support\Reconciliation\OrderReconciliationService;
 use App\Support\Reconciliation\UnmatchedPaymentScanner;
 use App\Support\Tenancy\TenantContext;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -96,6 +98,8 @@ class ReconciliationController extends Controller
 
         if ($request->boolean('current')) {
             $query->whereIn('id', $this->currentFindingIds($tenantId, $store->id));
+        } elseif (($cutoff = app(HistoryWindow::class)->cutoff($tenantId)) !== null) {
+            $query->where('evaluated_at', '>=', $cutoff);
         }
 
         if (isset($validated['from'])) {
@@ -157,7 +161,7 @@ class ReconciliationController extends Controller
     /**
      * Findings of the current result of every order and of the store-wide unmatched-payment scan.
      */
-    private function currentFindingIds(string $tenantId, string $storeId): \Illuminate\Database\Query\Builder
+    private function currentFindingIds(string $tenantId, string $storeId): Builder
     {
         return DB::table('reconciliation_findings')
             ->where('tenant_id', $tenantId)

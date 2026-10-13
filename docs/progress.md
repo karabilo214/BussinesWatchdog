@@ -2269,3 +2269,13 @@ Status: complete
 
 Verification: `PlanChangeTest::test_faster_checks_are_added_at_once_and_removed_at_the_end_of_the_period` (unavailable for a package without it; immediate add with the Paddle item; interval 15 → 5; removal scheduled, kept until period end, then 15 again), `PaddleBillingTest::test_checkout_adds_the_faster_checks_item_only_when_the_package_offers_it`, `PlanAdminTest::test_owner_offers_faster_checks_as_an_add_on_with_its_own_interval_and_price` (validation, publish rule, Paddle price quantity 1, pricing page). Control 23, customer 110 tests (new add-on purchase test; three call expectations updated). Backend SQLite 516 passed, 4 skipped; PostgreSQL 18: 520 of 520. Paddle fixtures only — not run against the sandbox.
 
+### Step 117: History Retention by Package
+
+Status: complete
+
+- Owner's decision (2026-10-13): history older than the package's retention is hidden and deleted 30 days later, so a longer package within that time brings it back.
+- `HistoryWindow` (cutoff from `retention_days`, purge date 30 days earlier) applied to: incidents list/detail (open incidents always), check runs list/detail, history findings (current findings always), unmatched payments, notification deliveries, order and payment cards, CSV exports (findings, incidents, transactions). The unmatched-payments list now excludes allocated captures with a subquery instead of an id list (same fix as the scanner in Step 112).
+- `HistoryPurger` + daily `billing:history-purge`: closed incidents (not suppressed) with deliveries, activity and signal links; unused signals; past reconciliation findings and runs (current results and findings used by signals kept); finished check runs with attempts, steps and screenshot objects; payment-attempt windows; deliveries. Orders, payments, refunds, transactions and allocations are only hidden.
+
+Verification: `tests/Feature/Billing/HistoryRetentionTest.php` (2: hidden lists and 404 cards, open incident still shown, back with a 365-day package; purge of 70-day-old run and closed incident, 45-day-old kept, current reconciliation result and the order kept, older past result deleted, pilot purges nothing). Backend SQLite 518 passed, 4 skipped; PostgreSQL 18: 522 of 522.
+

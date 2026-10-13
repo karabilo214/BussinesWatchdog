@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\Store;
 use App\Support\Api\UuidCursor;
+use App\Support\Billing\HistoryWindow;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
@@ -29,9 +30,11 @@ class UnmatchedPaymentController extends Controller
         $limit = $validated['limit'] ?? 50;
 
         $allocatedCaptureIds = PaymentAllocation::query()
+            ->where('tenant_id', $tenantId)
             ->where('store_id', $store->id)
             ->whereNull('revoked_at')
-            ->pluck('capture_transaction_id');
+            ->whereNotNull('capture_transaction_id')
+            ->select('capture_transaction_id');
 
         $query = FinancialTransaction::query()
             ->where('tenant_id', $tenantId)
@@ -39,7 +42,8 @@ class UnmatchedPaymentController extends Controller
             ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
             ->where('kind', 'capture')
             ->where('status', 'succeeded')
-            ->whereNotIn('id', $allocatedCaptureIds);
+            ->whereNotIn('id', $allocatedCaptureIds)
+            ->when(app(HistoryWindow::class)->cutoff($tenantId), fn ($query, $cutoff) => $query->where('occurred_at', '>=', $cutoff));
 
         if (isset($validated['cursor'])) {
             $cursorId = UuidCursor::decode($validated['cursor']);

@@ -1,6 +1,6 @@
 # ADR 0041: Plan packages by store order volume (pricing option)
 
-Status: partly implemented (Step 114: order counting, package order limit, grace period, notice, recommendation, individual-price package — all configured in the owner panel). Prices and limits below are examples to be checked against cost; retention by plan is not implemented yet. The owner accepted the history rule and the pause after the grace period (2026-10-12); prices and boundaries are the owner's to set.
+Status: implemented (Steps 114–117: order counting, package order limit, grace period, notice, recommendation, individual-price package — all configured in the owner panel). Prices and limits below are examples to be checked against cost. The owner accepted the history rule and the pause after the grace period (2026-10-12); prices and boundaries are the owner's to set.
 
 ## Context
 
@@ -71,4 +71,10 @@ Still open: the check-frequency add-on (a new price kind next to the extra store
 - **Effect**: the contract and the subscription record the add-on; `EntitlementCalculator::withFasterChecks` lowers the plan's minimum check interval to the add-on's interval (never raises it, never limits a package without a minimum), so check scheduling and the scenario form follow it without other changes. Discounts of the next period include the add-on amount.
 - **Shown**: cabinet plan cards (a checkbox with interval and price, included in the total), subscription block («Faster checks: every N min»), public pricing page (add-on line).
 - Verified with tests only (Paddle fixtures); not yet run against the Paddle sandbox.
+
+## History retention by package (Step 117, owner's decision 2026-10-13: hide, delete later)
+
+- **Hidden**: history older than the package's `retention_days` (`HistoryWindow::cutoff`) is not shown in the cabinet or exports: closed incidents last seen before the cutoff (open incidents always show), check runs (list and detail), history findings (current results always show), unmatched payments, notification deliveries, order and payment cards (404). A longer package shows it again at once. No limit or pilot mode shows everything.
+- **Deleted** 30 days after leaving the retention (`billing:history-purge`, daily 03:45 UTC): closed incidents not referenced by a suppression, with their notification deliveries, activity and signal links; signals no incident uses; findings and runs of past reconciliation results (never a subject's current result, never a finding a remaining signal points to); finished check runs with attempts, steps and screenshots (objects deleted from storage); payment-attempt windows; notification deliveries.
+- **Kept**: orders, payments, refunds, financial transactions and allocations — the basis of reconciliation — are only hidden; deleting them safely (with their allocations and current reconciliation state) is left for a separate step. Usage counters, order volumes and audit logs are not affected.
 

@@ -20,6 +20,7 @@ use App\Models\ReconciliationFinding;
 use App\Models\Signal;
 use App\Models\Suppression;
 use App\Support\Api\UuidCursor;
+use App\Support\Billing\HistoryWindow;
 use App\Support\Incidents\IncidentLifecycleService;
 use App\Support\Tenancy\TenantContext;
 use DateTimeImmutable;
@@ -44,6 +45,11 @@ class IncidentController extends Controller
         $limit = $validated['limit'] ?? 50;
 
         $query = Incident::query()->where('tenant_id', $tenantId);
+        $cutoff = app(HistoryWindow::class)->cutoff($tenantId);
+
+        if ($cutoff !== null) {
+            $query->where(fn ($visible) => $visible->whereIn('state', Incident::ACTIVE_STATES)->orWhere('last_seen_at', '>=', $cutoff));
+        }
 
         if (isset($validated['store_id'])) {
             $query->where('store_id', $validated['store_id']);
@@ -91,6 +97,8 @@ class IncidentController extends Controller
         $tenantId = $tenantContext->requireTenantId('read incident');
 
         abort_unless($incident->tenant_id === $tenantId, 404);
+        $cutoff = app(HistoryWindow::class)->cutoff($tenantId);
+        abort_if($cutoff !== null && ! in_array($incident->state, Incident::ACTIVE_STATES, true) && $incident->last_seen_at !== null && $incident->last_seen_at->lessThan($cutoff), 404);
 
         $signalIds = IncidentSignal::query()
             ->where('incident_id', $incident->id)

@@ -7,6 +7,7 @@ use App\Http\Dto\Notifications\NotificationDeliveryDto;
 use App\Http\Requests\Notifications\ListNotificationDeliveriesRequest;
 use App\Models\NotificationDelivery;
 use App\Support\Api\UuidCursor;
+use App\Support\Billing\HistoryWindow;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 
@@ -22,7 +23,8 @@ class NotificationDeliveryController extends Controller
         $validated = $request->validated();
         $limit = $validated['limit'] ?? 50;
 
-        $query = NotificationDelivery::query()->where('tenant_id', $tenantId);
+        $query = NotificationDelivery::query()->where('tenant_id', $tenantId)
+            ->when(app(HistoryWindow::class)->cutoff($tenantId), fn ($query, $cutoff) => $query->where('created_at', '>=', $cutoff));
 
         foreach (['incident_id', 'channel_id', 'status'] as $filter) {
             if (isset($validated[$filter])) {

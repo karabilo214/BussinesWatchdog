@@ -9,8 +9,8 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\ReconciliationFinding;
 use App\Models\Store;
+use App\Support\Billing\HistoryWindow;
 use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -108,6 +108,8 @@ class CsvExportService
 
         if (($filters['current'] ?? false) === true) {
             $query->whereIn('id', $this->currentFindingIds($tenantId, $storeId));
+        } elseif (($cutoff = app(HistoryWindow::class)->cutoff($tenantId)) !== null) {
+            $query->where('evaluated_at', '>=', $cutoff);
         }
 
         if (isset($filters['from'])) {
@@ -168,7 +170,8 @@ class CsvExportService
     {
         $query = Incident::query()
             ->where('tenant_id', $tenantId)
-            ->where('store_id', $storeId);
+            ->where('store_id', $storeId)
+            ->when(app(HistoryWindow::class)->cutoff($tenantId), fn ($query, $cutoff) => $query->where(fn ($visible) => $visible->whereIn('state', Incident::ACTIVE_STATES)->orWhere('last_seen_at', '>=', $cutoff)));
 
         if (isset($filters['state'])) {
             $query->whereIn('state', $filters['state']);
@@ -216,7 +219,8 @@ class CsvExportService
     {
         $query = FinancialTransaction::query()
             ->where('tenant_id', $tenantId)
-            ->where('store_id', $storeId);
+            ->where('store_id', $storeId)
+            ->when(app(HistoryWindow::class)->cutoff($tenantId), fn ($query, $cutoff) => $query->where('occurred_at', '>=', $cutoff));
 
         if (isset($filters['from'])) {
             $query->where('occurred_at', '>=', $filters['from']);

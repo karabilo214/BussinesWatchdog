@@ -13,6 +13,7 @@ use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
 use App\Models\RefundAllocation;
+use App\Support\Billing\HistoryWindow;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 
@@ -31,6 +32,8 @@ class PaymentController extends Controller
         $tenantId = $tenantContext->requireTenantId('read payment');
 
         abort_unless($payment->tenant_id === $tenantId, 404);
+        $cutoff = app(HistoryWindow::class)->cutoff($tenantId);
+        abort_if($cutoff !== null && $payment->created_at !== null && $payment->created_at->lessThan($cutoff), 404);
 
         $transactions = FinancialTransaction::query()
             ->where('payment_id', $payment->id)

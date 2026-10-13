@@ -11,6 +11,7 @@ use App\Models\CheckRun;
 use App\Models\CheckScenario;
 use App\Models\Store;
 use App\Support\Api\UuidCursor;
+use App\Support\Billing\HistoryWindow;
 use App\Support\Billing\UsageLimitResponse;
 use App\Support\Billing\UsageMeter;
 use App\Support\Browser\ArtifactStore;
@@ -39,6 +40,11 @@ class CheckRunController extends Controller
         ]);
         $limit = (int) ($validated['limit'] ?? 25);
         $query = CheckRun::query()->where('tenant_id', $store->tenant_id)->where('store_id', $store->id);
+        $cutoff = app(HistoryWindow::class)->cutoff($store->tenant_id);
+
+        if ($cutoff !== null) {
+            $query->where('created_at', '>=', $cutoff);
+        }
 
         if (isset($validated['cursor'])) {
             $cursorId = UuidCursor::decode($validated['cursor']);
@@ -86,6 +92,8 @@ class CheckRunController extends Controller
     public function show(CheckRun $checkRun, TenantContext $tenantContext): JsonResponse
     {
         abort_unless($checkRun->tenant_id === $tenantContext->requireTenantId('read check run'), 404);
+        $cutoff = app(HistoryWindow::class)->cutoff($checkRun->tenant_id);
+        abort_if($cutoff !== null && $checkRun->created_at !== null && $checkRun->created_at->lessThan($cutoff), 404);
 
         return response()->json($this->dto->runDetail($checkRun));
     }

@@ -142,3 +142,9 @@ Schedule::command('billing:order-volume')
     ->timezone('UTC')
     ->withoutOverlapping(60)
     ->onOneServer();
+
+Schedule::command('billing:history-purge')
+    ->dailyAt('03:45')
+    ->timezone('UTC')
+    ->withoutOverlapping(120)
+    ->onOneServer();
