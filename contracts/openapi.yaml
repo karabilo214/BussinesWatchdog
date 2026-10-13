@@ -714,6 +714,109 @@ paths:
                   data: {type: array, items: {type: object}}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Platform]
+      operationId: platformCreatePageBlock
+      description: "Capability content.manage. Creates a block template: name (≤ 120), category, order and HTML per language sanitized like a page body (at least one language: 422 body_required; name_invalid, category_invalid). Audited with a content hash."
+      security:
+        - {StaffSession: []}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, category, bodies]
+              properties:
+                name: {type: string, maxLength: 120}
+                category: {enum: [hero, features, steps, pricing, faq, cta, text, other]}
+                sort: {type: integer, minimum: -1000, maximum: 1000}
+                bodies:
+                  type: object
+                  properties:
+                    ru: {type: [string, "null"], maxLength: 200000}
+                    en: {type: [string, "null"], maxLength: 200000}
+                    de: {type: [string, "null"], maxLength: 200000}
+      responses:
+        "201":
+          description: Block template
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/page-blocks/{block}:
+    get:
+      tags: [Platform]
+      operationId: platformShowPageBlock
+      description: "Capability content.manage. One block template that is not archived."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: block, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Block template
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+    patch:
+      tags: [Platform]
+      operationId: platformUpdatePageBlock
+      description: "Capability content.manage. Changes the name, category, order or the HTML of some languages (null or empty removes that language; at least one must stay: 422 body_required). Pages that already contain the template keep their copy. Audited with a content hash."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: block, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string, maxLength: 120}
+                category: {enum: [hero, features, steps, pricing, faq, cta, text, other]}
+                sort: {type: integer, minimum: -1000, maximum: 1000}
+                bodies: {type: object}
+      responses:
+        "200":
+          description: Block template
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/page-blocks/{block}/archive:
+    post:
+      tags: [Platform]
+      operationId: platformArchivePageBlock
+      description: "Capability content.manage. Removes a block template from the editor with a reason; pages that contain it keep their copy. Audited."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: block, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "204": {description: Archived}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/pages:
     get:
       tags: [Platform]

@@ -7,7 +7,7 @@ declare module 'vue-router' {
   }
 }
 
-export const OWNER_SECTIONS = ['overview', 'tenants', 'subscriptions', 'payments', 'plans', 'site', 'contacts', 'service', 'staff', 'audit', 'settings'] as const;
+export const OWNER_SECTIONS = ['overview', 'tenants', 'subscriptions', 'payments', 'plans', 'site', 'blocks', 'contacts', 'service', 'staff', 'audit', 'settings'] as const;
 export type OwnerSection = (typeof OWNER_SECTIONS)[number];
 
 export function buildRouter(): Router {
@@ -16,7 +16,7 @@ export function buildRouter(): Router {
     routes: [
       { path: '/', redirect: { name: 'owner-overview' } },
       { path: '/owner/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
-      ...OWNER_SECTIONS.filter((section) => !['plans', 'tenants', 'subscriptions', 'payments', 'site', 'contacts'].includes(section)).map((section) => ({
+      ...OWNER_SECTIONS.filter((section) => !['plans', 'tenants', 'subscriptions', 'payments', 'site', 'blocks', 'contacts'].includes(section)).map((section) => ({
         path: section === 'overview' ? '/owner' : `/owner/${section}`,
         name: `owner-${section}`,
         component: () => import('@/views/SectionView.vue'),
@@ -28,6 +28,8 @@ export function buildRouter(): Router {
       { path: '/owner/payments', name: 'owner-payments', component: () => import('@/views/PaymentsView.vue') },
       { path: '/owner/site', name: 'owner-site', component: () => import('@/views/PagesView.vue') },
       { path: '/owner/site/pages/:id', name: 'owner-page', component: () => import('@/views/PageView.vue'), props: true },
+      { path: '/owner/blocks', name: 'owner-blocks', component: () => import('@/views/BlocksView.vue') },
+      { path: '/owner/blocks/:id', name: 'owner-block', component: () => import('@/views/BlockView.vue'), props: true },
       { path: '/owner/contacts', name: 'owner-contacts', component: () => import('@/views/ContactsView.vue') },
       { path: '/owner/contact-requests/:id', name: 'owner-contact', component: () => import('@/views/ContactView.vue'), props: true },
       { path: '/owner/plans', name: 'owner-plans', component: () => import('@/views/PlansView.vue') },

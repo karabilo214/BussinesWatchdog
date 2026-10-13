@@ -53,6 +53,26 @@ try {
   await page.locator('[data-field="slug"]').waitFor();
   console.log('ok   home opens in the visual editor with its built-in text; pricing is edited in code');
 
+  const blockName = `Отзывы ${Date.now().toString(36)}`;
+  await page.goto(`${base}/owner/blocks`);
+  await page.locator('[data-block-row]').first().waitFor();
+  await page.locator('[data-action="new-block"]').click();
+  await page.locator('[data-field="name"]').fill(blockName);
+  await page.locator('[data-field="category"]').selectOption('other');
+  await page.locator('[data-visual]').click();
+  await page.keyboard.type('Клиенты говорят спасибо.');
+  await page.locator('[data-tool="text-style"]').selectOption('note');
+  await page.locator('[data-action="save"]').click();
+  await page.locator('[data-notice]').waitFor();
+  await page.waitForURL(/\/owner\/blocks\/[0-9a-f-]{36}$/);
+  const blockUrl = page.url();
+  await shot(page, '0-block-template');
+  await page.goto(`${base}/owner/blocks`);
+  await page.getByRole('link', { name: blockName }).waitFor();
+  console.log('ok   block template created in its own section with the visual editor');
+  await page.goto(`${base}/owner/site`);
+  await page.locator('[data-field="slug"]').waitFor();
+
   await page.locator('[data-field="slug"]').fill(slug);
   await page.locator('[data-field="menu"]').first().selectOption('header');
   await page.locator('[data-action="create"]').click();
@@ -71,9 +91,12 @@ try {
   await page.locator('[data-visual] h2').getByText('Частые вопросы').waitFor();
   await page.frameLocator('[data-preview]').getByText('Частые вопросы').waitFor();
   await page.locator('[data-tool="blocks"]').click();
+  await page.locator('[data-panel="blocks"]').getByRole('button', { name: new RegExp(blockName) }).click();
+  await page.locator('[data-visual] p.note').getByText('Клиенты говорят спасибо.').waitFor();
+  await page.locator('[data-tool="blocks"]').click();
   await shot(page, '0-visual-editor');
   await page.locator('[data-tool="blocks"]').click();
-  console.log('ok   visual editor: typed text styled as a lead paragraph inside a card, FAQ block template inserted, shown in the preview');
+  console.log('ok   visual editor: typed text styled as a lead paragraph inside a card, FAQ and own block templates inserted, shown in the preview');
 
   await page.locator('[data-mode="html"]').click();
   const visualHtml = await page.locator('[data-field="body"]').inputValue();
@@ -149,6 +172,14 @@ try {
   const fresh = await (await browser.newContext({ javaScriptEnabled: false })).newPage();
   if ((await fresh.goto(`${site}/ru/${slug}`))?.status() !== 404) throw new Error('archived page must be 404');
   console.log('ok   page deleted from the site, its address answers 404');
+
+  await page.goto(blockUrl);
+  await page.locator('[data-action="archive"]').click();
+  await page.locator('[data-field="reason"]').fill('Проверка закончена');
+  await page.locator('[data-action="confirm"]').click();
+  await page.waitForURL(/\/owner\/blocks$/);
+  if ((await page.getByRole('link', { name: blockName }).count()) !== 0) throw new Error('deleted block template is still listed');
+  console.log('ok   block template deleted with a reason');
 
   if (errors.length > 0) throw new Error(`page errors: ${errors.join('; ')}`);
   console.log('PASS');

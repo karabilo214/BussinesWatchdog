@@ -76,6 +76,9 @@
     "site": {
       "title": "Website"
     },
+    "blocks": {
+      "title": "Blockvorlagen"
+    },
     "contacts": {
       "title": "Anfragen"
     }
@@ -157,7 +160,10 @@
     "refund_not_available": "Diese Zahlung kann nicht erstattet werden.",
     "refund_already_decided": "Über diese Anfrage wurde bereits entschieden.",
     "refund_rejected_by_provider": "Paddle hat die Erstattung abgelehnt.",
-    "payment_not_found": "Zahlung nicht gefunden."
+    "payment_not_found": "Zahlung nicht gefunden.",
+    "name_invalid": "Geben Sie einen Namen mit bis zu 120 Zeichen ein.",
+    "category_invalid": "Wählen Sie eine Gruppe aus der Liste.",
+    "block_not_found": "Die Vorlage wurde nicht gefunden oder ist bereits gelöscht."
   },
   "period": {
     "per": {
@@ -828,5 +834,26 @@
       "text": "Text",
       "other": "Sonstiges"
     }
+  },
+  "blocks": {
+    "hint": "Fertige Blöcke, die im visuellen Editor mit „+ Block“ in Seiten eingefügt werden. Eine geänderte Vorlage ändert keine Seiten, in die sie schon eingefügt wurde.",
+    "new": "Neue Vorlage",
+    "empty": "Noch keine Vorlagen.",
+    "untitled": "Vorlage ohne Namen",
+    "col": {
+      "name": "Name",
+      "category": "Gruppe",
+      "languages": "Sprachen",
+      "sort": "Reihenfolge",
+      "updated": "Geändert"
+    },
+    "content": "Inhalt der Vorlage ({locale})",
+    "languages_hint": "Füllen Sie die Vorlage für jede Sprache der Website. Fehlt eine Sprache, erhält eine Seite dieser Sprache die erste ausgefüllte.",
+    "create": "Vorlage anlegen",
+    "save": "Speichern",
+    "saved": "Vorlage gespeichert.",
+    "archive": "Vorlage löschen",
+    "archive_confirm": "Die Vorlage verschwindet aus dem Seiteneditor. Seiten, in die sie schon eingefügt wurde, ändern sich nicht.",
+    "unsaved_leave": "Ungespeicherte Änderungen gehen verloren. Seite verlassen?"
   }
 }

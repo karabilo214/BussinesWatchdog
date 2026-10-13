@@ -76,6 +76,9 @@
     "site": {
       "title": "Website"
     },
+    "blocks": {
+      "title": "Block templates"
+    },
     "contacts": {
       "title": "Messages"
     }
@@ -157,7 +160,10 @@
     "refund_not_available": "This payment cannot be refunded.",
     "refund_already_decided": "This request has already been decided.",
     "refund_rejected_by_provider": "Paddle declined the refund.",
-    "payment_not_found": "Payment not found."
+    "payment_not_found": "Payment not found.",
+    "name_invalid": "Enter a name of up to 120 characters.",
+    "category_invalid": "Choose a group from the list.",
+    "block_not_found": "The template was not found or is already deleted."
   },
   "period": {
     "per": {
@@ -828,5 +834,26 @@
       "text": "Text",
       "other": "Other"
     }
+  },
+  "blocks": {
+    "hint": "Ready blocks inserted into site pages from the visual editor with “+ Block”. Changing a template does not change pages it was already inserted into.",
+    "new": "New template",
+    "empty": "No templates yet.",
+    "untitled": "Untitled template",
+    "col": {
+      "name": "Name",
+      "category": "Group",
+      "languages": "Languages",
+      "sort": "Order",
+      "updated": "Changed"
+    },
+    "content": "Template content ({locale})",
+    "languages_hint": "Fill the template for every site language. If a language is missing, a page in that language gets the first filled one.",
+    "create": "Create template",
+    "save": "Save",
+    "saved": "Template saved.",
+    "archive": "Delete template",
+    "archive_confirm": "The template disappears from the page editor. Pages it was already inserted into do not change.",
+    "unsaved_leave": "Unsaved changes will be lost. Leave the page?"
   }
 }

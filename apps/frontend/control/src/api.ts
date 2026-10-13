@@ -456,6 +456,29 @@ export async function fetchPageBlocks(): Promise<PageBlock[]> {
   return (await request<{ data: PageBlock[] }>('GET', '/platform-api/v1/page-blocks')).data.data;
 }
 
+export interface PageBlockInput {
+  name?: string;
+  category?: PageBlockCategory;
+  sort?: number;
+  bodies?: Partial<Record<SiteLocale, string | null>>;
+}
+
+export async function fetchPageBlock(id: string): Promise<PageBlock> {
+  return (await request<PageBlock>('GET', `/platform-api/v1/page-blocks/${encodeURIComponent(id)}`)).data;
+}
+
+export async function createPageBlock(input: PageBlockInput & { name: string; category: PageBlockCategory; bodies: Partial<Record<SiteLocale, string | null>> }): Promise<PageBlock> {
+  return (await request<PageBlock>('POST', '/platform-api/v1/page-blocks', { body: input })).data;
+}
+
+export async function updatePageBlock(id: string, input: PageBlockInput): Promise<PageBlock> {
+  return (await request<PageBlock>('PATCH', `/platform-api/v1/page-blocks/${encodeURIComponent(id)}`, { body: input })).data;
+}
+
+export async function archivePageBlock(id: string, reason: string): Promise<void> {
+  await request<null>('POST', `/platform-api/v1/page-blocks/${encodeURIComponent(id)}/archive`, { body: { reason } });
+}
+
 export async function fetchPage(id: string): Promise<PageCard> {
   return (await request<PageCard>('GET', `/platform-api/v1/pages/${encodeURIComponent(id)}`)).data;
 }

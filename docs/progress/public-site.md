@@ -70,3 +70,12 @@ Status: complete
 - Found while testing: inserting at the cursor nested a template section into the card the cursor was in — insertion moved after the top-level block; PostgreSQL `jsonb` reorders language keys (test compares them as a set).
 
 Verification: `tests/Feature/Site/PageBlockTest.php` (2: every built-in template in three languages, kept by the sanitizer, links only to its language, no prices; owner-only). Control 35 tests (`editor.test.ts` +2, `site.test.ts` +1). Frontend check green. Backend SQLite 534 passed, 4 skipped; PostgreSQL 18: 538 of 538. Live in Chromium (`run-live.sh site`): FAQ template inserted in the visual editor, shown in the preview and in the HTML — PASS.
+
+### Step 124: Block Templates Section in the Owner Panel
+
+Status: complete
+
+- ADR 0046 p. 7. `PageBlockAdmin` + `PageBlockController`: `POST /page-blocks`, `GET/PATCH /page-blocks/{block}`, `POST /page-blocks/{block}/archive` (reason) — `content.manage`; name ≤ 120, category from the list, bodies per language sanitized like a page body, null/empty removes a language, at least one stays (422 `body_required`); every change audited (`site.block.created/updated/archived`, with locales and a content hash). OpenAPI updated.
+- Owner panel: new menu section «Шаблоны блоков» (`/owner/blocks`): list with group, languages, order and change time; `/owner/blocks/new` and `/owner/blocks/{id}`: name, group, order, language tabs with ✓, visual editor or HTML per language, save, delete with a reason, warning before leaving with unsaved changes. ru/en/de.
+
+Verification: `PageBlockTest` +1 (create with sanitizing, validation, edit languages, remove a language, keep one, archive with reason, audit). Control 38 tests (`tests/blocks.test.ts`, 3). Frontend check green. Backend SQLite 535 passed, 4 skipped; PostgreSQL 18: 539 of 539. Live in Chromium (`run-live.sh site`): template created in the section with the visual editor (note style), inserted into a page from «+ Блок», deleted with a reason — PASS.

@@ -44,6 +44,10 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::CONTENT_MANAGE)->group(function (): void {
         Route::get('/pages', [PageController::class, 'index']);
         Route::get('/page-blocks', [PageBlockController::class, 'index']);
+        Route::post('/page-blocks', [PageBlockController::class, 'store']);
+        Route::get('/page-blocks/{block}', [PageBlockController::class, 'show'])->whereUuid('block');
+        Route::patch('/page-blocks/{block}', [PageBlockController::class, 'update'])->whereUuid('block');
+        Route::post('/page-blocks/{block}/archive', [PageBlockController::class, 'archive'])->whereUuid('block');
         Route::post('/pages', [PageController::class, 'store']);
         Route::get('/pages/{page}', [PageController::class, 'show'])->whereUuid('page');
         Route::patch('/pages/{page}', [PageController::class, 'update'])->whereUuid('page');
