@@ -172,7 +172,8 @@
     "invitation_not_found": "Einladung nicht gefunden.",
     "reply_not_sent": "Der Mailserver hat die E-Mail abgelehnt — die Antwort wurde weder gesendet noch gespeichert. Bitte später erneut versuchen.",
     "reply_invalid": "Geben Sie Betreff und Antworttext ein.",
-    "note_invalid": "Schreiben Sie den Notiztext (bis zu 2000 Zeichen)."
+    "note_invalid": "Schreiben Sie den Notiztext (bis zu 2000 Zeichen).",
+    "period_invalid": "Der Zeitraum muss 1 bis 366 Tage umfassen, Beginn vor Ende."
   },
   "period": {
     "per": {
@@ -1082,5 +1083,51 @@
         "cancelled_by_user": "Von einem Benutzer abgebrochen."
       }
     }
+  },
+  "overview": {
+    "hint": "Geschäftszahlen nach den Definitionen der Spezifikation: jede Währung einzeln, LIVE und TEST nie gemischt. Klicken Sie auf eine Kennzahl, um die zugrunde liegende Liste zu öffnen.",
+    "mode": "Modus",
+    "from": "Von",
+    "to": "Bis",
+    "apply": "Anzeigen",
+    "utc": "Daten in UTC, beide Tage inklusive.",
+    "no_data": "Keine Abonnementdaten im Modus {mode} — die Zahlen sind unvollständig, das ist kein Umsatz von null.",
+    "synced": "Paddle-Daten aktualisiert: {date}.",
+    "customers": {
+      "paying": "Zahlende Kunden",
+      "trial": "In der Testphase",
+      "past_due": "Zahlung überfällig",
+      "cancel_scheduled": "Kündigung zum Periodenende"
+    },
+    "mrr": {
+      "title": "Vertraglicher MRR",
+      "definition": "Feste wiederkehrende Listenpreise aktiver bezahlter Abonnements (Tarif + zusätzliche Shops + häufigere Prüfungen), ohne Steuern und vor Rabatten; ein Jahrespreis zählt 1/12 pro Monat. Testphasen, kostenloser Zugang und Einmalzahlungen sind ausgenommen. Das ist kein eingenommenes Geld.",
+      "none": "Keine aktiven bezahlten Abonnements.",
+      "contracts": "Abonnements: {n}",
+      "discounted": "mit Rabatt: {n} (nicht abgezogen)",
+      "unpriced": "ohne Preis im Katalog: {n} (nicht gezählt)"
+    },
+    "money": {
+      "title": "Geld im Zeitraum",
+      "definition": "Eingenommen — erfolgreiche Zahlungen unserer Rechnungen (inkl. Steuer) nach Rechnungsdatum; Erstattungen — von Paddle bestätigt; Saldo — die Differenz, kann negativ sein. Keine Auszahlungen und kein Gewinn.",
+      "none": "Im Zeitraum keine Geldbewegungen.",
+      "currency": "Währung",
+      "collected": "Eingenommen",
+      "refunded": "Erstattungen",
+      "net": "Saldo",
+      "previous": "Saldo im vorherigen gleich langen Zeitraum",
+      "operations": "Vorgänge: {n}",
+      "tax": "Steuer {amount}"
+    },
+    "churn": {
+      "title": "Abwanderung zahlender Kunden",
+      "counts": "beendet: {ended} von {start}, die zu Beginn des Zeitraums liefen",
+      "previous": "vorheriger Zeitraum: {value} ({ended} von {start})"
+    },
+    "later": {
+      "title": "Später",
+      "body": "Konversion der Testphasen — das Kohortenfenster muss bestätigt werden; Kosten und Marge — sobald echte Kosten erfasst werden."
+    },
+    "as_of": "Berechnet: {date}."
   }
 }

@@ -16,12 +16,13 @@ export function buildRouter(): Router {
     routes: [
       { path: '/', redirect: { name: 'owner-overview' } },
       { path: '/owner/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
-      ...OWNER_SECTIONS.filter((section) => !['plans', 'tenants', 'subscriptions', 'payments', 'site', 'blocks', 'contacts'].includes(section)).map((section) => ({
+      ...OWNER_SECTIONS.filter((section) => !['overview', 'plans', 'tenants', 'subscriptions', 'payments', 'site', 'blocks', 'contacts'].includes(section)).map((section) => ({
         path: section === 'overview' ? '/owner' : `/owner/${section}`,
         name: `owner-${section}`,
         component: () => import('@/views/SectionView.vue'),
         props: { section },
       })),
+      { path: '/owner', name: 'owner-overview', component: () => import('@/views/OverviewView.vue') },
       { path: '/owner/tenants', name: 'owner-tenants', component: () => import('@/views/TenantsView.vue') },
       { path: '/owner/tenants/:id', name: 'owner-tenant', component: () => import('@/views/TenantView.vue'), props: true },
       { path: '/owner/tenants/:id/stores/:storeId', name: 'owner-tenant-store', component: () => import('@/views/TenantStoreView.vue'), props: true },

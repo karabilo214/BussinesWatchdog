@@ -619,6 +619,36 @@ export async function revokeTenantInvitation(tenantId: string, invitationId: str
   return (await request<TenantInvitation>('POST', tenantPath(tenantId, `invitations/${encodeURIComponent(invitationId)}/revoke`), { body: { reason } })).data;
 }
 
+export interface BusinessOverview {
+  mode: 'live' | 'test';
+  from: string;
+  to: string;
+  previous: { from: string; to: string };
+  as_of: string;
+  last_synced_at: string | null;
+  customers: { paying: number; trial: number; past_due: number; cancel_scheduled: number };
+  mrr: { currency: string; currency_exponent: number; numerator_minor: string; denominator: string; contracts: number; discounted_contracts: number; unpriced_contracts: number }[];
+  money: OverviewMoney[];
+  money_previous: OverviewMoney[];
+  churn: { ended: number; at_start: number };
+  churn_previous: { ended: number; at_start: number };
+}
+
+export interface OverviewMoney {
+  currency: string;
+  currency_exponent: number;
+  collected_minor: string;
+  collected_tax_minor: string;
+  collections: number;
+  refunded_minor: string;
+  refunds: number;
+  net_minor: string;
+}
+
+export async function fetchOverview(filters: { mode: 'live' | 'test'; from?: string; to?: string }): Promise<BusinessOverview> {
+  return (await request<BusinessOverview>('GET', '/platform-api/v1/overview', { query: filters })).data;
+}
+
 export type ReminderTopic = 'subscription' | 'payment' | 'other';
 
 export interface ReminderInput {

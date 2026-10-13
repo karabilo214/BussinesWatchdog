@@ -312,3 +312,14 @@ Status: complete
 - Owner panel, customer card → «Сотрудники»: «Пригласить сотрудника» (email, role, reason), pending invitations with expiry and «Отозвать» with a reason; audit labels for the new actions (also store created/viewed). ru/en/de.
 
 Verification: `TenantAdminTest` +1 (reason required, owner role refused, existing member 409, address normalised, German letter naming the team with the link, organisation audit as system, revoke with reason, foreign organisation 404) and the role check. Control 42 tests. Frontend check green. Backend SQLite 540 passed, 4 skipped; PostgreSQL 18: 544 of 544. Live in Chromium (`run-live.sh tenants`): invitation sent (found in Mailpit) and revoked, both in the organisation audit — PASS.
+
+### Step 130: «Обзор» — Business KPIs and Contracted MRR in the Owner Panel
+
+Status: complete (MRR discount handling waits for the owner — ADR 0050 p. 3)
+
+- ADR 0050 (proposed). `BusinessOverview`: customers now (paying, trial, past due, cancel scheduled), contracted MRR per currency as an exact reduced fraction of minor units (list prices of base + extra stores + faster checks, yearly /12, no tax, before discounts; counts of contracts with an active discount grant and without a catalog price), money per currency for the period and the previous equal period (collected incl. tax with tax shown, confirmed refunds, net), paid churn with counts, `last_synced_at`. `OverviewController`: `GET /platform-api/v1/overview` (`billing.read`; mode, from, to; 422 `period_invalid`). OpenAPI updated.
+- Owner panel: «Обзор» replaces the placeholder: LIVE/TEST switch, period, freshness or "data incomplete" warning, customer cards linking to filtered subscriptions, MRR cards per currency ("≈" for fractions, rounding only on display with BigInt), money table with previous period and negative net in red, churn card, "later" card (trial conversion, costs); staff without `billing.read` see the plain start text. ru/en/de.
+- Found while testing: the discount-grant columns were first queried on the wrong table; SQLite silently treated the unknown double-quoted names as strings, PostgreSQL failed on the live stand — fixed, and the test now has contracts with active and used-up discount grants.
+- Live script: `run-live.sh overview`.
+
+Verification: `tests/Feature/Platform/BusinessOverviewTest.php` (2: EUR MRR 13450/3 from monthly + extras and yearly, USD apart, trials/expired/past-due/test excluded, discounted count, money and previous period, churn counts, mode TEST, invalid period; empty ledger is "no data", support forbidden). Control 45 tests (`tests/overview.test.ts`, 2). Frontend check green. Backend SQLite 543 passed, 4 skipped; PostgreSQL 18: 547 of 547. Live in Chromium (`run-live.sh overview`): LIVE empty, TEST with sandbox contracts (8 paying, MRR 275,00 €, one discounted), drill-down to subscriptions — PASS.

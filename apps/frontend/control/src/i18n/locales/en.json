@@ -172,7 +172,8 @@
     "invitation_not_found": "Invitation not found.",
     "reply_not_sent": "The mail server refused the letter — the reply was neither sent nor stored. Try again later.",
     "reply_invalid": "Enter a subject and the reply text.",
-    "note_invalid": "Write the note text (up to 2000 characters)."
+    "note_invalid": "Write the note text (up to 2000 characters).",
+    "period_invalid": "The period must be 1 to 366 days, start before end."
   },
   "period": {
     "per": {
@@ -1082,5 +1083,51 @@
         "cancelled_by_user": "Cancelled by a user."
       }
     }
+  },
+  "overview": {
+    "hint": "Commercial figures by the specification definitions: every currency separately, LIVE and TEST never mixed. Click a figure to open the list it is counted from.",
+    "mode": "Mode",
+    "from": "From",
+    "to": "To",
+    "apply": "Show",
+    "utc": "Dates in UTC, both days included.",
+    "no_data": "There is no subscription data in {mode} — the figures are incomplete, this is not zero revenue.",
+    "synced": "Paddle data updated: {date}.",
+    "customers": {
+      "paying": "Paying customers",
+      "trial": "On a trial",
+      "past_due": "Payment overdue",
+      "cancel_scheduled": "Cancel at period end"
+    },
+    "mrr": {
+      "title": "Contracted MRR",
+      "definition": "Fixed recurring list prices of active paid subscriptions (plan + extra stores + faster checks), without tax and before discounts; a yearly price counts 1/12 per month. Trials, free access and one-off charges are excluded. This is not money received.",
+      "none": "No active paid subscriptions.",
+      "contracts": "Subscriptions: {n}",
+      "discounted": "with a discount: {n} (not subtracted)",
+      "unpriced": "no price in the catalog: {n} (not counted)"
+    },
+    "money": {
+      "title": "Money in the period",
+      "definition": "Collected — successful payments of our invoices (incl. tax) by invoice date; refunds — confirmed by Paddle; net — the difference, may be negative. Not payouts and not profit.",
+      "none": "No money moved in the period.",
+      "currency": "Currency",
+      "collected": "Collected",
+      "refunded": "Refunds",
+      "net": "Net",
+      "previous": "Net in the previous equal period",
+      "operations": "operations: {n}",
+      "tax": "tax {amount}"
+    },
+    "churn": {
+      "title": "Paid churn",
+      "counts": "ended: {ended} of {start} running at the start of the period",
+      "previous": "previous period: {value} ({ended} of {start})"
+    },
+    "later": {
+      "title": "Later",
+      "body": "Trial conversion — the cohort window needs approval; costs and margin — once real costs are recorded."
+    },
+    "as_of": "Calculated: {date}."
   }
 }
