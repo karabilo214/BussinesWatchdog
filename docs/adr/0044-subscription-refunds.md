@@ -1,6 +1,6 @@
 # ADR 0044: Refunds of our subscription
 
-Status: implemented (Step 120); points 6–8 wait for the owner
+Status: implemented (Step 120); points 6–8 accepted by the owner on 2026-10-13
 
 ## Context
 
@@ -16,7 +16,7 @@ Owner's decisions (2026-10-13): staff with payments access request, the platform
 4. **Sending**: nothing goes to Paddle before approval. A refund that covers the whole untouched payment is sent as `full`; anything else as `partial`, spread over the payment's line items in their order, each up to its total (tax included — checked in the Paddle sandbox: 1.00 € on a line item came back as 0.84 € net + 0.16 € tax).
 5. **Statuses**: Paddle `pending_approval` → «Paddle reviewing», `approved` → «Refunded», `rejected`/`reversed` → «Declined by Paddle». A refused request → «Failed» with the reason; a lost answer → «No answer received», settled by `billing:plan-changes` (every minute) from the payment's adjustments with the same amount, or marked failed after an hour. Adjustment events from Paddle update the status; refunds made in the Paddle dashboard are recorded without a requester. Credits and other adjustment kinds are ignored.
 
-## Assumptions to confirm (shown to the owner)
+## Assumptions (accepted by the owner)
 
 6. **A refund does not cancel or change the subscription and does not take back access.** The optional checkbox «also cancel at the end of the paid period» runs the usual cancellation right after the approval is sent (a failure of the cancellation is audited and does not undo the refund).
 7. **What counts as refunded**: only refunds Paddle confirmed (`approved`). «Payments» shows refunded per payment and «Refunded» per currency for the month by the time Paddle confirmed it; the month's charged amount, tax, fee and earnings stay as Paddle billed them (not reduced by refunds). The customer sees «refunded X» under the invoice in the cabinet.

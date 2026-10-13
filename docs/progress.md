@@ -2315,3 +2315,5 @@ Status: complete
 
 Verification: `tests/Feature/Billing/RefundTest.php` (3: request → wrong-role approve forbidden → owner approval with code and the Paddle body; events and dashboard refunds with amounts in payments, month and cabinet; reject frees the amount and a full refund with cancel calls Paddle cancel); `BillingTransactionsTest` month now has `refunded_minor`. Control 27 (`payments.test.ts` +2), customer 112. Backend SQLite 533 passed, 4 skipped; PostgreSQL 18: 537 of 537. Paddle sandbox: partial refund of 1.00 € on payment `txn_01m4qe6xemb3jx82a92hy3w170` with the same body our code sends — adjustment created with status `pending_approval`, item total 100 = 84 net + 16 tax (the item amount includes tax, as assumed); it stayed `pending_approval`, so Paddle's own approval and the `adjustment.updated` event were not observed live. The panel and cabinet pages were checked with tests, not in a live browser run.
 
+ADR 0044 points 6–8 accepted by the owner (2026-10-13); work paused at the owner's request.
+
