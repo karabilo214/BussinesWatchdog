@@ -302,10 +302,21 @@ class PublicSiteTest extends TestCase
         $list->assertJsonPath('data.0.name', 'Jonas')->assertJsonPath('counts.new', 1)->assertJsonPath('counts.closed', 1);
         $this->assertLessThan(200, mb_strlen($list->json('data.0.message')));
         $this->getJson("/platform-api/v1/contact-requests/{$request->id}")->assertOk()->assertJsonPath('email', 'jonas@shop.test');
-        $this->patchJson("/platform-api/v1/contact-requests/{$request->id}", ['status' => 'closed', 'note' => 'Answered by mail'])
-            ->assertOk()->assertJsonPath('status', 'closed')->assertJsonPath('note', 'Answered by mail')->assertJsonPath('handled_by', 'Staff');
+        $this->postJson("/platform-api/v1/contact-requests/{$request->id}/notes", ['body' => ' '])->assertStatus(422);
+        $this->postJson("/platform-api/v1/contact-requests/{$request->id}/notes", ['body' => 'Called back, asked for the shop address'])->assertCreated()->assertJsonCount(1, 'notes');
+        Carbon::setTestNow(Carbon::now()->addMinute());
+        $card = $this->postJson("/platform-api/v1/contact-requests/{$request->id}/notes", ['body' => 'Answered by mail'])->assertCreated()->json();
+        $this->assertSame(['Answered by mail', 'Called back, asked for the shop address'], array_column($card['notes'], 'body'));
+        $this->assertSame('Staff', $card['notes'][0]['author']);
+        $this->assertNotSame($card['notes'][0]['created_at'], $card['notes'][1]['created_at']);
+        $this->assertArrayNotHasKey('note', $card);
+        $this->assertSame(2, DB::table('platform_audit_log')->where('target_id', $request->id)->where('action', 'site.contact.noted')->count());
+        $this->assertStringNotContainsString('Answered by mail', (string) DB::table('platform_audit_log')->where('action', 'site.contact.noted')->pluck('sanitized_changes')->implode(''));
+        $this->patchJson("/platform-api/v1/contact-requests/{$request->id}", [])->assertStatus(422);
+        $this->patchJson("/platform-api/v1/contact-requests/{$request->id}", ['status' => 'closed'])
+            ->assertOk()->assertJsonPath('status', 'closed')->assertJsonCount(2, 'notes')->assertJsonPath('handled_by', 'Staff');
         $this->getJson('/platform-api/v1/pages')->assertForbidden();
-        $this->assertSame('site.contact.updated', DB::table('platform_audit_log')->where('target_id', $request->id)->value('action'));
+        $this->assertSame(1, DB::table('platform_audit_log')->where('target_id', $request->id)->where('action', 'site.contact.updated')->count());
 
         $this->artisan('site:contact-purge')->expectsOutput('deleted=1');
         $this->assertSame(['Jonas'], ContactRequest::query()->pluck('name')->all());
@@ -319,6 +330,7 @@ class PublicSiteTest extends TestCase
         $this->getJson('/platform-api/v1/contact-requests')->assertOk();
         $this->patchJson("/platform-api/v1/contact-requests/{$request->id}", ['status' => 'closed'])->assertForbidden();
         $this->postJson("/platform-api/v1/contact-requests/{$request->id}/replies", ['template' => 'answer', 'subject' => 'Hi', 'body' => 'Text'])->assertForbidden();
+        $this->postJson("/platform-api/v1/contact-requests/{$request->id}/notes", ['body' => 'Text'])->assertForbidden();
         $this->postJson('/platform-api/v1/pages', ['slug' => 'about'])->assertForbidden();
     }
 

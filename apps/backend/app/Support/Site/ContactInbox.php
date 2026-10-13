@@ -4,6 +4,7 @@ namespace App\Support\Site;
 
 use App\Mail\NotificationMessageMail;
 use App\Models\ContactRequest;
+use App\Models\ContactRequestNote;
 use App\Models\ContactRequestReply;
 use App\Models\PlatformStaff;
 use App\Support\Platform\PlatformAudit;
@@ -69,7 +70,7 @@ class ContactInbox
     }
 
     /**
-     * @param  array{status?: ?string, note?: ?string}  $input
+     * @param  array{status?: ?string}  $input
      */
     public function update(string $staffId, string $id, array $input): ContactRequest
     {
@@ -85,15 +86,25 @@ class ContactInbox
             $changes['closed_at'] = $input['status'] === ContactRequest::STATUS_CLOSED ? ($request->closed_at ?? Carbon::now()) : null;
         }
 
-        if (array_key_exists('note', $input)) {
-            $note = trim((string) $input['note']);
-            $changes['note'] = $note === '' ? null : mb_substr($note, 0, 2000);
-        }
-
         $request->forceFill($changes + ['handled_by' => $staffId])->save();
-        $this->audit->record($staffId, 'site.contact.updated', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, array_intersect_key($changes, ['status' => true]) + ['note_changed' => array_key_exists('note', $changes)]);
+        $this->audit->record($staffId, 'site.contact.updated', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, array_intersect_key($changes, ['status' => true]));
 
         return $request;
+    }
+
+    public function addNote(string $staffId, string $id, string $body): ContactRequestNote
+    {
+        $request = $this->find($id);
+        $body = trim($body);
+
+        if ($body === '' || mb_strlen($body) > 2000) {
+            throw new SiteRejected('note_invalid');
+        }
+
+        $note = ContactRequestNote::query()->create(['contact_request_id' => $request->id, 'staff_id' => $staffId, 'body' => $body]);
+        $this->audit->record($staffId, 'site.contact.noted', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, ['note_id' => $note->id]);
+
+        return $note;
     }
 
     /**
@@ -174,12 +185,27 @@ class ContactInbox
             'company' => $request->company,
             'message' => $full ? $request->message : Str::limit($request->message, 140),
             'status' => $request->status,
-            'note' => $full ? $request->note : null,
             'handled_by' => $handler?->user?->name,
             'created_at' => $request->created_at?->toJSON(),
             'updated_at' => $request->updated_at?->toJSON(),
             'closed_at' => $request->closed_at?->toJSON(),
-        ] + ($full ? ['replies' => $this->replies($request), 'reply_templates' => $this->replyTemplates($request)] : []);
+        ] + ($full ? ['notes' => $this->notes($request), 'replies' => $this->replies($request), 'reply_templates' => $this->replyTemplates($request)] : []);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function notes(ContactRequest $request): array
+    {
+        $notes = ContactRequestNote::query()->where('contact_request_id', $request->id)->orderByDesc('created_at')->orderByDesc('id')->get();
+        $staff = PlatformStaff::query()->with('user')->whereIn('id', $notes->pluck('staff_id')->filter()->unique())->get()->keyBy('id');
+
+        return $notes->map(fn (ContactRequestNote $note): array => [
+            'id' => $note->id,
+            'body' => $note->body,
+            'author' => $note->staff_id === null ? null : $staff->get($note->staff_id)?->user?->name,
+            'created_at' => $note->created_at?->toJSON(),
+        ])->values()->all();
     }
 
     /**

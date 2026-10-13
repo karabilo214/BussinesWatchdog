@@ -714,13 +714,24 @@ export interface ContactRequest {
   company: string | null;
   message: string;
   status: ContactStatus;
-  note: string | null;
   handled_by: string | null;
   created_at: string | null;
   updated_at: string | null;
   closed_at: string | null;
+  notes?: ContactNote[];
   replies?: ContactReply[];
   reply_templates?: ContactReplyTemplate[];
+}
+
+export interface ContactNote {
+  id: string;
+  body: string;
+  author: string | null;
+  created_at: string | null;
+}
+
+export async function addContactNote(id: string, body: string): Promise<ContactRequest> {
+  return (await request<ContactRequest>('POST', `/platform-api/v1/contact-requests/${encodeURIComponent(id)}/notes`, { body: { body } })).data;
 }
 
 export type ContactReplyTemplateCode = 'answer' | 'more_details' | 'resolved';
@@ -752,7 +763,7 @@ export async function fetchContactRequest(id: string): Promise<ContactRequest> {
   return (await request<ContactRequest>('GET', `/platform-api/v1/contact-requests/${encodeURIComponent(id)}`)).data;
 }
 
-export async function updateContactRequest(id: string, input: { status?: ContactStatus; note?: string | null }): Promise<ContactRequest> {
+export async function updateContactRequest(id: string, input: { status: ContactStatus }): Promise<ContactRequest> {
   return (await request<ContactRequest>('PATCH', `/platform-api/v1/contact-requests/${encodeURIComponent(id)}`, { body: input })).data;
 }
 

@@ -90,3 +90,14 @@ Status: complete
 - Found while testing: `DomainOutboxResultRecorderTest::test_it_uses_exponential_backoff_with_jitter_by_default` failed once on PostgreSQL — the stored retry time is truncated to the second while the test compared with a time that had microseconds, so a jitter at the lower bound (96 s) looked too early; the test now compares from the start of the second (outbox logic unchanged).
 
 Verification: `PublicSiteTest` +1 (templates in German, validation, letter with greeting/text/original/signature, stored with sender, status, closed stays closed, refused mail stores nothing, purge removes replies) and admin cannot reply. Control 43 tests. Frontend check green. Backend SQLite 541 passed, 4 skipped; PostgreSQL 18: 545 of 545. Live in Chromium (`run-live.sh site`): reply sent from the «Нужны подробности» template, letter found in Mailpit in Russian with the quoted message, reply shown in the card — PASS.
+
+### Step 129: Internal Notes on Contact Messages as a List
+
+Status: complete
+
+- ADR 0049 p. 5–6. Migration `contact_request_notes` (cascade with the message) moves every existing `contact_requests.note` into a first note (author = handler, time = last change) and drops the column. `ContactInbox::addNote()` (1–2000 characters, audit `site.contact.noted` without text); card DTO has `notes` (newest first: text, author, time) instead of `note`; `update()` only changes the status.
+- API: `POST /platform-api/v1/contact-requests/{id}/notes` (`contacts.manage`); `PATCH` requires `status` and no longer takes `note`. OpenAPI updated.
+- Owner panel, message card: «Внутренние заметки» — form «Новая заметка» + «Добавить заметку», list with time and author; the status form no longer has a note field; read-only staff see the list only. ru/en/de.
+- Live stand: the migration moved the earlier notes (9 entries) and dropped the column. While re-running the live script, the contact form limit (5 an hour per IP) was exhausted by repeated runs and a failed run left published test pages — cleared on the local stand; no code change.
+
+Verification: `PublicSiteTest` (notes added one by one with author and time, empty refused, audit without text, status-only PATCH, admin cannot add). Control 43 tests. Frontend check green. Backend SQLite 541 passed, 4 skipped; PostgreSQL 18: 545 of 545. Live in Chromium (`run-live.sh site`): two notes added and listed, message closed — PASS.

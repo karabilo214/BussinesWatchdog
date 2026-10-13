@@ -171,7 +171,8 @@
     "role_not_assignable": "Diese Rolle kann nicht per Einladung vergeben werden.",
     "invitation_not_found": "Einladung nicht gefunden.",
     "reply_not_sent": "Der Mailserver hat die E-Mail abgelehnt — die Antwort wurde weder gesendet noch gespeichert. Bitte später erneut versuchen.",
-    "reply_invalid": "Geben Sie Betreff und Antworttext ein."
+    "reply_invalid": "Geben Sie Betreff und Antworttext ein.",
+    "note_invalid": "Schreiben Sie den Notiztext (bis zu 2000 Zeichen)."
   },
   "period": {
     "per": {
@@ -738,7 +739,6 @@
     "all": "Alle",
     "empty": "Keine Nachrichten.",
     "status": "Status",
-    "note": "Interne Notiz",
     "note_hint": "Nur für Mitarbeiter sichtbar.",
     "save": "Speichern",
     "saved": "Gespeichert.",
@@ -759,6 +759,12 @@
         "more_details": "Details nötig",
         "resolved": "Geklärt"
       }
+    },
+    "notes": {
+      "title": "Interne Notizen",
+      "new": "Neue Notiz",
+      "add": "Notiz hinzufügen",
+      "none": "Noch keine Notizen."
     }
   },
   "contact_status": {

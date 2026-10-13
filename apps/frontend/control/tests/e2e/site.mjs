@@ -164,12 +164,18 @@ try {
   const replies = await (await fetch(`${process.env.BW_MAILPIT_URL}/api/v1/messages?limit=50`)).json();
   if (!replies.messages.some((mail) => mail.To.some((to) => to.Address === visitor))) throw new Error('reply email not found in Mailpit');
   console.log('ok   reply sent to the visitor from a template (email in Mailpit) and kept in the message');
-  await page.locator('[data-field="status"]').selectOption('closed');
+  await page.locator('[data-field="note"]').fill('Позвонили, ждём адрес магазина');
+  await page.locator('[data-action="add-note"]').click();
+  await page.locator('[data-note]').getByText('Позвонили').waitFor();
   await page.locator('[data-field="note"]').fill('Ответили письмом');
+  await page.locator('[data-action="add-note"]').click();
+  await page.locator('[data-note]').getByText('Ответили письмом').waitFor();
+  if ((await page.locator('[data-note]').count()) !== 2) throw new Error('two notes expected');
+  await page.locator('[data-field="status"]').selectOption('closed');
   await page.locator('[data-action="save"]').click();
   await page.locator('[data-saved]').waitFor();
   await shot(page, '5-contact');
-  console.log('ok   message visible in the owner panel and closed with a note');
+  console.log('ok   message visible in the owner panel, two internal notes kept with author and time, closed');
 
   await page.goBack();
   await page.goto(`${base}/owner/site`);

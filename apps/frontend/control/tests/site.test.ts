@@ -28,6 +28,7 @@ vi.mock('@/api', () => ({
   fetchContactRequest: vi.fn(),
   updateContactRequest: vi.fn(),
   replyToContactRequest: vi.fn(),
+  addContactNote: vi.fn(),
 }));
 
 const mocked = vi.mocked(api);
@@ -229,11 +230,12 @@ describe('site', () => {
     expect(wrapper.get('[data-history]').text()).toContain('Опубликованных версий ещё не было.');
   });
 
-  it('lists contact messages by status and lets support close one with a note', async () => {
-    const message: ContactRequest = { id: 'c-1', locale: 'de', name: 'Jonas', email: 'jonas@shop.test', company: 'Kaffee', message: 'Wie verbinde ich zwei Shops?', status: 'new', note: null, handled_by: null, created_at: '2026-10-12T10:00:00Z', updated_at: null, closed_at: null };
+  it('lists contact messages by status, adds internal notes one by one and closes a message', async () => {
+    const message: ContactRequest = { id: 'c-1', locale: 'de', name: 'Jonas', email: 'jonas@shop.test', company: 'Kaffee', message: 'Wie verbinde ich zwei Shops?', status: 'new', handled_by: null, created_at: '2026-10-12T10:00:00Z', updated_at: null, closed_at: null };
     mocked.fetchContactRequests.mockResolvedValue({ data: [message], next_cursor: null, counts: { new: 1, in_progress: 0, closed: 4 } });
     mocked.fetchContactRequest.mockResolvedValue(message);
-    mocked.updateContactRequest.mockResolvedValue({ ...message, status: 'closed', note: 'Ответили', handled_by: 'Founder' });
+    mocked.updateContactRequest.mockResolvedValue({ ...message, status: 'closed', handled_by: 'Founder', notes: [{ id: 'n-1', body: 'Ответили', author: 'Founder', created_at: '2026-10-12T11:00:00Z' }] });
+    mocked.addContactNote.mockResolvedValue({ ...message, handled_by: 'Founder', notes: [{ id: 'n-1', body: 'Ответили', author: 'Founder', created_at: '2026-10-12T11:00:00Z' }] });
     const { wrapper, router } = await open('/owner/contacts');
 
     expect(mocked.fetchContactRequests).toHaveBeenCalledWith({ status: 'new' });
@@ -247,12 +249,20 @@ describe('site', () => {
     await router.push('/owner/contact-requests/c-1');
     await flushPromises();
     expect(wrapper.get('[data-reply]').attributes('href')).toBe('mailto:jonas@shop.test');
-    await wrapper.get('[data-field="status"]').setValue('closed');
+    expect(wrapper.text()).toContain('Заметок пока нет.');
+    expect(wrapper.get('[data-action="add-note"]').attributes('disabled')).toBeDefined();
     await wrapper.get('[data-field="note"]').setValue('Ответили');
+    await wrapper.get('[data-form="note"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.addContactNote).toHaveBeenCalledWith('c-1', 'Ответили');
+    expect(wrapper.get('[data-note="n-1"]').text()).toContain('Founder');
+    expect((wrapper.get('[data-field="note"]').element as HTMLTextAreaElement).value).toBe('');
+
+    await wrapper.get('[data-field="status"]').setValue('closed');
     await wrapper.get('[data-form="contact"]').trigger('submit');
     await flushPromises();
 
-    expect(mocked.updateContactRequest).toHaveBeenCalledWith('c-1', { status: 'closed', note: 'Ответили' });
+    expect(mocked.updateContactRequest).toHaveBeenCalledWith('c-1', { status: 'closed' });
     expect(wrapper.find('[data-saved]').exists()).toBe(true);
   });
 
@@ -262,7 +272,7 @@ describe('site', () => {
       { code: 'more_details' as const, subject: 'Business Watchdog: bitte ein paar Details', body: 'Wir brauchen noch ein paar Angaben.' },
       { code: 'resolved' as const, subject: 'Business Watchdog: Ihre Frage ist geklärt', body: 'Geklärt.' },
     ];
-    const message: ContactRequest = { id: 'c-1', locale: 'de', name: 'Jonas', email: 'jonas@shop.test', company: null, message: 'Wie verbinde ich zwei Shops?', status: 'new', note: null, handled_by: null, created_at: '2026-10-12T10:00:00Z', updated_at: null, closed_at: null, replies: [], reply_templates: templates };
+    const message: ContactRequest = { id: 'c-1', locale: 'de', name: 'Jonas', email: 'jonas@shop.test', company: null, message: 'Wie verbinde ich zwei Shops?', status: 'new', handled_by: null, created_at: '2026-10-12T10:00:00Z', updated_at: null, closed_at: null, replies: [], reply_templates: templates };
     mocked.fetchContactRequest.mockResolvedValue(message);
     mocked.replyToContactRequest.mockResolvedValue({ ...message, status: 'in_progress', handled_by: 'Founder', replies: [{ id: 'r-1', template: 'more_details', subject: 'Business Watchdog: bitte ein paar Details', body: 'Welche Shop-Adresse?', sent_by: 'Founder', sent_at: '2026-10-12T11:00:00Z' }] });
     const { wrapper } = await open('/owner/contact-requests/c-1');
@@ -284,12 +294,13 @@ describe('site', () => {
   });
 
   it('shows a message without the form to staff who may only read', async () => {
-    mocked.fetchContactRequest.mockResolvedValue({ id: 'c-1', locale: 'en', name: 'Ann', email: 'ann@shop.test', company: null, message: 'Hello there', status: 'in_progress', note: 'Called back', handled_by: 'Founder', created_at: null, updated_at: null, closed_at: null });
+    mocked.fetchContactRequest.mockResolvedValue({ id: 'c-1', locale: 'en', name: 'Ann', email: 'ann@shop.test', company: null, message: 'Hello there', status: 'in_progress', handled_by: 'Founder', created_at: null, updated_at: null, closed_at: null, notes: [{ id: 'n-1', body: 'Called back', author: 'Founder', created_at: null }] });
     const { wrapper } = await open('/owner/contact-requests/c-1', ['contacts.read']);
 
     expect(wrapper.get('[data-message]').text()).toBe('Hello there');
     expect(wrapper.find('[data-form="contact"]').exists()).toBe(false);
     expect(wrapper.find('[data-action="reply"]').exists()).toBe(false);
     expect(wrapper.text()).toContain('Called back');
+    expect(wrapper.find('[data-form="note"]').exists()).toBe(false);
   });
 });

@@ -171,7 +171,8 @@
     "role_not_assignable": "This role cannot be given by invitation.",
     "invitation_not_found": "Invitation not found.",
     "reply_not_sent": "The mail server refused the letter — the reply was neither sent nor stored. Try again later.",
-    "reply_invalid": "Enter a subject and the reply text."
+    "reply_invalid": "Enter a subject and the reply text.",
+    "note_invalid": "Write the note text (up to 2000 characters)."
   },
   "period": {
     "per": {
@@ -738,7 +739,6 @@
     "all": "All",
     "empty": "No messages.",
     "status": "Status",
-    "note": "Internal note",
     "note_hint": "Visible to staff only.",
     "save": "Save",
     "saved": "Saved.",
@@ -759,6 +759,12 @@
         "more_details": "Need details",
         "resolved": "Resolved"
       }
+    },
+    "notes": {
+      "title": "Internal notes",
+      "new": "New note",
+      "add": "Add note",
+      "none": "No notes yet."
     }
   },
   "contact_status": {

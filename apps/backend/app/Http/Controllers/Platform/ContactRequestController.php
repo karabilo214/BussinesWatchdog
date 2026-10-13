@@ -35,6 +35,21 @@ class ContactRequestController extends Controller
         }
     }
 
+    public function note(Request $request, string $contactRequest): JsonResponse
+    {
+        $validated = $request->validate(['body' => ['required', 'string', 'max:2000']]);
+        /** @var PlatformStaff $staff */
+        $staff = $request->attributes->get('platform_staff');
+
+        try {
+            $this->inbox->addNote($staff->id, $contactRequest, $validated['body']);
+
+            return response()->json($this->inbox->dto($this->inbox->find($contactRequest)), 201);
+        } catch (SiteRejected $exception) {
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The note was not added.'], $exception->status);
+        }
+    }
+
     public function reply(Request $request, string $contactRequest): JsonResponse
     {
         $validated = $request->validate([
@@ -57,8 +72,7 @@ class ContactRequestController extends Controller
     public function update(Request $request, string $contactRequest): JsonResponse
     {
         $validated = $request->validate([
-            'status' => ['sometimes', 'string', Rule::in(ContactRequest::STATUSES)],
-            'note' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'status' => ['required', 'string', Rule::in(ContactRequest::STATUSES)],
         ]);
         /** @var PlatformStaff $staff */
         $staff = $request->attributes->get('platform_staff');

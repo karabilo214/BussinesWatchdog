@@ -1493,6 +1493,34 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/contact-requests/{contactRequest}/notes:
+    post:
+      tags: [Platform]
+      operationId: platformAddContactRequestNote
+      description: "Capability contacts.manage. Adds an internal note (1–2000 characters) to the message; every note is kept separately with its author and time and never changes. Audited as site.contact.noted without the text. Returns the message card."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: contactRequest, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: {type: string, maxLength: 2000}
+      responses:
+        "201":
+          description: Message card
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/contact-requests/{contactRequest}/replies:
     post:
       tags: [Platform]
@@ -1529,7 +1557,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformShowContactRequest
-      description: "Capability contacts.read. One message in full with the internal note. The card also has replies (sent by, when, template, subject, text) and reply_templates in the language of the message."
+      description: "Capability contacts.read. One message in full with its internal notes (newest first: text, author, time). The card also has replies (sent by, when, template, subject, text) and reply_templates in the language of the message."
       security:
         - {StaffSession: []}
       parameters:
@@ -1546,7 +1574,7 @@ paths:
     patch:
       tags: [Platform]
       operationId: platformUpdateContactRequest
-      description: "Capability contacts.manage. Changes the status (new, in_progress, closed) and the internal note; audited without the note text. Closed messages are deleted after the retention period (site:contact-purge)."
+      description: "Capability contacts.manage. Changes the status (new, in_progress, closed); audited. Closed messages are deleted after the retention period (site:contact-purge) together with their notes and replies."
       security:
         - {StaffSession: []}
       parameters:
@@ -1557,9 +1585,9 @@ paths:
           application/json:
             schema:
               type: object
+              required: [status]
               properties:
                 status: {enum: [new, in_progress, closed]}
-                note: {type: [string, "null"], maxLength: 2000}
       responses:
         "200":
           description: Message

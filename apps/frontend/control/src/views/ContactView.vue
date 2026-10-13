@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { StatusBadge } from '@bw/ui';
-import { fetchContactRequest, updateContactRequest, type ContactRequest, type ContactStatus } from '@/api';
+import { addContactNote, fetchContactRequest, updateContactRequest, type ContactRequest, type ContactStatus } from '@/api';
 import ContactReplies from '@/components/ContactReplies.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { CONTACT_TONES } from '@/components/tones';
@@ -18,14 +18,14 @@ const error = ref<unknown>(null);
 const saveError = ref<unknown>(null);
 const busy = ref(false);
 const saved = ref(false);
-const form = reactive({ status: 'new' as ContactStatus, note: '' });
+const form = reactive({ status: 'new' as ContactStatus });
+const note = reactive({ body: '', busy: false, error: null as unknown });
 
 const manage = computed(() => can('contacts.manage'));
 
 function accept(request: ContactRequest): void {
   item.value = request;
   form.status = request.status;
-  form.note = request.note ?? '';
 }
 
 async function load(): Promise<void> {
@@ -45,12 +45,27 @@ async function save(): Promise<void> {
   saved.value = false;
 
   try {
-    accept(await updateContactRequest(item.value.id, { status: form.status, note: form.note.trim() === '' ? null : form.note.trim() }));
+    accept(await updateContactRequest(item.value.id, { status: form.status }));
     saved.value = true;
   } catch (caught) {
     saveError.value = caught;
   } finally {
     busy.value = false;
+  }
+}
+
+async function addNote(): Promise<void> {
+  if (item.value === null || note.body.trim() === '' || note.busy) return;
+  note.busy = true;
+  note.error = null;
+
+  try {
+    accept(await addContactNote(item.value.id, note.body.trim()));
+    note.body = '';
+  } catch (caught) {
+    note.error = caught;
+  } finally {
+    note.busy = false;
   }
 }
 
@@ -88,16 +103,30 @@ onMounted(load);
               <option v-for="status in (['new', 'in_progress', 'closed'] as const)" :key="status" :value="status">{{ $t(`contact_status.${status}`) }}</option>
             </select>
           </label>
-          <label class="flex flex-col gap-1.5">
-            <span class="font-medium">{{ $t('contacts.note') }}</span>
-            <textarea v-model="form.note" maxlength="2000" rows="3" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="note" />
-            <span class="text-text-muted">{{ $t('contacts.note_hint') }}</span>
-          </label>
           <p v-if="saved" role="status" class="text-ok" data-saved>{{ $t('contacts.saved') }}</p>
           <ErrorNotice v-if="saveError" :error="saveError" />
           <button type="submit" class="self-start rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy" data-action="save">{{ $t('contacts.save') }}</button>
         </form>
-        <p v-else-if="item.note" class="text-sm text-text-muted">{{ $t('contacts.note') }}: {{ item.note }}</p>
+
+        <section class="flex flex-col gap-3" data-section="notes">
+          <h2 class="text-lg font-semibold">{{ $t('contacts.notes.title') }}</h2>
+          <form v-if="manage" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 text-sm" data-form="note" @submit.prevent="addNote">
+            <label class="flex flex-col gap-1.5">
+              <span class="font-medium">{{ $t('contacts.notes.new') }}</span>
+              <textarea v-model="note.body" maxlength="2000" rows="3" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="note" />
+              <span class="text-text-muted">{{ $t('contacts.note_hint') }}</span>
+            </label>
+            <ErrorNotice v-if="note.error" :error="note.error" />
+            <button type="submit" class="self-start rounded-md border border-border-strong px-4 py-2 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="note.busy || note.body.trim() === ''" data-action="add-note">{{ $t('contacts.notes.add') }}</button>
+          </form>
+          <p v-if="(item.notes ?? []).length === 0" class="text-sm text-text-muted">{{ $t('contacts.notes.none') }}</p>
+          <ul v-else class="flex flex-col gap-2 text-sm">
+            <li v-for="entry in item.notes" :key="entry.id" class="flex flex-col gap-1 rounded-lg border border-border bg-surface px-4 py-3" :data-note="entry.id">
+              <span class="text-text-muted">{{ dateTime(entry.created_at) }} · {{ entry.author ?? '—' }}</span>
+              <span class="whitespace-pre-wrap break-words">{{ entry.body }}</span>
+            </li>
+          </ul>
+        </section>
         <p v-if="item.handled_by" class="text-sm text-text-muted">{{ $t('contacts.handled_by', { name: item.handled_by }) }}</p>
         <p class="text-sm text-text-muted">{{ $t('contacts.retention') }}</p>
       </template>

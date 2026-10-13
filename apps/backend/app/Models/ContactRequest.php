@@ -17,7 +17,7 @@ class ContactRequest extends Model
 
     public const STATUSES = [self::STATUS_NEW, self::STATUS_IN_PROGRESS, self::STATUS_CLOSED];
 
-    protected $fillable = ['locale', 'name', 'email', 'company', 'message', 'status', 'note', 'handled_by', 'closed_at', 'notified_at'];
+    protected $fillable = ['locale', 'name', 'email', 'company', 'message', 'status', 'handled_by', 'closed_at', 'notified_at'];
 
     protected function casts(): array
     {
