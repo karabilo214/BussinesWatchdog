@@ -150,14 +150,49 @@ class TeamService
 
     public function invite(Tenant $tenant, User $actor, string $email, string $role): Invitation
     {
+        if (! in_array($role, $this->assignableBy((string) $this->roleOf($tenant->id, $actor->id)), true)) {
+            throw new AccountRejected('role_not_assignable');
+        }
+
+        return $this->issue($tenant, $actor, $actor->name, $actor->locale, $email, $role, true);
+    }
+
+    /** Platform staff invite on the organisation's behalf: any assignable role, the letter names the service, not a person. */
+    public function inviteForPlatform(Tenant $tenant, User $staffUser, string $email, string $role): Invitation
+    {
+        if (! in_array($role, self::ASSIGNABLE, true)) {
+            throw new AccountRejected('role_not_assignable');
+        }
+
+        $locale = (string) ($tenant->locale ?? $staffUser->locale);
+
+        return $this->issue($tenant, $staffUser, trans('account.platform_inviter', [], in_array($locale, AccountMailer::LOCALES, true) ? $locale : 'en'), $staffUser->locale, $email, $role, false);
+    }
+
+    public function revokeForPlatform(string $tenantId, string $invitationId): Invitation
+    {
+        return DB::transaction(function () use ($tenantId, $invitationId): Invitation {
+            /** @var Invitation|null $invitation */
+            $invitation = Invitation::query()->where('tenant_id', $tenantId)->whereKey($invitationId)->lockForUpdate()->first();
+
+            if ($invitation === null) {
+                throw new AccountRejected('invitation_not_found', 404);
+            }
+
+            if ($invitation->accepted_at === null && $invitation->revoked_at === null) {
+                $invitation->forceFill(['revoked_at' => Carbon::now()])->save();
+                $this->audit($tenantId, null, 'invitation.revoked', 'invitation', $invitation->id, ['by' => 'platform']);
+            }
+
+            return $invitation->refresh()->load('inviter');
+        });
+    }
+
+    private function issue(Tenant $tenant, User $actor, string $inviterName, ?string $actorLocale, string $email, string $role, bool $byMember): Invitation
+    {
         $token = Str::random(48);
 
-        $invitation = DB::transaction(function () use ($tenant, $actor, $email, $role, $token): Invitation {
-            $actorRole = $this->roleOf($tenant->id, $actor->id);
-
-            if (! in_array($role, $this->assignableBy((string) $actorRole), true)) {
-                throw new AccountRejected('role_not_assignable');
-            }
+        $invitation = DB::transaction(function () use ($tenant, $actor, $email, $role, $token, $byMember): Invitation {
 
             $alreadyMember = Membership::query()
                 ->where('tenant_id', $tenant->id)
@@ -183,14 +218,14 @@ class TeamService
                 'invited_by' => $actor->id,
                 'expires_at' => Carbon::now()->addDays(self::INVITATION_TTL_DAYS),
             ]);
-            $this->audit($tenant->id, $actor->id, 'invitation.created', 'invitation', $invitation->id, ['role' => $role]);
+            $this->audit($tenant->id, $byMember ? $actor->id : null, 'invitation.created', 'invitation', $invitation->id, $byMember ? ['role' => $role] : ['role' => $role, 'by' => 'platform']);
 
             return $invitation;
         });
 
-        $locale = (string) ($tenant->locale ?? $actor->locale);
+        $locale = (string) ($tenant->locale ?? $actorLocale);
         $this->mailer->send($email, $locale, 'invitation', [
-            'inviter' => $actor->name,
+            'inviter' => $inviterName,
             'tenant' => $tenant->name,
             'role' => $this->mailer->role($role, $locale),
             'expires' => $invitation->expires_at->copy()->setTimezone((string) $tenant->timezone)->format('d.m.Y H:i T'),
@@ -298,13 +333,13 @@ class TeamService
     /**
      * @param  array<string, mixed>  $changes
      */
-    private function audit(string $tenantId, string $actorId, string $action, string $entityType, string $entityId, array $changes): void
+    private function audit(string $tenantId, ?string $actorId, string $action, string $entityType, string $entityId, array $changes): void
     {
         AuditLog::query()->create([
             'tenant_id' => $tenantId,
             'store_id' => null,
             'actor_user_id' => $actorId,
-            'actor_type' => AuditLog::ACTOR_USER,
+            'actor_type' => $actorId === null ? AuditLog::ACTOR_SYSTEM : AuditLog::ACTOR_USER,
             'action' => $action,
             'entity_type' => $entityType,
             'entity_id' => $entityId,

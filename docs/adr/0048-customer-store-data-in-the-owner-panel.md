@@ -10,3 +10,7 @@ Status: accepted for now (owner's backlog item 2026-10-13: in the customer card,
 4. **Who**: `tenants.manage` (platform owner). Support and other roles do not see store data.
 5. **Audit**: opening a store is recorded as `tenant.store_viewed` (store id, organisation); individual list/detail reads are not recorded separately to keep the audit useful. Adding a store is `tenant.store_created` with the name, address, platform and a required reason.
 6. **Adding a store** uses the account's own action: https address rules, the plan's store limit (403 `plan_store_limit_reached`), status starts as in the account (not verified; the customer connects the plugin and verifies the domain themselves).
+
+## Amendment (Step 127): team members of the customer
+
+7. The owner can invite a team member of the organisation from the customer card (roles admin, operator, viewer — like an owner in the account; owner role only through ownership transfer) and revoke a pending invitation, each with a reason. `TeamService::inviteForPlatform` / `revokeForPlatform` share the account flow (earlier pending invitation of the address revoked, 409 for an existing member, 7-day link); the letter names "the Business Watchdog team" as the inviter, the organisation audit records it as a system action with `by: platform`, the platform audit as `tenant.member_invited` / `tenant.invitation_revoked`. Changing or removing existing members from the panel is not part of this step.

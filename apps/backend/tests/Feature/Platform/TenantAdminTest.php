@@ -150,6 +150,7 @@ class TenantAdminTest extends TestCase
         $this->postJson('/platform-api/v1/tenants/'.$paid['tenant']->id.'/actions/suspend', ['reason' => 'Test', 'confirmation_code' => '000000'])->assertForbidden();
         $this->postJson('/platform-api/v1/tenants/'.$paid['tenant']->id.'/reminders/preview', ['topic' => 'payment'])->assertForbidden();
         $this->postJson('/platform-api/v1/tenants/'.$paid['tenant']->id.'/reminders', ['topic' => 'payment'])->assertForbidden();
+        $this->postJson('/platform-api/v1/tenants/'.$paid['tenant']->id.'/invitations', ['email' => 'x@example.test', 'role' => 'viewer', 'reason' => 'Test'])->assertForbidden();
     }
 
     public function test_card_shows_billing_history_and_stores_without_details_or_secrets(): void
@@ -318,6 +319,36 @@ class TenantAdminTest extends TestCase
 
         $empty = Tenant::query()->create(['name' => 'Empty', 'locale' => 'ru', 'timezone' => 'Europe/Berlin']);
         $this->postJson("/platform-api/v1/tenants/{$empty->id}/reminders", ['topic' => 'subscription'])->assertStatus(409)->assertJsonPath('code', 'no_recipients');
+    }
+
+    public function test_owner_invites_and_revokes_team_members_of_the_organisation_with_a_reason(): void
+    {
+        Mail::fake();
+        $context = $this->context();
+        $context['user']->forceFill(['email' => 'anna@kaffee.test'])->save();
+        $context['tenant']->forceFill(['name' => 'Kaffee GmbH', 'locale' => 'de'])->save();
+        $tenant = $context['tenant']->id;
+        $this->signIn();
+
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/invitations", ['email' => 'jonas@kaffee.test', 'role' => 'operator'])->assertStatus(422)->assertJsonValidationErrors('reason');
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/invitations", ['email' => 'jonas@kaffee.test', 'role' => 'owner', 'reason' => 'Asked by phone'])->assertStatus(422);
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/invitations", ['email' => 'Anna@Kaffee.test', 'role' => 'admin', 'reason' => 'Asked by phone'])->assertStatus(409)->assertJsonPath('code', 'already_member');
+        $invitation = $this->postJson("/platform-api/v1/tenants/{$tenant}/invitations", ['email' => ' Jonas@Kaffee.test ', 'role' => 'operator', 'reason' => 'Asked by phone'])
+            ->assertCreated()->assertJsonPath('email', 'jonas@kaffee.test')->assertJsonPath('role', 'operator')->json();
+
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('jonas@kaffee.test') && str_contains($mail->bodyText, 'Das Business-Watchdog-Team') && str_contains($mail->bodyText, '/app/invitation?token='));
+        $this->assertSame([$invitation['id']], array_column($this->getJson("/platform-api/v1/tenants/{$tenant}/invitations")->assertOk()->json('data'), 'id'));
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $tenant, 'action' => 'invitation.created', 'actor_type' => 'system', 'actor_user_id' => null]);
+        $this->assertSame('Asked by phone', DB::table('platform_audit_log')->where('action', 'tenant.member_invited')->value('reason'));
+
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/invitations/{$invitation['id']}/revoke", [])->assertStatus(422);
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/invitations/{$invitation['id']}/revoke", ['reason' => 'Wrong address'])->assertOk()->assertJsonPath('id', $invitation['id']);
+        $this->assertSame([], $this->getJson("/platform-api/v1/tenants/{$tenant}/invitations")->json('data'));
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $tenant, 'action' => 'invitation.revoked', 'actor_type' => 'system']);
+        $this->assertSame(1, DB::table('platform_audit_log')->where('action', 'tenant.invitation_revoked')->where('target_tenant_id', $tenant)->count());
+
+        $other = $this->context();
+        $this->postJson("/platform-api/v1/tenants/{$other['tenant']->id}/invitations/{$invitation['id']}/revoke", ['reason' => 'Wrong tenant'])->assertNotFound();
     }
 
     private function paidCustomer(string $name): array

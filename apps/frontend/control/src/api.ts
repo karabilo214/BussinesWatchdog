@@ -596,6 +596,29 @@ export async function fetchCustomerArtifactUrl(tenantId: string, artifactId: str
   return (await request<{ url: string; content_type: string }>('GET', tenantPath(tenantId, `artifacts/${encodeURIComponent(artifactId)}/download`))).data;
 }
 
+export type InvitableRole = 'admin' | 'operator' | 'viewer';
+
+export interface TenantInvitation {
+  id: string;
+  email: string;
+  role: InvitableRole;
+  expires_at: string;
+  created_at: string | null;
+  revoked_at: string | null;
+}
+
+export async function fetchTenantInvitations(tenantId: string): Promise<TenantInvitation[]> {
+  return (await request<{ data: TenantInvitation[] }>('GET', tenantPath(tenantId, 'invitations'))).data.data;
+}
+
+export async function inviteTenantMember(tenantId: string, input: { email: string; role: InvitableRole; reason: string }): Promise<TenantInvitation> {
+  return (await request<TenantInvitation>('POST', tenantPath(tenantId, 'invitations'), { body: input })).data;
+}
+
+export async function revokeTenantInvitation(tenantId: string, invitationId: string, reason: string): Promise<TenantInvitation> {
+  return (await request<TenantInvitation>('POST', tenantPath(tenantId, `invitations/${encodeURIComponent(invitationId)}/revoke`), { body: { reason } })).data;
+}
+
 export type ReminderTopic = 'subscription' | 'payment' | 'other';
 
 export interface ReminderInput {

@@ -166,7 +166,10 @@
     "block_not_found": "Die Vorlage wurde nicht gefunden oder ist bereits gelöscht.",
     "reminder_recently_sent": "Diese Erinnerung wurde gerade gesendet. Wiederholen ist in 10 Minuten möglich.",
     "no_recipients": "Die Organisation hat keinen aktiven Inhaber — niemand kann angeschrieben werden.",
-    "plan_store_limit_reached": "Der Tarif des Kunden erlaubt keine weiteren Shops."
+    "plan_store_limit_reached": "Der Tarif des Kunden erlaubt keine weiteren Shops.",
+    "already_member": "Diese Person gehört bereits zur Organisation.",
+    "role_not_assignable": "Diese Rolle kann nicht per Einladung vergeben werden.",
+    "invitation_not_found": "Einladung nicht gefunden."
   },
   "period": {
     "per": {
@@ -584,6 +587,18 @@
       "no_recipients": "Die Organisation hat keinen aktiven Inhaber — niemand kann angeschrieben werden.",
       "last_sent": "Diese Erinnerung wurde bereits gesendet: {date}.",
       "done": "Erinnerung gesendet, Empfänger: {n}."
+    },
+    "team": {
+      "hint": "Die Einladung geht im Namen des Business-Watchdog-Teams an die Adresse; die Person tritt der Organisation über den Link in der E-Mail bei — wie bei einer Einladung aus dem Kundenkonto. Der Grund wird im Audit erfasst.",
+      "invite": "Teammitglied einladen",
+      "email": "E-Mail des Teammitglieds",
+      "role": "Rolle",
+      "send": "Einladung senden",
+      "invited": "Einladung gesendet.",
+      "revoked": "Einladung widerrufen.",
+      "pending": "Warten auf Antwort",
+      "expires": "gültig bis {date}",
+      "revoke": "Widerrufen"
     }
   },
   "audit_action": {
@@ -595,7 +610,11 @@
       "extend_trial": "Testphase verlängert",
       "cancel_subscription": "Kündigung des Abonnements",
       "refresh_billing": "Aktualisierung aus Paddle",
-      "reminder_sent": "Erinnerung gesendet"
+      "reminder_sent": "Erinnerung gesendet",
+      "member_invited": "Teammitglied eingeladen",
+      "invitation_revoked": "Einladung widerrufen",
+      "store_created": "Shop hinzugefügt",
+      "store_viewed": "Shopdaten geöffnet"
     }
   },
   "site": {

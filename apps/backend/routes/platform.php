@@ -10,6 +10,7 @@ use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformAuthController;
 use App\Http\Controllers\Platform\TenantController;
 use App\Http\Controllers\Platform\TenantStoreController;
+use App\Http\Controllers\Platform\TenantTeamController;
 use App\Support\Platform\PlatformCapabilities;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,9 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/tenants/{tenant}/reminders/preview', [TenantController::class, 'reminderPreview']);
         Route::post('/tenants/{tenant}/reminders', [TenantController::class, 'remind']);
         Route::post('/tenants/{tenant}/stores', [TenantStoreController::class, 'create']);
+        Route::get('/tenants/{tenant}/invitations', [TenantTeamController::class, 'invitations']);
+        Route::post('/tenants/{tenant}/invitations', [TenantTeamController::class, 'invite'])->middleware('throttle:invitations');
+        Route::post('/tenants/{tenant}/invitations/{invitation}/revoke', [TenantTeamController::class, 'revoke']);
         Route::get('/tenants/{tenant}/stores/{store}', [TenantStoreController::class, 'show']);
         Route::get('/tenants/{tenant}/stores/{store}/findings', [TenantStoreController::class, 'findings']);
         Route::get('/tenants/{tenant}/stores/{store}/orders', [TenantStoreController::class, 'orders']);

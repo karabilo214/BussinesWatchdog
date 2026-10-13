@@ -166,7 +166,10 @@
     "block_not_found": "The template was not found or is already deleted.",
     "reminder_recently_sent": "This reminder was just sent. It can be repeated in 10 minutes.",
     "no_recipients": "The organisation has no active owner — there is nobody to email.",
-    "plan_store_limit_reached": "The customer plan does not allow more stores."
+    "plan_store_limit_reached": "The customer plan does not allow more stores.",
+    "already_member": "This person is already in the organisation.",
+    "role_not_assignable": "This role cannot be given by invitation.",
+    "invitation_not_found": "Invitation not found."
   },
   "period": {
     "per": {
@@ -584,6 +587,18 @@
       "no_recipients": "The organisation has no active owner — there is nobody to email.",
       "last_sent": "This reminder was already sent: {date}.",
       "done": "Reminder sent, recipients: {n}."
+    },
+    "team": {
+      "hint": "The invitation goes to the address on behalf of the Business Watchdog team; the person joins the organisation with the link in the email — as with an invitation from the account. The reason is recorded in the audit.",
+      "invite": "Invite a team member",
+      "email": "Team member email",
+      "role": "Role",
+      "send": "Send invitation",
+      "invited": "Invitation sent.",
+      "revoked": "Invitation revoked.",
+      "pending": "Waiting for an answer",
+      "expires": "valid until {date}",
+      "revoke": "Revoke"
     }
   },
   "audit_action": {
@@ -595,7 +610,11 @@
       "extend_trial": "Trial extended",
       "cancel_subscription": "Subscription cancellation",
       "refresh_billing": "Refresh from Paddle",
-      "reminder_sent": "Reminder sent"
+      "reminder_sent": "Reminder sent",
+      "member_invited": "Team member invited",
+      "invitation_revoked": "Invitation revoked",
+      "store_created": "Store added",
+      "store_viewed": "Store data opened"
     }
   },
   "site": {

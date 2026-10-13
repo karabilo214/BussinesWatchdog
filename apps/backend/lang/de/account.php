@@ -33,6 +33,7 @@ return [
         'subject' => 'Business Watchdog: :subject',
         'body' => "Hallo,\n\n:message\n\nKundenkonto von „:tenant“: :link",
     ],
+    'platform_inviter' => 'Das Business-Watchdog-Team',
     'roles' => [
         'owner' => 'Inhaber',
         'admin' => 'Administrator',

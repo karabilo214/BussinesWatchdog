@@ -634,6 +634,88 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/invitations:
+    get:
+      tags: [Platform]
+      operationId: platformListTenantInvitations
+      description: "Capability tenants.manage. Pending invitations of the organisation (not accepted, revoked or expired)."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Invitations
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: {type: array, items: {type: object}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Platform]
+      operationId: platformInviteTenantMember
+      description: "Capability tenants.manage. Invites a team member on the organisation's behalf like the account does (roles admin, operator, viewer; an earlier pending invitation of the address is revoked; 409 already_member); the letter names the Business Watchdog team as the inviter. A reason is required; audited as tenant.member_invited and in the organisation audit as a system action."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role, reason]
+              properties:
+                email: {type: string, format: email, maxLength: 255}
+                role: {enum: [admin, operator, viewer]}
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "201":
+          description: Invitation
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/invitations/{invitation}/revoke:
+    post:
+      tags: [Platform]
+      operationId: platformRevokeTenantInvitation
+      description: "Capability tenants.manage. Revokes a pending invitation with a reason; audited as tenant.invitation_revoked."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: invitation, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "200":
+          description: Invitation
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/stores:
     post:
       tags: [Platform]

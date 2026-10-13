@@ -129,8 +129,27 @@ try {
   await page.getByRole('link', { name: /Магазины клиента/ }).click();
   await page.locator('[data-tab="audit"]').waitFor();
 
+  await page.locator('[data-tab="members"]').click();
+  await page.locator('[data-action="invite"]').click();
+  const invitee = `team-${Date.now().toString(36)}@example.test`;
+  await page.locator('[data-field="invite-email"]').fill(invitee);
+  await page.locator('[data-field="invite-role"]').selectOption('viewer');
+  await page.locator('[data-field="invite-reason"]').fill('Kunde hat angerufen');
+  await page.locator('[data-action="send-invite"]').click();
+  await page.locator(`[data-invitation="${invitee}"]`).waitFor();
+  const invitationMails = await (await fetch(`${process.env.BW_MAILPIT_URL}/api/v1/messages?limit=50`)).json();
+  if (!invitationMails.messages.some((mail) => mail.To.some((to) => to.Address === invitee))) throw new Error('invitation email not found in Mailpit');
+  await shot('3-team');
+  await page.locator(`[data-invitation="${invitee}"] [data-action="revoke"]`).click();
+  await page.locator('[data-field="revoke-reason"]').fill('Nur ein Test');
+  await page.locator('[data-action="confirm-revoke"]').click();
+  await page.locator('[data-done="team"]').getByText('Приглашение отозвано.').waitFor();
+  console.log('ok   team member invited for the customer (email in Mailpit) and the invitation revoked');
+  await page.reload();
+  await page.locator('[data-tab="audit"]').waitFor();
+
   await page.locator('[data-tab="audit"]').click();
-  for (const action of ['tenant.extend_trial', 'tenant.suspend', 'tenant.resume', 'tenant.reminder_sent', 'tenant.store_created', 'tenant.store_viewed']) {
+  for (const action of ['tenant.extend_trial', 'tenant.suspend', 'tenant.resume', 'tenant.reminder_sent', 'tenant.store_created', 'tenant.store_viewed', 'tenant.member_invited', 'tenant.invitation_revoked']) {
     await page.locator(`[data-audit="${action}"]`).first().waitFor();
   }
   await shot('4-audit');

@@ -302,3 +302,13 @@ Status: complete
 - Owner panel: customer card → «Магазины»: «Добавить магазин» form (name, https address, platform, time zone, currency, store language, reason), store names open `/owner/tenants/{id}/stores/{storeId}` with tabs «Находки», «Заказы», «Проверки и скриншоты», «Инциденты» (labels copied from the account translations, amounts via `formatMinor`), «Показать ещё» paging, order details (findings, provider captures, store refunds, versions), check details (attempts, steps, redacted screenshots loaded by a short-lived URL on request), incident details. ru/en/de.
 
 Verification: `tests/Feature/Platform/TenantStoreDataTest.php` (3: every section with real rows incl. a screenshot URL, paging, foreign ids 404, store viewed audited; add a store with reason, https rule, plan limit, audit; support forbidden). Control 41 tests (+2). Frontend check green. Backend SQLite 539 passed, 4 skipped; PostgreSQL 18: 543 of 543. Live in Chromium (`run-live.sh tenants`): store added with a reason, store data opened and every tab loads, both actions in the organisation audit — PASS.
+
+### Step 127: Team Members of the Customer — Invite and Revoke From the Owner Panel
+
+Status: complete
+
+- ADR 0048 p. 7. `TeamService`: the invitation flow moved to `issue()`, shared by `invite()` (member, role rules as before) and `inviteForPlatform()` (staff; roles admin/operator/viewer; inviter in the letter is `account.platform_inviter`, ru/en/de); `revokeForPlatform()`; organisation audit entries by the platform are `actor_type = system` with `by: platform`.
+- `TenantTeamController` (`tenants.manage`): `GET/POST /tenants/{tenant}/invitations` (reason required; `throttle:invitations`), `POST /tenants/{tenant}/invitations/{invitation}/revoke` (reason); platform audit `tenant.member_invited`, `tenant.invitation_revoked`. OpenAPI: 3 operations.
+- Owner panel, customer card → «Сотрудники»: «Пригласить сотрудника» (email, role, reason), pending invitations with expiry and «Отозвать» with a reason; audit labels for the new actions (also store created/viewed). ru/en/de.
+
+Verification: `TenantAdminTest` +1 (reason required, owner role refused, existing member 409, address normalised, German letter naming the team with the link, organisation audit as system, revoke with reason, foreign organisation 404) and the role check. Control 42 tests. Frontend check green. Backend SQLite 540 passed, 4 skipped; PostgreSQL 18: 544 of 544. Live in Chromium (`run-live.sh tenants`): invitation sent (found in Mailpit) and revoked, both in the organisation audit — PASS.

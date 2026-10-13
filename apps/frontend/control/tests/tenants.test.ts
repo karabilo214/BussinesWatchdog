@@ -28,6 +28,9 @@ vi.mock('@/api', () => ({
   fetchCustomerOrder: vi.fn(),
   fetchCustomerCheck: vi.fn(),
   fetchCustomerArtifactUrl: vi.fn(),
+  fetchTenantInvitations: vi.fn(),
+  inviteTenantMember: vi.fn(),
+  revokeTenantInvitation: vi.fn(),
   fetchSubscriptions: vi.fn(),
 }));
 
@@ -183,6 +186,33 @@ describe('tenants', () => {
     await wrapper.get('[data-form="reminder"]').trigger('submit');
     await flushPromises();
     expect(mocked.previewTenantReminder).toHaveBeenLastCalledWith('t-1', { topic: 'other', subject: 'Новый отчёт', message: 'Мы добавили отчёт по возвратам.' });
+  });
+
+  it('invites a team member for the customer and revokes a pending invitation', async () => {
+    const pending = { id: 'inv-1', email: 'jonas@kaffee.test', role: 'operator' as const, expires_at: '2026-10-27T10:00:00Z', created_at: '2026-10-20T10:00:00Z', revoked_at: null };
+    mocked.fetchTenantInvitations.mockResolvedValueOnce([]).mockResolvedValueOnce([pending]).mockResolvedValueOnce([]);
+    mocked.inviteTenantMember.mockResolvedValue(pending);
+    mocked.revokeTenantInvitation.mockResolvedValue({ ...pending, revoked_at: '2026-10-20T11:00:00Z' });
+    const { wrapper } = await open('/owner/tenants/t-1?tab=members');
+
+    expect(wrapper.get('[data-member="anna@example.test"]').text()).toContain('Владелец');
+    await wrapper.get('[data-action="invite"]').trigger('click');
+    await wrapper.get('[data-field="invite-email"]').setValue('jonas@kaffee.test');
+    expect(wrapper.get('[data-action="send-invite"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-field="invite-reason"]').setValue('Kunde hat angerufen');
+    await wrapper.get('[data-form="invite"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.inviteTenantMember).toHaveBeenCalledWith('t-1', { email: 'jonas@kaffee.test', role: 'operator', reason: 'Kunde hat angerufen' });
+    expect(wrapper.get('[data-done="team"]').text()).toBe('Приглашение отправлено.');
+    expect(wrapper.get('[data-invitation="jonas@kaffee.test"]').text()).toContain('Оператор');
+
+    await wrapper.get('[data-action="revoke"]').trigger('click');
+    await wrapper.get('[data-field="revoke-reason"]').setValue('Falsche Adresse');
+    await wrapper.get('[data-form="revoke"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.revokeTenantInvitation).toHaveBeenCalledWith('t-1', 'inv-1', 'Falsche Adresse');
+    expect(wrapper.find('[data-invitation="jonas@kaffee.test"]').exists()).toBe(false);
   });
 
   it('adds a store for the customer with a reason', async () => {

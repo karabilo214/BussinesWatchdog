@@ -33,6 +33,7 @@ return [
         'subject' => 'Business Watchdog: :subject',
         'body' => "Здравствуйте!\n\n:message\n\nКабинет организации «:tenant»: :link",
     ],
+    'platform_inviter' => 'Служба Business Watchdog',
     'roles' => [
         'owner' => 'владелец',
         'admin' => 'администратор',
