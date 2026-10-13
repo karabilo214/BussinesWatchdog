@@ -10,6 +10,7 @@
 ## Порядок чтения перед задачей
 
 1. `PROJECT_STATE.md` — текущий статус, последний выполненный шаг, что дальше. Главная точка восстановления контекста в начале сессии.
+   Задачи владельца, ещё не взятые в работу, — `docs/backlog.md` (отмечать выполненные).
 2. `AGENTS.md` — правила реализации и инварианты проекта.
 3. `spec/Business-Watchdog-TZ.md` — основное ТЗ (особое внимание разделам 2, 9–14, 18–20, 25–28, 36–39).
 4. `spec/database/schema.sql`, `contracts/` (`openapi.yaml`, `platform-billing-api.yaml`, `event.schema.json` — только здесь, копий в `spec/contracts/` нет), `spec/ACCEPTANCE.md`.
