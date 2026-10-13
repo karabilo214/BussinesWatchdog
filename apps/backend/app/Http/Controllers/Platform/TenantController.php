@@ -9,8 +9,10 @@ use App\Support\Account\MfaService;
 use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Platform\PlatformAudit;
 use App\Support\Platform\PlatformCapabilities;
+use App\Support\Platform\ReminderRejected;
 use App\Support\Platform\TenantActions;
 use App\Support\Platform\TenantDirectory;
+use App\Support\Platform\TenantReminders;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -109,6 +111,52 @@ class TenantController extends Controller
         $this->audit->record($staff->id, $auditAction, 'tenant', $model->id, PlatformAudit::RESULT_SUCCEEDED, $input + ['access_before' => $before['state'], 'access_after' => $after['state']], trim($validated['reason']), $model->id);
 
         return response()->json($this->directory->tenant($model->id, true, $staff->role === PlatformStaff::ROLE_OWNER));
+    }
+
+    public function reminderPreview(Request $request, string $tenant, TenantReminders $reminders): JsonResponse
+    {
+        $model = $this->tenantOr404($tenant);
+
+        if ($model === null) {
+            return response()->json(['code' => 'not_found', 'message' => 'Not found.'], 404);
+        }
+
+        $validated = $this->reminderInput($request, false);
+
+        return response()->json($reminders->preview($model, $validated['topic'], $validated));
+    }
+
+    public function remind(Request $request, string $tenant, TenantReminders $reminders): JsonResponse
+    {
+        $model = $this->tenantOr404($tenant);
+
+        if ($model === null) {
+            return response()->json(['code' => 'not_found', 'message' => 'Not found.'], 404);
+        }
+
+        $validated = $this->reminderInput($request, true);
+
+        try {
+            $sent = $reminders->send($model, $validated['topic'], $validated, $this->staff($request)->id);
+        } catch (ReminderRejected $exception) {
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The reminder was not sent.'], $exception->status);
+        }
+
+        return response()->json(['topic' => $validated['topic'], 'recipients' => $sent]);
+    }
+
+    /**
+     * @return array{topic: string, subject?: ?string, message?: ?string}
+     */
+    private function reminderInput(Request $request, bool $sending): array
+    {
+        $other = $request->input('topic') === 'other';
+
+        return $request->validate([
+            'topic' => ['required', 'string', Rule::in(TenantReminders::TOPICS)],
+            'subject' => [$other && $sending ? 'required' : 'nullable', 'string', 'min:3', 'max:150'],
+            'message' => [$other && $sending ? 'required' : 'nullable', 'string', 'min:10', 'max:5000'],
+        ]);
     }
 
     /**

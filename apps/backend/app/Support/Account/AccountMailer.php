@@ -22,6 +22,11 @@ class AccountMailer
         ));
     }
 
+    public function deliver(string $email, string $subject, string $body): void
+    {
+        Mail::to($email)->send(new NotificationMessageMail($subject, $body));
+    }
+
     /** Absolute link into the customer app; relative `$path` starts with "/app/" or "/api/". */
     public function link(string $path): string
     {

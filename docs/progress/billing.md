@@ -282,3 +282,14 @@ Status: complete
 Verification: `tests/Feature/Billing/RefundTest.php` (3: request → wrong-role approve forbidden → owner approval with code and the Paddle body; events and dashboard refunds with amounts in payments, month and cabinet; reject frees the amount and a full refund with cancel calls Paddle cancel); `BillingTransactionsTest` month now has `refunded_minor`. Control 27 (`payments.test.ts` +2), customer 112. Backend SQLite 533 passed, 4 skipped; PostgreSQL 18: 537 of 537. Paddle sandbox: partial refund of 1.00 € on payment `txn_01m4qe6xemb3jx82a92hy3w170` with the same body our code sends — adjustment created with status `pending_approval`, item total 100 = 84 net + 16 tax (the item amount includes tax, as assumed); it stayed `pending_approval`, so Paddle's own approval and the `adjustment.updated` event were not observed live. The panel and cabinet pages were checked with tests, not in a live browser run.
 
 ADR 0044 points 6–8 accepted by the owner (2026-10-13); work paused at the owner's request.
+
+### Step 125: «Напомнить о…» — Reminders to Customers From the Owner Panel
+
+Status: complete
+
+- ADR 0047 (accepted for now, to be confirmed by the owner). `TenantReminders`: recipients are active owners of the organisation in their language; topics `subscription`, `payment` (fixed texts with the billing link, no amounts or claims about failed payments) and `other` (own subject and message); same topic at most once in 10 minutes; audit `tenant.reminder_sent` with topic, recipient user ids and content hashes, no addresses. `AccountMailer::deliver`, `ReminderRejected`.
+- API (`tenants.manage`): `POST /tenants/{tenant}/reminders/preview` (recipients, letter per language, last sent), `POST /tenants/{tenant}/reminders` (409 `reminder_recently_sent`, `no_recipients`; 422 for other without subject/message). OpenAPI updated.
+- Owner panel, customer card → «Действия»: button «Напомнить о…» opens a form with the topic (о подписке / об оплате / другое), own subject and text for «другое», «Показать письмо» shows the recipients and each letter, then «Отправить»; afterwards the card is reloaded so the audit tab shows the sending. ru/en/de, audit label.
+- Live script: `run-live.sh` now points the backend at Mailpit on 127.0.0.1 and passes `BW_MAILPIT_URL` to the scenarios.
+
+Verification: `TenantAdminTest` +1 (preview per language, sending to active owners only, repeat blocked then allowed after 10 minutes, other with own text, audit without addresses, no recipients) and role check extended. Control 39 tests. Frontend check green. Backend SQLite 536 passed, 4 skipped; PostgreSQL 18: 540 of 540. Live in Chromium (`run-live.sh tenants`): German letter previewed, sent, found in Mailpit, in the organisation audit — PASS.

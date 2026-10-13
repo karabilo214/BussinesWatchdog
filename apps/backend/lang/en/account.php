@@ -21,6 +21,18 @@ return [
         'subject' => 'Business Watchdog: service paused — order volume above the package',
         'body' => "The grace period has ended and the order volume of the store :stores is still above what your package covers (up to :limit orders a month per store). The organisation's service is therefore paused: checks, reconciliation and notifications are off. Store data is still received; nothing is lost.\n\nWork resumes as soon as a fitting package is bought:\n:link",
     ],
+    'reminder_subscription' => [
+        'subject' => 'Business Watchdog: a reminder about the subscription of “:tenant”',
+        'body' => "Hello,\n\nThis is a reminder about the Business Watchdog subscription of “:tenant”. To keep store checks, reconciliation and notifications running without a break, check the subscription and, if needed, start or renew it in your account:\n:link\n\nIf everything is already in order, simply ignore this email. Questions? Just reply to it.",
+    ],
+    'reminder_payment' => [
+        'subject' => 'Business Watchdog: a payment reminder for “:tenant”',
+        'body' => "Hello,\n\nThis is a reminder about the payment for the Business Watchdog subscription of “:tenant”. Please check the payment method and the latest invoices in your account:\n:link\n\nIf the payment has already gone through, simply ignore this email. Questions? Just reply to it.",
+    ],
+    'reminder_other' => [
+        'subject' => 'Business Watchdog: :subject',
+        'body' => "Hello,\n\n:message\n\nAccount of “:tenant”: :link",
+    ],
     'roles' => [
         'owner' => 'owner',
         'admin' => 'administrator',

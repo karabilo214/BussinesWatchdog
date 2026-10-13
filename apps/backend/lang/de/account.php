@@ -21,6 +21,18 @@ return [
         'subject' => 'Business Watchdog: Dienst pausiert — Bestellvolumen über dem Paket',
         'body' => "Die Kulanzzeit ist abgelaufen und das Bestellvolumen des Shops :stores liegt weiter über Ihrem Paket (bis :limit Bestellungen im Monat pro Shop). Der Dienst der Organisation ist daher pausiert: Prüfungen, Abgleich und Benachrichtigungen ruhen. Shop-Daten werden weiter empfangen, nichts geht verloren.\n\nSobald ein passendes Paket gekauft ist, geht es sofort weiter:\n:link",
     ],
+    'reminder_subscription' => [
+        'subject' => 'Business Watchdog: Erinnerung an das Abonnement von „:tenant“',
+        'body' => "Hallo,\n\nwir erinnern an das Business-Watchdog-Abonnement von „:tenant“. Damit Shop-Prüfungen, Abgleich und Benachrichtigungen ohne Unterbrechung laufen, prüfen Sie bitte das Abonnement und schließen Sie es bei Bedarf im Kundenkonto ab oder verlängern es:\n:link\n\nIst bereits alles in Ordnung, ignorieren Sie diese E-Mail einfach. Fragen? Antworten Sie einfach darauf.",
+    ],
+    'reminder_payment' => [
+        'subject' => 'Business Watchdog: Zahlungserinnerung für „:tenant“',
+        'body' => "Hallo,\n\nwir erinnern an die Zahlung für das Business-Watchdog-Abonnement von „:tenant“. Bitte prüfen Sie die Zahlungsmethode und die letzten Rechnungen im Kundenkonto:\n:link\n\nIst die Zahlung bereits erfolgt, ignorieren Sie diese E-Mail einfach. Fragen? Antworten Sie einfach darauf.",
+    ],
+    'reminder_other' => [
+        'subject' => 'Business Watchdog: :subject',
+        'body' => "Hallo,\n\n:message\n\nKundenkonto von „:tenant“: :link",
+    ],
     'roles' => [
         'owner' => 'Inhaber',
         'admin' => 'Administrator',

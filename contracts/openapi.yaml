@@ -634,6 +634,78 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/reminders/preview:
+    post:
+      tags: [Platform]
+      operationId: platformPreviewTenantReminder
+      description: "Capability tenants.manage. Shows who would get a reminder (active owners of the organisation, each in their language) and the letter per language for the topic subscription, payment or other (own subject and message); when the same topic was last sent. Nothing is sent."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [topic]
+              properties:
+                topic: {enum: [subscription, payment, other]}
+                subject: {type: [string, "null"], maxLength: 150}
+                message: {type: [string, "null"], maxLength: 5000}
+      responses:
+        "200":
+          description: Reminder preview
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [recipients, letters, last_sent_at]
+                properties:
+                  recipients: {type: array, items: {type: object}}
+                  letters: {type: array, items: {type: object}}
+                  last_sent_at: {type: [string, "null"], format: date-time}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/reminders:
+    post:
+      tags: [Platform]
+      operationId: platformSendTenantReminder
+      description: "Capability tenants.manage. Emails the reminder to the active owners of the organisation, each in their language, with a link to the billing page of the account; topic other needs a subject (3–150) and a message (10–5000). The same topic at most once in 10 minutes (409 reminder_recently_sent); no owner to write to: 409 no_recipients. Audited as tenant.reminder_sent with the topic, recipient user ids and content hashes (no addresses)."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [topic]
+              properties:
+                topic: {enum: [subscription, payment, other]}
+                subject: {type: [string, "null"], minLength: 3, maxLength: 150}
+                message: {type: [string, "null"], minLength: 10, maxLength: 5000}
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [topic, recipients]
+                properties:
+                  topic: {type: string}
+                  recipients: {type: integer}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/actions/{action}:
     post:
       tags: [Platform]

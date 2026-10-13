@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { StatusBadge } from '@bw/ui';
-import { applyTenantAction, fetchPlans, previewTenantAction, type ActionPreview, type Plan, type TenantAction, type TenantActionInput, type TenantCard } from '@/api';
+import { applyTenantAction, fetchPlans, fetchTenant, previewTenantAction, type ActionPreview, type Plan, type TenantAction, type TenantActionInput, type TenantCard } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import TenantReminder from '@/components/tenant/TenantReminder.vue';
 import { ACCESS_TONES } from '@/components/tones';
 import { useFormat } from '@/composables/useFormat';
 
@@ -16,6 +17,8 @@ const preview = ref<ActionPreview | null>(null);
 const busy = ref(false);
 const error = ref<unknown>(null);
 const done = ref<TenantAction | null>(null);
+const reminding = ref(false);
+const reminded = ref<number | null>(null);
 
 const subscription = computed(() => props.card.billing?.subscription ?? null);
 const activeOverrides = computed(() => props.card.billing?.overrides.filter((override) => override.active) ?? []);
@@ -48,7 +51,23 @@ function input(): TenantActionInput {
   }
 }
 
+function remind(): void {
+  form.action = null;
+  done.value = null;
+  reminded.value = null;
+  reminding.value = true;
+}
+
+async function reminderSent(recipients: number): Promise<void> {
+  reminding.value = false;
+  reminded.value = recipients;
+  const card = await fetchTenant(props.card.id).catch(() => null);
+  if (card) emit('updated', card);
+}
+
 function choose(action: TenantAction, overrideId = ''): void {
+  reminding.value = false;
+  reminded.value = null;
   Object.assign(form, { action, overrideId, planVersionId: versions.value[0]?.id ?? '', extraStores: 0, until: '', reason: '', code: '' });
   preview.value = null;
   error.value = null;
@@ -104,6 +123,7 @@ onMounted(async () => {
       <p class="text-sm text-text-muted">{{ $t('tenant.actions.hint') }}</p>
     </div>
 
+    <p v-if="reminded !== null" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-done="reminder">{{ $t('tenant.reminder.done', { n: reminded }) }}</p>
     <p v-if="done" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" :data-done="done">{{ $t(`tenant.actions.done.${done}`) }}</p>
 
     <div class="flex flex-wrap gap-2">
@@ -130,7 +150,10 @@ onMounted(async () => {
       >
         {{ $t('tenant.actions.name.revoke_override') }} ({{ dateTime(override.ends_at) }})
       </button>
+      <button type="button" class="rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="remind" @click="remind">{{ $t('tenant.reminder.button') }}</button>
     </div>
+
+    <TenantReminder v-if="reminding" :tenant-id="card.id" @close="reminding = false" @sent="reminderSent" />
 
     <form v-if="form.action" class="flex flex-col gap-4 rounded-lg border border-border p-4 text-sm" :data-form="form.action" @submit.prevent="preview ? confirm() : showPreview()">
       <p class="font-medium">{{ $t(`tenant.actions.name.${form.action}`) }}</p>

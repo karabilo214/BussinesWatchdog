@@ -163,7 +163,9 @@
     "payment_not_found": "Payment not found.",
     "name_invalid": "Enter a name of up to 120 characters.",
     "category_invalid": "Choose a group from the list.",
-    "block_not_found": "The template was not found or is already deleted."
+    "block_not_found": "The template was not found or is already deleted.",
+    "reminder_recently_sent": "This reminder was just sent. It can be repeated in 10 minutes.",
+    "no_recipients": "The organisation has no active owner — there is nobody to email."
   },
   "period": {
     "per": {
@@ -562,6 +564,25 @@
         "cancel_subscription": "Cancellation at period end scheduled.",
         "refresh_billing": "Refreshed from Paddle."
       }
+    },
+    "reminder": {
+      "button": "Remind about…",
+      "title": "Reminder to the customer",
+      "hint": "The email goes to the active owners of the organisation in their language, with a link to the subscription page of the account. Look at the email first, then send it.",
+      "topic": "What to remind about",
+      "topics": {
+        "subscription": "Subscription",
+        "payment": "Payment",
+        "other": "Other"
+      },
+      "subject": "Subject",
+      "message": "Message",
+      "preview": "Show the email",
+      "send": "Send",
+      "recipients": "Recipients:",
+      "no_recipients": "The organisation has no active owner — there is nobody to email.",
+      "last_sent": "This reminder was already sent: {date}.",
+      "done": "Reminder sent, recipients: {n}."
     }
   },
   "audit_action": {
@@ -572,7 +593,8 @@
       "revoke_override": "Temporary access revoked",
       "extend_trial": "Trial extended",
       "cancel_subscription": "Subscription cancellation",
-      "refresh_billing": "Refresh from Paddle"
+      "refresh_billing": "Refresh from Paddle",
+      "reminder_sent": "Reminder sent"
     }
   },
   "site": {

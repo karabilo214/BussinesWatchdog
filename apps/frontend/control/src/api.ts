@@ -452,6 +452,28 @@ export interface PageBlock {
   updated_at: string | null;
 }
 
+export type ReminderTopic = 'subscription' | 'payment' | 'other';
+
+export interface ReminderInput {
+  topic: ReminderTopic;
+  subject?: string;
+  message?: string;
+}
+
+export interface ReminderPreview {
+  recipients: { user_id: string; name: string; email: string; locale: string }[];
+  letters: { locale: string; subject: string; body: string }[];
+  last_sent_at: string | null;
+}
+
+export async function previewTenantReminder(tenantId: string, input: ReminderInput): Promise<ReminderPreview> {
+  return (await request<ReminderPreview>('POST', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/reminders/preview`, { body: input })).data;
+}
+
+export async function sendTenantReminder(tenantId: string, input: ReminderInput): Promise<{ topic: ReminderTopic; recipients: number }> {
+  return (await request<{ topic: ReminderTopic; recipients: number }>('POST', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/reminders`, { body: input })).data;
+}
+
 export async function fetchPageBlocks(): Promise<PageBlock[]> {
   return (await request<{ data: PageBlock[] }>('GET', '/platform-api/v1/page-blocks')).data.data;
 }

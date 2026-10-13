@@ -17,6 +17,8 @@ vi.mock('@/api', () => ({
   fetchTenant: vi.fn(),
   previewTenantAction: vi.fn(),
   applyTenantAction: vi.fn(),
+  previewTenantReminder: vi.fn(),
+  sendTenantReminder: vi.fn(),
   fetchSubscriptions: vi.fn(),
 }));
 
@@ -134,6 +136,44 @@ describe('tenants', () => {
     expect(wrapper.get('[data-done="suspend"]').text()).toContain('Сервис приостановлен');
     expect(wrapper.find('[data-badge="suspended"]').exists()).toBe(true);
     expect(wrapper.find('[data-action="resume"]').exists()).toBe(true);
+  });
+
+  it('reminds the customer about a payment after showing the email, and writes an own message', async () => {
+    mocked.previewTenantReminder.mockResolvedValue({
+      recipients: [{ user_id: 'u-1', name: 'Anna', email: 'anna@example.test', locale: 'ru' }],
+      letters: [{ locale: 'ru', subject: 'Business Watchdog: напоминание об оплате «Kaffee Lindner GmbH»', body: 'Здравствуйте!\n\nНапоминаем об оплате.' }],
+      last_sent_at: '2026-10-19T10:00:00Z',
+    });
+    mocked.sendTenantReminder.mockResolvedValue({ topic: 'payment', recipients: 1 });
+    const { wrapper } = await open('/owner/tenants/t-1');
+
+    await wrapper.get('[data-action="remind"]').trigger('click');
+    await wrapper.get('[data-topic="payment"]').setValue(true);
+    expect(wrapper.find('[data-action="reminder-send"]').exists()).toBe(false);
+    await wrapper.get('[data-form="reminder"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.previewTenantReminder).toHaveBeenCalledWith('t-1', { topic: 'payment' });
+    expect(wrapper.get('[data-recipients]').text()).toBe('Anna <anna@example.test>');
+    expect(wrapper.get('[data-letter="ru"]').text()).toContain('напоминание об оплате');
+    expect(wrapper.find('[data-last-sent]').exists()).toBe(true);
+    expect(mocked.sendTenantReminder).not.toHaveBeenCalled();
+
+    await wrapper.get('[data-form="reminder"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.sendTenantReminder).toHaveBeenCalledWith('t-1', { topic: 'payment' });
+    expect(mocked.fetchTenant).toHaveBeenCalledTimes(2);
+    expect(wrapper.get('[data-done="reminder"]').text()).toContain('получателей: 1');
+    expect(wrapper.find('[data-form="reminder"]').exists()).toBe(false);
+
+    await wrapper.get('[data-action="remind"]').trigger('click');
+    await wrapper.get('[data-topic="other"]').setValue(true);
+    expect(wrapper.get('[data-action="reminder-preview"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-field="reminder-subject"]').setValue('Новый отчёт');
+    await wrapper.get('[data-field="reminder-message"]').setValue('Мы добавили отчёт по возвратам.');
+    await wrapper.get('[data-form="reminder"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.previewTenantReminder).toHaveBeenLastCalledWith('t-1', { topic: 'other', subject: 'Новый отчёт', message: 'Мы добавили отчёт по возвратам.' });
   });
 
   it('grants temporary access of a published plan until a date', async () => {

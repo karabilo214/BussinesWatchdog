@@ -95,8 +95,19 @@ try {
   if (await page.locator('[data-badge="suspended"]').count()) throw new Error('still suspended');
   console.log('ok   service resumed');
 
+  await page.locator('[data-action="remind"]').click();
+  await page.locator('[data-topic="payment"]').check();
+  await page.locator('[data-action="reminder-preview"]').click();
+  await page.locator('[data-letter="de"]').getByText('Zahlungserinnerung').waitFor();
+  await shot('2-reminder');
+  await page.locator('[data-action="reminder-send"]').click();
+  await page.locator('[data-done="reminder"]').waitFor();
+  const mails = await (await fetch(`${process.env.BW_MAILPIT_URL}/api/v1/messages?limit=50`)).json();
+  if (!mails.messages.some((mail) => mail.Subject.includes('Zahlungserinnerung') && mail.Subject.includes(process.env.BW_TENANT))) throw new Error('reminder email not found in Mailpit');
+  console.log('ok   payment reminder previewed in the owner language (de), sent and delivered to Mailpit');
+
   await page.locator('[data-tab="audit"]').click();
-  for (const action of ['tenant.extend_trial', 'tenant.suspend', 'tenant.resume']) {
+  for (const action of ['tenant.extend_trial', 'tenant.suspend', 'tenant.resume', 'tenant.reminder_sent']) {
     await page.locator(`[data-audit="${action}"]`).first().waitFor();
   }
   await shot('3-audit');

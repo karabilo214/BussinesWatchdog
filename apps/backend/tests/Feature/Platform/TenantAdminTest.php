@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Platform;
 
+use App\Mail\NotificationMessageMail;
 use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
@@ -21,6 +22,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Tests\Feature\Notifications\NotificationTestContext;
 use Tests\TestCase;
 
@@ -146,6 +148,8 @@ class TenantAdminTest extends TestCase
         $this->getJson('/platform-api/v1/subscriptions')->assertForbidden();
         $this->postJson('/platform-api/v1/tenants/'.$paid['tenant']->id.'/actions/suspend/preview')->assertForbidden();
         $this->postJson('/platform-api/v1/tenants/'.$paid['tenant']->id.'/actions/suspend', ['reason' => 'Test', 'confirmation_code' => '000000'])->assertForbidden();
+        $this->postJson('/platform-api/v1/tenants/'.$paid['tenant']->id.'/reminders/preview', ['topic' => 'payment'])->assertForbidden();
+        $this->postJson('/platform-api/v1/tenants/'.$paid['tenant']->id.'/reminders', ['topic' => 'payment'])->assertForbidden();
     }
 
     public function test_card_shows_billing_history_and_stores_without_details_or_secrets(): void
@@ -267,6 +271,55 @@ class TenantAdminTest extends TestCase
     /**
      * @return array<string, mixed>
      */
+    public function test_owner_reminds_the_organisation_owners_by_email_in_their_language_with_audit(): void
+    {
+        Mail::fake();
+        config()->set('app.url', 'https://watchdog.test');
+        $context = $this->context();
+        $context['tenant']->forceFill(['name' => 'Kaffee GmbH'])->save();
+        $context['user']->forceFill(['email' => 'anna@kaffee.test'])->save();
+        $this->context('owner', $context['tenant'])['user']->forceFill(['email' => 'jonas@kaffee.test', 'locale' => 'de'])->save();
+        $this->context('owner', $context['tenant'])['user']->forceFill(['email' => 'gone@kaffee.test', 'disabled_at' => now()])->save();
+        $this->context('admin', $context['tenant'])['user']->forceFill(['email' => 'admin@kaffee.test'])->save();
+        $tenant = $context['tenant']->id;
+        $this->signIn();
+
+        $preview = $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders/preview", ['topic' => 'payment'])->assertOk()->json();
+        $this->assertSame(['anna@kaffee.test', 'jonas@kaffee.test'], array_column($preview['recipients'], 'email'));
+        $this->assertSame(['ru', 'de'], array_column($preview['letters'], 'locale'));
+        $this->assertSame('Business Watchdog: напоминание об оплате «Kaffee GmbH»', $preview['letters'][0]['subject']);
+        $this->assertStringContainsString('https://watchdog.test/app/settings/billing', $preview['letters'][1]['body']);
+        $this->assertStringContainsString('Zahlung', $preview['letters'][1]['body']);
+        $this->assertNull($preview['last_sent_at']);
+        Mail::assertNothingSent();
+
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment'])->assertOk()->assertJsonPath('recipients', 2);
+        Mail::assertSent(NotificationMessageMail::class, 2);
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('jonas@kaffee.test') && str_contains($mail->subjectLine, 'Zahlungserinnerung'));
+        Mail::assertNotSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('gone@kaffee.test') || $mail->hasTo('admin@kaffee.test'));
+
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment'])->assertStatus(409)->assertJsonPath('code', 'reminder_recently_sent');
+        $this->assertNotNull($this->postJson("/platform-api/v1/tenants/{$tenant}/reminders/preview", ['topic' => 'payment'])->json('last_sent_at'));
+
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'other'])->assertStatus(422);
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'refund'])->assertStatus(422);
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'other', 'subject' => 'Новый отчёт', 'message' => 'Мы добавили отчёт по возвратам, загляните в кабинет.'])->assertOk();
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('anna@kaffee.test') && $mail->subjectLine === 'Business Watchdog: Новый отчёт' && str_contains($mail->bodyText, 'отчёт по возвратам'));
+
+        Carbon::setTestNow(Carbon::now()->addMinutes(11));
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment'])->assertOk();
+
+        $audit = DB::table('platform_audit_log')->where('action', 'tenant.reminder_sent')->where('target_tenant_id', $tenant)->get();
+        $this->assertCount(3, $audit);
+        $changes = json_decode((string) $audit->first()->sanitized_changes, true);
+        $this->assertSame('payment', $changes['topic']);
+        $this->assertCount(2, $changes['recipient_user_ids']);
+        $this->assertStringNotContainsString('kaffee.test', (string) $audit->pluck('sanitized_changes')->implode(''));
+
+        $empty = Tenant::query()->create(['name' => 'Empty', 'locale' => 'ru', 'timezone' => 'Europe/Berlin']);
+        $this->postJson("/platform-api/v1/tenants/{$empty->id}/reminders", ['topic' => 'subscription'])->assertStatus(409)->assertJsonPath('code', 'no_recipients');
+    }
+
     private function paidCustomer(string $name): array
     {
         $context = $this->context();

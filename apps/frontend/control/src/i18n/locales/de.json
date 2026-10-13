@@ -163,7 +163,9 @@
     "payment_not_found": "Zahlung nicht gefunden.",
     "name_invalid": "Geben Sie einen Namen mit bis zu 120 Zeichen ein.",
     "category_invalid": "Wählen Sie eine Gruppe aus der Liste.",
-    "block_not_found": "Die Vorlage wurde nicht gefunden oder ist bereits gelöscht."
+    "block_not_found": "Die Vorlage wurde nicht gefunden oder ist bereits gelöscht.",
+    "reminder_recently_sent": "Diese Erinnerung wurde gerade gesendet. Wiederholen ist in 10 Minuten möglich.",
+    "no_recipients": "Die Organisation hat keinen aktiven Inhaber — niemand kann angeschrieben werden."
   },
   "period": {
     "per": {
@@ -562,6 +564,25 @@
         "cancel_subscription": "Kündigung zum Periodenende geplant.",
         "refresh_billing": "Aus Paddle aktualisiert."
       }
+    },
+    "reminder": {
+      "button": "Erinnern an…",
+      "title": "Erinnerung an den Kunden",
+      "hint": "Die E-Mail geht an die aktiven Inhaber der Organisation in ihrer Sprache, mit einem Link zur Abonnementseite im Kundenkonto. Sehen Sie sich die E-Mail zuerst an und senden Sie sie dann.",
+      "topic": "Woran erinnern",
+      "topics": {
+        "subscription": "Abonnement",
+        "payment": "Zahlung",
+        "other": "Sonstiges"
+      },
+      "subject": "Betreff",
+      "message": "Nachricht",
+      "preview": "E-Mail anzeigen",
+      "send": "Senden",
+      "recipients": "Empfänger:",
+      "no_recipients": "Die Organisation hat keinen aktiven Inhaber — niemand kann angeschrieben werden.",
+      "last_sent": "Diese Erinnerung wurde bereits gesendet: {date}.",
+      "done": "Erinnerung gesendet, Empfänger: {n}."
     }
   },
   "audit_action": {
@@ -572,7 +593,8 @@
       "revoke_override": "Befristeter Zugang widerrufen",
       "extend_trial": "Testphase verlängert",
       "cancel_subscription": "Kündigung des Abonnements",
-      "refresh_billing": "Aktualisierung aus Paddle"
+      "refresh_billing": "Aktualisierung aus Paddle",
+      "reminder_sent": "Erinnerung gesendet"
     }
   },
   "site": {
