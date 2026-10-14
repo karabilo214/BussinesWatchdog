@@ -161,6 +161,7 @@ return [
         'captcha_alt' => 'CAPTCHA mit Additionsbeispiel',
         'captcha_hint' => 'Die Antwort ist erforderlich, bevor die Browser-Prüfung startet, und gilt 10 Minuten.',
         'submit' => 'Öffentliche Prüfung starten',
+        'loading_submit' => 'Prüfung wird gestartet...',
         'errors_title' => 'Die Prüfung kann noch nicht starten:',
         'steps_title' => 'Schritte',
         'screenshots_title' => 'Screenshots',
@@ -174,7 +175,7 @@ return [
             'unknown' => 'nicht erkannt',
         ],
         'statuses' => [
-            'queued' => 'Die Prüfung wartet in der Warteschlange. Aktualisieren Sie die Seite in einigen Sekunden.',
+            'queued' => 'Die Prüfung wartet in der Warteschlange. Das Ergebnis erscheint hier automatisch.',
             'running' => 'Der Browser prüft die öffentliche Storefront.',
             'passed' => 'Der öffentliche Smoke-Pfad wurde abgeschlossen.',
             'failed' => 'Auf der öffentlichen Seite wurde ein Problem gefunden.',
@@ -215,6 +216,7 @@ return [
             'adapter_unsupported' => 'Der öffentliche Pfad konnte ohne verbundenen Shop nicht erkannt werden.',
             'forbidden_mutation' => 'Der Browser stoppte vor einer unsicheren Aktion.',
             'infra_timeout' => 'Die Browser-Prüfung hat das Zeitlimit überschritten.',
+            'worker_unavailable' => 'Kein Browser-Worker hat die Aufgabe rechtzeitig übernommen. Bitte versuchen Sie es später erneut.',
         ],
     ],
     'missing' => [

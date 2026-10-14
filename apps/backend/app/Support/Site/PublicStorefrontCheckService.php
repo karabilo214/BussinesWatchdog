@@ -80,10 +80,16 @@ class PublicStorefrontCheckService
             return null;
         }
 
-        return PublicStorefrontCheck::query()
+        $check = PublicStorefrontCheck::query()
             ->where('result_token_hash', hash('sha256', $token))
             ->with(['artifacts' => fn ($query) => $query->where('state', 'ready')->orderBy('created_at')])
             ->first();
+
+        if ($check !== null && $this->expireQueuedCheck($check)) {
+            $check->load(['artifacts' => fn ($query) => $query->where('state', 'ready')->orderBy('created_at')]);
+        }
+
+        return $check;
     }
 
     public function purgeExpired(int $limit = 200): int
@@ -200,5 +206,25 @@ class PublicStorefrontCheckService
     private function ipHash(string $ip): string
     {
         return hash_hmac('sha256', $ip, (string) config('app.key'));
+    }
+
+    private function expireQueuedCheck(PublicStorefrontCheck $check): bool
+    {
+        if ($check->status !== PublicStorefrontCheck::STATUS_QUEUED || $check->queued_at === null) {
+            return false;
+        }
+
+        if ($check->queued_at->greaterThan(Carbon::now()->subSeconds((int) config('watchdog.public_check.queue_wait_seconds')))) {
+            return false;
+        }
+
+        $check->forceFill([
+            'status' => PublicStorefrontCheck::STATUS_INCONCLUSIVE,
+            'verdict' => PublicStorefrontCheck::VERDICT_INSUFFICIENT_DATA,
+            'error_code' => 'worker_unavailable',
+            'finished_at' => Carbon::now(),
+        ])->save();
+
+        return true;
     }
 }

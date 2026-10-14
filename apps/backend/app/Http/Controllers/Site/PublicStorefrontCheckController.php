@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
 use App\Models\PublicPage;
+use App\Models\PublicStorefrontCheck;
 use App\Models\PublicStorefrontCheckArtifact;
 use App\Support\Site\PublicStorefrontCheckRejected;
 use App\Support\Site\PublicStorefrontCheckService;
 use App\Support\Site\SiteContent;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -91,6 +93,29 @@ class PublicStorefrontCheckController extends Controller
             'artifacts' => $check->artifacts,
             'result_token' => $token,
         ])->header('Cache-Control', 'no-store');
+    }
+
+    public function status(string $locale, string $token): JsonResponse
+    {
+        $check = $this->checks->byToken($token);
+
+        if ($check === null) {
+            return response()->json(['error' => 'not_found'], 404, ['Cache-Control' => 'no-store']);
+        }
+
+        $terminal = ! in_array($check->status, [PublicStorefrontCheck::STATUS_QUEUED, PublicStorefrontCheck::STATUS_RUNNING], true);
+
+        return response()->json([
+            'status' => $check->status,
+            'terminal' => $terminal,
+            'poll_after_ms' => $terminal ? null : 2500,
+            'html' => view('site.partials.check-store-result', [
+                'locale' => $locale,
+                'check' => $check,
+                'artifacts' => $check->artifacts,
+                'result_token' => $token,
+            ])->render(),
+        ], 200, ['Cache-Control' => 'no-store']);
     }
 
     public function artifact(string $locale, string $token, string $artifactId): Response

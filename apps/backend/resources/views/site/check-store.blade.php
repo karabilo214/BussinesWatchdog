@@ -38,49 +38,60 @@
                     @error('captcha_answer')<p class="site-field-error" id="check-store-captcha-error">{{ $message }}</p>@enderror
                     <p class="site-muted site-small">{{ __('site.check_store.captcha_hint') }}</p>
                 </div>
-                <p><button type="submit" class="site-button">{{ __('site.check_store.submit') }}</button></p>
+                <p><button type="submit" class="site-button" data-loading-text="{{ __('site.check_store.loading_submit') }}">{{ __('site.check_store.submit') }}</button></p>
             </form>
         @else
-            <section class="site-success" data-result="public-storefront-check">
-                <p class="site-muted site-small">{{ $check->normalized_origin }}</p>
-                <h2>{{ __('site.check_store.verdicts.'.($check->verdict ?? 'queued')) }}</h2>
-                <p>{{ __('site.check_store.statuses.'.$check->status) }}</p>
-                @if (! empty($check->diagnostics['detected_platform']))
-                    <p>{{ __('site.check_store.detected_platform', ['platform' => __('site.check_store.platforms.'.$check->diagnostics['detected_platform'])]) }}</p>
-                @endif
-                <p class="site-muted site-small">{{ __('site.check_store.result_ttl') }}</p>
-            </section>
-
-            @if ($check->steps !== [])
-                <section class="site-section">
-                    <h2>{{ __('site.check_store.steps_title') }}</h2>
-                    <div class="site-plans">
-                        @foreach ($check->steps as $step)
-                            <article class="site-plan">
-                                <p class="site-muted site-small">{{ $step['code'] ?? '' }}</p>
-                                <h3>{{ __('site.check_store.step_statuses.'.($step['status'] ?? 'inconclusive')) }}</h3>
-                                @if (! empty($step['error_code']))
-                                    <p>{{ __('site.check_store.errors.'.$step['error_code']) }}</p>
-                                @endif
-                            </article>
-                        @endforeach
-                    </div>
-                </section>
-            @endif
-
-            @if ($artifacts->isNotEmpty())
-                <section class="site-section">
-                    <h2>{{ __('site.check_store.screenshots_title') }}</h2>
-                    <div class="site-plans">
-                        @foreach ($artifacts as $artifact)
-                            <figure class="site-plan">
-                                <img src="{{ \App\Support\Site\SiteContent::url($locale, 'check-store/'.$result_token.'/artifacts/'.$artifact->id) }}" alt="{{ __('site.check_store.screenshot_alt') }}">
-                                <figcaption class="site-muted site-small">{{ __('site.check_store.screenshot_caption') }}</figcaption>
-                            </figure>
-                        @endforeach
-                    </div>
-                </section>
-            @endif
+            <div data-public-check-result data-status-url="{{ \App\Support\Site\SiteContent::url($locale, 'check-store/'.$result_token.'/status') }}" data-pending="{{ in_array($check->status, [\App\Models\PublicStorefrontCheck::STATUS_QUEUED, \App\Models\PublicStorefrontCheck::STATUS_RUNNING], true) ? '1' : '0' }}">
+                @include('site.partials.check-store-result')
+            </div>
         @endif
     </section>
+    <script>
+        (() => {
+            const form = document.querySelector('[data-form="public-storefront-check"]');
+            if (form) {
+                form.addEventListener('submit', () => {
+                    const button = form.querySelector('button[type="submit"]');
+                    if (!button) {
+                        return;
+                    }
+                    button.disabled = true;
+                    button.classList.add('site-button-loading');
+                    button.textContent = button.dataset.loadingText || button.textContent;
+                });
+            }
+
+            const result = document.querySelector('[data-public-check-result]');
+            if (!result || result.dataset.pending !== '1') {
+                return;
+            }
+
+            const poll = async () => {
+                try {
+                    const response = await fetch(result.dataset.statusUrl, {
+                        headers: { 'Accept': 'application/json' },
+                        cache: 'no-store',
+                    });
+
+                    if (!response.ok) {
+                        window.setTimeout(poll, 5000);
+                        return;
+                    }
+
+                    const payload = await response.json();
+                    if (typeof payload.html === 'string') {
+                        result.innerHTML = payload.html;
+                    }
+
+                    if (!payload.terminal) {
+                        window.setTimeout(poll, Number(payload.poll_after_ms) || 2500);
+                    }
+                } catch {
+                    window.setTimeout(poll, 5000);
+                }
+            };
+
+            window.setTimeout(poll, 1200);
+        })();
+    </script>
 @endsection

@@ -40,6 +40,7 @@ class PublicStorefrontCheckTest extends TestCase
             ->assertSee('name="captcha_answer"', false)
             ->assertSee('/ru/check-store/captcha', false)
             ->assertDontSee('name="captcha_token"', false)
+            ->assertSee('Запускаем проверку...', false)
             ->assertSee('noindex', false);
         $answer = $this->captchaAnswer('ru');
 
@@ -58,12 +59,29 @@ class PublicStorefrontCheckTest extends TestCase
             'captcha_answer' => $answer,
         ])->assertRedirect();
         $this->assertMatchesRegularExpression('#/ru/check-store/[0-9a-f]{64}$#', $first->headers->get('Location'));
+        $token = basename((string) $first->headers->get('Location'));
         $this->assertDatabaseHas('public_storefront_checks', [
             'submitted_url' => 'shop.example.com/product/demo',
             'normalized_origin' => 'https://shop.example.com',
             'normalized_host' => 'shop.example.com',
             'status' => PublicStorefrontCheck::STATUS_QUEUED,
         ]);
+        $this->get('/ru/check-store/'.$token)
+            ->assertOk()
+            ->assertSee('data-status-url="/ru/check-store/'.$token.'/status"', false)
+            ->assertSee('Результат появится здесь автоматически');
+        $this->getJson('/ru/check-store/'.$token.'/status')
+            ->assertOk()
+            ->assertJsonPath('status', PublicStorefrontCheck::STATUS_QUEUED)
+            ->assertJsonPath('terminal', false)
+            ->assertJsonPath('poll_after_ms', 2500);
+
+        Carbon::setTestNow('2026-10-20T10:03:00Z');
+        $staleStatus = $this->getJson('/ru/check-store/'.$token.'/status')
+            ->assertOk()
+            ->assertJsonPath('status', PublicStorefrontCheck::STATUS_INCONCLUSIVE)
+            ->assertJsonPath('terminal', true);
+        $this->assertStringContainsString('Свободный браузерный воркер', (string) $staleStatus->json('html'));
 
         $hostCooldownAnswer = $this->captchaAnswer('ru');
         $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.11'])->from('/ru/check-store')->post('/ru/check-store', [

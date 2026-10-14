@@ -11,6 +11,7 @@ Route::middleware('web')->group(function (): void {
     Route::get('/{locale}/check-store', [PublicStorefrontCheckController::class, 'form'])->where('locale', 'ru|en|de');
     Route::get('/{locale}/check-store/captcha', [PublicStorefrontCheckController::class, 'captcha'])->where('locale', 'ru|en|de');
     Route::post('/{locale}/check-store', [PublicStorefrontCheckController::class, 'submit'])->where('locale', 'ru|en|de');
+    Route::get('/{locale}/check-store/{token}/status', [PublicStorefrontCheckController::class, 'status'])->where(['locale' => 'ru|en|de', 'token' => '[0-9a-f]{64}']);
     Route::get('/{locale}/check-store/{token}', [PublicStorefrontCheckController::class, 'result'])->where(['locale' => 'ru|en|de', 'token' => '[0-9a-f]{64}']);
     Route::get('/{locale}/check-store/{token}/artifacts/{artifactId}', [PublicStorefrontCheckController::class, 'artifact'])->where(['locale' => 'ru|en|de', 'token' => '[0-9a-f]{64}', 'artifactId' => '[0-9a-fA-F-]{36}']);
     Route::get('/{locale}/signup', [SignupController::class, 'show'])->where('locale', 'ru|en|de');

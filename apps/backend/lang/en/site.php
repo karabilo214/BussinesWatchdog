@@ -161,6 +161,7 @@ return [
         'captcha_alt' => 'CAPTCHA with an addition example',
         'captcha_hint' => 'The answer is required before the browser check starts and is valid for 10 minutes.',
         'submit' => 'Run public check',
+        'loading_submit' => 'Starting check...',
         'errors_title' => 'The check cannot start yet:',
         'steps_title' => 'Steps',
         'screenshots_title' => 'Screenshots',
@@ -174,7 +175,7 @@ return [
             'unknown' => 'not detected',
         ],
         'statuses' => [
-            'queued' => 'The check is queued. Refresh this page in a few seconds.',
+            'queued' => 'The check is queued. The result will appear here automatically.',
             'running' => 'The browser is checking the public storefront.',
             'passed' => 'The public smoke path completed.',
             'failed' => 'A public page problem was found.',
@@ -215,6 +216,7 @@ return [
             'adapter_unsupported' => 'The public path could not be recognized without connecting the store.',
             'forbidden_mutation' => 'The browser stopped before an unsafe action.',
             'infra_timeout' => 'The browser check timed out.',
+            'worker_unavailable' => 'No browser worker picked up the task in time. Please try again later.',
         ],
     ],
     'missing' => [

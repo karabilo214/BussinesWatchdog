@@ -144,6 +144,7 @@ return [
         'host_cooldown_days' => (int) env('WATCHDOG_PUBLIC_CHECK_HOST_COOLDOWN_DAYS', 30),
         'ip_cooldown_days' => (int) env('WATCHDOG_PUBLIC_CHECK_IP_COOLDOWN_DAYS', 10),
         'artifact_ttl_minutes' => (int) env('WATCHDOG_PUBLIC_CHECK_ARTIFACT_TTL_MINUTES', 5),
+        'queue_wait_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_QUEUE_WAIT_SECONDS', 120),
         'lease_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_LEASE_SECONDS', 90),
         'absolute_run_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_ABSOLUTE_RUN_SECONDS', 60),
         'result_grace_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_RESULT_GRACE_SECONDS', 15),
