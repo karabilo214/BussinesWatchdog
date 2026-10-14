@@ -314,7 +314,7 @@ Added:
 
 Verification: `tests/Feature/Providers/ShopwarePaymentAttemptsTest.php` (4: outcomes and classes, three failures → incident, re-read unchanged, a payment resolves; pending → stuck by the command → late success moves the window; transactions before the connection ignored, coverage; schedule). Backend SQLite 567 passed, 4 skipped; PostgreSQL 18: 571 of 571. Real Shopware 6.6.10.6 and 6.7.2.2 (integration key, Store API orders, payments failed and paid by state transitions): PASS.
 
-Remaining: the owner to confirm ADR 0056 (30-minute stuck time, offline method list); checkout observation script (layer 2) for the test customer and guest ways; the same observation for the WooCommerce REST API connector.
+Remaining (ADR 0056 confirmed by the owner on 2026-10-14 as it is): checkout observation script (layer 2) for the test customer and guest ways; the same observation for the WooCommerce REST API connector.
 
 ### Step 143: Checkout Observation Script in the Shopware App (ADR 0057)
 

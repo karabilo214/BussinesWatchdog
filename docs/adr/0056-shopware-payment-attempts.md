@@ -1,6 +1,6 @@
 # ADR 0056: Observing real payment attempts in Shopware stores
 
-Status: accepted for now (owner's backlog item 2026-10-14: server-side observation of real Shopware payment attempts, whatever way the browser check uses). Details below were chosen by the implementer and are to be confirmed by the owner.
+Status: accepted for now (owner's backlog item 2026-10-14: server-side observation of real Shopware payment attempts, whatever way the browser check uses). Details below confirmed by the owner on 2026-10-14 as they are.
 
 ## Context
 
@@ -20,10 +20,10 @@ In Shopware, «Submit order» creates the order and an `order_transaction` befor
 4. **Delay**: with the App, outcomes are seen within seconds (webhooks); with the integration key, within the 5-minute delta. A shop without a webhook for `in_progress`/`unconfirmed` still converges at the next delta.
 5. **Declines**: as for WooCommerce without a provider, a bank decline and a broken integration look the same (`failed`); the notification says so.
 
-## Not decided / for the owner
+## Confirmed by the owner (2026-10-14)
 
 - 30 minutes before an unanswered payment counts as stuck (same as WooCommerce).
-- Which plugin payment methods are offline: only the four core methods are known; a plugin's offline method would count as stuck after 30 minutes until added to the list.
+- Offline methods: the four core methods (prepayment, invoice, cash on delivery, direct debit) and the core offline handlers; a plugin's offline method with another name counts as stuck after 30 minutes until added to the list.
 
 ## Verification
 
