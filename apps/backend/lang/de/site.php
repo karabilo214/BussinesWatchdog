@@ -252,6 +252,7 @@ return [
             'forbidden_mutation' => 'Der Browser stoppte vor einer unsicheren Aktion.',
             'infra_timeout' => 'Die Browser-Prüfung hat das Zeitlimit überschritten.',
             'worker_unavailable' => 'Kein Browser-Worker hat die Aufgabe rechtzeitig übernommen. Bitte versuchen Sie es später erneut.',
+            'lease_expired' => 'Die Browser-Prüfung hat zu lange gedauert. Bitte starten Sie sie erneut.',
         ],
     ],
     'missing' => [

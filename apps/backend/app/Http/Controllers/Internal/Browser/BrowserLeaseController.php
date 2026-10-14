@@ -29,8 +29,13 @@ class BrowserLeaseController extends Controller
         ]);
 
         $worker = $this->worker($request);
-        $lease = $this->leases->lease($worker, $validated['browser_version'], $validated['location'])
-            ?? $this->publicStorefront->lease($worker, $validated['browser_version'], $validated['location']);
+        if ((bool) config('watchdog.public_check.prefer_public_leases') && ! app()->environment('production')) {
+            $lease = $this->publicStorefront->lease($worker, $validated['browser_version'], $validated['location'])
+                ?? $this->leases->lease($worker, $validated['browser_version'], $validated['location']);
+        } else {
+            $lease = $this->leases->lease($worker, $validated['browser_version'], $validated['location'])
+                ?? $this->publicStorefront->lease($worker, $validated['browser_version'], $validated['location']);
+        }
 
         return $lease === null ? response()->noContent() : response()->json($lease);
     }

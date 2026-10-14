@@ -252,6 +252,7 @@ return [
             'forbidden_mutation' => 'The browser stopped before an unsafe action.',
             'infra_timeout' => 'The browser check timed out.',
             'worker_unavailable' => 'No browser worker picked up the task in time. Please try again later.',
+            'lease_expired' => 'The browser check took too long. Please run it again.',
         ],
     ],
     'missing' => [

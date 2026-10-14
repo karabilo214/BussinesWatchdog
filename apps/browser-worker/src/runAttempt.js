@@ -128,7 +128,15 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
   try {
     await context.route('**/*', async (route) => {
       const request = route.request();
-      const decision = policy.decide({ url: request.url(), method: request.method(), postData: request.postData() });
+      let mainNavigation = false;
+
+      try {
+        mainNavigation = request.isNavigationRequest() && request.frame() === request.frame().page().mainFrame();
+      } catch {
+        mainNavigation = false;
+      }
+
+      const decision = policy.decide({ url: request.url(), method: request.method(), postData: request.postData(), isNavigation: mainNavigation });
 
       if (decision.reason === 'quiet') {
         await route.abort('blockedbyclient');
@@ -147,14 +155,6 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       }
 
       const { origin, path } = redactUrl(request.url());
-      let mainNavigation = false;
-
-      try {
-        mainNavigation = request.isNavigationRequest() && request.frame() === request.frame().page().mainFrame();
-      } catch {
-        mainNavigation = false;
-      }
-
       if (mainNavigation && decision.reason !== 'mutation') {
         state.blockedNavigation = true;
       }
@@ -338,6 +338,8 @@ async function captureScreenshot(page, focus, uploadScreenshot, errors) {
       await page.locator(focus).first().scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => null);
     }
 
+    await waitForVisualReady(page);
+
     const bytes = await page.screenshot({
       type: 'jpeg',
       quality: 60,
@@ -355,6 +357,36 @@ async function captureScreenshot(page, focus, uploadScreenshot, errors) {
 
     return null;
   }
+}
+
+async function waitForVisualReady(page) {
+  await page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => null);
+  await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => null);
+  await page.evaluate(async () => {
+    const images = Array.from(document.images)
+      .filter((image) => {
+        const rect = image.getBoundingClientRect();
+
+        return rect.bottom >= 0 && rect.top <= window.innerHeight && rect.right >= 0 && rect.left <= window.innerWidth;
+      })
+      .slice(0, 30);
+
+    await Promise.all(images.map((image) => {
+      if (image.complete && image.naturalWidth > 0) {
+        return Promise.resolve();
+      }
+
+      if (typeof image.decode === 'function') {
+        return image.decode().catch(() => null);
+      }
+
+      return new Promise((resolve) => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+        setTimeout(resolve, 1500);
+      });
+    }));
+  }).catch(() => null);
 }
 
 function stepResult(index, code, status, startedAt, finishedAt, assertions, network, errorCode) {

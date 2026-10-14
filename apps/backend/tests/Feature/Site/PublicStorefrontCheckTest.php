@@ -260,6 +260,29 @@ class PublicStorefrontCheckTest extends TestCase
         $this->assertDatabaseCount('public_storefront_checks', 3);
     }
 
+    public function test_local_dev_can_prefer_public_leases_over_regular_browser_backlog(): void
+    {
+        config()->set('watchdog.public_check.prefer_public_leases', true);
+
+        $answer = $this->captchaAnswer('en');
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.30'])->post('/en/check-store', [
+            'url' => 'https://store.example.com',
+            'captcha_answer' => $answer,
+        ])->assertRedirect();
+
+        BrowserWorker::query()->create([
+            'name' => 'worker-public-priority',
+            'token_hash' => hash('sha256', $this->workerToken),
+            'status' => BrowserWorker::STATUS_ACTIVE,
+            'created_at' => Carbon::now(),
+        ]);
+
+        $this->postJson('/internal/v1/browser/leases', [
+            'browser_version' => 'chromium-test',
+            'location' => 'test',
+        ], $this->workerHeaders())->assertOk()->assertJsonPath('type', 'public_storefront');
+    }
+
     /**
      * @param  array<string, string>  $extra
      * @return array<string, string>

@@ -153,6 +153,8 @@ test('public storefront checks allow only public cart-add mutations on the check
   assert.equal(pub.decide({ method: 'GET', url: `${store}/` }).allow, true);
   assert.equal(pub.decide({ method: 'GET', url: `${wwwStore}/` }).allow, true);
   assert.equal(pub.decide({ method: 'GET', url: `${store}/checkout` }).allow, true);
+  assert.equal(pub.decide({ method: 'GET', url: 'https://cdn.example.test/app.css' }).allow, true);
+  assert.equal(pub.decide({ method: 'GET', url: 'https://cdn.example.test/', isNavigation: true }).allow, false);
   assert.equal(pub.decide({ method: 'POST', url: `${store}/?wc-ajax=add_to_cart`, postData: 'product_id=10' }).allow, true);
   assert.equal(pub.decide({ method: 'POST', url: `${wwwStore}/?wc-ajax=add_to_cart`, postData: 'product_id=10' }).allow, true);
   assert.equal(pub.decide({ method: 'POST', url: `${store}/product/x/`, postData: 'quantity=1&add-to-cart=10' }).allow, true);
@@ -161,5 +163,5 @@ test('public storefront checks allow only public cart-add mutations on the check
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/?wc-ajax=update_order_review`, postData: 'security=x' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/checkout/order`, postData: 'tos=on' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/account/login`, postData: 'username=a&password=b' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
-  assert.equal(pub.decide({ method: 'GET', url: 'https://cdn.example.test/app.css' }).allow, false);
+  assert.equal(pub.decide({ method: 'POST', url: 'https://cdn.example.test/api', postData: '{}' }).allow, false);
 });

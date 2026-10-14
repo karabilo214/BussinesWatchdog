@@ -283,7 +283,7 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
     /**
      * @returns {{ allow: boolean, reason?: 'scheme'|'origin_not_allowed'|'mutation', operation?: string }}
      */
-    decide({ url, method, postData = null }) {
+    decide({ url, method, postData = null, isNavigation = false }) {
       let parsed;
 
       try {
@@ -300,11 +300,17 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
         return { allow: false, reason: 'quiet' };
       }
 
-      if (!originAllowed(parsed)) {
+      const verb = String(method).toUpperCase();
+      const publicReadAsset = platform === 'public'
+        && READ_METHODS.has(verb)
+        && !isNavigation
+        && (parsed.protocol === 'https:' || (insecureLocal && parsed.protocol === 'http:'))
+        && (parsed.port === '' || insecureLocal);
+
+      if (!originAllowed(parsed) && !publicReadAsset) {
         return { allow: false, reason: parsed.protocol === 'https:' || parsed.protocol === 'http:' ? 'origin_not_allowed' : 'scheme' };
       }
 
-      const verb = String(method).toUpperCase();
       const onStore = `${parsed.protocol}//${parsed.host}`.toLowerCase() === store;
 
       if (onStore && platform === 'shopware' && SHOPWARE_ROUTE.exec(parsed.pathname)?.[1] === 'payment') {
