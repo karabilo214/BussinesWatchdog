@@ -90,6 +90,7 @@ export function restRoute(parsed) {
 export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false, platform = 'woocommerce', checkoutAccess = null, quietOrigins = [] }) {
   const allowed = new Set(allowedOrigins.map((origin) => origin.toLowerCase().replace(/\/$/, '')));
   const store = storeOrigin.toLowerCase().replace(/\/$/, '');
+  const publicStoreOrigins = platform === 'public' ? allowed : new Set([store]);
   const quiet = new Set(quietOrigins.map((origin) => origin.toLowerCase().replace(/\/$/, '')));
 
   function originAllowed(parsed) {
@@ -248,7 +249,7 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
   }
 
   function classifyPublicMutation(parsed, method, postData) {
-    if (`${parsed.protocol}//${parsed.host}`.toLowerCase() !== store) {
+    if (!publicStoreOrigins.has(`${parsed.protocol}//${parsed.host}`.toLowerCase())) {
       return 'unknown_mutation';
     }
 

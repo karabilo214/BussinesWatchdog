@@ -24,6 +24,7 @@ export function loadConfig(env = process.env) {
     location: env.BW_WORKER_LOCATION ?? 'local',
     egressProxy: egressProxy === '' ? null : egressProxy,
     chromiumSandbox: env.BW_CHROMIUM_SANDBOX !== '0',
+    chromiumExecutablePath: env.BW_CHROMIUM_EXECUTABLE_PATH ?? '',
     runOnce: env.BW_RUN_ONCE === '1',
     idleMinMs: Number(env.BW_IDLE_MIN_MS ?? 2000),
     idleMaxMs: Number(env.BW_IDLE_MAX_MS ?? 30000),

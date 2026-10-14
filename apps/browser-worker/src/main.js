@@ -40,6 +40,7 @@ async function main() {
   const browser = await chromium.launch({
     headless: true,
     chromiumSandbox: config.chromiumSandbox,
+    ...(config.chromiumExecutablePath !== '' ? { executablePath: config.chromiumExecutablePath } : {}),
     ...(config.egressProxy ? { proxy: { server: config.egressProxy, bypass: '<-loopback>' } } : {}),
   });
   const browserVersion = `chromium-${browser.version()}`;

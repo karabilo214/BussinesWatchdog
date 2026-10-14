@@ -147,11 +147,14 @@ test('quiet origins are dropped without counting as blocked traffic', () => {
 });
 
 test('public storefront checks allow only public cart-add mutations on the checked origin', () => {
-  const pub = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, platform: 'public' });
+  const wwwStore = 'https://www.shop.example.test';
+  const pub = createNetworkPolicy({ allowedOrigins: [store, wwwStore], storeOrigin: store, platform: 'public' });
 
   assert.equal(pub.decide({ method: 'GET', url: `${store}/` }).allow, true);
+  assert.equal(pub.decide({ method: 'GET', url: `${wwwStore}/` }).allow, true);
   assert.equal(pub.decide({ method: 'GET', url: `${store}/checkout` }).allow, true);
   assert.equal(pub.decide({ method: 'POST', url: `${store}/?wc-ajax=add_to_cart`, postData: 'product_id=10' }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${wwwStore}/?wc-ajax=add_to_cart`, postData: 'product_id=10' }).allow, true);
   assert.equal(pub.decide({ method: 'POST', url: `${store}/product/x/`, postData: 'quantity=1&add-to-cart=10' }).allow, true);
   assert.equal(pub.decide({ method: 'POST', url: `${store}/wp-json/wc/store/v1/cart/add-item`, postData: '{"id":10}' }).allow, true);
   assert.equal(pub.decide({ method: 'POST', url: `${store}/checkout/line-item/add`, postData: multipart([[`lineItems[${lineItem}][quantity]`, '1']]) }).allow, true);

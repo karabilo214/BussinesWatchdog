@@ -65,6 +65,7 @@ class PublicStorefrontLeaseService
             $fencing = $check->fencing_token + 1;
             $deadline = $now->copy()->addSeconds((int) config('watchdog.public_check.absolute_run_seconds'));
             $leaseUntil = $this->leaseUntil($now, $deadline);
+            $allowedOrigins = $this->allowedStoreOrigins($check->normalized_origin);
 
             $check->forceFill([
                 'status' => PublicStorefrontCheck::STATUS_RUNNING,
@@ -90,6 +91,7 @@ class PublicStorefrontLeaseService
                     'adapter_version' => 'public-storefront@1',
                     'platform' => 'public',
                     'store_origin' => $check->normalized_origin,
+                    'allowed_store_origins' => $allowedOrigins,
                     'target_url' => $check->normalized_origin,
                     'capture_steps' => true,
                     'max_artifacts' => (int) config('watchdog.public_check.max_artifacts'),
@@ -99,7 +101,7 @@ class PublicStorefrontLeaseService
                     ],
                 ],
                 'network_policy' => [
-                    'allowed_origins' => [$check->normalized_origin],
+                    'allowed_origins' => $allowedOrigins,
                     'quiet_origins' => [],
                 ],
             ];
@@ -341,5 +343,23 @@ class PublicStorefrontLeaseService
     private function disk(): Filesystem
     {
         return Storage::disk((string) config('watchdog.artifacts.disk'));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allowedStoreOrigins(string $origin): array
+    {
+        $parsed = parse_url($origin);
+        $scheme = strtolower((string) ($parsed['scheme'] ?? 'https'));
+        $host = strtolower((string) ($parsed['host'] ?? ''));
+
+        if ($scheme !== 'https' || $host === '' || str_contains($host, ':') || ! str_contains($host, '.')) {
+            return [$origin];
+        }
+
+        $hosts = str_starts_with($host, 'www.') ? [$host, substr($host, 4)] : [$host, 'www.'.$host];
+
+        return array_values(array_unique(array_map(fn (string $candidate): string => 'https://'.$candidate, $hosts)));
     }
 }

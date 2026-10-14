@@ -97,6 +97,8 @@ class PublicStorefrontCheckController extends Controller
 
     public function status(string $locale, string $token): JsonResponse
     {
+        app()->setLocale($locale);
+
         $check = $this->checks->byToken($token);
 
         if ($check === null) {

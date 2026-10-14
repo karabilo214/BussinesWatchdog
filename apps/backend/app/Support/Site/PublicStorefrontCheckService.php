@@ -2,6 +2,7 @@
 
 namespace App\Support\Site;
 
+use App\Models\BrowserWorker;
 use App\Models\PublicStorefrontCheck;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -215,6 +216,16 @@ class PublicStorefrontCheckService
         }
 
         if ($check->queued_at->greaterThan(Carbon::now()->subSeconds((int) config('watchdog.public_check.queue_wait_seconds')))) {
+            return false;
+        }
+
+        $recentWorkerSeen = BrowserWorker::query()
+            ->where('status', BrowserWorker::STATUS_ACTIVE)
+            ->whereNull('revoked_at')
+            ->where('last_seen_at', '>=', Carbon::now()->subSeconds((int) config('watchdog.public_check.queue_wait_seconds')))
+            ->exists();
+
+        if ($recentWorkerSeen) {
             return false;
         }
 

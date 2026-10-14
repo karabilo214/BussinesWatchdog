@@ -181,7 +181,7 @@ async function linkByHint(page, hint) {
 async function followPublicLink(page, href, timeout, state) {
   const target = new URL(href, state.scenario.store_origin);
 
-  if (target.origin !== state.scenario.store_origin) {
+  if (!allowedStoreOrigin(state, target.origin)) {
     throw new StepOutcome('blocked', 'blocked_external_origin', 'left_store_origin');
   }
 
@@ -199,7 +199,6 @@ async function followPublicLink(page, href, timeout, state) {
 
 async function tryPublicAddToCart(page, timeout, state) {
   const index = await page.locator('a[href], button, input[type="submit"], input[type="button"]').evaluateAll((nodes, args) => {
-    const origin = args.origin;
     const addHint = new RegExp(args.addHint, 'i');
     const pii = new RegExp(args.pii, 'i');
 
@@ -230,7 +229,7 @@ async function tryPublicAddToCart(page, timeout, state) {
         return false;
       }
 
-      if (action.origin !== origin) {
+      if (!args.origins.includes(action.origin)) {
         return false;
       }
 
@@ -263,12 +262,12 @@ async function tryPublicAddToCart(page, timeout, state) {
       if (node instanceof HTMLAnchorElement) {
         const target = new URL(node.href, window.location.href);
 
-        return target.origin === origin;
+        return args.origins.includes(target.origin);
       }
 
       return true;
     });
-  }, { origin: state.scenario.store_origin, addHint: ADD_TO_CART_HINT.source, pii: PII_FIELD.source }).catch(() => -1);
+  }, { origins: allowedStoreOrigins(state), addHint: ADD_TO_CART_HINT.source, pii: PII_FIELD.source }).catch(() => -1);
 
   if (index < 0) {
     return false;
@@ -299,4 +298,14 @@ async function assertNoPrivatePage(page) {
   if (password > 0) {
     throw UNSUPPORTED('login_required');
   }
+}
+
+function allowedStoreOrigin(state, origin) {
+  return allowedStoreOrigins(state).includes(origin);
+}
+
+function allowedStoreOrigins(state) {
+  return Array.isArray(state.scenario.allowed_store_origins) && state.scenario.allowed_store_origins.length > 0
+    ? state.scenario.allowed_store_origins
+    : [state.scenario.store_origin];
 }

@@ -82,6 +82,7 @@ class PublicStorefrontCheckTest extends TestCase
             ->assertJsonPath('status', PublicStorefrontCheck::STATUS_INCONCLUSIVE)
             ->assertJsonPath('terminal', true);
         $this->assertStringContainsString('Свободный браузерный воркер', (string) $staleStatus->json('html'));
+        $this->assertStringNotContainsString('No browser worker picked up', (string) $staleStatus->json('html'));
 
         $hostCooldownAnswer = $this->captchaAnswer('ru');
         $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.11'])->from('/ru/check-store')->post('/ru/check-store', [
@@ -130,7 +131,10 @@ class PublicStorefrontCheckTest extends TestCase
         ], $this->workerHeaders())->assertOk();
         $lease->assertJsonPath('type', 'public_storefront')
             ->assertJsonPath('scenario.adapter_version', 'public-storefront@1')
-            ->assertJsonPath('scenario.store_origin', 'https://store.example.com');
+            ->assertJsonPath('scenario.store_origin', 'https://store.example.com')
+            ->assertJsonPath('scenario.allowed_store_origins.0', 'https://store.example.com')
+            ->assertJsonPath('scenario.allowed_store_origins.1', 'https://www.store.example.com')
+            ->assertJsonPath('network_policy.allowed_origins.1', 'https://www.store.example.com');
         $attemptId = $lease->json('attempt_id');
         $leaseToken = $lease->json('lease_token');
         $fencing = $lease->json('fencing_token');
