@@ -9,6 +9,9 @@ const LOGIN_HINT = /login|sign in|signin|account|konto|anmelden|register|registr
 const CAPTCHA_HINT = /captcha|cf-chl|challenge-platform|just a moment|access denied|attention required/i;
 const PRIVATE_PATH = /\/(account|my-account|login|register|admin|wp-admin|customer|order|orders)\b/i;
 const PII_FIELD = /email|e-mail|mail|phone|tel|address|street|city|postcode|zip|password|passwort|login|username|user/i;
+const CONSENT_ACCEPT_HINT = /(accept all|accept cookies|accept|agree|allow all|allow cookies|continue|got it|ok|okay|yes|enter|i am 18|i'm 18|over 18|18\+|confirm age|alle akzeptieren|akzeptieren|zustimmen|einverstanden|weiter|ja|ich bin 18|plus de 18|j'ai 18|accepter|tout accepter|continuer|aceptar|aceptar todo|soy mayor|ho 18 anni|accetta|accetto|proceed)/i;
+const CONSENT_REJECT_HINT = /(decline|reject|deny|no|under 18|leave|cancel|ablehnen|nein|minderj|refuser|non|moins de 18|rechazar|menor|rifiuta|annulla)/i;
+const DANGEROUS_CONSENT_HINT = /checkout|cart|basket|warenkorb|kasse|payment|pay|buy|purchase|order|login|sign in|register|subscribe|newsletter|account/i;
 
 export function createPublicStorefrontAdapter() {
   return {
@@ -20,6 +23,7 @@ export function createPublicStorefrontAdapter() {
     async public_home(page, step, state) {
       await navigate(page, state.scenario.target_url ?? state.scenario.store_origin, step.timeout_ms, state);
       await page.locator('body').waitFor({ state: 'visible', timeout: Math.min(5000, step.timeout_ms) }).catch(() => null);
+      await acceptPublicEntryOverlays(page);
       await assertNoPrivatePage(page);
 
       const text = await page.locator('body').innerText({ timeout: 3000 }).catch(() => '');
@@ -34,6 +38,7 @@ export function createPublicStorefrontAdapter() {
     },
 
     async public_checkout(page, step, state) {
+      await acceptPublicEntryOverlays(page);
       await assertNoPrivatePage(page);
 
       const direct = await linkByHint(page, CHECKOUT_HINT);
@@ -101,6 +106,75 @@ export function createPublicStorefrontAdapter() {
       throw UNSUPPORTED('checkout_link_not_found');
     },
   };
+}
+
+async function acceptPublicEntryOverlays(page) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const index = await page.locator('button, a[href], input[type="button"], input[type="submit"], [role="button"]').evaluateAll((nodes, args) => {
+      const accept = new RegExp(args.accept, 'i');
+      const reject = new RegExp(args.reject, 'i');
+      const dangerous = new RegExp(args.dangerous, 'i');
+
+      function textOf(node) {
+        return [
+          node.textContent ?? '',
+          node.getAttribute('aria-label') ?? '',
+          node.getAttribute('title') ?? '',
+          node.getAttribute('name') ?? '',
+          node.getAttribute('value') ?? '',
+          node.getAttribute('id') ?? '',
+          node.getAttribute('class') ?? '',
+        ].join(' ').replace(/\s+/g, ' ').trim();
+      }
+
+      function consentAction(label) {
+        const normalized = String(label).replace(/\s+/g, ' ').trim();
+
+        if (normalized === '' || dangerous.test(normalized) || reject.test(normalized)) {
+          return 'skip';
+        }
+
+        return accept.test(normalized) ? 'accept' : 'skip';
+      }
+
+      function overlayLike(node) {
+        const scope = node.closest('[role="dialog"], [aria-modal="true"], dialog, .modal, .popup, .overlay, .cookie, .cookies, .consent, .age, .age-gate, .agegate, .verification, .privacy, .gdpr, #onetrust-banner-sdk, #CybotCookiebotDialog');
+
+        if (scope !== null) {
+          return true;
+        }
+
+        const rect = node.getBoundingClientRect();
+
+        return rect.top < window.innerHeight && rect.left < window.innerWidth;
+      }
+
+      return nodes.findIndex((node) => {
+        if (!(node instanceof HTMLElement) || node.offsetParent === null || node.hasAttribute('disabled') || !overlayLike(node)) {
+          return false;
+        }
+
+        return consentAction(textOf(node)) === 'accept';
+      });
+    }, { accept: CONSENT_ACCEPT_HINT.source, reject: CONSENT_REJECT_HINT.source, dangerous: DANGEROUS_CONSENT_HINT.source }).catch(() => -1);
+
+    if (index < 0) {
+      return;
+    }
+
+    await page.locator('button, a[href], input[type="button"], input[type="submit"], [role="button"]').nth(index).click({ timeout: 3000 }).catch(() => null);
+    await page.waitForTimeout(600);
+  }
+}
+
+export function publicConsentAction(label) {
+  const normalized = String(label).replace(/\s+/g, ' ').trim();
+
+  if (normalized === '' || DANGEROUS_CONSENT_HINT.test(normalized) || CONSENT_REJECT_HINT.test(normalized)) {
+    return 'skip';
+  }
+
+  return CONSENT_ACCEPT_HINT.test(normalized) ? 'accept' : 'skip';
 }
 
 async function detectPlatformHint(page) {

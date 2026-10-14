@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { detectPlatformFromPublicSignals } from '../src/adapter/publicStorefront.js';
+import { detectPlatformFromPublicSignals, publicConsentAction } from '../src/adapter/publicStorefront.js';
 
 describe('public storefront platform detection', () => {
   it('detects WooCommerce public storefront signals', () => {
@@ -33,5 +33,19 @@ describe('public storefront platform detection', () => {
     ].join(' ');
 
     assert.equal(detectPlatformFromPublicSignals(html), 'unknown');
+  });
+});
+
+describe('public storefront consent handling', () => {
+  it('accepts common cookie and age-gate labels', () => {
+    for (const label of ['Accept all', 'Allow cookies', 'I am 18', 'Yes, enter', 'Alle akzeptieren', 'Ich bin 18', 'Tout accepter', 'Soy mayor']) {
+      assert.equal(publicConsentAction(label), 'accept', label);
+    }
+  });
+
+  it('does not click reject or commerce actions as consent', () => {
+    for (const label of ['Reject all', 'No, leave', 'Under 18', 'Checkout', 'Add to cart', 'Login', 'Subscribe']) {
+      assert.equal(publicConsentAction(label), 'skip', label);
+    }
   });
 });
