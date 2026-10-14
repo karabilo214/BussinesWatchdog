@@ -333,4 +333,4 @@ Added:
 
 Verification: `tests/Feature/Checkout/CheckoutObservationTest.php` (5). Backend SQLite 572 passed, 4 skipped; PostgreSQL 18: 576 of 576. Worker 16. Customer 125, owner panel 55; frontend check green. Real Shopware 6.6.10.6 and 6.7.2.2 with the real app archive and real shoppers' browsers: PASS (10 checks each).
 
-Remaining: an update archive for stores already running the app; the owner to confirm ADR 0057 thresholds; the same layer for WooCommerce; scripts that run before the theme's are not observed (Shopware loads app scripts after `storefront.js`).
+Remaining: an update archive for stores already running the app; the same layer for WooCommerce; scripts that run before the theme's are not observed (Shopware loads app scripts after `storefront.js`). ADR 0057 confirmed by the owner on 2026-10-14 as it is.

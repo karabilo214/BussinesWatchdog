@@ -1,6 +1,6 @@
 # ADR 0057: Checkout observation script for Shopware stores (layer 2)
 
-Status: accepted (owner decisions 2026-10-14: the script works without a consent banner; the service decides whether a store is observed). Details below were chosen by the implementer and are to be confirmed by the owner.
+Status: accepted (owner decisions 2026-10-14: the script works without a consent banner; the service decides whether a store is observed). Details below confirmed by the owner on 2026-10-14 as they are.
 
 ## Context
 
@@ -20,11 +20,11 @@ Spike on Shopware 6.7.2.2 with a minimal app: a JS file shipped in the app (`Res
 6. **Browser check**: with test customer or guest, the payment step also records whether the script is on the confirm page (`checkout_script_present`); requests of the check to the service are dropped quietly (they would count synthetic traffic) and not reported as errors. Coverage shows the script state per store.
 7. **Installing**: the dashboard instructions say to clear the Shopware cache after installing (the app's templates apply only then — seen in the spike and the e2e) and explain what the script counts. **Not done yet**: a store that already runs app 1.0.0 cannot download 1.1.0 — the dashboard builds an archive only for a new connection. No store runs the app yet (not released); an update archive for connected stores (same integration and secret) is a separate task.
 
-## Not decided / for the owner
+## Confirmed by the owner (2026-10-14)
 
 - Thresholds: 5 pages / 6 hours for a silent script, 3 sends / 2 hours for failing submits, 20 s for a stalled submit.
-- The script cannot register its error handlers before the theme's scripts (Shopware loads app scripts after `storefront.js`), so errors of scripts that run earlier are not counted.
-- The same layer for WooCommerce (plugin endpoint) is not part of this step.
+- Known limit: errors of scripts that run before the app's script (Shopware loads app scripts after `storefront.js`) are not counted.
+- The same layer for WooCommerce (plugin endpoint) is a separate task.
 
 ## Verification
 
