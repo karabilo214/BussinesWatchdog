@@ -6,6 +6,11 @@ use BusinessWatchdog\WooCommerce\Compat\Environment;
 use BusinessWatchdog\WooCommerce\Connection\Connection;
 use BusinessWatchdog\WooCommerce\Connection\PairingClient;
 use BusinessWatchdog\WooCommerce\Jobs\HeartbeatJob;
+use BusinessWatchdog\WooCommerce\Observation\CheckoutObservation;
+use BusinessWatchdog\WooCommerce\Observation\ObservationLog;
+use BusinessWatchdog\WooCommerce\Observation\ObservationSettings;
+use BusinessWatchdog\WooCommerce\Observation\ObservationToken;
+use BusinessWatchdog\WooCommerce\Synthetic\SyntheticRequest;
 use BusinessWatchdog\WooCommerce\Storage\OutboxStats;
 use BusinessWatchdog\WooCommerce\Storage\State;
 
@@ -45,7 +50,20 @@ final class RestController
             'permission_callback' => '__return_true',
         ]);
 
+        register_rest_route(self::NAMESPACE, '/observe', [
+            'methods' => 'POST',
+            'callback' => [self::class, 'observe'],
+            'permission_callback' => '__return_true',
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/observe/noscript', [
+            'methods' => 'GET',
+            'callback' => [self::class, 'observeNoscript'],
+            'permission_callback' => '__return_true',
+        ]);
+
         add_filter('rest_pre_serve_request', [self::class, 'servePlainChallenge'], 10, 4);
+        add_filter('rest_pre_serve_request', [self::class, 'serveBeaconImage'], 10, 4);
     }
 
     public static function canManage(): bool
@@ -94,6 +112,56 @@ final class RestController
         return $response;
     }
 
+    /**
+     * A report of the checkout observation script (ADR 0059): sent with sendBeacon as plain text, accepted only with a
+     * token of a rendered page and only from the shop's own pages. Always 204.
+     */
+    public static function observe(\WP_REST_Request $request)
+    {
+        $body = json_decode(substr((string) $request->get_body(), 0, 2000), true);
+        $origin = (string) $request->get_header('origin');
+
+        if (is_array($body) && ($origin === '' || self::sameSite($origin))) {
+            CheckoutObservation::report(
+                ObservationToken::verify(is_string($body['token'] ?? null) ? $body['token'] : ''),
+                is_string($body['page'] ?? null) ? $body['page'] : '',
+                is_array($body['stages'] ?? null) ? array_values($body['stages']) : [],
+                is_int($body['js_errors'] ?? null) ? max(0, $body['js_errors']) : 0
+            );
+        }
+
+        return new \WP_REST_Response(null, 204);
+    }
+
+    public static function observeNoscript(\WP_REST_Request $request)
+    {
+        if (ObservationToken::verify((string) $request->get_param('t')) === 'checkout' && ObservationSettings::enabled() && SyntheticRequest::current() === null) {
+            ObservationLog::increment(['checkout_rendered_noscript' => 1]);
+        }
+
+        return new \WP_REST_Response('beacon', 200);
+    }
+
+    public static function serveBeaconImage($served, $result, $request, $server)
+    {
+        if ($served || ! $request instanceof \WP_REST_Request || $request->get_route() !== '/' . self::NAMESPACE . '/observe/noscript') {
+            return $served;
+        }
+
+        header('Content-Type: image/gif');
+        header('Cache-Control: no-store');
+        echo base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+
+        return true;
+    }
+
+    private static function sameSite(string $origin): bool
+    {
+        $host = strtolower((string) wp_parse_url($origin, PHP_URL_HOST));
+
+        return $host !== '' && $host === strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
+    }
+
     public static function servePlainChallenge($served, $result, $request, $server)
     {
         if ($served || ! $request instanceof \WP_REST_Request || ! $result instanceof \WP_REST_Response) {
@@ -136,6 +204,7 @@ final class RestController
             'last_capture_error' => State::get(\BusinessWatchdog\WooCommerce\Capture\OrderCapture::STATE_LAST_ERROR),
             'site_base_url' => PairingClient::siteBaseUrl(),
             'last_synthetic_check' => State::get(\BusinessWatchdog\WooCommerce\Synthetic\SyntheticOrders::STATE_LAST),
+            'checkout_observation' => ObservationSettings::describe(),
         ];
     }
 }

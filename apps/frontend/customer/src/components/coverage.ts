@@ -45,7 +45,8 @@ export const CHECKOUT_SCRIPT_TONES: Record<CheckoutScriptState, Tone> = {
   check_does_not_reach_payment: 'unknown',
   store_not_active: 'unknown',
   app_not_active: 'unknown',
-  not_a_shopware_app: 'unknown',
+  connection_without_script: 'unknown',
+  needs_plugin: 'unknown',
   needs_app: 'unknown',
   not_available: 'unknown',
 };

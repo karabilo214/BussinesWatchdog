@@ -40,6 +40,8 @@ class EventInbox extends Model
 
     public const EVENT_CHECKOUT_PAYMENT_ATTEMPTS = 'checkout.payment_attempts';
 
+    public const EVENT_CHECKOUT_OBSERVATION = 'checkout.observation';
+
     public const AGGREGATE_ORDER = 'order';
 
     public const AGGREGATE_REFUND = 'refund';
@@ -67,6 +69,7 @@ class EventInbox extends Model
         self::EVENT_DEPLOYMENT_OBSERVED,
         self::EVENT_FUNNEL_OBSERVED,
         self::EVENT_CHECKOUT_PAYMENT_ATTEMPTS,
+        self::EVENT_CHECKOUT_OBSERVATION,
     ];
 
     public const AGGREGATE_TYPES = [

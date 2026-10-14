@@ -183,7 +183,14 @@ export function createWooCommerceAdapter() {
       ]).catch(() => null);
 
       if (outcome === 'methods' && !(await present(page, none))) {
-        return [{ code: 'payment_method_available', passed: true, detail_code: context.checkoutMode }];
+        const assertions = [{ code: 'payment_method_available', passed: true, detail_code: context.checkoutMode }];
+
+        if (context.scenario.expect_checkout_script) {
+          const script = await page.evaluate(() => window.BusinessWatchdogCheckout?.page ?? null).catch(() => null);
+          assertions.push({ code: 'checkout_script_present', passed: script === 'checkout', detail_code: script === null ? 'script_missing' : `page_${script}` });
+        }
+
+        return assertions;
       }
 
       throw SITE(outcome === 'none' ? 'no_payment_methods' : 'payment_form_missing');

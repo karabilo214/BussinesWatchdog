@@ -2,7 +2,7 @@
 
 Date: 2026-10-09
 
-Status: accepted (owner decision); layer 1 implemented in Step 49, layer 2 not started.
+Status: accepted (owner decision); layer 1 implemented in Step 49 (plugin), for Shopware in Step 141 (ADR 0056) and for the WooCommerce REST API key in Step 147 (ADR 0060); layer 2 implemented for the Shopware app in Step 143 (ADR 0057) and for the WooCommerce plugin in Step 146 (ADR 0059).
 
 ## Context
 

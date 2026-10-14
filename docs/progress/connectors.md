@@ -334,3 +334,35 @@ Added:
 Verification: `tests/Feature/Checkout/CheckoutObservationTest.php` (5). Backend SQLite 572 passed, 4 skipped; PostgreSQL 18: 576 of 576. Worker 16. Customer 125, owner panel 55; frontend check green. Real Shopware 6.6.10.6 and 6.7.2.2 with the real app archive and real shoppers' browsers: PASS (10 checks each).
 
 Remaining: an update archive for stores already running the app; the same layer for WooCommerce; scripts that run before the theme's are not observed (Shopware loads app scripts after `storefront.js`). ADR 0057 confirmed by the owner on 2026-10-14 as it is.
+
+### Step 146: Checkout Observation Script in the WooCommerce Plugin (ADR 0059)
+
+Status: complete
+
+Why: owner's task 2026-10-14 — layer 2 (spec §17.1, ADR 0007 «not started») in the WooCommerce plugin, following the Shopware app (ADR 0057), without a consent banner (the owner's decision for Shopware, applied to WooCommerce by the task).
+
+Added:
+
+- ADR 0059. Plugin 0.3.0: `Observation\ObservationSettings` (the heartbeat answer `checkout_observation.observe`, an autoloaded option), `CheckoutObservation` (checkout — Classic or Blocks, not order-pay — and order-received pages: the script in the page head with an inline configuration, the page counted in `wp_footer` so redirects are not, a `noscript` beacon, script tag attributes and exclusion filters for WP Rocket, Autoptimize, LiteSpeed Cache, SiteGround Optimizer), `ObservationToken` (page kind and expiry signed with a key derived from the connection secret), `ObservationLog` (table `wp_bw_checkout_observation`, schema 4, counters per 5-minute window, capped; a change after reporting raises the revision), `Jobs\ObservationReportJob` (closed windows → `checkout.observation` through the outbox, every minute), REST `POST /observe` (sendBeacon, token, same-site origin, never for a verified browser check) and `GET /observe/noscript` (1×1 GIF), diagnostics, CLI `checkout-observation`, uninstall clean-up, `assets/` in the release ZIP.
+- `assets/checkout-observer.js`: `script_loaded`, `form_ready` (Classic `#place_order` / Blocks place-order button enabled and a payment method offered), `submit_clicked` (Classic form sent; Blocks button pressed without field validation errors after 1.5 s), `returned_with_error`, `submit_stalled` (60 s), `finish_reached`, JavaScript error count, `script_altered` (combined, deferred or async — shown in diagnostics). No storage, no form values, no identifiers; synthetic pages send nothing.
+- Service: event `checkout.observation` (contract `event.schema.json` and its backend copy, validator: aggregate id `observation:<window start>`, 5-minute window, capped counters), `CheckoutObservationProjector` into the same `checkout_observation_windows` (plugin checkout = confirm columns; `source_revision`, only newer revisions replace); heartbeat answers `checkout_observation`; the observation decision covers the plugin (active, store active, plan feature; no browser check required); rules evaluate plugin stores too, «orders» for the submit rule include the plugin's layer 1 windows; coverage `needs_plugin` for REST-key stores; the WooCommerce browser check records `checkout_script_present` when expected. Notification and dashboard texts made neutral (plugin or app, checkout or confirmation page). OpenAPI updated.
+- `tests/matrix/observation-e2e.sh` (`make woocommerce-observation-e2e`): real shoppers' browsers on the matrix, own database `bw_wc_observation_e2e`; WordPress background core updates switched off (on wc8 an automatic update replaced core files during a run and the store answered 500).
+
+Verification: backend `tests/Feature/Checkout/WooCommerceCheckoutObservationTest.php` (4: heartbeat answer, ingest through the signed API with revisions, rule with layer 1 windows, coverage and check expectation) plus the Shopware observation tests; plugin integration `ObservationTest.php` (6) — suite 54/54 on all six matrix targets (PHP 7.4 / WooCommerce 6.0 to PHP 8.3 / 11.2); observation e2e PASS on all six targets in one run (60 of 60 checks). The existing REST API chain e2e still passes on latest. Customer 125, worker 17 (with another agent's uncommitted tests).
+
+Remaining: the owner to confirm ADR 0059 (60 s stall, observation without a configured browser check).
+
+### Step 147: Payment Attempts of WooCommerce Stores Connected With a REST API Key (ADR 0060)
+
+Status: complete
+
+Why: owner's task 2026-10-14 — stores connected only with a read REST API key (the main path, ADR 0024) had no payment attempt observation; layer 1 lived only in the plugin.
+
+Added:
+
+- ADR 0060. `WooCommerceApiPaymentAttempts`: a checkout order (`created_via` checkout or store-api) created after the key was connected is an attempt; paid date or processing/completed/refunded → paid, on-hold → on hold, failed → failed, cancelled → failed (cancelled), pending → stuck after 30 minutes → late success; admin/REST orders, drafts, free orders and unknown custom statuses are not counted. Fed by every order page the REST sync reads (delta, recent, audit) into the service-side attempts of ADR 0056 (same windows, rule, incidents, coverage). The connector now also reads `created_via` (still no personal data).
+- `tests/matrix/rest-api-attempts-e2e.sh` (`make woocommerce-rest-attempts-e2e`): real WooCommerce without the plugin, the real connector, own database `bw_wc_attempts_e2e`.
+
+Verification: `tests/Feature/Providers/WooCommerceApiPaymentAttemptsTest.php` (3). E2E PASS on floor (WooCommerce 6.0.2) and latest (11.2.0): admin order and order from before the connection ignored, three checkout failures (Classic and Blocks) open the incident, bank transfer on hold is a success, a paid order resolves it, re-reads change nothing, no personal data stored.
+
+Remaining: the owner to confirm ADR 0060 (only checkout / store-api orders; a cancelled unpaid order is a failure).

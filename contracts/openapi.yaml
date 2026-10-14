@@ -5372,6 +5372,11 @@ paths:
                       id: {type: string, format: uuid}
                       challenge: {type: string}
                       url: {type: string, format: uri}
+                  checkout_observation:
+                    type: object
+                    description: Whether the plugin should put the checkout observation script on the store and count checkout pages (ADR 0059).
+                    properties:
+                      observe: {type: boolean}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
       security:
@@ -6094,9 +6099,9 @@ components:
         checkout_script:
           type: object
           required: [state, last_report_at]
-          description: Checkout observation script of the Shopware app (ADR 0057).
+          description: Checkout observation script of the Shopware app (ADR 0057) or the WooCommerce plugin (ADR 0059).
           properties:
-            state: {enum: [not_available, needs_app, not_a_shopware_app, app_not_active, store_not_active, check_does_not_reach_payment, not_in_plan, not_seen_by_check, waiting, no_recent_reports, observing]}
+            state: {enum: [not_available, needs_app, needs_plugin, connection_without_script, app_not_active, store_not_active, check_does_not_reach_payment, not_in_plan, not_seen_by_check, waiting, no_recent_reports, observing]}
             last_report_at: {type: [string, "null"], format: date-time}
     Store:
       type: object

@@ -104,7 +104,7 @@ class CheckoutObservationTest extends TestCase
             ['confirm_rendered' => 1, 'confirm_rendered_noscript' => 1, 'finish_rendered' => 1, 'script_loaded' => 1, 'form_ready' => 1, 'returned_with_error' => 0, 'submit_clicked' => 1, 'submit_stalled' => 0, 'finish_reached' => 0, 'js_errors' => 20],
             array_intersect_key($window->toArray(), array_flip(CheckoutObservationWindow::COUNTERS)),
         );
-        $this->assertSame(['id', 'tenant_id', 'store_id', 'integration_id', 'window_start', ...CheckoutObservationWindow::COUNTERS, 'created_at', 'updated_at'], array_keys(\DB::table('checkout_observation_windows')->first() ? (array) \DB::table('checkout_observation_windows')->first() : []), 'no column for an address, agent or visitor id');
+        $this->assertSame(['id', 'tenant_id', 'store_id', 'integration_id', 'window_start', ...CheckoutObservationWindow::COUNTERS, 'created_at', 'updated_at', 'source_revision', 'event_id'], array_keys(\DB::table('checkout_observation_windows')->first() ? (array) \DB::table('checkout_observation_windows')->first() : []), 'no column for an address, agent or visitor id');
 
         CheckScenario::query()->update(['checkout_access' => CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN]);
         Cache::flush();

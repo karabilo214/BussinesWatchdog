@@ -38,6 +38,7 @@ class WooCommerceApiSync
         private readonly WooCommerceApiOrderMapper $mapper,
         private readonly ProviderEventEmitter $emitter,
         private readonly StoreReconciliationRequeue $requeue,
+        private readonly WooCommerceApiPaymentAttempts $attempts,
     ) {}
 
     /**
@@ -170,6 +171,7 @@ class WooCommerceApiSync
                 '_fields' => WooCommerceApiOrderMapper::ORDER_FIELDS,
             ]);
             $orders = array_values(array_filter($result['json'], 'is_array'));
+            $this->attempts->observe($integration, $orders);
 
             foreach ($orders as $order) {
                 if (! $this->ingest($integration, $credentials, $order)) {

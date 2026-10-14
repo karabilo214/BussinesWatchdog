@@ -13,6 +13,8 @@ use BusinessWatchdog\WooCommerce\Jobs\BackfillJob;
 use BusinessWatchdog\WooCommerce\Jobs\DeliveryJob;
 use BusinessWatchdog\WooCommerce\Jobs\EnvironmentEvents;
 use BusinessWatchdog\WooCommerce\Jobs\HeartbeatJob;
+use BusinessWatchdog\WooCommerce\Jobs\ObservationReportJob;
+use BusinessWatchdog\WooCommerce\Observation\CheckoutObservation;
 use BusinessWatchdog\WooCommerce\Jobs\PaymentAttemptsJob;
 use BusinessWatchdog\WooCommerce\Jobs\RescanJob;
 use BusinessWatchdog\WooCommerce\Rest\RestController;
@@ -30,6 +32,7 @@ final class Plugin
         BackfillJob::HOOK => BackfillJob::INTERVAL_SECONDS,
         BackfillJob::AUDIT_HOOK => BackfillJob::AUDIT_INTERVAL_SECONDS,
         PaymentAttemptsJob::HOOK => PaymentAttemptsJob::INTERVAL_SECONDS,
+        ObservationReportJob::HOOK => ObservationReportJob::INTERVAL_SECONDS,
         SyntheticOrders::CLEANUP_HOOK => SyntheticOrders::CLEANUP_INTERVAL_SECONDS,
     ];
 
@@ -80,6 +83,7 @@ final class Plugin
 
         OrderHooks::register();
         AttemptHooks::register();
+        CheckoutObservation::register();
         SyntheticOrders::register();
         OrderCapture::onRecorded([self::class, 'scheduleDelivery']);
         add_action(HeartbeatJob::HOOK, [self::class, 'heartbeat']);
@@ -88,6 +92,7 @@ final class Plugin
         add_action(BackfillJob::HOOK, [BackfillJob::class, 'run']);
         add_action(BackfillJob::AUDIT_HOOK, [BackfillJob::class, 'dailyAudit']);
         add_action(PaymentAttemptsJob::HOOK, [self::class, 'reportPaymentAttempts']);
+        add_action(ObservationReportJob::HOOK, [self::class, 'reportCheckoutObservation']);
         add_action(SyntheticOrders::CLEANUP_HOOK, [SyntheticOrders::class, 'cleanup'], 10, 0);
         add_action('upgrader_process_complete', [self::class, 'afterUpgrade'], 20, 0);
         add_action('rest_api_init', [RestController::class, 'register']);
@@ -130,6 +135,12 @@ final class Plugin
                 ['type' => 'assoc', 'name' => 'advance', 'optional' => true, 'description' => 'Evaluate as if this many seconds had passed (closes windows, expires pending attempts).'],
             ],
         ]);
+        \WP_CLI::add_command('business-watchdog checkout-observation', [$command, 'checkoutObservation'], [
+            'shortdesc' => 'Report closed checkout observation windows now.',
+            'synopsis' => [
+                ['type' => 'assoc', 'name' => 'advance', 'optional' => true, 'description' => 'Evaluate as if this many seconds had passed (closes windows).'],
+            ],
+        ]);
         \WP_CLI::add_command('business-watchdog cleanup-synthetic', [$command, 'cleanupSynthetic'], [
             'shortdesc' => 'Delete checkout drafts created by verified browser checks.',
             'synopsis' => [
@@ -165,6 +176,13 @@ final class Plugin
     public static function reportPaymentAttempts(): void
     {
         if (PaymentAttemptsJob::run()['windows'] > 0) {
+            self::scheduleDelivery();
+        }
+    }
+
+    public static function reportCheckoutObservation(): void
+    {
+        if (ObservationReportJob::run() > 0) {
             self::scheduleDelivery();
         }
     }

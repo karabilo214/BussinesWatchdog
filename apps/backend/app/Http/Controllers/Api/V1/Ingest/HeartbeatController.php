@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Integration;
 use App\Models\Store;
 use App\Models\StoreVerification;
+use App\Support\Checkout\CheckoutObservation;
 use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Integrations\IntegrationCredentialService;
 use App\Support\Stores\StoreVerificationService;
@@ -14,7 +15,7 @@ use Illuminate\Http\Request;
 
 class HeartbeatController extends Controller
 {
-    public function store(Request $request, StoreVerificationService $verifications, ConnectorFreshness $freshness): JsonResponse
+    public function store(Request $request, StoreVerificationService $verifications, ConnectorFreshness $freshness, CheckoutObservation $observation): JsonResponse
     {
         /** @var Integration $integration */
         $integration = $request->attributes->get('integration');
@@ -26,6 +27,7 @@ class HeartbeatController extends Controller
             'integration_id' => $integration->id,
             'credential_rotation_requested' => isset($integration->health[IntegrationCredentialService::HEALTH_ROTATION_REQUESTED_AT]),
             'store_verification' => $this->pendingPluginChallenge($integration, $verifications),
+            'checkout_observation' => ['observe' => $observation->decide($integration->id)['observe']],
         ]);
     }
 

@@ -39,6 +39,12 @@ Not yet (at Step 47): browser-check support (test product, synthetic marker), te
 - Emergency stop without the service: **Stop monitoring** on the settings page or `wp business-watchdog stop` (and `resume`) halt all scheduled work and capture; `define('BUSINESS_WATCHDOG_DISABLED', true);` in `wp-config.php` stops the plugin before any of its code is loaded.
 - Uninstall removes only the plugin's own options, schedules and connection (its tables only on explicit opt-in) and needs no network; it is safe to run twice.
 
+## Checkout observation (0.3.0, ADR 0059)
+
+- While the service answers the heartbeat with `checkout_observation.observe = true`, the checkout and order-received pages get `assets/checkout-observer.js` (no dependencies, in the page head, kept out of WP Rocket, Autoptimize, LiteSpeed Cache and SiteGround Optimizer; marked `data-no-optimize`, `data-no-defer`, `data-cfasync="false"`).
+- It counts checkout stages only (page loaded, payment form ready, order sent, error shown, stalled 60 s, order-received page) and sends them with `sendBeacon` to this site's `POST /wp-json/business-watchdog/v1/observe` with a short-lived token (page kind and expiry only). No cookies or storage, no form values, no visitor identifiers.
+- The plugin counts the pages it renders itself (and a `noscript` beacon) in `wp_bw_checkout_observation`, 5-minute windows, and sends closed windows as `checkout.observation` through the outbox (`bw_checkout_observation` every minute; `wp business-watchdog checkout-observation --advance=N` runs it now). Pages rendered for a verified browser check are not counted and the script sends nothing there.
+
 ## Emergency instructions (WooCommerce)
 
 1. Admin works: WooCommerce → Business Watchdog → **Stop monitoring**, or deactivate the plugin.

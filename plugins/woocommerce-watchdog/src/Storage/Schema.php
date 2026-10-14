@@ -4,7 +4,7 @@ namespace BusinessWatchdog\WooCommerce\Storage;
 
 final class Schema
 {
-    public const VERSION = 3;
+    public const VERSION = 4;
 
     public const OPTION = 'bw_schema_version';
 
@@ -36,6 +36,13 @@ final class Schema
         return $wpdb->prefix . 'bw_payment_attempts';
     }
 
+    public static function observationTable(): string
+    {
+        global $wpdb;
+
+        return $wpdb->prefix . 'bw_checkout_observation';
+    }
+
     public static function isCurrent(): bool
     {
         return (int) get_option(self::OPTION, 0) >= self::VERSION;
@@ -52,6 +59,7 @@ final class Schema
         $revisions = self::revisionsTable();
         $state = self::stateTable();
         $attempts = self::attemptsTable();
+        $observation = self::observationTable();
 
         dbDelta("CREATE TABLE {$outbox} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -106,6 +114,24 @@ final class Schema
   KEY unreported (reported,resolved_at)
 ) ENGINE=InnoDB {$charsetCollate};");
 
+        dbDelta("CREATE TABLE {$observation} (
+  window_start datetime NOT NULL,
+  checkout_rendered int(10) unsigned NOT NULL DEFAULT 0,
+  checkout_rendered_noscript int(10) unsigned NOT NULL DEFAULT 0,
+  finish_rendered int(10) unsigned NOT NULL DEFAULT 0,
+  script_loaded int(10) unsigned NOT NULL DEFAULT 0,
+  form_ready int(10) unsigned NOT NULL DEFAULT 0,
+  returned_with_error int(10) unsigned NOT NULL DEFAULT 0,
+  submit_clicked int(10) unsigned NOT NULL DEFAULT 0,
+  submit_stalled int(10) unsigned NOT NULL DEFAULT 0,
+  finish_reached int(10) unsigned NOT NULL DEFAULT 0,
+  js_errors int(10) unsigned NOT NULL DEFAULT 0,
+  revision int(10) unsigned NOT NULL DEFAULT 1,
+  reported tinyint(1) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY  (window_start),
+  KEY unreported (reported,window_start)
+) ENGINE=InnoDB {$charsetCollate};");
+
         update_option(self::OPTION, self::VERSION, false);
     }
 
@@ -113,7 +139,7 @@ final class Schema
     {
         global $wpdb;
 
-        foreach ([self::outboxTable(), self::revisionsTable(), self::stateTable(), self::attemptsTable()] as $table) {
+        foreach ([self::outboxTable(), self::revisionsTable(), self::stateTable(), self::attemptsTable(), self::observationTable()] as $table) {
             $wpdb->query("DROP TABLE IF EXISTS {$table}");
         }
 

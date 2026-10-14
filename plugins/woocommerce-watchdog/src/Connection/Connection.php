@@ -47,6 +47,7 @@ final class Connection
     {
         State::delete(self::STATE_KEY);
         \BusinessWatchdog\WooCommerce\Capture\OrderCapture::resetCapturingCache();
+        \BusinessWatchdog\WooCommerce\Observation\ObservationSettings::forget();
     }
 
     public function endpoint(): string

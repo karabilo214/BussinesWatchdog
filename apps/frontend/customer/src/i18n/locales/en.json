@@ -182,8 +182,9 @@
       "check_does_not_reach_payment": "needs a check with a test customer or guest",
       "store_not_active": "store paused",
       "app_not_active": "app not active",
-      "not_a_shopware_app": "app only",
+      "connection_without_script": "needs a connection that adds the script",
       "needs_app": "only when connected through the app",
+      "needs_plugin": "only when connected through the plugin",
       "not_available": "not available",
       "detail_report": "last data {time}"
     }
@@ -639,7 +640,7 @@
       "INTEGRATION_DELIVERY_DELAYED": "The plugin is behind with sending data. Check that scheduled tasks run on the site (WP-Cron or Action Scheduler).",
       "unknown": "Open the details below and check the affected part of the store.",
       "CHECKOUT_TEST_ACCOUNT_REJECTED": "Check that the test customer account exists in the shop and is active, and update the e-mail and password in the check settings. This is not a shop failure; until signing in works, payment methods are not checked.",
-      "CHECKOUT_SCRIPT_SILENT": "The order confirmation page is shown, but the observation script is silent. Check the browser console on the confirmation page, that the Business Watchdog app is active and that optimisation plugins or the CSP do not block it. This does not prove that customers cannot pay.",
+      "CHECKOUT_SCRIPT_SILENT": "The checkout page is shown, but the observation script is silent. Check the browser console on the checkout page, that the Business Watchdog plugin or app is active and that optimisation plugins or the CSP do not block it. This does not prove that customers cannot pay.",
       "CHECKOUT_SUBMIT_FAILING": "Place a test order to the end and look at errors on the page and in the logs of the shop and its payment plugins: «Submit order» is sent, but no new orders and no «Thank you» page follow."
     },
     "discrepancy_short": "discrepancy {amount}",

@@ -19,10 +19,10 @@ class CheckoutObservationWindow extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['tenant_id', 'store_id', 'integration_id', 'window_start', ...self::COUNTERS, 'created_at', 'updated_at'];
+    protected $fillable = ['tenant_id', 'store_id', 'integration_id', 'window_start', ...self::COUNTERS, 'source_revision', 'event_id', 'created_at', 'updated_at'];
 
     protected function casts(): array
     {
-        return ['window_start' => 'datetime', 'created_at' => 'datetime', 'updated_at' => 'datetime', ...array_fill_keys(self::COUNTERS, 'integer')];
+        return ['window_start' => 'datetime', 'source_revision' => 'integer', 'created_at' => 'datetime', 'updated_at' => 'datetime', ...array_fill_keys(self::COUNTERS, 'integer')];
     }
 }

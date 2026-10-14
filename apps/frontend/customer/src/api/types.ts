@@ -31,7 +31,8 @@ export type PaymentAttemptsState = 'store_not_connected' | 'store_data_stale' | 
 export type CheckoutScriptState =
   | 'not_available'
   | 'needs_app'
-  | 'not_a_shopware_app'
+  | 'connection_without_script'
+  | 'needs_plugin'
   | 'app_not_active'
   | 'store_not_active'
   | 'check_does_not_reach_payment'

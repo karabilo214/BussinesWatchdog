@@ -6,6 +6,7 @@ use App\Models\CheckoutObservationWindow;
 use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\ObservedPaymentAttempt;
+use App\Models\PaymentAttemptWindow;
 use App\Models\Signal;
 use App\Support\Incidents\IncidentRecorder;
 use App\Support\Providers\Shopware\ShopwareConnector;
@@ -49,7 +50,7 @@ class CheckoutObservationEvaluator
         $count = 0;
 
         Integration::query()
-            ->where('provider', ShopwareConnector::PROVIDER)
+            ->whereIn('provider', [ShopwareConnector::PROVIDER, CheckoutObservation::WOOCOMMERCE_PLUGIN])
             ->where('status', Integration::STATUS_ACTIVE)
             ->whereIn('store_id', CheckoutObservationWindow::query()->where('window_start', '>=', Carbon::now()->subHours(self::SILENT_LOOKBACK_HOURS))->select('store_id'))
             ->get()
@@ -83,7 +84,7 @@ class CheckoutObservationEvaluator
             ->min('window_start');
 
         if ($firstSend === null) {
-            if (ObservedPaymentAttempt::query()->where('tenant_id', $integration->tenant_id)->where('store_id', $integration->store_id)->where('attempted_at', '>=', $now->copy()->subHours(self::SUBMIT_LOOKBACK_HOURS))->exists()) {
+            if ($this->attemptsSince($integration, $now->copy()->subHours(self::SUBMIT_LOOKBACK_HOURS)) > 0) {
                 $this->resolve($integration, self::COMPONENT_SUBMIT, 'auto_resolved_order_placed');
             }
 
@@ -92,13 +93,31 @@ class CheckoutObservationEvaluator
 
         $since = Carbon::parse($firstSend);
         $submit = $this->totals($integration, $since->copy()->addSeconds(CheckoutObservation::WINDOW_SECONDS));
-        $attempts = ObservedPaymentAttempt::query()->where('tenant_id', $integration->tenant_id)->where('store_id', $integration->store_id)->where('attempted_at', '>=', $since)->count();
+        $attempts = $this->attemptsSince($integration, $since);
 
         if ($submit['submit_clicked'] >= self::SUBMIT_MIN_SENDS && $submit['finish_reached'] === 0 && $attempts === 0) {
             $this->open($integration, self::COMPONENT_SUBMIT, self::RULE_SUBMIT_FAILING, Incident::SEVERITY_WARNING, ['sends' => $submit['submit_clicked'], 'stalled' => $submit['submit_stalled'], 'returned_with_error' => $submit['returned_with_error'], 'hours' => self::SUBMIT_LOOKBACK_HOURS]);
         } elseif ($submit['finish_reached'] > 0 || $attempts > 0) {
             $this->resolve($integration, self::COMPONENT_SUBMIT, 'auto_resolved_order_placed');
         }
+    }
+
+    /**
+     * Real payment attempts (orders with a payment) since a time: observed by the service (Shopware, ADR 0056) or
+     * reported by the WooCommerce plugin in windows (ADR 0007), whose windows count from the window start.
+     */
+    private function attemptsSince(Integration $integration, Carbon $since): int
+    {
+        $observed = ObservedPaymentAttempt::query()->where('tenant_id', $integration->tenant_id)->where('store_id', $integration->store_id)->where('attempted_at', '>=', $since)->count();
+        $windowStart = Carbon::createFromTimestampUTC($since->getTimestamp() - $since->getTimestamp() % CheckoutObservation::WINDOW_SECONDS);
+        $reported = (int) PaymentAttemptWindow::query()
+            ->where('tenant_id', $integration->tenant_id)
+            ->where('store_id', $integration->store_id)
+            ->where('window_start', '>=', $windowStart)
+            ->selectRaw('coalesce(sum(paid + on_hold + failed + pending_stuck + late_success), 0) as attempts')
+            ->value('attempts');
+
+        return $observed + $reported;
     }
 
     /**

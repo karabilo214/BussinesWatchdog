@@ -35,7 +35,8 @@
         "integration.capabilities_changed",
         "deployment.observed",
         "funnel.observed",
-        "checkout.payment_attempts"
+        "checkout.payment_attempts",
+        "checkout.observation"
       ]
     },
     "aggregate_type": {
@@ -626,6 +627,86 @@
           }
         }
       }
+    },
+    "checkout_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Checkout observation counters of one 5-minute window (ADR 0059): pages the plugin rendered, stages the script reported. No visitor data.",
+      "required": [
+        "window_start",
+        "window_end",
+        "checkout_rendered",
+        "checkout_rendered_noscript",
+        "finish_rendered",
+        "script_loaded",
+        "form_ready",
+        "returned_with_error",
+        "submit_clicked",
+        "submit_stalled",
+        "finish_reached",
+        "js_errors"
+      ],
+      "properties": {
+        "window_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_end": {
+          "type": "string",
+          "format": "date-time",
+          "description": "window_start + 5 minutes"
+        },
+        "checkout_rendered": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "checkout_rendered_noscript": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "finish_rendered": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "script_loaded": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "form_ready": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "returned_with_error": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "submit_clicked": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "submit_stalled": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "finish_reached": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "js_errors": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      }
     }
   },
   "allOf": [
@@ -854,6 +935,35 @@
           },
           "data": {
             "$ref": "#/$defs/payment_attempts"
+          }
+        },
+        "required": [
+          "aggregate_revision"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "checkout.observation"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "checkout"
+          },
+          "aggregate_id": {
+            "type": "string",
+            "pattern": "^observation:"
+          },
+          "data": {
+            "$ref": "#/$defs/checkout_observation"
           }
         },
         "required": [

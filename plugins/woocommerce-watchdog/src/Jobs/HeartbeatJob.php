@@ -5,6 +5,7 @@ namespace BusinessWatchdog\WooCommerce\Jobs;
 use BusinessWatchdog\WooCommerce\Connection\Connection;
 use BusinessWatchdog\WooCommerce\Http\Response;
 use BusinessWatchdog\WooCommerce\Http\SignedClient;
+use BusinessWatchdog\WooCommerce\Observation\ObservationSettings;
 use BusinessWatchdog\WooCommerce\Storage\Outbox;
 use BusinessWatchdog\WooCommerce\Storage\OutboxStats;
 use BusinessWatchdog\WooCommerce\Storage\State;
@@ -55,6 +56,7 @@ final class HeartbeatJob
         }
 
         self::rememberChallenge($response->json['store_verification'] ?? null);
+        ObservationSettings::remember($response->json['checkout_observation'] ?? null);
 
         $rotated = false;
 

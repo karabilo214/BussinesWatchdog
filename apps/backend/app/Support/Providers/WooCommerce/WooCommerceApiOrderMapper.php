@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
  */
 class WooCommerceApiOrderMapper
 {
-    public const ORDER_FIELDS = 'id,number,status,currency,total,payment_method,transaction_id,order_key,date_created_gmt,date_modified_gmt,date_paid_gmt,refunds,meta_data';
+    public const ORDER_FIELDS = 'id,number,status,currency,total,payment_method,transaction_id,order_key,created_via,date_created_gmt,date_modified_gmt,date_paid_gmt,refunds,meta_data';
 
     public const REFUND_FIELDS = 'id,amount,date_created_gmt,refunded_payment,meta_data';
 

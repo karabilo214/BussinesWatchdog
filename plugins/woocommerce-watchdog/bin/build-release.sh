@@ -15,7 +15,7 @@ VERSION=$(sed -n 's/^ \* Version: *//p' "$SOURCE/business-watchdog.php" | head -
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/business-watchdog" "$OUT"
-for item in business-watchdog.php uninstall.php README.md src; do
+for item in business-watchdog.php uninstall.php README.md src assets; do
     [ -e "$SOURCE/$item" ] && cp -R "$SOURCE/$item" "$STAGE/business-watchdog/"
 done
 find "$STAGE" -name '.*' -prune -exec rm -rf {} +

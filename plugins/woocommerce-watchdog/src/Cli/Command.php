@@ -61,6 +61,12 @@ final class Command
         \WP_CLI::line((string) wp_json_encode(PaymentAttemptsJob::run($now)));
     }
 
+    public function checkoutObservation(array $args, array $assoc): void
+    {
+        $now = isset($assoc['advance']) ? time() + max(0, (int) $assoc['advance']) : null;
+        \WP_CLI::line((string) wp_json_encode(['windows' => \BusinessWatchdog\WooCommerce\Jobs\ObservationReportJob::run($now), 'observation' => \BusinessWatchdog\WooCommerce\Observation\ObservationSettings::describe()]));
+    }
+
     public function cleanupSynthetic(array $args, array $assoc): void
     {
         $now = isset($assoc['advance']) ? time() + max(0, (int) $assoc['advance']) : null;

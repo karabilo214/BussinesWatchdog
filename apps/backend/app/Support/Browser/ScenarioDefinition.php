@@ -5,7 +5,7 @@ namespace App\Support\Browser;
 use App\Models\CheckScenario;
 use App\Models\Integration;
 use App\Models\Store;
-use App\Support\Providers\Shopware\ShopwareConnector;
+use App\Support\Checkout\CheckoutObservation;
 
 class ScenarioDefinition
 {
@@ -156,19 +156,23 @@ class ScenarioDefinition
     }
 
     /**
-     * The checkout observation script (ADR 0057) is expected on the confirm page when the Shopware app is the order
-     * source and the check reaches that page.
+     * The checkout observation script is expected on the payment page when the store is observed: the Shopware app with
+     * a check that reaches that page (ADR 0057) or the WooCommerce plugin (ADR 0059).
      */
     public function expectsCheckoutScript(Store $store, ?string $access): bool
     {
-        return in_array($access, [CheckScenario::ACCESS_TEST_CUSTOMER, CheckScenario::ACCESS_GUEST], true)
-            && Integration::query()
-                ->where('tenant_id', $store->tenant_id)
-                ->where('store_id', $store->id)
-                ->where('provider', ShopwareConnector::PROVIDER)
-                ->where('status', Integration::STATUS_ACTIVE)
-                ->get()
-                ->contains(fn (Integration $integration): bool => ($integration->capabilities['connection'] ?? null) === 'app');
+        if ($store->platform === 'shopware' && ! in_array($access, [CheckScenario::ACCESS_TEST_CUSTOMER, CheckScenario::ACCESS_GUEST], true)) {
+            return false;
+        }
+
+        $observation = app(CheckoutObservation::class);
+
+        return Integration::query()
+            ->where('tenant_id', $store->tenant_id)
+            ->where('store_id', $store->id)
+            ->where('status', Integration::STATUS_ACTIVE)
+            ->get()
+            ->contains(fn (Integration $integration): bool => CheckoutObservation::carriesScript($integration) && $observation->decide($integration->id)['observe']);
     }
 
     public function origin(string $url): string

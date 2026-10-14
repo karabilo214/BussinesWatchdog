@@ -177,6 +177,9 @@ class EventPayloadValidator
             EventInbox::EVENT_CHECKOUT_PAYMENT_ATTEMPTS => $event['aggregate_type'] === EventInbox::AGGREGATE_CHECKOUT
                 && array_key_exists('aggregate_revision', $event)
                 && $this->isPaymentAttemptsData($data),
+            EventInbox::EVENT_CHECKOUT_OBSERVATION => $event['aggregate_type'] === EventInbox::AGGREGATE_CHECKOUT
+                && array_key_exists('aggregate_revision', $event)
+                && $this->isCheckoutObservationData($event['aggregate_id'], $data),
             default => false,
         };
     }
@@ -336,6 +339,34 @@ class EventPayloadValidator
             }
 
             $seen[$method['payment_method']] = true;
+        }
+
+        return true;
+    }
+
+    /**
+     * Checkout observation counters of one 5-minute window from the WooCommerce plugin (ADR 0059).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function isCheckoutObservationData(string $aggregateId, array $data): bool
+    {
+        $counters = ['checkout_rendered', 'checkout_rendered_noscript', 'finish_rendered', 'script_loaded', 'form_ready', 'returned_with_error', 'submit_clicked', 'submit_stalled', 'finish_reached', 'js_errors'];
+
+        if (! $this->hasOnlyKeys($data, ['window_start', 'window_end', ...$counters])
+            || ! is_string($data['window_start'] ?? null)
+            || ! is_string($data['window_end'] ?? null)
+            || ! $this->isDateTime($data['window_start'])
+            || ! $this->isDateTime($data['window_end'])
+            || strtotime($data['window_end']) - strtotime($data['window_start']) !== 300
+            || $aggregateId !== 'observation:'.$data['window_start']) {
+            return false;
+        }
+
+        foreach ($counters as $counter) {
+            if (! is_int($data[$counter] ?? null) || $data[$counter] < 0 || $data[$counter] > 10000) {
+                return false;
+            }
         }
 
         return true;

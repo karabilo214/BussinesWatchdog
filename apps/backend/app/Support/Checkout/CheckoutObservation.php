@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The checkout observation script and render beacon of the Shopware app (ADR 0057): whether a store is observed, which
- * origins may report for it, and counters per 5-minute window. Nothing about a visitor is kept.
+ * Checkout observation (ADR 0057 Shopware app, ADR 0059 WooCommerce plugin): whether a store is observed, which origins
+ * may report to the service for a Shopware app, and counters per 5-minute window. Nothing about a visitor is kept.
  */
 class CheckoutObservation
 {
@@ -26,6 +26,8 @@ class CheckoutObservation
     public const MAX_PER_WINDOW = 10000;
 
     public const MAX_JS_ERRORS_PER_REPORT = 20;
+
+    public const WOOCOMMERCE_PLUGIN = 'woocommerce';
 
     public function __construct(
         private readonly ShopwareConnector $connector,
@@ -50,8 +52,8 @@ class CheckoutObservation
         /** @var Integration|null $integration */
         $integration = preg_match('/^[0-9a-f-]{36}$/', $integrationId) === 1 ? Integration::query()->find($integrationId) : null;
 
-        if ($integration === null || $integration->provider !== ShopwareConnector::PROVIDER || ($integration->capabilities['connection'] ?? null) !== 'app') {
-            return ['observe' => false, 'reason' => 'not_a_shopware_app'];
+        if ($integration === null || ! self::carriesScript($integration)) {
+            return ['observe' => false, 'reason' => 'connection_without_script'];
         }
 
         if ($integration->status !== Integration::STATUS_ACTIVE) {
@@ -62,10 +64,12 @@ class CheckoutObservation
             return ['observe' => false, 'reason' => 'store_not_active'];
         }
 
-        $access = CheckScenario::query()->where('tenant_id', $integration->tenant_id)->where('store_id', $integration->store_id)->value('checkout_access');
+        if ($integration->provider === ShopwareConnector::PROVIDER) {
+            $access = CheckScenario::query()->where('tenant_id', $integration->tenant_id)->where('store_id', $integration->store_id)->value('checkout_access');
 
-        if (! in_array($access, [CheckScenario::ACCESS_TEST_CUSTOMER, CheckScenario::ACCESS_GUEST], true)) {
-            return ['observe' => false, 'reason' => 'check_does_not_reach_payment'];
+            if (! in_array($access, [CheckScenario::ACCESS_TEST_CUSTOMER, CheckScenario::ACCESS_GUEST], true)) {
+                return ['observe' => false, 'reason' => 'check_does_not_reach_payment'];
+            }
         }
 
         if (! app(EntitlementCalculator::class)->forTenant($integration->tenant_id)->allows(FeatureCatalog::PAYMENT_ATTEMPTS_SCRIPT)) {
@@ -73,6 +77,16 @@ class CheckoutObservation
         }
 
         return ['observe' => true, 'reason' => 'observing'];
+    }
+
+    /**
+     * Connections that put the observation script on the store's checkout: the Shopware app (ADR 0057) and the
+     * WooCommerce plugin (ADR 0059). An API key alone cannot.
+     */
+    public static function carriesScript(Integration $integration): bool
+    {
+        return $integration->provider === self::WOOCOMMERCE_PLUGIN
+            || ($integration->provider === ShopwareConnector::PROVIDER && ($integration->capabilities['connection'] ?? null) === 'app');
     }
 
     /**

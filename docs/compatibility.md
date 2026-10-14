@@ -68,6 +68,8 @@ Not verified: WooCommerce Stripe gateway versions, themes, multisite, PHP 7.4 wi
 
 - PHP 8.4 (Homebrew `php@8.4` locally), Laravel 13, PostgreSQL 18 (local Docker), SQLite in-memory for the fast suite.
 
+Checkout observation script (plugin 0.3.0, ADR 0059, `tests/matrix/observation-e2e.sh`, `make woocommerce-observation-e2e`): heartbeat switches observation on; real shoppers' Classic checkouts failing three times open `CHECKOUT_SUBMIT_FAILING`, a real order (order-received page and the plugin's layer 1 attempt) resolves it; the Blocks checkout is observed; the browser check finds the script and is not counted — PASS on floor, wc7-legacy, wc7-hpos, wc8, wc9, latest (WordPress background core updates are switched off in the e2e: on wc8 an automatic update replaced core files during the run). Plugin integration suite 54/54 on all six targets.
+
 ## WooCommerce Stripe Gateway (ADR 0020, spike part 3)
 
 | Gateway | WooCommerce | Order transaction id | PaymentIntent | Refund id on WooCommerce refund | Stripe metadata |
@@ -123,6 +125,8 @@ Spike 2026-10-11 (`tests/matrix/rest-api-spike.sh`) and chain (`tests/matrix/res
 
 On every version: HTTPS required for the key, writes with a Read key refused (401 `woocommerce_rest_authentication_error`), trashed orders only with `status=trash`, deleted orders 404, gateway meta with a leading underscore readable, `POST /wc/v3/system_status` tells a Read key (401) from a Read/Write key (404 `rest_no_route`) without changing anything. Chain on 6.0.2 and 11.2.0: Read/Write key refused, Read key connected, orders/refunds mapped (Stripe refund id, PayPal sandbox mode, JPY), no personal data in events, unchanged second sync, late refund, trashed order and deleted order (audit) found.
 
+
+Payment attempts without the plugin (ADR 0060, `tests/matrix/rest-api-attempts-e2e.sh`, `make woocommerce-rest-attempts-e2e`): checkout orders (`created_via` checkout / store-api) created after the connection; three failures open `CHECKOUT_PAYMENTS_FAILING`, an admin order and an order from before the connection are not attempts, bank transfer on hold is a success, a paid order resolves the incident, re-reads change nothing — PASS on floor (WooCommerce 6.0.2) and latest (11.2.0).
 ## Shopware 6 (ADR 0025/0026)
 
 | Shopware | Payment plugin | Integration key (read role) | Real PayPal sandbox chain |

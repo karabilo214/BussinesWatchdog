@@ -13,7 +13,6 @@ use App\Models\PaymentAttemptWindow;
 use App\Models\Store;
 use App\Support\Checkout\CheckoutObservation;
 use App\Support\Integrations\ConnectorFreshness;
-use App\Support\Providers\Shopware\ShopwareConnector;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -139,18 +138,18 @@ class StoreCoverage
      * @return array<string, mixed>
      */
     /**
-     * The checkout observation script of the Shopware app (ADR 0057).
+     * The checkout observation script of the Shopware app (ADR 0057) or the WooCommerce plugin (ADR 0059).
      *
      * @return array{state: string, last_report_at: ?string}
      */
     private function scriptCoverage(Store $store, ?Integration $connector, mixed $lastSeen, ?CheckRun $lastRun): array
     {
-        if ($store->platform !== 'shopware') {
+        if (! in_array($store->platform, ['shopware', 'woocommerce'], true)) {
             return ['state' => 'not_available', 'last_report_at' => null];
         }
 
-        if ($connector === null || $connector->provider !== ShopwareConnector::PROVIDER || ($connector->capabilities['connection'] ?? null) !== 'app') {
-            return ['state' => 'needs_app', 'last_report_at' => null];
+        if ($connector === null || ! CheckoutObservation::carriesScript($connector)) {
+            return ['state' => $store->platform === 'shopware' ? 'needs_app' : 'needs_plugin', 'last_report_at' => null];
         }
 
         $decision = app(CheckoutObservation::class)->decide($connector->id);
