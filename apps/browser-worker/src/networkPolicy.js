@@ -301,13 +301,13 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
       }
 
       const verb = String(method).toUpperCase();
-      const publicReadAsset = platform === 'public'
-        && READ_METHODS.has(verb)
+      const publicExternalSubrequest = platform === 'public'
         && !isNavigation
         && (parsed.protocol === 'https:' || (insecureLocal && parsed.protocol === 'http:'))
-        && (parsed.port === '' || insecureLocal);
+        && (parsed.port === '' || insecureLocal)
+        && !allowed.has(`${parsed.protocol}//${parsed.host}`.toLowerCase());
 
-      if (!originAllowed(parsed) && !publicReadAsset) {
+      if (!originAllowed(parsed) && !publicExternalSubrequest) {
         return { allow: false, reason: parsed.protocol === 'https:' || parsed.protocol === 'http:' ? 'origin_not_allowed' : 'scheme' };
       }
 
@@ -317,11 +317,19 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
         return { allow: false, reason: 'mutation', operation: 'payment_capture' };
       }
 
+      if (publicExternalSubrequest && GATEWAY_MONEY_PATH.test(parsed.pathname)) {
+        return { allow: false, reason: 'mutation', operation: 'payment_capture' };
+      }
+
       if (READ_METHODS.has(verb)) {
         return { allow: true };
       }
 
       if (platform === 'public') {
+        if (publicExternalSubrequest) {
+          return { allow: true };
+        }
+
         const operation = classifyPublicMutation(parsed, verb, postData);
 
         return operation === null ? { allow: true } : { allow: false, reason: 'mutation', operation };

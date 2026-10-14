@@ -140,3 +140,13 @@ Verification:
 Limits:
 
 - The first slice allows only one safe public add-to-cart attempt. Deeper checks with test accounts, guest data, checkout submit, payment method selection or payment observation still require connecting/verifying the store.
+
+### Step 149: Public Check Loads Third-Party Storefront Subrequests
+
+Status: complete
+
+- Owner feedback from the live public check: blocked analytics/third-party beacons were shown as site failures (`request_failed ERR_ABORTED`), which made the report look like our checker broke the page. In public storefront mode, the browser worker now allows third-party non-navigation subrequests, including POST beacons/fetches such as Google Analytics, so the page loads closer to a real customer browser.
+- The public guard still refuses third-party payment/capture/refund/order-confirm endpoints and still blocks external top-level navigations. Same-origin checkout/order/account/login/register mutations remain forbidden for unverified public checks; cart-add remains allowed only through the existing public allowlist.
+- The public result page keeps noisy third-party `request_failed`/`http_5xx` entries out of the customer-facing error cards while preserving first-party checkout errors and JavaScript/console errors.
+
+Verification: browser-worker `npm test` (22 passed); backend `PublicStorefrontCheckTest` (4 passed, 153 assertions).

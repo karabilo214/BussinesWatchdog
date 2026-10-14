@@ -16,7 +16,15 @@
 
 @php
     $audit = $check->diagnostics['public_audit'] ?? null;
-    $errors = collect($check->diagnostics['relevant_errors'] ?? [])->filter(fn ($error) => in_array($error['type'] ?? '', ['console_error', 'console_warning', 'js_error', 'request_failed', 'http_5xx'], true))->take(8);
+    $errors = collect($check->diagnostics['relevant_errors'] ?? [])->filter(function ($error) {
+        $type = $error['type'] ?? '';
+
+        if (($error['party'] ?? '') === 'third' && in_array($type, ['request_failed', 'http_5xx'], true)) {
+            return false;
+        }
+
+        return in_array($type, ['console_error', 'console_warning', 'js_error', 'request_failed', 'http_5xx'], true);
+    })->take(8);
 @endphp
 
 @if (is_array($audit))

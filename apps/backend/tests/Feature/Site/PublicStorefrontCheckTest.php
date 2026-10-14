@@ -194,7 +194,10 @@ class PublicStorefrontCheckTest extends TestCase
             ]],
             'diagnostics' => [
                 'redaction_version' => 'r1',
-                'relevant_errors' => [['type' => 'console_error', 'message_code' => 'Uncaught TypeError', 'step_code' => 'public_checkout']],
+                'relevant_errors' => [
+                    ['type' => 'console_error', 'message_code' => 'Uncaught TypeError', 'step_code' => 'public_checkout'],
+                    ['type' => 'request_failed', 'party' => 'third', 'origin' => 'https://www.google-analytics.com', 'path' => '/g/collect', 'message_code' => 'ERR_ABORTED'],
+                ],
                 'detected_platform' => 'woocommerce_hint',
                 'public_audit' => [
                     'platform' => 'woocommerce_hint',
@@ -224,6 +227,8 @@ class PublicStorefrontCheckTest extends TestCase
             ->assertSee('Add-to-cart works')
             ->assertSee('Reached customer details form')
             ->assertSee('Uncaught TypeError')
+            ->assertDontSee('ERR_ABORTED')
+            ->assertDontSee('google-analytics.com')
             ->assertSee('/en/check-store/'.$token.'/artifacts/'.$artifact, false);
         $this->get('/en/check-store/'.$token.'/artifacts/'.$artifact)
             ->assertOk()

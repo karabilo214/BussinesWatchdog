@@ -146,7 +146,7 @@ test('quiet origins are dropped without counting as blocked traffic', () => {
   assert.equal(sw.decide({ method: 'GET', url: `${store}/checkout/confirm` }).allow, true);
 });
 
-test('public storefront checks allow only public cart-add mutations on the checked origin', () => {
+test('public storefront checks allow store cart-add and third-party subrequests without allowing checkout/payment', () => {
   const wwwStore = 'https://www.shop.example.test';
   const pub = createNetworkPolicy({ allowedOrigins: [store, wwwStore], storeOrigin: store, platform: 'public' });
 
@@ -163,5 +163,8 @@ test('public storefront checks allow only public cart-add mutations on the check
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/?wc-ajax=update_order_review`, postData: 'security=x' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/checkout/order`, postData: 'tos=on' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/account/login`, postData: 'username=a&password=b' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
-  assert.equal(pub.decide({ method: 'POST', url: 'https://cdn.example.test/api', postData: '{}' }).allow, false);
+  assert.equal(pub.decide({ method: 'POST', url: 'https://www.google-analytics.com/g/collect', postData: '{}' }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: 'https://cdn.example.test/api', postData: '{}' }).allow, true);
+  assert.deepEqual(pub.decide({ method: 'GET', url: 'https://www.paypal.com/v2/checkout/orders/1/capture' }), { allow: false, reason: 'mutation', operation: 'payment_capture' });
+  assert.deepEqual(pub.decide({ method: 'POST', url: 'https://api.stripe.com/v1/payment_intents/pi_1/confirm', postData: '{}' }), { allow: false, reason: 'mutation', operation: 'payment_capture' });
 });
