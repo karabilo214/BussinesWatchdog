@@ -1,6 +1,6 @@
 # ADR 0055: Browser checks for Shopware stores and how they reach the payment step
 
-Status: accepted (owner decision 2026-10-14: all three ways, chosen by the customer per store; the checkout observation script works only with a test customer or a guest). Details below were chosen by the implementer and are to be confirmed by the owner.
+Status: accepted (owner decision 2026-10-14: all three ways, chosen by the customer per store; the checkout observation script works only with a test customer or a guest). Details below confirmed by the owner on 2026-10-14 as they are.
 
 ## Context
 
@@ -24,11 +24,11 @@ Shopware 6 storefront (verified on 6.6.10.6 and 6.7.2.2):
 4. **Network policy for Shopware** (store origin, every non-read request): allowed — `checkout/line-item/add`, `checkout/line-item/delete/{id}`, `checkout/configure`, `country/country-state-data` (6.6 region lookup, read only); `account/login` only with `test_customer`; `account/register` only with `guest` and only as a guest (no `createCustomerAccount`, no password). Blocked — `checkout/order` (`place_order`), `account/order/…` (`order_pay_submit`), anything under `/payment/` (`payment_capture`), Store API `checkout/order` and `handle-payment`, and any other mutation (`unknown_mutation`). Gateway capture/confirm paths stay blocked as before.
 5. **Checkout observation script** (spec §17.1 layer 2) for Shopware works only with `test_customer` or `guest`: only then does the check reach the payment page where the script must be confirmed. Server-side observation of real payment attempts (layer 1 analogue from App webhooks) does not depend on the way. Neither is part of this ADR's step; they are next steps.
 
-## Not decided / for the owner
+## Confirmed by the owner (2026-10-14)
 
-- Whether `guest` should have a longer minimum interval (now any allowed interval; the settings warn with the per-day number).
-- Synthetic guest data and e-mail address (now fixed, the same for every shop).
-- The shop's own Stripe/redirect gateways: as for WooCommerce, only the offer of a payment method is checked, never the payment.
+- The guest way has no longer minimum interval: any allowed interval; the settings warn with the per-day number of guest customers.
+- Synthetic guest data and e-mail stay fixed, the same for every shop.
+- As for WooCommerce, only the offer of a payment method is checked, never the payment.
 
 ## Verification
 

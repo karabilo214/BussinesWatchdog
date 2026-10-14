@@ -93,4 +93,4 @@ Found while testing:
 
 Verification: `tests/Feature/Browser/ShopwareBrowserChecksTest.php` (4: ways and validation, account encrypted/hidden/kept/deleted and audit without it, platforms without an adapter, account only in the lease, rejected account → info incident resolved by a pass). Worker 15 tests (+2 Shopware policy). Customer 123 tests (+4), owner panel 55. Backend SQLite 563 passed, 4 skipped; PostgreSQL 18: 567 of 567. Shopware browser e2e: PASS on 6.6.10.6 and 6.7.2.2 (dockware).
 
-Remaining: server-side observation of real Shopware payment attempts (App webhooks); checkout observation script (layer 2) for the test customer and guest ways; the owner to confirm ADR 0055 details (guest minimum interval, synthetic guest data).
+Remaining: server-side observation of real Shopware payment attempts (App webhooks); checkout observation script (layer 2) for the test customer and guest ways. ADR 0055 details confirmed by the owner on 2026-10-14 as they are.
