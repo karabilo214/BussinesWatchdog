@@ -192,7 +192,21 @@ class PublicStorefrontCheckTest extends TestCase
                 'network_summary' => [],
                 'error_code' => null,
             ]],
-            'diagnostics' => ['redaction_version' => 'r1', 'relevant_errors' => [], 'detected_platform' => 'woocommerce_hint'],
+            'diagnostics' => [
+                'redaction_version' => 'r1',
+                'relevant_errors' => [['type' => 'console_error', 'message_code' => 'Uncaught TypeError', 'step_code' => 'public_checkout']],
+                'detected_platform' => 'woocommerce_hint',
+                'public_audit' => [
+                    'platform' => 'woocommerce_hint',
+                    'supported' => true,
+                    'categories_found' => 12,
+                    'products_found' => 48,
+                    'products_tested' => 1,
+                    'cart_result' => 'product_present',
+                    'checkout_result' => 'customer_details_reached',
+                    'sampled_products' => [['url' => 'https://store.example.com/product/demo', 'add_to_cart' => 'works', 'cart_verified' => true]],
+                ],
+            ],
         ], $this->workerHeaders(['X-BW-Lease-Token' => $leaseToken]))->assertOk();
 
         $this->assertDatabaseHas('public_storefront_checks', [
@@ -206,6 +220,10 @@ class PublicStorefrontCheckTest extends TestCase
             ->assertOk()
             ->assertSee('Public path reached checkout')
             ->assertSee('Looks like: WooCommerce')
+            ->assertSee('Categories: 12. Products: 48.')
+            ->assertSee('Add-to-cart works')
+            ->assertSee('Reached customer details form')
+            ->assertSee('Uncaught TypeError')
             ->assertSee('/en/check-store/'.$token.'/artifacts/'.$artifact, false);
         $this->get('/en/check-store/'.$token.'/artifacts/'.$artifact)
             ->assertOk()

@@ -97,7 +97,7 @@ class PublicStorefrontLeaseService
                     'max_artifacts' => (int) config('watchdog.public_check.max_artifacts'),
                     'steps' => [
                         ['code' => 'public_home', 'timeout_ms' => 15000],
-                        ['code' => 'public_checkout', 'timeout_ms' => 20000],
+                        ['code' => 'public_checkout', 'timeout_ms' => 70000],
                     ],
                 ],
                 'network_policy' => [

@@ -14,6 +14,67 @@
     <p class="site-muted site-small">{{ __('site.check_store.result_ttl') }}</p>
 </section>
 
+@php
+    $audit = $check->diagnostics['public_audit'] ?? null;
+    $errors = collect($check->diagnostics['relevant_errors'] ?? [])->filter(fn ($error) => in_array($error['type'] ?? '', ['console_error', 'console_warning', 'js_error', 'request_failed', 'http_5xx'], true))->take(8);
+@endphp
+
+@if (is_array($audit))
+    <section class="site-section">
+        <h2>{{ __('site.check_store.audit_title') }}</h2>
+        <div class="site-plans">
+            <article class="site-plan">
+                <p class="site-muted site-small">{{ __('site.check_store.audit_inventory') }}</p>
+                <h3>{{ __('site.check_store.audit_found') }}</h3>
+                <p>{{ __('site.check_store.audit_counts', ['categories' => (int) ($audit['categories_found'] ?? 0), 'products' => (int) ($audit['products_found'] ?? 0)]) }}</p>
+            </article>
+            <article class="site-plan">
+                <p class="site-muted site-small">{{ __('site.check_store.audit_cart') }}</p>
+                <h3>{{ __('site.check_store.audit_cart_results.'.($audit['cart_result'] ?? 'not_tested')) }}</h3>
+                <p>{{ __('site.check_store.audit_products_tested', ['count' => (int) ($audit['products_tested'] ?? 0)]) }}</p>
+            </article>
+            <article class="site-plan">
+                <p class="site-muted site-small">{{ __('site.check_store.audit_checkout') }}</p>
+                <h3>{{ __('site.check_store.audit_checkout_results.'.($audit['checkout_result'] ?? 'not_tested')) }}</h3>
+                <p>{{ __('site.check_store.audit_checkout_note') }}</p>
+            </article>
+        </div>
+
+        @if (! empty($audit['sampled_products']))
+            <h2>{{ __('site.check_store.audit_products_title') }}</h2>
+            <div class="site-plans">
+                @foreach (array_slice($audit['sampled_products'], 0, 5) as $product)
+                    <article class="site-plan">
+                        <p class="site-muted site-small">{{ $product['url'] ?? '' }}</p>
+                        <h3>{{ __('site.check_store.audit_add_to_cart_results.'.($product['add_to_cart'] ?? 'not_tested')) }}</h3>
+                        <p>{{ ! empty($product['cart_verified']) ? __('site.check_store.audit_cart_verified') : __('site.check_store.audit_cart_not_verified') }}</p>
+                    </article>
+                @endforeach
+            </div>
+        @endif
+
+        @if ($errors->isNotEmpty())
+            <h2>{{ __('site.check_store.audit_errors_title') }}</h2>
+            <div class="site-plans">
+                @foreach ($errors as $error)
+                    <article class="site-plan">
+                        <p class="site-muted site-small">{{ $error['type'] ?? '' }}</p>
+                        <h3>{{ $error['message_code'] ?? ($error['status'] ?? '') }}</h3>
+                        @if (! empty($error['path']))
+                            <p>{{ $error['origin'] ?? '' }}{{ $error['path'] }}</p>
+                        @endif
+                    </article>
+                @endforeach
+            </div>
+        @endif
+
+        <section class="site-note">
+            <h2>{{ __('site.check_store.audit_upgrade_title') }}</h2>
+            <p>{{ __('site.check_store.audit_upgrade_body') }}</p>
+        </section>
+    </section>
+@endif
+
 @if ($check->steps !== [])
     <section class="site-section">
         <h2>{{ __('site.check_store.steps_title') }}</h2>

@@ -190,6 +190,13 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     const started = new Map();
 
     page.on('pageerror', (error) => errors.add({ type: 'js_error', party: 'first', step_code: state.stepCode ?? 'setup', message_code: errorName(error) }));
+    page.on('console', (message) => {
+      if (!['error', 'warning'].includes(message.type())) {
+        return;
+      }
+
+      errors.add({ type: `console_${message.type()}`, party: 'first', step_code: state.stepCode ?? 'setup', message_code: String(message.text()).slice(0, 120) });
+    });
     page.on('request', (request) => started.set(request, Date.now()));
     page.on('requestfailed', (request) => {
       const code = failureCode(request.failure()?.errorText);
@@ -317,6 +324,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
         redaction_version: REDACTION_VERSION,
         relevant_errors: errors.list(),
         ...(state.detectedPlatform ? { detected_platform: state.detectedPlatform } : {}),
+        ...(state.publicAudit ? { public_audit: state.publicAudit } : {}),
       },
     };
   } finally {
