@@ -21,6 +21,8 @@ class CheckOutcomePolicy
 
     public const ADAPTER_UNSUPPORTED = 'adapter_unsupported';
 
+    public const TEST_ACCOUNT_REJECTED = 'test_account_rejected';
+
     /**
      * Error codes a worker may report. Only site_failure can confirm a broken checkout;
      * the rest describe the test setup, access to the site or the worker itself.
@@ -35,6 +37,7 @@ class CheckOutcomePolicy
         self::ADAPTER_UNSUPPORTED,
         self::FORBIDDEN_MUTATION,
         self::BLOCKED_EXTERNAL_ORIGIN,
+        self::TEST_ACCOUNT_REJECTED,
         'infra_timeout',
     ];
 

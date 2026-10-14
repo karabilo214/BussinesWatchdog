@@ -9,6 +9,7 @@ use App\Models\CheckScenario;
 use App\Models\Store;
 use App\Rules\PublicHttpsUrl;
 use App\Support\Browser\ScenarioDefinition;
+use App\Support\Security\Keyring;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class CheckScenarioController extends Controller
     public function __construct(
         private readonly ScenarioDefinition $definition,
         private readonly CheckDto $dto,
+        private readonly Keyring $keyring,
     ) {}
 
     public function index(Store $store, TenantContext $tenantContext): JsonResponse
@@ -40,7 +42,7 @@ class CheckScenarioController extends Controller
         abort_unless($store->tenant_id === $tenantContext->requireTenantId('create check scenario'), 404);
         $validated = $request->validate($this->rules(creating: true));
 
-        if (($problem = $this->problem($store, $validated)) !== null) {
+        if (($problem = $this->problem($store, $validated, null)) !== null) {
             return $problem;
         }
 
@@ -58,15 +60,16 @@ class CheckScenarioController extends Controller
                 'mode' => CheckScenario::MODE_PAYMENT_FORM,
                 'version' => 1,
                 'enabled' => $enabled,
-                'adapter_version' => ScenarioDefinition::ADAPTER_VERSION,
+                'adapter_version' => $this->definition->adapterFor($store),
                 'definition' => $this->definitionFrom($validated, []),
                 'product_external_id' => $validated['product_external_id'] ?? null,
+                ...$this->accessFrom($store, $validated, null),
                 'interval_seconds' => $validated['interval_seconds'] ?? (int) config('watchdog.browser.default_interval_seconds'),
                 'next_due_at' => $enabled ? $now : null,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
-            $this->audit($request, $scenario);
+            $this->audit($request, $scenario, array_key_exists('sign_in', $validated));
 
             return $scenario;
         });
@@ -93,11 +96,11 @@ class CheckScenarioController extends Controller
         /** @var Store $store */
         $store = Store::query()->where('tenant_id', $scenario->tenant_id)->findOrFail($scenario->store_id);
 
-        if (($problem = $this->problem($store, $validated)) !== null) {
+        if (($problem = $this->problem($store, $validated, $scenario)) !== null) {
             return $problem;
         }
 
-        $updated = DB::transaction(function () use ($request, $scenario, $validated, $expected): ?CheckScenario {
+        $updated = DB::transaction(function () use ($request, $scenario, $store, $validated, $expected): ?CheckScenario {
             /** @var CheckScenario $locked */
             $locked = CheckScenario::query()->whereKey($scenario->id)->lockForUpdate()->firstOrFail();
 
@@ -111,12 +114,14 @@ class CheckScenarioController extends Controller
                 'enabled' => $enabled,
                 'definition' => $this->definitionFrom($validated, $locked->definition ?? []),
                 'product_external_id' => array_key_exists('product_external_id', $validated) ? $validated['product_external_id'] : $locked->product_external_id,
+                'adapter_version' => $this->definition->adapterFor($store),
+                ...$this->accessFrom($store, $validated, $locked),
                 'interval_seconds' => $validated['interval_seconds'] ?? $locked->interval_seconds,
                 'version' => $locked->version + 1,
                 'next_due_at' => $enabled ? ($locked->enabled ? $locked->next_due_at : Carbon::now()) : null,
                 'updated_at' => Carbon::now(),
             ])->save();
-            $this->audit($request, $locked);
+            $this->audit($request, $locked, array_key_exists('sign_in', $validated));
 
             return $locked;
         });
@@ -146,14 +151,22 @@ class CheckScenarioController extends Controller
             'synthetic_location' => ['sometimes', 'nullable', 'array:country,postcode'],
             'synthetic_location.country' => ['required_with:synthetic_location', 'string', 'size:2', 'alpha'],
             'synthetic_location.postcode' => ['sometimes', 'nullable', 'string', 'max:16', 'regex:/^[A-Za-z0-9 \-]+$/'],
+            'checkout_access' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', CheckScenario::ACCESSES)],
+            'sign_in' => ['sometimes', 'nullable', 'array:email,password'],
+            'sign_in.email' => ['required_with:sign_in', 'string', 'email', 'max:255'],
+            'sign_in.password' => ['required_with:sign_in', 'string', 'min:1', 'max:255'],
         ];
     }
 
     /**
      * @param  array<string, mixed>  $validated
      */
-    private function problem(Store $store, array $validated): ?JsonResponse
+    private function problem(Store $store, array $validated, ?CheckScenario $current): ?JsonResponse
     {
+        if ($this->definition->adapterFor($store) === null) {
+            return response()->json(['code' => 'platform_not_supported', 'message' => 'Browser checks are not available for this store platform yet.'], 422);
+        }
+
         $origin = $this->definition->origin($store->base_url);
 
         foreach (['product_url', 'cart_url', 'checkout_url'] as $field) {
@@ -164,6 +177,26 @@ class CheckScenarioController extends Controller
 
         if (($validated['enabled'] ?? false) === true && $store->verified_at === null) {
             return response()->json(['code' => 'store_not_verified', 'message' => 'Browser checks require a verified store domain.'], 422);
+        }
+
+        if (! $this->definition->usesCheckoutAccess($store)) {
+            if (($validated['checkout_access'] ?? null) !== null || ($validated['sign_in'] ?? null) !== null) {
+                return response()->json(['code' => 'checkout_access_not_applicable', 'message' => 'This store platform shows payment methods without signing in.', 'errors' => ['checkout_access' => ['checkout_access_not_applicable']]], 422);
+            }
+
+            return null;
+        }
+
+        $access = $this->accessOf($validated, $current);
+
+        if (($validated['sign_in'] ?? null) !== null && $access !== CheckScenario::ACCESS_TEST_CUSTOMER) {
+            return response()->json(['code' => 'sign_in_not_applicable', 'message' => 'A test customer account is used only with the test customer way.', 'errors' => ['sign_in' => ['sign_in_not_applicable']]], 422);
+        }
+
+        $keeps = $current !== null && $current->checkout_access === CheckScenario::ACCESS_TEST_CUSTOMER && $current->sign_in_ciphertext !== null;
+
+        if ($access === CheckScenario::ACCESS_TEST_CUSTOMER && ($validated['sign_in'] ?? null) === null && ! $keeps) {
+            return response()->json(['code' => 'sign_in_required', 'message' => 'Enter the e-mail and password of the test customer account.', 'errors' => ['sign_in' => ['sign_in_required']]], 422);
         }
 
         return null;
@@ -198,6 +231,42 @@ class CheckScenarioController extends Controller
         return $definition;
     }
 
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function accessOf(array $validated, ?CheckScenario $current): string
+    {
+        return $validated['checkout_access'] ?? $current?->checkout_access ?? CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN;
+    }
+
+    /**
+     * The way a check reaches the payment step and the encrypted test customer account (ADR 0055). The account is
+     * kept only while the test customer way is chosen.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{checkout_access: ?string, sign_in_ciphertext?: ?string, sign_in_key_version?: ?int}
+     */
+    private function accessFrom(Store $store, array $validated, ?CheckScenario $current): array
+    {
+        if (! $this->definition->usesCheckoutAccess($store)) {
+            return ['checkout_access' => null, 'sign_in_ciphertext' => null, 'sign_in_key_version' => null];
+        }
+
+        $access = $this->accessOf($validated, $current);
+
+        if ($access !== CheckScenario::ACCESS_TEST_CUSTOMER) {
+            return ['checkout_access' => $access, 'sign_in_ciphertext' => null, 'sign_in_key_version' => null];
+        }
+
+        if (($validated['sign_in'] ?? null) === null) {
+            return ['checkout_access' => $access];
+        }
+
+        $encrypted = $this->keyring->encrypt(json_encode(['email' => $validated['sign_in']['email'], 'password' => $validated['sign_in']['password']], JSON_THROW_ON_ERROR));
+
+        return ['checkout_access' => $access, 'sign_in_ciphertext' => $encrypted['ciphertext'], 'sign_in_key_version' => $encrypted['key_version']];
+    }
+
     private function respond(CheckScenario $scenario, int $status = 200): JsonResponse
     {
         return response()->json($this->dto->scenario($scenario), $status)->setEtag((string) $scenario->version);
@@ -216,7 +285,7 @@ class CheckScenarioController extends Controller
         return (int) $matches[1];
     }
 
-    private function audit(Request $request, CheckScenario $scenario): void
+    private function audit(Request $request, CheckScenario $scenario, bool $signInChanged): void
     {
         AuditLog::query()->create([
             'tenant_id' => $scenario->tenant_id,
@@ -226,7 +295,7 @@ class CheckScenarioController extends Controller
             'action' => AuditLog::ACTION_CHECK_SCENARIO_SAVED,
             'entity_type' => AuditLog::ENTITY_CHECK_SCENARIO,
             'entity_id' => $scenario->id,
-            'changes' => ['version' => $scenario->version, 'enabled' => $scenario->enabled],
+            'changes' => array_filter(['version' => $scenario->version, 'enabled' => $scenario->enabled, 'checkout_access' => $scenario->checkout_access, 'sign_in_changed' => $signInChanged ?: null], fn ($value): bool => $value !== null),
             'request_id' => (string) Str::uuid(),
             'created_at' => Carbon::now(),
         ]);

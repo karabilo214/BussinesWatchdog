@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
-import { createWooCommerceAdapter, StepOutcome } from './adapter/woocommerce.js';
+import { StepOutcome } from './adapter/common.js';
+import { ADAPTER_VERSION as SHOPWARE_ADAPTER, createShopwareAdapter } from './adapter/shopware.js';
+import { ADAPTER_VERSION as WOOCOMMERCE_ADAPTER, createWooCommerceAdapter } from './adapter/woocommerce.js';
 import { createNetworkPolicy } from './networkPolicy.js';
 import { REDACTION_VERSION, errorName, failureCode, redactUrl } from './redact.js';
 
@@ -7,6 +9,11 @@ const MAX_ERRORS = 100;
 const MAX_NETWORK_PER_STEP = 50;
 const WAF_MARKERS = /cf-chl|challenge-platform|captcha|just a moment|attention required|access denied|ddos protection/i;
 const RESULT_STATUSES = ['failed', 'blocked', 'inconclusive'];
+
+const ADAPTERS = {
+  [WOOCOMMERCE_ADAPTER]: createWooCommerceAdapter,
+  [SHOPWARE_ADAPTER]: createShopwareAdapter,
+};
 
 /**
  * Everything a customer could type or a gateway could render is painted over before the
@@ -27,6 +34,11 @@ export const SCREENSHOT_MASK = [
   '.wc-block-components-text-input',
   '.select2-container',
   '.wc-block-components-combobox',
+  '.confirm-address',
+  '.address',
+  '.account-address',
+  'form.login-form',
+  'form.register-form',
 ];
 
 const FOCUS = {
@@ -68,10 +80,13 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     allowedOrigins: lease.network_policy.allowed_origins,
     storeOrigin: scenario.store_origin,
     insecureLocal,
+    platform: scenario.platform ?? 'woocommerce',
+    checkoutAccess: scenario.checkout_access ?? null,
   });
   const deadline = new Date(lease.absolute_deadline_at).getTime() - 5000;
   const errors = createErrorLog();
-  const adapter = createWooCommerceAdapter();
+  const adapter = ADAPTERS[scenario.adapter_version]?.() ?? {};
+  const focusOf = { ...FOCUS, ...(adapter.focus ?? {}) };
   const state = {
     scenario,
     stepCode: null,
@@ -79,6 +94,8 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     blockedUnknownMutation: false,
     blockedNavigation: false,
     checkoutMode: null,
+    lineItemId: null,
+    signedIn: false,
     network: [],
     async detectWaf(page, response) {
       if (!response || ![403, 429, 503].includes(response.status())) {
@@ -223,7 +240,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
 
       try {
         if (typeof handler !== 'function') {
-          throw new StepOutcome('unsupported', 'adapter_unsupported', 'unknown_step');
+          throw new StepOutcome('unsupported', 'adapter_unsupported', ADAPTERS[scenario.adapter_version] ? 'unknown_step' : 'unknown_adapter');
         }
 
         const outcome = await handler(page, { ...step, timeout_ms: timeout }, state);
@@ -251,7 +268,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
 
     if (final !== null && uploadScreenshot !== null && deadline - Date.now() > 8000) {
       try {
-        const focus = FOCUS[steps.find((step) => step.status !== 'passed' && step.status !== 'skipped')?.code];
+        const focus = focusOf[steps.find((step) => step.status !== 'passed' && step.status !== 'skipped')?.code];
 
         if (focus) {
           await page.locator(focus).first().scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => null);
@@ -270,6 +287,20 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
         artifactIds.push(await uploadScreenshot(bytes, createHash('sha256').update(bytes).digest('hex')));
       } catch (error) {
         errors.add({ type: 'artifact_failed', party: 'first', step_code: 'artifact', message_code: error?.code ?? errorName(error) });
+      }
+    }
+
+    if (typeof adapter.cleanup === 'function' && deadline - Date.now() > 5000) {
+      state.stepCode = 'cleanup';
+
+      try {
+        const outcome = await adapter.cleanup(page, state, Math.min(15000, deadline - Date.now() - 2000));
+
+        if (outcome !== null && outcome !== 'cart_cleaned' && outcome !== 'cart_clean') {
+          errors.add({ type: 'cleanup_failed', party: 'first', step_code: 'cleanup', message_code: outcome });
+        }
+      } catch (error) {
+        errors.add({ type: 'cleanup_failed', party: 'first', step_code: 'cleanup', message_code: error?.detailCode ?? errorName(error) });
       }
     }
 

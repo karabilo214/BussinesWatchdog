@@ -8,6 +8,8 @@ use App\Models\CheckAttempt;
 use App\Models\CheckRun;
 use App\Models\CheckScenario;
 use App\Models\CheckStep;
+use App\Support\Security\Keyring;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +36,7 @@ class BrowserLeaseService
         private readonly CheckOutcomePolicy $policy,
         private readonly CheckOutcomeEvaluator $evaluator,
         private readonly SyntheticMarker $marker,
+        private readonly Keyring $keyring,
     ) {}
 
     /**
@@ -101,6 +104,10 @@ class BrowserLeaseService
                     $snapshot['synthetic_token'] = $syntheticToken;
                 }
 
+                if (($snapshot['checkout_access'] ?? null) === CheckScenario::ACCESS_TEST_CUSTOMER) {
+                    $snapshot['sign_in'] = $this->signIn($scenario);
+                }
+
                 return [
                     'attempt_id' => $attempt->id,
                     'run_id' => $run->id,
@@ -122,6 +129,28 @@ class BrowserLeaseService
         }
 
         return null;
+    }
+
+    /**
+     * The test customer account, decrypted only for the lease of one attempt (ADR 0055); never stored in the run.
+     *
+     * @return array{email: string, password: string}|null
+     */
+    private function signIn(CheckScenario $scenario): ?array
+    {
+        if ($scenario->checkout_access !== CheckScenario::ACCESS_TEST_CUSTOMER || $scenario->sign_in_ciphertext === null) {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode($this->keyring->decrypt($scenario->sign_in_ciphertext, (int) $scenario->sign_in_key_version), true);
+        } catch (DecryptException) {
+            return null;
+        }
+
+        return is_array($decoded) && is_string($decoded['email'] ?? null) && is_string($decoded['password'] ?? null)
+            ? ['email' => $decoded['email'], 'password' => $decoded['password']]
+            : null;
     }
 
     /**

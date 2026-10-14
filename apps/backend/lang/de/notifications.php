@@ -32,6 +32,7 @@ return [
         'CHECKOUT_TEST_PRODUCT_UNAVAILABLE' => 'Das Testprodukt der Checkout-Prüfung ist nicht verfügbar (ausverkauft oder nicht veröffentlicht). Bis es ersetzt ist, wird der Weg zum Zahlungsformular nicht geprüft. Das bedeutet nicht, dass der Shop defekt ist.',
         'CHECKOUT_MONITORING_BLOCKED' => 'Die Website lässt den Prüfbrowser nicht zu (Bot-Schutz, CAPTCHA oder Weiterleitung auf eine nicht erlaubte Adresse). Bis der Zugriff erlaubt ist, wird der Weg zum Zahlungsformular nicht geprüft. CAPTCHAs umgehen wir nicht.',
         'CHECKOUT_ADAPTER_UNSUPPORTED' => 'Die Prüfung konnte die Shopseiten nicht erkennen (individuelles Theme oder Checkout). Das bedeutet nicht, dass der Shop defekt ist, aber der Weg zum Zahlungsformular wird noch nicht geprüft.',
+        'CHECKOUT_TEST_ACCOUNT_REJECTED' => 'Der Shop hat die Anmeldung des Testkunden-Kontos aus den Prüfeinstellungen nicht akzeptiert (falsche E-Mail oder falsches Passwort, oder das Konto ist deaktiviert oder gelöscht). Solange die Anmeldung nicht funktioniert, werden die Zahlungsarten nicht geprüft. Das bedeutet nicht, dass der Shop defekt ist.',
         'default' => 'Für Bestellung :order wurde eine Abweichung in den Zahlungsdaten festgestellt.',
     ],
     'amount' => 'Abweichung: :amount :currency.',
@@ -68,6 +69,7 @@ return [
         'test_product' => 'Was zu prüfen ist: in den Prüfeinstellungen ein vorrätiges Produkt wählen.',
         'monitoring_access' => 'Was zu prüfen ist: Prüfverkehr von Business Watchdog im Bot-Schutz (WAF/CDN) und in den Weiterleitungen erlauben.',
         'adapter' => 'Was zu prüfen ist: Teilen Sie uns mit, welches Theme und welcher Checkout im Shop verwendet werden.',
+        'test_account' => 'Was zu prüfen ist: das Testkunden-Konto im Shop sowie E-Mail und Passwort in den Prüfeinstellungen.',
         'default' => 'Bitte prüfen: Transaktionen beim Zahlungsanbieter und die Bestellung im Shop.',
     ],
     'link' => 'Vorfall öffnen: :link',
@@ -111,6 +113,17 @@ return [
                     ],
                 ],
                 'adapter' => [
+                    'subject' => [
+                        'opened' => '[:store] Checkout-Prüfung wird nicht ausgeführt',
+                        'reopened' => '[:store] Checkout-Prüfung wird nicht ausgeführt',
+                        'recovered' => '[:store] Checkout-Prüfung läuft wieder',
+                    ],
+                    'recovery' => [
+                        'fact' => 'Die Prüfung hat das Zahlungsformular wieder erreicht.',
+                        'restored' => 'Wiederhergestellt: Die Checkout-Prüfung läuft.',
+                    ],
+                ],
+                'test_account' => [
                     'subject' => [
                         'opened' => '[:store] Checkout-Prüfung wird nicht ausgeführt',
                         'reopened' => '[:store] Checkout-Prüfung wird nicht ausgeführt',

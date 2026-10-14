@@ -535,7 +535,11 @@
     "faster_checks_unavailable": "Dieses Paket hat keinen Zusatz für häufigere Prüfungen.",
     "policy_acceptance_required": "Die Dokumente wurden geändert. Lesen Sie die neue Fassung und bestätigen Sie erneut.",
     "invoice_not_available": "Für diese Zahlung gibt es keine Rechnung.",
-    "invoice_not_found": "Rechnung nicht gefunden."
+    "invoice_not_found": "Rechnung nicht gefunden.",
+    "platform_not_supported": "Browserprüfungen sind für diese Shop-Plattform noch nicht verfügbar.",
+    "sign_in_required": "Geben Sie E-Mail und Passwort des Testkunden ein.",
+    "sign_in_not_applicable": "Ein Testkunden-Konto wird nur für den Weg «Testkunde» benötigt.",
+    "checkout_access_not_applicable": "Für diese Shop-Plattform wird kein Weg zur Zahlung gewählt."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -593,7 +597,8 @@
       "CHECKOUT_ADAPTER_UNSUPPORTED": "Der Checkout dieser Website wird von der Prüfung noch nicht unterstützt",
       "INTEGRATION_STALE": "Das Shop-Plugin meldet sich nicht",
       "INTEGRATION_DELIVERY_DELAYED": "Das Shop-Plugin übermittelt Daten verspätet",
-      "unknown": "Vorfall {code}"
+      "unknown": "Vorfall {code}",
+      "CHECKOUT_TEST_ACCOUNT_REJECTED": "Der Shop akzeptiert die Anmeldung des Testkunden nicht"
     },
     "advice_title": "Was prüfen",
     "advice": {
@@ -613,7 +618,8 @@
       "CHECKOUT_ADAPTER_UNSUPPORTED": "Theme oder Checkout-Plugins werden noch nicht unterstützt. Das ist kein Shop-Ausfall; wir können diesen Weg nicht prüfen.",
       "INTEGRATION_STALE": "Prüfen Sie, ob die Website läuft und das Plugin Business Watchdog aktiv ist. Das bedeutet keinen Verkaufsstopp, aber solange das Plugin schweigt, sieht der Dienst keine Bestellungen.",
       "INTEGRATION_DELIVERY_DELAYED": "Das Plugin hängt mit der Übermittlung hinterher. Prüfen Sie, ob geplante Aufgaben auf der Website laufen (WP-Cron oder Action Scheduler).",
-      "unknown": "Öffnen Sie die Details unten und prüfen Sie den betroffenen Bereich des Shops."
+      "unknown": "Öffnen Sie die Details unten und prüfen Sie den betroffenen Bereich des Shops.",
+      "CHECKOUT_TEST_ACCOUNT_REJECTED": "Prüfen Sie, dass das Testkunden-Konto im Shop existiert und aktiv ist, und aktualisieren Sie E-Mail und Passwort in den Prüfeinstellungen. Das ist kein Shop-Fehler; solange die Anmeldung nicht funktioniert, werden Zahlungsarten nicht geprüft."
     },
     "discrepancy_short": "Abweichung {amount}",
     "last_seen": "zuletzt {time}",
@@ -717,7 +723,8 @@
         "blocked_external_origin": "Die Seite rief eine Adresse auf, die die Prüfung nicht erlaubt.",
         "forbidden_mutation": "Die Seite versuchte eine verbotene Aktion; die Prüfung wurde gestoppt.",
         "selector_changed": "Ein Seitenelement wurde nicht gefunden: Das Theme hat sich eventuell geändert.",
-        "adapter_unsupported": "Der Checkout der Website wird von der Prüfung nicht unterstützt."
+        "adapter_unsupported": "Der Checkout der Website wird von der Prüfung nicht unterstützt.",
+        "test_account_rejected": "Der Shop hat die Anmeldung des Testkunden nicht akzeptiert."
       },
       "failed_step": "Gestoppt bei Schritt: {step}.",
       "step": {
@@ -726,7 +733,9 @@
         "cart": "Warenkorb",
         "checkout": "Kasse",
         "shipping": "Versanddaten",
-        "payment_form": "Zahlungsformular"
+        "payment_form": "Zahlungsformular",
+        "sign_in": "Anmeldung des Testkunden",
+        "guest_details": "Gastdaten"
       },
       "attempts": "Versuche: {n}."
     },
@@ -944,7 +953,25 @@
       "origins_hint": "Öffentliche https-Adressen von Zahlungs-Gateways und CDNs, die die Kassenseite braucht. Eine pro Zeile.",
       "country": "Lieferland (2 Buchstaben)",
       "postcode": "Postleitzahl",
-      "location_hint": "Testdaten für den Versand, falls das Zahlungsformular erst danach erscheint. Es werden keine echten Adressen verwendet."
+      "location_hint": "Testdaten für den Versand, falls das Zahlungsformular erst danach erscheint. Es werden keine echten Adressen verwendet.",
+      "access": {
+        "title": "Wie die Prüfung zu den Zahlungsarten gelangt",
+        "hint": "Shopware zeigt Zahlungsarten nur angemeldeten Kunden oder Gästen. Wählen Sie, wie die Prüfung diesen Schritt nimmt.",
+        "view": "Weg zur Zahlung",
+        "stop_before_sign_in": "Vor der Anmeldung anhalten",
+        "stop_before_sign_in_hint": "Im Shop wird nichts angelegt. Zahlungsarten werden nicht geprüft — die Prüfung geht bis zur Anmelde- und Registrierungsseite.",
+        "test_customer": "Testkunde",
+        "test_customer_hint": "Die Prüfung meldet sich mit einem eigenen Kundenkonto an, das Sie im Shop für Prüfungen angelegt haben, und entfernt das Testprodukt danach aus dessen Warenkorb. Verwenden Sie kein Konto eines echten Kunden.",
+        "guest": "Gast",
+        "guest_hint": "Die Prüfung durchläuft den Checkout als Gast mit erfundenen Daten (Watchdog Check, watchdog-check{'@'}example.com). Es wird keine Bestellung angelegt.",
+        "guest_warning": "Jede Prüfung legt im Shop einen neuen Gastkunden an: bei der gewählten Häufigkeit etwa {n} pro Tag. Sie finden sie über watchdog-check{'@'}example.com.",
+        "email": "E-Mail des Testkunden",
+        "password": "Passwort des Testkunden",
+        "password_keep": "Gespeichert. Felder leer lassen, um es zu behalten.",
+        "configured": "Konto gespeichert",
+        "not_configured": "kein Konto angegeben",
+        "secret_note": "Das Passwort wird verschlüsselt gespeichert und nur dem Prüfbrowser für eine Prüfung übergeben. Wir zeigen es nie an."
+      }
     },
     "interval": {
       "s300": "alle 5 Minuten",
@@ -959,7 +986,8 @@
       "variable_products": "Produkte mit Varianten (Größe, Farbe)",
       "shipping_required_before_payment": "Shops, die Zahlungsarten erst nach der Versandwahl zeigen",
       "third_party_gateway_iframes": "Inhalte von Zahlungsformularen in externen Frames",
-      "redirect_gateways": "Zahlungen mit Weiterleitung zur Website des Anbieters"
+      "redirect_gateways": "Zahlungen mit Weiterleitung zur Website des Anbieters",
+      "payment_methods_after_sign_in": "Zahlungsarten (erst nach Anmeldung oder Registrierung sichtbar)"
     },
     "runs": {
       "title": "Verlauf der Prüfungen",
@@ -1022,7 +1050,8 @@
       "blocked_external_origin": "Die Seite rief eine Adresse auf, die die Prüfung nicht erlaubt.",
       "infra_timeout": "Die Prüfung lief wegen eines Fehlers auf unserer Seite in eine Zeitüberschreitung.",
       "lease_expired": "Der Browser reagierte nicht mehr; der Versuch wurde abgebrochen.",
-      "cancelled_by_user": "Von einem Benutzer abgebrochen."
+      "cancelled_by_user": "Von einem Benutzer abgebrochen.",
+      "test_account_rejected": "Der Shop hat die Anmeldung des Testkunden nicht akzeptiert."
     },
     "run": {
       "title": "Prüfung {time}",

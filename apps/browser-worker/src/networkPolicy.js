@@ -11,12 +11,22 @@ const ALLOWED_WC_AJAX = new Set([
 const STORE_API = /^\/wc\/store(?:\/v\d+)?\/(.*)$/;
 
 const PAYMENT_OPERATIONS = new Set([
+  'place_order',
   'classic_checkout_submit',
   'store_api_checkout_submit',
   'order_pay_submit',
   'payment_capture',
   'refund',
 ]);
+
+const SHOPWARE_ROUTE = /^(?:\/[^/]+)*?\/(checkout|account|payment|store-api)(\/.*)?$/;
+
+const SHOPWARE_CART = /^\/(line-item\/add|line-item\/delete\/[0-9a-f]{32}|configure)\/?$/;
+
+/** Lookups the storefront sends as POST without changing anything (6.6: regions of the chosen country). */
+const SHOPWARE_READ_POSTS = /\/country\/country-state-data\/?$/;
+
+const TRUE_VALUES = new Set(['1', 'true', 'on', 'yes']);
 
 const GATEWAY_MONEY_PATH = /(capture|confirm|charges|refunds?|payment_intents\/[^/]+\/(confirm|capture)|orders\/[^/]+\/(capture|authorize))/i;
 
@@ -77,7 +87,7 @@ export function restRoute(parsed) {
  * unknown mutation is blocked rather than trusted. Order placement, order-pay, capture and
  * refund are always blocked, whatever the button text.
  */
-export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false }) {
+export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false, platform = 'woocommerce', checkoutAccess = null }) {
   const allowed = new Set(allowedOrigins.map((origin) => origin.toLowerCase().replace(/\/$/, '')));
   const store = storeOrigin.toLowerCase().replace(/\/$/, '');
 
@@ -142,6 +152,69 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
     return 'unknown_mutation';
   }
 
+  /**
+   * Shopware storefront (ADR 0055): cart operations are allowed; signing in only for the test customer way and
+   * registering only as a guest (no account, no password) for the guest way. Placing the order, paying an existing
+   * order and the payment routes are always blocked; any other mutation is unknown and blocked.
+   */
+  function classifyShopwareMutation(parsed, postData) {
+    if (SHOPWARE_READ_POSTS.test(parsed.pathname)) {
+      return null;
+    }
+
+    const match = SHOPWARE_ROUTE.exec(parsed.pathname);
+
+    if (match === null) {
+      return 'unknown_mutation';
+    }
+
+    const [, area, rest = ''] = match;
+
+    if (area === 'payment') {
+      return 'payment_capture';
+    }
+
+    if (area === 'store-api') {
+      if (/^\/checkout\/order\/?$/.test(rest)) {
+        return 'place_order';
+      }
+
+      return /^\/handle-payment/.test(rest) ? 'payment_capture' : 'unknown_mutation';
+    }
+
+    if (area === 'checkout') {
+      if (/^\/order\/?$/.test(rest)) {
+        return 'place_order';
+      }
+
+      return SHOPWARE_CART.test(rest) ? null : 'unknown_mutation';
+    }
+
+    if (/^\/order(\/|$)/.test(rest)) {
+      return 'order_pay_submit';
+    }
+
+    if (/^\/login\/?$/.test(rest)) {
+      return checkoutAccess === 'test_customer' ? null : 'unknown_mutation';
+    }
+
+    if (/^\/register\/?$/.test(rest)) {
+      if (checkoutAccess !== 'guest') {
+        return 'unknown_mutation';
+      }
+
+      const fields = formFields(postData);
+
+      if (TRUE_VALUES.has(String(fields.get('createCustomerAccount') ?? '').toLowerCase()) || (fields.get('password') ?? '') !== '') {
+        return 'customer_account_creation';
+      }
+
+      return null;
+    }
+
+    return 'unknown_mutation';
+  }
+
   function classifyBatch(postData) {
     try {
       const body = JSON.parse(postData ?? '');
@@ -195,13 +268,18 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
       }
 
       const verb = String(method).toUpperCase();
+      const onStore = `${parsed.protocol}//${parsed.host}`.toLowerCase() === store;
+
+      if (onStore && platform === 'shopware' && SHOPWARE_ROUTE.exec(parsed.pathname)?.[1] === 'payment') {
+        return { allow: false, reason: 'mutation', operation: 'payment_capture' };
+      }
 
       if (READ_METHODS.has(verb)) {
         return { allow: true };
       }
 
-      if (`${parsed.protocol}//${parsed.host}`.toLowerCase() === store) {
-        const operation = classifyStoreMutation(parsed, verb, postData);
+      if (onStore) {
+        const operation = platform === 'shopware' ? classifyShopwareMutation(parsed, postData) : classifyStoreMutation(parsed, verb, postData);
 
         return operation === null ? { allow: true } : { allow: false, reason: 'mutation', operation };
       }

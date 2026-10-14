@@ -32,6 +32,7 @@ return [
         'CHECKOUT_TEST_PRODUCT_UNAVAILABLE' => 'The test product used by the checkout check is unavailable (out of stock or unpublished). Until it is replaced, the path to the payment form is not checked. This does not mean the store is broken.',
         'CHECKOUT_MONITORING_BLOCKED' => 'The site does not let the check browser in (bot protection, CAPTCHA or a redirect to a non-allowed address). Until access is allowed, the path to the payment form is not checked. We do not bypass CAPTCHAs.',
         'CHECKOUT_ADAPTER_UNSUPPORTED' => 'The check could not recognise the store pages (custom theme or checkout). This does not mean the store is broken, but the path to the payment form is not checked yet.',
+        'CHECKOUT_TEST_ACCOUNT_REJECTED' => 'The shop did not accept the sign-in of the test customer account set in the check settings (wrong e-mail or password, or the account is disabled or deleted). Until signing in works, payment methods are not checked. This does not mean the shop is broken.',
         'default' => 'A payment data discrepancy was found for order :order.',
     ],
     'amount' => 'Discrepancy: :amount :currency.',
@@ -68,6 +69,7 @@ return [
         'test_product' => 'What to check: choose an in-stock product in the check settings.',
         'monitoring_access' => 'What to check: allow Business Watchdog check traffic in your bot protection (WAF/CDN) and redirect settings.',
         'adapter' => 'What to check: tell us which theme and checkout the store uses.',
+        'test_account' => 'What to check: the test customer account in the shop and the e-mail and password in the check settings.',
         'default' => 'What to check: payment provider transactions and the store order.',
     ],
     'link' => 'Open incident: :link',
@@ -111,6 +113,17 @@ return [
                     ],
                 ],
                 'adapter' => [
+                    'subject' => [
+                        'opened' => '[:store] Checkout check is not running',
+                        'reopened' => '[:store] Checkout check is not running',
+                        'recovered' => '[:store] Checkout check is running again',
+                    ],
+                    'recovery' => [
+                        'fact' => 'The check reached the payment form again.',
+                        'restored' => 'Restored: the checkout check is running.',
+                    ],
+                ],
+                'test_account' => [
                     'subject' => [
                         'opened' => '[:store] Checkout check is not running',
                         'reopened' => '[:store] Checkout check is not running',

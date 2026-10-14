@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { ApiError } from '@bw/api-client';
 import { createScenario, updateScenario } from '@/api/checks';
-import type { CheckScenario, CheckScenarioInput, Store } from '@/api/types';
+import type { CheckScenario, CheckScenarioInput, CheckoutAccess, Store } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { fieldErrorsOf } from '@/composables/errors';
 import { useFormat } from '@/composables/useFormat';
@@ -13,7 +13,9 @@ const props = defineProps<{ store: Store; scenario: CheckScenario | null; canMan
 const emit = defineEmits<{ saved: [scenario: CheckScenario]; stale: [] }>();
 const { dateTime } = useFormat();
 
-const form = reactive({ product_url: '', cart_url: '', checkout_url: '', interval_seconds: 900, enabled: false, origins: '', country: '', postcode: '' });
+const ACCESSES: CheckoutAccess[] = ['stop_before_sign_in', 'test_customer', 'guest'];
+
+const form = reactive({ product_url: '', cart_url: '', checkout_url: '', interval_seconds: 900, enabled: false, origins: '', country: '', postcode: '', access: 'stop_before_sign_in' as CheckoutAccess, email: '', password: '' });
 const editing = ref(false);
 const saving = ref(false);
 const error = ref<unknown>(null);
@@ -22,6 +24,11 @@ const saved = ref(false);
 const invalid = computed(() => new Set(fieldErrorsOf(error.value).map((field) => field.split('.')[0]!)));
 const verified = computed(() => props.store.verified_at !== null);
 const showForm = computed(() => props.canManage && (props.scenario === null || editing.value));
+const usesAccess = computed(() => props.store.platform === 'shopware');
+const keepsAccount = computed(() => props.scenario?.checkout_access === 'test_customer' && props.scenario.sign_in_configured);
+const accountEntered = computed(() => form.email.trim() !== '' && form.password !== '');
+const accountMissing = computed(() => usesAccess.value && form.access === 'test_customer' && !accountEntered.value && !keepsAccount.value);
+const guestsPerDay = computed(() => Math.round(86400 / form.interval_seconds));
 
 function reset(): void {
   const scenario = props.scenario;
@@ -33,6 +40,9 @@ function reset(): void {
   form.origins = (scenario?.extra_allowed_origins ?? []).join('\n');
   form.country = scenario?.synthetic_location?.country ?? '';
   form.postcode = scenario?.synthetic_location?.postcode ?? '';
+  form.access = scenario?.checkout_access ?? 'stop_before_sign_in';
+  form.email = '';
+  form.password = '';
 }
 
 watch(() => props.scenario, reset, { immediate: true });
@@ -48,6 +58,8 @@ function input(): CheckScenarioInput {
     enabled: form.enabled && verified.value,
     extra_allowed_origins: origins,
     synthetic_location: form.country.trim() === '' ? null : { country: form.country.trim().toUpperCase(), postcode: form.postcode.trim() || null },
+    ...(usesAccess.value ? { checkout_access: form.access } : {}),
+    ...(usesAccess.value && form.access === 'test_customer' && accountEntered.value ? { sign_in: { email: form.email.trim(), password: form.password } } : {}),
   };
 }
 
@@ -103,6 +115,13 @@ function hours(seconds: number): string {
         <dt class="text-text-muted">{{ $t('checks.scenario.checkout_url') }}</dt>
         <dd v-if="scenario.checkout_url" class="break-all font-mono text-[13px]">{{ scenario.checkout_url }}</dd>
         <dd v-else class="text-text-muted">{{ $t('checks.scenario.auto') }}</dd>
+        <template v-if="scenario.checkout_access">
+          <dt class="text-text-muted">{{ $t('checks.scenario.access.view') }}</dt>
+          <dd data-field="checkout-access">
+            {{ $t(`checks.scenario.access.${scenario.checkout_access}`) }}
+            <span v-if="scenario.checkout_access === 'test_customer'" class="text-text-muted">· {{ scenario.sign_in_configured ? $t('checks.scenario.access.configured') : $t('checks.scenario.access.not_configured') }}</span>
+          </dd>
+        </template>
         <dt class="text-text-muted">{{ $t('checks.scenario.interval') }}</dt>
         <dd>{{ $te(hours(scenario.interval_seconds)) ? $t(hours(scenario.interval_seconds)) : $t('checks.interval.custom', { n: Math.round(scenario.interval_seconds / 60) }) }}</dd>
         <dt class="text-text-muted">{{ $t('checks.scenario.next_due') }}</dt>
@@ -166,6 +185,30 @@ function hours(seconds: number): string {
           <option v-for="seconds in INTERVALS" :key="seconds" :value="seconds">{{ $t(hours(seconds)) }}</option>
         </select>
       </div>
+      <fieldset v-if="usesAccess" class="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm" data-field="checkout-access">
+        <legend class="px-1 font-medium">{{ $t('checks.scenario.access.title') }}</legend>
+        <p class="text-[13px] text-text-muted">{{ $t('checks.scenario.access.hint') }}</p>
+        <label v-for="access in ACCESSES" :key="access" class="flex items-start gap-2">
+          <input v-model="form.access" type="radio" name="checkout-access" :value="access" class="mt-1 size-4 accent-primary" />
+          <span>
+            <span class="font-medium">{{ $t(`checks.scenario.access.${access}`) }}</span>
+            <span class="block text-[13px] text-text-muted">{{ $t(`checks.scenario.access.${access}_hint`) }}</span>
+          </span>
+        </label>
+        <div v-if="form.access === 'test_customer'" class="mt-1 grid gap-3 sm:grid-cols-2">
+          <div class="flex flex-col gap-1.5">
+            <label for="scenario-sign-in-email" class="font-medium">{{ $t('checks.scenario.access.email') }}</label>
+            <input id="scenario-sign-in-email" v-model="form.email" type="email" autocomplete="off" spellcheck="false" :aria-invalid="invalid.has('sign_in')" class="rounded-md border border-border-strong bg-surface px-3 py-2" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label for="scenario-sign-in-password" class="font-medium">{{ $t('checks.scenario.access.password') }}</label>
+            <input id="scenario-sign-in-password" v-model="form.password" type="password" autocomplete="new-password" :aria-invalid="invalid.has('sign_in')" class="rounded-md border border-border-strong bg-surface px-3 py-2" />
+          </div>
+          <p v-if="keepsAccount" class="text-[13px] text-text-muted sm:col-span-2">{{ $t('checks.scenario.access.password_keep') }}</p>
+          <p class="text-[13px] text-text-muted sm:col-span-2">{{ $t('checks.scenario.access.secret_note') }}</p>
+        </div>
+        <p v-if="form.access === 'guest'" class="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-[13px]" role="note" data-note="guests-per-day">{{ $t('checks.scenario.access.guest_warning', { n: guestsPerDay }) }}</p>
+      </fieldset>
       <label class="flex items-start gap-2 text-sm" :class="{ 'text-text-muted': !verified }">
         <input v-model="form.enabled" type="checkbox" class="mt-0.5 size-4 accent-primary" :disabled="!verified" />
         <span>
@@ -196,7 +239,7 @@ function hours(seconds: number): string {
       </details>
       <ErrorNotice v-if="error" :error="error" />
       <div class="flex flex-wrap gap-2">
-        <button type="submit" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="saving || !/^https:\/\//.test(form.product_url.trim())">
+        <button type="submit" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="saving || accountMissing || !/^https:\/\//.test(form.product_url.trim())">
           {{ scenario ? $t('common.save') : $t('checks.scenario.create') }}
         </button>
         <button v-if="scenario" type="button" class="rounded-md border border-border-strong bg-surface px-4 py-2 text-sm font-medium" @click="editing = false; reset()">{{ $t('common.cancel') }}</button>

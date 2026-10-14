@@ -1074,7 +1074,8 @@
         "CHECKOUT_ADAPTER_UNSUPPORTED": "This site's checkout is not supported by the check yet",
         "INTEGRATION_STALE": "The store plugin is not reporting",
         "INTEGRATION_DELIVERY_DELAYED": "The store plugin is sending data late",
-        "unknown": "Incident {code}"
+        "unknown": "Incident {code}",
+        "CHECKOUT_TEST_ACCOUNT_REJECTED": "The shop does not accept the test customer sign-in"
       },
       "incident_severity": {
         "critical": "critical",
@@ -1130,7 +1131,8 @@
         "blocked_external_origin": "The page called an address the check does not allow.",
         "infra_timeout": "The check ran out of time because of a failure on our side.",
         "lease_expired": "The browser stopped responding; the attempt was interrupted.",
-        "cancelled_by_user": "Cancelled by a user."
+        "cancelled_by_user": "Cancelled by a user.",
+        "test_account_rejected": "The shop did not accept the test customer sign-in."
       }
     }
   },

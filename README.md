@@ -185,6 +185,7 @@ make frontend-check                 # типы, тесты и сборка фр�
 make frontend-smoke                 # кабинет в Chromium против настоящего бэкенда
 make frontend-dev                   # кабинет на :5173; make frontend-dev-control — панель на :5174
 make worker-test                    # тесты воркера
+make worker-e2e-shopware            # браузерные проверки на настоящем Shopware 6.6/6.7 (Docker, своя база bw_browser_e2e; IMAGES="dockware/play:6.7.2.2" — одна версия)
 make egress-test                    # проверка egress-прокси
 ```
 

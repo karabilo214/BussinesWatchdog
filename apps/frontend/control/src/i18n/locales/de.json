@@ -1074,7 +1074,8 @@
         "CHECKOUT_ADAPTER_UNSUPPORTED": "Der Checkout dieser Website wird von der Prüfung noch nicht unterstützt",
         "INTEGRATION_STALE": "Das Shop-Plugin meldet sich nicht",
         "INTEGRATION_DELIVERY_DELAYED": "Das Shop-Plugin übermittelt Daten verspätet",
-        "unknown": "Vorfall {code}"
+        "unknown": "Vorfall {code}",
+        "CHECKOUT_TEST_ACCOUNT_REJECTED": "Der Shop akzeptiert die Anmeldung des Testkunden nicht"
       },
       "incident_severity": {
         "critical": "kritisch",
@@ -1130,7 +1131,8 @@
         "blocked_external_origin": "Die Seite rief eine Adresse auf, die die Prüfung nicht erlaubt.",
         "infra_timeout": "Die Prüfung lief wegen eines Fehlers auf unserer Seite in eine Zeitüberschreitung.",
         "lease_expired": "Der Browser reagierte nicht mehr; der Versuch wurde abgebrochen.",
-        "cancelled_by_user": "Von einem Benutzer abgebrochen."
+        "cancelled_by_user": "Von einem Benutzer abgebrochen.",
+        "test_account_rejected": "Der Shop hat die Anmeldung des Testkunden nicht akzeptiert."
       }
     }
   },

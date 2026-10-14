@@ -9,6 +9,17 @@ class ScenarioDefinition
 {
     public const ADAPTER_VERSION = 'woocommerce-payment-form@1';
 
+    public const SHOPWARE_ADAPTER_VERSION = 'shopware-payment-form@1';
+
+    /** Platforms the worker has a checkout adapter for (ADR 0055). */
+    public const ADAPTERS = [
+        'woocommerce' => self::ADAPTER_VERSION,
+        'shopware' => self::SHOPWARE_ADAPTER_VERSION,
+    ];
+
+    /** Where a platform shows payment methods only to a signed-in or registered customer. */
+    public const SIGN_IN_PLATFORMS = ['shopware'];
+
     public const NETWORK_POLICY_VERSION = 'v1';
 
     /**
@@ -26,19 +37,88 @@ class ScenarioDefinition
         'unknown_payment_mutation',
     ];
 
+    public const SHOPWARE_BLOCKED_OPERATIONS = [
+        'place_order',
+        'order_pay_submit',
+        'payment_capture',
+        'refund',
+        'customer_account_creation',
+        'unknown_payment_mutation',
+    ];
+
+    public function adapterFor(Store $store): ?string
+    {
+        return self::ADAPTERS[$store->platform] ?? null;
+    }
+
+    public function usesCheckoutAccess(Store $store): bool
+    {
+        return in_array($store->platform, self::SIGN_IN_PLATFORMS, true);
+    }
+
+    public function checkoutAccess(CheckScenario $scenario, Store $store): ?string
+    {
+        if (! $this->usesCheckoutAccess($store)) {
+            return null;
+        }
+
+        return in_array($scenario->checkout_access, CheckScenario::ACCESSES, true) ? $scenario->checkout_access : CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN;
+    }
+
     /**
      * @return list<array{code: string, action: string, timeout_ms: int, target?: string}>
      */
-    public function steps(): array
+    public function steps(string $platform = 'woocommerce', ?string $access = null): array
     {
-        return [
+        if ($platform !== 'shopware') {
+            return [
+                ['code' => 'product', 'action' => 'goto', 'target' => 'product_url', 'timeout_ms' => 30000],
+                ['code' => 'add_to_cart', 'action' => 'click_safe', 'timeout_ms' => 20000],
+                ['code' => 'cart', 'action' => 'assert_cart', 'target' => 'cart_url', 'timeout_ms' => 30000],
+                ['code' => 'checkout', 'action' => 'goto', 'target' => 'checkout_url', 'timeout_ms' => 30000],
+                ['code' => 'shipping', 'action' => 'fill_synthetic', 'timeout_ms' => 20000],
+                ['code' => 'payment_form', 'action' => 'assert_visible', 'timeout_ms' => 20000],
+            ];
+        }
+
+        $steps = [
             ['code' => 'product', 'action' => 'goto', 'target' => 'product_url', 'timeout_ms' => 30000],
             ['code' => 'add_to_cart', 'action' => 'click_safe', 'timeout_ms' => 20000],
             ['code' => 'cart', 'action' => 'assert_cart', 'target' => 'cart_url', 'timeout_ms' => 30000],
             ['code' => 'checkout', 'action' => 'goto', 'target' => 'checkout_url', 'timeout_ms' => 30000],
-            ['code' => 'shipping', 'action' => 'fill_synthetic', 'timeout_ms' => 20000],
-            ['code' => 'payment_form', 'action' => 'assert_visible', 'timeout_ms' => 20000],
         ];
+
+        return match ($access) {
+            CheckScenario::ACCESS_TEST_CUSTOMER => [...$steps,
+                ['code' => 'sign_in', 'action' => 'sign_in', 'timeout_ms' => 30000],
+                ['code' => 'payment_form', 'action' => 'assert_visible', 'timeout_ms' => 20000],
+            ],
+            CheckScenario::ACCESS_GUEST => [...$steps,
+                ['code' => 'guest_details', 'action' => 'fill_synthetic', 'timeout_ms' => 30000],
+                ['code' => 'payment_form', 'action' => 'assert_visible', 'timeout_ms' => 20000],
+            ],
+            default => $steps,
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function untestedComponents(string $platform = 'woocommerce', ?string $access = null): array
+    {
+        $common = ['variable_products', 'shipping_required_before_payment', 'third_party_gateway_iframes', 'redirect_gateways'];
+
+        return $platform === 'shopware' && $access === CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN
+            ? ['payment_methods_after_sign_in', ...$common]
+            : $common;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function blockedOperations(string $platform): array
+    {
+        return $platform === 'shopware' ? self::SHOPWARE_BLOCKED_OPERATIONS : self::BLOCKED_OPERATIONS;
     }
 
     /**
@@ -48,21 +128,25 @@ class ScenarioDefinition
     {
         $definition = $scenario->definition ?? [];
         $origin = $this->origin($store->base_url);
+        $shopware = $store->platform === 'shopware';
+        $access = $this->checkoutAccess($scenario, $store);
 
         return [
             'version' => $scenario->version,
-            'adapter_version' => $scenario->adapter_version,
+            'adapter_version' => $this->adapterFor($store) ?? $scenario->adapter_version,
+            'platform' => $store->platform,
             'mode' => $scenario->mode,
+            'checkout_access' => $access,
             'store_origin' => $origin,
             'product_url' => $definition['product_url'],
-            'cart_url' => $definition['cart_url'] ?? $origin.'/cart/',
-            'checkout_url' => $definition['checkout_url'] ?? $origin.'/checkout/',
+            'cart_url' => $definition['cart_url'] ?? $origin.($shopware ? '/checkout/cart' : '/cart/'),
+            'checkout_url' => $definition['checkout_url'] ?? $origin.($shopware ? '/checkout/confirm' : '/checkout/'),
             'synthetic_location' => $definition['synthetic_location'] ?? null,
-            'steps' => $this->steps(),
+            'steps' => $this->steps($store->platform, $access),
             'network_policy' => [
                 'version' => self::NETWORK_POLICY_VERSION,
                 'allowed_origins' => array_values(array_unique(array_merge([$origin], $definition['extra_allowed_origins'] ?? []))),
-                'blocked_operations' => self::BLOCKED_OPERATIONS,
+                'blocked_operations' => $this->blockedOperations($store->platform),
             ],
         ];
     }

@@ -428,11 +428,16 @@ export interface CheckScenario {
   checkout_url: string | null;
   extra_allowed_origins: string[];
   synthetic_location: { country: string; postcode: string | null } | null;
+  platform: string;
+  checkout_access: CheckoutAccess | null;
+  sign_in_configured: boolean;
   interval_seconds: number;
   next_due_at: string | null;
   supported_steps: string[];
   untested_components: string[];
 }
+
+export type CheckoutAccess = 'stop_before_sign_in' | 'test_customer' | 'guest';
 
 export interface CheckScenarioInput {
   name?: string;
@@ -443,6 +448,8 @@ export interface CheckScenarioInput {
   enabled?: boolean;
   extra_allowed_origins?: string[];
   synthetic_location?: { country: string; postcode: string | null } | null;
+  checkout_access?: CheckoutAccess | null;
+  sign_in?: { email: string; password: string } | null;
 }
 
 export type CheckRunStatus = 'queued' | 'running' | 'passed' | 'failed' | 'inconclusive' | 'blocked' | 'unsupported' | 'cancelled';

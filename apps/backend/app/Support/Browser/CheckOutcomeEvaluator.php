@@ -22,6 +22,8 @@ class CheckOutcomeEvaluator
 
     public const COMPONENT_ADAPTER = 'adapter';
 
+    public const COMPONENT_TEST_ACCOUNT = 'test_account';
+
     public const TITLE_FLOW_FAILED = 'CHECKOUT_FLOW_FAILED';
 
     public const TITLE_TEST_PRODUCT_UNAVAILABLE = 'CHECKOUT_TEST_PRODUCT_UNAVAILABLE';
@@ -29,6 +31,8 @@ class CheckOutcomeEvaluator
     public const TITLE_MONITORING_BLOCKED = 'CHECKOUT_MONITORING_BLOCKED';
 
     public const TITLE_ADAPTER_UNSUPPORTED = 'CHECKOUT_ADAPTER_UNSUPPORTED';
+
+    public const TITLE_TEST_ACCOUNT_REJECTED = 'CHECKOUT_TEST_ACCOUNT_REJECTED';
 
     public const RECOVERY_PASSES = 2;
 
@@ -64,7 +68,7 @@ class CheckOutcomeEvaluator
             return;
         }
 
-        foreach ([self::COMPONENT_TEST_PRODUCT, self::COMPONENT_MONITORING_ACCESS, self::COMPONENT_ADAPTER] as $coverage) {
+        foreach ([self::COMPONENT_TEST_PRODUCT, self::COMPONENT_MONITORING_ACCESS, self::COMPONENT_ADAPTER, self::COMPONENT_TEST_ACCOUNT] as $coverage) {
             $this->resolveIfActive($run, $attempt, $coverage);
         }
 
@@ -82,6 +86,7 @@ class CheckOutcomeEvaluator
             $run->status === CheckRun::STATUS_FAILED && $run->error_code === CheckOutcomePolicy::SITE_FAILURE => [self::COMPONENT_PAYMENT_FORM, self::TITLE_FLOW_FAILED, Incident::SEVERITY_WARNING],
             $run->status === CheckRun::STATUS_FAILED && $run->error_code === CheckOutcomePolicy::PRODUCT_UNAVAILABLE => [self::COMPONENT_TEST_PRODUCT, self::TITLE_TEST_PRODUCT_UNAVAILABLE, Incident::SEVERITY_INFO],
             $run->status === CheckRun::STATUS_BLOCKED && in_array($run->error_code, [CheckOutcomePolicy::WAF_CHALLENGE, CheckOutcomePolicy::BLOCKED_EXTERNAL_ORIGIN], true) => [self::COMPONENT_MONITORING_ACCESS, self::TITLE_MONITORING_BLOCKED, Incident::SEVERITY_INFO],
+            $run->status === CheckRun::STATUS_BLOCKED && $run->error_code === CheckOutcomePolicy::TEST_ACCOUNT_REJECTED => [self::COMPONENT_TEST_ACCOUNT, self::TITLE_TEST_ACCOUNT_REJECTED, Incident::SEVERITY_INFO],
             $run->status === CheckRun::STATUS_UNSUPPORTED,
             $run->status === CheckRun::STATUS_BLOCKED => [self::COMPONENT_ADAPTER, self::TITLE_ADAPTER_UNSUPPORTED, Incident::SEVERITY_INFO],
             default => null,

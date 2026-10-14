@@ -5048,7 +5048,7 @@ paths:
       operationId: createCheckScenario
       security:
         - {UserSession: []}
-      description: "Owner/admin. Deviation from the catalogue until the plugin manifest exists: the product URL is given directly (HTTPS, store origin). 409 scenario_exists."
+      description: "Owner/admin. Deviation from the catalogue until the plugin manifest exists: the product URL is given directly (HTTPS, store origin). 409 scenario_exists. 422 platform_not_supported (no checkout adapter for the store platform), checkout_access_not_applicable, sign_in_not_applicable, sign_in_required (ADR 0055)."
       parameters:
         - name: store_id
           in: path
@@ -6571,6 +6571,12 @@ components:
           properties:
             country: {type: string, pattern: "^[A-Z]{2}$"}
             postcode: {type: [string, "null"]}
+        platform: {type: string, description: Store platform; picks the checkout adapter.}
+        checkout_access:
+          type: [string, "null"]
+          enum: [stop_before_sign_in, test_customer, guest, null]
+          description: "How the check reaches payment methods on platforms that show them only to a signed-in or registered customer (Shopware, ADR 0055); null where not used (WooCommerce)."
+        sign_in_configured: {type: boolean, description: A test customer account is stored (never returned).}
         interval_seconds: {type: integer, minimum: 300, maximum: 86400}
         next_due_at: {type: [string, "null"], format: date-time}
         supported_steps:
@@ -6602,6 +6608,18 @@ components:
           properties:
             country: {type: string, pattern: "^[A-Za-z]{2}$"}
             postcode: {type: [string, "null"], maxLength: 16}
+        checkout_access:
+          type: [string, "null"]
+          enum: [stop_before_sign_in, test_customer, guest, null]
+          description: Shopware only. Switching away from test_customer deletes the stored account.
+        sign_in:
+          type: [object, "null"]
+          additionalProperties: false
+          required: [email, password]
+          description: Write-only test customer account for checkout_access test_customer; stored encrypted, sent to the worker only for one attempt.
+          properties:
+            email: {type: string, format: email, maxLength: 255}
+            password: {type: string, minLength: 1, maxLength: 255}
     CheckRun:
       type: object
       required: [id, store_id, scenario_id, scenario_version, trigger, status, scheduled_at]
@@ -6699,6 +6717,14 @@ components:
             cart_url: {type: string, format: uri}
             checkout_url: {type: string, format: uri}
             synthetic_token: {type: string, description: Short-lived store and run bound signed token, never logged.}
+            platform: {type: string}
+            checkout_access: {type: [string, 'null'], enum: [stop_before_sign_in, test_customer, guest, null]}
+            sign_in:
+              type: [object, 'null']
+              description: Test customer account for checkout_access test_customer (ADR 0055); only in the lease, never in the stored run snapshot, never logged.
+              properties:
+                email: {type: string}
+                password: {type: string}
             synthetic_location:
               type: [object, 'null']
               properties:
@@ -6713,7 +6739,7 @@ components:
                 required: [code, action]
                 properties:
                   code: {type: string}
-                  action: {enum: [goto, click_safe, fill_synthetic, select, assert_visible, assert_cart, wait_response]}
+                  action: {enum: [goto, click_safe, fill_synthetic, select, assert_visible, assert_cart, wait_response, sign_in], description: "sign_in: signs in with the lease's test customer account (ADR 0055)."}
                   target: {enum: [product_url, cart_url, checkout_url], description: Scenario URL the step navigates to; selectors live in the versioned worker adapter.}
                   selector: {type: string, maxLength: 1000}
                   timeout_ms: {type: integer, minimum: 1000, maximum: 30000}

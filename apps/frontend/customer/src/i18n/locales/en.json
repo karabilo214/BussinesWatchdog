@@ -535,7 +535,11 @@
     "faster_checks_unavailable": "This package has no faster-checks add-on.",
     "policy_acceptance_required": "The documents have changed. Read the new version and confirm your consent again.",
     "invoice_not_available": "There is no invoice for this payment.",
-    "invoice_not_found": "Invoice not found."
+    "invoice_not_found": "Invoice not found.",
+    "platform_not_supported": "Browser checks are not available for this store platform yet.",
+    "sign_in_required": "Enter the test customer e-mail and password.",
+    "sign_in_not_applicable": "A test customer account is only needed for the «Test customer» way.",
+    "checkout_access_not_applicable": "This store platform does not need a way to payment."
   },
   "incidents": {
     "title": "Incidents",
@@ -593,7 +597,8 @@
       "CHECKOUT_ADAPTER_UNSUPPORTED": "This site's checkout is not supported by the check yet",
       "INTEGRATION_STALE": "The store plugin is not reporting",
       "INTEGRATION_DELIVERY_DELAYED": "The store plugin is sending data late",
-      "unknown": "Incident {code}"
+      "unknown": "Incident {code}",
+      "CHECKOUT_TEST_ACCOUNT_REJECTED": "The shop does not accept the test customer sign-in"
     },
     "advice_title": "What to check",
     "advice": {
@@ -613,7 +618,8 @@
       "CHECKOUT_ADAPTER_UNSUPPORTED": "The theme or checkout plugins are not supported yet. This is not a store failure; we cannot check this path.",
       "INTEGRATION_STALE": "Check that the site is up and the Business Watchdog plugin is active. This does not mean sales stopped, but while the plugin is silent the service cannot see orders.",
       "INTEGRATION_DELIVERY_DELAYED": "The plugin is behind with sending data. Check that scheduled tasks run on the site (WP-Cron or Action Scheduler).",
-      "unknown": "Open the details below and check the affected part of the store."
+      "unknown": "Open the details below and check the affected part of the store.",
+      "CHECKOUT_TEST_ACCOUNT_REJECTED": "Check that the test customer account exists in the shop and is active, and update the e-mail and password in the check settings. This is not a shop failure; until signing in works, payment methods are not checked."
     },
     "discrepancy_short": "discrepancy {amount}",
     "last_seen": "last seen {time}",
@@ -717,7 +723,8 @@
         "blocked_external_origin": "The page called an address the check does not allow.",
         "forbidden_mutation": "The page tried a forbidden action; the check stopped.",
         "selector_changed": "A page element was not found: the site theme may have changed.",
-        "adapter_unsupported": "The site's checkout is not supported by the check."
+        "adapter_unsupported": "The site's checkout is not supported by the check.",
+        "test_account_rejected": "The shop did not accept the test customer sign-in."
       },
       "failed_step": "Stopped at step: {step}.",
       "step": {
@@ -726,7 +733,9 @@
         "cart": "cart",
         "checkout": "checkout",
         "shipping": "shipping details",
-        "payment_form": "payment form"
+        "payment_form": "payment form",
+        "sign_in": "test customer sign-in",
+        "guest_details": "guest details"
       },
       "attempts": "Attempts: {n}."
     },
@@ -944,7 +953,25 @@
       "origins_hint": "Public https addresses of payment gateways and CDNs the checkout page needs. One per line.",
       "country": "Shipping country (2 letters)",
       "postcode": "Postcode",
-      "location_hint": "Test shipping data if the payment form only appears after it. No real addresses are used."
+      "location_hint": "Test shipping data if the payment form only appears after it. No real addresses are used.",
+      "access": {
+        "title": "How the check reaches payment methods",
+        "hint": "Shopware shows payment methods only to a signed-in customer or a guest. Choose how the check gets past this step.",
+        "view": "Way to payment",
+        "stop_before_sign_in": "Stop before signing in",
+        "stop_before_sign_in_hint": "Nothing is created in the shop. Payment methods are not checked — the check goes as far as the sign-in and registration page.",
+        "test_customer": "Test customer",
+        "test_customer_hint": "The check signs in with a separate customer account you created in the shop for checks and removes the test product from its cart afterwards. Do not use a real customer's account.",
+        "guest": "Guest",
+        "guest_hint": "The check goes through checkout as a guest with made-up details (Watchdog Check, watchdog-check{'@'}example.com). No order is created.",
+        "guest_warning": "Every check creates a new guest customer in the shop: at the chosen frequency about {n} a day. You can find them by watchdog-check{'@'}example.com.",
+        "email": "Test customer e-mail",
+        "password": "Test customer password",
+        "password_keep": "Saved. Leave the fields empty to keep it.",
+        "configured": "account saved",
+        "not_configured": "no account set",
+        "secret_note": "The password is stored encrypted and given only to the check browser for one check. We never show it."
+      }
     },
     "interval": {
       "s300": "every 5 minutes",
@@ -959,7 +986,8 @@
       "variable_products": "products with variants (size, colour)",
       "shipping_required_before_payment": "stores that show payment methods only after shipping is chosen",
       "third_party_gateway_iframes": "contents of payment forms in external frames",
-      "redirect_gateways": "payments that redirect to the payment provider's site"
+      "redirect_gateways": "payments that redirect to the payment provider's site",
+      "payment_methods_after_sign_in": "payment methods (shown only after signing in or registering)"
     },
     "runs": {
       "title": "Run history",
@@ -1022,7 +1050,8 @@
       "blocked_external_origin": "The page called an address the check does not allow.",
       "infra_timeout": "The check ran out of time because of a failure on our side.",
       "lease_expired": "The browser stopped responding; the attempt was interrupted.",
-      "cancelled_by_user": "Cancelled by a user."
+      "cancelled_by_user": "Cancelled by a user.",
+      "test_account_rejected": "The shop did not accept the test customer sign-in."
     },
     "run": {
       "title": "Check {time}",

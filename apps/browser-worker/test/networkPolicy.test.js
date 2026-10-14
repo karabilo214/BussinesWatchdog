@@ -86,3 +86,55 @@ test('parties distinguish store, configured gateways and third parties', () => {
   assert.equal(policy.party('https://js.stripe.com/v3/'), 'gateway');
   assert.equal(policy.party('https://fonts.gstatic.com/x.woff2'), 'third');
 });
+
+const shopware = (checkoutAccess) => createNetworkPolicy({
+  allowedOrigins: ['https://shop.example.test', 'https://www.paypal.com'],
+  storeOrigin: 'https://shop.example.test',
+  platform: 'shopware',
+  checkoutAccess,
+});
+const lineItem = '2a88d9b59d474c7e869d8071649be43c';
+
+test('shopware: cart operations are allowed, placing or paying an order never is', () => {
+  for (const access of ['stop_before_sign_in', 'test_customer', 'guest']) {
+    const sw = shopware(access);
+    assert.equal(sw.decide({ method: 'POST', url: `${store}/checkout/line-item/add`, postData: multipart([[`lineItems[${lineItem}][quantity]`, '1']]) }).allow, true);
+    assert.equal(sw.decide({ method: 'POST', url: `${store}/en/checkout/line-item/delete/${lineItem}`, postData: 'redirectTo=frontend.checkout.cart.page' }).allow, true);
+    assert.equal(sw.decide({ method: 'POST', url: `${store}/checkout/configure`, postData: 'paymentMethodId=x' }).allow, true);
+    assert.equal(sw.decide({ method: 'GET', url: `${store}/checkout/confirm` }).allow, true);
+    assert.equal(sw.decide({ method: 'POST', url: `${store}/country/country-state-data`, postData: 'countryId=x' }).allow, true);
+
+    const blocked = [
+      [sw.decide({ method: 'POST', url: `${store}/checkout/order`, postData: 'tos=on&hash=x' }), 'place_order'],
+      [sw.decide({ method: 'POST', url: `${store}/de/checkout/order/`, postData: 'tos=on' }), 'place_order'],
+      [sw.decide({ method: 'POST', url: `${store}/store-api/checkout/order`, postData: '{}' }), 'place_order'],
+      [sw.decide({ method: 'POST', url: `${store}/store-api/handle-payment`, postData: '{}' }), 'payment_capture'],
+      [sw.decide({ method: 'POST', url: `${store}/account/order/update/x`, postData: 'paymentMethodId=y' }), 'order_pay_submit'],
+      [sw.decide({ method: 'GET', url: `${store}/payment/finalize-transaction?_sw_payment_token=t` }), 'payment_capture'],
+      [sw.decide({ method: 'POST', url: 'https://www.paypal.com/v2/checkout/orders/1/capture', postData: '{}' }), 'payment_capture'],
+    ];
+
+    for (const [decision, operation] of blocked) {
+      assert.equal(decision.allow, false, `${access} ${operation}`);
+      assert.equal(decision.operation, operation);
+      assert.equal(sw.isPaymentOperation(operation), true);
+    }
+
+    assert.equal(sw.decide({ method: 'POST', url: `${store}/checkout/promotion/add`, postData: 'code=x' }).operation, 'unknown_mutation');
+    assert.equal(sw.decide({ method: 'POST', url: `${store}/checkout/line-item/change-quantity/${lineItem}`, postData: 'quantity=9' }).operation, 'unknown_mutation');
+  }
+});
+
+test('shopware: signing in only for the test customer, registering only as a guest', () => {
+  const login = (access) => shopware(access).decide({ method: 'POST', url: `${store}/account/login`, postData: 'username=a%40b.c&password=x' });
+  assert.equal(login('test_customer').allow, true);
+  assert.equal(login('guest').operation, 'unknown_mutation');
+  assert.equal(login('stop_before_sign_in').operation, 'unknown_mutation');
+
+  const register = (access, extra = []) => shopware(access).decide({ method: 'POST', url: `${store}/account/register`, postData: new URLSearchParams([['email', 'watchdog-check@example.com'], ['billingAddress[street]', 'Teststrasse 1'], ...extra]).toString() });
+  assert.equal(register('guest').allow, true);
+  assert.equal(register('guest', [['createCustomerAccount', 'true']]).operation, 'customer_account_creation');
+  assert.equal(register('guest', [['password', 'secret']]).operation, 'customer_account_creation');
+  assert.equal(register('test_customer').operation, 'unknown_mutation');
+  assert.equal(register('stop_before_sign_in').operation, 'unknown_mutation');
+});

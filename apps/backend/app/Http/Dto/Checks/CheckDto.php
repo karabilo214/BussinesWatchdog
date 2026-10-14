@@ -7,6 +7,7 @@ use App\Models\CheckAttempt;
 use App\Models\CheckRun;
 use App\Models\CheckScenario;
 use App\Models\CheckStep;
+use App\Models\Store;
 use App\Support\Browser\ScenarioDefinition;
 
 class CheckDto
@@ -17,6 +18,10 @@ class CheckDto
     public function scenario(CheckScenario $scenario): array
     {
         $definition = $scenario->definition ?? [];
+        $scenarios = app(ScenarioDefinition::class);
+        /** @var Store $store */
+        $store = Store::query()->where('tenant_id', $scenario->tenant_id)->findOrFail($scenario->store_id);
+        $access = $scenarios->checkoutAccess($scenario, $store);
 
         return [
             'id' => $scenario->id,
@@ -32,10 +37,13 @@ class CheckDto
             'checkout_url' => $definition['checkout_url'] ?? null,
             'extra_allowed_origins' => $definition['extra_allowed_origins'] ?? [],
             'synthetic_location' => $definition['synthetic_location'] ?? null,
+            'platform' => $store->platform,
+            'checkout_access' => $access,
+            'sign_in_configured' => $access === CheckScenario::ACCESS_TEST_CUSTOMER && $scenario->sign_in_ciphertext !== null,
             'interval_seconds' => $scenario->interval_seconds,
             'next_due_at' => $scenario->next_due_at?->toJSON(),
-            'supported_steps' => array_column(app(ScenarioDefinition::class)->steps(), 'code'),
-            'untested_components' => ['variable_products', 'shipping_required_before_payment', 'third_party_gateway_iframes', 'redirect_gateways'],
+            'supported_steps' => array_column($scenarios->steps($store->platform, $access), 'code'),
+            'untested_components' => $scenarios->untestedComponents($store->platform, $access),
         ];
     }
 
