@@ -137,6 +137,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::post('/stores/{store}/integrations/shopware-app', [ShopwareAppController::class, 'package'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+    Route::post('/stores/{store}/integrations/shopware-app/update', [ShopwareAppController::class, 'update'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::put('/integrations/{integration}/webhook-id', [PayPalIntegrationController::class, 'webhookId'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::post('/integrations/{integration}/sync', [ProviderSyncController::class, 'sync'])

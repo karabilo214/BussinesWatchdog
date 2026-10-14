@@ -127,7 +127,7 @@ plugins/woocommerce-watchdog/tests/matrix/release-checks.sh    # проверк�
 
 ZIP кладётся в каталог `WATCHDOG_PLUGIN_DIR` (по умолчанию `apps/backend/storage/app/plugins`; в Docker — тот же каталог внутри контейнера бэкенда, он должен быть на постоянном томе). Кабинет показывает кнопку «Скачать плагин» с самой новой версией `business-watchdog-X.Y.Z.zip` из этого каталога; старые версии можно оставить или удалить.
 
-Shopware App отдельно не собирается: кабинет выдаёт архив приложения для каждого магазина.
+Shopware App отдельно не собирается: кабинет выдаёт архив приложения для каждого магазина. Новая версия App (`ShopwareApp::APP_VERSION`, файлы в `apps/backend/resources/shopware-app`) выходит вместе с бэкендом: магазины, где App уже подключено, увидят в кабинете «Скачать обновление приложения» (архив для того же подключения) и загрузят его в Shopware как обновление.
 
 ### 10. Фронтенды
 
@@ -190,6 +190,7 @@ make frontend-smoke                 # кабинет в Chromium против н
 make frontend-dev                   # кабинет на :5173; make frontend-dev-control — панель на :5174
 make worker-test                    # тесты воркера
 make shopware-observation-e2e       # скрипт наблюдения App на настоящем Shopware 6.6/6.7 с настоящими покупателями (Docker, своя база bw_observation_e2e)
+make shopware-app-update-e2e        # обновление App у подключённого магазина на настоящем Shopware 6.6/6.7 (Docker, своя база bw_app_update_e2e)
 make woocommerce-observation-e2e     # скрипт наблюдения плагина WooCommerce с настоящими покупателями на матрице (Docker, своя база bw_wc_observation_e2e; TARGETS=latest — одна цель)
 make woocommerce-rest-attempts-e2e   # попытки оплаты при подключении через REST API без плагина (Docker, своя база bw_wc_attempts_e2e)
 make shopware-attempts-e2e          # наблюдение за оплатами на настоящем Shopware 6.6/6.7 (Docker, своя база bw_attempts_e2e)

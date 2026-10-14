@@ -180,6 +180,7 @@ export interface Integration {
   };
   credentials?: IntegrationCredentialInfo[];
   webhook_url?: string;
+  app_update?: { installed_version: string | null; latest_version: string; available: boolean } | null;
   created_at: string;
 }
 

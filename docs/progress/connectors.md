@@ -366,3 +366,20 @@ Added:
 Verification: `tests/Feature/Providers/WooCommerceApiPaymentAttemptsTest.php` (3). E2E PASS on floor (WooCommerce 6.0.2) and latest (11.2.0): admin order and order from before the connection ignored, three checkout failures (Classic and Blocks) open the incident, bank transfer on hold is a success, a paid order resolves it, re-reads change nothing, no personal data stored.
 
 ADR 0060 confirmed by the owner on 2026-10-14 as it is (only checkout / store-api orders; a cancelled unpaid order is a failure).
+
+### Step 148: Updating the Shopware App of Connected Stores (ADR 0061)
+
+Status: complete
+
+Why: owner's backlog item — a store that already runs the app could not get a newer version: the dashboard built an archive only for a new connection.
+
+Added:
+
+- ADR 0061. `ShopwareApp::updatePackage()` and `POST /api/v1/stores/{store}/integrations/shopware-app/update` (owner/admin): the current app version built for the store's connected app integration — same integration, registration URL and manifest secret — so Shopware installs it as an update; `404 shopware_app_not_connected` otherwise; audited (`update_package_created`).
+- The installed version from every signed webhook (`source.appVersion`) in `health.app_version` and `connector_version`; the manifest also subscribes to `app.updated`. App version 1.2.0. Integration DTO `app_update` (installed, latest, available); OpenAPI updated.
+- Dashboard, Shopware panel of a connected app: «Версия приложения» (unknown until the first event) and, when older, «Обновление приложения до версии …» with the steps (download, upload in Shopware, confirm Update, clear the cache) and «Скачать обновление приложения». ru/en/de; error text.
+- `plugins/shopware-app/tests/app/update-e2e.sh` (`make shopware-app-update-e2e`), own database `bw_app_update_e2e`; app e2e helper `shop.py update` (upload + extension update API).
+
+Verification: `ShopwareAppTest` (+1: no app → 404, version tracked, update archive with the same secret, URLs, `app.updated` and the script, nothing new created, audit, `app.updated` → up to date). Customer 126 (+1). Backend SQLite 582 passed, 4 skipped; PostgreSQL 18: 586 of 586; frontend check green. Real Shopware 6.6.10.6 and 6.7.2.2: app 1.0.0 → update archive → Shopware updates to 1.2.0, same integration active, `app.updated` seen at once, storefront script and both templates present, orders still arrive through webhooks, Shopware does not register again — PASS. The existing app install e2e (app 1.2.0) still passes on 6.6.10.6 and 6.7.2.2.
+
+Remaining: the owner to confirm ADR 0061 (no automatic notice to customers about a new app version).

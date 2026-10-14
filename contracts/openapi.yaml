@@ -3278,6 +3278,25 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/integrations/shopware-app/update:
+    post:
+      tags: [Integrations]
+      operationId: downloadShopwareAppUpdate
+      security:
+        - {UserSession: []}
+      description: "Owner/admin (ADR 0061). The current app version built for the store's connected app integration (same integration, registration URL and manifest secret), to upload in Shopware as an update of the installed app. 404 shopware_app_not_connected without an app integration. X-App-Version names the version."
+      parameters:
+        - {name: store_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: App archive
+          content:
+            application/zip:
+              schema: {type: string, format: binary}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
   /api/v1/shopware/app/{integration_id}/register:
     get:
       tags: [Integrations]
@@ -6187,6 +6206,13 @@ components:
         last_heartbeat_at: {type: [string, "null"], format: date-time}
         last_successful_sync_at: {type: [string, "null"], format: date-time}
         webhook_url: {type: [string, "null"], format: uri, description: "Where to point the provider webhook (Stripe, PayPal); null for other connectors."}
+        app_update:
+          type: [object, "null"]
+          description: Shopware app only (ADR 0061); null for other connectors.
+          properties:
+            installed_version: {type: [string, "null"], description: From the shop's webhooks; null until the first one.}
+            latest_version: {type: string}
+            available: {type: boolean}
         health:
           type: object
           description: "Freshness (state, reason, since), last heartbeat self-report, rotation flags. No secrets."

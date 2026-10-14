@@ -35,6 +35,23 @@ def upload(path):
     return {'upload': uploaded, 'install': installed['status'], 'install_error': detail, 'activate': activated['status'], 'active': bool(apps and apps[0]['active']), 'privileges': sorted(apps[0]['aclRole']['privileges']) if apps else []}
 
 
+def update(path):
+    admin = s.admin_token()
+    boundary = uuid.uuid4().hex
+    data = open(path, 'rb').read()
+    body = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="BusinessWatchdog.zip"\r\nContent-Type: application/zip\r\n\r\n').encode() + data + f'\r\n--{boundary}--\r\n'.encode()
+    request = urllib.request.Request(s.BASE + '/api/_action/extension/upload', data=body, method='POST', headers={'Authorization': 'Bearer ' + admin, 'Content-Type': f'multipart/form-data; boundary={boundary}'})
+    try:
+        uploaded = urllib.request.urlopen(request, timeout=120).status
+    except urllib.error.HTTPError as error:
+        uploaded = f'{error.code}:{error.read()[:200]!r}'
+    updated = s.call('POST', '/api/_action/extension/update/app/BusinessWatchdog', admin, {'allowNewPermissions': True})
+    consume()
+    apps = s.call('POST', '/api/search/app', admin, {'filter': [{'type': 'equals', 'field': 'name', 'value': 'BusinessWatchdog'}]})['json']['data']
+    detail = None if updated['status'] < 300 else ((updated['json'] or {}).get('errors') or [{}])[0].get('detail', '')[:300]
+    return {'upload': uploaded, 'update': updated['status'], 'update_error': detail, 'version': apps[0]['version'] if apps else None, 'active': bool(apps and apps[0]['active'])}
+
+
 def order():
     admin = s.admin_token()
     channel = next(c for c in s.call('POST', '/api/search/sales-channel', admin, {'associations': {'domains': {}}, 'filter': [{'type': 'equals', 'field': 'typeId', 'value': '8a243080f92e4c719546314b577cf82b'}]})['json']['data'])
@@ -65,5 +82,5 @@ def uninstall():
 
 if __name__ == '__main__':
     step = sys.argv[1]
-    result = {'upload': lambda: upload(sys.argv[2]), 'order': order, 'pay': lambda: pay(sys.argv[2]), 'uninstall': uninstall}[step]()
+    result = {'upload': lambda: upload(sys.argv[2]), 'update': lambda: update(sys.argv[2]), 'order': order, 'pay': lambda: pay(sys.argv[2]), 'uninstall': uninstall}[step]()
     print('BW_SHOP=' + json.dumps(result))

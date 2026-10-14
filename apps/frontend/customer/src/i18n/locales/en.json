@@ -394,7 +394,15 @@
       "app_version_note": "Because of its own bug, Shopware 6.6.10.25–6.6.10.29 cannot install apps that connect to a server — on those versions choose \"Integration key\". The app works on 6.7 and on 6.6 up to 6.6.10.24.",
       "stripe_note": "Money checks for Shopware currently cover PayPal (SwagPayPal). Orders paid through Stripe or other providers are shown as \"payment method not supported\" — no false discrepancies.",
       "app_step_cache": "Clear the Shopware cache (Settings → System → Caches & indexes → Clear cache) so that checkout observation starts on the checkout page.",
-      "app_script_note": "The app also adds a small observation script to the order confirmation and «Thank you» pages. It only counts checkout stages (page shown, order sent, order placed), uses no cookies and reads no shopper data. It works when the browser check signs in as a test customer or a guest."
+      "app_script_note": "The app also adds a small observation script to the order confirmation and «Thank you» pages. It only counts checkout stages (page shown, order sent, order placed), uses no cookies and reads no shopper data. It works when the browser check signs in as a test customer or a guest.",
+      "app_version": "App version",
+      "app_version_unknown": "unknown (shown after the first event from Shopware)",
+      "app_update_available": "version {version} available",
+      "app_update_title": "Update the app to version {version}",
+      "app_update_step_download": "Download the update file (button below) — it is made for this same connection, nothing has to be connected again.",
+      "app_update_step_confirm": "Shopware sees the app is installed — click «Update».",
+      "app_update_download": "Download app update",
+      "app_update_downloaded": "Update file downloaded. Upload it in Shopware."
     }
   },
   "errors": {
@@ -557,7 +565,8 @@
     "platform_not_supported": "Browser checks are not available for this store platform yet.",
     "sign_in_required": "Enter the test customer e-mail and password.",
     "sign_in_not_applicable": "A test customer account is only needed for the «Test customer» way.",
-    "checkout_access_not_applicable": "This store platform does not need a way to payment."
+    "checkout_access_not_applicable": "This store platform does not need a way to payment.",
+    "shopware_app_not_connected": "No Shopware app is connected for this store — there is nothing to update."
   },
   "incidents": {
     "title": "Incidents",

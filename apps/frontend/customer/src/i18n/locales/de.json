@@ -394,7 +394,15 @@
       "app_version_note": "Wegen eines eigenen Fehlers kann Shopware 6.6.10.25–6.6.10.29 keine Apps mit Serveranbindung installieren — wählen Sie dort „Integrationsschlüssel“. Unter 6.7 und 6.6 bis 6.6.10.24 funktioniert die App.",
       "stripe_note": "Der Zahlungsabgleich für Shopware deckt derzeit PayPal (SwagPayPal) ab. Über Stripe oder andere Anbieter bezahlte Bestellungen erscheinen als „Zahlungsart nicht unterstützt“ — ohne falsche Abweichungen.",
       "app_step_cache": "Leeren Sie den Shopware-Cache (Einstellungen → System → Caches & Indizes → Cache leeren), damit die Beobachtung auf der Checkout-Seite startet.",
-      "app_script_note": "Die App fügt außerdem den Seiten Bestellbestätigung und «Vielen Dank» ein kleines Beobachtungsskript hinzu. Es zählt nur die Schritte des Checkouts (Seite angezeigt, Bestellung abgeschickt, Bestellung abgeschlossen), verwendet keine Cookies und liest keine Kundendaten. Es arbeitet, wenn die Browserprüfung sich als Testkunde oder Gast anmeldet."
+      "app_script_note": "Die App fügt außerdem den Seiten Bestellbestätigung und «Vielen Dank» ein kleines Beobachtungsskript hinzu. Es zählt nur die Schritte des Checkouts (Seite angezeigt, Bestellung abgeschickt, Bestellung abgeschlossen), verwendet keine Cookies und liest keine Kundendaten. Es arbeitet, wenn die Browserprüfung sich als Testkunde oder Gast anmeldet.",
+      "app_version": "App-Version",
+      "app_version_unknown": "unbekannt (erscheint nach dem ersten Ereignis aus Shopware)",
+      "app_update_available": "Version {version} verfügbar",
+      "app_update_title": "App auf Version {version} aktualisieren",
+      "app_update_step_download": "Laden Sie die Update-Datei herunter (Schaltfläche unten) — sie ist für dieselbe Anbindung erstellt, es muss nichts neu verbunden werden.",
+      "app_update_step_confirm": "Shopware erkennt die installierte App — klicken Sie auf «Update» (Aktualisieren).",
+      "app_update_download": "App-Update herunterladen",
+      "app_update_downloaded": "Update-Datei heruntergeladen. Laden Sie sie in Shopware hoch."
     }
   },
   "errors": {
@@ -557,7 +565,8 @@
     "platform_not_supported": "Browserprüfungen sind für diese Shop-Plattform noch nicht verfügbar.",
     "sign_in_required": "Geben Sie E-Mail und Passwort des Testkunden ein.",
     "sign_in_not_applicable": "Ein Testkunden-Konto wird nur für den Weg «Testkunde» benötigt.",
-    "checkout_access_not_applicable": "Für diese Shop-Plattform wird kein Weg zur Zahlung gewählt."
+    "checkout_access_not_applicable": "Für diese Shop-Plattform wird kein Weg zur Zahlung gewählt.",
+    "shopware_app_not_connected": "Für diesen Shop ist keine Shopware-App verbunden — es gibt nichts zu aktualisieren."
   },
   "incidents": {
     "title": "Vorfälle",

@@ -16,7 +16,7 @@ import ru from '@/i18n/locales/ru.json';
 import { localization, setLocale } from '@/i18n';
 import { makeStore } from './fixtures';
 
-vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), downloadShopwareApp: vi.fn(), syncProvider: vi.fn() }));
+vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), downloadShopwareApp: vi.fn(), downloadShopwareAppUpdate: vi.fn(), syncProvider: vi.fn() }));
 vi.mock('@/api/stores', () => ({
   listStoreIntegrations: vi.fn(),
   revokeIntegration: vi.fn(),
@@ -208,6 +208,31 @@ describe('Shopware order source', () => {
     expect(wrapper.find('[data-app-waiting]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Ждём установки приложения');
     wrapper.unmount();
+  });
+
+  it('offers an app update for the same connection when the shop runs an older version', async () => {
+    const app = (installed: string | null) => integration('shopware', { capabilities: { connection: 'app' }, health: { key_last4: 'ZXCV' }, app_update: { installed_version: installed, latest_version: '1.2.0', available: installed !== '1.2.0' } });
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([app('1.0.0')]);
+    vi.mocked(providers.downloadShopwareAppUpdate).mockResolvedValue({ blob: new Blob(['zip']), filename: 'BusinessWatchdog.zip' });
+    URL.createObjectURL = vi.fn(() => 'blob:app');
+    URL.revokeObjectURL = vi.fn();
+    const wrapper = mount(ShopwarePanel, { props: { storeId: 's-1', canManage: true }, global });
+    await flushPromises();
+
+    expect(wrapper.get('[data-app-version]').text()).toContain('1.0.0');
+    expect(wrapper.get('[data-app-version]').text()).toContain('доступна версия 1.2.0');
+    expect(wrapper.get('[data-app-update]').text()).toContain('нажмите «Update»');
+    await wrapper.get('[data-download-update]').trigger('click');
+    await flushPromises();
+    expect(providers.downloadShopwareAppUpdate).toHaveBeenCalledWith('s-1');
+    expect(wrapper.text()).toContain('Файл обновления скачан');
+    wrapper.unmount();
+
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([app('1.2.0')]);
+    const current = mount(ShopwarePanel, { props: { storeId: 's-1', canManage: true }, global });
+    await flushPromises();
+    expect(current.get('[data-app-version]').text()).toBe('1.2.0');
+    expect(current.find('[data-app-update]').exists()).toBe(false);
   });
 
   it('every Shopware connector error code is explained in every language', () => {

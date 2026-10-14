@@ -33,6 +33,10 @@ export async function downloadShopwareApp(storeId: string): Promise<{ blob: Blob
   return requestFile(`/api/v1/stores/${encodeURIComponent(storeId)}/integrations/shopware-app`, { state_change_risk_acknowledged: true });
 }
 
+export async function downloadShopwareAppUpdate(storeId: string): Promise<{ blob: Blob; filename: string | null }> {
+  return requestFile(`/api/v1/stores/${encodeURIComponent(storeId)}/integrations/shopware-app/update`, {});
+}
+
 export function webhookUrl(integrationId: string, provider: 'stripe' | 'paypal' = 'stripe'): string {
   return `${window.location.origin}/api/v1/webhooks/${provider}/${integrationId}`;
 }

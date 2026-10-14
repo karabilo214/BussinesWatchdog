@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Providers;
 
+use App\Http\Dto\Integrations\IntegrationDto;
+use App\Models\AuditLog;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
 use App\Models\Membership;
@@ -12,10 +14,12 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Network\DnsClient;
 use App\Support\Outbox\DomainOutboxDispatcher;
+use App\Support\Providers\Shopware\ShopwareApp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Testing\TestResponse;
 use Tests\Feature\Stores\FakeDnsClient;
 use Tests\TestCase;
 use ZipArchive;
@@ -163,6 +167,51 @@ class ShopwareAppTest extends TestCase
         $this->assertNotNull($this->store->refresh()->verified_at);
     }
 
+    public function test_a_connected_app_gets_an_update_archive_for_the_same_integration_and_its_version_is_tracked(): void
+    {
+        $owner = fn () => $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id]);
+        $owner()->postJson("/api/v1/stores/{$this->store->id}/integrations/shopware-app/update")->assertStatus(404)->assertJsonPath('code', 'shopware_app_not_connected');
+
+        [$integration, $manifest] = $this->package();
+        $secret = $this->manifestSecret($manifest);
+        $shopSecret = $this->register($integration, $secret)->assertOk()->json('secret');
+        $confirmation = json_encode(['apiKey' => self::API_KEY, 'secretKey' => self::API_SECRET, 'timestamp' => (string) time(), 'shopUrl' => self::SHOP_URL, 'shopId' => self::SHOP_ID], JSON_THROW_ON_ERROR);
+        $this->signedPost($integration, 'confirm', $confirmation, $shopSecret)->assertOk();
+        $this->webhook($integration, $shopSecret, 'app.activated', [], '1.0.0')->assertOk();
+        $this->assertSame(['1.0.0', true], [$this->appUpdate($integration)['installed_version'], $this->appUpdate($integration)['available']]);
+
+        $response = $owner()->postJson("/api/v1/stores/{$this->store->id}/integrations/shopware-app/update")->assertOk()->assertHeader('Content-Type', 'application/zip')->assertHeader('X-App-Version', ShopwareApp::APP_VERSION);
+        $this->assertSame($integration->id, $response->headers->get('X-Integration-Id'));
+        $path = tempnam(sys_get_temp_dir(), 'bw-test-app');
+        file_put_contents($path, $response->getContent());
+        $zip = new ZipArchive;
+        $zip->open($path);
+        $update = (string) $zip->getFromName('BusinessWatchdog/manifest.xml');
+        $hasScript = $zip->locateName('BusinessWatchdog/Resources/app/storefront/dist/storefront/js/business-watchdog/business-watchdog.js') !== false;
+        $zip->close();
+        @unlink($path);
+        $this->assertSame($secret, $this->manifestSecret($update), 'the same manifest secret, so Shopware updates the installed app');
+        $this->assertStringContainsString('<version>'.ShopwareApp::APP_VERSION.'</version>', $update);
+        $this->assertStringContainsString('/api/v1/shopware/app/'.$integration->id.'/register', $update);
+        $this->assertStringContainsString('event="app.updated"', $update);
+        $this->assertTrue($hasScript);
+        $this->assertSame(1, Integration::query()->where('store_id', $this->store->id)->count(), 'nothing new is created');
+        $this->assertSame(Integration::STATUS_ACTIVE, $integration->refresh()->status);
+        $this->assertTrue(AuditLog::query()->where('action', AuditLog::ACTION_INTEGRATION_PROVIDER_CONNECTED)->get()->contains(fn (AuditLog $log): bool => ($log->changes['stage'] ?? null) === 'update_package_created'));
+
+        $this->webhook($integration, $shopSecret, 'app.updated', [], ShopwareApp::APP_VERSION)->assertOk()->assertJsonPath('result', 'updated');
+        $this->assertSame([ShopwareApp::APP_VERSION, false], [$this->appUpdate($integration)['installed_version'], $this->appUpdate($integration)['available']]);
+        $this->assertSame('shopware-app-'.ShopwareApp::APP_VERSION, $integration->refresh()->connector_version);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function appUpdate(Integration $integration): array
+    {
+        return app(IntegrationDto::class)->toArray($integration->refresh())['app_update'];
+    }
+
     public function test_an_app_package_is_refused_while_another_order_source_is_connected(): void
     {
         Integration::query()->create([
@@ -201,14 +250,14 @@ class ShopwareAppTest extends TestCase
         return $match[1];
     }
 
-    private function register(Integration $integration, string $secret): \Illuminate\Testing\TestResponse
+    private function register(Integration $integration, string $secret): TestResponse
     {
         $query = http_build_query(['shop-id' => self::SHOP_ID, 'shop-url' => self::SHOP_URL, 'timestamp' => (string) time()]);
 
         return $this->call('GET', '/api/v1/shopware/app/'.$integration->id.'/register?'.$query, [], [], [], ['HTTP_SHOPWARE_APP_SIGNATURE' => hash_hmac('sha256', $query, $secret), 'HTTP_ACCEPT' => 'application/json']);
     }
 
-    private function signedPost(Integration $integration, string $action, string $body, string $secret): \Illuminate\Testing\TestResponse
+    private function signedPost(Integration $integration, string $action, string $body, string $secret): TestResponse
     {
         return $this->call('POST', '/api/v1/shopware/app/'.$integration->id.'/'.$action, [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json', 'HTTP_SHOPWARE_SHOP_SIGNATURE' => hash_hmac('sha256', $body, $secret)], $body);
     }
@@ -216,9 +265,9 @@ class ShopwareAppTest extends TestCase
     /**
      * @param  array<int|string, mixed>  $payload
      */
-    private function webhook(Integration $integration, string $secret, string $event, array $payload): \Illuminate\Testing\TestResponse
+    private function webhook(Integration $integration, string $secret, string $event, array $payload, string $version = '1.0.0'): TestResponse
     {
-        return $this->signedPost($integration, 'webhook', json_encode(['data' => ['payload' => $payload, 'event' => $event], 'source' => ['url' => self::SHOP_URL, 'shopId' => self::SHOP_ID, 'appVersion' => '1.0.0'], 'timestamp' => time()], JSON_THROW_ON_ERROR), $secret);
+        return $this->signedPost($integration, 'webhook', json_encode(['data' => ['payload' => $payload, 'event' => $event], 'source' => ['url' => self::SHOP_URL, 'shopId' => self::SHOP_ID, 'appVersion' => $version], 'timestamp' => time()], JSON_THROW_ON_ERROR), $secret);
     }
 
     /**

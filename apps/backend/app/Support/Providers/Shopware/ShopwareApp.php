@@ -28,7 +28,7 @@ class ShopwareApp
 {
     public const APP_NAME = 'BusinessWatchdog';
 
-    public const APP_VERSION = '1.1.0';
+    public const APP_VERSION = '1.2.0';
 
     public const PERMISSIONS = ['order', 'order_transaction', 'order_transaction_capture', 'order_transaction_capture_refund', 'currency', 'payment_method', 'state_machine', 'state_machine_state'];
 
@@ -38,7 +38,7 @@ class ShopwareApp
 
     public const ORDER_STATES = ['open', 'in_progress', 'completed', 'cancelled'];
 
-    public const LIFECYCLE_EVENTS = ['orderPlaced' => 'checkout.order.placed', 'orderWritten' => 'order.written', 'appActivated' => 'app.activated', 'appDeactivated' => 'app.deactivated', 'appDeleted' => 'app.deleted'];
+    public const LIFECYCLE_EVENTS = ['orderPlaced' => 'checkout.order.placed', 'orderWritten' => 'order.written', 'appActivated' => 'app.activated', 'appDeactivated' => 'app.deactivated', 'appDeleted' => 'app.deleted', 'appUpdated' => 'app.updated'];
 
     /**
      * @return array<string, string>
@@ -261,10 +261,15 @@ class ShopwareApp
             $event === 'app.deleted' => $this->revoke($integration, 'app_deleted'),
             $event === 'app.deactivated' => $this->setState($integration, Integration::STATUS_DEGRADED, ['app_deactivated_at' => Carbon::now()->toJSON()]),
             $event === 'app.activated' => $this->activate($integration),
+            $event === 'app.updated' => 'updated',
             default => 'ignored',
         };
 
-        $integration->refresh()->forceFill(['health' => array_merge($integration->health ?? [], ['webhook' => ['last_received_at' => Carbon::now()->toJSON(), 'last_type' => $event]])])->save();
+        $version = is_string($body['source']['appVersion'] ?? null) && preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}$/', $body['source']['appVersion']) === 1 ? $body['source']['appVersion'] : null;
+        $integration->refresh()->forceFill([
+            'health' => array_merge($integration->health ?? [], ['webhook' => ['last_received_at' => Carbon::now()->toJSON(), 'last_type' => $event]], $version === null ? [] : ['app_version' => $version]),
+            ...($version === null ? [] : ['connector_version' => 'shopware-app-'.$version]),
+        ])->save();
 
         return ['event' => $event, 'result' => $result];
     }
@@ -274,12 +279,40 @@ class ShopwareApp
         return implode("\n", array_map(fn (string $entity): string => '        <read>'.$entity.'</read>', self::PERMISSIONS));
     }
 
-    private function archive(Integration $integration, string $manifestSecret): string
+    /**
+     * The current app version built for the store's connected app integration (ADR 0061): same integration, URLs and
+     * manifest secret, so Shopware installs it as an update of the app it runs.
+     *
+     * @return array{integration: Integration, archive: string, filename: string}
+     */
+    public function updatePackage(Store $store, ?string $actorId): array
+    {
+        /** @var Integration|null $integration */
+        $integration = Integration::query()
+            ->where('tenant_id', $store->tenant_id)
+            ->where('store_id', $store->id)
+            ->where('provider', ShopwareConnector::PROVIDER)
+            ->whereIn('status', [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED, Integration::STATUS_PENDING])
+            ->latest('created_at')
+            ->get()
+            ->first(fn (Integration $candidate): bool => ($candidate->capabilities['connection'] ?? null) === 'app');
+        $manifestSecret = $integration === null ? '' : (string) ($this->connector->secretJson($integration, IntegrationCredential::KIND_SHOPWARE_APP)['manifest_secret'] ?? '');
+
+        if ($integration === null || $manifestSecret === '') {
+            throw new AccountRejected('shopware_app_not_connected', 404);
+        }
+
+        $this->audit($integration, $actorId, AuditLog::ACTION_INTEGRATION_PROVIDER_CONNECTED, ['provider' => ShopwareConnector::PROVIDER, 'connection' => 'app', 'stage' => 'update_package_created', 'version' => self::APP_VERSION]);
+
+        return ['integration' => $integration, 'archive' => $this->archive($integration, $manifestSecret), 'filename' => self::APP_NAME.'.zip'];
+    }
+
+    private function archive(Integration $integration, string $manifestSecret, string $version = self::APP_VERSION, bool $withSources = true): string
     {
         $base = url('/api/v1/shopware/app/'.$integration->id);
         $events = self::events();
         $webhooks = implode("\n", array_map(fn (string $name, string $event): string => sprintf('        <webhook name="%s" url="%s" event="%s"/>', $name, htmlspecialchars($base.'/webhook', ENT_XML1), $event), array_keys($events), $events));
-        $manifest = <<<XML
+        $manifest = <<<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/shopware/trunk/src/Core/Framework/App/Manifest/Schema/manifest-2.0.xsd">
     <meta>
@@ -305,13 +338,13 @@ class ShopwareApp
 </manifest>
 
 XML;
-        $xml = sprintf($manifest, self::APP_NAME, self::APP_VERSION, htmlspecialchars($base.'/register', ENT_XML1), $manifestSecret, self::permissionsXml(), $webhooks);
+        $xml = sprintf($manifest, self::APP_NAME, $version, htmlspecialchars($base.'/register', ENT_XML1), $manifestSecret, self::permissionsXml(), $webhooks);
         $path = tempnam(sys_get_temp_dir(), 'bw-shopware-app');
         $zip = new ZipArchive;
         $zip->open($path, ZipArchive::OVERWRITE);
         $zip->addFromString(self::APP_NAME.'/manifest.xml', $xml);
 
-        foreach ($this->sourceFiles() as $relative => $contents) {
+        foreach ($withSources ? $this->sourceFiles() : [] as $relative => $contents) {
             $zip->addFromString(self::APP_NAME.'/'.$relative, str_replace('__BW_OBSERVE_ENDPOINT__', htmlspecialchars(url('/api/v1/observe/'.$integration->id), ENT_QUOTES), $contents));
         }
 

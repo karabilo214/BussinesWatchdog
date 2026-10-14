@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
-import { connectShopware, downloadShopwareApp, syncProvider } from '@/api/providers';
+import { connectShopware, downloadShopwareApp, downloadShopwareAppUpdate, syncProvider } from '@/api/providers';
 import { listStoreIntegrations, revokeIntegration } from '@/api/stores';
 import type { Integration } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
@@ -66,19 +66,28 @@ async function act(action: () => Promise<void>, success: string | null = null): 
   }
 }
 
+function save(file: { blob: Blob; filename: string | null }): void {
+  const url = URL.createObjectURL(file.blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.filename ?? 'BusinessWatchdog.zip';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function download(): Promise<void> {
   return act(async () => {
-    const file = await downloadShopwareApp(props.storeId);
-    const url = URL.createObjectURL(file.blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file.filename ?? 'BusinessWatchdog.zip';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    save(await downloadShopwareApp(props.storeId));
     await load();
   }, 'store.shopware.app_downloaded');
+}
+
+function downloadUpdate(): Promise<void> {
+  return act(async () => {
+    save(await downloadShopwareAppUpdate(props.storeId));
+  }, 'store.shopware.app_update_downloaded');
 }
 
 function connect(): Promise<void> {
@@ -163,6 +172,13 @@ void load();
             {{ $t('provider.sync_summary', { emitted: sync.emitted ?? 0, unchanged: sync.unchanged ?? 0 }) }}<template v-if="sync.complete === false"> · {{ $t('provider.sync_incomplete') }}</template>
           </span>
         </dd>
+        <template v-if="viaApp && integration.app_update">
+          <dt class="text-text-muted">{{ $t('store.shopware.app_version') }}</dt>
+          <dd data-app-version>
+            {{ integration.app_update.installed_version ?? $t('store.shopware.app_version_unknown') }}
+            <span v-if="integration.app_update.available" class="block text-[13px] text-warn">{{ $t('store.shopware.app_update_available', { version: integration.app_update.latest_version }) }}</span>
+          </dd>
+        </template>
         <template v-if="viaApp">
           <dt class="text-text-muted">{{ $t('provider.webhook') }}</dt>
           <dd>{{ integration.health?.webhook?.last_received_at ? $t('provider.webhook_last', { time: dateTime(integration.health.webhook.last_received_at) }) : $t('store.shopware.no_webhook_yet') }}</dd>
@@ -177,6 +193,19 @@ void load();
         <li>{{ $t('store.shopware.state_risk_short') }}</li>
         <li>{{ $t('store.shopware.stripe_note') }}</li>
       </ul>
+
+      <div v-if="canManage && viaApp && integration.app_update?.available" class="flex flex-col gap-2 rounded-md border border-border p-3 text-sm" data-app-update>
+        <p class="font-medium">{{ $t('store.shopware.app_update_title', { version: integration.app_update.latest_version }) }}</p>
+        <ol class="list-decimal space-y-1 pl-5 text-[13px]">
+          <li>{{ $t('store.shopware.app_update_step_download') }}</li>
+          <li>{{ $t('store.shopware.app_step_upload') }}</li>
+          <li>{{ $t('store.shopware.app_update_step_confirm') }}</li>
+          <li>{{ $t('store.shopware.app_step_cache') }}</li>
+        </ol>
+        <div>
+          <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-download-update @click="downloadUpdate">{{ $t('store.shopware.app_update_download') }}</button>
+        </div>
+      </div>
 
       <div v-if="canManage" class="flex flex-wrap gap-2">
         <button v-if="integration.status === 'active'" type="button" class="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy" @click="runSync">{{ $t('provider.sync_now') }}</button>

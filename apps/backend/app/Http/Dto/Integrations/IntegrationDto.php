@@ -3,6 +3,7 @@
 namespace App\Http\Dto\Integrations;
 
 use App\Models\Integration;
+use App\Support\Providers\Shopware\ShopwareApp;
 use Illuminate\Support\Collection;
 
 class IntegrationDto
@@ -29,6 +30,11 @@ class IntegrationDto
             'last_heartbeat_at' => $integration->last_heartbeat_at?->toJSON(),
             'last_successful_sync_at' => $integration->last_successful_sync_at?->toJSON(),
             'health' => $integration->health ?? [],
+            'app_update' => $integration->provider === 'shopware' && ($integration->capabilities['connection'] ?? null) === 'app' ? [
+                'installed_version' => is_string($integration->health['app_version'] ?? null) ? $integration->health['app_version'] : null,
+                'latest_version' => ShopwareApp::APP_VERSION,
+                'available' => ! is_string($integration->health['app_version'] ?? null) || version_compare($integration->health['app_version'], ShopwareApp::APP_VERSION, '<'),
+            ] : null,
             'webhook_url' => in_array($integration->provider, ['stripe', 'paypal'], true) ? url('/api/v1/webhooks/'.$integration->provider.'/'.$integration->id) : null,
             'credentials' => $integration->credentials
                 ->map(fn ($credential): array => [
@@ -48,7 +54,7 @@ class IntegrationDto
     }
 
     /**
-     * @param Collection<int, Integration> $integrations
+     * @param  Collection<int, Integration>  $integrations
      * @return array<int, array<string, mixed>>
      */
     public function collection(Collection $integrations): array

@@ -39,6 +39,25 @@ class ShopwareAppController extends Controller
         ]);
     }
 
+    public function update(Request $request, Store $store, TenantContext $tenantContext): Response
+    {
+        abort_unless($store->tenant_id === $tenantContext->requireTenantId('download shopware app update'), 404);
+
+        try {
+            $package = $this->app->updatePackage($store, $request->user()?->id);
+        } catch (AccountRejected $exception) {
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The request was rejected.'], $exception->status);
+        }
+
+        return response($package['archive'], 200, [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => 'attachment; filename="'.$package['filename'].'"',
+            'Cache-Control' => 'no-store',
+            'X-Integration-Id' => $package['integration']->id,
+            'X-App-Version' => ShopwareApp::APP_VERSION,
+        ]);
+    }
+
     public function register(Request $request, string $integration): JsonResponse
     {
         try {

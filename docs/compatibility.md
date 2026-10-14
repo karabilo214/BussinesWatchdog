@@ -144,6 +144,8 @@ Payment attempts (ADR 0056, `plugins/shopware-app/tests/attempts/attempts-e2e.sh
 
 Checkout observation script (ADR 0057, `plugins/shopware-app/tests/observation/observation-e2e.sh`, `make shopware-observation-e2e`): app 1.1.0 installed from the store's archive, script and templates on the confirm and finish pages (after a cache clear), real shoppers counted, broken submits → `CHECKOUT_SUBMIT_FAILING`, a real order resolves it, the browser check finds the script and is not counted — PASS on 6.6.10.6 and 6.7.2.2 (dockware).
 
+App update (ADR 0061, `plugins/shopware-app/tests/app/update-e2e.sh`, `make shopware-app-update-e2e`): app 1.0.0 → the update archive for the same integration → Shopware updates to 1.2.0 without a new registration; the integration stays active, `app.updated` reports the version, the storefront files arrive, orders keep arriving through webhooks — PASS on 6.6.10.6 and 6.7.2.2 (dockware).
+
 Latest releases (Step 94, self-built with `plugins/shopware-app/tests/build-image.sh`):
 
 | Shopware | Integration key chain | SwagPayPal real chain | App |
