@@ -138,3 +138,10 @@ test('shopware: signing in only for the test customer, registering only as a gue
   assert.equal(register('test_customer').operation, 'unknown_mutation');
   assert.equal(register('stop_before_sign_in').operation, 'unknown_mutation');
 });
+
+test('quiet origins are dropped without counting as blocked traffic', () => {
+  const sw = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, platform: 'shopware', checkoutAccess: 'guest', quietOrigins: ['https://app.watchdog.example/'] });
+  assert.deepEqual(sw.decide({ method: 'GET', url: 'https://app.watchdog.example/api/v1/observe/x/config' }), { allow: false, reason: 'quiet' });
+  assert.deepEqual(sw.decide({ method: 'POST', url: 'https://app.watchdog.example/api/v1/observe/x/stages', postData: '{}' }), { allow: false, reason: 'quiet' });
+  assert.equal(sw.decide({ method: 'GET', url: `${store}/checkout/confirm` }).allow, true);
+});

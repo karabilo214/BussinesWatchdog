@@ -2,13 +2,18 @@
 
 namespace App\Support\Stores;
 
+use App\Models\CheckAttempt;
+use App\Models\CheckoutObservationWindow;
 use App\Models\CheckRun;
 use App\Models\CheckScenario;
+use App\Models\CheckStep;
 use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\PaymentAttemptWindow;
 use App\Models\Store;
+use App\Support\Checkout\CheckoutObservation;
 use App\Support\Integrations\ConnectorFreshness;
+use App\Support\Providers\Shopware\ShopwareConnector;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -53,6 +58,13 @@ class StoreCoverage
             ->groupBy('store_id')
             ->pluck('last_end', 'store_id');
         $scenarios = CheckScenario::query()->where('tenant_id', $tenantId)->whereIn('store_id', $storeIds)->get()->keyBy('store_id');
+        $scriptSeen = CheckoutObservationWindow::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('store_id', $storeIds)
+            ->where('script_loaded', '>', 0)
+            ->selectRaw('store_id, max(window_start) as last_seen')
+            ->groupBy('store_id')
+            ->pluck('last_seen', 'store_id');
         $lastRuns = collect($storeIds)->mapWithKeys(fn (string $storeId): array => [$storeId => CheckRun::query()
             ->where('tenant_id', $tenantId)
             ->where('store_id', $storeId)
@@ -113,6 +125,7 @@ class StoreCoverage
                         'last_window_end_at' => $windowEnd === null ? null : Carbon::parse($windowEnd)->toJSON(),
                     ],
                     'browser_checks' => $this->browserCoverage($store, $scenarios->get($store->id), $lastRuns->get($store->id)),
+                    'checkout_script' => $this->scriptCoverage($store, $connector, $scriptSeen->get($store->id), $lastRuns->get($store->id)),
                 ],
                 'last_successful_check_at' => $passedAt === null ? null : Carbon::parse($passedAt)->toJSON(),
                 'active_incident_count' => (int) $incidents->get($store->id, 0),
@@ -125,6 +138,42 @@ class StoreCoverage
     /**
      * @return array<string, mixed>
      */
+    /**
+     * The checkout observation script of the Shopware app (ADR 0057).
+     *
+     * @return array{state: string, last_report_at: ?string}
+     */
+    private function scriptCoverage(Store $store, ?Integration $connector, mixed $lastSeen, ?CheckRun $lastRun): array
+    {
+        if ($store->platform !== 'shopware') {
+            return ['state' => 'not_available', 'last_report_at' => null];
+        }
+
+        if ($connector === null || $connector->provider !== ShopwareConnector::PROVIDER || ($connector->capabilities['connection'] ?? null) !== 'app') {
+            return ['state' => 'needs_app', 'last_report_at' => null];
+        }
+
+        $decision = app(CheckoutObservation::class)->decide($connector->id);
+        $seenAt = $lastSeen === null ? null : Carbon::parse($lastSeen);
+        $missedByCheck = $lastRun !== null && CheckStep::query()
+            ->where('tenant_id', $store->tenant_id)
+            ->whereIn('attempt_id', CheckAttempt::query()->where('run_id', $lastRun->id)->select('id'))
+            ->where('step_code', 'payment_form')
+            ->get()
+            ->contains(fn (CheckStep $step): bool => collect($step->assertions)->contains(fn (array $assertion): bool => ($assertion['code'] ?? null) === 'checkout_script_present' && ($assertion['passed'] ?? true) === false));
+
+        return [
+            'state' => match (true) {
+                ! $decision['observe'] => $decision['reason'],
+                $missedByCheck => 'not_seen_by_check',
+                $seenAt === null => 'waiting',
+                $seenAt->lessThan(Carbon::now()->subHours(self::PAYMENT_ATTEMPTS_QUIET_HOURS)) => 'no_recent_reports',
+                default => 'observing',
+            },
+            'last_report_at' => $seenAt?->toJSON(),
+        ];
+    }
+
     private function browserCoverage(Store $store, ?CheckScenario $scenario, ?CheckRun $lastRun): array
     {
         $state = match (true) {

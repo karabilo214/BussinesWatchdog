@@ -134,6 +134,7 @@ void load();
       <ol class="list-decimal space-y-1 pl-5">
         <li>{{ $t('store.shopware.app_step_upload') }}</li>
         <li>{{ $t('store.shopware.app_step_install') }}</li>
+        <li>{{ $t('store.shopware.app_step_cache') }}</li>
       </ol>
       <p v-if="integration?.health?.app_check_error" class="text-warn">{{ $t('store.shopware.app_not_active_yet') }}</p>
       <p class="text-[13px] text-text-muted" role="status">{{ $t('store.shopware.app_auto_refresh') }}</p>
@@ -219,8 +220,10 @@ void load();
             <li>{{ $t('store.shopware.app_step_download') }}</li>
             <li>{{ $t('store.shopware.app_step_upload') }}</li>
             <li>{{ $t('store.shopware.app_step_install') }}</li>
+        <li>{{ $t('store.shopware.app_step_cache') }}</li>
           </ol>
           <p class="text-[13px] text-text-muted">{{ $t('store.shopware.app_permissions') }}</p>
+          <p class="text-[13px] text-text-muted" data-note="checkout-script">{{ $t('store.shopware.app_script_note') }}</p>
           <p class="text-[13px] text-warn" data-app-version-note>{{ $t('store.shopware.app_version_note') }}</p>
           <div>
             <button type="button" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !form.acknowledged" data-download-app @click="download">{{ $t('store.shopware.app_download') }}</button>

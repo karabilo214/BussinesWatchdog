@@ -138,6 +138,8 @@ Browser checks (ADR 0055, `plugins/shopware-app/tests/browser/browser-e2e.sh`, `
 
 Payment attempts (ADR 0056, `plugins/shopware-app/tests/attempts/attempts-e2e.sh`, `make shopware-attempts-e2e`): prepayment left open → on hold, three failed payments → `CHECKOUT_PAYMENTS_FAILING` opened, re-read unchanged, a paid order resolves it, no personal data stored — PASS on 6.6.10.6 and 6.7.2.2 (dockware).
 
+Checkout observation script (ADR 0057, `plugins/shopware-app/tests/observation/observation-e2e.sh`, `make shopware-observation-e2e`): app 1.1.0 installed from the store's archive, script and templates on the confirm and finish pages (after a cache clear), real shoppers counted, broken submits → `CHECKOUT_SUBMIT_FAILING`, a real order resolves it, the browser check finds the script and is not counted — PASS on 6.6.10.6 and 6.7.2.2 (dockware).
+
 Latest releases (Step 94, self-built with `plugins/shopware-app/tests/build-image.sh`):
 
 | Shopware | Integration key chain | SwagPayPal real chain | App |

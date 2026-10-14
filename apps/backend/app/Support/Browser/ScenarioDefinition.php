@@ -3,7 +3,9 @@
 namespace App\Support\Browser;
 
 use App\Models\CheckScenario;
+use App\Models\Integration;
 use App\Models\Store;
+use App\Support\Providers\Shopware\ShopwareConnector;
 
 class ScenarioDefinition
 {
@@ -142,13 +144,31 @@ class ScenarioDefinition
             'cart_url' => $definition['cart_url'] ?? $origin.($shopware ? '/checkout/cart' : '/cart/'),
             'checkout_url' => $definition['checkout_url'] ?? $origin.($shopware ? '/checkout/confirm' : '/checkout/'),
             'synthetic_location' => $definition['synthetic_location'] ?? null,
+            'expect_checkout_script' => $this->expectsCheckoutScript($store, $access),
             'steps' => $this->steps($store->platform, $access),
             'network_policy' => [
                 'version' => self::NETWORK_POLICY_VERSION,
                 'allowed_origins' => array_values(array_unique(array_merge([$origin], $definition['extra_allowed_origins'] ?? []))),
                 'blocked_operations' => $this->blockedOperations($store->platform),
+                'quiet_origins' => $shopware ? [$this->origin((string) config('app.url'))] : [],
             ],
         ];
+    }
+
+    /**
+     * The checkout observation script (ADR 0057) is expected on the confirm page when the Shopware app is the order
+     * source and the check reaches that page.
+     */
+    public function expectsCheckoutScript(Store $store, ?string $access): bool
+    {
+        return in_array($access, [CheckScenario::ACCESS_TEST_CUSTOMER, CheckScenario::ACCESS_GUEST], true)
+            && Integration::query()
+                ->where('tenant_id', $store->tenant_id)
+                ->where('store_id', $store->id)
+                ->where('provider', ShopwareConnector::PROVIDER)
+                ->where('status', Integration::STATUS_ACTIVE)
+                ->get()
+                ->contains(fn (Integration $integration): bool => ($integration->capabilities['connection'] ?? null) === 'app');
     }
 
     public function origin(string $url): string

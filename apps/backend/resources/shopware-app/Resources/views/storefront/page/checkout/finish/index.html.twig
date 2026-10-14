@@ -1,0 +1,7 @@
+{% sw_extends '@Storefront/storefront/page/checkout/finish/index.html.twig' %}
+
+{% block page_checkout_main_content %}
+    <div id="bw-checkout-observer" data-endpoint="__BW_OBSERVE_ENDPOINT__" data-page="finish" hidden></div>
+    <img src="__BW_OBSERVE_ENDPOINT__/r.gif?page=finish" alt="" width="1" height="1" referrerpolicy="strict-origin" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+    {{ parent() }}
+{% endblock %}

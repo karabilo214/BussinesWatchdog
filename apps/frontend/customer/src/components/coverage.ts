@@ -1,5 +1,5 @@
 import type { Tone } from '@bw/ui';
-import type { BrowserChecksState, ConnectorState, MoneyState, PaymentAttemptsState } from '@/api/types';
+import type { BrowserChecksState, CheckoutScriptState, ConnectorState, MoneyState, PaymentAttemptsState } from '@/api/types';
 
 /** Coverage state → status colour (docs/design/palette.md). Only the healthy state of each part is green. */
 export const CONNECTOR_TONES: Record<ConnectorState, Tone> = {
@@ -34,4 +34,18 @@ export const BROWSER_CHECK_TONES: Record<BrowserChecksState, Tone> = {
   not_configured: 'unknown',
   disabled: 'unknown',
   store_not_verified: 'unknown',
+};
+
+export const CHECKOUT_SCRIPT_TONES: Record<CheckoutScriptState, Tone> = {
+  observing: 'ok',
+  not_seen_by_check: 'warn',
+  no_recent_reports: 'unknown',
+  waiting: 'unknown',
+  not_in_plan: 'unknown',
+  check_does_not_reach_payment: 'unknown',
+  store_not_active: 'unknown',
+  app_not_active: 'unknown',
+  not_a_shopware_app: 'unknown',
+  needs_app: 'unknown',
+  not_available: 'unknown',
 };

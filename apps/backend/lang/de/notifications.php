@@ -33,6 +33,8 @@ return [
         'CHECKOUT_MONITORING_BLOCKED' => 'Die Website lässt den Prüfbrowser nicht zu (Bot-Schutz, CAPTCHA oder Weiterleitung auf eine nicht erlaubte Adresse). Bis der Zugriff erlaubt ist, wird der Weg zum Zahlungsformular nicht geprüft. CAPTCHAs umgehen wir nicht.',
         'CHECKOUT_ADAPTER_UNSUPPORTED' => 'Die Prüfung konnte die Shopseiten nicht erkennen (individuelles Theme oder Checkout). Das bedeutet nicht, dass der Shop defekt ist, aber der Weg zum Zahlungsformular wird noch nicht geprüft.',
         'CHECKOUT_TEST_ACCOUNT_REJECTED' => 'Der Shop hat die Anmeldung des Testkunden-Kontos aus den Prüfeinstellungen nicht akzeptiert (falsche E-Mail oder falsches Passwort, oder das Konto ist deaktiviert oder gelöscht). Solange die Anmeldung nicht funktioniert, werden die Zahlungsarten nicht geprüft. Das bedeutet nicht, dass der Shop defekt ist.',
+        'CHECKOUT_SCRIPT_SILENT' => 'In den letzten :hours Std. wurde die Bestellbestätigungsseite :pages Mal angezeigt, aber das Beobachtungsskript von Business Watchdog hat sich kein einziges Mal gemeldet. Möglicherweise ist JavaScript auf der Checkout-Seite defekt oder das Skript blockiert oder entfernt. Das beweist nicht, dass Kunden nicht bezahlen können.',
+        'CHECKOUT_SUBMIT_FAILING' => 'In den letzten :hours Std. haben Kunden die Bestellung :sends Mal mit «Zahlungspflichtig bestellen» abgeschickt, aber es ist keine neue Bestellung mit Zahlung entstanden und die Danke-Seite wurde nie geöffnet (hängende Absendungen: :stalled, mit Fehler zurück: :returned_with_error). Der Checkout auf der Website ist wahrscheinlich defekt.',
         'default' => 'Für Bestellung :order wurde eine Abweichung in den Zahlungsdaten festgestellt.',
     ],
     'amount' => 'Abweichung: :amount :currency.',
@@ -42,9 +44,10 @@ return [
     ],
     'source' => [
         'reconciliation' => 'Quelle: Abgleich der Shopdaten mit dem verbundenen Zahlungsanbieter.',
-        'payment_attempts' => 'Quelle: Zahlungsversuche auf der Shop-Website (Daten des Shop-Plugins).',
+        'payment_attempts' => 'Quelle: Zahlungsversuche auf der Shop-Website (Bestell- und Zahlungsdaten des Shops).',
         'connector_heartbeat' => 'Quelle: Heartbeats und Sendewarteschlange des Shop-Plugins.',
         'browser_check' => 'Quelle: synthetische Browserprüfung des Kundenwegs, ohne Bestellung.',
+        'checkout_observation' => 'Quelle: Beobachtung der Checkout-Seite in den Browsern der Kunden (nur Zähler der Schritte, keine Kundendaten).',
     ],
     'checked_steps' => 'Geprüft: :steps.',
     'step' => [
@@ -52,6 +55,7 @@ return [
         'provider_transactions' => 'Transaktionen des Zahlungsanbieters',
         'payment_allocations' => 'Zuordnungen von Zahlungen zu Bestellungen',
         'store_checkout_attempts' => 'Zahlungsversuche im Checkout',
+        'checkout_script' => 'Checkout-Seite',
         'connector_heartbeat' => 'Heartbeat des Shop-Plugins',
         'connector_delivery' => 'Datenübertragung des Shop-Plugins',
         'check_product' => 'Produktseite',
@@ -70,6 +74,8 @@ return [
         'monitoring_access' => 'Was zu prüfen ist: Prüfverkehr von Business Watchdog im Bot-Schutz (WAF/CDN) und in den Weiterleitungen erlauben.',
         'adapter' => 'Was zu prüfen ist: Teilen Sie uns mit, welches Theme und welcher Checkout im Shop verwendet werden.',
         'test_account' => 'Was zu prüfen ist: das Testkunden-Konto im Shop sowie E-Mail und Passwort in den Prüfeinstellungen.',
+        'checkout_script' => 'Was zu prüfen ist: Bestellbestätigungsseite und Browser-Konsole auf JavaScript-Fehler prüfen; die Business-Watchdog-App ist installiert und aktiv; Optimierungs-Plugins oder die CSP blockieren ihr Skript nicht.',
+        'checkout_submit' => 'Was zu prüfen ist: eine Testbestellung auf der Website bis zum Ende durchführen, Fehler auf der Seite und in den Logs des Shops und der Zahlungs-Plugins prüfen.',
         'default' => 'Bitte prüfen: Transaktionen beim Zahlungsanbieter und die Bestellung im Shop.',
     ],
     'link' => 'Vorfall öffnen: :link',
@@ -145,6 +151,30 @@ return [
             'recovery' => [
                 'fact' => 'Das Shop-Plugin ist wieder verbunden und überträgt Daten. Prüfungen für den Zeitraum ohne Daten werden neu berechnet.',
                 'restored' => 'Wiederhergestellt: Verbindung zum Shop-Plugin.',
+            ],
+        ],
+        'checkout_observation' => [
+            'subject' => [
+                'opened' => '[:store] :severity: Problem auf der Checkout-Seite',
+                'reopened' => '[:store] :severity: erneut Problem auf der Checkout-Seite',
+                'recovered' => '[:store] Die Checkout-Seite funktioniert wieder',
+            ],
+            'recovery' => [
+                'fact' => 'Die Beobachtung sieht wieder Kunden, die den Checkout abschließen.',
+                'restored' => 'Wiederhergestellt: Checkout auf der Shop-Website.',
+            ],
+            'components' => [
+                'checkout_script' => [
+                    'subject' => [
+                        'opened' => '[:store] Checkout-Beobachtung funktioniert nicht',
+                        'reopened' => '[:store] Checkout-Beobachtung funktioniert erneut nicht',
+                        'recovered' => '[:store] Checkout-Beobachtung funktioniert wieder',
+                    ],
+                    'recovery' => [
+                        'fact' => 'Das Beobachtungsskript meldet sich wieder.',
+                        'restored' => 'Wiederhergestellt: Beobachtung der Checkout-Seite.',
+                    ],
+                ],
             ],
         ],
         'checkout_payment' => [

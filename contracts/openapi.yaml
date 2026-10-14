@@ -3813,6 +3813,56 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/observe/{integration}/config:
+    get:
+      tags: [Checks]
+      operationId: getCheckoutObservationConfig
+      description: "Called by the checkout observation script of the Shopware app from shoppers' browsers on the store's pages (ADR 0057). `observe` is true only when the store is observed (app active, browser check with test customer or guest, plan feature) and the request comes from the store's own origin (`Origin`/`Referer`); then CORS allows that origin. Nothing about the visitor is stored."
+      security: []
+      parameters:
+        - {name: integration, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Decision
+          content:
+            application/json:
+              schema: {type: object, required: [observe], properties: {observe: {type: boolean}}}
+  /api/v1/observe/{integration}/r.gif:
+    get:
+      tags: [Checks]
+      operationId: checkoutObservationRenderBeacon
+      description: "1×1 image shown by the app's templates on the confirm (`page=confirm`, `js=0` in `noscript`) and finish pages; counts shown pages of observed stores from the store's origin. Always answers the image."
+      security: []
+      parameters:
+        - {name: integration, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: page, in: query, required: true, schema: {enum: [confirm, finish]}}
+        - {name: js, in: query, required: false, schema: {const: "0"}}
+      responses:
+        "200":
+          description: Image
+          content:
+            image/gif:
+              schema: {type: string, format: binary}
+  /api/v1/observe/{integration}/stages:
+    post:
+      tags: [Checks]
+      operationId: reportCheckoutObservationStages
+      description: "sendBeacon from the checkout observation script: stage counters only (no form values, no identifiers). Ignored unless the store is observed and the request comes from its origin. At most 20 JavaScript errors per report; counters per 5-minute window are capped."
+      security: []
+      parameters:
+        - {name: integration, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: object
+              properties:
+                page: {enum: [confirm, finish]}
+                stages: {type: array, items: {enum: [script_loaded, form_ready, returned_with_error, submit_clicked, submit_stalled, finish_reached]}}
+                js_errors: {type: integer, minimum: 0}
+      responses:
+        "204": {description: Accepted or ignored}
   /api/v1/webhooks/paddle:
     post:
       tags: [Billing]
@@ -6041,6 +6091,13 @@ components:
             last_run_error_code: {type: [string, "null"]}
             last_run_finished_at: {type: [string, "null"], format: date-time}
             next_due_at: {type: [string, "null"], format: date-time}
+        checkout_script:
+          type: object
+          required: [state, last_report_at]
+          description: Checkout observation script of the Shopware app (ADR 0057).
+          properties:
+            state: {enum: [not_available, needs_app, not_a_shopware_app, app_not_active, store_not_active, check_does_not_reach_payment, not_in_plan, not_seen_by_check, waiting, no_recent_reports, observing]}
+            last_report_at: {type: [string, "null"], format: date-time}
     Store:
       type: object
       required:
@@ -6719,6 +6776,7 @@ components:
             synthetic_token: {type: string, description: Short-lived store and run bound signed token, never logged.}
             platform: {type: string}
             checkout_access: {type: [string, 'null'], enum: [stop_before_sign_in, test_customer, guest, null]}
+            expect_checkout_script: {type: boolean, description: The confirm page should carry the app's observation script (ADR 0057).}
             sign_in:
               type: [object, 'null']
               description: Test customer account for checkout_access test_customer (ADR 0055); only in the lease, never in the stored run snapshot, never logged.
@@ -6750,6 +6808,7 @@ components:
             version: {type: string}
             allowed_origins: {type: array, items: {type: string, format: uri}}
             blocked_operations: {type: array, items: {type: string}}
+            quiet_origins: {type: array, items: {type: string, format: uri}, description: "Origins the check never contacts and does not report (the service's observation endpoints, ADR 0057)."}
     BrowserResult:
       type: object
       additionalProperties: false

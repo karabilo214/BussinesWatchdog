@@ -87,9 +87,10 @@ export function restRoute(parsed) {
  * unknown mutation is blocked rather than trusted. Order placement, order-pay, capture and
  * refund are always blocked, whatever the button text.
  */
-export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false, platform = 'woocommerce', checkoutAccess = null }) {
+export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false, platform = 'woocommerce', checkoutAccess = null, quietOrigins = [] }) {
   const allowed = new Set(allowedOrigins.map((origin) => origin.toLowerCase().replace(/\/$/, '')));
   const store = storeOrigin.toLowerCase().replace(/\/$/, '');
+  const quiet = new Set(quietOrigins.map((origin) => origin.toLowerCase().replace(/\/$/, '')));
 
   function originAllowed(parsed) {
     if (parsed.protocol !== 'https:' && !(insecureLocal && parsed.protocol === 'http:')) {
@@ -261,6 +262,10 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
 
       if (['data:', 'blob:', 'about:'].includes(parsed.protocol)) {
         return { allow: true };
+      }
+
+      if (quiet.has(`${parsed.protocol}//${parsed.host}`.toLowerCase())) {
+        return { allow: false, reason: 'quiet' };
       }
 
       if (!originAllowed(parsed)) {

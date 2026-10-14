@@ -315,3 +315,22 @@ Added:
 Verification: `tests/Feature/Providers/ShopwarePaymentAttemptsTest.php` (4: outcomes and classes, three failures → incident, re-read unchanged, a payment resolves; pending → stuck by the command → late success moves the window; transactions before the connection ignored, coverage; schedule). Backend SQLite 567 passed, 4 skipped; PostgreSQL 18: 571 of 571. Real Shopware 6.6.10.6 and 6.7.2.2 (integration key, Store API orders, payments failed and paid by state transitions): PASS.
 
 Remaining: the owner to confirm ADR 0056 (30-minute stuck time, offline method list); checkout observation script (layer 2) for the test customer and guest ways; the same observation for the WooCommerce REST API connector.
+
+### Step 143: Checkout Observation Script in the Shopware App (ADR 0057)
+
+Status: complete
+
+Why: spec §17.1 layer 2 — notice when real customers can no longer complete a purchase although no order (and so no ADR 0056 attempt) is created. Owner decisions 2026-10-14: only with the test customer or guest check way (ADR 0055); no consent banner, because the script watches nothing but whether payment works and a purchase can be completed; the service decides whether a store is observed.
+
+Added:
+
+- Spike on Shopware 6.7.2.2: an app's storefront JS is added to the theme on install and loaded on every page (`defer`, after `storefront.js`); app Twig templates apply after the shop cache is cleared.
+- App sources for the first time: `apps/backend/resources/shopware-app` (linked as `plugins/shopware-app/src`, so they ship with the backend): `business-watchdog.js` (stage counters only — no storage on the device, no form values, no identifiers, every part guarded) and confirm/finish templates with a marker and a render beacon (`noscript` variant). The store's archive (app 1.1.0) adds them with the store's endpoint.
+- Backend: public `GET /api/v1/observe/{integration}/config`, `GET …/r.gif`, `POST …/stages` (store origin only, rate limited, outside Sanctum's stateful SPA handling — found by the e2e: a shop on `localhost` got a CSRF 419 for the beacon); `checkout_observation_windows` (counters per store and 5 minutes, no visitor data); decision cached a minute: Shopware app active, check way test customer or guest, feature `payment_attempts_script`. Rules `CHECKOUT_SCRIPT_SILENT` (info) and `CHECKOUT_SUBMIT_FAILING` (warning; only orders since the first failing send count) with incidents family `checkout_observation`, notification texts ru/en/de; `checkout:observation-evaluate` every 5 minutes. Coverage `checkout_script` per store. OpenAPI updated.
+- Worker: the Shopware check records `checkout_script_present` when the lease expects the script (`expect_checkout_script`); requests to the service's own origin are dropped quietly (`quiet_origins`), so checks are never counted or reported.
+- Dashboard: coverage row «Наблюдение за оформлением», incident titles and advice; app instructions now say to clear the Shopware cache and what the script counts. Owner panel labels.
+- `plugins/shopware-app/tests/observation/observation-e2e.sh` (`make shopware-observation-e2e`), own database `bw_observation_e2e`.
+
+Verification: `tests/Feature/Checkout/CheckoutObservationTest.php` (5). Backend SQLite 572 passed, 4 skipped; PostgreSQL 18: 576 of 576. Worker 16. Customer 125, owner panel 55; frontend check green. Real Shopware 6.6.10.6 and 6.7.2.2 with the real app archive and real shoppers' browsers: PASS (10 checks each).
+
+Remaining: an update archive for stores already running the app; the owner to confirm ADR 0057 thresholds; the same layer for WooCommerce; scripts that run before the theme's are not observed (Shopware loads app scripts after `storefront.js`).

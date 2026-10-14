@@ -1075,7 +1075,9 @@
         "INTEGRATION_STALE": "Плагин магазина не выходит на связь",
         "INTEGRATION_DELIVERY_DELAYED": "Плагин передаёт данные с задержкой",
         "unknown": "Инцидент {code}",
-        "CHECKOUT_TEST_ACCOUNT_REJECTED": "Магазин не принимает вход тестового покупателя"
+        "CHECKOUT_TEST_ACCOUNT_REJECTED": "Магазин не принимает вход тестового покупателя",
+        "CHECKOUT_SCRIPT_SILENT": "Наблюдение за оформлением заказа не получает данных",
+        "CHECKOUT_SUBMIT_FAILING": "Покупатели отправляют заказ, но он не создаётся"
       },
       "incident_severity": {
         "critical": "критично",

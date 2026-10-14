@@ -1075,7 +1075,9 @@
         "INTEGRATION_STALE": "Das Shop-Plugin meldet sich nicht",
         "INTEGRATION_DELIVERY_DELAYED": "Das Shop-Plugin übermittelt Daten verspätet",
         "unknown": "Vorfall {code}",
-        "CHECKOUT_TEST_ACCOUNT_REJECTED": "Der Shop akzeptiert die Anmeldung des Testkunden nicht"
+        "CHECKOUT_TEST_ACCOUNT_REJECTED": "Der Shop akzeptiert die Anmeldung des Testkunden nicht",
+        "CHECKOUT_SCRIPT_SILENT": "Checkout-Beobachtung erhält keine Daten",
+        "CHECKOUT_SUBMIT_FAILING": "Kunden schicken die Bestellung ab, aber es entsteht keine Bestellung"
       },
       "incident_severity": {
         "critical": "kritisch",

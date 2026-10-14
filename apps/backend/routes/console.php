@@ -22,6 +22,11 @@ Schedule::command('checkout:payment-attempts-stuck')
     ->withoutOverlapping(10)
     ->onOneServer();
 
+Schedule::command('checkout:observation-evaluate')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
 Schedule::command('notifications:remind')
     ->hourly()
     ->withoutOverlapping(10)

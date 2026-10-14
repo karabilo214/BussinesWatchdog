@@ -171,6 +171,21 @@
       "disabled": "Prüfungen ausgeschaltet",
       "store_not_verified": "Domain nicht bestätigt",
       "detail_next": "nächste {time}"
+    },
+    "checkout_script": {
+      "label": "Checkout-Beobachtung",
+      "observing": "aktiv",
+      "not_seen_by_check": "die Prüfung hat das Skript auf der Seite nicht gefunden",
+      "no_recent_reports": "seit einem Tag keine Daten",
+      "waiting": "wartet auf die ersten Kunden",
+      "not_in_plan": "nicht im Tarif",
+      "check_does_not_reach_payment": "erfordert eine Prüfung mit Testkunde oder Gast",
+      "store_not_active": "Shop pausiert",
+      "app_not_active": "App nicht aktiv",
+      "not_a_shopware_app": "nur über die App",
+      "needs_app": "nur bei Anbindung über die App",
+      "not_available": "nicht verfügbar",
+      "detail_report": "letzte Daten {time}"
     }
   },
   "store": {
@@ -376,7 +391,9 @@
       "app_realtime_note": "Neue Bestellungen und Zahlungsstatus kommen sofort; alle 5 Minuten prüft der Dienst zusätzlich auf Änderungen.",
       "app_revoke_warning": "Der Dienst liest keine Bestellungen mehr. Entfernen Sie die App auch in Shopware (Erweiterungen → Meine Erweiterungen).",
       "app_version_note": "Wegen eines eigenen Fehlers kann Shopware 6.6.10.25–6.6.10.29 keine Apps mit Serveranbindung installieren — wählen Sie dort „Integrationsschlüssel“. Unter 6.7 und 6.6 bis 6.6.10.24 funktioniert die App.",
-      "stripe_note": "Der Zahlungsabgleich für Shopware deckt derzeit PayPal (SwagPayPal) ab. Über Stripe oder andere Anbieter bezahlte Bestellungen erscheinen als „Zahlungsart nicht unterstützt“ — ohne falsche Abweichungen."
+      "stripe_note": "Der Zahlungsabgleich für Shopware deckt derzeit PayPal (SwagPayPal) ab. Über Stripe oder andere Anbieter bezahlte Bestellungen erscheinen als „Zahlungsart nicht unterstützt“ — ohne falsche Abweichungen.",
+      "app_step_cache": "Leeren Sie den Shopware-Cache (Einstellungen → System → Caches & Indizes → Cache leeren), damit die Beobachtung auf der Checkout-Seite startet.",
+      "app_script_note": "Die App fügt außerdem den Seiten Bestellbestätigung und «Vielen Dank» ein kleines Beobachtungsskript hinzu. Es zählt nur die Schritte des Checkouts (Seite angezeigt, Bestellung abgeschickt, Bestellung abgeschlossen), verwendet keine Cookies und liest keine Kundendaten. Es arbeitet, wenn die Browserprüfung sich als Testkunde oder Gast anmeldet."
     }
   },
   "errors": {
@@ -598,7 +615,9 @@
       "INTEGRATION_STALE": "Das Shop-Plugin meldet sich nicht",
       "INTEGRATION_DELIVERY_DELAYED": "Das Shop-Plugin übermittelt Daten verspätet",
       "unknown": "Vorfall {code}",
-      "CHECKOUT_TEST_ACCOUNT_REJECTED": "Der Shop akzeptiert die Anmeldung des Testkunden nicht"
+      "CHECKOUT_TEST_ACCOUNT_REJECTED": "Der Shop akzeptiert die Anmeldung des Testkunden nicht",
+      "CHECKOUT_SCRIPT_SILENT": "Checkout-Beobachtung erhält keine Daten",
+      "CHECKOUT_SUBMIT_FAILING": "Kunden schicken die Bestellung ab, aber es entsteht keine Bestellung"
     },
     "advice_title": "Was prüfen",
     "advice": {
@@ -619,7 +638,9 @@
       "INTEGRATION_STALE": "Prüfen Sie, ob die Website läuft und das Plugin Business Watchdog aktiv ist. Das bedeutet keinen Verkaufsstopp, aber solange das Plugin schweigt, sieht der Dienst keine Bestellungen.",
       "INTEGRATION_DELIVERY_DELAYED": "Das Plugin hängt mit der Übermittlung hinterher. Prüfen Sie, ob geplante Aufgaben auf der Website laufen (WP-Cron oder Action Scheduler).",
       "unknown": "Öffnen Sie die Details unten und prüfen Sie den betroffenen Bereich des Shops.",
-      "CHECKOUT_TEST_ACCOUNT_REJECTED": "Prüfen Sie, dass das Testkunden-Konto im Shop existiert und aktiv ist, und aktualisieren Sie E-Mail und Passwort in den Prüfeinstellungen. Das ist kein Shop-Fehler; solange die Anmeldung nicht funktioniert, werden Zahlungsarten nicht geprüft."
+      "CHECKOUT_TEST_ACCOUNT_REJECTED": "Prüfen Sie, dass das Testkunden-Konto im Shop existiert und aktiv ist, und aktualisieren Sie E-Mail und Passwort in den Prüfeinstellungen. Das ist kein Shop-Fehler; solange die Anmeldung nicht funktioniert, werden Zahlungsarten nicht geprüft.",
+      "CHECKOUT_SCRIPT_SILENT": "Die Bestellbestätigungsseite wird angezeigt, aber das Beobachtungsskript schweigt. Prüfen Sie die Browser-Konsole auf der Bestätigungsseite, dass die Business-Watchdog-App aktiv ist und Optimierungs-Plugins oder die CSP sie nicht blockieren. Das beweist nicht, dass Kunden nicht bezahlen können.",
+      "CHECKOUT_SUBMIT_FAILING": "Führen Sie eine Testbestellung bis zum Ende durch und prüfen Sie Fehler auf der Seite und in den Logs des Shops und der Zahlungs-Plugins: «Zahlungspflichtig bestellen» wird abgeschickt, aber es folgen keine neuen Bestellungen und keine Danke-Seite."
     },
     "discrepancy_short": "Abweichung {amount}",
     "last_seen": "zuletzt {time}",

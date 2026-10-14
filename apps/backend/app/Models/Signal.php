@@ -32,6 +32,8 @@ class Signal extends Model
 
     public const TYPE_BROWSER_CHECK = 'browser_check';
 
+    public const TYPE_CHECKOUT_OBSERVATION = 'checkout_observation';
+
     public $timestamps = false;
 
     protected $fillable = [

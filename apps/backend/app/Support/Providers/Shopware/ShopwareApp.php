@@ -28,7 +28,7 @@ class ShopwareApp
 {
     public const APP_NAME = 'BusinessWatchdog';
 
-    public const APP_VERSION = '1.0.0';
+    public const APP_VERSION = '1.1.0';
 
     public const PERMISSIONS = ['order', 'order_transaction', 'order_transaction_capture', 'order_transaction_capture_refund', 'currency', 'payment_method', 'state_machine', 'state_machine_state'];
 
@@ -310,11 +310,39 @@ XML;
         $zip = new ZipArchive;
         $zip->open($path, ZipArchive::OVERWRITE);
         $zip->addFromString(self::APP_NAME.'/manifest.xml', $xml);
+
+        foreach ($this->sourceFiles() as $relative => $contents) {
+            $zip->addFromString(self::APP_NAME.'/'.$relative, str_replace('__BW_OBSERVE_ENDPOINT__', htmlspecialchars(url('/api/v1/observe/'.$integration->id), ENT_QUOTES), $contents));
+        }
+
         $zip->close();
         $bytes = (string) file_get_contents($path);
         @unlink($path);
 
         return $bytes;
+    }
+
+    /**
+     * The app's storefront files (`resources/shopware-app`, linked as `plugins/shopware-app/src`): the checkout
+     * observation script and the templates that place it (ADR 0057).
+     *
+     * @return array<string, string>
+     */
+    public function sourceFiles(): array
+    {
+        $root = resource_path('shopware-app');
+        $files = [];
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
+
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $files[str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1))] = (string) file_get_contents($file->getPathname());
+            }
+        }
+
+        ksort($files);
+
+        return $files;
     }
 
     /**

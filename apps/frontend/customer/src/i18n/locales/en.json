@@ -171,6 +171,21 @@
       "disabled": "checks turned off",
       "store_not_verified": "domain not verified",
       "detail_next": "next {time}"
+    },
+    "checkout_script": {
+      "label": "Checkout observation",
+      "observing": "working",
+      "not_seen_by_check": "the check did not find the script on the page",
+      "no_recent_reports": "no data for a day",
+      "waiting": "waiting for the first customers",
+      "not_in_plan": "not in your plan",
+      "check_does_not_reach_payment": "needs a check with a test customer or guest",
+      "store_not_active": "store paused",
+      "app_not_active": "app not active",
+      "not_a_shopware_app": "app only",
+      "needs_app": "only when connected through the app",
+      "not_available": "not available",
+      "detail_report": "last data {time}"
     }
   },
   "store": {
@@ -376,7 +391,9 @@
       "app_realtime_note": "New orders and payment status changes arrive right away; every 5 minutes the service also checks for changes.",
       "app_revoke_warning": "The service stops reading orders. Remove the app in Shopware too (Extensions → My extensions).",
       "app_version_note": "Because of its own bug, Shopware 6.6.10.25–6.6.10.29 cannot install apps that connect to a server — on those versions choose \"Integration key\". The app works on 6.7 and on 6.6 up to 6.6.10.24.",
-      "stripe_note": "Money checks for Shopware currently cover PayPal (SwagPayPal). Orders paid through Stripe or other providers are shown as \"payment method not supported\" — no false discrepancies."
+      "stripe_note": "Money checks for Shopware currently cover PayPal (SwagPayPal). Orders paid through Stripe or other providers are shown as \"payment method not supported\" — no false discrepancies.",
+      "app_step_cache": "Clear the Shopware cache (Settings → System → Caches & indexes → Clear cache) so that checkout observation starts on the checkout page.",
+      "app_script_note": "The app also adds a small observation script to the order confirmation and «Thank you» pages. It only counts checkout stages (page shown, order sent, order placed), uses no cookies and reads no shopper data. It works when the browser check signs in as a test customer or a guest."
     }
   },
   "errors": {
@@ -598,7 +615,9 @@
       "INTEGRATION_STALE": "The store plugin is not reporting",
       "INTEGRATION_DELIVERY_DELAYED": "The store plugin is sending data late",
       "unknown": "Incident {code}",
-      "CHECKOUT_TEST_ACCOUNT_REJECTED": "The shop does not accept the test customer sign-in"
+      "CHECKOUT_TEST_ACCOUNT_REJECTED": "The shop does not accept the test customer sign-in",
+      "CHECKOUT_SCRIPT_SILENT": "Checkout observation receives no data",
+      "CHECKOUT_SUBMIT_FAILING": "Customers submit the order, but no order is created"
     },
     "advice_title": "What to check",
     "advice": {
@@ -619,7 +638,9 @@
       "INTEGRATION_STALE": "Check that the site is up and the Business Watchdog plugin is active. This does not mean sales stopped, but while the plugin is silent the service cannot see orders.",
       "INTEGRATION_DELIVERY_DELAYED": "The plugin is behind with sending data. Check that scheduled tasks run on the site (WP-Cron or Action Scheduler).",
       "unknown": "Open the details below and check the affected part of the store.",
-      "CHECKOUT_TEST_ACCOUNT_REJECTED": "Check that the test customer account exists in the shop and is active, and update the e-mail and password in the check settings. This is not a shop failure; until signing in works, payment methods are not checked."
+      "CHECKOUT_TEST_ACCOUNT_REJECTED": "Check that the test customer account exists in the shop and is active, and update the e-mail and password in the check settings. This is not a shop failure; until signing in works, payment methods are not checked.",
+      "CHECKOUT_SCRIPT_SILENT": "The order confirmation page is shown, but the observation script is silent. Check the browser console on the confirmation page, that the Business Watchdog app is active and that optimisation plugins or the CSP do not block it. This does not prove that customers cannot pay.",
+      "CHECKOUT_SUBMIT_FAILING": "Place a test order to the end and look at errors on the page and in the logs of the shop and its payment plugins: «Submit order» is sent, but no new orders and no «Thank you» page follow."
     },
     "discrepancy_short": "discrepancy {amount}",
     "last_seen": "last seen {time}",

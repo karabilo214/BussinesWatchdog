@@ -313,7 +313,7 @@ export function createShopwareAdapter() {
       throw new StepOutcome('inconclusive', 'selector_changed', 'after_guest_registration_unknown_page');
     },
 
-    async payment_form(page, step) {
+    async payment_form(page, step, context) {
       if ((await pageKind(page, step.timeout_ms)) !== 'confirm') {
         throw new StepOutcome('inconclusive', 'selector_changed', 'confirm_page_not_reached');
       }
@@ -334,7 +334,14 @@ export function createShopwareAdapter() {
         throw SITE('order_submit_unavailable');
       }
 
-      return [{ code: 'payment_method_available', passed: true, detail_code: `methods_${Math.min(methods, 99)}` }];
+      const assertions = [{ code: 'payment_method_available', passed: true, detail_code: `methods_${Math.min(methods, 99)}` }];
+
+      if (context.scenario.expect_checkout_script) {
+        const script = await page.evaluate(() => window.BusinessWatchdogCheckout?.page ?? null).catch(() => null);
+        assertions.push({ code: 'checkout_script_present', passed: script === 'confirm', detail_code: script === null ? 'script_missing' : `page_${script}` });
+      }
+
+      return assertions;
     },
 
     /**

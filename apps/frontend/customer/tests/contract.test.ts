@@ -3,13 +3,14 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import en from '@/i18n/locales/en.json';
 import type { Tone } from '@bw/ui';
-import { BROWSER_CHECK_TONES, CONNECTOR_TONES, MONEY_TONES, PAYMENT_ATTEMPTS_TONES } from '@/components/coverage';
+import { BROWSER_CHECK_TONES, CHECKOUT_SCRIPT_TONES, CONNECTOR_TONES, MONEY_TONES, PAYMENT_ATTEMPTS_TONES } from '@/components/coverage';
 
 const HEALTHY: Record<string, string[]> = {
   connector: ['fresh'],
   money: ['reconciling'],
   payment_attempts: ['observing'],
   browser_checks: ['passing'],
+  checkout_script: ['observing'],
 };
 
 /** Enum values of StoreCoverage.<part>.state in contracts/openapi.yaml. */
@@ -45,6 +46,7 @@ const TONES: Record<string, Record<string, Tone>> = {
   money: MONEY_TONES,
   payment_attempts: PAYMENT_ATTEMPTS_TONES,
   browser_checks: BROWSER_CHECK_TONES,
+  checkout_script: CHECKOUT_SCRIPT_TONES,
 };
 
 describe('store coverage states', () => {

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import type { StoreCoverage } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge, type Tone } from '@bw/ui';
-import { BROWSER_CHECK_TONES, CONNECTOR_TONES, MONEY_TONES, PAYMENT_ATTEMPTS_TONES } from './coverage';
+import { BROWSER_CHECK_TONES, CHECKOUT_SCRIPT_TONES, CONNECTOR_TONES, MONEY_TONES, PAYMENT_ATTEMPTS_TONES } from './coverage';
 
 const props = defineProps<{ coverage: StoreCoverage }>();
 const { t } = useI18n();
@@ -20,6 +20,16 @@ interface Row {
 
 const rows = computed<Row[]>(() => {
   const coverage = props.coverage;
+
+  const script = coverage.checkout_script && coverage.checkout_script.state !== 'not_available'
+    ? [{
+        key: 'checkout_script',
+        label: t('coverage.checkout_script.label'),
+        tone: CHECKOUT_SCRIPT_TONES[coverage.checkout_script.state],
+        state: t(`coverage.checkout_script.${coverage.checkout_script.state}`),
+        detail: coverage.checkout_script.last_report_at ? t('coverage.checkout_script.detail_report', { time: dateTime(coverage.checkout_script.last_report_at) }) : null,
+      }]
+    : [];
 
   return [
     {
@@ -47,6 +57,7 @@ const rows = computed<Row[]>(() => {
       state: t(`coverage.payment_attempts.${coverage.payment_attempts.state}`),
       detail: coverage.payment_attempts.last_window_end_at ? t('coverage.payment_attempts.detail_window', { time: dateTime(coverage.payment_attempts.last_window_end_at) }) : null,
     },
+    ...script,
     {
       key: 'browser_checks',
       label: t('coverage.browser_checks.label'),

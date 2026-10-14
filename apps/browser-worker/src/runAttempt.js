@@ -82,6 +82,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     insecureLocal,
     platform: scenario.platform ?? 'woocommerce',
     checkoutAccess: scenario.checkout_access ?? null,
+    quietOrigins: lease.network_policy.quiet_origins ?? [],
   });
   const deadline = new Date(lease.absolute_deadline_at).getTime() - 5000;
   const errors = createErrorLog();
@@ -124,6 +125,12 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     await context.route('**/*', async (route) => {
       const request = route.request();
       const decision = policy.decide({ url: request.url(), method: request.method(), postData: request.postData() });
+
+      if (decision.reason === 'quiet') {
+        await route.abort('blockedbyclient');
+
+        return;
+      }
 
       if (decision.allow) {
         if (scenario.synthetic_token && policy.party(request.url()) === 'first') {

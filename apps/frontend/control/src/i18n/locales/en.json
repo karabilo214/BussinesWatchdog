@@ -1075,7 +1075,9 @@
         "INTEGRATION_STALE": "The store plugin is not reporting",
         "INTEGRATION_DELIVERY_DELAYED": "The store plugin is sending data late",
         "unknown": "Incident {code}",
-        "CHECKOUT_TEST_ACCOUNT_REJECTED": "The shop does not accept the test customer sign-in"
+        "CHECKOUT_TEST_ACCOUNT_REJECTED": "The shop does not accept the test customer sign-in",
+        "CHECKOUT_SCRIPT_SILENT": "Checkout observation receives no data",
+        "CHECKOUT_SUBMIT_FAILING": "Customers submit the order, but no order is created"
       },
       "incident_severity": {
         "critical": "critical",

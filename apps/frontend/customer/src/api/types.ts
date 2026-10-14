@@ -28,6 +28,18 @@ export interface AuthSession {
 export type ConnectorState = 'not_connected' | 'warming_up' | 'fresh' | 'stale' | 'partial';
 export type MoneyState = 'provider_not_connected' | 'store_not_connected' | 'store_data_stale' | 'reconciling';
 export type PaymentAttemptsState = 'store_not_connected' | 'store_data_stale' | 'no_attempts_seen' | 'no_recent_attempts' | 'observing';
+export type CheckoutScriptState =
+  | 'not_available'
+  | 'needs_app'
+  | 'not_a_shopware_app'
+  | 'app_not_active'
+  | 'store_not_active'
+  | 'check_does_not_reach_payment'
+  | 'not_in_plan'
+  | 'not_seen_by_check'
+  | 'waiting'
+  | 'no_recent_reports'
+  | 'observing';
 export type BrowserChecksState =
   | 'store_not_verified'
   | 'disabled'
@@ -42,6 +54,7 @@ export interface StoreCoverage {
   connector: { state: ConnectorState; provider: string | null; last_heartbeat_at: string | null; last_sync_at?: string | null; plugin_version: string | null };
   money: { state: MoneyState; providers: { provider: string; status: string }[] };
   payment_attempts: { state: PaymentAttemptsState; last_window_end_at: string | null };
+  checkout_script?: { state: CheckoutScriptState; last_report_at: string | null };
   browser_checks: {
     state: BrowserChecksState;
     last_run_status: string | null;

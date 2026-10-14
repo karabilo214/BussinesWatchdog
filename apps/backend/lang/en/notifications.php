@@ -33,6 +33,8 @@ return [
         'CHECKOUT_MONITORING_BLOCKED' => 'The site does not let the check browser in (bot protection, CAPTCHA or a redirect to a non-allowed address). Until access is allowed, the path to the payment form is not checked. We do not bypass CAPTCHAs.',
         'CHECKOUT_ADAPTER_UNSUPPORTED' => 'The check could not recognise the store pages (custom theme or checkout). This does not mean the store is broken, but the path to the payment form is not checked yet.',
         'CHECKOUT_TEST_ACCOUNT_REJECTED' => 'The shop did not accept the sign-in of the test customer account set in the check settings (wrong e-mail or password, or the account is disabled or deleted). Until signing in works, payment methods are not checked. This does not mean the shop is broken.',
+        'CHECKOUT_SCRIPT_SILENT' => 'In the last :hours h the order confirmation page was shown :pages times, but the Business Watchdog observation script never reported. JavaScript on the checkout page may be broken, or the script blocked or removed. This does not prove that customers cannot pay.',
+        'CHECKOUT_SUBMIT_FAILING' => 'In the last :hours h customers sent the order with «Submit order» :sends times, but no new order with a payment appeared and the «Thank you» page never opened (stalled sends: :stalled, returned with an error: :returned_with_error). The checkout on the site is probably broken.',
         'default' => 'A payment data discrepancy was found for order :order.',
     ],
     'amount' => 'Discrepancy: :amount :currency.',
@@ -42,9 +44,10 @@ return [
     ],
     'source' => [
         'reconciliation' => 'Source: reconciliation of store data against the connected payment provider.',
-        'payment_attempts' => 'Source: payment attempts on the store website (store plugin data).',
+        'payment_attempts' => 'Source: payment attempts on the store website (the store\'s order and payment data).',
         'connector_heartbeat' => 'Source: heartbeats and the delivery queue of the store plugin.',
         'browser_check' => 'Source: synthetic browser check of the customer path, without placing an order.',
+        'checkout_observation' => 'Source: observation of the checkout page in shoppers\' browsers (stage counters only, no shopper data).',
     ],
     'checked_steps' => 'Checked: :steps.',
     'step' => [
@@ -52,6 +55,7 @@ return [
         'provider_transactions' => 'payment provider transactions',
         'payment_allocations' => 'payment-to-order links',
         'store_checkout_attempts' => 'payment attempts at checkout',
+        'checkout_script' => 'checkout page',
         'connector_heartbeat' => 'store plugin heartbeat',
         'connector_delivery' => 'store plugin data delivery',
         'check_product' => 'product page',
@@ -70,6 +74,8 @@ return [
         'monitoring_access' => 'What to check: allow Business Watchdog check traffic in your bot protection (WAF/CDN) and redirect settings.',
         'adapter' => 'What to check: tell us which theme and checkout the store uses.',
         'test_account' => 'What to check: the test customer account in the shop and the e-mail and password in the check settings.',
+        'checkout_script' => 'What to check: open the order confirmation page and the browser console for JavaScript errors; the Business Watchdog app is installed and active; optimisation plugins or the CSP do not block its script.',
+        'checkout_submit' => 'What to check: place a test order on the site to the end, look at errors on the page and in the logs of the shop and its payment plugins.',
         'default' => 'What to check: payment provider transactions and the store order.',
     ],
     'link' => 'Open incident: :link',
@@ -145,6 +151,30 @@ return [
             'recovery' => [
                 'fact' => 'The store plugin is back and delivering data. Checks for the period without data will be recalculated.',
                 'restored' => 'Restored: connection to the store plugin.',
+            ],
+        ],
+        'checkout_observation' => [
+            'subject' => [
+                'opened' => '[:store] :severity: problem on the checkout page',
+                'reopened' => '[:store] :severity: problem on the checkout page again',
+                'recovered' => '[:store] The checkout page works again',
+            ],
+            'recovery' => [
+                'fact' => 'Observation again sees customers completing the checkout.',
+                'restored' => 'Restored: checkout on the store website.',
+            ],
+            'components' => [
+                'checkout_script' => [
+                    'subject' => [
+                        'opened' => '[:store] Checkout observation is not working',
+                        'reopened' => '[:store] Checkout observation is not working again',
+                        'recovered' => '[:store] Checkout observation works again',
+                    ],
+                    'recovery' => [
+                        'fact' => 'The observation script reports again.',
+                        'restored' => 'Restored: observation of the checkout page.',
+                    ],
+                ],
             ],
         ],
         'checkout_payment' => [
