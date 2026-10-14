@@ -235,6 +235,31 @@ class PublicStorefrontCheckTest extends TestCase
         $this->get('/en/check-store/'.$token)->assertNotFound();
     }
 
+    public function test_localhost_can_submit_repeated_public_checks_when_dev_bypass_is_enabled(): void
+    {
+        config()->set('watchdog.public_check.bypass_limits_on_localhost', true);
+
+        $firstAnswer = $this->captchaAnswer('ru');
+        $this->withServerVariables(['HTTP_HOST' => 'localhost', 'REMOTE_ADDR' => '127.0.0.1'])->post('/ru/check-store', [
+            'url' => 'https://shop.example.com',
+            'captcha_answer' => $firstAnswer,
+        ])->assertRedirect();
+
+        $secondAnswer = $this->captchaAnswer('ru');
+        $this->withServerVariables(['HTTP_HOST' => 'localhost', 'REMOTE_ADDR' => '127.0.0.1'])->post('/ru/check-store', [
+            'url' => 'https://shop.example.com/again',
+            'captcha_answer' => $secondAnswer,
+        ])->assertRedirect();
+
+        $thirdAnswer = $this->captchaAnswer('ru');
+        $this->withServerVariables(['HTTP_HOST' => 'localhost', 'REMOTE_ADDR' => '127.0.0.1'])->post('/ru/check-store', [
+            'url' => 'https://other.example.com',
+            'captcha_answer' => $thirdAnswer,
+        ])->assertRedirect();
+
+        $this->assertDatabaseCount('public_storefront_checks', 3);
+    }
+
     /**
      * @param  array<string, string>  $extra
      * @return array<string, string>

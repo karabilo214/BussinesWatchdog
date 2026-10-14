@@ -140,6 +140,7 @@ return [
     'public_check' => [
         'captcha_ttl_minutes' => (int) env('WATCHDOG_PUBLIC_CHECK_CAPTCHA_TTL_MINUTES', 10),
         'verify_dns' => (bool) env('WATCHDOG_PUBLIC_CHECK_VERIFY_DNS', true),
+        'bypass_limits_on_localhost' => (bool) env('WATCHDOG_PUBLIC_CHECK_BYPASS_LIMITS_ON_LOCALHOST', env('APP_ENV') === 'local'),
         'submit_attempts_per_hour' => (int) env('WATCHDOG_PUBLIC_CHECK_SUBMIT_ATTEMPTS_PER_HOUR', 5),
         'host_cooldown_days' => (int) env('WATCHDOG_PUBLIC_CHECK_HOST_COOLDOWN_DAYS', 30),
         'ip_cooldown_days' => (int) env('WATCHDOG_PUBLIC_CHECK_IP_COOLDOWN_DAYS', 10),

@@ -35,23 +35,26 @@ class PublicStorefrontCheckService
     {
         $ipHash = $this->ipHash((string) $request->ip());
         $submitKey = 'public-storefront-submit|'.$ipHash;
+        $bypassAttemptLimits = $this->bypassAttemptLimits($request);
 
-        if (RateLimiter::tooManyAttempts($submitKey, (int) config('watchdog.public_check.submit_attempts_per_hour'))) {
+        if (! $bypassAttemptLimits && RateLimiter::tooManyAttempts($submitKey, (int) config('watchdog.public_check.submit_attempts_per_hour'))) {
             throw new PublicStorefrontCheckRejected('submit_rate_limited', 429);
         }
 
-        RateLimiter::hit($submitKey, 3600);
+        if (! $bypassAttemptLimits) {
+            RateLimiter::hit($submitKey, 3600);
+        }
 
         $normalized = $this->normalize($url);
         $now = Carbon::now();
         $hostCutoff = $now->copy()->subDays((int) config('watchdog.public_check.host_cooldown_days'));
         $ipCutoff = $now->copy()->subDays((int) config('watchdog.public_check.ip_cooldown_days'));
 
-        if (PublicStorefrontCheck::query()->where('normalized_origin', $normalized['origin'])->where('created_at', '>=', $hostCutoff)->exists()) {
+        if (! $bypassAttemptLimits && PublicStorefrontCheck::query()->where('normalized_origin', $normalized['origin'])->where('created_at', '>=', $hostCutoff)->exists()) {
             throw new PublicStorefrontCheckRejected('host_recently_checked', 409);
         }
 
-        if (PublicStorefrontCheck::query()->where('ip_hash', $ipHash)->where('created_at', '>=', $ipCutoff)->exists()) {
+        if (! $bypassAttemptLimits && PublicStorefrontCheck::query()->where('ip_hash', $ipHash)->where('created_at', '>=', $ipCutoff)->exists()) {
             throw new PublicStorefrontCheckRejected('ip_recently_checked', 429);
         }
 
@@ -207,6 +210,19 @@ class PublicStorefrontCheckService
     private function ipHash(string $ip): string
     {
         return hash_hmac('sha256', $ip, (string) config('app.key'));
+    }
+
+    private function bypassAttemptLimits(Request $request): bool
+    {
+        if (! (bool) config('watchdog.public_check.bypass_limits_on_localhost') || app()->environment('production')) {
+            return false;
+        }
+
+        $host = strtolower(trim($request->getHost(), '[]'));
+        $ip = (string) $request->ip();
+
+        return in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+            || in_array($ip, ['127.0.0.1', '::1', '::ffff:127.0.0.1'], true);
     }
 
     private function expireQueuedCheck(PublicStorefrontCheck $check): bool
