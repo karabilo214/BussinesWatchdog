@@ -152,6 +152,7 @@ test('public storefront checks allow store cart-add and third-party subrequests 
 
   assert.equal(pub.decide({ method: 'GET', url: `${store}/` }).allow, true);
   assert.equal(pub.decide({ method: 'GET', url: `${wwwStore}/` }).allow, true);
+  assert.equal(pub.party(`${wwwStore}/product/example`), 'first');
   assert.equal(pub.decide({ method: 'GET', url: `${store}/checkout` }).allow, true);
   assert.equal(pub.decide({ method: 'GET', url: 'https://cdn.example.test/app.css' }).allow, true);
   assert.equal(pub.decide({ method: 'GET', url: 'https://cdn.example.test/', isNavigation: true }).allow, false);
@@ -159,7 +160,14 @@ test('public storefront checks allow store cart-add and third-party subrequests 
   assert.equal(pub.decide({ method: 'POST', url: `${wwwStore}/?wc-ajax=add_to_cart`, postData: 'product_id=10' }).allow, true);
   assert.equal(pub.decide({ method: 'POST', url: `${store}/product/x/`, postData: 'quantity=1&add-to-cart=10' }).allow, true);
   assert.equal(pub.decide({ method: 'POST', url: `${store}/wp-json/wc/store/v1/cart/add-item`, postData: '{"id":10}' }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/wp-json/wc/store/v1/batch`, postData: JSON.stringify({ requests: [{ path: '/wc/store/v1/cart', method: 'GET' }, { path: '/wc/store/v1/products', method: 'GET' }] }) }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/wp-json/wc/store/v1/batch`, postData: JSON.stringify({ requests: [{ path: '/wc/store/v1/cart/add-item', method: 'POST' }] }) }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/wp-json/wc/store/v1/batch`, postData: JSON.stringify({ requests: [{ path: '/wc/store/v1/cart', method: 'GET' }, { path: '/wc/store/v1/checkout', method: 'POST' }] }) }).allow, false);
   assert.equal(pub.decide({ method: 'POST', url: `${store}/checkout/line-item/add`, postData: multipart([[`lineItems[${lineItem}][quantity]`, '1']]) }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/cdn-cgi/rum`, postData: '{}' }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/cdn-cgi/challenge-platform/h/g/jsd/oneshot/x`, postData: '{}' }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/cookie-consent/accept`, postData: 'groups=all' }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/cookie-consent/allow-all`, postData: '' }).allow, true);
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/?wc-ajax=update_order_review`, postData: 'security=x' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/checkout/order`, postData: 'tos=on' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/account/login`, postData: 'username=a&password=b' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });

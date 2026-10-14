@@ -196,7 +196,11 @@ class PublicStorefrontCheckTest extends TestCase
                 'redaction_version' => 'r1',
                 'relevant_errors' => [
                     ['type' => 'console_error', 'message_code' => 'Uncaught TypeError', 'step_code' => 'public_checkout'],
+                    ['type' => 'console_warning', 'party' => 'first', 'message_code' => 'Deprecated API', 'step_code' => 'public_home'],
                     ['type' => 'request_failed', 'party' => 'third', 'origin' => 'https://www.google-analytics.com', 'path' => '/g/collect', 'message_code' => 'ERR_ABORTED'],
+                    ['type' => 'request_failed', 'party' => 'first', 'origin' => 'https://store.example.com', 'path' => '/product/image.png', 'message_code' => 'ERR_ABORTED'],
+                    ['type' => 'console_error', 'party' => 'first', 'message_code' => 'Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector'],
+                    ['type' => 'request_failed', 'party' => 'first', 'origin' => 'https://store.example.com', 'path' => '/wc/store/v1/cart', 'message_code' => 'ERR_CONNECTION_RESET'],
                 ],
                 'detected_platform' => 'woocommerce_hint',
                 'public_audit' => [
@@ -223,11 +227,14 @@ class PublicStorefrontCheckTest extends TestCase
             ->assertOk()
             ->assertSee('Public path reached checkout')
             ->assertSee('Looks like: WooCommerce')
-            ->assertSee('Categories: 12. Products: 48.')
+            ->assertSee('To categories: 12. To products: 48.')
             ->assertSee('Add-to-cart works')
             ->assertSee('Reached customer details form')
             ->assertSee('Uncaught TypeError')
+            ->assertSee('Console warning')
+            ->assertSee('ERR_CONNECTION_RESET')
             ->assertDontSee('ERR_ABORTED')
+            ->assertDontSee('ERR_BLOCKED_BY_CLIENT')
             ->assertDontSee('google-analytics.com')
             ->assertSee('/en/check-store/'.$token.'/artifacts/'.$artifact, false);
         $this->get('/en/check-store/'.$token.'/artifacts/'.$artifact)

@@ -4,6 +4,7 @@ import { ADAPTER_VERSION as PUBLIC_STOREFRONT_ADAPTER, createPublicStorefrontAda
 import { ADAPTER_VERSION as SHOPWARE_ADAPTER, createShopwareAdapter } from './adapter/shopware.js';
 import { ADAPTER_VERSION as WOOCOMMERCE_ADAPTER, createWooCommerceAdapter } from './adapter/woocommerce.js';
 import { createNetworkPolicy } from './networkPolicy.js';
+import { errorSourceUrl, publicConsoleFinding, reportableRequestFailure } from './publicDiagnostics.js';
 import { REDACTION_VERSION, errorName, failureCode, redactUrl } from './redact.js';
 
 const MAX_ERRORS = 100;
@@ -189,9 +190,25 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     const page = await context.newPage();
     const started = new Map();
 
-    page.on('pageerror', (error) => errors.add({ type: 'js_error', party: 'first', step_code: state.stepCode ?? 'setup', message_code: errorName(error) }));
+    page.on('pageerror', (error) => {
+      const source = errorSourceUrl(error);
+      const location = source ? redactUrl(source) : {};
+      errors.add({ type: 'js_error', party: source ? policy.party(source) : 'first', ...location, step_code: state.stepCode ?? 'setup', message_code: errorName(error) });
+    });
     page.on('console', (message) => {
       if (!['error', 'warning'].includes(message.type())) {
+        return;
+      }
+
+      if (scenario.platform === 'public') {
+        const source = message.location()?.url;
+        const party = source ? policy.party(source) : 'first';
+        const finding = publicConsoleFinding(message, party);
+
+        if (finding !== null) {
+          errors.add({ type: `console_${message.type()}`, party, ...(source ? redactUrl(source) : {}), step_code: state.stepCode ?? 'setup', message_code: finding });
+        }
+
         return;
       }
 
@@ -201,12 +218,14 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     page.on('requestfailed', (request) => {
       const code = failureCode(request.failure()?.errorText);
 
-      if (code === 'ERR_BLOCKED_BY_CLIENT') {
+      const party = policy.party(request.url());
+
+      if (scenario.platform === 'public' ? !reportableRequestFailure(code, party, request.resourceType()) : code === 'ERR_BLOCKED_BY_CLIENT') {
         return;
       }
 
       const { origin, path } = redactUrl(request.url());
-      errors.add({ type: 'request_failed', party: policy.party(request.url()), origin, path, step_code: state.stepCode ?? 'setup', message_code: code });
+      errors.add({ type: 'request_failed', party, origin, path, step_code: state.stepCode ?? 'setup', message_code: code });
     });
     page.on('response', (response) => {
       const request = response.request();
@@ -371,13 +390,17 @@ async function waitForVisualReady(page) {
       })
       .slice(0, 30);
 
+    for (const image of images) {
+      image.loading = 'eager';
+    }
+
     await Promise.all(images.map((image) => {
       if (image.complete && image.naturalWidth > 0) {
         return Promise.resolve();
       }
 
       if (typeof image.decode === 'function') {
-        return image.decode().catch(() => null);
+        return Promise.race([image.decode().catch(() => null), new Promise((resolve) => setTimeout(resolve, 1800))]);
       }
 
       return new Promise((resolve) => {

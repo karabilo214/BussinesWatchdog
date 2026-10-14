@@ -257,6 +257,18 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
       return 'unknown_mutation';
     }
 
+    if (/^\/cdn-cgi\/(?:rum\/?$|challenge-platform\/)/.test(parsed.pathname)
+      || /^\/cookie-consent\/(?:accept|allow-all|allow-cookie-group|allow-only-functional)\/?$/.test(parsed.pathname)) {
+      return null;
+    }
+
+    const route = restRoute(parsed);
+    const storeApi = route === null ? null : STORE_API.exec(route);
+
+    if (storeApi !== null && storeApi[1] === 'batch') {
+      return classifyPublicBatch(postData);
+    }
+
     const shopware = classifyShopwareMutation(parsed, postData);
 
     if (shopware === null && /\/checkout\/line-item\/add\/?$/.test(parsed.pathname)) {
@@ -267,8 +279,6 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
 
     if (wc === null) {
       const wcAjax = parsed.searchParams.get('wc-ajax');
-      const route = restRoute(parsed);
-      const storeApi = route === null ? null : STORE_API.exec(route);
       const fields = formFields(postData);
 
       if (wcAjax === 'add_to_cart' || (storeApi !== null && /^cart\/add-item\/?$/.test(storeApi[1])) || fields.has('add-to-cart')) {
@@ -277,6 +287,33 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
     }
 
     return 'forbidden_mutation';
+  }
+
+  function classifyPublicBatch(postData) {
+    try {
+      const requests = JSON.parse(postData ?? '')?.requests;
+
+      if (!Array.isArray(requests) || requests.length === 0 || requests.length > 20) {
+        return 'forbidden_mutation';
+      }
+
+      for (const inner of requests) {
+        const path = String(inner?.path ?? '').split('?')[0];
+        const endpoint = STORE_API.exec(path)?.[1];
+        const verb = String(inner?.method ?? '').toUpperCase();
+
+        if (endpoint === undefined || !(
+          (READ_METHODS.has(verb) && /^(?:cart|checkout|products)(?:\/|$)/.test(endpoint))
+          || (verb === 'POST' && /^cart\/add-item\/?$/.test(endpoint))
+        )) {
+          return 'forbidden_mutation';
+        }
+      }
+
+      return null;
+    } catch {
+      return 'forbidden_mutation';
+    }
   }
 
   return {
@@ -356,7 +393,7 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
       try {
         const origin = originOf(url);
 
-        if (origin === store) {
+        if (origin === store || (platform === 'public' && publicStoreOrigins.has(origin))) {
           return 'first';
         }
 

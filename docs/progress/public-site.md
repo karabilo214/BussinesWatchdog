@@ -150,3 +150,16 @@ Status: complete
 - The public result page keeps noisy third-party `request_failed`/`http_5xx` entries out of the customer-facing error cards while preserving first-party checkout errors and JavaScript/console errors.
 
 Verification: browser-worker `npm test` (22 passed); backend `PublicStorefrontCheckTest` (4 passed, 153 assertions).
+
+### Step 150: Reliable Public Cart and Checkout Evidence
+
+Status: complete for supported public WooCommerce and Shopware storefronts
+
+- Browser diagnostics now discard navigation-cancelled `ERR_ABORTED` and Chromium's `ERR_BLOCKED_BY_CLIENT` resource messages. First-party transport failures, HTTP 5xx, JavaScript exceptions and console warnings remain visible with a redacted source path when available. A store's allowed `www` and apex origins are both first-party. The result page also filters legacy noisy diagnostics and translates error types in ru/en/de.
+- Discovery follows catalog pagination within the visit budget, recognises Shopware product cards with custom URLs, excludes product tags and listing pages from product/category counts, and carries discovered product candidates into the purchase-path step. Counts describe discovered links, not a full catalog census.
+- Consent handling clicks only controls inside actual overlays, recognises German `Alles akzeptieren`, waits for late dialogs, and permits narrowly scoped Cloudflare and cookie-consent POST endpoints. Public add-to-cart is confirmed only by a product line on the cart page. Checkout is reached only when a visible customer field exists, including Shopware's GET `/checkout/confirm` to `/checkout/register` transition. The step has a shared time budget so slow sites return a result before the lease expires. Order, payment, login, registration and private form submissions stay blocked.
+- Screenshot capture waits briefly for visible lazy images; live Burrow Press screenshots showed loaded product imagery and masked checkout fields. Temporary public artifacts still expire after five minutes.
+
+Verification: browser-worker unit tests 24/24 (`npm test`); Playwright local WooCommerce/Shopware fixtures 3/3 (`docker compose run --rm --no-deps -v "$PWD/apps/browser-worker/e2e:/app/e2e:ro" browser-worker node --test e2e/publicStorefront.test.js`), including false cart badge, late cookie dialog and checkout link after 240 unrelated links; backend full SQLite suite 584 passed, 4 skipped, including `PublicStorefrontCheckTest` 4/4. Live public browser checks through the egress proxy: Burrow Press (WooCommerce, 16 product links, cart and customer-details form reached), Christopeit Sport (Shopware, 32 category and 42 product links, cart and registration form reached). No purchase or checkout form was submitted.
+
+Remaining limit: custom headless storefronts without recognizable product cards/routes and WAF-protected sites may remain inconclusive. The public check does not validate payment methods or order submission; connected checks provide that depth.

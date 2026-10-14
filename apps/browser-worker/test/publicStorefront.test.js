@@ -38,13 +38,13 @@ describe('public storefront platform detection', () => {
 
 describe('public storefront consent handling', () => {
   it('accepts common cookie and age-gate labels', () => {
-    for (const label of ['Accept all', 'Allow cookies', 'I am 18', 'Yes, enter', 'Alle akzeptieren', 'Ich bin 18', 'Tout accepter', 'Soy mayor']) {
+    for (const label of ['Accept all', 'Allow cookies', 'I am 18', 'Yes, enter', 'Alle akzeptieren', 'Alles akzeptieren', 'Ich bin 18', 'Tout accepter', 'Soy mayor']) {
       assert.equal(publicConsentAction(label), 'accept', label);
     }
   });
 
   it('does not click reject or commerce actions as consent', () => {
-    for (const label of ['Reject all', 'No, leave', 'Under 18', 'Checkout', 'Add to cart', 'Login', 'Subscribe']) {
+    for (const label of ['Reject all', 'No, leave', 'Under 18', 'Checkout', 'Add to cart', 'Login', 'Subscribe', 'Cookie-Einstellungen', 'Facebook']) {
       assert.equal(publicConsentAction(label), 'skip', label);
     }
   });

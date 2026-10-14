@@ -18,8 +18,13 @@
     $audit = $check->diagnostics['public_audit'] ?? null;
     $errors = collect($check->diagnostics['relevant_errors'] ?? [])->filter(function ($error) {
         $type = $error['type'] ?? '';
+        $message = $error['message_code'] ?? '';
 
-        if (($error['party'] ?? '') === 'third' && in_array($type, ['request_failed', 'http_5xx'], true)) {
+        if (($error['party'] ?? 'first') !== 'first' || in_array($message, ['ERR_ABORTED', 'ERR_BLOCKED_BY_CLIENT'], true)) {
+            return false;
+        }
+
+        if (in_array($type, ['console_error', 'console_warning'], true) && str_starts_with($message, 'Failed to load resource:')) {
             return false;
         }
 
@@ -66,7 +71,7 @@
             <div class="site-plans">
                 @foreach ($errors as $error)
                     <article class="site-plan">
-                        <p class="site-muted site-small">{{ $error['type'] ?? '' }}</p>
+                        <p class="site-muted site-small">{{ __('site.check_store.audit_error_types.'.($error['type'] ?? 'js_error')) }}</p>
                         <h3>{{ $error['message_code'] ?? ($error['status'] ?? '') }}</h3>
                         @if (! empty($error['path']))
                             <p>{{ $error['origin'] ?? '' }}{{ $error['path'] }}</p>

@@ -9,11 +9,11 @@ const LOGIN_HINT = /login|sign in|signin|account|konto|anmelden|register|registr
 const CAPTCHA_HINT = /captcha|cf-chl|challenge-platform|just a moment|access denied|attention required/i;
 const PRIVATE_PATH = /\/(account|my-account|login|register|admin|wp-admin|customer|order|orders)\b/i;
 const PII_FIELD = /email|e-mail|mail|phone|tel|address|street|city|postcode|zip|password|passwort|login|username|user/i;
-const CONSENT_ACCEPT_HINT = /(accept all|accept cookies|accept|agree|allow all|allow cookies|continue|got it|ok|okay|yes|enter|i am 18|i'm 18|over 18|18\+|confirm age|alle akzeptieren|akzeptieren|zustimmen|einverstanden|weiter|ja|ich bin 18|plus de 18|j'ai 18|accepter|tout accepter|continuer|aceptar|aceptar todo|soy mayor|ho 18 anni|accetta|accetto|proceed)/i;
+const CONSENT_ACCEPT_HINT = /(\baccept(?: all| cookies)?\b|\bagree\b|\ballow all\b|\ballow cookies\b|\bcontinue\b|\bgot it\b|\bok(?:ay)?\b|\byes\b|\benter\b|i am 18|i'm 18|over 18|18\+|confirm age|alle akzeptieren|alles akzeptieren|akzeptieren|zustimmen|einverstanden|weiter|\bja\b|ich bin 18|plus de 18|j'ai 18|accepter|tout accepter|continuer|aceptar|aceptar todo|soy mayor|ho 18 anni|accetta|accetto|\bproceed\b)/i;
 const CONSENT_REJECT_HINT = /(decline|reject|deny|no|under 18|leave|cancel|ablehnen|nein|minderj|refuser|non|moins de 18|rechazar|menor|rifiuta|annulla)/i;
 const DANGEROUS_CONSENT_HINT = /checkout|cart|basket|warenkorb|kasse|payment|pay|buy|purchase|order|login|sign in|register|subscribe|newsletter|account/i;
-const PRODUCT_PATH_HINT = /\/(product|produkte|produkt|artikel|p)\/|\/detail\/|\/dp\//i;
-const CATEGORY_PATH_HINT = /\/(category|product-category|collections|collection|catalog|shop|c|kategorie|categories|navigation)\b|\/cat\//i;
+const PRODUCT_PATH_HINT = /\/(product|artikel|p)\/|\/detail\/|\/dp\//i;
+const CATEGORY_PATH_HINT = /\/(category|product-category|collections|collection|catalog|shop|c|kategorie|categories|navigation|produkte)\b|\/cat\//i;
 const CART_PATH_HINT = /cart|basket|warenkorb|panier|carrello|cesta/i;
 const CHECKOUT_PATH_HINT = /checkout|kasse|bestell|commande|comprar|pagar/i;
 const BAD_DISCOVERY_PATH = /\/(account|login|register|wishlist|compare|search|privacy|policy|terms|contact|blog|news|wp-admin|admin)\b/i;
@@ -42,6 +42,7 @@ export function createPublicStorefrontAdapter() {
 
       state.detectedPlatform = await detectPlatformHint(page);
       const inventory = await discoverInventory(page, state, Math.min(9000, step.timeout_ms));
+      state.publicInventory = inventory;
       state.publicAudit = {
         platform: state.detectedPlatform,
         supported: ['woocommerce_hint', 'shopware_hint'].includes(state.detectedPlatform),
@@ -63,6 +64,8 @@ export function createPublicStorefrontAdapter() {
     },
 
     async public_checkout(page, step, state) {
+      const stepDeadline = Date.now() + step.timeout_ms;
+      const remaining = () => Math.max(0, stepDeadline - Date.now());
       await acceptPublicEntryOverlays(page);
       await assertNoPrivatePage(page);
 
@@ -72,7 +75,9 @@ export function createPublicStorefrontAdapter() {
       }
 
       const audit = ensureAudit(state);
-      const inventory = await discoverInventory(page, state, Math.min(20000, step.timeout_ms));
+      const inventory = state.publicInventory?.products.length > 0
+        ? state.publicInventory
+        : await discoverInventory(page, state, Math.min(20000, remaining()));
       audit.categories_found = Math.max(audit.categories_found ?? 0, inventory.categories.length);
       audit.products_found = Math.max(audit.products_found ?? 0, inventory.products.length);
       audit.category_samples = inventory.categories.slice(0, 20).map(publicAuditUrl);
@@ -82,17 +87,20 @@ export function createPublicStorefrontAdapter() {
       const productCandidates = inventory.products.slice(0, PRODUCT_SAMPLE_LIMIT);
 
       for (const productUrl of productCandidates) {
+        if (remaining() < 8000) {
+          break;
+        }
+
         const sample = { url: publicAuditUrl(productUrl), add_to_cart: 'not_tested', cart_verified: false };
         audit.sampled_products.push(sample);
 
         try {
-          await followPublicLink(page, productUrl, Math.min(12000, step.timeout_ms), state);
+          await followPublicLink(page, productUrl, Math.min(10000, remaining()), state);
           await acceptPublicEntryOverlays(page);
           await assertNoPrivatePage(page);
           audit.products_tested += 1;
 
-          const before = await cartSignal(page).catch(() => null);
-          const added = await tryPublicAddToCart(page, Math.min(12000, step.timeout_ms), state);
+          const added = await tryPublicAddToCart(page, Math.min(9000, remaining()), state);
           sample.add_to_cart = added ? 'clicked' : 'button_not_found';
 
           if (!added) {
@@ -100,8 +108,7 @@ export function createPublicStorefrontAdapter() {
           }
 
           await acceptPublicEntryOverlays(page);
-          const after = await cartSignal(page).catch(() => null);
-          sample.cart_verified = cartChanged(before, after) || await openCartAndVerify(page, state, audit, Math.min(15000, step.timeout_ms));
+          sample.cart_verified = remaining() > 3000 && await openCartAndVerify(page, state, audit, Math.min(12000, remaining()));
           sample.add_to_cart = sample.cart_verified ? 'works' : 'clicked_but_not_verified';
 
           if (sample.cart_verified) {
@@ -110,16 +117,24 @@ export function createPublicStorefrontAdapter() {
           }
         } catch (error) {
           sample.add_to_cart = 'error';
-          sample.error = error?.detailCode ?? error?.message ?? 'unknown';
+          sample.error = error instanceof StepOutcome ? error.errorCode : 'browser_error';
         }
       }
 
       if (audit.cart_result !== 'product_present') {
         audit.cart_result = audit.products_tested > 0 ? 'add_to_cart_not_verified' : 'no_product_tested';
+        if (remaining() < 3000) {
+          throw new StepOutcome('inconclusive', 'infra_timeout', 'step_budget_exhausted');
+        }
+
         throw UNSUPPORTED(audit.cart_result);
       }
 
-      const checkoutReached = await proceedToCheckout(page, state, audit, Math.min(18000, step.timeout_ms));
+      if (remaining() < 5000) {
+        throw new StepOutcome('inconclusive', 'infra_timeout', 'step_budget_exhausted');
+      }
+
+      const checkoutReached = await proceedToCheckout(page, state, audit, Math.min(15000, remaining()));
 
       if (!checkoutReached) {
         audit.checkout_result = 'checkout_not_reached';
@@ -138,17 +153,26 @@ export function createPublicStorefrontAdapter() {
   };
 }
 
-async function discoverInventory(page, state, timeout) {
+export async function discoverInventory(page, state, timeout) {
   const deadline = Date.now() + timeout;
   const initial = await collectPublicLinks(page, state);
   const categories = unique(initial.filter((link) => looksLikeCategory(link)).map((link) => link.href)).slice(0, PRODUCT_DISCOVERY_LIMIT);
   const products = unique(initial.filter((link) => looksLikeProduct(link)).map((link) => link.href)).slice(0, PRODUCT_DISCOVERY_LIMIT);
-  let cartUrl = initial.find((link) => CART_PATH_HINT.test(`${link.href} ${link.text}`))?.href ?? null;
-  let checkoutUrl = initial.find((link) => CHECKOUT_PATH_HINT.test(`${link.href} ${link.text}`))?.href ?? null;
+  let cartUrl = initial.find(looksLikeCartLink)?.href ?? null;
+  let checkoutUrl = initial.find(looksLikeCheckoutLink)?.href ?? null;
 
-  const listingCandidates = categories.length > 0 ? categories : initial.filter((link) => /shop|store|catalog|products|sortiment|assortiment/i.test(`${link.href} ${link.text}`)).map((link) => link.href);
+  const listingCandidates = unique(initial.filter(looksLikeListing).map((link) => link.href));
+  const visited = new Set();
 
-  for (const href of unique(listingCandidates).slice(0, CATEGORY_VISIT_LIMIT)) {
+  for (let index = 0; index < listingCandidates.length && visited.size < CATEGORY_VISIT_LIMIT; index++) {
+    const href = listingCandidates[index];
+
+    if (visited.has(href)) {
+      continue;
+    }
+
+    visited.add(href);
+
     if (Date.now() > deadline - 3000 || products.length >= PRODUCT_DISCOVERY_LIMIT) {
       break;
     }
@@ -166,10 +190,14 @@ async function discoverInventory(page, state, timeout) {
         if (looksLikeCategory(link) && !categories.includes(link.href)) {
           categories.push(link.href);
         }
+
+        if (looksLikeListing(link) && !visited.has(link.href) && !listingCandidates.includes(link.href)) {
+          listingCandidates.push(link.href);
+        }
       }
 
-      cartUrl = cartUrl ?? links.find((link) => CART_PATH_HINT.test(`${link.href} ${link.text}`))?.href ?? null;
-      checkoutUrl = checkoutUrl ?? links.find((link) => CHECKOUT_PATH_HINT.test(`${link.href} ${link.text}`))?.href ?? null;
+      cartUrl = cartUrl ?? links.find(looksLikeCartLink)?.href ?? null;
+      checkoutUrl = checkoutUrl ?? links.find(looksLikeCheckoutLink)?.href ?? null;
     } catch {
       continue;
     }
@@ -197,6 +225,7 @@ async function collectPublicLinks(page, state) {
         origin: url.origin,
         pathname: url.pathname,
         text: (node.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 160),
+        productCard: node.closest('.product-box, [data-product-information], li.product, .wc-block-grid__product') !== null,
       };
     } catch {
       return null;
@@ -209,45 +238,34 @@ async function collectPublicLinks(page, state) {
 function looksLikeProduct(link) {
   const haystack = `${link.href} ${link.text}`;
 
-  if (CART_PATH_HINT.test(haystack) || CHECKOUT_PATH_HINT.test(haystack)) {
+  if (CART_PATH_HINT.test(haystack) || CHECKOUT_PATH_HINT.test(haystack) || /\/product-tag\//i.test(link.href)) {
     return false;
   }
 
-  return PRODUCT_PATH_HINT.test(link.href) || (/product|produkt|artikel|view|details/i.test(haystack) && !looksLikeCategory(link));
+  return link.productCard || PRODUCT_PATH_HINT.test(link.pathname);
 }
 
 function looksLikeCategory(link) {
   const haystack = `${link.href} ${link.text}`;
 
-  if (CART_PATH_HINT.test(haystack) || CHECKOUT_PATH_HINT.test(haystack)) {
+  if (CART_PATH_HINT.test(haystack) || CHECKOUT_PATH_HINT.test(haystack) || PRODUCT_PATH_HINT.test(link.pathname) || /\/page\/\d+\/?$/i.test(link.pathname) || /^\/(?:shop|store|catalog|products?|produkte)\/?$/i.test(link.pathname)) {
     return false;
   }
 
-  return CATEGORY_PATH_HINT.test(link.href) || /\b(shop|products|catalog|category|collection|sortiment|kategorie)\b/i.test(haystack);
+  return CATEGORY_PATH_HINT.test(link.pathname) || /\b(category|collection|sortiment|kategorie)\b/i.test(link.text);
 }
 
-async function cartSignal(page) {
-  return await page.locator('body').evaluate((body) => {
-    const text = body.innerText.replace(/\s+/g, ' ').slice(0, 6000);
-    const counters = Array.from(document.querySelectorAll('[class*="cart"], [id*="cart"], [aria-label*="cart" i], [aria-label*="basket" i]'))
-      .map((node) => node.textContent ?? '')
-      .join(' ')
-      .replace(/\s+/g, ' ');
-
-    return { url: window.location.href, text, counters };
-  });
+function looksLikeListing(link) {
+  return looksLikeCategory(link) || /\/(?:shop|store|catalog|products?|produkte|collections?)(?:\/page\/\d+)?\/?$/i.test(link.pathname)
+    || /\b(shop|catalog|sortiment|assortiment)\b/i.test(link.text);
 }
 
-function cartChanged(before, after) {
-  if (before === null || after === null) {
-    return false;
-  }
+function looksLikeCartLink(link) {
+  return CART_PATH_HINT.test(link.pathname) && !ADD_TO_CART_HINT.test(link.href);
+}
 
-  if (before.url !== after.url && CART_PATH_HINT.test(after.url)) {
-    return true;
-  }
-
-  return before.counters !== after.counters && /\b(1|one|item|artikel|warenkorb|cart|basket)\b/i.test(after.counters);
+function looksLikeCheckoutLink(link) {
+  return CHECKOUT_PATH_HINT.test(link.pathname) && !CART_PATH_HINT.test(link.pathname) && !/place[-_]?order|pay\b/i.test(link.pathname);
 }
 
 async function openCartAndVerify(page, state, audit, timeout) {
@@ -267,7 +285,11 @@ async function openCartAndVerify(page, state, audit, timeout) {
 
   const text = await page.locator('body').innerText({ timeout: 3000 }).catch(() => '');
   const empty = /cart is empty|basket is empty|warenkorb ist leer|empty cart|leerer warenkorb|panier est vide/i.test(text);
-  const hasLine = await page.locator('form.cart, .cart_item, .woocommerce-cart-form, [class*="line-item"], [class*="cart-item"], [data-line-item-id], [class*="checkout-cart"]').count().catch(() => 0);
+  if (!CART_PATH_HINT.test(new URL(page.url()).pathname)) {
+    return false;
+  }
+
+  const hasLine = await page.locator('.woocommerce-cart-form__cart-item, .cart_item, .wc-block-cart-items__row, .line-item, [data-line-item-id], .cart-item').count().catch(() => 0);
 
   return !empty && hasLine > 0;
 }
@@ -285,25 +307,22 @@ async function proceedToCheckout(page, state, audit, timeout) {
   }
 
   try {
-    await followPublicLink(page, checkout, timeout, state);
+    await followPublicLink(page, checkout, timeout, state, { checkoutLanding: true });
     await acceptPublicEntryOverlays(page);
-  } catch (error) {
-    if (error instanceof StepOutcome && error.errorCode === 'adapter_unsupported') {
-      return /checkout|kasse|account|login|register/i.test(page.url());
-    }
-
+  } catch {
     return false;
   }
 
-  const fields = await page.locator('input, textarea, select').evaluateAll((nodes) => nodes.map((node) => [
-    node.getAttribute('type') ?? '',
-    node.getAttribute('name') ?? '',
-    node.getAttribute('autocomplete') ?? '',
-    node.getAttribute('placeholder') ?? '',
-    node.getAttribute('aria-label') ?? '',
-  ].join(' ')).join(' ')).catch(() => '');
+  return await page.locator('input, textarea, select').evaluateAll((nodes) => nodes.some((node) => {
+    if (!(node instanceof HTMLElement) || node.offsetParent === null || node.hasAttribute('disabled')) {
+      return false;
+    }
 
-  return /checkout|kasse|login|register|account/i.test(page.url()) || PII_FIELD.test(fields);
+    const attributes = ['name', 'id', 'autocomplete', 'placeholder', 'aria-label']
+      .map((name) => node.getAttribute(name) ?? '').join(' ');
+
+    return /email|e-mail|password|passwort|first.?name|last.?name|billing|shipping|address|street|postcode|zip|phone|telefon/i.test(attributes);
+  })).catch(() => false);
 }
 
 function checkoutFormKind(url) {
@@ -332,7 +351,7 @@ function ensureAudit(state) {
   return state.publicAudit;
 }
 
-async function acceptPublicEntryOverlays(page) {
+export async function acceptPublicEntryOverlays(page) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const index = await page.locator('button, a[href], input[type="button"], input[type="submit"], [role="button"]').evaluateAll((nodes, args) => {
       const accept = new RegExp(args.accept, 'i');
@@ -344,10 +363,7 @@ async function acceptPublicEntryOverlays(page) {
           node.textContent ?? '',
           node.getAttribute('aria-label') ?? '',
           node.getAttribute('title') ?? '',
-          node.getAttribute('name') ?? '',
           node.getAttribute('value') ?? '',
-          node.getAttribute('id') ?? '',
-          node.getAttribute('class') ?? '',
         ].join(' ').replace(/\s+/g, ' ').trim();
       }
 
@@ -362,15 +378,7 @@ async function acceptPublicEntryOverlays(page) {
       }
 
       function overlayLike(node) {
-        const scope = node.closest('[role="dialog"], [aria-modal="true"], dialog, .modal, .popup, .overlay, .cookie, .cookies, .consent, .age, .age-gate, .agegate, .verification, .privacy, .gdpr, #onetrust-banner-sdk, #CybotCookiebotDialog');
-
-        if (scope !== null) {
-          return true;
-        }
-
-        const rect = node.getBoundingClientRect();
-
-        return rect.top < window.innerHeight && rect.left < window.innerWidth;
+        return node.closest('[role="dialog"], [aria-modal="true"], dialog, .modal, .popup, .overlay, .cookie, .cookies, .consent, .age, .age-gate, .agegate, .verification, .privacy, .gdpr, #onetrust-banner-sdk, #CybotCookiebotDialog, [class*="cookie"], [class*="consent"], [class*="age-gate"], [class*="modal"], [class*="popup"]') !== null;
       }
 
       return nodes.findIndex((node) => {
@@ -383,6 +391,11 @@ async function acceptPublicEntryOverlays(page) {
     }, { accept: CONSENT_ACCEPT_HINT.source, reject: CONSENT_REJECT_HINT.source, dangerous: DANGEROUS_CONSENT_HINT.source }).catch(() => -1);
 
     if (index < 0) {
+      if (attempt < 2 && await page.locator('[role="dialog"][aria-modal="true"], .age-gate, #onetrust-banner-sdk, #CybotCookiebotDialog').count().catch(() => 0) > 0) {
+        await page.waitForTimeout(700);
+        continue;
+      }
+
       return;
     }
 
@@ -459,16 +472,20 @@ export function detectPlatformFromPublicSignals(snippets) {
 }
 
 async function linkByHint(page, hint) {
-  const links = await page.locator('a[href], button').evaluateAll((nodes) => nodes.slice(0, 200).map((node) => ({
+  const links = await page.locator('a[href]').evaluateAll((nodes) => nodes.slice(0, 1200).map((node) => ({
     href: node instanceof HTMLAnchorElement ? node.href : null,
     text: (node.textContent ?? '').trim(),
     aria: node.getAttribute('aria-label') ?? '',
   }))).catch(() => []);
 
   for (const link of links) {
-    const haystack = `${link.href ?? ''} ${link.text} ${link.aria}`;
+    if (link.href === null) {
+      continue;
+    }
 
-    if (hint.test(haystack) && link.href !== null) {
+    const pathname = new URL(link.href).pathname;
+
+    if (hint === CHECKOUT_HINT ? looksLikeCheckoutLink({ pathname }) : looksLikeCartLink({ pathname, href: link.href })) {
       return link.href;
     }
   }
@@ -476,26 +493,30 @@ async function linkByHint(page, hint) {
   return null;
 }
 
-async function followPublicLink(page, href, timeout, state) {
+async function followPublicLink(page, href, timeout, state, { checkoutLanding = false } = {}) {
   const target = new URL(href, state.scenario.store_origin);
 
   if (!allowedStoreOrigin(state, target.origin)) {
     throw new StepOutcome('blocked', 'blocked_external_origin', 'left_store_origin');
   }
 
-  if (PRIVATE_PATH.test(target.pathname)) {
+  if (PRIVATE_PATH.test(target.pathname) && !(checkoutLanding && /\/(?:my-account|account|login|register)\/?$/i.test(target.pathname))) {
     throw UNSUPPORTED('login_required');
   }
 
   const response = await navigate(page, target.href, timeout, state);
-  await assertNoPrivatePage(page);
+  if (!checkoutLanding) {
+    await assertNoPrivatePage(page);
+  } else if (/\/admin|\/wp-admin|\/orders?\b/i.test(new URL(page.url()).pathname)) {
+    throw UNSUPPORTED('login_required');
+  }
 
   if (response && response.status() >= 400 && response.status() < 500) {
     throw SITE(`http_${response.status()}`);
   }
 }
 
-async function tryPublicAddToCart(page, timeout, state) {
+export async function tryPublicAddToCart(page, timeout, state) {
   const index = await page.locator('a[href], button, input[type="submit"], input[type="button"]').evaluateAll((nodes, args) => {
     const addHint = new RegExp(args.addHint, 'i');
     const pii = new RegExp(args.pii, 'i');
@@ -573,7 +594,16 @@ async function tryPublicAddToCart(page, timeout, state) {
 
   const candidate = page.locator('a[href], button, input[type="submit"], input[type="button"]').nth(index);
   const before = page.url();
-  await candidate.click({ timeout: Math.min(timeout, 8000) });
+  try {
+    await candidate.click({ timeout: Math.min(timeout, 4000) });
+  } catch (error) {
+    if (error?.name !== 'TimeoutError' || await page.locator('[role="dialog"][aria-modal="true"]:visible, .modal.show:visible').count().catch(() => 0) === 0) {
+      throw error;
+    }
+
+    await acceptPublicEntryOverlays(page);
+    await candidate.click({ timeout: Math.min(timeout, 4000) });
+  }
   await Promise.race([
     page.waitForURL((url) => url.href !== before, { timeout: Math.min(timeout, 8000) }),
     page.waitForLoadState('networkidle', { timeout: Math.min(timeout, 8000) }),
