@@ -17,6 +17,11 @@ Schedule::command('notifications:deliver')
     ->withoutOverlapping(10)
     ->onOneServer();
 
+Schedule::command('checkout:payment-attempts-stuck')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
 Schedule::command('notifications:remind')
     ->hourly()
     ->withoutOverlapping(10)

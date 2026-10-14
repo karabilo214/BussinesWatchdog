@@ -136,6 +136,8 @@ Shopware App (ADR 0027, `plugins/shopware-app/tests/app/app-e2e.sh`): upload/ins
 
 Browser checks (ADR 0055, `plugins/shopware-app/tests/browser/browser-e2e.sh`, `make worker-e2e-shopware`): stop before sign-in, test customer (twice, cart cleaned), wrong password → `test_account_rejected`, guest (one guest customer per run), sold-out product → `product_unavailable`, no order created, password never in stored results — PASS on 6.6.10.6 and 6.7.2.2 (dockware).
 
+Payment attempts (ADR 0056, `plugins/shopware-app/tests/attempts/attempts-e2e.sh`, `make shopware-attempts-e2e`): prepayment left open → on hold, three failed payments → `CHECKOUT_PAYMENTS_FAILING` opened, re-read unchanged, a paid order resolves it, no personal data stored — PASS on 6.6.10.6 and 6.7.2.2 (dockware).
+
 Latest releases (Step 94, self-built with `plugins/shopware-app/tests/build-image.sh`):
 
 | Shopware | Integration key chain | SwagPayPal real chain | App |

@@ -35,6 +35,7 @@ class ShopwareSync
         private readonly ShopwareOrderMapper $mapper,
         private readonly ProviderEventEmitter $emitter,
         private readonly StoreReconciliationRequeue $requeue,
+        private readonly ShopwarePaymentAttempts $attempts,
     ) {}
 
     public function syncable(Integration $integration): bool
@@ -234,6 +235,8 @@ class ShopwareSync
                     $lastChanged = Carbon::parse($changed);
                 }
             }
+
+            $this->attempts->observe($integration, $orders);
 
             if ($drafts !== []) {
                 $summary = $this->emitter->emit($integration, $drafts);

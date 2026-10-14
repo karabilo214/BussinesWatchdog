@@ -35,7 +35,7 @@ class ShopwareOrderMapper
                 'currency' => ['isoCode'],
                 'state_machine_state' => ['technicalName'],
                 'order_transaction' => ['id', 'amount', 'stateMachineState', 'paymentMethod', 'customFields', 'createdAt', 'updatedAt'],
-                'payment_method' => ['technicalName'],
+                'payment_method' => ['technicalName', 'handlerIdentifier'],
                 'calculated_price' => ['totalPrice'],
             ],
         ];
