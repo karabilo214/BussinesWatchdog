@@ -1,6 +1,6 @@
 # ADR 0059: Checkout observation script in the WooCommerce plugin (layer 2)
 
-Status: accepted for now (owner's task 2026-10-14: layer 2 in the WooCommerce plugin following the Shopware app, ADR 0057). Details below were chosen by the implementer and are to be confirmed by the owner.
+Status: accepted for now (owner's task 2026-10-14: layer 2 in the WooCommerce plugin following the Shopware app, ADR 0057). Details below confirmed by the owner on 2026-10-14 as they are.
 
 ## Context
 
@@ -16,7 +16,7 @@ Spec §17.1 layer 2, ADR 0007 («layer 2 not started»). The Shopware app does i
 6. **Synthetic traffic**: on a page rendered for a verified browser check (signed marker, ADR 0012) the plugin does not count the page and tells the script it is synthetic: the script sets its marker for the check and sends nothing.
 7. **Reporting**: closed windows (one minute after their end) are sent as `checkout.observation` (aggregate `checkout`, id `observation:<window start>`, revision); a late report for a sent window raises its revision and sends it again; the service replaces the window's counters only with a newer revision. The same `checkout_observation_windows`, rules (`CHECKOUT_SCRIPT_SILENT`, `CHECKOUT_SUBMIT_FAILING` — orders are the plugin's layer 1 payment attempts) and coverage as ADR 0057. Stores connected only with the REST API key get coverage «needs the plugin».
 
-## Not decided / for the owner
+## Confirmed by the owner (2026-10-14)
 
 - 60 s for a stalled submit (Shopware 20 s).
 - Observation without a configured browser check (WooCommerce only).

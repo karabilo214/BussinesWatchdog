@@ -1,6 +1,6 @@
 # ADR 0060: Real payment attempts of WooCommerce stores connected with a REST API key
 
-Status: accepted for now (owner's task 2026-10-14: layer 1 for the WooCommerce REST API connection). Details below were chosen by the implementer and are to be confirmed by the owner.
+Status: accepted for now (owner's task 2026-10-14: layer 1 for the WooCommerce REST API connection). Details below confirmed by the owner on 2026-10-14 as they are.
 
 ## Context
 
@@ -19,7 +19,7 @@ Payment attempt observation (ADR 0007 layer 1) lives in the WooCommerce plugin: 
 4. **Windows and rules**: the same service-side attempts as Shopware (`observed_payment_attempts`, ADR 0056) — 5-minute windows by the time the outcome became known, recomputed from the attempts, rule `CHECKOUT_PAYMENTS_FAILING` (3 in a row per method), coverage and incidents as for the plugin. `rejected_before_order` stays 0 (only the plugin or the checkout script sees refusals before an order).
 5. **Delay**: within the 5-minute delta of the REST sync (no webhooks).
 
-## Not decided / for the owner
+## Confirmed by the owner (2026-10-14)
 
 - Counting only `checkout` / `store-api` orders (a checkout of a plugin that uses another `created_via` is not counted).
 - A cancelled unpaid order counts as a failure, like in the plugin.

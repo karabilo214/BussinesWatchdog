@@ -350,7 +350,7 @@ Added:
 
 Verification: backend `tests/Feature/Checkout/WooCommerceCheckoutObservationTest.php` (4: heartbeat answer, ingest through the signed API with revisions, rule with layer 1 windows, coverage and check expectation) plus the Shopware observation tests; plugin integration `ObservationTest.php` (6) — suite 54/54 on all six matrix targets (PHP 7.4 / WooCommerce 6.0 to PHP 8.3 / 11.2); observation e2e PASS on all six targets in one run (60 of 60 checks). The existing REST API chain e2e still passes on latest. Customer 125, worker 17 (with another agent's uncommitted tests).
 
-Remaining: the owner to confirm ADR 0059 (60 s stall, observation without a configured browser check).
+ADR 0059 confirmed by the owner on 2026-10-14 as it is (60 s stall, observation without a configured browser check).
 
 ### Step 147: Payment Attempts of WooCommerce Stores Connected With a REST API Key (ADR 0060)
 
@@ -365,4 +365,4 @@ Added:
 
 Verification: `tests/Feature/Providers/WooCommerceApiPaymentAttemptsTest.php` (3). E2E PASS on floor (WooCommerce 6.0.2) and latest (11.2.0): admin order and order from before the connection ignored, three checkout failures (Classic and Blocks) open the incident, bank transfer on hold is a success, a paid order resolves it, re-reads change nothing, no personal data stored.
 
-Remaining: the owner to confirm ADR 0060 (only checkout / store-api orders; a cancelled unpaid order is a failure).
+ADR 0060 confirmed by the owner on 2026-10-14 as it is (only checkout / store-api orders; a cancelled unpaid order is a failure).
