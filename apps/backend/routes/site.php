@@ -2,11 +2,17 @@
 
 use App\Http\Controllers\Site\SignupController;
 use App\Http\Controllers\Site\SiteController;
+use App\Http\Controllers\Site\PublicStorefrontCheckController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function (): void {
     Route::get('/{locale}/contact', [SiteController::class, 'contact'])->where('locale', 'ru|en|de');
     Route::post('/{locale}/contact', [SiteController::class, 'submitContact'])->where('locale', 'ru|en|de');
+    Route::get('/{locale}/check-store', [PublicStorefrontCheckController::class, 'form'])->where('locale', 'ru|en|de');
+    Route::get('/{locale}/check-store/captcha', [PublicStorefrontCheckController::class, 'captcha'])->where('locale', 'ru|en|de');
+    Route::post('/{locale}/check-store', [PublicStorefrontCheckController::class, 'submit'])->where('locale', 'ru|en|de');
+    Route::get('/{locale}/check-store/{token}', [PublicStorefrontCheckController::class, 'result'])->where(['locale' => 'ru|en|de', 'token' => '[0-9a-f]{64}']);
+    Route::get('/{locale}/check-store/{token}/artifacts/{artifactId}', [PublicStorefrontCheckController::class, 'artifact'])->where(['locale' => 'ru|en|de', 'token' => '[0-9a-f]{64}', 'artifactId' => '[0-9a-fA-F-]{36}']);
     Route::get('/{locale}/signup', [SignupController::class, 'show'])->where('locale', 'ru|en|de');
     Route::post('/{locale}/signup', [SignupController::class, 'store'])->where('locale', 'ru|en|de');
 });

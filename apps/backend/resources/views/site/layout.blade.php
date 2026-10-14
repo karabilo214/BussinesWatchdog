@@ -11,6 +11,9 @@
         <meta name="robots" content="noindex, nofollow">
         <base target="_blank">
     @endif
+    @if (($path ?? null) === 'check-store')
+        <meta name="robots" content="noindex, nofollow">
+    @endif
     @if ($canonical)
         <link rel="canonical" href="{{ $canonical }}">
     @endif

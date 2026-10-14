@@ -1,8 +1,8 @@
 # Приёмка панелей и SaaS billing
 
-Версия 1.1. Обновлено: 2026-10-13, Step 119.
+Версия 1.1. Обновлено: 2026-10-14, Step 142.
 
-Это добавочные критерии к `ACCEPTANCE.md`. Матрица теперь показывает текущее evidence. Большая часть SaaS billing/platform панели всё ещё находится на уровне ТЗ и контрактов; customer cabinet реализован существенно дальше.
+Это добавочные критерии к `ACCEPTANCE.md`. Матрица теперь показывает текущее evidence. Customer cabinet, SaaS billing, публичная регистрация и большая часть owner panel реализованы существенно дальше исходного ТЗ; support grants, privacy deletion, restore/load gates и часть production evidence остаются открытыми.
 
 Статусы:
 
@@ -12,34 +12,34 @@
 
 | ID | Статус | Сценарий | Evidence | Осталось / ограничение |
 |---|---|---|---|---|
-| EXT-01 | not_done | Tenant_owner пробует platform API | — | Platform API/staff guard not implemented |
-| EXT-02 | not_done | Platform staff имеет customer membership | — | Separate staff/customer sessions not implemented |
-| EXT-03 | partial | Owner без MFA/step-up | Customer MFA and ownership-transfer step-up: `MfaApiTest`, `TeamApiTest`, frontend Step 69 smoke | Platform sensitive mutations and billing step-up not implemented |
-| EXT-04 | not_done | Удаление последнего platform owner | — | Platform staff management not implemented |
+| EXT-01 | done | Tenant_owner пробует platform API | Separate `/platform-api/v1` guard and cookies; customer session/account refused by `PlatformAuthTest`; Step 103 | — |
+| EXT-02 | done | Platform staff имеет customer membership | Platform and customer sessions use separate guards/cookies; staff can be a customer account without merged permissions; `PlatformAuthTest`; Step 103 | — |
+| EXT-03 | done | Owner без MFA/step-up | Customer MFA/ownership transfer (`MfaApiTest`, `TeamApiTest`, Step 69) and platform MFA + step-up for plans, tenant actions, refunds, staff and settings (`PlatformAuthTest`, `PlanAdminTest`, `RefundTest`, `TenantAdminTest`, `StaffAdminTest`, `PlatformSettingsTest`; Steps 103-104, 108-109, 120, 132, 134) | — |
+| EXT-04 | done | Удаление последнего platform owner | `StaffAdminTest` covers last-owner and self-lockout guards; Step 132 | — |
 | EXT-05 | not_done | Support без customer grant | — | Support grant system not implemented |
 | EXT-06 | not_done | Grant revoked/expired | — | Support grants/artifact grant checks not implemented |
-| EXT-07 | not_done | Published price изменён | — | Plan catalog and immutable price versions not implemented |
-| EXT-08 | not_done | Forged price/amount/currency from browser | — | SaaS billing checkout not implemented |
-| EXT-09 | not_done | Concurrent two checkout requests | — | SaaS billing checkout reservation not implemented |
-| EXT-10 | not_done | Lost provider response | — | SaaS billing provider action/idempotency not implemented |
-| EXT-11 | not_done | Browser return без webhook | — | SaaS billing fulfillment not implemented |
-| EXT-12 | not_done | Verified webhook без browser return | — | SaaS billing webhook projection not implemented |
-| EXT-13 | partial | Duplicates и out-of-order events | Core monitoring ingestion has idempotency/revision evidence: `IngestEventsApiTest`, provider connector tests | SaaS billing event inbox not implemented |
-| EXT-14 | partial | LIVE/TEST и чужой account | Store Stripe/PayPal connectors isolate mode/account; Steps 65-72 | Commercial SaaS billing account isolation not implemented |
-| EXT-15 | not_done | Failed renewal и grace expiry | — | Subscription lifecycle/access projection not implemented |
+| EXT-07 | done | Published price изменён | Versioned plans/prices, publish/retire, old subscribers kept on snapshots; `PlanAdminTest`, live `run-live.sh plans`; Step 104 | — |
+| EXT-08 | done | Forged price/amount/currency from browser | Checkout uses server-side published prices/provider refs, not browser totals; `PaddleBillingTest`, `BillingPlansTest`, live `run-billing-live.sh`; Steps 98, 102, 104-106 | Production Paddle account not connected |
+| EXT-09 | partial | Concurrent two checkout requests | Checkout session idempotency, request hash conflict and superseded pending sessions covered by `PaddleBillingTest`; Step 98 | True concurrent process race not exercised |
+| EXT-10 | partial | Lost provider response | Checkout and plan-change actions use local records, idempotency and provider readback/unknown settlement; `PaddleBillingTest`, `PlanChangeTest`; Steps 98, 108 | Full lost-response chaos test against Paddle not run |
+| EXT-11 | partial | Browser return без webhook | Checkout follow/poll confirms from backend-projected provider state; live Paddle checkout passed; Steps 98, 102 | Real provider webhook delivery through a public URL not tested |
+| EXT-12 | partial | Verified webhook без browser return | Billing event inbox/projector, event-log puller and subscription/transaction projection; `PaddleBillingTest`, `BillingTransactionsTest`; Steps 98, 119 | Real signed webhook delivery not tested |
+| EXT-13 | done | Duplicates и out-of-order events | Billing event inbox duplicate/conflict handling, leasing/backoff/dead-letter and newest-state projection; `PaddleBillingTest`, `BillingTransactionsTest`; Steps 98, 119 | — |
+| EXT-14 | done | LIVE/TEST и чужой account | Store Stripe/PayPal mode/account isolation plus SaaS Paddle mode, linked checkout origin and foreign transaction skip; `PaddleBillingTest`, `BillingTransactionsTest`; Steps 65-72, 98, 119 | — |
+| EXT-15 | partial | Failed renewal и grace expiry | Entitlement calculator models paid period, past-due grace, expired access and paused billing; subscription projection and billing UI show access reasons; Steps 97-102, 108 | Real failed-renewal/provider retry lifecycle and customer reminder emails not exercised |
 | EXT-16 | partial | Scheduled cancellation | `PlanChangeTest` (cancel at period end, repeat is a no-op, resume with expected version, audit), `billing.test.ts`; live Paddle sandbox cancel + resume, Step 108 (ADR 0037) | Contract end after the period and a new subscription after it (EXT-21) not exercised live |
 | EXT-17 | partial | Downgrade превышает store limit | `PlanChangeTest` (retained stores required, pause only at the period end, nothing deleted, `capacity_choice_required` pauses scheduled and manual browser checks, owner re-chooses), `billing.test.ts`; Step 108 (ADR 0037) | Downgrade with a store choice not run live; trial/expiry-driven limit drops do not ask for a choice yet |
 | EXT-18 | partial | Temporary override истёк | `TenantAdminTest` (owner grants plan access until a date ≤ 180 days with reason + authenticator code, one at a time, revoke, preview of access before/after, platform audit), `EntitlementCalculator` honours `ends_at`; control `tenants.test.ts`; Step 109 (ADR 0038) | Expiry not exercised live; no notification to the customer when an override ends |
 | EXT-19 | done | Refund request billing staff | `RefundTest` (billing staff request, billing role cannot approve, owner approves with reason + authenticator code, wrong code denied and audited, Paddle adjustment body with items, events, dashboard refunds recorded, reject frees the amount, cancel at period end on request); control `payments.test.ts`; Step 120 (ADR 0044); Paddle sandbox partial refund 1.00 € accepted (`pending_approval`, tax inside the item amount) | Approval of the refund by Paddle's own review not observed live (stayed `pending_approval` in the sandbox) |
 | EXT-20 | partial | Refund concurrency | `PaddleRefunds::request` reserves under a lock of the payment row (requested + sending + pending + refunded + unknown ≤ total), `refund_exceeds_payment` with the amount left, `refund_already_decided` on a second decision; `RefundTest` | Parallel requests tested sequentially only (row lock not exercised by concurrent processes) |
-| EXT-21 | not_done | New subscription после cancellation | — | Subscription contract history not implemented |
+| EXT-21 | partial | New subscription после cancellation | Billing contracts and one-live-contract guard exist; scheduled cancellation/resume covered by `PlanChangeTest` and live sandbox Step 108 | Contract end after period and a later fresh purchase not exercised live |
 | EXT-22 | partial | KPI MRR/cash/refunds | Step 119 (ADR 0043): owner panel «Payments» — every provider transaction and the month per currency (charged, tax, Paddle fee, earnings), never across currencies; `BillingTransactionsTest`, `payments.test.ts`; real Paddle sandbox transactions read back | Step 130 (ADR 0050): «Overview» — paying/trial/past-due/cancel counts, contracted MRR per currency as an exact fraction (list price, before discounts — owner decision pending), collected/refunds/net per currency with the previous period, paid churn; `BusinessOverviewTest`, `overview.test.ts`. Not yet: MRR after discounts, trial conversion, document-level drill-down |
 | EXT-23 | partial | Technical replay | Core monitoring replay/idempotency exists; outbox/reconciliation tests | Platform replay tooling and billing replay not implemented |
 | EXT-24 | partial | Tenant_admin billing/delete/owner role action | Customer role policies, team management, ownership transfer tests; Step 64/69 | Billing/delete organization not implemented |
 | EXT-25 | partial | Workspace switch | Active tenant session exists; tenant activation tests; customer cache keys include tenant in API patterns | Multi-workspace switcher UI and complete cache isolation acceptance not implemented |
 | EXT-26 | not_done | Customer deletion с recurring contract | — | Privacy deletion + recurring cancellation workflow not implemented |
 | EXT-27 | done | Legal/policy/price version changed | Step 111 (ADR 0039) versioned legal pages; Step 118 (ADR 0042): pages marked as terms / privacy / subscription terms, consent bound to the published version at sign-up, trial, purchase and plan change, a newer version refuses the action with the current documents; `PolicyAcceptanceTest`, `billing.test.ts`, live `run-live.sh signup` | — |
-| EXT-28 | not_done | Provider unavailable | — | SaaS paid grant and previous paid_until preservation not implemented |
-| EXT-29 | partial | Portal locale coverage ru/en/de | Customer app, public site (server-rendered pages, pricing, contact form — Step 111) and control panel, notification/account templates, findings/incidents/transactions export UI labels and many backend problem codes have ru/en/de tests | Owner/admin/billing/private export localization not implemented |
+| EXT-28 | partial | Provider unavailable | Provider failures keep local state transactional for checkout/catalog/plan-change/refund paths; unknown outcomes do not blindly grant or retry; `PaddleBillingTest`, `PlanAdminTest`, `PlanChangeTest`, `RefundTest`; Steps 98, 104, 108, 120 | End-to-end provider outage drill and previous paid-until preservation under outage not run |
+| EXT-29 | partial | Portal locale coverage ru/en/de | Customer app, public site, control panel, owner sections, notification/account/staff/site templates, exports and many backend problem codes have ru/en/de tests through Steps 56-139 | Privacy deletion, support grants and final release security copy still need coverage |
 
-Требуются также 16 BILL fixture outcomes, проверка no-card storage/secret redaction, CSRF и stored XSS (для HTML страниц сайта — санитайзер и тест Step 111), изоляция guard cookies, private invoice export/download, provider sandbox upgrade/proration/cancel/refund и наблюдаемость webhook lag. Tests of actual provider behavior нельзя заменить JSON fixtures.
+Требуются также 16 BILL fixture outcomes/evidence rollup, проверка no-card storage/secret redaction, CSRF и stored XSS (для HTML страниц сайта — санитайзер и тест Step 111), support-grant isolation, privacy deletion, private billing-document export policy, provider sandbox renewal/failure/outage drills, real webhook delivery and webhook-lag observability. Tests of actual provider behavior нельзя заменить JSON fixtures.

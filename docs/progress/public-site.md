@@ -120,3 +120,23 @@ Status: complete
 Verification: `PublicSiteTest::test_old_page_versions_can_be_deleted_except_the_current_ones_and_legal_documents` (reason required, old version gone from history, published/draft refused, repeated 404, site unchanged, legal page and accepted version refused). Control 55 tests (+1). Frontend check green. Backend SQLite 559 passed, 4 skipped; PostgreSQL 18: 563 of 563.
 
 - Follow-up: the owner started their own «remove» button in the page history (`data-action="remove"`, `removeHistory`, `isAllowRemove`) on an older copy of `PageView.vue`; it is finished on top of Step 139: shown only for retired versions of non-legal pages, opens the same reason confirmation and calls the version deletion; label key `site.action.remove`. Control 55 tests, backend unchanged (559 passed, 4 skipped).
+
+### Step 145: Public Storefront Check by URL
+
+Status: complete for the first restrictive public-diagnostic slice
+
+- ADR 0058 accepted and implemented. Public site route `/{locale}/check-store`: a visitor enters a public HTTPS store URL and solves a mandatory local image math CAPTCHA; no account, tenant, store, integration, incident, finding or entitlement is created. The result page is `noindex` and warns that this is not monitoring, payment proof or financial coverage.
+- Backend: `public_storefront_checks` and `public_storefront_check_artifacts`, keyed result tokens, normalized host/origin cooldown (one check per host/origin per 30 days), IP keyed-hash cooldown (one site per IP per 10 days), short submit-attempt limit, public HTTPS + SSRF checks (private/reserved IPs, localhost, internal/test names, metadata-style destinations), noisy PNG math CAPTCHA with a 10-minute TTL and one-time answers. Public leases are capped by `WATCHDOG_PUBLIC_CHECK_MAX_RUNNING` (default 1) and are handed out only after tenant browser checks get the first chance.
+- Browser worker: leases can now be regular tenant checks or `public_storefront` checks. New adapter `public-storefront@1` opens public pages on the checked origin, tries storefront/cart/checkout links, may perform one narrowly allowlisted same-origin public add-to-cart action, refuses login/account/admin/private pages, captures public-step screenshots, and stores a cautious public platform hint (`woocommerce_hint`, `shopware_hint`, `unknown`). It never submits checkout/order/payment/account/login/register forms on unverified sites.
+- Artifacts: public diagnostics use a separate object-key prefix and separate DB rows, not tenant check artifacts. Screenshots and diagnostics expire after 5 minutes; `site:public-checks-purge` runs every minute and deletes expired objects/rows.
+- README documents the public-check CAPTCHA/cooldown env vars and the purge command.
+
+Verification:
+
+- `tests/Feature/Site/PublicStorefrontCheckTest.php` (2: form/noindex, CAPTCHA, HTTPS/public destination validation, normalized host cooldown, IP cooldown; worker lease, public running-cap, screenshot upload, result, artifact download and 5-minute purge).
+- Browser worker `networkPolicy.test.js`: public storefront checks allow only public cart-add mutations on the checked origin and still block checkout/order/payment/account/login/register mutations.
+- Backend SQLite full suite: 581 passed, 4 skipped. Backend site feature suite: 23 passed; OpenAPI route guard: 1 passed; worker tests: 17 passed; public frontend check passed.
+
+Limits:
+
+- The first slice allows only one safe public add-to-cart attempt. Deeper checks with test accounts, guest data, checkout submit, payment method selection or payment observation still require connecting/verifying the store.

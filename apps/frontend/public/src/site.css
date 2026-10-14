@@ -94,6 +94,9 @@
   .site-check input { margin-top: 0.3rem; width: 1rem; height: 1rem; accent-color: var(--color-primary); }
   .site-field select { font: inherit; padding: 0.625rem 0.75rem; border: 1px solid var(--color-border-strong); border-radius: 0.375rem; background: var(--color-surface); color: var(--color-text); }
   .site-field input:not([type="checkbox"]), .site-field textarea { font: inherit; padding: 0.625rem 0.75rem; border: 1px solid var(--color-border-strong); border-radius: 0.375rem; background: var(--color-surface); color: var(--color-text); }
+  .site-captcha-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+  .site-captcha-row img { flex: 0 0 auto; border: 1px solid var(--color-border-strong); border-radius: 0.375rem; background: var(--color-surface); }
+  .site-captcha-row input { width: 7rem; }
   .site-field [aria-invalid="true"] { border-color: var(--color-crit-solid); }
   .site-field-error { margin: 0; color: var(--color-crit); font-size: 0.875rem; }
   .site-trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }

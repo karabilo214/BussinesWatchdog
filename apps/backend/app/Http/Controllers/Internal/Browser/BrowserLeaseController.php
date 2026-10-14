@@ -8,6 +8,7 @@ use App\Models\BrowserWorker;
 use App\Support\Browser\ArtifactStore;
 use App\Support\Browser\BrowserLeaseService;
 use App\Support\Browser\LeaseConflict;
+use App\Support\Site\PublicStorefrontLeaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -17,6 +18,7 @@ class BrowserLeaseController extends Controller
 {
     public function __construct(
         private readonly BrowserLeaseService $leases,
+        private readonly PublicStorefrontLeaseService $publicStorefront,
     ) {}
 
     public function lease(Request $request): JsonResponse|Response
@@ -26,7 +28,9 @@ class BrowserLeaseController extends Controller
             'location' => ['required', 'string', 'min:1', 'max:100'],
         ]);
 
-        $lease = $this->leases->lease($this->worker($request), $validated['browser_version'], $validated['location']);
+        $worker = $this->worker($request);
+        $lease = $this->leases->lease($worker, $validated['browser_version'], $validated['location'])
+            ?? $this->publicStorefront->lease($worker, $validated['browser_version'], $validated['location']);
 
         return $lease === null ? response()->noContent() : response()->json($lease);
     }
@@ -38,6 +42,14 @@ class BrowserLeaseController extends Controller
         try {
             return response()->json($this->leases->heartbeat($this->worker($request), $attemptId, $this->leaseToken($request), (int) $validated['fencing_token']));
         } catch (LeaseConflict $conflict) {
+            if ($conflict->reasonCode === BrowserLeaseService::ERROR_LEASE_NOT_FOUND) {
+                try {
+                    return response()->json($this->publicStorefront->heartbeat($this->worker($request), $attemptId, $this->leaseToken($request), (int) $validated['fencing_token']));
+                } catch (LeaseConflict $publicConflict) {
+                    return $this->problem($publicConflict);
+                }
+            }
+
             return $this->problem($conflict);
         }
     }
@@ -47,6 +59,16 @@ class BrowserLeaseController extends Controller
         try {
             $this->leases->complete($this->worker($request), $attemptId, $this->leaseToken($request), $request->all());
         } catch (LeaseConflict $conflict) {
+            if ($conflict->reasonCode === BrowserLeaseService::ERROR_LEASE_NOT_FOUND) {
+                try {
+                    $this->publicStorefront->complete($this->worker($request), $attemptId, $this->leaseToken($request), $request->all());
+                } catch (LeaseConflict $publicConflict) {
+                    return $this->problem($publicConflict);
+                }
+
+                return response()->json(['request_id' => (string) Str::uuid(), 'accepted' => true]);
+            }
+
             return $this->problem($conflict);
         }
 
@@ -67,6 +89,25 @@ class BrowserLeaseController extends Controller
                 (string) $request->getContent(),
             );
         } catch (LeaseConflict $conflict) {
+            if ($conflict->reasonCode === BrowserLeaseService::ERROR_LEASE_NOT_FOUND) {
+                try {
+                    $artifact = $this->publicStorefront->storeScreenshot(
+                        $this->worker($request),
+                        $attemptId,
+                        $this->leaseToken($request),
+                        (int) $request->header('X-BW-Fencing-Token', '0'),
+                        strtolower(trim(explode(';', (string) $request->header('Content-Type', ''))[0])),
+                        strtolower((string) $request->header('X-BW-Sha256', '')),
+                        (string) $request->header('X-BW-Redaction-Version', ''),
+                        (string) $request->getContent(),
+                    );
+                } catch (LeaseConflict $publicConflict) {
+                    return $this->problem($publicConflict);
+                }
+
+                return response()->json(['artifact_id' => $artifact->id, 'state' => $artifact->state], 201);
+            }
+
             return $this->problem($conflict);
         }
 

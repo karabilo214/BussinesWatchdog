@@ -1,6 +1,6 @@
 # Матрица приёмки Business Watchdog
 
-Обновлено: 2026-10-11, Step 95.
+Обновлено: 2026-10-14, Step 142.
 
 Эта матрица теперь отражает текущее состояние реализации. Evidence указывает на тесты, e2e-скрипты или журнал шагов; это не заменяет финальный release checklist. P1 включает обязательные P0; P2 принимается отдельно.
 
@@ -12,8 +12,8 @@
 
 | ID | Этап | Статус | Сценарий | Evidence | Осталось / ограничение |
 |---|---|---|---|---|---|
-| ACC-01 | P0 | partial | Fresh setup без secrets | `Makefile`, `docker-compose.yml`, health endpoints, `make frontend-smoke`; `docs/progress.md` Steps 01-03, 56-64 | Финальный demo/release checklist и production-like bootstrap ещё не закрыты |
-| ACC-02 | P0 | partial | Tenant A знает UUID B | Backend feature tests for stores/incidents/checks/payments/orders/exports; route policies in `apps/backend/routes/api.php` | Billing/privacy surfaces не все реализованы |
+| ACC-01 | P0 | partial | Fresh setup без secrets | `Makefile`, `docker-compose.yml`, health endpoints, `make frontend-smoke`; README release/operations guide; `docs/progress.md` Steps 01-03, 56-64, 103 | Финальный demo/release checklist и production-like bootstrap ещё не закрыты |
+| ACC-02 | P0 | partial | Tenant A знает UUID B | Backend feature tests for stores/incidents/checks/payments/orders/exports/billing; platform/customer guards and route policies; Steps 56-64, 97-120, 126 | Privacy deletion and support-grant surfaces are not complete |
 | ACC-03 | P0 | done | Нет tenant context в job | `tests/Unit/Tenancy/TenantContextTest.php`, `tests/Feature/Tenancy/TenantContextContainerTest.php`; fail-closed `TenantContext` | — |
 | ACC-04 | P0 | done | Pairing retry/expired/used code | `tests/Feature/Pairing/PairingApiTest.php`; `docs/progress.md` Steps 12-15, 40 | — |
 | ACC-05 | P0 | done | HMAC body altered/nonce replay | `tests/Feature/Ingest/IntegrationHmacAuthTest.php`; HMAC middleware and credential rotation tests | — |
@@ -23,12 +23,12 @@
 | ACC-09 | P0 | done | Crash after DB commit before queue | Domain outbox tests: leaser/dispatcher/result/sweeper; `docs/progress.md` Steps 24-27 | — |
 | ACC-10 | P0 | partial | DB down | Health/readiness tests and ingestion transaction semantics | Need explicit DB-down false-acceptance smoke in release checklist |
 | ACC-11 | P0 | partial | Redis down | Outbox is DB-backed; health/readiness covers Redis state | Need explicit Redis-down recovery evidence |
-| ACC-12 | P0 | done | HPOS/legacy orders/refunds | WooCommerce matrix e2e across six targets; `docs/compatibility.md`; `docs/progress.md` Steps 45-47 | Claude is currently changing REST API path; re-run matrix after merge |
-| ACC-13 | P0 | done | Backfill одновременно live events | Plugin outbox/backfill/rescan e2e; revision ordering tests | Re-run after REST API-first connector work |
+| ACC-12 | P0 | done | HPOS/legacy orders/refunds | WooCommerce matrix e2e across six targets; `docs/compatibility.md`; `docs/progress.md` Steps 45-47, 76-81, 136 | Re-run the full matrix before release after connector changes |
+| ACC-13 | P0 | done | Backfill одновременно live events | Plugin outbox/backfill/rescan e2e; revision ordering tests; WooCommerce REST API connector delta/backfill steps | Re-run the full matrix before release after connector changes |
 | ACC-14 | P0 | done | WP-Cron остановлен | `tests/Feature/Integrations/ConnectorFreshnessTest.php`; stale/partial connector incidents; Step 50 | — |
-| ACC-15 | P0 | done | Classic happy path | `plugins/woocommerce-watchdog/tests/matrix/browser-e2e.sh`; browser worker adapter; Step 52 | — |
+| ACC-15 | P0 | done | Classic happy path | `plugins/woocommerce-watchdog/tests/matrix/browser-e2e.sh`; browser worker adapter; Step 52; Shopware 6.6/6.7 browser e2e for payment-method reachability, Step 140 | — |
 | ACC-16 | P0 | done | Blocks checkout-draft side effect | Synthetic marker/draft cleanup e2e; Step 53 | — |
-| ACC-17 | P0 | done | Real submit/capture attempted | `apps/browser-worker/test/networkPolicy.test.js`; network boundary e2e; Step 53 | — |
+| ACC-17 | P0 | done | Real submit/capture attempted | `apps/browser-worker/test/networkPolicy.test.js`; network boundary e2e; WooCommerce and Shopware mutation-blocking policies; Steps 53, 140 | — |
 | ACC-18 | P0 | done | PrivateIP/IPv6/redirect/DNS rebind | SSRF-safe fetcher tests, egress proxy checks, `infra/scripts/egress-test.sh`; Steps 42, 53 | Keep in release/security checklist |
 | ACC-19 | P0 | done | Cart/checkout relevant500 twice | Browser outcome policy tests and incident confirmation policy; Step 51 | — |
 | ACC-20 | P0 | done | Tracking404/favicon missing | Browser check policy classifies non-critical resources; Step 51 | — |
@@ -51,7 +51,7 @@
 | ACC-37 | P1 | done | Revoked API key | Provider coverage tests; rejected Stripe/PayPal credentials degrade to unknown | — |
 | ACC-38 | P1 | done | Telegram binding чужому chat | Telegram pending channel, secret-protected bot bind and native update endpoints, masked destination, sender success/failure, webhook registration command, binding collision tests and live Telegram bot binding/test delivery smoke through Cloudflare tunnel; Steps 88-94 | Use a stable production tunnel/domain for deployment |
 | ACC-39 | P1 | partial | Quiet hours и recovery | Email/Telegram notification preferences and delivery tests; reminder planner/command/UI tests for opt-in open-incident reminders that respect quiet hours; Steps 62, 88, 95 | Daily digest not implemented |
-| ACC-40 | P1 | not_done | Plan quota или suspended | — | SaaS billing/entitlements not implemented |
+| ACC-40 | P1 | done | Plan quota или suspended | Entitlements and usage enforcement, billing access states, store-capacity pause, manual suspension/temporary override and order-volume pause: `EntitlementsTest`, `UsageTest`, `PlanChangeTest`, `TenantAdminTest`, `OrderVolumeTest`; Steps 97-102, 108-110, 114-117 | Event-budget overage remains a soft warning by owner decision; production Paddle account not connected |
 | ACC-41 | P1 | not_done | Backup restore новым host | — | RPO/RTO restore drill missing |
 | ACC-42 | P1 | not_done | Tenant deletion с artifacts | — | Privacy deletion workflow not implemented |
 | ACC-43 | P1 | not_done | Load/capacity fixture | — | SLO/load report and browser pool sizing missing |
@@ -63,4 +63,4 @@
 | ACC-49 | P2 | not_done | Sales drop+browser failure | — | P2 correlation not implemented |
 | ACC-50 | P2 | not_done | Deploy рядом со сбоем | — | Deploy correlation/explanation model not implemented |
 
-Дополнительные обязательные security проверки: CSRF, stored XSS, CSV formula injection, permission matrix, last owner, invitation expiration, secret masking и RLS при включении. Текущее evidence: CSRF/Sanctum, permission matrix, last owner / ownership transfer, invitation expiration, secret masking and CSV formula protection for findings/incidents/transactions exports covered in backend/frontend tests; RLS gate, billing/privacy exports and full stored-XSS security sweep remain release-blocking backlog.
+Дополнительные обязательные security проверки: CSRF, stored XSS, CSV formula injection, permission matrix, last owner, invitation expiration, secret masking и RLS при включении. Текущее evidence: CSRF/Sanctum, separate platform/customer guards, permission matrix, last owner / ownership transfer / platform last-owner guards, invitation expiration, secret masking and CSV formula protection for findings/incidents/transactions/platform-audit exports covered in backend/frontend tests; RLS gate, privacy deletion, private billing-document export policy and full stored-XSS security sweep remain release-blocking backlog.

@@ -137,6 +137,21 @@ return [
         'cache_seconds' => (int) env('WATCHDOG_SITE_CACHE_SECONDS', 60),
     ],
 
+    'public_check' => [
+        'captcha_ttl_minutes' => (int) env('WATCHDOG_PUBLIC_CHECK_CAPTCHA_TTL_MINUTES', 10),
+        'verify_dns' => (bool) env('WATCHDOG_PUBLIC_CHECK_VERIFY_DNS', true),
+        'submit_attempts_per_hour' => (int) env('WATCHDOG_PUBLIC_CHECK_SUBMIT_ATTEMPTS_PER_HOUR', 5),
+        'host_cooldown_days' => (int) env('WATCHDOG_PUBLIC_CHECK_HOST_COOLDOWN_DAYS', 30),
+        'ip_cooldown_days' => (int) env('WATCHDOG_PUBLIC_CHECK_IP_COOLDOWN_DAYS', 10),
+        'artifact_ttl_minutes' => (int) env('WATCHDOG_PUBLIC_CHECK_ARTIFACT_TTL_MINUTES', 5),
+        'lease_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_LEASE_SECONDS', 90),
+        'absolute_run_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_ABSOLUTE_RUN_SECONDS', 60),
+        'result_grace_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_RESULT_GRACE_SECONDS', 15),
+        'max_running' => (int) env('WATCHDOG_PUBLIC_CHECK_MAX_RUNNING', 1),
+        'max_artifacts' => (int) env('WATCHDOG_PUBLIC_CHECK_MAX_ARTIFACTS', 3),
+        'max_artifact_bytes' => (int) env('WATCHDOG_PUBLIC_CHECK_MAX_ARTIFACT_BYTES', 2 * 1024 * 1024),
+    ],
+
     'shopware' => [
         'timeout_seconds' => 20,
         'page_size' => 100,

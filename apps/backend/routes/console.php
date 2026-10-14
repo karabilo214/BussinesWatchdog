@@ -147,6 +147,11 @@ Schedule::command('site:contact-purge')
     ->withoutOverlapping(60)
     ->onOneServer();
 
+Schedule::command('site:public-checks-purge')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->onOneServer();
+
 Schedule::command('billing:order-volume')
     ->dailyAt('04:10')
     ->timezone('UTC')

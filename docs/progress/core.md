@@ -777,3 +777,38 @@ Status: complete
 - Found on the live stand: the Telegram bot name already starts with «@» in the environment (shown once now); zero notification recipients means all owners (worded so).
 
 Verification: `tests/Feature/Platform/PlatformSettingsTest.php` (2: configuration without secret values, bounds and messages validated, step-up, versions replace each other, customer sees German message planned then running, cancel, audit order; admin forbidden). Control 54 tests (`tests/settings.test.ts`, 2), customer 114 (`tests/maintenance.test.ts`, 2). Frontend check green. Backend SQLite 555 passed, 4 skipped; PostgreSQL 18: 559 of 559. Live in Chromium (`run-live.sh overview`): settings shown with fingerprints, maintenance published and cancelled with fresh codes — PASS.
+
+### Step 142: Acceptance Evidence Refresh After Billing, Owner Panel and Shopware Steps
+
+Status: complete for documentation evidence refresh
+
+Updated:
+
+- `spec/ACCEPTANCE.md`: refreshed the timestamp and evidence after Steps 97-141; plan quotas/suspension are now marked done with billing/entitlement evidence, Shopware browser/network-policy evidence is reflected, and stale notes about billing not being implemented were removed.
+- `spec/PANELS-ACCEPTANCE.md`: refreshed platform guard, platform staff, MFA/step-up, price publishing, checkout, billing event inbox, LIVE/TEST isolation and provider-failure statuses after the Paddle, public-site and owner-panel slices.
+- `PROJECT_STATE.md` and `docs/progress.md`: bumped the recovery marker to Step 142 and recorded that this was a documentation-only task.
+
+Verification:
+
+- Documentation-only change. No backend/frontend/plugin/worker tests were run; Step 141 remains the latest full test evidence.
+
+Coordination:
+
+- Claude is working on the Shopware checkout script (layer 2). This step avoided backend/frontend/worker code and did not touch the script area.
+
+### Step 144: ADR and Checklist for Public Storefront Check by URL
+
+Status: complete for planning documentation
+
+Added:
+
+- `docs/adr/0058-public-url-storefront-check.md`: proposed public pre-registration storefront smoke check by URL, explicitly limited to public pages and cautious verdicts. It records mandatory CAPTCHA, normalized host/origin cooldown (30 days), IP cooldown (one site per 10 days), submit-attempt limiting, SSRF protections, separate queue/capacity, no payment/financial/monitoring claims, and 5-minute artifact retention.
+- `docs/implementation-step-58-checklist.md`: implementation checklist for the future code slice, including URL normalization, anti-abuse gates, public-only browser policy, separate public diagnostic artifacts, purge job and verification plan.
+
+Verification:
+
+- Documentation-only change. No backend/frontend/plugin/worker tests were run.
+
+Coordination:
+
+- This step intentionally avoided the Shopware checkout script implementation files and only added new planning documents.

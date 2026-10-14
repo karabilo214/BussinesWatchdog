@@ -47,6 +47,7 @@ class CompleteAttemptRequest extends FormRequest
             'diagnostics.redaction_version' => ['required', 'string', 'max:32'],
             'diagnostics.relevant_errors' => ['present', 'array', 'max:100'],
             'diagnostics.relevant_errors.*' => ['array'],
+            'diagnostics.detected_platform' => ['sometimes', 'string', 'in:woocommerce_hint,shopware_hint,unknown'],
             'artifact_ids' => ['sometimes', 'array', 'max:10'],
             'artifact_ids.*' => ['uuid'],
         ];
@@ -78,7 +79,7 @@ class CompleteAttemptRequest extends FormRequest
             }
 
             $diagnostics = (array) ($data['diagnostics'] ?? []);
-            $this->checkKeys($validator, 'diagnostics', $diagnostics, ['redaction_version', 'relevant_errors']);
+            $this->checkKeys($validator, 'diagnostics', $diagnostics, ['redaction_version', 'relevant_errors', 'detected_platform']);
 
             foreach ((array) ($diagnostics['relevant_errors'] ?? []) as $j => $error) {
                 $this->checkFlat($validator, "diagnostics.relevant_errors.$j", $error, self::ERROR_KEYS);

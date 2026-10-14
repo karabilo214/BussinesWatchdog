@@ -247,6 +247,37 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
     }
   }
 
+  function classifyPublicMutation(parsed, method, postData) {
+    if (`${parsed.protocol}//${parsed.host}`.toLowerCase() !== store) {
+      return 'unknown_mutation';
+    }
+
+    if (platform !== 'public') {
+      return 'unknown_mutation';
+    }
+
+    const shopware = classifyShopwareMutation(parsed, postData);
+
+    if (shopware === null && /\/checkout\/line-item\/add\/?$/.test(parsed.pathname)) {
+      return null;
+    }
+
+    const wc = classifyStoreMutation(parsed, method, postData);
+
+    if (wc === null) {
+      const wcAjax = parsed.searchParams.get('wc-ajax');
+      const route = restRoute(parsed);
+      const storeApi = route === null ? null : STORE_API.exec(route);
+      const fields = formFields(postData);
+
+      if (wcAjax === 'add_to_cart' || (storeApi !== null && /^cart\/add-item\/?$/.test(storeApi[1])) || fields.has('add-to-cart')) {
+        return null;
+      }
+    }
+
+    return 'forbidden_mutation';
+  }
+
   return {
     /**
      * @returns {{ allow: boolean, reason?: 'scheme'|'origin_not_allowed'|'mutation', operation?: string }}
@@ -281,6 +312,12 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
 
       if (READ_METHODS.has(verb)) {
         return { allow: true };
+      }
+
+      if (platform === 'public') {
+        const operation = classifyPublicMutation(parsed, verb, postData);
+
+        return operation === null ? { allow: true } : { allow: false, reason: 'mutation', operation };
       }
 
       if (onStore) {

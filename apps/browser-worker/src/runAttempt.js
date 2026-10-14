@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { StepOutcome } from './adapter/common.js';
+import { ADAPTER_VERSION as PUBLIC_STOREFRONT_ADAPTER, createPublicStorefrontAdapter } from './adapter/publicStorefront.js';
 import { ADAPTER_VERSION as SHOPWARE_ADAPTER, createShopwareAdapter } from './adapter/shopware.js';
 import { ADAPTER_VERSION as WOOCOMMERCE_ADAPTER, createWooCommerceAdapter } from './adapter/woocommerce.js';
 import { createNetworkPolicy } from './networkPolicy.js';
@@ -13,6 +14,7 @@ const RESULT_STATUSES = ['failed', 'blocked', 'inconclusive'];
 const ADAPTERS = {
   [WOOCOMMERCE_ADAPTER]: createWooCommerceAdapter,
   [SHOPWARE_ADAPTER]: createShopwareAdapter,
+  [PUBLIC_STOREFRONT_ADAPTER]: createPublicStorefrontAdapter,
 };
 
 /**
@@ -47,6 +49,8 @@ const FOCUS = {
   cart: '.woocommerce-cart-form, .wp-block-woocommerce-cart, .cart-empty',
   checkout: 'form.checkout, .wp-block-woocommerce-checkout, .woocommerce-error',
   payment_form: '#payment, .wc-block-checkout__payment-method, .wc-block-checkout__no-payment-methods-notice',
+  public_home: 'body',
+  public_checkout: 'main, body',
 };
 
 export function createErrorLog() {
@@ -220,6 +224,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
 
     const steps = [];
     let final = null;
+    const artifactIds = [];
 
     for (const [index, step] of scenario.steps.entries()) {
       const startedAt = now();
@@ -259,6 +264,14 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
         const skipped = outcome && !Array.isArray(outcome) && outcome.skipped;
         const assertions = Array.isArray(outcome) ? outcome : (outcome?.assertions ?? []);
         steps.push(stepResult(index, step.code, skipped ? 'skipped' : 'passed', startedAt, now(), assertions, state.network, null));
+
+        if (scenario.capture_steps === true && !skipped && uploadScreenshot !== null && artifactIds.length < (scenario.max_artifacts ?? 3) && deadline - Date.now() > 8000) {
+          const artifactId = await captureScreenshot(page, focusOf[step.code], uploadScreenshot, errors).catch(() => null);
+
+          if (artifactId !== null) {
+            artifactIds.push(artifactId);
+          }
+        }
       } catch (error) {
         let outcome = error instanceof StepOutcome ? error : new StepOutcome('inconclusive', 'infra_timeout', 'worker_exception');
 
@@ -271,29 +284,12 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       }
     }
 
-    const artifactIds = [];
-
     if (final !== null && uploadScreenshot !== null && deadline - Date.now() > 8000) {
-      try {
-        const focus = focusOf[steps.find((step) => step.status !== 'passed' && step.status !== 'skipped')?.code];
+      const focus = focusOf[steps.find((step) => step.status !== 'passed' && step.status !== 'skipped')?.code];
+      const artifactId = await captureScreenshot(page, focus, uploadScreenshot, errors).catch(() => null);
 
-        if (focus) {
-          await page.locator(focus).first().scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => null);
-        }
-
-        const bytes = await page.screenshot({
-          type: 'jpeg',
-          quality: 60,
-          fullPage: false,
-          animations: 'disabled',
-          caret: 'hide',
-          mask: SCREENSHOT_MASK.map((selector) => page.locator(selector)),
-          maskColor: '#7f7f7f',
-          timeout: 5000,
-        });
-        artifactIds.push(await uploadScreenshot(bytes, createHash('sha256').update(bytes).digest('hex')));
-      } catch (error) {
-        errors.add({ type: 'artifact_failed', party: 'first', step_code: 'artifact', message_code: error?.code ?? errorName(error) });
+      if (artifactId !== null && !artifactIds.includes(artifactId)) {
+        artifactIds.push(artifactId);
       }
     }
 
@@ -317,10 +313,39 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       error_code: final?.error_code ?? null,
       finished_at: now().toISOString(),
       steps,
-      diagnostics: { redaction_version: REDACTION_VERSION, relevant_errors: errors.list() },
+      diagnostics: {
+        redaction_version: REDACTION_VERSION,
+        relevant_errors: errors.list(),
+        ...(state.detectedPlatform ? { detected_platform: state.detectedPlatform } : {}),
+      },
     };
   } finally {
     await context.close().catch(() => null);
+  }
+}
+
+async function captureScreenshot(page, focus, uploadScreenshot, errors) {
+  try {
+    if (focus) {
+      await page.locator(focus).first().scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => null);
+    }
+
+    const bytes = await page.screenshot({
+      type: 'jpeg',
+      quality: 60,
+      fullPage: false,
+      animations: 'disabled',
+      caret: 'hide',
+      mask: SCREENSHOT_MASK.map((selector) => page.locator(selector)),
+      maskColor: '#7f7f7f',
+      timeout: 5000,
+    });
+
+    return await uploadScreenshot(bytes, createHash('sha256').update(bytes).digest('hex'));
+  } catch (error) {
+    errors.add({ type: 'artifact_failed', party: 'first', step_code: 'artifact', message_code: error?.code ?? errorName(error) });
+
+    return null;
   }
 }
 

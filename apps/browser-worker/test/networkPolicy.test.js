@@ -145,3 +145,18 @@ test('quiet origins are dropped without counting as blocked traffic', () => {
   assert.deepEqual(sw.decide({ method: 'POST', url: 'https://app.watchdog.example/api/v1/observe/x/stages', postData: '{}' }), { allow: false, reason: 'quiet' });
   assert.equal(sw.decide({ method: 'GET', url: `${store}/checkout/confirm` }).allow, true);
 });
+
+test('public storefront checks allow only public cart-add mutations on the checked origin', () => {
+  const pub = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, platform: 'public' });
+
+  assert.equal(pub.decide({ method: 'GET', url: `${store}/` }).allow, true);
+  assert.equal(pub.decide({ method: 'GET', url: `${store}/checkout` }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/?wc-ajax=add_to_cart`, postData: 'product_id=10' }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/product/x/`, postData: 'quantity=1&add-to-cart=10' }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/wp-json/wc/store/v1/cart/add-item`, postData: '{"id":10}' }).allow, true);
+  assert.equal(pub.decide({ method: 'POST', url: `${store}/checkout/line-item/add`, postData: multipart([[`lineItems[${lineItem}][quantity]`, '1']]) }).allow, true);
+  assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/?wc-ajax=update_order_review`, postData: 'security=x' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
+  assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/checkout/order`, postData: 'tos=on' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
+  assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/account/login`, postData: 'username=a&password=b' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
+  assert.equal(pub.decide({ method: 'GET', url: 'https://cdn.example.test/app.css' }).allow, false);
+});
