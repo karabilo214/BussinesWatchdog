@@ -24,6 +24,8 @@ class ReconciliationFinding extends Model
 
     public const RULE_CAPTURE_AMOUNT = 'MONEY_CAPTURE_AMOUNT';
 
+    public const RULE_CAPTURE_NOT_RECORDED = 'MONEY_CAPTURE_NOT_RECORDED';
+
     public const RULE_REFUND_MISSING = 'MONEY_REFUND_MISSING';
 
     public const RULE_REFUND_EXTRA = 'MONEY_REFUND_EXTRA';

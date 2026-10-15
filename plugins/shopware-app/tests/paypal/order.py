@@ -50,8 +50,13 @@ def main():
     assert order['status'] == 200, s.error_code(order)
     order = order['json']
     finish = f'http://{HOST}/checkout/finish?orderId={order["id"]}'
-    handled = s.call('POST', '/store-api/handle-payment', None, {'orderId': order['id'], 'finishUrl': finish, 'errorUrl': f'http://{HOST}/account/order/edit/{order["id"]}'}, headers)
-    print('BW_ORDER=' + json.dumps({'id': order['id'], 'number': order['orderNumber'], 'total': order['amountTotal'], 'currency': currency, 'status': handled['status'], 'redirect': (handled['json'] or {}).get('redirectUrl'), 'error': None if handled['status'] == 200 else s.error_code(handled)}))
+    handled = {'status': 200, 'json': {}} if os.environ.get('BW_SKIP_HANDLE_PAYMENT') == '1' else s.call('POST', '/store-api/handle-payment', None, {'orderId': order['id'], 'finishUrl': finish, 'errorUrl': f'http://{HOST}/account/order/edit/{order["id"]}'}, headers)
+    error = None if handled['status'] == 200 else s.error_code(handled)
+    result = {'id': order['id'], 'number': order['orderNumber'], 'total': order['amountTotal'], 'currency': currency, 'status': handled['status'], 'redirect': (handled['json'] or {}).get('redirectUrl'), 'error': error}
+    if os.environ.get('BW_LOCAL_TIMEOUT_TEST') == '1':
+        result['context_token'] = headers['sw-context-token']
+        result['access_key'] = headers['sw-access-key']
+    print('BW_ORDER=' + json.dumps(result))
 
 
 main()

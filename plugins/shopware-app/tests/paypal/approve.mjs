@@ -2,7 +2,6 @@ import { chromium } from 'playwright';
 
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 1000 } })).newPage();
-const shot = (name) => page.screenshot({ path: `/out/${name}.png`, fullPage: true }).catch(() => undefined);
 
 try {
   await page.goto(process.env.BW_APPROVE_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -24,10 +23,8 @@ try {
   await page.waitForURL((url) => url.hostname === process.env.BW_SHOP_HOST, { timeout: 120000 });
   await page.waitForLoadState('domcontentloaded');
   console.log('BW_RETURNED=' + new URL(page.url()).pathname);
-  await shot('returned');
 } catch (error) {
-  await shot('approve-failure');
-  console.log('FAILED', new URL(page.url()).hostname + new URL(page.url()).pathname, String(error.message).split('\n')[0]);
+  console.log('FAILED', error?.name ?? 'approval_error');
   process.exitCode = 1;
 } finally {
   await browser.close();

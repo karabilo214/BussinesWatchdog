@@ -14,6 +14,14 @@ update_option('woocommerce_default_country', 'DE');
 $originalCheckoutId = (int) get_option('woocommerce_checkout_page_id');
 $originalCheckout = $originalCheckoutId > 0 ? get_post($originalCheckoutId) : null;
 $blocksCheckoutId = $originalCheckout && strpos((string) $originalCheckout->post_content, 'wp:woocommerce/checkout') !== false ? $originalCheckoutId : 0;
+if ($blocksCheckoutId === 0) {
+    foreach (get_pages(['post_status' => 'publish']) as $candidate) {
+        if (strpos((string) $candidate->post_content, 'wp:woocommerce/checkout') !== false) {
+            $blocksCheckoutId = (int) $candidate->ID;
+            break;
+        }
+    }
+}
 
 $pageId = wp_insert_post(['post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Classic checkout', 'post_name' => 'classic-checkout', 'post_content' => '[woocommerce_checkout]']);
 update_option('woocommerce_checkout_page_id', $pageId);

@@ -31,6 +31,7 @@ class MoneyIncidentCorrelator
     private const COMPONENT_MAP = [
         ReconciliationFinding::RULE_CAPTURE_MISSING => 'capture',
         ReconciliationFinding::RULE_CAPTURE_AMOUNT => 'capture',
+        ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED => 'capture_not_recorded',
         ReconciliationFinding::RULE_REFUND_MISSING => 'refund',
         ReconciliationFinding::RULE_REFUND_EXTRA => 'refund',
         ReconciliationFinding::RULE_MULTIPLE_CAPTURES => 'multiple_captures',

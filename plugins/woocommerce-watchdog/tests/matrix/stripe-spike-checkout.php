@@ -36,7 +36,7 @@ $fields = [
     'payment_method' => 'stripe',
     'woocommerce-process-checkout-nonce' => $m[1],
     '_wp_http_referer' => '/?page_id=' . $checkoutPageId,
-    'wc-stripe-payment-method' => 'pm_card_visa',
+    'wc-stripe-payment-method' => getenv('BW_PAYMENT_METHOD') ?: 'pm_card_visa',
     'wc-stripe-is-deferred-intent' => '1',
     'billing_first_name' => 'Spike', 'billing_last_name' => 'Tester', 'billing_address_1' => 'Teststrasse 1', 'billing_city' => 'Berlin',
     'billing_postcode' => '10115', 'billing_country' => 'DE', 'billing_email' => 'spike@example.test', 'billing_phone' => '030000000',

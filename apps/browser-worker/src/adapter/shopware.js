@@ -1,4 +1,5 @@
 import { PRODUCT, SITE, StepOutcome, UNSUPPORTED, navigate, present, visible } from './common.js';
+import { displayedMinor, sameProductPath } from './cartAssertions.js';
 
 export const ADAPTER_VERSION = 'shopware-payment-form@1';
 
@@ -21,6 +22,9 @@ const SELECTORS = {
   soldOut: '.delivery-soldout, .product-detail-buy .delivery-status-indicator.bg-danger',
   cartPage: 'body.is-act-cartpage',
   cartLine: '.line-item-product, .line-item.is-product',
+  cartTotal: '.checkout-aside-summary-value.checkout-aside-summary-total',
+  cartLineTotal: '.line-item-total-price-value',
+  checkoutControl: 'a.begin-checkout-btn:visible',
   offcanvasError: '.offcanvas .alert-danger, .offcanvas-cart .alert-danger',
   registerPage: 'body.is-act-checkoutregisterpage',
   confirmPage: 'body.is-act-confirmpage',
@@ -31,6 +35,7 @@ const SELECTORS = {
   fieldInvalid: 'form.register-form .is-invalid, form.register-form .invalid-feedback:not(:empty)',
   captcha: 'form.register-form .captcha-basic, form.register-form [data-google-re-captcha-v2], form.register-form [data-google-re-captcha-v3], form.register-form iframe[src*="recaptcha"], form.register-form iframe[src*="hcaptcha"]',
   paymentMethod: '.payment-methods .payment-method-input, input.payment-method-input',
+  shippingMethod: '.shipping-methods .shipping-method-input, input[name="shippingMethodId"]',
   submitOrder: '#confirmFormSubmit, button[form="confirmOrderForm"][type="submit"]',
 };
 
@@ -88,6 +93,17 @@ async function selectFirstValue(form, selector, timeout, preferred = null) {
   }
 }
 
+async function selectableRadio(methods, timeout) {
+  for (let index = 0; index < await methods.count(); index++) {
+    const method = methods.nth(index);
+    if (!await method.isVisible() || !await method.isEnabled()) continue;
+    if (await method.isChecked()) return true;
+    await method.check({ timeout: Math.min(timeout, 5000) }).catch(() => null);
+    if (await method.isChecked().catch(() => false)) return true;
+  }
+  return false;
+}
+
 /**
  * Shopware 6.6/6.7 storefront. Stops before «Submit order» (`POST /checkout/order` is blocked by the network policy);
  * how payment methods are reached depends on `checkout_access` (ADR 0055).
@@ -115,13 +131,14 @@ export function createShopwareAdapter() {
         const button = page.locator(SELECTORS.buyButton).first();
 
         if (await button.isDisabled()) {
-          throw PRODUCT('add_to_cart_disabled');
+          throw await present(page, SELECTORS.soldOut) ? PRODUCT('add_to_cart_disabled') : SITE('add_to_cart_disabled_without_stock_notice');
         }
 
         context.lineItemId = await page.locator('form.buy-widget input[name$="[id]"]').first()
           .getAttribute('name', { timeout: 2000 })
           .then((name) => /^lineItems\[([0-9a-f]{32})\]\[id\]$/.exec(name ?? '')?.[1] ?? null)
           .catch(() => null);
+        context.productPath = page.url();
 
         return [{ code: 'add_to_cart_ready', passed: true }];
       }
@@ -138,9 +155,17 @@ export function createShopwareAdapter() {
     },
 
     async add_to_cart(page, step, context) {
+      const functionalCookies = page.locator('.cookie-consent-accept-only-functional-button:visible').first();
+      if (await functionalCookies.waitFor({ state: 'visible', timeout: Math.min(step.timeout_ms, 1500) }).then(() => true).catch(() => false)) {
+        await functionalCookies.click({ timeout: Math.min(step.timeout_ms, 5000) });
+        await page.locator('.cookie-consent-modal:visible, .modal.show:visible').first().waitFor({ state: 'hidden', timeout: Math.min(step.timeout_ms, 5000) }).catch(() => null);
+      }
+
+      const preferredButton = page.locator('form.buy-widget button.btn-buy:not([tabindex="-1"]), .product-detail-buy button.btn-buy:not([tabindex="-1"])').first();
+      const button = await preferredButton.count() > 0 ? preferredButton : page.locator(SELECTORS.buyButton).first();
       const added = page.waitForResponse((response) => response.request().method() === 'POST' && /\/checkout\/line-item\/add\/?$/.test(new URL(response.url()).pathname), { timeout: step.timeout_ms }).catch(() => null);
 
-      await page.locator(SELECTORS.buyButton).first().click({ timeout: step.timeout_ms });
+      await button.click({ timeout: step.timeout_ms });
       const response = await added;
       blocked(context);
 
@@ -165,7 +190,47 @@ export function createShopwareAdapter() {
       await navigate(page, context.scenario.cart_url, step.timeout_ms, context);
 
       if (await visible(page, SELECTORS.cartLine, step.timeout_ms)) {
-        return [{ code: 'cart_has_line', passed: true }];
+        const rows = page.locator('.line-item-product:visible, .line-item.is-product:visible');
+        let expectedRow = null;
+        for (let index = 0; index < await rows.count(); index++) {
+          const row = rows.nth(index);
+          const { action, link } = await row.evaluate((element) => ({
+            action: element.querySelector('form[action*="/checkout/line-item/change-quantity/"]')?.getAttribute('action') ?? null,
+            link: element.querySelector('a.line-item-label[href]')?.href ?? null,
+          }));
+          if ((context.lineItemId && action?.endsWith(`/${context.lineItemId}`)) || (link && sameProductPath(context.productPath, link))) {
+            expectedRow = row;
+            break;
+          }
+        }
+        if (!expectedRow) throw SITE('cart_expected_product_missing');
+
+        const lineText = await expectedRow.locator(SELECTORS.cartLineTotal).first().textContent().catch(() => null);
+        const totalText = await page.locator(SELECTORS.cartTotal).first().textContent().catch(() => null);
+        const lineMinor = displayedMinor(lineText);
+        const totalMinor = displayedMinor(totalText);
+        if (lineMinor === null || totalMinor === null) {
+          throw new StepOutcome('inconclusive', 'selector_changed', 'cart_amount_not_readable');
+        }
+        if (lineMinor <= 0n || totalMinor <= 0n) throw SITE('cart_amount_not_positive');
+
+        if (!await visible(page, SELECTORS.checkoutControl, Math.min(step.timeout_ms, 3000))) {
+          throw SITE('cart_checkout_control_missing');
+        }
+
+        const checkout = page.locator(SELECTORS.checkoutControl).first();
+        if (await checkout.isDisabled() || await checkout.getAttribute('aria-disabled') === 'true' || await checkout.evaluate((element) => getComputedStyle(element).pointerEvents === 'none')) {
+          throw SITE('cart_checkout_control_disabled');
+        }
+
+        try {
+          await checkout.click({ timeout: step.timeout_ms });
+          await page.waitForURL((url) => url.pathname !== new URL(context.scenario.cart_url).pathname, { timeout: step.timeout_ms });
+        } catch {
+          throw SITE('cart_checkout_navigation_failed');
+        }
+
+        return [{ code: 'cart_expected_product', passed: true }, { code: 'cart_positive_amount', passed: true }, { code: 'checkout_control_works', passed: true }];
       }
 
       if (await present(page, SELECTORS.cartPage)) {
@@ -313,16 +378,40 @@ export function createShopwareAdapter() {
       throw new StepOutcome('inconclusive', 'selector_changed', 'after_guest_registration_unknown_page');
     },
 
+    async shipping(page, step, context) {
+      if ((await pageKind(page, step.timeout_ms)) !== 'confirm') {
+        throw new StepOutcome('inconclusive', 'selector_changed', 'shipping_confirm_page_not_reached');
+      }
+
+      const methods = page.locator(SELECTORS.shippingMethod);
+      if (await methods.count() === 0) throw SITE('no_shipping_methods');
+      if (!await methods.evaluateAll((inputs) => inputs.some((input) => input.getClientRects().length > 0))) {
+        throw new StepOutcome('inconclusive', 'selector_changed', 'shipping_controls_not_visible');
+      }
+      const selectable = await selectableRadio(methods, step.timeout_ms);
+      blocked(context);
+      if (context.blockedUnknownMutation) throw UNSUPPORTED('shipping_selection_blocked');
+      if (!selectable) throw SITE('shipping_methods_unselectable');
+
+      return [{ code: 'delivery_option_selectable', passed: true }];
+    },
+
     async payment_form(page, step, context) {
       if ((await pageKind(page, step.timeout_ms)) !== 'confirm') {
         throw new StepOutcome('inconclusive', 'selector_changed', 'confirm_page_not_reached');
       }
 
-      const methods = await page.locator(SELECTORS.paymentMethod).count();
-
-      if (methods === 0) {
+      const methods = page.locator(SELECTORS.paymentMethod);
+      if (await methods.count() === 0) {
         throw SITE('no_payment_methods');
       }
+      if (!await methods.evaluateAll((inputs) => inputs.some((input) => input.getClientRects().length > 0))) {
+        throw new StepOutcome('inconclusive', 'selector_changed', 'payment_controls_not_visible');
+      }
+      const selectable = await selectableRadio(methods, step.timeout_ms);
+      blocked(context);
+      if (context.blockedUnknownMutation) throw UNSUPPORTED('payment_selection_blocked');
+      if (!selectable) throw SITE('payment_methods_unselectable');
 
       const submit = page.locator(SELECTORS.submitOrder).first();
 
@@ -334,7 +423,7 @@ export function createShopwareAdapter() {
         throw SITE('order_submit_unavailable');
       }
 
-      const assertions = [{ code: 'payment_method_available', passed: true, detail_code: `methods_${Math.min(methods, 99)}` }];
+      const assertions = [{ code: 'payment_method_selectable', passed: true, detail_code: `methods_${Math.min(await methods.count(), 99)}` }];
 
       if (context.scenario.expect_checkout_script) {
         const script = await page.evaluate(() => window.BusinessWatchdogCheckout?.page ?? null).catch(() => null);

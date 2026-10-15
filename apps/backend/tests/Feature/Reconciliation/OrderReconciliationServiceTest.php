@@ -53,7 +53,7 @@ class OrderReconciliationServiceTest extends TestCase
 
         $run = app(OrderReconciliationService::class)->evaluate($order);
 
-        $finding = $this->soleFinding($run);
+        $finding = $run->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)->sole();
         $this->assertSame(ReconciliationFinding::RULE_CAPTURE_AMOUNT, $finding->rule_code);
         $this->assertSame(ReconciliationFinding::STATUS_OK, $finding->status);
         $this->assertSame(0, $finding->difference_minor);
@@ -66,7 +66,7 @@ class OrderReconciliationServiceTest extends TestCase
 
         $run = app(OrderReconciliationService::class)->evaluate($order);
 
-        $finding = $this->soleFinding($run);
+        $finding = $run->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)->sole();
         $this->assertSame(ReconciliationFinding::RULE_CAPTURE_AMOUNT, $finding->rule_code);
         $this->assertSame(ReconciliationFinding::STATUS_MISMATCH, $finding->status);
         $this->assertSame(-400, $finding->difference_minor);
@@ -80,6 +80,28 @@ class OrderReconciliationServiceTest extends TestCase
 
         $this->assertSame(0, $run->findings()->count());
         $this->assertSame(ReconciliationRun::STATUS_COMPLETED, $run->status);
+    }
+
+    public function test_provider_capture_without_store_paid_marker_is_pending_then_mismatch_and_recovers(): void
+    {
+        $order = $this->order(['paid_marked_at' => null, 'status' => 'pending']);
+        $this->allocateCapture($order, 18400, 18400);
+
+        $pending = app(OrderReconciliationService::class)->evaluate($order);
+        $finding = $pending->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED)->sole();
+        $this->assertSame(ReconciliationFinding::STATUS_PENDING, $finding->status);
+        $this->assertArrayHasKey('grace_deadline_at', $finding->evidence);
+
+        FinancialTransaction::query()->where('kind', 'capture')->update(['occurred_at' => now()->subMinutes(31)]);
+        $mismatch = app(OrderReconciliationService::class)->evaluate($order->fresh());
+        $finding = $mismatch->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED)->sole();
+        $this->assertSame(ReconciliationFinding::STATUS_MISMATCH, $finding->status);
+        $this->assertSame('capture_not_recorded_grace_expired', $finding->reason_code);
+        $this->assertSame(ReconciliationFinding::STATUS_OK, $mismatch->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)->sole()->status);
+
+        $order->forceFill(['paid_marked_at' => now(), 'status' => 'processing'])->save();
+        $recovered = app(OrderReconciliationService::class)->evaluate($order->fresh());
+        $this->assertSame(ReconciliationFinding::STATUS_OK, $recovered->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED)->sole()->status);
     }
 
     public function test_it_reports_unsupported_finding_and_skips_other_rules(): void
@@ -261,9 +283,9 @@ class OrderReconciliationServiceTest extends TestCase
 
         $this->assertNotSame($firstRun->id, $secondRun->id);
         $this->assertSame(1, $firstRun->findings()->count());
-        $this->assertSame(1, $secondRun->findings()->count());
+        $this->assertSame(2, $secondRun->findings()->count());
         $this->assertSame(ReconciliationFinding::RULE_CAPTURE_MISSING, $firstRun->findings()->first()->rule_code);
-        $this->assertSame(ReconciliationFinding::RULE_CAPTURE_AMOUNT, $secondRun->findings()->first()->rule_code);
+        $this->assertSame(ReconciliationFinding::RULE_CAPTURE_AMOUNT, $secondRun->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)->sole()->rule_code);
     }
 
     private function soleFinding(ReconciliationRun $run): ReconciliationFinding

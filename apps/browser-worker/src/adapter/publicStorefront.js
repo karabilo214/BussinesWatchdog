@@ -100,10 +100,10 @@ export function createPublicStorefrontAdapter() {
           await assertNoPrivatePage(page);
           audit.products_tested += 1;
 
-          const added = await tryPublicAddToCart(page, Math.min(9000, remaining()), state);
-          sample.add_to_cart = added ? 'clicked' : 'button_not_found';
+          const addResult = await tryPublicAddToCart(page, Math.min(9000, remaining()), state);
+          sample.add_to_cart = addResult;
 
-          if (!added) {
+          if (addResult !== 'clicked') {
             continue;
           }
 
@@ -122,7 +122,9 @@ export function createPublicStorefrontAdapter() {
       }
 
       if (audit.cart_result !== 'product_present') {
-        audit.cart_result = audit.products_tested > 0 ? 'add_to_cart_not_verified' : 'no_product_tested';
+        audit.cart_result = audit.products_tested === 0 ? 'no_product_tested'
+          : audit.sampled_products.every((sample) => sample.add_to_cart === 'options_required')
+            ? 'product_options_unavailable' : 'add_to_cart_not_verified';
         if (remaining() < 3000) {
           throw new StepOutcome('inconclusive', 'infra_timeout', 'step_budget_exhausted');
         }
@@ -517,6 +519,11 @@ async function followPublicLink(page, href, timeout, state, { checkoutLanding = 
 }
 
 export async function tryPublicAddToCart(page, timeout, state) {
+  const optionsReady = await selectPublicProductOptions(page, Math.min(timeout, 5000));
+  if (!optionsReady) {
+    return 'options_required';
+  }
+
   const index = await page.locator('a[href], button, input[type="submit"], input[type="button"]').evaluateAll((nodes, args) => {
     const addHint = new RegExp(args.addHint, 'i');
     const pii = new RegExp(args.pii, 'i');
@@ -589,7 +596,7 @@ export async function tryPublicAddToCart(page, timeout, state) {
   }, { origins: allowedStoreOrigins(state), addHint: ADD_TO_CART_HINT.source, pii: PII_FIELD.source }).catch(() => -1);
 
   if (index < 0) {
-    return false;
+    return 'button_not_found';
   }
 
   const candidate = page.locator('a[href], button, input[type="submit"], input[type="button"]').nth(index);
@@ -610,6 +617,58 @@ export async function tryPublicAddToCart(page, timeout, state) {
     page.waitForTimeout(1500),
   ]).catch(() => null);
   await page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => null);
+
+  return 'clicked';
+}
+
+async function selectPublicProductOptions(page, timeout) {
+  const form = page.locator('form.variations_form, form.cart').first();
+  if (await form.count() === 0) {
+    return true;
+  }
+
+  // Only built-in product-choice controls are filled. Text, upload, account and
+  // customer fields are never touched on an unverified storefront.
+  const selects = form.locator('select[name^="attribute_"], .variations select, select[required]');
+  const count = Math.min(await selects.count(), 5);
+  for (let index = 0; index < count; index++) {
+    const select = selects.nth(index);
+    // WooCommerce themes commonly hide the native variation select behind a
+    // visible swatch. Changing that native select still dispatches its event.
+    if (!await select.isVisible().catch(() => false) && !await select.getAttribute('name').then((name) => name?.startsWith('attribute_')).catch(() => false)) {
+      continue;
+    }
+
+    const value = await select.evaluate((node) => {
+      const selected = node.selectedOptions[0];
+      if (selected?.value && !selected.disabled) {
+        return selected.value;
+      }
+      return Array.from(node.options).find((option) => option.value && !option.disabled && !option.closest('optgroup[disabled]'))?.value ?? null;
+    }).catch(() => null);
+    if (value === null) {
+      return false;
+    }
+    await select.selectOption(value, { timeout: Math.max(1000, timeout), force: true });
+  }
+
+  const requiredChoiceMissing = await form.evaluate((node) => Array.from(node.querySelectorAll('select[required], select[name^="attribute_"]'))
+    .some((select) => !select.disabled && (select.offsetParent !== null || select.name.startsWith('attribute_')) && !select.value)).catch(() => false);
+  if (requiredChoiceMissing) {
+    return false;
+  }
+
+  const button = form.locator('button.single_add_to_cart_button, button[name="add-to-cart"], input[name="add-to-cart"]').first();
+  if (await button.count() > 0) {
+    await button.waitFor({ state: 'visible', timeout: Math.min(timeout, 2500) }).catch(() => null);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      if (await button.isEnabled().catch(() => false) && !await button.evaluate((node) => node.classList.contains('disabled')).catch(() => true)) {
+        return true;
+      }
+      await page.waitForTimeout(250);
+    }
+    return false;
+  }
 
   return true;
 }

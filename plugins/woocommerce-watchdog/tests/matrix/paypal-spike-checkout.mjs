@@ -4,8 +4,7 @@ const origin = process.env.BW_ORIGIN;
 const browser = await chromium.launch();
 const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 1000 } });
 const page = await context.newPage();
-page.on('response', async (r) => { if (r.status() >= 500) console.log('HTTP', r.status(), r.request().method(), new URL(r.url()).pathname + new URL(r.url()).search.slice(0, 80), (await r.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300)); });
-const shot = (target, name) => target.screenshot({ path: `/out/${name}.png`, fullPage: true }).catch(() => undefined);
+page.on('response', (r) => { if (r.status() >= 500) console.log('HTTP', r.status(), r.request().method(), new URL(r.url()).pathname); });
 
 let popupPage = null;
 
@@ -47,12 +46,10 @@ try {
   const order = new URL(page.url()).pathname.match(/order-received\/(\d+)/)?.[1] ?? new URL(page.url()).searchParams.get('order-received');
   console.log(`BW_PAYPAL_ORDER=${order}`);
 } catch (error) {
-  await shot(page, 'checkout-failure');
   if (popupPage && !popupPage.isClosed()) {
-    await shot(popupPage, 'popup-failure');
     console.log('POPUP', new URL(popupPage.url()).pathname);
   }
-  console.log('FAILED', String(error.message).split('\n').slice(0, 12).join(' / '));
+  console.log('FAILED', error?.name ?? 'checkout_error');
   process.exitCode = 1;
 } finally {
   await browser.close();

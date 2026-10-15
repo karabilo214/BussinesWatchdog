@@ -611,6 +611,7 @@
       "MONEY_UNSUPPORTED": "The order cannot be reconciled",
       "MONEY_CAPTURE_MISSING": "Order marked as paid, no capture found at the provider",
       "MONEY_CAPTURE_AMOUNT": "Captured amount differs from the order total",
+      "MONEY_CAPTURE_NOT_RECORDED": "Payment captured, but order not marked as paid",
       "MONEY_REFUND_MISSING": "Refund in the store, not found at the provider",
       "MONEY_REFUND_EXTRA": "Refund at the provider that the store does not show",
       "MONEY_MULTIPLE_CAPTURES": "Several different captures for one order",
@@ -634,6 +635,7 @@
       "MONEY_UNSUPPORTED": "The order's payment method is not supported by reconciliation. Check the payment manually in the provider dashboard.",
       "MONEY_CAPTURE_MISSING": "Find the transaction in the provider dashboard and check the order status. If the payment went through under another reference, match it manually. Not finding a capture does not prove the money is missing.",
       "MONEY_CAPTURE_AMOUNT": "Compare the order total with the provider capture: a partial capture, an order change or a gateway error are possible.",
+      "MONEY_CAPTURE_NOT_RECORDED": "Check the order and payment gateway log. The provider confirmed the capture; restore the order state without charging again.",
       "MONEY_REFUND_MISSING": "Check whether the refund was actually sent through the provider and not only marked in the store.",
       "MONEY_REFUND_EXTRA": "Check who issued the refund in the provider dashboard and whether the order should reflect it.",
       "MONEY_MULTIPLE_CAPTURES": "Check whether the customer was charged twice. Refund if necessary.",
@@ -854,6 +856,7 @@
     "rule": {
       "MONEY_CAPTURE_MISSING": "Capture for a paid order",
       "MONEY_CAPTURE_AMOUNT": "Capture amount",
+      "MONEY_CAPTURE_NOT_RECORDED": "Capture not recorded by store",
       "MONEY_MULTIPLE_CAPTURES": "Repeated captures",
       "MONEY_CURRENCY_MISMATCH": "Capture currency",
       "MONEY_ORDER_CHANGED": "Order changes after payment",

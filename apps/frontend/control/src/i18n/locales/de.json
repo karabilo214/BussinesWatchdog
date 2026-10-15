@@ -1042,6 +1042,7 @@
       "rule": {
         "MONEY_CAPTURE_MISSING": "Abbuchung für bezahlte Bestellung",
         "MONEY_CAPTURE_AMOUNT": "Abbuchungsbetrag",
+        "MONEY_CAPTURE_NOT_RECORDED": "Abbuchung im Shop nicht erfasst",
         "MONEY_MULTIPLE_CAPTURES": "Wiederholte Abbuchungen",
         "MONEY_CURRENCY_MISMATCH": "Währung der Abbuchung",
         "MONEY_ORDER_CHANGED": "Änderungen nach der Zahlung",
@@ -1061,6 +1062,7 @@
         "MONEY_UNSUPPORTED": "Abgleich der Bestellung nicht möglich",
         "MONEY_CAPTURE_MISSING": "Bestellung als bezahlt markiert, keine Abbuchung beim Anbieter gefunden",
         "MONEY_CAPTURE_AMOUNT": "Abgebuchter Betrag weicht vom Bestellbetrag ab",
+        "MONEY_CAPTURE_NOT_RECORDED": "Zahlung abgebucht, Bestellung nicht als bezahlt markiert",
         "MONEY_REFUND_MISSING": "Erstattung im Shop, beim Anbieter nicht gefunden",
         "MONEY_REFUND_EXTRA": "Erstattung beim Anbieter, die der Shop nicht zeigt",
         "MONEY_MULTIPLE_CAPTURES": "Mehrere verschiedene Abbuchungen für eine Bestellung",

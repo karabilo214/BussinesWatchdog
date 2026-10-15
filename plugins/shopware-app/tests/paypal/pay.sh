@@ -9,9 +9,9 @@ DOCKER_APP_BIN=/Applications/Docker.app/Contents/Resources/bin
 ENV_FILE=../../../../apps/backend/.env
 value() { grep "^$1=" "$ENV_FILE" | cut -d= -f2-; }
 SW_IP=$(docker inspect -f '{{.NetworkSettings.IPAddress}}' bw-shopware)
-mkdir -p .out && chmod 777 .out
-URL=$(python3 -I order.py | sed -n 's/^BW_ORDER=//p' | tee .order.json | python3 -c "import json,sys; print(json.load(sys.stdin)['redirect'])")
-docker run --rm --add-host "shop-sw.example.com:${SW_IP}" -v "$(pwd)/approve.mjs:/app/approve.mjs:ro" -v "$(pwd)/.out:/out" \
+mkdir -p .out
+URL=$(python3 -I order.py | sed -n 's/^BW_ORDER=//p' | python3 -c 'import json,sys,pathlib; d=json.load(sys.stdin); pathlib.Path(".order.json").write_text(json.dumps({k:d[k] for k in ("id","number","total","currency","status")})); print(d["redirect"])')
+docker run --rm --add-host "shop-sw.example.com:${SW_IP}" -v "$(pwd)/approve.mjs:/app/approve.mjs:ro" \
     -e BW_APPROVE_URL="$URL" -e BW_SHOP_HOST=shop-sw.example.com -e BUYER_EMAIL="$(value WATCHDOG_DEV_PAYPAL_BUYER_EMAIL)" -e BUYER_PASSWORD="$(value WATCHDOG_DEV_PAYPAL_BUYER_PASSWORD)" \
     bw-browser-worker:smoke node approve.mjs | tail -1
 python3 -I inspect.py

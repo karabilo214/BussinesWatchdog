@@ -62,9 +62,11 @@ class OrderApiTest extends TestCase
             ->assertJsonPath('allocations.0.id', $allocation->id)
             ->assertJsonCount(1, 'revisions')
             ->assertJsonPath('revisions.0.source_revision', 1)
-            ->assertJsonCount(1, 'findings')
+            ->assertJsonCount(2, 'findings')
             ->assertJsonPath('findings.0.rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)
-            ->assertJsonPath('findings.0.status', ReconciliationFinding::STATUS_OK);
+            ->assertJsonPath('findings.0.status', ReconciliationFinding::STATUS_OK)
+            ->assertJsonPath('findings.1.rule_code', ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED)
+            ->assertJsonPath('findings.1.status', ReconciliationFinding::STATUS_OK);
     }
 
     public function test_order_detail_includes_refunds_and_refund_allocations(): void

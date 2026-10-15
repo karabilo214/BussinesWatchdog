@@ -123,6 +123,32 @@ class MoneyIncidentCorrelatorTest extends TestCase
         $this->assertSame(0, Incident::query()->count());
     }
 
+    public function test_provider_capture_not_recorded_by_store_opens_and_then_resolves_its_own_incident(): void
+    {
+        $context = $this->context();
+        $order = $this->order($context, ['paid_marked_at' => null, 'status' => 'pending']);
+        $context['capture']->forceFill(['occurred_at' => now()->subMinutes(31)])->save();
+        app(PaymentAllocationService::class)->allocateCapture(
+            $context['payment'], $context['capture'], $order, 18400,
+            PaymentAllocation::STRATEGY_EXACT_REFERENCE, [],
+        );
+
+        $correlator = app(MoneyIncidentCorrelator::class);
+        $run = app(OrderReconciliationService::class)->evaluate($order);
+        $opened = $correlator->correlate($run);
+        $this->assertCount(1, $opened);
+        $this->assertSame('capture_not_recorded', $opened[0]->component);
+        $this->assertSame(ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED, $opened[0]->title_code);
+        $this->assertSame(Incident::STATE_OPEN, $opened[0]->state);
+
+        $order->forceFill(['paid_marked_at' => now(), 'status' => 'processing'])->save();
+        $recovered = app(OrderReconciliationService::class)->evaluate($order->fresh());
+        $resolved = $correlator->correlate($recovered);
+        $this->assertCount(1, $resolved);
+        $this->assertSame($opened[0]->id, $resolved[0]->id);
+        $this->assertSame(Incident::STATE_RESOLVED, $resolved[0]->state);
+    }
+
     public function test_a_new_mismatch_within_24_hours_of_resolution_reopens_the_same_incident(): void
     {
         $context = $this->context();

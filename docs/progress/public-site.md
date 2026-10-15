@@ -163,3 +163,32 @@ Status: complete for supported public WooCommerce and Shopware storefronts
 Verification: browser-worker unit tests 24/24 (`npm test`); Playwright local WooCommerce/Shopware fixtures 3/3 (`docker compose run --rm --no-deps -v "$PWD/apps/browser-worker/e2e:/app/e2e:ro" browser-worker node --test e2e/publicStorefront.test.js`), including false cart badge, late cookie dialog and checkout link after 240 unrelated links; backend full SQLite suite 584 passed, 4 skipped, including `PublicStorefrontCheckTest` 4/4. Live public browser checks through the egress proxy: Burrow Press (WooCommerce, 16 product links, cart and customer-details form reached), Christopeit Sport (Shopware, 32 category and 42 product links, cart and registration form reached). No purchase or checkout form was submitted.
 
 Remaining limit: custom headless storefronts without recognizable product cards/routes and WAF-protected sites may remain inconclusive. The public check does not validate payment methods or order submission; connected checks provide that depth.
+
+### Step 151: Public Product Options and Explainable Browser Messages
+
+Status: complete for WooCommerce variation selects and observed public error classes
+
+- The public browser check now selects a safe available value from each WooCommerce variation dropdown before clicking add-to-cart, including native selects hidden behind theme swatches. It never fills text, file, account or customer fields. If required options cannot be chosen, the product is reported as such instead of claiming a cart click failed.
+- Public diagnostics group repeated browser messages, retain an exact count beyond the 100-detail-group cap, classify known causes (script exceptions, deprecated APIs, resource load, MIME mismatch, CSP, first-party CSS/JS 4xx, network and server failures), and show a localized explanation with a redacted source path. The result describes impact only from the observed path: reaching the customer form means the reported messages did not block that path; other functions remain untested.
+- `CompleteAttemptRequest` and `contracts/openapi.yaml` accept only enumerated cause codes and the public count/truncation fields. Public report text is updated in ru/en/de. No schema migration.
+
+Verification: worker unit tests 25/25; local Playwright WooCommerce/Shopware fixtures 5/5, including a hidden WooCommerce variation select and repeated console warnings; backend `PublicStorefrontCheckTest` 4/4. Live isolated egress check on Thompson+Hanson: selecting a size on `/product/46-1659/` added a line to the public cart without checkout submission; the garden category run reached the customer form. Browser resource diagnostics showed first-party script/style 403 responses and HTML returned as CSS/JS, so their wider functional impact remains unknown.
+
+### Step 152: Public Result Explains the Next Check
+
+Status: complete
+
+- The result page now uses the observed cart/checkout outcome to state what was confirmed for the submitted store and what remains unknown. It explicitly separates public browser reachability from real payment outcomes and independent reconciliation, and explains that a payment source must be connected separately for money coverage.
+- The follow-up section lists concrete connected capabilities: configured recurring browser checks with alerts, store order/payment-attempt data, and independent capture/refund reconciliation when supported sources are connected. It links to sign-up and sign-in for a supported storefront. If the platform is not recognized, it directs the visitor to contact support to check compatibility before sign-up.
+- Copy is localized in ru/en/de. No migration or API contract change.
+
+Verification: `PublicStorefrontCheckTest` 5/5 (175 assertions), including passed, inconclusive, unsupported and localized CTA links. The public site uses existing button/note styles; no frontend bundle changed.
+
+### Step 153: Clear Unsupported-Platform Contact Path
+
+Status: complete
+
+- When the public checker reports `unsupported_platform`, the result now says plainly that public checks do not yet support this store platform. It invites the visitor to contact us because support may already be in development, and links directly to the localized contact form.
+- This state no longer shows the generic connected-store benefits, sign-up CTA or the `adapter_unsupported` message suggesting that connecting the store alone would resolve it. Copy is available in ru/en/de.
+
+Verification: `PublicStorefrontCheckTest` 5/5 (179 assertions), including localized contact links and absence of conflicting sign-up/connection copy. No migration or contract change.

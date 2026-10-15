@@ -194,9 +194,11 @@ class PublicStorefrontCheckTest extends TestCase
             ]],
             'diagnostics' => [
                 'redaction_version' => 'r1',
+                'public_error_count' => 4,
+                'public_errors_truncated' => false,
                 'relevant_errors' => [
-                    ['type' => 'console_error', 'message_code' => 'Uncaught TypeError', 'step_code' => 'public_checkout'],
-                    ['type' => 'console_warning', 'party' => 'first', 'message_code' => 'Deprecated API', 'step_code' => 'public_home'],
+                    ['type' => 'console_error', 'message_code' => 'TypeError', 'cause_code' => 'script_exception', 'count' => 1, 'step_code' => 'public_checkout'],
+                    ['type' => 'console_warning', 'party' => 'first', 'message_code' => 'console_warning', 'cause_code' => 'deprecated_api', 'count' => 2, 'step_code' => 'public_home'],
                     ['type' => 'request_failed', 'party' => 'third', 'origin' => 'https://www.google-analytics.com', 'path' => '/g/collect', 'message_code' => 'ERR_ABORTED'],
                     ['type' => 'request_failed', 'party' => 'first', 'origin' => 'https://store.example.com', 'path' => '/product/image.png', 'message_code' => 'ERR_ABORTED'],
                     ['type' => 'console_error', 'party' => 'first', 'message_code' => 'Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector'],
@@ -226,12 +228,21 @@ class PublicStorefrontCheckTest extends TestCase
         $this->get('/en/check-store/'.$token)
             ->assertOk()
             ->assertSee('Public path reached checkout')
+            ->assertSee('At store.example.com, a product appeared in the cart')
+            ->assertSee('A public check cannot see whether real payment attempts succeed')
+            ->assertSee('Without an independent payment source, money reconciliation remains unknown')
+            ->assertSee('href="/en/signup"', false)
+            ->assertSee('href="/app/login"', false)
             ->assertSee('Looks like: WooCommerce')
             ->assertSee('To categories: 12. To products: 48.')
             ->assertSee('Add-to-cart works')
             ->assertSee('Reached customer details form')
-            ->assertSee('Uncaught TypeError')
+            ->assertSee('Messages recorded during the check: 4.')
+            ->assertSee('these messages probably did not block it')
+            ->assertSee('JavaScript exception')
             ->assertSee('Console warning')
+            ->assertSee('A script uses an outdated browser or library API')
+            ->assertSee('Network failure')
             ->assertSee('ERR_CONNECTION_RESET')
             ->assertDontSee('ERR_ABORTED')
             ->assertDontSee('ERR_BLOCKED_BY_CLIENT')
@@ -245,6 +256,65 @@ class PublicStorefrontCheckTest extends TestCase
         $this->artisan('site:public-checks-purge')->assertExitCode(0);
         $this->assertDatabaseMissing('public_storefront_checks', ['id' => $attemptId]);
         $this->get('/en/check-store/'.$token)->assertNotFound();
+    }
+
+    public function test_public_result_explains_inconclusive_and_unsupported_next_steps(): void
+    {
+        app()->setLocale('en');
+        $check = new PublicStorefrontCheck([
+            'normalized_origin' => 'https://store.example.com',
+            'normalized_host' => 'store.example.com',
+            'status' => PublicStorefrontCheck::STATUS_UNSUPPORTED,
+            'verdict' => PublicStorefrontCheck::VERDICT_NEEDS_CONNECTION,
+            'error_code' => 'adapter_unsupported',
+            'steps' => [],
+            'diagnostics' => ['public_audit' => [
+                'cart_result' => 'add_to_cart_not_verified',
+                'checkout_result' => 'not_tested',
+                'sampled_products' => [],
+            ]],
+        ]);
+
+        $html = view('site.partials.check-store-result', [
+            'check' => $check,
+            'locale' => 'en',
+            'result_token' => 'test-token',
+            'artifacts' => collect(),
+        ])->render();
+        $this->assertStringContainsString('we could not confirm the full path', $html);
+        $this->assertStringContainsString('href="/en/signup"', $html);
+        $this->assertStringNotContainsString('a product appeared in the cart', $html);
+
+        $check->diagnostics = ['public_audit' => [
+            'cart_result' => 'not_tested',
+            'checkout_result' => 'unsupported_platform',
+            'sampled_products' => [],
+        ]];
+        $html = view('site.partials.check-store-result', [
+            'check' => $check,
+            'locale' => 'en',
+            'result_token' => 'test-token',
+            'artifacts' => collect(),
+        ])->render();
+        $this->assertStringContainsString('Public checks do not yet support your store platform', $html);
+        $this->assertStringContainsString('may already be in development', $html);
+        $this->assertStringContainsString('Ask about my platform', $html);
+        $this->assertStringContainsString('href="/en/contact"', $html);
+        $this->assertStringNotContainsString('href="/en/signup"', $html);
+        $this->assertStringNotContainsString('What connecting a supported store adds', $html);
+        $this->assertStringNotContainsString('The public path could not be recognized without connecting the store.', $html);
+
+        foreach (['ru' => 'Узнать о поддержке моей платформы', 'de' => 'Unterstützung meiner Plattform anfragen'] as $locale => $label) {
+            app()->setLocale($locale);
+            $localized = view('site.partials.check-store-result', [
+                'check' => $check,
+                'locale' => $locale,
+                'result_token' => 'test-token',
+                'artifacts' => collect(),
+            ])->render();
+            $this->assertStringContainsString($label, $localized);
+            $this->assertStringContainsString('href="/'.$locale.'/contact"', $localized);
+        }
     }
 
     public function test_localhost_can_submit_repeated_public_checks_when_dev_bypass_is_enabled(): void

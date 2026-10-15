@@ -11,9 +11,11 @@ let origin;
 let cartWorks = true;
 let cartCount = 0;
 let shopware = false;
+let variableProduct = false;
+let consoleNoise = false;
 
 before(async () => {
-  server = createServer((request, response) => {
+  server = createServer(async (request, response) => {
     const path = new URL(request.url, origin).pathname;
     const send = (body) => {
       response.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -24,15 +26,25 @@ before(async () => {
       response.writeHead(204);
       response.end();
     } else if (request.method === 'POST' && (path === '/product/1/' || path === '/checkout/line-item/add')) {
+      if (variableProduct) {
+        let body = '';
+        for await (const chunk of request) body += chunk;
+        if (!new URLSearchParams(body).get('attribute_pa_size')) {
+          send('<p>Please choose product options</p>');
+          return;
+        }
+      }
       cartCount += 1;
       response.writeHead(303, { Location: shopware ? '/custom-item/sku' : '/product/1/' });
       response.end();
     } else if (path === '/shop/') {
-      send('<a href="/product/1/">Test product</a>');
+      send(`<a href="/product/1/">Test product</a>${consoleNoise ? '<script>console.warn("Deprecated storefront API"); console.warn("Deprecated storefront API");</script>' : ''}`);
     } else if (path === '/produkte/') {
       send('<div class="product-box"><a class="product-name" href="/custom-item/sku">Test product</a></div>');
     } else if (path === '/product/1/') {
-      send('<form method="post"><button type="submit" name="add-to-cart" value="1">Add to cart</button></form>');
+      send(variableProduct
+        ? '<form class="cart variations_form" method="post"><select name="attribute_pa_size" class="select-hidden" style="display:none" required><option value="">Choose size</option><option value="small">Small</option></select><button type="submit" name="add-to-cart" value="1">Add to cart</button></form>'
+        : '<form method="post"><button type="submit" name="add-to-cart" value="1">Add to cart</button></form>');
     } else if (path === '/custom-item/sku') {
       send('<form method="post" action="/checkout/line-item/add"><button type="submit">In den Warenkorb</button></form><div role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:white"><button type="button" onclick="fetch(\'/cookie-consent/accept\',{method:\'POST\'}).then(r => { if (r.ok) this.parentElement.remove() })">Alles akzeptieren</button></div><script>setTimeout(() => { document.querySelector("[role=dialog]").style.display = "block"; }, 350)</script>');
     } else if (path === '/cart/' || path === '/checkout/cart') {
@@ -80,6 +92,8 @@ test('reaches customer form only after a product is present in the cart page', a
   cartCount = 0;
   cartWorks = true;
   shopware = false;
+  variableProduct = false;
+  consoleNoise = false;
   const result = await check();
 
   assert.equal(result.status, 'passed');
@@ -92,6 +106,8 @@ test('does not trust a changed cart counter when the cart page is empty', async 
   cartCount = 0;
   cartWorks = false;
   shopware = false;
+  variableProduct = false;
+  consoleNoise = false;
   const result = await check();
 
   assert.notEqual(result.status, 'passed');
@@ -104,6 +120,8 @@ test('follows Shopware product cards with custom URLs and stops at registration'
   cartCount = 0;
   cartWorks = true;
   shopware = true;
+  variableProduct = false;
+  consoleNoise = false;
   const result = await check();
 
   assert.equal(result.status, 'passed');
@@ -111,4 +129,31 @@ test('follows Shopware product cards with custom URLs and stops at registration'
   assert.equal(result.diagnostics.public_audit.products_found, 1);
   assert.equal(result.diagnostics.public_audit.cart_result, 'product_present');
   assert.equal(result.diagnostics.public_audit.checkout_result, 'login_or_registration_reached');
+});
+
+test('selects a safe WooCommerce variation before adding to cart', async () => {
+  cartCount = 0;
+  cartWorks = true;
+  shopware = false;
+  variableProduct = true;
+  consoleNoise = false;
+  const result = await check();
+
+  assert.equal(result.status, 'passed');
+  assert.equal(result.diagnostics.public_audit.sampled_products[0].add_to_cart, 'works');
+  assert.equal(cartCount, 1);
+});
+
+test('groups repeated console warnings and records a useful cause', async () => {
+  cartCount = 0;
+  cartWorks = true;
+  shopware = false;
+  variableProduct = false;
+  consoleNoise = true;
+  const result = await check();
+
+  assert.equal(result.status, 'passed');
+  const warning = result.diagnostics.relevant_errors.find((error) => error.cause_code === 'deprecated_api');
+  assert.ok(warning);
+  assert.ok(warning.count >= 2);
 });

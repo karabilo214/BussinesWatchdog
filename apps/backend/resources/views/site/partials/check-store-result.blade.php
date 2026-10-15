@@ -3,12 +3,17 @@
         <span class="site-spinner" aria-hidden="true"></span>
     @endif
     <p class="site-muted site-small">{{ $check->normalized_origin }}</p>
-    <h2>{{ __('site.check_store.verdicts.'.($check->verdict ?? 'queued')) }}</h2>
-    <p>{{ __('site.check_store.statuses.'.$check->status) }}</p>
+    @if (($check->diagnostics['public_audit']['checkout_result'] ?? null) === 'unsupported_platform')
+        <h2>{{ __('site.check_store.audit_unsupported_title') }}</h2>
+        <p>{{ __('site.check_store.audit_unsupported_status') }}</p>
+    @else
+        <h2>{{ __('site.check_store.verdicts.'.($check->verdict ?? 'queued')) }}</h2>
+        <p>{{ __('site.check_store.statuses.'.$check->status) }}</p>
+    @endif
     @if (! empty($check->diagnostics['detected_platform']))
         <p>{{ __('site.check_store.detected_platform', ['platform' => __('site.check_store.platforms.'.$check->diagnostics['detected_platform'])]) }}</p>
     @endif
-    @if (! empty($check->error_code))
+    @if (! empty($check->error_code) && !(($check->diagnostics['public_audit']['checkout_result'] ?? null) === 'unsupported_platform' && $check->error_code === 'adapter_unsupported'))
         <p>{{ __('site.check_store.errors.'.$check->error_code) }}</p>
     @endif
     <p class="site-muted site-small">{{ __('site.check_store.result_ttl') }}</p>
@@ -28,8 +33,16 @@
             return false;
         }
 
-        return in_array($type, ['console_error', 'console_warning', 'js_error', 'request_failed', 'http_5xx'], true);
-    })->take(8);
+        return in_array($type, ['console_error', 'console_warning', 'js_error', 'request_failed', 'http_4xx_resource', 'http_5xx'], true);
+    });
+    $errorCount = (int) ($check->diagnostics['public_error_count'] ?? $errors->sum(fn ($error) => max(1, (int) ($error['count'] ?? 1))));
+    $checkoutReached = in_array($audit['checkout_result'] ?? null, ['customer_details_reached', 'login_or_registration_reached'], true);
+    $upgradeFinding = match (true) {
+        $checkoutReached => 'checkout_reached',
+        ($audit['cart_result'] ?? null) === 'product_present' => 'cart_reached',
+        ($audit['checkout_result'] ?? null) === 'unsupported_platform' => 'unsupported_platform',
+        default => 'path_inconclusive',
+    };
 @endphp
 
 @if (is_array($audit))
@@ -66,24 +79,64 @@
             </div>
         @endif
 
-        @if ($errors->isNotEmpty())
+        @if ($errorCount > 0)
             <h2>{{ __('site.check_store.audit_errors_title') }}</h2>
+            <p>{{ __('site.check_store.audit_error_summary', ['count' => $errorCount]) }} {{ $checkoutReached ? __('site.check_store.audit_error_path_passed') : __('site.check_store.audit_error_path_unknown') }}</p>
             <div class="site-plans">
-                @foreach ($errors as $error)
+                @foreach ($errors->take(8) as $error)
+                    @php
+                        $causeCode = $error['cause_code'] ?? match ($error['type'] ?? '') {
+                            'request_failed' => 'network_failure',
+                            'http_4xx_resource' => 'resource_http_error',
+                            'http_5xx' => 'server_response',
+                            'js_error' => 'script_exception',
+                            default => 'unclassified_script',
+                        };
+                    @endphp
                     <article class="site-plan">
-                        <p class="site-muted site-small">{{ __('site.check_store.audit_error_types.'.($error['type'] ?? 'js_error')) }}</p>
-                        <h3>{{ $error['message_code'] ?? ($error['status'] ?? '') }}</h3>
+                        <p class="site-muted site-small">{{ __('site.check_store.audit_error_types.'.($error['type'] ?? 'js_error')) }} · {{ __('site.check_store.audit_error_occurrences', ['count' => max(1, (int) ($error['count'] ?? 1))]) }}</p>
+                        <h3>{{ __('site.check_store.audit_error_labels.'.$causeCode) }}@if (! empty($error['status'])) · HTTP {{ (int) $error['status'] }}@endif</h3>
+                        @if (! empty($error['message_code']) && ! in_array($error['message_code'], ['console_error', 'console_warning'], true))
+                            <p class="site-muted site-small">{{ $error['message_code'] }}</p>
+                        @endif
+                        <p>{{ __('site.check_store.audit_error_causes.'.$causeCode) }}</p>
                         @if (! empty($error['path']))
                             <p>{{ $error['origin'] ?? '' }}{{ $error['path'] }}</p>
                         @endif
                     </article>
                 @endforeach
             </div>
+            @if ($errors->count() > 8 || ! empty($check->diagnostics['public_errors_truncated']))
+                <p class="site-muted site-small">{{ __('site.check_store.audit_error_more') }}</p>
+            @endif
         @endif
 
         <section class="site-note">
-            <h2>{{ __('site.check_store.audit_upgrade_title') }}</h2>
-            <p>{{ __('site.check_store.audit_upgrade_body') }}</p>
+            @if ($upgradeFinding === 'unsupported_platform')
+                <h2>{{ __('site.check_store.audit_unsupported_next_title') }}</h2>
+                <p>{{ __('site.check_store.audit_unsupported_body', ['store' => $check->normalized_host]) }}</p>
+                <div class="site-actions">
+                    <a class="site-button" href="{{ \App\Support\Site\SiteContent::url($locale, 'contact') }}">{{ __('site.check_store.audit_unsupported_contact') }}</a>
+                </div>
+            @else
+                <h2>{{ __('site.check_store.audit_upgrade_title') }}</h2>
+                <p>{{ __('site.check_store.audit_upgrade_findings.'.$upgradeFinding, ['store' => $check->normalized_host]) }}</p>
+                <p>{{ __('site.check_store.audit_upgrade_unknown') }}</p>
+                @if ($errorCount > 0)
+                    <p>{{ __('site.check_store.audit_upgrade_errors') }}</p>
+                @endif
+                <h3>{{ __('site.check_store.audit_upgrade_connected_title') }}</h3>
+                <ul>
+                    <li>{{ __('site.check_store.audit_upgrade_connected.browser') }}</li>
+                    <li>{{ __('site.check_store.audit_upgrade_connected.orders') }}</li>
+                    <li>{{ __('site.check_store.audit_upgrade_connected.money') }}</li>
+                </ul>
+                <p class="site-muted site-small">{{ __('site.check_store.audit_upgrade_provider_note') }}</p>
+                <div class="site-actions">
+                    <a class="site-button" href="{{ \App\Support\Site\SiteContent::url($locale, 'signup') }}">{{ __('site.check_store.audit_upgrade_signup') }}</a>
+                    <a class="site-button site-button-secondary" href="/app/login">{{ __('site.check_store.audit_upgrade_signin') }}</a>
+                </div>
+            @endif
         </section>
     </section>
 @endif
@@ -96,7 +149,7 @@
                 <article class="site-plan">
                     <p class="site-muted site-small">{{ $step['code'] ?? '' }}</p>
                     <h3>{{ __('site.check_store.step_statuses.'.($step['status'] ?? 'inconclusive')) }}</h3>
-                    @if (! empty($step['error_code']))
+                    @if (! empty($step['error_code']) && !(($audit['checkout_result'] ?? null) === 'unsupported_platform' && $step['error_code'] === 'adapter_unsupported'))
                         <p>{{ __('site.check_store.errors.'.$step['error_code']) }}</p>
                     @endif
                 </article>

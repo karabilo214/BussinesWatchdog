@@ -1,6 +1,6 @@
 # Матрица приёмки Business Watchdog
 
-Обновлено: 2026-10-14, Step 142.
+Обновлено: 2026-10-15, Step 157.
 
 Эта матрица теперь отражает текущее состояние реализации. Evidence указывает на тесты, e2e-скрипты или журнал шагов; это не заменяет финальный release checklist. P1 включает обязательные P0; P2 принимается отдельно.
 
@@ -26,9 +26,9 @@
 | ACC-12 | P0 | done | HPOS/legacy orders/refunds | WooCommerce matrix e2e across six targets; `docs/compatibility.md`; `docs/progress.md` Steps 45-47, 76-81, 136 | Re-run the full matrix before release after connector changes |
 | ACC-13 | P0 | done | Backfill одновременно live events | Plugin outbox/backfill/rescan e2e; revision ordering tests; WooCommerce REST API connector delta/backfill steps | Re-run the full matrix before release after connector changes |
 | ACC-14 | P0 | done | WP-Cron остановлен | `tests/Feature/Integrations/ConnectorFreshnessTest.php`; stale/partial connector incidents; Step 50 | — |
-| ACC-15 | P0 | done | Classic happy path | `plugins/woocommerce-watchdog/tests/matrix/browser-e2e.sh`; browser worker adapter; Step 52; Shopware 6.6/6.7 browser e2e for payment-method reachability, Step 140 | — |
+| ACC-15 | P0 | partial | Classic happy path | `plugins/woocommerce-watchdog/tests/matrix/browser-e2e.sh`; Shopware 6.6/6.7 browser e2e for payment-method reachability, Step 140; Step 157 product/variant and positive amount assertions, selectable delivery/payment checks, Shopware three-mode and Woo Classic/Blocks local runs | Пройти полный плановый lease подключённого магазина; физическая доставка WooCommerce пока подтверждена Playwright-фикстурой, локальный товар виртуальный |
 | ACC-16 | P0 | done | Blocks checkout-draft side effect | Synthetic marker/draft cleanup e2e; Step 53 | — |
-| ACC-17 | P0 | done | Real submit/capture attempted | `apps/browser-worker/test/networkPolicy.test.js`; network boundary e2e; WooCommerce and Shopware mutation-blocking policies; Steps 53, 140 | — |
+| ACC-17 | P0 | done | Real submit/capture attempted | `apps/browser-worker/test/networkPolicy.test.js`; network boundary e2e; WooCommerce and Shopware mutation-blocking policies; Steps 53, 140; Step 156 local Shopware scheduled adapter created zero orders before the separate purchase robot ran | — |
 | ACC-18 | P0 | done | PrivateIP/IPv6/redirect/DNS rebind | SSRF-safe fetcher tests, egress proxy checks, `infra/scripts/egress-test.sh`; Steps 42, 53 | Keep in release/security checklist |
 | ACC-19 | P0 | done | Cart/checkout relevant500 twice | Browser outcome policy tests and incident confirmation policy; Step 51 | — |
 | ACC-20 | P0 | done | Tracking404/favicon missing | Browser check policy classifies non-critical resources; Step 51 | — |
@@ -40,7 +40,7 @@
 | ACC-26 | P0 | done | Acknowledge | `tests/Feature/Incidents/IncidentApiTest.php`; dashboard smoke Step 59 | — |
 | ACC-27 | P0 | done | Data stale во время recovery | Connector freshness + incident/reconciliation coverage tests; Step 50 | — |
 | ACC-28 | P0 | done | Email timeout/retry | Notification channel/delivery tests; `make frontend-smoke` with Mailpit; Step 62; DKIM signing and `mail:auth-check` (SPF/DKIM/DMARC), Step 107 | Real SMTP provider and public DNS records not tested |
-| ACC-29 | P1 | partial | FIN-01…FIN-24 | Reconciliation, Stripe, PayPal and allocation tests; Steps 30-36, 65-72 | Need formal FIN fixture registry/evidence rollup before P1 sign-off |
+| ACC-29 | P1 | partial | FIN-01…FIN-24 | Reconciliation, Stripe, PayPal and allocation tests; Steps 30-36, 65-72; Step 155 real Stripe test-mode capture/decline and reverse capture-state rule; Step 156 real PayPal Sandbox captures, refunds and both Shopware payment divergences | Need formal FIN fixture registry/evidence rollup before P1 sign-off; full §43 PAYMENT_RECORDED obligation engine remains open; SwagPayPal partial-refund amount unavailable from the shop |
 | ACC-30 | P1 | done | Intent+charge events об одном capture | Stripe connector tests; Step 65 | — |
 | ACC-31 | P1 | done | Два captures distinct IDs | Reconciliation rule tests for multiple captures | — |
 | ACC-32 | P1 | done | Manual Woo refund | Reconciliation/provider coverage tests: store claim is not provider refund | — |

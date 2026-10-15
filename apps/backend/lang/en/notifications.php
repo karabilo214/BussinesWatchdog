@@ -19,6 +19,7 @@ return [
     'fact' => [
         'MONEY_CAPTURE_MISSING' => 'Order :order is marked as paid by the store, but no confirmed capture in the connected payment provider is matched to it. This does not prove that no capture happened.',
         'MONEY_CAPTURE_AMOUNT' => 'The confirmed capture amount for order :order does not match the order total.',
+        'MONEY_CAPTURE_NOT_RECORDED' => 'The payment provider confirmed a capture for order :order, but the store has not marked the order as paid.',
         'MONEY_REFUND_MISSING' => 'A refund for order :order recorded by the store is not confirmed by the payment provider.',
         'MONEY_REFUND_EXTRA' => 'The payment provider shows a refund for order :order that the store does not have.',
         'MONEY_MULTIPLE_CAPTURES' => 'Several distinct confirmed captures were found for order :order.',

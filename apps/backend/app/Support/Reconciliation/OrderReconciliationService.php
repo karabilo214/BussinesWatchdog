@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 
 class OrderReconciliationService
 {
-    public const ALGORITHM_VERSION = 'v1';
+    public const ALGORITHM_VERSION = 'v2';
 
     public const CONFIG_VERSION = 1;
 
@@ -104,6 +104,7 @@ class OrderReconciliationService
                 $findings = array_merge(
                     $findings,
                     $this->evaluateCaptureRules($run, $lockedOrder, $allocations, $now),
+                    $this->evaluateCaptureRecordedByStore($run, $lockedOrder, $allocations, $now),
                     $this->evaluateMultipleCaptures($run, $lockedOrder, $allocations, $now),
                     $this->evaluateCurrencyMismatch($run, $lockedOrder, $now),
                     $this->evaluateOrderChanged($run, $lockedOrder, $allocations, $now),
@@ -184,6 +185,48 @@ class OrderReconciliationService
             'difference_minor' => $difference,
             'evidence' => [],
         ], $now);
+    }
+
+    /**
+     * A provider-confirmed capture must eventually be reflected as paid by the store.
+     * The store's own payment marker is never used as capture evidence.
+     *
+     * @param Collection<int, PaymentAllocation> $allocations
+     * @return list<array<string, mixed>>
+     */
+    private function evaluateCaptureRecordedByStore(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array
+    {
+        if ($allocations->isEmpty()) {
+            return [];
+        }
+
+        $capturedMinor = (int) $allocations->sum('amount_minor');
+
+        if ($capturedMinor <= 0) {
+            return [];
+        }
+
+        $earliestCaptureAt = FinancialTransaction::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('store_id', $order->store_id)
+            ->whereIn('id', $allocations->pluck('capture_transaction_id')->unique())
+            ->min('occurred_at');
+
+        if ($earliestCaptureAt === null) {
+            return [];
+        }
+
+        $graceDeadline = Carbon::parse($earliestCaptureAt)->addMinutes(self::GRACE_CAPTURE_MINUTES);
+        $recorded = $order->paid_marked_at !== null;
+        $pastGrace = $now->greaterThanOrEqualTo($graceDeadline);
+
+        return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED, [
+            'status' => $recorded ? ReconciliationFinding::STATUS_OK : ($pastGrace ? ReconciliationFinding::STATUS_MISMATCH : ReconciliationFinding::STATUS_PENDING),
+            'reason_code' => $recorded ? 'capture_recorded_by_store' : ($pastGrace ? 'capture_not_recorded_grace_expired' : 'capture_not_recorded_within_grace'),
+            'gross_minor' => $order->total_minor,
+            'captured_minor' => $capturedMinor,
+            'evidence' => $recorded || $pastGrace ? [] : ['grace_deadline_at' => $graceDeadline->toJSON()],
+        ], $now)];
     }
 
     /**

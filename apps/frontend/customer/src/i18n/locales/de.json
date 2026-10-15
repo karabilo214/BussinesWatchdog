@@ -611,6 +611,7 @@
       "MONEY_UNSUPPORTED": "Abgleich der Bestellung nicht möglich",
       "MONEY_CAPTURE_MISSING": "Bestellung als bezahlt markiert, keine Abbuchung beim Anbieter gefunden",
       "MONEY_CAPTURE_AMOUNT": "Abgebuchter Betrag weicht vom Bestellbetrag ab",
+      "MONEY_CAPTURE_NOT_RECORDED": "Zahlung abgebucht, Bestellung nicht als bezahlt markiert",
       "MONEY_REFUND_MISSING": "Erstattung im Shop, beim Anbieter nicht gefunden",
       "MONEY_REFUND_EXTRA": "Erstattung beim Anbieter, die der Shop nicht zeigt",
       "MONEY_MULTIPLE_CAPTURES": "Mehrere verschiedene Abbuchungen für eine Bestellung",
@@ -634,6 +635,7 @@
       "MONEY_UNSUPPORTED": "Die Zahlungsart der Bestellung wird vom Abgleich nicht unterstützt. Prüfen Sie die Zahlung manuell im Dashboard des Zahlungsanbieters.",
       "MONEY_CAPTURE_MISSING": "Suchen Sie die Transaktion im Anbieter-Dashboard und prüfen Sie den Bestellstatus. Lief die Zahlung unter einer anderen Referenz, ordnen Sie sie manuell zu. Eine nicht gefundene Abbuchung beweist nicht, dass das Geld fehlt.",
       "MONEY_CAPTURE_AMOUNT": "Vergleichen Sie Bestellbetrag und Abbuchung beim Anbieter: Teilabbuchung, geänderte Bestellung oder ein Gateway-Fehler sind möglich.",
+      "MONEY_CAPTURE_NOT_RECORDED": "Prüfen Sie Bestellung und Gateway-Protokoll. Der Anbieter bestätigt die Abbuchung; korrigieren Sie den Bestellstatus ohne erneute Zahlung.",
       "MONEY_REFUND_MISSING": "Prüfen Sie, ob die Erstattung tatsächlich über den Anbieter ausgelöst und nicht nur im Shop markiert wurde.",
       "MONEY_REFUND_EXTRA": "Prüfen Sie, wer die Erstattung im Anbieter-Dashboard ausgelöst hat und ob die Bestellung sie abbilden soll.",
       "MONEY_MULTIPLE_CAPTURES": "Prüfen Sie, ob der Kunde doppelt belastet wurde. Erstatten Sie bei Bedarf.",
@@ -854,6 +856,7 @@
     "rule": {
       "MONEY_CAPTURE_MISSING": "Abbuchung für bezahlte Bestellung",
       "MONEY_CAPTURE_AMOUNT": "Abbuchungsbetrag",
+      "MONEY_CAPTURE_NOT_RECORDED": "Abbuchung im Shop nicht erfasst",
       "MONEY_MULTIPLE_CAPTURES": "Wiederholte Abbuchungen",
       "MONEY_CURRENCY_MISMATCH": "Währung der Abbuchung",
       "MONEY_ORDER_CHANGED": "Änderungen nach der Zahlung",

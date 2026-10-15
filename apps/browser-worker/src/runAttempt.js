@@ -4,7 +4,7 @@ import { ADAPTER_VERSION as PUBLIC_STOREFRONT_ADAPTER, createPublicStorefrontAda
 import { ADAPTER_VERSION as SHOPWARE_ADAPTER, createShopwareAdapter } from './adapter/shopware.js';
 import { ADAPTER_VERSION as WOOCOMMERCE_ADAPTER, createWooCommerceAdapter } from './adapter/woocommerce.js';
 import { createNetworkPolicy } from './networkPolicy.js';
-import { errorSourceUrl, publicConsoleFinding, reportableRequestFailure } from './publicDiagnostics.js';
+import { errorSourceUrl, publicConsoleCause, publicConsoleFinding, publicConsoleSourceUrl, reportableRequestFailure } from './publicDiagnostics.js';
 import { REDACTION_VERSION, errorName, failureCode, redactUrl } from './redact.js';
 
 const MAX_ERRORS = 100;
@@ -56,9 +56,14 @@ const FOCUS = {
 
 export function createErrorLog() {
   const entries = new Map();
+  let publicCount = 0;
+  let publicTruncated = false;
+  const publicTypes = new Set(['console_error', 'console_warning', 'js_error', 'request_failed', 'http_4xx_resource', 'http_5xx']);
 
   return {
     add(entry) {
+      const reportable = entry.party !== 'third' && publicTypes.has(entry.type);
+      if (reportable) publicCount += 1;
       const key = JSON.stringify([entry.type, entry.party, entry.origin, entry.path, entry.status, entry.step_code, entry.message_code]);
       const existing = entries.get(key);
 
@@ -66,11 +71,15 @@ export function createErrorLog() {
         existing.count += 1;
       } else if (entries.size < MAX_ERRORS) {
         entries.set(key, { ...entry, count: 1 });
+      } else if (reportable) {
+        publicTruncated = true;
       }
     },
     list() {
       return [...entries.values()];
     },
+    publicCount() { return publicCount; },
+    publicTruncated() { return publicTruncated; },
   };
 }
 
@@ -99,6 +108,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     forbiddenOperation: null,
     blockedUnknownMutation: false,
     blockedNavigation: false,
+    blockedScripts: false,
     checkoutMode: null,
     lineItemId: null,
     signedIn: false,
@@ -164,6 +174,8 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
         state.forbiddenOperation = decision.operation;
       } else if (decision.reason === 'mutation') {
         state.blockedUnknownMutation = true;
+      } else if (request.resourceType() === 'script' && decision.reason !== 'quiet' && /(?:\/woocommerce\/|\/wp-includes\/|jquery|checkout|cart|variation|\/bundles\/storefront\/)/i.test(new URL(request.url()).pathname)) {
+        state.blockedScripts = true;
       }
 
       errors.add({
@@ -193,7 +205,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     page.on('pageerror', (error) => {
       const source = errorSourceUrl(error);
       const location = source ? redactUrl(source) : {};
-      errors.add({ type: 'js_error', party: source ? policy.party(source) : 'first', ...location, step_code: state.stepCode ?? 'setup', message_code: errorName(error) });
+      errors.add({ type: 'js_error', party: source ? policy.party(source) : 'first', ...location, step_code: state.stepCode ?? 'setup', message_code: errorName(error), cause_code: 'script_exception' });
     });
     page.on('console', (message) => {
       if (!['error', 'warning'].includes(message.type())) {
@@ -201,12 +213,12 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       }
 
       if (scenario.platform === 'public') {
-        const source = message.location()?.url;
+        const source = publicConsoleSourceUrl(message) ?? message.location()?.url;
         const party = source ? policy.party(source) : 'first';
         const finding = publicConsoleFinding(message, party);
 
         if (finding !== null) {
-          errors.add({ type: `console_${message.type()}`, party, ...(source ? redactUrl(source) : {}), step_code: state.stepCode ?? 'setup', message_code: finding });
+          errors.add({ type: `console_${message.type()}`, party, ...(source ? redactUrl(source) : {}), step_code: state.stepCode ?? 'setup', message_code: finding, cause_code: publicConsoleCause(message) });
         }
 
         return;
@@ -225,7 +237,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       }
 
       const { origin, path } = redactUrl(request.url());
-      errors.add({ type: 'request_failed', party, origin, path, step_code: state.stepCode ?? 'setup', message_code: code });
+      errors.add({ type: 'request_failed', party, origin, path, step_code: state.stepCode ?? 'setup', message_code: code, cause_code: 'network_failure' });
     });
     page.on('response', (response) => {
       const request = response.request();
@@ -233,7 +245,9 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       const { origin, path } = redactUrl(response.url());
 
       if (response.status() >= 500 && party !== 'third') {
-        errors.add({ type: 'http_5xx', party, origin, path, status: response.status(), step_code: state.stepCode ?? 'setup' });
+        errors.add({ type: 'http_5xx', party, origin, path, status: response.status(), step_code: state.stepCode ?? 'setup', cause_code: 'server_response' });
+      } else if (scenario.platform === 'public' && response.status() >= 400 && response.status() < 500 && party === 'first' && ['script', 'stylesheet'].includes(request.resourceType())) {
+        errors.add({ type: 'http_4xx_resource', party, origin, path, status: response.status(), step_code: state.stepCode ?? 'setup', cause_code: 'resource_http_error' });
       }
 
       if (party === 'first' && ['document', 'xhr', 'fetch'].includes(request.resourceType()) && state.network.length < MAX_NETWORK_PER_STEP) {
@@ -289,6 +303,12 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
 
         const skipped = outcome && !Array.isArray(outcome) && outcome.skipped;
         const assertions = Array.isArray(outcome) ? outcome : (outcome?.assertions ?? []);
+        const failedAssertion = assertions.find((assertion) => assertion.passed === false);
+        if (failedAssertion) {
+          const assertionFailure = new StepOutcome('inconclusive', 'selector_changed', failedAssertion.detail_code ?? failedAssertion.code);
+          assertionFailure.assertions = assertions;
+          throw assertionFailure;
+        }
         steps.push(stepResult(index, step.code, skipped ? 'skipped' : 'passed', startedAt, now(), assertions, state.network, null));
 
         if (scenario.capture_steps === true && !skipped && uploadScreenshot !== null && artifactIds.length < (scenario.max_artifacts ?? 3) && deadline - Date.now() > 8000) {
@@ -303,10 +323,12 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
 
         if (outcome.errorCode === 'site_failure' && state.blockedUnknownMutation) {
           outcome = new StepOutcome('unsupported', 'adapter_unsupported', 'blocked_unknown_mutation');
+        } else if (outcome.errorCode === 'site_failure' && state.blockedScripts) {
+          outcome = new StepOutcome('blocked', 'blocked_external_origin', 'script_origin_not_allowed');
         }
 
         final = { status: outcome.status, error_code: outcome.errorCode };
-        steps.push(stepResult(index, step.code, outcome.status, startedAt, now(), [{ code: `${step.code}_check`, passed: false, detail_code: outcome.detailCode }], state.network, outcome.errorCode));
+        steps.push(stepResult(index, step.code, outcome.status, startedAt, now(), error instanceof StepOutcome && Array.isArray(error.assertions) ? error.assertions : [{ code: `${step.code}_check`, passed: false, detail_code: outcome.detailCode }], state.network, outcome.errorCode));
       }
     }
 
@@ -342,6 +364,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       diagnostics: {
         redaction_version: REDACTION_VERSION,
         relevant_errors: errors.list(),
+        ...(scenario.platform === 'public' ? { public_error_count: errors.publicCount(), public_errors_truncated: errors.publicTruncated() } : {}),
         ...(state.detectedPlatform ? { detected_platform: state.detectedPlatform } : {}),
         ...(state.publicAudit ? { public_audit: state.publicAudit } : {}),
       },

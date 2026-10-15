@@ -32,4 +32,6 @@ test('the error log aggregates repeats and is bounded', () => {
 
   assert.equal(log.list()[0].count, 3);
   assert.equal(log.list().length, 100);
+  assert.equal(log.publicCount(), 203);
+  assert.equal(log.publicTruncated(), true);
 });

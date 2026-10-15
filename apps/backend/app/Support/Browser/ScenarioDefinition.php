@@ -93,10 +93,12 @@ class ScenarioDefinition
         return match ($access) {
             CheckScenario::ACCESS_TEST_CUSTOMER => [...$steps,
                 ['code' => 'sign_in', 'action' => 'sign_in', 'timeout_ms' => 30000],
+                ['code' => 'shipping', 'action' => 'assert_visible', 'timeout_ms' => 20000],
                 ['code' => 'payment_form', 'action' => 'assert_visible', 'timeout_ms' => 20000],
             ],
             CheckScenario::ACCESS_GUEST => [...$steps,
                 ['code' => 'guest_details', 'action' => 'fill_synthetic', 'timeout_ms' => 30000],
+                ['code' => 'shipping', 'action' => 'assert_visible', 'timeout_ms' => 20000],
                 ['code' => 'payment_form', 'action' => 'assert_visible', 'timeout_ms' => 20000],
             ],
             default => $steps,
@@ -108,11 +110,15 @@ class ScenarioDefinition
      */
     public function untestedComponents(string $platform = 'woocommerce', ?string $access = null): array
     {
-        $common = ['variable_products', 'shipping_required_before_payment', 'third_party_gateway_iframes', 'redirect_gateways'];
+        $common = ['variable_products', 'third_party_gateway_iframes', 'redirect_gateways'];
 
-        return $platform === 'shopware' && $access === CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN
-            ? ['payment_methods_after_sign_in', ...$common]
-            : $common;
+        if ($platform === 'shopware') {
+            return $access === CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN
+                ? ['payment_methods_after_sign_in', 'shipping_required_before_payment', ...$common]
+                : $common;
+        }
+
+        return ['shipping_required_before_payment', ...$common];
     }
 
     /**

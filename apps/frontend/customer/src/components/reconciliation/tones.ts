@@ -15,6 +15,7 @@ export const FINDING_STATUSES: FindingStatus[] = ['mismatch', 'pending', 'unknow
 export const RULE_CODES = [
   'MONEY_CAPTURE_MISSING',
   'MONEY_CAPTURE_AMOUNT',
+  'MONEY_CAPTURE_NOT_RECORDED',
   'MONEY_MULTIPLE_CAPTURES',
   'MONEY_CURRENCY_MISMATCH',
   'MONEY_ORDER_CHANGED',

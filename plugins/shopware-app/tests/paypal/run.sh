@@ -7,6 +7,7 @@ DOCKER_APP_BIN=/Applications/Docker.app/Contents/Resources/bin
 [ -d "$DOCKER_APP_BIN" ] && PATH="$DOCKER_APP_BIN:$PATH"
 export PATH
 STATUS=0
+trap 'docker rm -f bw-shopware >/dev/null 2>&1 || true' EXIT
 mkdir -p .out
 for IMAGE in "$@"; do
     docker rm -f bw-shopware >/dev/null 2>&1 || true
@@ -18,7 +19,12 @@ for IMAGE in "$@"; do
     docker exec bw-shopware bash -lc "cd /var/www/html && composer require 'swag/paypal:${constraint}' --no-interaction >/dev/null 2>&1 && php bin/console plugin:refresh >/dev/null && php bin/console plugin:install --activate SwagPayPal >/dev/null && php bin/console cache:clear >/dev/null"
     plugin=$(docker exec bw-shopware bash -lc "cd /var/www/html && php bin/console plugin:list 2>/dev/null | grep SwagPayPal" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     echo "=== ${IMAGE} (Shopware ${line}, SwagPayPal ${plugin})"
-    ./chain.sh | grep -E "PASS|FAIL|RESULT|partial:|full:|none:" || STATUS=1
+    if output=$(./chain.sh 2>&1); then
+        printf '%s\n' "$output" | grep -E "PASS|FAIL|RESULT|partial:|full:|none:|provider paid/|store paid/" || true
+    else
+        printf '%s\n' "$output" | grep -E "PASS|FAIL|RESULT|partial:|full:|none:|provider paid/|store paid/" || true
+        echo 'PayPal chain failed; see the individual assertions above'
+        STATUS=1
+    fi
 done
-docker rm -f bw-shopware >/dev/null 2>&1 || true
 exit $STATUS

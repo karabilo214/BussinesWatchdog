@@ -14,7 +14,7 @@ class CompleteAttemptRequest extends FormRequest
 
     public const NETWORK_KEYS = ['method', 'origin', 'path', 'status', 'duration_ms', 'party', 'failure'];
 
-    public const ERROR_KEYS = ['type', 'party', 'origin', 'path', 'status', 'step_code', 'message_code', 'count'];
+    public const ERROR_KEYS = ['type', 'party', 'origin', 'path', 'status', 'step_code', 'message_code', 'cause_code', 'count'];
 
     public function authorize(): bool
     {
@@ -47,6 +47,9 @@ class CompleteAttemptRequest extends FormRequest
             'diagnostics.redaction_version' => ['required', 'string', 'max:32'],
             'diagnostics.relevant_errors' => ['present', 'array', 'max:100'],
             'diagnostics.relevant_errors.*' => ['array'],
+            'diagnostics.relevant_errors.*.cause_code' => ['sometimes', 'string', 'in:deprecated_api,resource_load,tracking_or_consent,script_exception,network_failure,server_response,resource_http_error,mime_type_mismatch,content_security_policy,unclassified_script'],
+            'diagnostics.public_error_count' => ['sometimes', 'integer', 'min:0'],
+            'diagnostics.public_errors_truncated' => ['sometimes', 'boolean'],
             'diagnostics.detected_platform' => ['sometimes', 'string', 'in:woocommerce_hint,shopware_hint,unknown'],
             'diagnostics.public_audit' => ['sometimes', 'array'],
             'artifact_ids' => ['sometimes', 'array', 'max:10'],
@@ -80,7 +83,7 @@ class CompleteAttemptRequest extends FormRequest
             }
 
             $diagnostics = (array) ($data['diagnostics'] ?? []);
-            $this->checkKeys($validator, 'diagnostics', $diagnostics, ['redaction_version', 'relevant_errors', 'detected_platform', 'public_audit']);
+            $this->checkKeys($validator, 'diagnostics', $diagnostics, ['redaction_version', 'relevant_errors', 'detected_platform', 'public_audit', 'public_error_count', 'public_errors_truncated']);
 
             foreach ((array) ($diagnostics['relevant_errors'] ?? []) as $j => $error) {
                 $this->checkFlat($validator, "diagnostics.relevant_errors.$j", $error, self::ERROR_KEYS);

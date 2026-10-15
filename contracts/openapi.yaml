@@ -6895,6 +6895,8 @@ components:
           required: [redaction_version, relevant_errors]
           properties:
             redaction_version: {type: string}
+            public_error_count: {type: integer, minimum: 0, description: Exact number of reportable first-party browser messages in a public check, including entries beyond the 100-group detail cap.}
+            public_errors_truncated: {type: boolean}
             relevant_errors:
               type: array
               maxItems: 100
@@ -6909,6 +6911,7 @@ components:
                   status: {type: [integer, 'null']}
                   step_code: {type: string}
                   message_code: {type: string}
+                  cause_code: {enum: [deprecated_api, resource_load, tracking_or_consent, script_exception, network_failure, server_response, resource_http_error, mime_type_mismatch, content_security_policy, unclassified_script]}
                   count: {type: integer}
         artifact_ids:
           type: array

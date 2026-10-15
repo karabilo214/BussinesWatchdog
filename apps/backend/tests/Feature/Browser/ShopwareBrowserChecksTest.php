@@ -56,6 +56,7 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertJsonPath('sign_in_configured', false)
             ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout']);
         $this->assertContains('payment_methods_after_sign_in', $created->json('untested_components'));
+        $this->assertContains('shipping_required_before_payment', $created->json('untested_components'));
         $scenarioUrl = '/api/v1/scenarios/'.$created->json('id');
 
         $this->asOwner($context)->withHeader('If-Match', '"1"')->patchJson($scenarioUrl, ['checkout_access' => 'test_customer'])
@@ -69,10 +70,11 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertOk()
             ->assertJsonPath('checkout_access', 'test_customer')
             ->assertJsonPath('sign_in_configured', true)
-            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'payment_form']);
+            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form']);
         $this->assertStringNotContainsString(self::PASSWORD, $saved->getContent());
         $this->assertStringNotContainsString('check@shop.example.test', $saved->getContent());
         $this->assertNotContains('payment_methods_after_sign_in', $saved->json('untested_components'));
+        $this->assertNotContains('shipping_required_before_payment', $saved->json('untested_components'));
         $stored = CheckScenario::query()->sole();
         $this->assertNotNull($stored->sign_in_ciphertext);
         $this->assertStringNotContainsString(self::PASSWORD, $stored->sign_in_ciphertext);
@@ -88,7 +90,7 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertOk()
             ->assertJsonPath('checkout_access', 'guest')
             ->assertJsonPath('sign_in_configured', false)
-            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout', 'guest_details', 'payment_form']);
+            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout', 'guest_details', 'shipping', 'payment_form']);
         $this->assertNull(CheckScenario::query()->sole()->sign_in_ciphertext);
 
         $this->asOwner($context)->withHeader('If-Match', '"4"')->patchJson($scenarioUrl, ['checkout_access' => 'test_customer'])
@@ -133,7 +135,7 @@ class ShopwareBrowserChecksTest extends TestCase
         $this->assertSame(ScenarioDefinition::SHOPWARE_ADAPTER_VERSION, $lease->json('scenario.adapter_version'));
         $this->assertSame('https://shop.example.test/checkout/cart', $lease->json('scenario.cart_url'));
         $this->assertSame('https://shop.example.test/checkout/confirm', $lease->json('scenario.checkout_url'));
-        $this->assertSame(['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'payment_form'], array_column($lease->json('scenario.steps'), 'code'));
+        $this->assertSame(['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form'], array_column($lease->json('scenario.steps'), 'code'));
         $this->assertContains('place_order', $lease->json('network_policy.blocked_operations'));
         $this->assertContains('customer_account_creation', $lease->json('network_policy.blocked_operations'));
 
@@ -145,6 +147,7 @@ class ShopwareBrowserChecksTest extends TestCase
         $guest = $this->lease()->assertOk();
         $this->assertNull($guest->json('scenario.sign_in'));
         $this->assertSame('guest', $guest->json('scenario.checkout_access'));
+        $this->assertSame(['product', 'add_to_cart', 'cart', 'checkout', 'guest_details', 'shipping', 'payment_form'], array_column($guest->json('scenario.steps'), 'code'));
     }
 
     public function test_a_rejected_test_account_is_an_info_incident_not_a_broken_shop(): void
@@ -219,7 +222,7 @@ class ShopwareBrowserChecksTest extends TestCase
     {
         $steps = [];
 
-        foreach (['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'payment_form'] as $index => $code) {
+        foreach (['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form'] as $index => $code) {
             $steps[] = [
                 'index' => $index,
                 'code' => $code,
