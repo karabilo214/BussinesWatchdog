@@ -10,7 +10,6 @@ use App\Http\Controllers\Api\V1\Billing\InvoiceController;
 use App\Http\Controllers\Api\V1\Billing\PaddleWebhookController;
 use App\Http\Controllers\Api\V1\Billing\PlanCatalogController;
 use App\Http\Controllers\Api\V1\Billing\SubscriptionController;
-use App\Http\Controllers\Api\V1\Checkout\CheckoutObservationController;
 use App\Http\Controllers\Api\V1\Checks\CheckRunController;
 use App\Http\Controllers\Api\V1\Checks\CheckScenarioController;
 use App\Http\Controllers\Api\V1\Exports\ExportController;
@@ -46,7 +45,6 @@ use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
 use App\Http\Controllers\Api\V1\Tenancy\TenantController;
 use App\Support\Auth\TenantRoles;
 use Illuminate\Support\Facades\Route;
-use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 Route::middleware('stateful.session')->prefix('/v1/auth')->group(function (): void {
     Route::post('/register', [AuthController::class, 'register'])->middleware(['guest', 'throttle:auth-signup']);
@@ -79,15 +77,6 @@ Route::post('/v1/shopware/app/{integration}/confirm', [ShopwareAppController::cl
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/shopware/app/{integration}/webhook', [ShopwareAppController::class, 'webhook'])
     ->middleware('throttle:provider-webhook');
-// Called from shoppers' browsers on the store's pages: never a session, so never the SPA's stateful handling (ADR 0057).
-Route::withoutMiddleware([EnsureFrontendRequestsAreStateful::class])->group(function (): void {
-    Route::get('/v1/observe/{integration}/config', [CheckoutObservationController::class, 'config'])
-        ->middleware('throttle:checkout-observation');
-    Route::get('/v1/observe/{integration}/r.gif', [CheckoutObservationController::class, 'render'])
-        ->middleware('throttle:checkout-observation');
-    Route::post('/v1/observe/{integration}/stages', [CheckoutObservationController::class, 'stages'])
-        ->middleware('throttle:checkout-observation');
-});
 Route::post('/v1/webhooks/paddle', [PaddleWebhookController::class, 'store'])
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/telegram/bind', [NotificationChannelController::class, 'bindTelegram'])

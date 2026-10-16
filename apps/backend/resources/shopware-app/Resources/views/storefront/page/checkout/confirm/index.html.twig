@@ -1,8 +1,12 @@
 {% sw_extends '@Storefront/storefront/page/checkout/confirm/index.html.twig' %}
 
 {% block page_checkout_confirm %}
-    <div id="bw-checkout-observer" data-endpoint="__BW_OBSERVE_ENDPOINT__" data-page="confirm" hidden></div>
-    <img src="__BW_OBSERVE_ENDPOINT__/r.gif?page=confirm" alt="" width="1" height="1" referrerpolicy="strict-origin" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
-    <noscript><img src="__BW_OBSERVE_ENDPOINT__/r.gif?page=confirm&amp;js=0" alt="" width="1" height="1" referrerpolicy="strict-origin"></noscript>
+    {% set bwObserve = page.extensions.bwObservation.observe ?? false %}
+    {% set bwEndpoint = path('frontend.script_endpoint', {'hook': 'bw-observe'}) %}
+    <div id="bw-checkout-observer" data-endpoint="{{ bwEndpoint }}" data-page="confirm" data-observe="{{ bwObserve ? '1' : '0' }}" hidden></div>
+    {% if bwObserve %}
+        <img src="{{ bwEndpoint }}?page=confirm&amp;stages=rendered&amp;r={{ random() }}" alt="" width="1" height="1" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+        <noscript><img src="{{ bwEndpoint }}?page=confirm&amp;stages=rendered_noscript&amp;r={{ random() }}" alt="" width="1" height="1"></noscript>
+    {% endif %}
     {{ parent() }}
 {% endblock %}

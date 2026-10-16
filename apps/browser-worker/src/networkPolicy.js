@@ -87,11 +87,11 @@ export function restRoute(parsed) {
  * unknown mutation is blocked rather than trusted. Order placement, order-pay, capture and
  * refund are always blocked, whatever the button text.
  */
-export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false, platform = 'woocommerce', checkoutAccess = null, quietOrigins = [] }) {
+export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false, platform = 'woocommerce', checkoutAccess = null, quietPaths = [] }) {
   const allowed = new Set(allowedOrigins.map((origin) => origin.toLowerCase().replace(/\/$/, '')));
   const store = storeOrigin.toLowerCase().replace(/\/$/, '');
   const publicStoreOrigins = platform === 'public' ? allowed : new Set([store]);
-  const quiet = new Set(quietOrigins.map((origin) => origin.toLowerCase().replace(/\/$/, '')));
+  const quiet = quietPaths.filter((path) => typeof path === 'string' && path.startsWith('/')).map((path) => path.replace(/\/$/, ''));
 
   function originAllowed(parsed) {
     if (parsed.protocol !== 'https:' && !(insecureLocal && parsed.protocol === 'http:')) {
@@ -333,7 +333,7 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
         return { allow: true };
       }
 
-      if (quiet.has(`${parsed.protocol}//${parsed.host}`.toLowerCase())) {
+      if (`${parsed.protocol}//${parsed.host}`.toLowerCase() === store && quiet.some((path) => parsed.pathname.replace(/\/$/, '').endsWith(path))) {
         return { allow: false, reason: 'quiet' };
       }
 

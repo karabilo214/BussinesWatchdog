@@ -5,6 +5,7 @@ namespace App\Support\Providers\Shopware;
 use App\Models\Integration;
 use App\Models\Order;
 use App\Models\ReconciliationDirtySubject;
+use App\Support\Checkout\CheckoutObservation;
 use App\Support\Providers\ProviderEventEmitter;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use Illuminate\Support\Carbon;
@@ -36,6 +37,7 @@ class ShopwareSync
         private readonly ProviderEventEmitter $emitter,
         private readonly StoreReconciliationRequeue $requeue,
         private readonly ShopwarePaymentAttempts $attempts,
+        private readonly ShopwareCheckoutReports $reports,
     ) {}
 
     public function syncable(Integration $integration): bool
@@ -179,6 +181,10 @@ class ShopwareSync
             return $this->fail($integration, $failure);
         }
 
+        $observation = $mode === self::MODE_DELTA && CheckoutObservation::carriesScript($integration)
+            ? $this->collectReports($integration, $baseUrl, $token)
+            : null;
+
         $this->updateHealth($integration, [
             'sync' => [
                 ...array_filter($next, fn (mixed $value): bool => $value !== null),
@@ -190,9 +196,27 @@ class ShopwareSync
                 'complete' => $complete,
             ],
             'last_error' => null,
+            ...($observation === null ? [] : ['observation' => $observation]),
         ], ['last_successful_sync_at' => $now]);
 
         return ['status' => 'ok', 'emitted' => $this->totals['emitted'], 'unchanged' => $this->totals['unchanged'], 'complete' => $complete];
+    }
+
+    /**
+     * The app's checkout observation reports (ADR 0062). A failure is kept in `health.observation` and never fails the
+     * order sync; the reports wait in the shop for the next run.
+     *
+     * @return array<string, mixed>
+     */
+    private function collectReports(Integration $integration, string $baseUrl, string $token): array
+    {
+        $state = is_array($integration->health['observation'] ?? null) ? $integration->health['observation'] : [];
+
+        try {
+            return $this->reports->collect($integration, $baseUrl, $token, $state);
+        } catch (ShopwareRequestFailed $failure) {
+            return [...$state, 'last_error' => ['code' => $failure->reasonCode, 'at' => Carbon::now()->toJSON()]];
+        }
     }
 
     /**

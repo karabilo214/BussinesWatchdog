@@ -1,0 +1,2 @@
+{% set setting = services.repository.search('custom_entity_bw_checkout_setting', {'limit': 1}).first %}
+{% do hook.page.addArrayExtension('bwObservation', {'observe': setting ? setting.observe : false}) %}

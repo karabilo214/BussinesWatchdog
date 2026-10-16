@@ -83,7 +83,7 @@ async function check() {
         allowed_store_origins: [origin],
         steps: [{ code: 'public_home', timeout_ms: 10000 }, { code: 'public_checkout', timeout_ms: 30000 }],
       },
-      network_policy: { allowed_origins: [origin], quiet_origins: [] },
+      network_policy: { allowed_origins: [origin], quiet_paths: [] },
     },
   });
 }

@@ -1,5 +1,5 @@
 // A real shopper on the storefront (not the browser check): goes to the confirm page as a guest and submits the
-// order. `broken` adds a page script that cancels the order form, as a broken theme script would («Submit order»
+// order; it lists every host the browser contacted. `broken` adds a page script that cancels the order form, as a broken theme script would («Submit order»
 // does nothing), and waits past the stall time.
 import { chromium } from 'playwright';
 
@@ -8,6 +8,14 @@ const product = process.argv[3];
 const browser = await chromium.launch();
 const context = await browser.newContext({ locale: 'en-US' });
 const page = await context.newPage();
+const hosts = new Set();
+page.on('request', (request) => hosts.add(new URL(request.url()).host));
+const observeRequests = [];
+page.on('request', (request) => {
+  if (request.url().includes('/storefront/script/bw-observe')) {
+    observeRequests.push(`${request.method()} ${new URL(request.url()).pathname}`);
+  }
+});
 
 if (mode === 'broken') {
   await context.addInitScript(() => {
@@ -56,7 +64,7 @@ if (mode === 'broken') {
 }
 
 const after = await page.evaluate(() => window.BusinessWatchdogCheckout ?? null).catch(() => null);
-console.log('BW_CUSTOMER=' + JSON.stringify({ mode, confirm: onConfirm, after, url: new URL(page.url()).pathname }));
+console.log('BW_CUSTOMER=' + JSON.stringify({ mode, confirm: onConfirm, after, url: new URL(page.url()).pathname, hosts: [...hosts], observe_requests: observeRequests.length }));
 } catch (error) {
   console.log('BW_CUSTOMER=' + JSON.stringify({ mode, error: String(error.message).split('\n')[0], url: page.url(), body: await page.evaluate(() => document.body.className).catch(() => null) }));
 }

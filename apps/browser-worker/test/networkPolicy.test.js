@@ -139,10 +139,12 @@ test('shopware: signing in only for the test customer, registering only as a gue
   assert.equal(register('stop_before_sign_in').operation, 'unknown_mutation');
 });
 
-test('quiet origins are dropped without counting as blocked traffic', () => {
-  const sw = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, platform: 'shopware', checkoutAccess: 'guest', quietOrigins: ['https://app.watchdog.example/'] });
-  assert.deepEqual(sw.decide({ method: 'GET', url: 'https://app.watchdog.example/api/v1/observe/x/config' }), { allow: false, reason: 'quiet' });
-  assert.deepEqual(sw.decide({ method: 'POST', url: 'https://app.watchdog.example/api/v1/observe/x/stages', postData: '{}' }), { allow: false, reason: 'quiet' });
+test('quiet paths on the store are dropped without counting as blocked traffic', () => {
+  const sw = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, platform: 'shopware', checkoutAccess: 'guest', quietPaths: ['/storefront/script/bw-observe'] });
+  assert.deepEqual(sw.decide({ method: 'GET', url: `${store}/storefront/script/bw-observe?page=confirm&stages=rendered` }), { allow: false, reason: 'quiet' });
+  assert.deepEqual(sw.decide({ method: 'POST', url: `${store}/de/storefront/script/bw-observe`, postData: 'page=confirm' }), { allow: false, reason: 'quiet' });
+  assert.equal(sw.decide({ method: 'GET', url: 'https://other.example/storefront/script/bw-observe' }).reason, 'origin_not_allowed');
+  assert.equal(sw.decide({ method: 'GET', url: `${store}/storefront/script/other` }).allow, true);
   assert.equal(sw.decide({ method: 'GET', url: `${store}/checkout/confirm` }).allow, true);
 });
 

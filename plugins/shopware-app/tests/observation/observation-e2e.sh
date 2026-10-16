@@ -1,8 +1,9 @@
 #!/bin/sh
-# Checkout observation script of the Shopware app (ADR 0057) against a real Shopware: the store's app archive is
-# installed as the owner does; real shoppers (a browser that is not the check) go through checkout. Not observed while
-# the check stops before sign-in; observed with the guest way: stages counted, three broken submits open
-# CHECKOUT_SUBMIT_FAILING, a real order resolves it; the browser check finds the script and is not counted itself.
+# Checkout observation script of the Shopware app (ADR 0057/0062) against a real Shopware: the store's app archive is
+# installed as the owner does; real shoppers (a browser that is not the check) go through checkout. Their browsers talk
+# only to the shop: the app keeps the reports in its own entity and the service collects them through the Admin API.
+# Not observed while the check stops before sign-in; observed with the guest way: stages counted, three broken submits
+# open CHECKOUT_SUBMIT_FAILING, a real order resolves it; the browser check finds the script and is not counted itself.
 # Own database (BW_E2E_DATABASE, migrated fresh). Usage: observation-e2e.sh [image ...]
 set -eu
 cd "$(dirname "$0")"
@@ -50,13 +51,16 @@ for IMAGE in ${*:-dockware/play:6.6.10.6 dockware/play:6.7.2.2}; do
     echo "  app: $(j "$installed" "['active']") $(j "$app" "['status']")"
 
     backend BW_E2E_ACTION=scenario BW_E2E_STORE_ID="$store" BW_E2E_ACCESS=stop_before_sign_in BW_E2E_PRODUCT_URL="$product" >/dev/null
+    backend BW_E2E_ACTION=collect BW_E2E_STORE_ID="$store" >/dev/null
     off_customer=$(customer buy "$product")
     off=$(backend BW_E2E_ACTION=state BW_E2E_STORE_ID="$store")
 
     backend BW_E2E_ACTION=scenario BW_E2E_STORE_ID="$store" BW_E2E_ACCESS=guest BW_E2E_PRODUCT_URL="$product" >/dev/null
+    collected=$(backend BW_E2E_ACTION=collect BW_E2E_STORE_ID="$store")
     sleep $(( 302 - $(date +%s) % 300 ))
     broken=""
     for i in 1 2 3; do broken="$broken $(customer broken "$product")"; done
+    first_broken=$(echo "$broken" | awk '{print $1}')
     failing=$(backend BW_E2E_ACTION=state BW_E2E_STORE_ID="$store")
     bought=$(customer buy "$product")
     consume
@@ -68,14 +72,21 @@ for IMAGE in ${*:-dockware/play:6.6.10.6 dockware/play:6.7.2.2}; do
         bw-browser-worker:e2e > "$OUT/worker.log" 2>&1 || true
     checked=$(backend BW_E2E_ACTION=check-status BW_E2E_STORE_ID="$store" BW_E2E_RUN_ID="$(j "$check" "['run_id']")")
     after_check=$(backend BW_E2E_ACTION=state BW_E2E_STORE_ID="$store")
+    left=$(docker exec bw-shopware bash -lc "mysql -h127.0.0.1 -uroot -proot shopware -N -e 'select count(*) from custom_entity_bw_checkout_report' 2>/dev/null")
 
-    for v in off_customer off failing bought recovered check checked after_check; do eval "echo \"  $v: \$$v\""; done
+    for v in off_customer off collected failing bought recovered check checked after_check left; do eval "echo \"  $v: \$$v\""; done
     echo "  broken shoppers:$broken"
-    python3 - "$off_customer" "$off" "$failing" "$bought" "$recovered" "$check" "$checked" "$after_check" <<'PY' || STATUS=1
+    python3 - "$off_customer" "$off" "$failing" "$bought" "$recovered" "$check" "$checked" "$after_check" "$collected" "$first_broken" "$left" "host.docker.internal:${PORT}" <<'PY' || STATUS=1
 import json, sys
-off_customer, off, failing, bought, recovered, check, checked, after_check = [json.loads(a) for a in sys.argv[1:]]
+off_customer, off, failing, bought, recovered, check, checked, after_check, collected, first_broken = [json.loads(a) for a in sys.argv[1:11]]
+left, service_host = int(sys.argv[11]), sys.argv[12]
+shoppers = [off_customer, first_broken, bought]
 c, r, a = failing['counts'], recovered['counts'], after_check['counts']
 checks = {
+    'the service set the app to observe': collected['observation']['observe'] is True and collected['observation']['last_error'] is None,
+    'shoppers\' browsers contacted only the shop, never the service': all(service_host not in s['hosts'] for s in shoppers) and all(h.split(':')[0] in ('localhost',) for s in shoppers for h in s['hosts']),
+    'observed shoppers reported to the app endpoint on the shop': first_broken['observe_requests'] >= 3 and bought['observe_requests'] >= 2 and off_customer['observe_requests'] == 0,
+    'collected reports deleted in the shop': left == 0 and after_check['observation']['last_error'] is None,
     'script loaded from the app on the confirm page': off_customer['confirm'] is not None and off_customer['confirm']['page'] == 'confirm',
     'not observed while the check stops before sign-in': off_customer['confirm']['state'] == 'off' and sum(off['counts'].values()) == 0 and off['coverage'] == 'check_does_not_reach_payment',
     'broken submits counted (shown, loaded, ready, sent, stalled)': c['confirm_rendered'] >= 3 and c['script_loaded'] >= 3 and c['form_ready'] >= 3 and c['submit_clicked'] == 3 and c['submit_stalled'] == 3 and c['finish_reached'] == 0,

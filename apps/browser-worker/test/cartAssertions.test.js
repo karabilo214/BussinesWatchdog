@@ -16,4 +16,6 @@ test('cart product links match the selected product path', () => {
   assert.equal(sameProductPath('https://shop.example.test/detail/abc', 'https://other.example.test/detail/abc'), false);
   assert.equal(sameProductPath('https://shop.example.test/?p=123', 'https://shop.example.test/?p=123&variation_id=456'), true);
   assert.equal(sameProductPath('https://shop.example.test/?p=123', 'https://shop.example.test/?p=999'), false);
+  assert.equal(sameProductPath('https://shop.example.test/?product=mug', 'https://shop.example.test/?product=mug'), true, 'plain permalinks: the canonical product link');
+  assert.equal(sameProductPath('https://shop.example.test/?product=mug', 'https://shop.example.test/?product=cup'), false);
 });

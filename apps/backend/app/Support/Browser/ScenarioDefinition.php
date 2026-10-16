@@ -24,6 +24,9 @@ class ScenarioDefinition
 
     public const NETWORK_POLICY_VERSION = 'v1';
 
+    /** The Shopware app's storefront endpoint for checkout observation reports (ADR 0062): the check never calls it. */
+    public const SHOPWARE_OBSERVATION_PATH = '/storefront/script/bw-observe';
+
     /**
      * Actions that mutate an order or money. The worker adapter maps each to concrete
      * requests (Classic wc-ajax checkout, Store API checkout, order-pay, gateway capture)
@@ -156,14 +159,14 @@ class ScenarioDefinition
                 'version' => self::NETWORK_POLICY_VERSION,
                 'allowed_origins' => array_values(array_unique(array_merge([$origin], $definition['extra_allowed_origins'] ?? []))),
                 'blocked_operations' => $this->blockedOperations($store->platform),
-                'quiet_origins' => $shopware ? [$this->origin((string) config('app.url'))] : [],
+                'quiet_paths' => $shopware ? [self::SHOPWARE_OBSERVATION_PATH] : [],
             ],
         ];
     }
 
     /**
      * The checkout observation script is expected on the payment page when the store is observed: the Shopware app with
-     * a check that reaches that page (ADR 0057) or the WooCommerce plugin (ADR 0059).
+     * a check that reaches that page (ADR 0057/0062) or the WooCommerce plugin (ADR 0059).
      */
     public function expectsCheckoutScript(Store $store, ?string $access): bool
     {

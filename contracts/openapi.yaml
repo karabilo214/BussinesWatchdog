@@ -3871,56 +3871,6 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
-  /api/v1/observe/{integration}/config:
-    get:
-      tags: [Checks]
-      operationId: getCheckoutObservationConfig
-      description: "Called by the checkout observation script of the Shopware app from shoppers' browsers on the store's pages (ADR 0057). `observe` is true only when the store is observed (app active, browser check with test customer or guest, plan feature) and the request comes from the store's own origin (`Origin`/`Referer`); then CORS allows that origin. Nothing about the visitor is stored."
-      security: []
-      parameters:
-        - {name: integration, in: path, required: true, schema: {type: string, format: uuid}}
-      responses:
-        "200":
-          description: Decision
-          content:
-            application/json:
-              schema: {type: object, required: [observe], properties: {observe: {type: boolean}}}
-  /api/v1/observe/{integration}/r.gif:
-    get:
-      tags: [Checks]
-      operationId: checkoutObservationRenderBeacon
-      description: "1×1 image shown by the app's templates on the confirm (`page=confirm`, `js=0` in `noscript`) and finish pages; counts shown pages of observed stores from the store's origin. Always answers the image."
-      security: []
-      parameters:
-        - {name: integration, in: path, required: true, schema: {type: string, format: uuid}}
-        - {name: page, in: query, required: true, schema: {enum: [confirm, finish]}}
-        - {name: js, in: query, required: false, schema: {const: "0"}}
-      responses:
-        "200":
-          description: Image
-          content:
-            image/gif:
-              schema: {type: string, format: binary}
-  /api/v1/observe/{integration}/stages:
-    post:
-      tags: [Checks]
-      operationId: reportCheckoutObservationStages
-      description: "sendBeacon from the checkout observation script: stage counters only (no form values, no identifiers). Ignored unless the store is observed and the request comes from its origin. At most 20 JavaScript errors per report; counters per 5-minute window are capped."
-      security: []
-      parameters:
-        - {name: integration, in: path, required: true, schema: {type: string, format: uuid}}
-      requestBody:
-        required: true
-        content:
-          text/plain:
-            schema:
-              type: object
-              properties:
-                page: {enum: [confirm, finish]}
-                stages: {type: array, items: {enum: [script_loaded, form_ready, returned_with_error, submit_clicked, submit_stalled, finish_reached]}}
-                js_errors: {type: integer, minimum: 0}
-      responses:
-        "204": {description: Accepted or ignored}
   /api/v1/webhooks/paddle:
     post:
       tags: [Billing]
@@ -6878,7 +6828,7 @@ components:
             version: {type: string}
             allowed_origins: {type: array, items: {type: string, format: uri}}
             blocked_operations: {type: array, items: {type: string}}
-            quiet_origins: {type: array, items: {type: string, format: uri}, description: "Origins the check never contacts and does not report (the service's observation endpoints, ADR 0057)."}
+            quiet_paths: {type: array, items: {type: string, pattern: "^/"}, description: "Paths on the store's origin the check never requests and does not report (the Shopware app's observation endpoint, ADR 0062), so the check is not counted as a shopper."}
     BrowserResult:
       type: object
       additionalProperties: false

@@ -1,0 +1,6 @@
+{% sw_extends '@Storefront/storefront/page/checkout/confirm/index.html.twig' %}
+
+{% block page_checkout_confirm %}
+    <div id="bw-spike" data-observe="{{ (page.extensions.bwObservation.observe ?? false) ? '1' : '0' }}" hidden></div>
+    {{ parent() }}
+{% endblock %}

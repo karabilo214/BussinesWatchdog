@@ -10,12 +10,11 @@ use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Providers\Shopware\ShopwareConnector;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Checkout observation (ADR 0057 Shopware app, ADR 0059 WooCommerce plugin): whether a store is observed, which origins
- * may report to the service for a Shopware app, and counters per 5-minute window. Nothing about a visitor is kept.
+ * Checkout observation (ADR 0057/0062 Shopware app, ADR 0059 WooCommerce plugin): whether a store is observed and
+ * counters per 5-minute window. Nothing about a visitor is kept.
  */
 class CheckoutObservation
 {
@@ -28,21 +27,6 @@ class CheckoutObservation
     public const MAX_JS_ERRORS_PER_REPORT = 20;
 
     public const WOOCOMMERCE_PLUGIN = 'woocommerce';
-
-    public function __construct(
-        private readonly ShopwareConnector $connector,
-    ) {}
-
-    /**
-     * @return array{observe: bool, reason: string, integration: ?Integration}
-     */
-    public function decision(string $integrationId): array
-    {
-        $cached = Cache::remember('checkout-observation:decision:'.$integrationId, 60, fn (): array => $this->decide($integrationId));
-        $integration = $cached['observe'] ? Integration::query()->find($integrationId) : null;
-
-        return ['observe' => $cached['observe'] && $integration !== null, 'reason' => $cached['reason'], 'integration' => $integration];
-    }
 
     /**
      * @return array{observe: bool, reason: string}
@@ -90,38 +74,29 @@ class CheckoutObservation
     }
 
     /**
-     * Requests are accepted only from the shop itself: the host Shopware registered for the app or the store's address.
+     * Counters of one report the Shopware app stored in the shop (ADR 0062): which pages were shown and which stages the
+     * script saw. Unknown pages and stages are ignored; script errors are capped per report.
+     *
+     * @return array<string, int>
      */
-    public function originAllowed(Integration $integration, ?string $origin, ?string $referer): bool
-    {
-        $host = strtolower((string) parse_url((string) ($origin ?: $referer), PHP_URL_HOST));
-
-        return $host !== '' && in_array($host, $this->allowedHosts($integration), true);
-    }
-
-    public function render(Integration $integration, string $page, bool $javascript): void
+    public static function reportCounts(string $page, string $stages, int $jsErrors): array
     {
         if (! in_array($page, self::PAGES, true)) {
-            return;
-        }
-
-        $this->increment($integration, [$page === 'confirm' && ! $javascript ? 'confirm_rendered_noscript' : $page.'_rendered' => 1]);
-    }
-
-    /**
-     * @param  list<mixed>  $stages
-     */
-    public function stages(Integration $integration, string $page, array $stages, int $jsErrors): void
-    {
-        if (! in_array($page, self::PAGES, true)) {
-            return;
+            return [];
         }
 
         $counts = [];
 
-        foreach (array_unique(array_filter($stages, 'is_string')) as $stage) {
-            if (in_array($stage, CheckoutObservationWindow::STAGES, true)) {
-                $counts[$stage] = 1;
+        foreach (array_unique(explode(',', $stages)) as $stage) {
+            $counter = match (true) {
+                $stage === 'rendered' => $page.'_rendered',
+                $stage === 'rendered_noscript' && $page === 'confirm' => 'confirm_rendered_noscript',
+                in_array($stage, CheckoutObservationWindow::STAGES, true) => $stage,
+                default => null,
+            };
+
+            if ($counter !== null) {
+                $counts[$counter] = 1;
             }
         }
 
@@ -129,18 +104,17 @@ class CheckoutObservation
             $counts['js_errors'] = min($jsErrors, self::MAX_JS_ERRORS_PER_REPORT);
         }
 
-        if ($counts !== []) {
-            $this->increment($integration, $counts);
-        }
+        return $counts;
     }
 
     /**
+     * Adds counters to the store's window that starts at $start; each counter is capped per window.
+     *
      * @param  array<string, int>  $counts
      */
-    private function increment(Integration $integration, array $counts): void
+    public function add(Integration $integration, Carbon $start, array $counts): void
     {
         $now = Carbon::now();
-        $start = Carbon::createFromTimestampUTC($now->getTimestamp() - $now->getTimestamp() % self::WINDOW_SECONDS);
 
         DB::transaction(function () use ($integration, $counts, $now, $start): void {
             /** @var CheckoutObservationWindow|null $window */
@@ -164,20 +138,8 @@ class CheckoutObservation
         });
     }
 
-    /**
-     * @return list<string>
-     */
-    private function allowedHosts(Integration $integration): array
+    public static function windowStart(Carbon $at): Carbon
     {
-        return Cache::remember('checkout-observation:hosts:'.$integration->id, 600, function () use ($integration): array {
-            $hosts = [strtolower((string) parse_url((string) Store::query()->whereKey($integration->store_id)->value('base_url'), PHP_URL_HOST))];
-            $apiUrl = $this->connector->credentials($integration)['api_url'] ?? null;
-
-            if (is_string($apiUrl)) {
-                $hosts[] = strtolower((string) parse_url($apiUrl, PHP_URL_HOST));
-            }
-
-            return array_values(array_unique(array_filter($hosts)));
-        });
+        return Carbon::createFromTimestampUTC($at->getTimestamp() - $at->getTimestamp() % self::WINDOW_SECONDS);
     }
 }

@@ -1,6 +1,6 @@
 # ADR 0057: Checkout observation script for Shopware stores (layer 2)
 
-Status: accepted (owner decisions 2026-10-14: the script works without a consent banner; the service decides whether a store is observed). Details below confirmed by the owner on 2026-10-14 as they are.
+Status: accepted (owner decisions 2026-10-14: the script works without a consent banner; the service decides whether a store is observed). Details below confirmed by the owner on 2026-10-14 as they are. **Transport superseded by ADR 0062 (2026-10-16):** the browser now reports only to the app's endpoint in the shop; points 1, 3 and 4 below describe the earlier direct path to the service, which is removed.
 
 ## Context
 
@@ -33,3 +33,5 @@ Spike on Shopware 6.7.2.2 with a minimal app: a JS file shipped in the app (`Res
 ## Legal review package (2026-10-16)
 
 A draft for the lawyer (questions on § 25 TDDDG, legal basis, processor role and DPA, web server log retention, plus privacy policy paragraphs in German and English for stores) was prepared as the doc «Скрипт наблюдения за оформлением заказа — вопросы юристу» and handed to the owner. Open technical point found while writing it: retention of IP/User-Agent in the production web server access log for `/api/v1/observe/*` is not set yet.
+
+Superseded on 2026-10-16 by the second legal package «Наблюдение за оформлением заказа — вопросы юристу (версия 2)» after ADR 0062: the shopper's browser contacts only the shop on both platforms, so the questions about the service's web server log no longer apply.

@@ -88,6 +88,7 @@ export function createWooCommerceAdapter() {
         }
 
         context.productPath = page.url();
+        context.productCanonical = await page.locator('link[rel="canonical"]').first().getAttribute('href', { timeout: 1000 }).catch(() => null);
         context.productId = await button.getAttribute('value');
 
         return [{ code: 'add_to_cart_ready', passed: true }];
@@ -137,15 +138,19 @@ export function createWooCommerceAdapter() {
       if (found === 'item') {
         const rows = page.locator(`${SELECTORS.classicCartItem}:visible, ${SELECTORS.blocksCartItem}:visible`);
         let expectedRow = null;
-        for (let index = 0; index < await rows.count(); index++) {
-          const row = rows.nth(index);
-          const links = await row.locator('a[href]').evaluateAll((anchors) => anchors.map((anchor) => anchor.href));
-          const cartProductId = await row.evaluate((element) => element.querySelector('a.remove[data-product_id], a.remove_from_cart_button[data-product_id]')?.getAttribute('data-product_id') ?? null);
-          if (links.some((link) => sameProductPath(context.productPath, link)) || (context.productId && cartProductId === context.productId)) {
-            expectedRow = row;
-            break;
+        const until = Date.now() + Math.min(step.timeout_ms, 5000);
+        do {
+          for (let index = 0; index < await rows.count(); index++) {
+            const row = rows.nth(index);
+            const links = await row.locator('a[href]').evaluateAll((anchors) => anchors.map((anchor) => anchor.href));
+            const cartProductId = await row.evaluate((element) => element.querySelector('a.remove[data-product_id], a.remove_from_cart_button[data-product_id]')?.getAttribute('data-product_id') ?? null);
+            if (links.some((link) => sameProductPath(context.productPath, link) || (context.productCanonical && sameProductPath(new URL(context.productCanonical, context.productPath).href, link))) || (context.productId && cartProductId === context.productId)) {
+              expectedRow = row;
+              break;
+            }
           }
-        }
+          if (!expectedRow) await page.waitForTimeout(250);
+        } while (!expectedRow && Date.now() < until);
         if (!expectedRow) throw SITE('cart_expected_product_missing');
         const rowText = (await expectedRow.innerText()).toLowerCase();
         if ((context.selectedOptions ?? []).some((option) => !rowText.includes(option))) throw SITE('cart_expected_variant_missing');

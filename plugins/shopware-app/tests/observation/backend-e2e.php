@@ -11,6 +11,7 @@ use App\Models\ObservedPaymentAttempt;
 use App\Models\Store;
 use App\Support\Browser\ScenarioDefinition;
 use App\Support\Checkout\CheckoutObservationEvaluator;
+use App\Support\Providers\Shopware\ShopwareSync;
 use App\Support\Stores\StoreCoverage;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -32,15 +33,22 @@ if ($action === 'scenario') {
     $out = ['access' => getenv('BW_E2E_ACCESS')];
 }
 
+if ($action === 'collect' || $action === 'state') {
+    $integration = Integration::query()->where('store_id', $store->id)->where('provider', 'shopware')->latest('created_at')->first();
+    Cache::flush();
+    $sync = app(ShopwareSync::class)->run($integration);
+    $out = ['sync' => $sync['status'], 'observation' => $integration->refresh()->health['observation'] ?? null];
+}
+
 if ($action === 'state') {
     app(CheckoutObservationEvaluator::class)->evaluateAll();
-    $integration = Integration::query()->where('store_id', $store->id)->where('provider', 'shopware')->latest('created_at')->first();
     $out = [
         'counts' => collect(CheckoutObservationWindow::COUNTERS)->mapWithKeys(fn ($c) => [$c => (int) CheckoutObservationWindow::query()->where('store_id', $store->id)->sum($c)])->all(),
         'incidents' => Incident::query()->where('store_id', $store->id)->where('family', CheckoutObservationEvaluator::FAMILY)->orderBy('created_at')->get()->map(fn ($i) => $i->title_code.':'.$i->state)->all(),
         'attempts' => ObservedPaymentAttempt::query()->where('store_id', $store->id)->count(),
         'coverage' => app(StoreCoverage::class)->forStores(collect([$store->refresh()]))[$store->id]['coverage']['checkout_script']['state'],
         'integration' => $integration?->status,
+        'observation' => $out['observation'],
     ];
 }
 

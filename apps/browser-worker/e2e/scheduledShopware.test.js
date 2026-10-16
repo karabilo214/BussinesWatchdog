@@ -60,7 +60,7 @@ async function check(nextFault, complete = false) {
         checkout_access: complete ? 'test_customer' : 'stop_before_sign_in', synthetic_location: null, expect_checkout_script: false,
         steps: steps.map((code) => ({ code, timeout_ms: 6000 })),
       },
-      network_policy: { allowed_origins: [origin], quiet_origins: [] },
+      network_policy: { allowed_origins: [origin], quiet_paths: [] },
     },
   });
 }

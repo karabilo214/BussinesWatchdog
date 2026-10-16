@@ -113,7 +113,7 @@ class PublicStorefrontLeaseService
                 ],
                 'network_policy' => [
                     'allowed_origins' => $allowedOrigins,
-                    'quiet_origins' => [],
+                    'quiet_paths' => [],
                 ],
             ];
         });

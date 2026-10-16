@@ -43,25 +43,27 @@ for IMAGE in ${*:-dockware/play:6.6.10.6 dockware/play:6.7.2.2}; do
     installed=$(shop upload "$OUT/BusinessWatchdog-old.zip")
     shop order >/dev/null
     before=$(backend BW_E2E_ACTION=state BW_E2E_STORE_ID="$store")
-    backend BW_E2E_ACTION=update-archive BW_E2E_STORE_ID="$store" BW_E2E_ZIP="$OUT/BusinessWatchdog-update.zip" >/dev/null
+    expected=$(j "$(backend BW_E2E_ACTION=update-archive BW_E2E_STORE_ID="$store" BW_E2E_ZIP="$OUT/BusinessWatchdog-update.zip")" "['version']")
     updated=$(shop update "$OUT/BusinessWatchdog-update.zip")
     docker exec bw-shopware bash -lc 'cd /var/www/html && php bin/console cache:clear >/dev/null 2>&1'
     after=$(backend BW_E2E_ACTION=state BW_E2E_STORE_ID="$store")
     order=$(shop order)
     after_order=$(backend BW_E2E_ACTION=state BW_E2E_STORE_ID="$store")
-    files=$(docker exec bw-shopware bash -lc 'cd /var/www/html && echo "{\"script\": $(find public/theme -path "*business-watchdog/business-watchdog.js" | wc -l), \"templates\": $(mysql -h127.0.0.1 -uroot -proot shopware -N -e "select count(*) from app_template t join app a on a.id = t.app_id where a.name = '"'"'BusinessWatchdog'"'"'" 2>/dev/null)}"')
+    files=$(docker exec bw-shopware bash -lc 'cd /var/www/html && echo "{\"script\": $(find public/theme -path "*business-watchdog/business-watchdog.js" | wc -l), \"templates\": $(mysql -h127.0.0.1 -uroot -proot shopware -N -e "select count(*) from app_template t join app a on a.id = t.app_id where a.name = '"'"'BusinessWatchdog'"'"'" 2>/dev/null), \"scripts\": $(mysql -h127.0.0.1 -uroot -proot shopware -N -e "select count(*) from script s join app a on a.id = s.app_id where a.name = '"'"'BusinessWatchdog'"'"'" 2>/dev/null), \"entities\": $(mysql -h127.0.0.1 -uroot -proot shopware -N -e "select count(*) from information_schema.tables where table_schema = '"'"'shopware'"'"' and table_name like '"'"'custom_entity_bw_checkout_%'"'"'" 2>/dev/null)}"')
     for v in installed before updated after order after_order files; do eval "echo \"  $v: \$$v\""; done
-    python3 - "$installed" "$before" "$updated" "$after" "$order" "$after_order" "$files" <<'PY' || STATUS=1
+    python3 - "$installed" "$before" "$updated" "$after" "$order" "$after_order" "$files" "$expected" <<'PY' || STATUS=1
 import json, sys
-installed, before, updated, after, order, after_order, files = [json.loads(a) for a in sys.argv[1:]]
+installed, before, updated, after, order, after_order, files = [json.loads(a) for a in sys.argv[1:8]]
+expected = sys.argv[8]
 checks = {
     'old app 1.0.0 installed and connected': installed.get('active') is True and before['status'] == 'active',
     'the service knows the shop runs 1.0.0 and offers the update': before['app_update']['installed_version'] == '1.0.0' and before['app_update']['available'] is True,
-    'Shopware accepted the archive as an update': updated.get('update') in (200, 204) and updated.get('version') == '1.2.0' and updated.get('active') is True,
+    'Shopware accepted the archive as an update': updated.get('update') in (200, 204) and updated.get('version') == expected and updated.get('active') is True,
     'same integration, still active, still one': after['integration_id'] == before['integration_id'] and after['status'] == 'active' and after['integrations'] == 1,
-    'the new version is known at once (app.updated)': after['app_update']['installed_version'] == '1.2.0' and after['app_update']['available'] is False,
+    'the new version is known at once (app.updated)': after['app_update']['installed_version'] == expected and after['app_update']['available'] is False,
     'the API key still works: orders keep arriving through webhooks': order.get('number') in after_order['orders'] and after_order['status'] == 'active',
     'storefront script and templates arrived with the update': files['script'] >= 1 and files['templates'] >= 2,
+    'observation endpoint, page scripts and entities arrived with the update (ADR 0062)': files['scripts'] >= 3 and files['entities'] == 2,
 }
 print('  registrations before/after:', before['registrations'], after['registrations'], '| credentials:', after['active_credentials'])
 for name, ok in checks.items():

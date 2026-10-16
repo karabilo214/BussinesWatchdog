@@ -55,7 +55,7 @@ async function check(expectCheckoutScript = false, fault = 'none', location = fa
         synthetic_location: location ? { country: 'DE', postcode: '10115' } : null, expect_checkout_script: expectCheckoutScript,
         steps: ['product', 'add_to_cart', 'cart', 'checkout', 'shipping', 'payment_form'].map((code) => ({ code, timeout_ms: 10000 })),
       },
-      network_policy: { allowed_origins: [origin], quiet_origins: [] },
+      network_policy: { allowed_origins: [origin], quiet_paths: [] },
     },
   });
 }

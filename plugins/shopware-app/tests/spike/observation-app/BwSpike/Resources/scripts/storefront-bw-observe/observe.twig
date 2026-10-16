@@ -1,0 +1,21 @@
+{% set data = hook.query|merge(hook.request) %}
+{% set page = data.page ?? '' %}
+{% set result = 'skipped' %}
+{% if page in ['confirm', 'finish'] %}
+    {% set setting = services.repository.search('custom_entity_bw_checkout_setting', {'limit': 1}).first %}
+    {% if setting and setting.observe %}
+        {% set allowed = ['rendered', 'rendered_noscript', 'script_loaded', 'form_ready', 'returned_with_error', 'submit_clicked', 'submit_stalled', 'finish_reached'] %}
+        {% set stages = [] %}
+        {% for stage in (data.stages ?? '')|split(',') %}
+            {% if stage in allowed and stage not in stages %}{% set stages = stages|merge([stage]) %}{% endif %}
+        {% endfor %}
+        {% set errors = min(20, max(0, (data.errors ?? 0) + 0)) %}
+        {% if stages|length > 0 or errors > 0 %}
+            {% do services.writer.upsert('custom_entity_bw_checkout_report', [{'page': page, 'stages': stages|join(','), 'errors': errors}]) %}
+            {% set result = 'stored' %}
+        {% endif %}
+    {% endif %}
+{% endif %}
+{% set response = services.response.json({'result': result, 'keys': data|keys}) %}
+{% do response.cache.disable() %}
+{% do hook.setResponse(response) %}

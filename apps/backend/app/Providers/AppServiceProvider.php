@@ -63,9 +63,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('store-verification-check', fn (Request $request): Limit => Limit::perMinute(6)
             ->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
-        RateLimiter::for('checkout-observation', fn (Request $request): Limit => Limit::perMinute(120)
-            ->by('checkout-observation|'.(string) $request->route('integration').'|'.$request->ip()));
-
         RateLimiter::for('browser-worker', fn (Request $request): Limit => Limit::perMinute(600)
             ->by((string) ($request->attributes->get('browser_worker')?->id ?? $request->ip())));
 

@@ -28,7 +28,7 @@ class ShopwareApp
 {
     public const APP_NAME = 'BusinessWatchdog';
 
-    public const APP_VERSION = '1.2.0';
+    public const APP_VERSION = '1.3.0';
 
     public const PERMISSIONS = ['order', 'order_transaction', 'order_transaction_capture', 'order_transaction_capture_refund', 'currency', 'payment_method', 'state_machine', 'state_machine_state'];
 
@@ -345,7 +345,7 @@ XML;
         $zip->addFromString(self::APP_NAME.'/manifest.xml', $xml);
 
         foreach ($withSources ? $this->sourceFiles() : [] as $relative => $contents) {
-            $zip->addFromString(self::APP_NAME.'/'.$relative, str_replace('__BW_OBSERVE_ENDPOINT__', htmlspecialchars(url('/api/v1/observe/'.$integration->id), ENT_QUOTES), $contents));
+            $zip->addFromString(self::APP_NAME.'/'.$relative, $contents);
         }
 
         $zip->close();
@@ -356,8 +356,8 @@ XML;
     }
 
     /**
-     * The app's storefront files (`resources/shopware-app`, linked as `plugins/shopware-app/src`): the checkout
-     * observation script and the templates that place it (ADR 0057).
+     * The app's files (`resources/shopware-app`, linked as `plugins/shopware-app/src`): the checkout observation
+     * script, the templates that place it, the app's storefront endpoint and page scripts, and its entities (ADR 0062).
      *
      * @return array<string, string>
      */

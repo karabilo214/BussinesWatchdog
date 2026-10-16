@@ -23,14 +23,21 @@ use App\Support\Notifications\NotificationPreferences;
 use App\Support\Notifications\NotificationRenderer;
 use App\Support\Notifications\RenderedNotification;
 use App\Support\Providers\Shopware\ShopwareApp;
+use App\Support\Providers\Shopware\ShopwareClient;
 use App\Support\Providers\Shopware\ShopwareConnector;
+use App\Support\Providers\Shopware\ShopwareRequestFailed;
+use App\Support\Providers\Shopware\ShopwareSync;
 use App\Support\Stores\StoreCoverage;
 use Illuminate\Console\Scheduling\Schedule;
+use App\Support\Network\DnsClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Tests\Feature\Stores\FakeDnsClient;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -41,6 +48,14 @@ class CheckoutObservationTest extends TestCase
     private const SHOP = 'https://shop.example.test';
 
     private Tenant $tenant;
+
+    /** @var array<string, array<string, mixed>> reports the app keeps in the shop */
+    private array $reports = [];
+
+    /** @var list<list<array<string, mixed>>> */
+    private array $syncs = [];
+
+    private int $failDeletes = 0;
 
     private Store $store;
 
@@ -56,6 +71,24 @@ class CheckoutObservationTest extends TestCase
         Membership::query()->create(['tenant_id' => $this->tenant->id, 'user_id' => $this->user->id, 'role' => 'owner']);
         $this->store = Store::query()->create(['tenant_id' => $this->tenant->id, 'name' => 'Shop', 'base_url' => self::SHOP, 'timezone' => 'Europe/Berlin', 'default_currency' => 'EUR', 'platform' => 'shopware']);
         $this->store->forceFill(['status' => 'active', 'verified_at' => now(), 'browser_enabled' => true])->save();
+
+        config(['watchdog.shopware.request_pause_ms' => 0, 'watchdog.shopware.dev_endpoint' => '']);
+        $dns = new FakeDnsClient;
+        $dns->ips['shop.registered.test'] = ['93.184.216.34'];
+        $dns->ips['shop.example.test'] = ['93.184.216.34'];
+        $this->app->instance(DnsClient::class, $dns);
+        Http::fake(function (HttpRequest $request) {
+            $path = (string) parse_url($request->url(), PHP_URL_PATH);
+            $body = json_decode($request->body(), true) ?? [];
+
+            return match ($path) {
+                '/api/oauth/token' => Http::response(['expires_in' => 600, 'access_token' => 'token']),
+                '/api/search/order' => Http::response(['total' => 0, 'data' => []]),
+                ShopwareClient::REPORT_SEARCH_PATH => Http::response(['total' => count($this->reports), 'data' => array_slice(array_values($this->reports), 0, (int) ($body['limit'] ?? 100))]),
+                ShopwareClient::SYNC_PATH => $this->applySync($body),
+                default => Http::response(['errors' => [['code' => 'FRAMEWORK__ROUTE_NOT_FOUND']]], 404),
+            };
+        });
     }
 
     protected function tearDown(): void
@@ -65,51 +98,80 @@ class CheckoutObservationTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_only_an_observed_store_from_its_own_origin_gets_observe_true(): void
+    public function test_the_sync_keeps_the_app_setting_and_counts_each_report_of_the_shop_once(): void
     {
         $app = $this->integration('app');
         $this->scenario(CheckScenario::ACCESS_GUEST);
+        $this->reports = [
+            $this->report('confirm', 'rendered', 0, '2026-10-14T11:57:10.000+00:00'),
+            $this->report('confirm', 'rendered_noscript', 0, '2026-10-14T11:57:11.000+00:00'),
+            $this->report('confirm', 'script_loaded,form_ready,submit_clicked,credit_card_number,script_loaded', 500, '2026-10-14T11:57:12.000+00:00'),
+            $this->report('finish', 'rendered', 0, '2026-10-14T11:58:00.000+00:00'),
+            $this->report('evil', 'submit_clicked', 0, '2026-10-14T11:58:01.000+00:00'),
+            $this->report('confirm', 'submit_clicked', 0, '2026-10-14T11:50:00.000+00:00'),
+        ];
+        $this->failDeletes = 1;
 
-        $this->getJson("/api/v1/observe/{$app->id}/config", ['Origin' => self::SHOP])
-            ->assertOk()->assertJson(['observe' => true])->assertHeader('Cache-Control', 'no-store, private');
-        $this->getJson("/api/v1/observe/{$app->id}/config", ['Origin' => 'https://shop.registered.test'])
-            ->assertJson(['observe' => true], 'the shop URL Shopware registered is the store too');
-        $this->getJson("/api/v1/observe/{$app->id}/config", ['Origin' => 'https://evil.example.test'])->assertJson(['observe' => false]);
-        $this->getJson('/api/v1/observe/'.Str::uuid().'/config', ['Origin' => self::SHOP])->assertJson(['observe' => false]);
+        app(ShopwareSync::class)->run($app);
+        $this->assertSame(['observe' => true], $this->settingWrites()[0]);
+        $this->assertSame('shopware_unavailable', $app->refresh()->health['observation']['last_error']['code'], 'a failed delete keeps the reports in the shop');
+        $this->assertCount(6, $this->reports);
 
-        CheckScenario::query()->update(['checkout_access' => CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN]);
-        Cache::flush();
-        $this->getJson("/api/v1/observe/{$app->id}/config", ['Origin' => self::SHOP])->assertJson(['observe' => false]);
+        Carbon::setTestNow(now()->addMinutes(5));
+        app(ShopwareSync::class)->run($app);
+        $this->assertSame([], $this->reports, 'the second run deletes them');
+        $this->assertNull($app->refresh()->health['observation']['last_error']);
+        $this->assertSame(1, count($this->settingWrites()), 'the setting is written again only when it changes or after an hour');
 
-        $key = $this->integration('key', $app->store_id === $this->store->id ? $this->otherStore() : $this->store);
-        $this->getJson("/api/v1/observe/{$key->id}/config", ['Origin' => self::SHOP])->assertJson(['observe' => false]);
-    }
-
-    public function test_beacons_and_stages_count_only_for_an_observed_store_and_keep_nothing_about_the_visitor(): void
-    {
-        $app = $this->integration('app');
-        $this->scenario(CheckScenario::ACCESS_TEST_CUSTOMER);
-        $base = "/api/v1/observe/{$app->id}";
-
-        $this->withoutHeader('Origin')->get("{$base}/r.gif?page=confirm", ['Referer' => self::SHOP.'/'])->assertOk()->assertHeader('Content-Type', 'image/gif');
-        $this->withoutHeader('Origin')->get("{$base}/r.gif?page=confirm&js=0", ['Referer' => self::SHOP.'/']);
-        $this->withoutHeader('Origin')->get("{$base}/r.gif?page=finish", ['Referer' => self::SHOP.'/']);
-        $this->withoutHeader('Origin')->get("{$base}/r.gif?page=confirm", ['Referer' => 'https://evil.example.test/'])->assertOk();
-        $this->call('POST', "{$base}/stages", [], [], [], ['HTTP_ORIGIN' => self::SHOP, 'CONTENT_TYPE' => 'text/plain'], json_encode(['page' => 'confirm', 'stages' => ['script_loaded', 'form_ready', 'submit_clicked', 'credit_card_number', 'script_loaded'], 'js_errors' => 500]))->assertNoContent();
-        $this->call('POST', "{$base}/stages", [], [], [], ['HTTP_ORIGIN' => 'https://evil.example.test', 'CONTENT_TYPE' => 'text/plain'], json_encode(['page' => 'confirm', 'stages' => ['submit_clicked']]))->assertNoContent();
-        $this->call('POST', "{$base}/stages", [], [], [], ['HTTP_ORIGIN' => self::SHOP, 'CONTENT_TYPE' => 'text/plain'], 'not json')->assertNoContent();
-
-        $window = CheckoutObservationWindow::query()->sole();
+        $windows = CheckoutObservationWindow::query()->orderBy('window_start')->get();
+        $this->assertSame(['2026-10-14 11:50:00', '2026-10-14 11:55:00'], $windows->map(fn ($w) => $w->window_start->format('Y-m-d H:i:s'))->all());
+        $this->assertSame(1, $windows[0]->submit_clicked);
         $this->assertSame(
             ['confirm_rendered' => 1, 'confirm_rendered_noscript' => 1, 'finish_rendered' => 1, 'script_loaded' => 1, 'form_ready' => 1, 'returned_with_error' => 0, 'submit_clicked' => 1, 'submit_stalled' => 0, 'finish_reached' => 0, 'js_errors' => 20],
-            array_intersect_key($window->toArray(), array_flip(CheckoutObservationWindow::COUNTERS)),
+            array_intersect_key($windows[1]->toArray(), array_flip(CheckoutObservationWindow::COUNTERS)),
+            'counted once although the shop returned the rows twice; unknown pages and stages ignored; errors capped',
         );
-        $this->assertSame(['id', 'tenant_id', 'store_id', 'integration_id', 'window_start', ...CheckoutObservationWindow::COUNTERS, 'created_at', 'updated_at', 'source_revision', 'event_id'], array_keys(\DB::table('checkout_observation_windows')->first() ? (array) \DB::table('checkout_observation_windows')->first() : []), 'no column for an address, agent or visitor id');
+        $this->assertSame(['id', 'tenant_id', 'store_id', 'integration_id', 'window_start', ...CheckoutObservationWindow::COUNTERS, 'created_at', 'updated_at', 'source_revision', 'event_id'], array_keys((array) \DB::table('checkout_observation_windows')->first()), 'no column for an address, agent or visitor id');
+        $this->assertSame([ShopwareClient::SETTING_ENTITY, ShopwareClient::REPORT_ENTITY], collect($this->syncs)->flatten(1)->pluck('entity')->unique()->values()->all(), 'the service writes only the app\'s own entities');
+    }
 
-        CheckScenario::query()->update(['checkout_access' => CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN]);
-        Cache::flush();
-        $this->withoutHeader('Origin')->get("{$base}/r.gif?page=confirm", ['Referer' => self::SHOP.'/'])->assertOk();
-        $this->assertSame(1, CheckoutObservationWindow::query()->sole()->confirm_rendered, 'a store that is not observed is not counted');
+    public function test_reports_of_a_store_that_is_not_observed_are_deleted_without_counting(): void
+    {
+        $app = $this->integration('app');
+        $this->scenario(CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN);
+        $this->reports = [$this->report('confirm', 'rendered', 0, '2026-10-14T11:57:10.000+00:00')];
+
+        app(ShopwareSync::class)->run($app);
+
+        $this->assertSame([['observe' => false]], $this->settingWrites());
+        $this->assertSame([], $this->reports);
+        $this->assertSame(0, CheckoutObservationWindow::query()->count());
+        $this->assertSame(1, $app->refresh()->health['observation']['dropped']);
+
+        $key = $this->integration('key', $this->otherStore());
+        $this->syncs = [];
+        app(ShopwareSync::class)->run($key);
+        $this->assertSame([], $this->syncs, 'a connection without the app is never asked for reports');
+    }
+
+    public function test_the_client_writes_nothing_but_the_apps_own_entities(): void
+    {
+        foreach ([
+            ['action' => 'delete', 'entity' => 'order', 'payload' => [['id' => str_repeat('a', 32)]]],
+            ['action' => 'upsert', 'entity' => ShopwareClient::REPORT_ENTITY, 'payload' => [['id' => str_repeat('a', 32)]]],
+            ['action' => 'delete', 'entity' => ShopwareClient::SETTING_ENTITY, 'payload' => [['id' => str_repeat('a', 32)]]],
+        ] as $operation) {
+            try {
+                app(ShopwareClient::class)->syncOwnEntities(self::SHOP, 'token', [$operation]);
+                $this->fail('refused');
+            } catch (ShopwareRequestFailed $failure) {
+                $this->assertSame('shopware_endpoint_not_allowed', $failure->reasonCode);
+            }
+        }
+
+        $this->assertSame([], $this->syncs);
+        $this->assertFalse(ShopwareClient::allowed('POST', '/api/search/customer'));
+        $this->assertTrue(ShopwareClient::allowed('POST', ShopwareClient::REPORT_SEARCH_PATH));
     }
 
     public function test_a_silent_script_and_submits_without_orders_open_incidents_that_resolve(): void
@@ -156,17 +218,27 @@ class CheckoutObservationTest extends TestCase
         }
 
         $confirm = (string) $zip->getFromName('BusinessWatchdog/Resources/views/storefront/page/checkout/confirm/index.html.twig');
+        $endpoint = (string) $zip->getFromName('BusinessWatchdog/Resources/scripts/storefront-bw-observe/observe.twig');
+        $entities = (string) $zip->getFromName('BusinessWatchdog/Resources/entities.xml');
         $script = (string) $zip->getFromName('BusinessWatchdog/Resources/app/storefront/dist/storefront/js/business-watchdog/business-watchdog.js');
         $manifest = (string) $zip->getFromName('BusinessWatchdog/manifest.xml');
         $zip->close();
         @unlink($path);
-        $integration = $response->headers->get('X-Integration-Id');
 
-        $this->assertContains('BusinessWatchdog/Resources/views/storefront/page/checkout/finish/index.html.twig', $names);
+        foreach (['Resources/views/storefront/page/checkout/finish/index.html.twig', 'Resources/scripts/checkout-confirm-page-loaded/observe.twig', 'Resources/scripts/checkout-finish-page-loaded/observe.twig'] as $file) {
+            $this->assertContains('BusinessWatchdog/'.$file, $names);
+        }
         $this->assertStringContainsString('<version>'.ShopwareApp::APP_VERSION.'</version>', $manifest);
-        $this->assertStringContainsString('data-endpoint="'.url('/api/v1/observe/'.$integration).'"', $confirm);
-        $this->assertStringNotContainsString('__BW_OBSERVE_ENDPOINT__', $confirm);
-        foreach (['localStorage', 'sessionStorage', 'document.cookie', '.value'] as $forbidden) {
+        $this->assertStringContainsString("path('frontend.script_endpoint', {'hook': 'bw-observe'})", $confirm);
+        $this->assertStringContainsString('custom_entity_bw_checkout_report', $entities);
+        $this->assertStringContainsString("services.writer.upsert('custom_entity_bw_checkout_report'", $endpoint);
+        $this->assertStringContainsString('response.cache.disable()', $endpoint);
+        foreach ([$confirm, $script, $endpoint] as $file) {
+            $this->assertStringNotContainsString('/api/v1/', $file, 'the shopper\'s browser never contacts the service');
+            $this->assertStringNotContainsString((string) parse_url((string) config('app.url'), PHP_URL_HOST), $file);
+        }
+        $this->assertDoesNotMatchRegularExpression('/<(create|update|delete)>/', $manifest, 'the app gets its own entities without extra permissions');
+        foreach (['localStorage', 'sessionStorage', 'document.cookie', '.value', 'fetch('] as $forbidden) {
             $this->assertStringNotContainsString($forbidden, $script, "the script must not use {$forbidden}");
         }
     }
@@ -189,7 +261,7 @@ class CheckoutObservationTest extends TestCase
         $this->assertSame('waiting', $coverage()['state']);
         $snapshot = app(ScenarioDefinition::class)->snapshot($scenario->refresh(), $this->store);
         $this->assertTrue($snapshot['expect_checkout_script']);
-        $this->assertSame([app(ScenarioDefinition::class)->origin((string) config('app.url'))], $snapshot['network_policy']['quiet_origins']);
+        $this->assertSame(['/storefront/script/bw-observe'], $snapshot['network_policy']['quiet_paths']);
 
         $this->counts($app, ['script_loaded' => 1]);
         $this->assertSame('observing', $coverage()['state']);
@@ -243,6 +315,42 @@ class CheckoutObservationTest extends TestCase
             'tenant_id' => $integration->tenant_id, 'store_id' => $integration->store_id, 'integration_id' => $integration->id,
             'window_start' => Carbon::createFromTimestampUTC(now()->getTimestamp() - now()->getTimestamp() % 300), ...$counts, 'created_at' => now(), 'updated_at' => now(),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function report(string $page, string $stages, int $errors, string $createdAt): array
+    {
+        return ['id' => bin2hex(random_bytes(16)), 'page' => $page, 'stages' => $stages, 'errors' => $errors, 'createdAt' => $createdAt];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $operations
+     */
+    private function applySync(array $operations): \GuzzleHttp\Promise\PromiseInterface
+    {
+        $this->syncs[] = $operations;
+
+        foreach ($operations as $operation) {
+            if ($operation['action'] === 'delete') {
+                if ($this->failDeletes-- > 0) {
+                    return Http::response(['errors' => [['code' => '0']]], 500);
+                }
+
+                $this->reports = array_values(array_filter($this->reports, fn (array $row): bool => ! in_array($row['id'], array_column($operation['payload'], 'id'), true)));
+            }
+        }
+
+        return Http::response(['success' => true]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function settingWrites(): array
+    {
+        return collect($this->syncs)->flatten(1)->where('entity', ShopwareClient::SETTING_ENTITY)->map(fn (array $op): array => ['observe' => $op['payload'][0]['observe']])->values()->all();
     }
 
     private function rendered(Incident $incident): RenderedNotification

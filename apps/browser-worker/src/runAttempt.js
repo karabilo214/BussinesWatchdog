@@ -96,7 +96,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     insecureLocal,
     platform: scenario.platform ?? 'woocommerce',
     checkoutAccess: scenario.checkout_access ?? null,
-    quietOrigins: lease.network_policy.quiet_origins ?? [],
+    quietPaths: lease.network_policy.quiet_paths ?? [],
   });
   const deadline = new Date(lease.absolute_deadline_at).getTime() - 5000;
   const errors = createErrorLog();

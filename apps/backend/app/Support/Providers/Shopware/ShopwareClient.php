@@ -10,15 +10,24 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Shopware Admin API with an Integration key (ADR 0025/0026). Only the OAuth token and order searches leave the
- * service — never the state-transition routes, which Shopware does not protect for read-only roles. Requests go to the
- * store's own public HTTPS origin through StoreOriginHttp.
+ * Shopware Admin API with an Integration key (ADR 0025/0026). Only the OAuth token, order searches and the app's own
+ * checkout observation entities (ADR 0062) leave the service — never the state-transition routes, which Shopware does
+ * not protect for read-only roles, and never a write to the shop's own data. Requests go to the store's own public
+ * HTTPS origin through StoreOriginHttp.
  */
 class ShopwareClient
 {
     public const TOKEN_PATH = '/api/oauth/token';
 
-    private const POST_ALLOWLIST = [self::TOKEN_PATH, '/api/search/order', '/api/search-ids/order'];
+    public const REPORT_ENTITY = 'custom_entity_bw_checkout_report';
+
+    public const SETTING_ENTITY = 'custom_entity_bw_checkout_setting';
+
+    public const REPORT_SEARCH_PATH = '/api/search/custom-entity-bw-checkout-report';
+
+    public const SYNC_PATH = '/api/_action/sync';
+
+    private const POST_ALLOWLIST = [self::TOKEN_PATH, '/api/search/order', '/api/search-ids/order', self::REPORT_SEARCH_PATH, self::SYNC_PATH];
 
     public function __construct(
         private readonly StoreOriginHttp $http,
@@ -59,6 +68,29 @@ class ShopwareClient
         $json = $this->post($baseUrl, $path, $criteria, $token)->json();
 
         return is_array($json) ? $json : throw new ShopwareRequestFailed('shopware_invalid_response');
+    }
+
+    /**
+     * Writes through the sync API, limited to the app's own observation entities: the observe setting and deleting
+     * collected reports. Anything else is refused before a request is made.
+     *
+     * @param  list<array{action: string, entity: string, payload: list<array<string, mixed>>}>  $operations
+     */
+    public function syncOwnEntities(string $baseUrl, string $token, array $operations): void
+    {
+        foreach ($operations as $operation) {
+            $allowed = match ($operation['entity'] ?? null) {
+                self::SETTING_ENTITY => ($operation['action'] ?? null) === 'upsert',
+                self::REPORT_ENTITY => ($operation['action'] ?? null) === 'delete',
+                default => false,
+            };
+
+            if (! $allowed) {
+                throw new ShopwareRequestFailed('shopware_endpoint_not_allowed');
+            }
+        }
+
+        $this->post($baseUrl, self::SYNC_PATH, $operations, $token);
     }
 
     public static function allowed(string $method, string $path): bool
