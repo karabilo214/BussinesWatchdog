@@ -116,6 +116,56 @@ class StripeConnector
         return $integration->refresh();
     }
 
+    /** An installed Stripe App grants only the permissions declared in its manifest. */
+    public function connectApp(Store $store, string $accessToken, string $accountId, string $mode, ?string $actorId): Integration
+    {
+        if (! in_array($mode, ['live', 'test'], true) || preg_match('/^acct_[A-Za-z0-9]+$/', $accountId) !== 1) {
+            throw new AccountRejected('stripe_app_invalid_account');
+        }
+
+        $capabilities = [];
+        foreach (self::READ_PROBES as $name => $path) {
+            try {
+                $this->client->get($accessToken, $path, ['limit' => 1]);
+                $capabilities[$name] = 'read';
+            } catch (StripeRequestFailed $failure) {
+                throw new AccountRejected($failure->reasonCode);
+            }
+        }
+
+        $integration = DB::transaction(function () use ($store, $accountId, $mode, $actorId, $capabilities): Integration {
+            $exists = Integration::query()->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)
+                ->where('provider', 'stripe')->whereIn('status', [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED, Integration::STATUS_PENDING])
+                ->lockForUpdate()->exists();
+            if ($exists) {
+                throw new AccountRejected('provider_already_connected', 409);
+            }
+
+            $integration = Integration::query()->create([
+                'tenant_id' => $store->tenant_id,
+                'store_id' => $store->id,
+                'provider' => 'stripe',
+                'external_account_id' => $accountId,
+                'mode' => $mode,
+                'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+                'status' => Integration::STATUS_ACTIVE,
+                'capabilities' => $capabilities,
+                'api_version' => (string) config('watchdog.stripe.api_version'),
+                'connector_version' => self::ADAPTER_VERSION,
+                'health' => ['auth_method' => 'stripe_app_oauth', 'account_verified' => true],
+            ]);
+            $this->audit($integration, $actorId, AuditLog::ACTION_INTEGRATION_PROVIDER_CONNECTED, [
+                'provider' => 'stripe', 'mode' => $mode, 'account_verified' => true, 'auth_method' => 'stripe_app_oauth',
+            ]);
+
+            return $integration;
+        });
+
+        $this->requeue->requeue($store->tenant_id, $store->id, ReconciliationDirtySubject::REASON_PROVIDER_COVERAGE_CHANGED);
+
+        return $integration->refresh();
+    }
+
     public function setWebhookSecret(Integration $integration, string $webhookSecret, ?string $actorId): Integration
     {
         if (preg_match('/^whsec_[A-Za-z0-9]{10,}$/', $webhookSecret) !== 1) {

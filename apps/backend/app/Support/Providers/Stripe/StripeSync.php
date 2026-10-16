@@ -23,6 +23,7 @@ class StripeSync
     public function __construct(
         private readonly StripeClient $client,
         private readonly StripeConnector $connector,
+        private readonly StripeAppOAuth $appOAuth,
         private readonly StripeObjectIngestor $ingestor,
         private readonly StoreReconciliationRequeue $requeue,
     ) {}
@@ -36,7 +37,13 @@ class StripeSync
             return ['status' => 'skipped', 'emitted' => 0, 'unchanged' => 0, 'complete' => false];
         }
 
-        $apiKey = $this->connector->secret($integration, IntegrationCredential::KIND_STRIPE_API);
+        try {
+            $apiKey = ($integration->health['auth_method'] ?? null) === 'stripe_app_oauth'
+                ? $this->appOAuth->accessToken($integration)
+                : $this->connector->secret($integration, IntegrationCredential::KIND_STRIPE_API);
+        } catch (StripeRequestFailed $failure) {
+            return $this->fail($integration, $failure);
+        }
 
         if ($apiKey === null) {
             return $this->fail($integration, new StripeRequestFailed('stripe_key_rejected', 401));

@@ -167,6 +167,7 @@ export interface Integration {
   last_successful_sync_at?: string | null;
   capabilities?: Record<string, string>;
   health?: {
+    auth_method?: 'stripe_app_oauth';
     key_last4?: string;
     key_last7?: string;
     key_rejected_at?: string;

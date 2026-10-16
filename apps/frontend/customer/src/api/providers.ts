@@ -5,6 +5,14 @@ export async function connectStripe(storeId: string, input: { restricted_api_key
   return (await request<Integration>('POST', `/api/v1/stores/${encodeURIComponent(storeId)}/integrations/stripe`, { body: input })).data;
 }
 
+export async function startStripeApp(storeId: string, mode: 'test' | 'live'): Promise<{ url: string }> {
+  return (await request<{ url: string }>('POST', `/api/v1/stores/${encodeURIComponent(storeId)}/integrations/stripe-app/start`, { body: { mode } })).data;
+}
+
+export async function stripeAppAvailability(storeId: string): Promise<{ test: boolean; live: boolean }> {
+  return (await request<{ test: boolean; live: boolean }>('GET', `/api/v1/stores/${encodeURIComponent(storeId)}/integrations/stripe-app/availability`)).data;
+}
+
 export async function setWebhookSecret(integrationId: string, webhookSecret: string): Promise<Integration> {
   return (await request<Integration>('PUT', `/api/v1/integrations/${encodeURIComponent(integrationId)}/webhook-secret`, { body: { webhook_secret: webhookSecret } })).data;
 }
