@@ -31,8 +31,6 @@ class NightlyReconciliationSweep
 {
     public const JOB = 'reconciliation.nightly_sweep';
 
-    public const LOOKBACK_DAYS = 90;
-
     public const STORE_STATUSES = ['onboarding', 'active', 'degraded'];
 
     public function __construct(
@@ -118,9 +116,14 @@ class NightlyReconciliationSweep
         return $marked;
     }
 
+    public static function lookbackDays(): int
+    {
+        return (int) config('watchdog.reconciliation.lookback_days');
+    }
+
     private function window(Store $store): Builder
     {
-        $since = Carbon::now()->subDays(self::LOOKBACK_DAYS);
+        $since = Carbon::now()->subDays(self::lookbackDays());
 
         return DB::table('orders')
             ->leftJoin('reconciliation_subject_states as states', fn (JoinClause $join) => $join

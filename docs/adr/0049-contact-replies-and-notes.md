@@ -1,6 +1,6 @@
 # ADR 0049: Replies and internal notes on contact messages
 
-Status: accepted for now (owner's backlog items 2026-10-13: a «Reply» button — template, subject, text, sent to the person, kept with the message; internal notes as a list with date and staff member). Details chosen by the implementer while the owner was away; to be confirmed by the owner.
+Status: accepted for now (owner's backlog items 2026-10-13: a «Reply» button — template, subject, text, sent to the person, kept with the message; internal notes as a list with date and staff member). Details chosen by the implementer while the owner was away; reviewed by the owner on 2026-10-16 with changes.
 
 ## Decisions (replies, Step 128)
 
@@ -13,3 +13,9 @@ Status: accepted for now (owner's backlog items 2026-10-13: a «Reply» button �
 
 5. **Notes are a list**: `contact_request_notes` (text up to 2000 characters, staff member, time); a note is never edited or deleted on its own, only together with the message by retention. The single `contact_requests.note` field is gone: the migration turns each existing note into the first entry (author = the last handler, time = the last change) and drops the column.
 6. **Who**: adding — `contacts.manage` (owner, support); reading — `contacts.read`. Audit `site.contact.noted` without the text. Changing the status is a separate action (`PATCH` now only takes `status`).
+
+## Owner decision (2026-10-16)
+
+- Reply templates become editable in the owner panel with a "save template" action next to "send", as for customer reminders (ADR 0047).
+- Retention of 365 days after closing is confirmed.
+- The author may edit their own note; the audit records the text before and after the change.

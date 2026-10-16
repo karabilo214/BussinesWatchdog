@@ -13,7 +13,7 @@ class StoreReconciliationRequeue
 
     public function requeue(string $tenantId, string $storeId, string $reason): int
     {
-        $since = Carbon::now()->subDays(NightlyReconciliationSweep::LOOKBACK_DAYS);
+        $since = Carbon::now()->subDays(NightlyReconciliationSweep::lookbackDays());
         $marked = 0;
 
         Order::query()

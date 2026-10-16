@@ -1,6 +1,6 @@
 # ADR 0052: Platform staff management («Сотрудники»)
 
-Status: accepted for now (owner's backlog item 2026-10-13: the «Сотрудники» section is not ready). Follows spec/panels/OWNER-PANEL.md §7 (staff); details chosen by the implementer while the owner was away; to be confirmed by the owner.
+Status: accepted for now (owner's backlog item 2026-10-13: the «Сотрудники» section is not ready). Follows spec/panels/OWNER-PANEL.md §7 (staff); details chosen by the implementer while the owner was away; reviewed by the owner on 2026-10-16 with changes.
 
 ## Decisions
 
@@ -10,3 +10,10 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Сотрудн�
 4. **Changes**: role change and disable/enable need a reason and the authenticator code; ending sessions needs a reason. All of them bump `permission_version`, so the member's sessions end at once. One cannot change oneself; the last active owner can never be demoted or disabled (checked under a row lock).
 5. **Authenticator reset** is not a panel action: `php artisan platform:reset-mfa <email> --reason=…` on the server disables the old authenticator, ends sessions, enrols a new one and is audited (`staff.mfa_reset`).
 6. **Rate limits**: invitation and role/state changes use the step-up limiter; the public invitation pages have their own limit (20 a minute per IP), separate from sign-in.
+
+## Owner decision (2026-10-16)
+
+- Points 2–4 (72-hour invitation, mandatory authenticator, sessions ended on every change, last owner protected) are confirmed.
+- Authenticator reset of non-owner staff becomes a panel action for the platform owner (reason, authenticator code, audit). The authenticator of a platform owner is reset only on the server (`platform:reset-mfa`).
+- Audit stores the invited address in clear text (as for customer reminders, ADR 0047), not a hash.
+- Roles become per-member permission sets assigned by the platform owner (ADR 0046 decision).

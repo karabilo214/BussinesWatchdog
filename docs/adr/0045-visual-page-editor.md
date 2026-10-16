@@ -1,6 +1,6 @@
 # ADR 0045: Visual page editor in the owner panel
 
-Status: accepted for now (owner's backlog item 2026-10-13: "a full editor for non-programmers with the site's Tailwind styles; the choice of editor goes through an ADR"). Chosen by the implementer while the owner was away; to be confirmed by the owner.
+Status: accepted for now (owner's backlog item 2026-10-13: "a full editor for non-programmers with the site's Tailwind styles; the choice of editor goes through an ADR"). Chosen by the implementer while the owner was away; confirmed by the owner on 2026-10-16.
 
 ## Context
 
@@ -25,3 +25,9 @@ Pages of the public site (ADR 0039) were edited as raw HTML in a text field. The
 
 - No backend or contract change. The editor chunk grows by about 140 KB gzip, loaded only on the page editor.
 - Block templates (next backlog items) are inserted as HTML into this editor.
+
+## Owner decision (2026-10-16)
+
+- TipTap is confirmed.
+- Next: image upload in the editor, syntax highlighting in the HTML mode, and the block templates section moved from the main menu into the site pages section.
+- Drag-and-drop of blocks is not needed for now.

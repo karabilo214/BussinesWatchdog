@@ -7,7 +7,7 @@ declare module 'vue-router' {
   }
 }
 
-export const OWNER_SECTIONS = ['overview', 'tenants', 'subscriptions', 'payments', 'plans', 'site', 'blocks', 'contacts', 'service', 'staff', 'audit', 'settings'] as const;
+export const OWNER_SECTIONS = ['overview', 'tenants', 'subscriptions', 'payments', 'plans', 'site', 'blocks', 'contacts', 'public_checks', 'service', 'staff', 'audit', 'settings'] as const;
 export type OwnerSection = (typeof OWNER_SECTIONS)[number];
 
 export function buildRouter(): Router {
@@ -18,6 +18,7 @@ export function buildRouter(): Router {
       { path: '/owner/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
       { path: '/owner', name: 'owner-overview', component: () => import('@/views/OverviewView.vue') },
       { path: '/owner/service', name: 'owner-service', component: () => import('@/views/ServiceView.vue') },
+      { path: '/owner/public-checks', name: 'owner-public_checks', component: () => import('@/views/PublicChecksView.vue') },
       { path: '/owner/staff', name: 'owner-staff', component: () => import('@/views/StaffView.vue') },
       { path: '/owner/staff-invitation', name: 'staff-invitation', component: () => import('@/views/StaffInvitationView.vue'), meta: { public: true } },
       { path: '/owner/audit', name: 'owner-audit', component: () => import('@/views/AuditView.vue') },

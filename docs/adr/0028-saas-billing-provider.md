@@ -18,3 +18,7 @@ The spec defines a provider-neutral billing adapter (spec/panels/ADMIN-BACKEND.m
 - Tax on the payouts in Ukraine (private person vs ФОП) — accountant.
 - Legal pages for the German market (Impressum, privacy policy, terms, a data processing agreement for customers' order data) name the operator; a German company later simplifies this — lawyer.
 - When the German company exists, the Paddle seller entity can move to it.
+
+## Owner decision (2026-10-16)
+
+Paddle stays the first provider. The live Paddle account, seller verification, tax and legal steps are deferred until the project status is "ready for release"; until then development continues on the Paddle sandbox.

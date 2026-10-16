@@ -2,7 +2,7 @@
 
 Date: 2026-10-10
 
-Status: implemented in Step 63; shown to the owner for review.
+Status: accepted with changes by the owner on 2026-10-16 (implemented in Step 63; follow-ups in `docs/backlog.md`).
 
 ## Context
 
@@ -21,3 +21,10 @@ Spec §24: the overview shows active incidents, source coverage, the last succes
 
 - Test-mode and live incidents are not separated yet (incidents do not carry the mode).
 - A sum above the signed 64-bit range fails on SQLite (tests); PostgreSQL sums as `numeric`.
+
+
+## Owner decision (2026-10-16)
+
+- Totals logic (active incidents only, per currency and per component, labelled "verified discrepancy", unknown amounts counted separately) and the overall state rules are confirmed.
+- Visibility of money amounts to non-owner roles becomes a company setting controlled by the tenant owner (follow-up task).
+- Test-mode and live incidents must not be combined in totals (follow-up task).

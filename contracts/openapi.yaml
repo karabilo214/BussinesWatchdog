@@ -1858,6 +1858,45 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/public-storefront-checks:
+    get:
+      tags: [Platform]
+      operationId: platformListPublicStorefrontChecks
+      description: "Capability service.read. Newest public URL checks, including normalized site origin, submission time, visitor IP and User-Agent, worker browser and outcome. Results and artifacts expire after 5 minutes; this restricted metadata is retained for 90 days."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: cursor, in: query, schema: {type: string, maxLength: 512}}
+      responses:
+        "200":
+          description: Public check history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, url, created_at, started_at, finished_at, ip, user_agent, worker_browser, status, verdict, error_code]
+                      properties:
+                        id: {type: string, format: uuid}
+                        url: {type: string}
+                        created_at: {type: string, format: date-time}
+                        started_at: {type: [string, "null"], format: date-time}
+                        finished_at: {type: [string, "null"], format: date-time}
+                        ip: {type: [string, "null"]}
+                        user_agent: {type: [string, "null"]}
+                        worker_browser: {type: [string, "null"]}
+                        status: {type: string}
+                        verdict: {type: [string, "null"]}
+                        error_code: {type: [string, "null"]}
+                  next_cursor: {type: [string, "null"]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/contact-requests:
     get:
       tags: [Platform]

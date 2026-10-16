@@ -160,6 +160,7 @@ return [
         'captcha' => 'Antwort aus dem Bild eingeben',
         'captcha_alt' => 'CAPTCHA mit Additionsbeispiel',
         'captcha_hint' => 'Die Antwort ist erforderlich, bevor die Browser-Prüfung startet, und gilt 10 Minuten.',
+        'history_notice' => 'Um wiederholte Prüfungen zu begrenzen, speichern wir URL, Uhrzeit, Ihre IP-Adresse und Browserdaten 90 Tage lang. Mitarbeitende des Dienstes können diesen Verlauf einsehen.',
         'submit' => 'Öffentliche Prüfung starten',
         'loading_submit' => 'Prüfung wird gestartet...',
         'errors_title' => 'Die Prüfung kann noch nicht starten:',

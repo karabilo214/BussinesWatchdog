@@ -2,6 +2,24 @@ import { request } from '@bw/api-client';
 
 export type StaffRole = 'platform_owner' | 'platform_admin' | 'platform_support' | 'platform_billing';
 
+export interface PublicStorefrontCheckHistory {
+  id: string;
+  url: string;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  ip: string | null;
+  user_agent: string | null;
+  worker_browser: string | null;
+  status: string;
+  verdict: string | null;
+  error_code: string | null;
+}
+
+export async function fetchPublicStorefrontChecks(cursor?: string): Promise<{ data: PublicStorefrontCheckHistory[]; next_cursor: string | null }> {
+  return (await request<{ data: PublicStorefrontCheckHistory[]; next_cursor: string | null }>('GET', '/platform-api/v1/public-storefront-checks', { query: cursor ? { cursor } : {} })).data;
+}
+
 export interface StaffMe {
   staff_id: string;
   name: string;

@@ -54,7 +54,7 @@ class PublicStorefrontCheckTest extends TestCase
         ])->assertRedirect('/ru/check-store')->assertSessionHasErrors('captcha_answer');
         $answer = $this->captchaAnswer('ru');
 
-        $first = $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])->post('/ru/check-store', [
+        $first = $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10', 'HTTP_USER_AGENT' => 'Mozilla/5.0 TestBrowser/1.0'])->post('/ru/check-store', [
             'url' => 'shop.example.com/product/demo',
             'captcha_answer' => $answer,
         ])->assertRedirect();
@@ -64,6 +64,8 @@ class PublicStorefrontCheckTest extends TestCase
             'submitted_url' => 'shop.example.com/product/demo',
             'normalized_origin' => 'https://shop.example.com',
             'normalized_host' => 'shop.example.com',
+            'request_ip' => '203.0.113.10',
+            'request_user_agent' => 'Mozilla/5.0 TestBrowser/1.0',
             'status' => PublicStorefrontCheck::STATUS_QUEUED,
         ]);
         $this->get('/ru/check-store/'.$token)
@@ -254,8 +256,19 @@ class PublicStorefrontCheckTest extends TestCase
 
         Carbon::setTestNow('2026-10-20T10:06:00Z');
         $this->artisan('site:public-checks-purge')->assertExitCode(0);
-        $this->assertDatabaseMissing('public_storefront_checks', ['id' => $attemptId]);
+        $this->assertDatabaseHas('public_storefront_checks', ['id' => $attemptId, 'status' => PublicStorefrontCheck::STATUS_PASSED]);
+        $this->assertNotNull(PublicStorefrontCheck::query()->findOrFail($attemptId)->purged_at);
+        $this->assertSame('https://store.example.com', PublicStorefrontCheck::query()->findOrFail($attemptId)->submitted_url);
+        $this->assertDatabaseHas('public_storefront_checks', ['normalized_origin' => 'https://second.example.com', 'status' => PublicStorefrontCheck::STATUS_EXPIRED]);
+        $this->assertDatabaseMissing('public_storefront_check_artifacts', ['check_id' => $attemptId]);
         $this->get('/en/check-store/'.$token)->assertNotFound();
+        $this->postJson('/internal/v1/browser/leases', ['browser_version' => 'chromium-test', 'location' => 'test'], $this->workerHeaders())->assertNoContent();
+
+        // The 30-day host and 10-day IP cooldowns must survive public result cleanup.
+        $answer = $this->captchaAnswer('en');
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.31'])->from('/en/check-store')->post('/en/check-store', [
+            'url' => 'https://store.example.com/another', 'captcha_answer' => $answer,
+        ])->assertSessionHasErrors('url');
     }
 
     public function test_public_result_explains_inconclusive_and_unsupported_next_steps(): void

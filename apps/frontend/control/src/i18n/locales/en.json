@@ -59,6 +59,9 @@
     "service": {
       "title": "Service"
     },
+    "public_checks": {
+      "title": "Public checks"
+    },
     "staff": {
       "title": "Staff"
     },
@@ -77,6 +80,18 @@
     "contacts": {
       "title": "Messages"
     }
+  },
+  "public_checks": {
+    "hint": "URL check history. Visitor IP and browser are retained for 90 days; public results and screenshots remain available for 5 minutes.",
+    "empty": "No public checks yet.",
+    "date": "Date and time",
+    "url": "URL",
+    "ip": "IP",
+    "browser": "Visitor browser",
+    "worker": "Check browser",
+    "result": "Result",
+    "more": "Show more",
+    "status": {"queued": "Queued", "running": "Running", "passed": "Passed", "failed": "Site failure", "inconclusive": "Inconclusive", "blocked": "Blocked", "unsupported": "Unsupported", "cancelled": "Cancelled", "expired": "Expired"}
   },
   "common": {
     "loading": "Loading…",

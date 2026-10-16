@@ -38,6 +38,7 @@
                     @error('captcha_answer')<p class="site-field-error" id="check-store-captcha-error">{{ $message }}</p>@enderror
                     <p class="site-muted site-small">{{ __('site.check_store.captcha_hint') }}</p>
                 </div>
+                <p class="site-muted site-small">{{ __('site.check_store.history_notice') }}</p>
                 <p><button type="submit" class="site-button" data-loading-text="{{ __('site.check_store.loading_submit') }}">{{ __('site.check_store.submit') }}</button></p>
             </form>
         @else

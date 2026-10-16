@@ -1,6 +1,6 @@
 # ADR 0048: Customer store data in the owner panel
 
-Status: accepted for now (owner's backlog item 2026-10-13: in the customer card, add a store and open a store to see "findings, orders and screenshots, incidents"). Details chosen by the implementer while the owner was away; to be confirmed by the owner.
+Status: accepted for now (owner's backlog item 2026-10-13: in the customer card, add a store and open a store to see "findings, orders and screenshots, incidents"). Details chosen by the implementer while the owner was away; reviewed by the owner on 2026-10-16 with changes.
 
 ## Decisions
 
@@ -14,3 +14,10 @@ Status: accepted for now (owner's backlog item 2026-10-13: in the customer card,
 ## Amendment (Step 127): team members of the customer
 
 7. The owner can invite a team member of the organisation from the customer card (roles admin, operator, viewer — like an owner in the account; owner role only through ownership transfer) and revoke a pending invitation, each with a reason. `TeamService::inviteForPlatform` / `revokeForPlatform` share the account flow (earlier pending invitation of the address revoked, 409 for an existing member, 7-day link); the letter names "the Business Watchdog team" as the inviter, the organisation audit records it as a system action with `by: platform`, the platform audit as `tenant.member_invited` / `tenant.invitation_revoked`. Changing or removing existing members from the panel is not part of this step.
+
+## Owner decision (2026-10-16)
+
+- Not read only any more: staff (support, by an assignable permission) may rerun browser checks and acknowledge/resolve incidents on behalf of the customer, each with a reason and audited.
+- Audit records actions that change something (POST/PUT/PATCH/DELETE), not views: `tenant.store_viewed` is dropped; every change made from the panel is recorded in the platform audit and in the organisation audit as `by: platform`.
+- The plan's store limit stays strict for adding stores. Actions started by staff (for example a browser check rerun) do not consume the customer's limits or usage.
+- Staff may change roles and remove existing members of the customer's team (on the customer's request), with a reason and audited; the owner role still moves only through ownership transfer.

@@ -812,3 +812,11 @@ Verification:
 Coordination:
 
 - This step intentionally avoided the Shopware checkout script implementation files and only added new planning documents.
+
+### Step 159: Owner Review of Pending ADRs
+
+Status: complete
+
+The owner reviewed every ADR that waited for confirmation: 0009, 0018, 0020, 0021, 0028, 0037 (points 3, 4, 6, 7), 0045–0049, 0051–0054, 0057 and 0061. Each ADR now has an «Owner decision (2026-10-16)» section. Accepted as implemented: 0009 (15 min stale, 1 h partial, warning, reconciliation paused), 0028 (Paddle first; live account when the project is ready for release), 0061 (dashboard hint only). Changes requested by the owner became tasks in `docs/backlog.md` («Решения по ADR»): owner setting for showing money amounts, separating test-mode incidents, one-click Stripe connection, MFA warning and MFA resets, plan-restricted discounts forfeited on plan change, full pause of stores above the plan limit, image upload and HTML highlighting in the page editor, block templates moved under site pages, configurable staff permissions, editable reminder/reply templates with full sent copies, support actions in customer stores, audit of changes only, member management of customer teams, editable notes, service alert e-mail, staff authenticator reset in the panel, 2-year platform audit retention, pause and public banner during maintenance windows, web server log retention for the observation endpoints. Amount/time matching stays forbidden (spec §13 unchanged).
+
+Code change: the 90-day audit windows of Stripe, PayPal, WooCommerce REST API and Shopware and the reconciliation lookback are now env-configurable (`WATCHDOG_*_AUDIT_DAYS`, `WATCHDOG_RECONCILIATION_LOOKBACK_DAYS`, default 90, documented in README). A legal review package for the checkout observation script (ADR 0057/0059) was prepared as a Claude Docs document for the owner's lawyer. No migration or contract change.

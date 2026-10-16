@@ -1,6 +1,6 @@
 # ADR 0054: Owner settings — read-only configuration and a maintenance window
 
-Status: accepted for now (owner's backlog item 2026-10-13: the «Настройки» section is not ready). Follows spec/panels/OWNER-PANEL.md §7 and ADMIN-BACKEND (secrets only as masked fingerprint / health); details chosen by the implementer while the owner was away; to be confirmed by the owner.
+Status: accepted for now (owner's backlog item 2026-10-13: the «Настройки» section is not ready). Follows spec/panels/OWNER-PANEL.md §7 and ADMIN-BACKEND (secrets only as masked fingerprint / health); details chosen by the implementer while the owner was away; reviewed by the owner on 2026-10-16 with changes.
 
 ## Decisions
 
@@ -9,3 +9,9 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Настрой�
 3. **Maintenance window** (the only editable setting): start, end (end after start and in the future, at most 24 h, start at most 90 days ahead) and a message in ru, en and de (3–300 characters); reason and the authenticator code; every publication is a new version that replaces the current one; cancellation also needs reason and code; history of versions with who/when/why; audited (`settings.maintenance_scheduled` / `_cancelled`).
 4. **Effect**: customers see a banner in their account (`GET /api/v1/maintenance`) from publication until the end — "planned" before the start, "in progress" during it, in their language. It does not pause checks, notifications or billing by itself.
 5. **Not in this step**: worker limits (they need scheduler integration and stay in the environment), pausing checks during maintenance, a banner on the public site.
+
+## Owner decision (2026-10-16)
+
+- Read-only configuration with secrets only as set / fingerprint is confirmed; the maintenance window rules are confirmed.
+- During an active maintenance window scheduled browser checks, freshness assessment and customer notifications are paused automatically, so our own outage does not produce false alerts; data gaps that started inside the window must not raise incidents right after it ends. Billing is not paused (Paddle renews on its own).
+- The maintenance banner is also shown on the public site, in the page language.

@@ -2,7 +2,7 @@
 
 Date: 2026-10-09
 
-Status: implemented in Step 50; thresholds to be confirmed by the owner.
+Status: accepted (implemented in Step 50; thresholds confirmed by the owner on 2026-10-16).
 
 ## Context
 
@@ -25,3 +25,11 @@ Spec §9: the plugin sends a heartbeat every 5 minutes; three missing heartbeats
 ## Not covered
 
 The plugin's own 7-day backlog flag and 100 000-event limit, the "disabled on deactivation" report, a dashboard coverage view, and resolving the incident when a stale connector is revoked (it stays open until resolved by hand).
+
+
+## Owner decision (2026-10-16)
+
+- `stale` after 15 minutes without a heartbeat stays: for a large store a longer gap is already too much.
+- `partial` when the oldest pending event is older than 1 hour stays.
+- Freshness incidents stay `warning`, not `critical`.
+- Money reconciliation stays paused (`unknown` / `store_data_stale`) while the connector is `stale`/`partial`.

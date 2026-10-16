@@ -2,7 +2,7 @@
 
 Date: 2026-10-10
 
-Status: backend implemented in Step 65 and tested with Stripe-shaped fixtures only; shown to the owner for review. The compatibility spike with a real Stripe sandbox and the WooCommerce Stripe Gateway (spec §10) is still required before P1.
+Status: accepted by the owner on 2026-10-16 (implemented in Steps 65–67; compatibility spike with a real Stripe test account and the WooCommerce Stripe Gateway done, see below).
 
 ## Decisions
 
@@ -77,3 +77,11 @@ Test-mode payments created by the owner in the Stripe Dashboard: a 5.00 EUR card
 ## Not done
 
 Disputes and fees (informational signals), multicapture (a growing `amount_captured` would be a conflict), Stripe Connect / OAuth, PayPal (§10.2), the dashboard screen (Step 66).
+
+## Owner decision (2026-10-16)
+
+- Only restricted read-only keys are accepted; full secret keys stay refused.
+- Linking stays exact-reference and verified-metadata only. Amount and time never create a link, not even an exact-second match (spec §13 unchanged).
+- Polling every 15 minutes stays. The daily audit window stays 90 days for now, but every connector's window and the reconciliation lookback are now configurable: `WATCHDOG_STRIPE_AUDIT_DAYS`, `WATCHDOG_PAYPAL_AUDIT_DAYS`, `WATCHDOG_WOOCOMMERCE_API_AUDIT_DAYS`, `WATCHDOG_SHOPWARE_AUDIT_DAYS`, `WATCHDOG_RECONCILIATION_LOOKBACK_DAYS` (default 90).
+- The provider operation status lifecycle, the plugin's payment mode labelling and the skipped currencies (HUF, ISK, TWD, UGX) are confirmed.
+- Next: one-click Stripe connection from the customer dashboard (Stripe Connect / OAuth, read-only), after a spike confirming that read-only access is still offered. Disputes, multicapture and fee signals go to the general TODO.

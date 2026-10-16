@@ -160,6 +160,7 @@ return [
         'captcha' => 'Enter the answer from the image',
         'captcha_alt' => 'CAPTCHA with an addition example',
         'captcha_hint' => 'The answer is required before the browser check starts and is valid for 10 minutes.',
+        'history_notice' => 'To limit repeat checks, we keep the URL, time, your IP address and browser information for 90 days. Service staff can access this history.',
         'submit' => 'Run public check',
         'loading_submit' => 'Starting check...',
         'errors_title' => 'The check cannot start yet:',

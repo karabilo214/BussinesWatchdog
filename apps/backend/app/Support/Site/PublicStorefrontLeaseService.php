@@ -18,15 +18,25 @@ class PublicStorefrontLeaseService
     public const TYPE = 'public_storefront';
 
     public const ERROR_LEASE_NOT_FOUND = 'lease_not_found';
+
     public const ERROR_LEASE_TOKEN_INVALID = 'lease_token_invalid';
+
     public const ERROR_STALE_FENCING_TOKEN = 'stale_fencing_token';
+
     public const ERROR_LEASE_EXPIRED = 'lease_expired';
+
     public const ERROR_RESULT_CONFLICT = 'result_conflict';
+
     public const ERROR_ARTIFACT_UNKNOWN = 'artifact_unknown';
+
     public const ERROR_LIMIT_REACHED = 'artifact_limit_reached';
+
     public const ERROR_TOO_LARGE = 'artifact_too_large';
+
     public const ERROR_TYPE_INVALID = 'artifact_type_invalid';
+
     public const ERROR_CHECKSUM_MISMATCH = 'artifact_checksum_mismatch';
+
     public const ERROR_STORAGE_UNAVAILABLE = 'artifact_storage_unavailable';
 
     private const SIGNATURES = [
@@ -45,12 +55,13 @@ class PublicStorefrontLeaseService
             $now = Carbon::now();
             $maxRunning = max(0, (int) config('watchdog.public_check.max_running', 1));
 
-            if ($maxRunning === 0 || PublicStorefrontCheck::query()->where('status', PublicStorefrontCheck::STATUS_RUNNING)->count() >= $maxRunning) {
+            if ($maxRunning === 0 || PublicStorefrontCheck::query()->where('status', PublicStorefrontCheck::STATUS_RUNNING)->where('expires_at', '>', $now)->count() >= $maxRunning) {
                 return null;
             }
 
             $query = PublicStorefrontCheck::query()
                 ->where('status', PublicStorefrontCheck::STATUS_QUEUED)
+                ->where('expires_at', '>', $now)
                 ->where('queued_at', '<=', $now)
                 ->orderBy('queued_at')
                 ->orderBy('id');
@@ -281,7 +292,15 @@ class PublicStorefrontLeaseService
             }
 
             if ($check->expires_at->lessThanOrEqualTo(Carbon::now())) {
-                $check->delete();
+                $check->artifacts()->delete();
+                $check->forceFill([
+                    'status' => in_array($check->status, [PublicStorefrontCheck::STATUS_QUEUED, PublicStorefrontCheck::STATUS_RUNNING], true) ? PublicStorefrontCheck::STATUS_EXPIRED : $check->status,
+                    'submitted_url' => $check->normalized_origin,
+                    'steps' => [],
+                    'diagnostics' => [],
+                    'lease_token_hash' => null,
+                    'purged_at' => Carbon::now(),
+                ])->save();
             }
         });
     }

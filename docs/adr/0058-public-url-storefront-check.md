@@ -6,6 +6,8 @@ Status: accepted for implementation (owner request 2026-10-14; implemented in St
 
 Step 145 implements the first slice: public site form/result page, mandatory local image math CAPTCHA with noise, normalized host/origin and IP cooldowns, submit throttling, public HTTPS and SSRF checks, separate public diagnostic records/artifacts, browser-worker `public-storefront@1`, screenshots of public steps, and 5-minute cleanup. After owner review, the first slice may perform one narrowly allowlisted same-origin public add-to-cart action to reach cart/checkout. Checkout/order/payment/account/login/register mutations remain blocked. The worker records only a cautious public `detected_platform` hint (`woocommerce_hint`, `shopware_hint`, `unknown`), not a verified platform claim.
 
+Step 158 (owner request 2026-10-16) retains a restricted operational history of checks for 90 days: normalized site URL (origin, without path or query), submission and completion times, visitor IP and User-Agent, worker browser and outcome. The raw IP is needed in the staff view requested by the owner; only platform staff with `service.read` can access it. The public result token, diagnostics and screenshots still expire after 5 minutes. Keeping metadata also makes the 30-day host and 10-day IP cooldowns effective after artifact cleanup. The public form discloses this retention.
+
 ## Context
 
 The public site should let a visitor enter a store URL and get a quick visual diagnostic without registering, proving ownership, installing the WooCommerce plugin, installing the Shopware App, or providing API keys.

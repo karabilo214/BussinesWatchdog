@@ -2,7 +2,7 @@
 
 Date: 2026-10-10
 
-Status: implemented in Step 69; awaiting owner review.
+Status: accepted with changes by the owner on 2026-10-16 (implemented in Step 69; follow-ups in `docs/backlog.md`).
 
 ## Context
 
@@ -24,3 +24,11 @@ Spec §2 (auth): MFA is mandatory for system operators and SHOULD for the tenant
 ## Not done
 
 MFA for platform staff (with the panels), WebAuthn/passkeys, MFA reset by support, a "trusted device" option, a list of sessions per device, forcing MFA per team.
+
+## Owner decision (2026-10-16)
+
+- MFA stays optional for tenant owners, but the dashboard overview shows a prominent warning that the account is at risk while MFA is off.
+- Platform staff get a "disable MFA" action for each customer user; the tenant owner gets a "reset MFA" action for any member of their team. Both are audited.
+- After an ownership transfer the previous owner becomes admin (confirmed).
+- The new owner is not required to have MFA, but must be told clearly that MFA is off.
+- Passkeys, trusted devices, a session list and team-wide forced MFA go to the general TODO.

@@ -1,6 +1,6 @@
 # ADR 0061: Updating the Shopware app of connected stores
 
-Status: accepted for now (owner's backlog item 2026-10-14: an update archive for stores that already run the app). Details below were chosen by the implementer and are to be confirmed by the owner.
+Status: accepted for now (owner's backlog item 2026-10-14: an update archive for stores that already run the app). Details below were chosen by the implementer; confirmed by the owner on 2026-10-16.
 
 ## Context
 
@@ -13,9 +13,9 @@ The dashboard builds an app archive per store with the store's own registration 
 3. **Dashboard**: the connected app shows the installed version («unknown» until the first webhook) and, when it is older than the current one or unknown, «Download app update» with the steps: upload in Shopware (Extensions → My extensions → Upload extension), confirm the update, clear the cache.
 4. App version 1.2.0 (manifest: `app.updated` webhook).
 
-## Not decided / for the owner
+## Owner decision (2026-10-16)
 
-- No automatic notice to customers about a new app version (only the dashboard hint).
+- No automatic notice to customers about a new app version: only the dashboard hint. Customers should not receive e-mails because of app releases.
 
 ## Verification
 

@@ -4,6 +4,7 @@ use App\Http\Controllers\Platform\AuditController;
 use App\Http\Controllers\Platform\ContactRequestController;
 use App\Http\Controllers\Platform\DiscountController;
 use App\Http\Controllers\Platform\OverviewController;
+use App\Http\Controllers\Platform\PublicStorefrontCheckHistoryController;
 use App\Http\Controllers\Platform\PageBlockController;
 use App\Http\Controllers\Platform\ServiceHealthController;
 use App\Http\Controllers\Platform\SettingsController;
@@ -43,6 +44,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/payments', [PaymentController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/overview', [OverviewController::class, 'show']);
     Route::middleware('platform.staff:'.PlatformCapabilities::SERVICE_READ)->get('/health', [ServiceHealthController::class, 'show']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::SERVICE_READ)->get('/public-storefront-checks', [PublicStorefrontCheckHistoryController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::SETTINGS_MANAGE)->group(function (): void {
         Route::get('/settings', [SettingsController::class, 'show']);
         Route::post('/settings/maintenance', [SettingsController::class, 'scheduleMaintenance'])->middleware('throttle:platform-step-up');

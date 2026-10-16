@@ -28,6 +28,10 @@ return [
         ],
     ],
 
+    'reconciliation' => [
+        'lookback_days' => (int) env('WATCHDOG_RECONCILIATION_LOOKBACK_DAYS', 90),
+    ],
+
     'credentials' => [
         'draining_hours' => (int) env('WATCHDOG_CREDENTIAL_DRAINING_HOURS', 24),
     ],
@@ -65,7 +69,7 @@ return [
         'page_size' => 100,
         'max_pages_per_run' => 20,
         'delta_overlap_minutes' => 60,
-        'audit_days' => 90,
+        'audit_days' => (int) env('WATCHDOG_STRIPE_AUDIT_DAYS', 90),
         'webhook_tolerance_seconds' => 300,
     ],
 
@@ -78,7 +82,7 @@ return [
         'max_orders_per_run' => 300,
         'search_window_days' => 31,
         'delta_overlap_minutes' => 180,
-        'audit_days' => 90,
+        'audit_days' => (int) env('WATCHDOG_PAYPAL_AUDIT_DAYS', 90),
         'webhook_tolerance_seconds' => 600,
         'pointer_window_hours' => 6,
         'pointer_max_per_run' => 50,
@@ -93,7 +97,7 @@ return [
         'max_response_bytes' => 5242880,
         'delta_overlap_minutes' => 10,
         'recent_hours' => 48,
-        'audit_days' => 90,
+        'audit_days' => (int) env('WATCHDOG_WOOCOMMERCE_API_AUDIT_DAYS', 90),
         'stale_after_minutes' => 30,
         'dev_endpoint' => env('WATCHDOG_DEV_WC_API_ENDPOINT', ''),
     ],
@@ -146,6 +150,7 @@ return [
         'host_cooldown_days' => (int) env('WATCHDOG_PUBLIC_CHECK_HOST_COOLDOWN_DAYS', 30),
         'ip_cooldown_days' => (int) env('WATCHDOG_PUBLIC_CHECK_IP_COOLDOWN_DAYS', 10),
         'artifact_ttl_minutes' => (int) env('WATCHDOG_PUBLIC_CHECK_ARTIFACT_TTL_MINUTES', 5),
+        'history_retention_days' => (int) env('WATCHDOG_PUBLIC_CHECK_HISTORY_RETENTION_DAYS', 90),
         'queue_wait_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_QUEUE_WAIT_SECONDS', 120),
         'lease_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_LEASE_SECONDS', 150),
         'absolute_run_seconds' => (int) env('WATCHDOG_PUBLIC_CHECK_ABSOLUTE_RUN_SECONDS', 120),
@@ -162,7 +167,7 @@ return [
         'request_pause_ms' => 200,
         'max_response_bytes' => 5242880,
         'delta_overlap_minutes' => 10,
-        'audit_days' => 90,
+        'audit_days' => (int) env('WATCHDOG_SHOPWARE_AUDIT_DAYS', 90),
         'dev_endpoint' => env('WATCHDOG_DEV_SHOPWARE_ENDPOINT', ''),
     ],
 ];

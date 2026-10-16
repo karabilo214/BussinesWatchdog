@@ -1,6 +1,6 @@
 # ADR 0046: Block templates for the page editor
 
-Status: accepted for now (owner's backlog items 2026-10-13: ready block and section templates inserted from the editor, and a separate section to create and edit them). Chosen by the implementer while the owner was away; to be confirmed by the owner.
+Status: accepted for now (owner's backlog items 2026-10-13: ready block and section templates inserted from the editor, and a separate section to create and edit them). Chosen by the implementer while the owner was away; confirmed by the owner on 2026-10-16.
 
 ## Decisions
 
@@ -11,3 +11,9 @@ Status: accepted for now (owner's backlog items 2026-10-13: ready block and sect
 5. **Insertion**: the visual editor inserts the template of the page language (if missing — the first language it has) after the top-level block with the cursor, or in place of an empty paragraph, so a section is never nested into another section by accident. The page is then saved and sanitized as usual; templates add nothing the sanitizer would not allow.
 6. **Access**: `content.manage` (platform owner), like pages.
 7. **Own section** (Step 124): «Шаблоны блоков» in the owner panel lists templates (group, languages, order); a template is created and edited with the same visual editor (or HTML) per language and deleted with a reason (archived, audited). Changing or deleting a template never changes pages it was already inserted into — a page keeps its own copy. HTML is sanitized on save like a page body; at least one language must stay.
+
+## Owner decision (2026-10-16)
+
+- No prices in templates and independence of inserted copies from the template are confirmed.
+- Access must extend to staff with a content permission. Instead of a fixed role, the platform owner will assign permissions to each staff member in the owner panel (backlog: configurable staff roles and permissions).
+- The built-in set stays as is for now; many more templates will be added later so pages can be assembled easily.

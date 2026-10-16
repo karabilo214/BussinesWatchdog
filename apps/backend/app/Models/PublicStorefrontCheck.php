@@ -11,19 +11,31 @@ class PublicStorefrontCheck extends Model
     use HasUuids;
 
     public const STATUS_QUEUED = 'queued';
+
     public const STATUS_RUNNING = 'running';
+
     public const STATUS_PASSED = 'passed';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_INCONCLUSIVE = 'inconclusive';
+
     public const STATUS_BLOCKED = 'blocked';
+
     public const STATUS_UNSUPPORTED = 'unsupported';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_EXPIRED = 'expired';
 
     public const VERDICT_CHECKOUT_REACHED = 'checkout_reached';
+
     public const VERDICT_NEEDS_CONNECTION = 'needs_connection';
+
     public const VERDICT_PUBLIC_ISSUE = 'public_issue';
+
     public const VERDICT_BLOCKED = 'blocked';
+
     public const VERDICT_INSUFFICIENT_DATA = 'insufficient_data';
 
     public $timestamps = true;
@@ -35,6 +47,9 @@ class PublicStorefrontCheck extends Model
         'normalized_origin',
         'normalized_host',
         'ip_hash',
+        'request_ip',
+        'request_user_agent',
+        'purged_at',
         'status',
         'verdict',
         'error_code',
@@ -53,7 +68,7 @@ class PublicStorefrontCheck extends Model
         'expires_at',
     ];
 
-    protected $hidden = ['result_token_hash', 'ip_hash', 'lease_token_hash'];
+    protected $hidden = ['result_token_hash', 'ip_hash', 'request_ip', 'request_user_agent', 'lease_token_hash'];
 
     protected function casts(): array
     {
@@ -67,6 +82,7 @@ class PublicStorefrontCheck extends Model
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
             'expires_at' => 'datetime',
+            'purged_at' => 'datetime',
         ];
     }
 

@@ -68,6 +68,8 @@ class PublicStorefrontCheckService
             'normalized_origin' => $normalized['origin'],
             'normalized_host' => $normalized['host'],
             'ip_hash' => $ipHash,
+            'request_ip' => (string) $request->ip(),
+            'request_user_agent' => mb_substr((string) $request->userAgent(), 0, 1024),
             'status' => PublicStorefrontCheck::STATUS_QUEUED,
             'steps' => [],
             'diagnostics' => [],
@@ -86,6 +88,7 @@ class PublicStorefrontCheckService
 
         $check = PublicStorefrontCheck::query()
             ->where('result_token_hash', hash('sha256', $token))
+            ->where('expires_at', '>', Carbon::now())
             ->with(['artifacts' => fn ($query) => $query->where('state', 'ready')->orderBy('created_at')])
             ->first();
 
@@ -100,6 +103,7 @@ class PublicStorefrontCheckService
     {
         $ids = PublicStorefrontCheck::query()
             ->where('expires_at', '<=', Carbon::now())
+            ->whereNull('purged_at')
             ->orderBy('expires_at')
             ->limit($limit)
             ->pluck('id');
@@ -107,6 +111,17 @@ class PublicStorefrontCheckService
         foreach ($ids as $id) {
             app(PublicStorefrontLeaseService::class)->deleteCheck((string) $id);
         }
+
+        $retentionDays = max(
+            (int) config('watchdog.public_check.history_retention_days'),
+            (int) config('watchdog.public_check.host_cooldown_days'),
+            (int) config('watchdog.public_check.ip_cooldown_days'),
+        );
+
+        PublicStorefrontCheck::query()
+            ->whereNotNull('purged_at')
+            ->where('created_at', '<=', Carbon::now()->subDays($retentionDays))
+            ->delete();
 
         return $ids->count();
     }

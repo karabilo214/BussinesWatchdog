@@ -1,6 +1,6 @@
 # ADR 0047: Reminders to customers from the owner panel
 
-Status: accepted for now (owner's backlog item 2026-10-13: "Напомнить о…" in the customer actions — subscription, payment, other — an email from a template, sending audited). Details chosen by the implementer while the owner was away; to be confirmed by the owner.
+Status: accepted for now (owner's backlog item 2026-10-13: "Напомнить о…" in the customer actions — subscription, payment, other — an email from a template, sending audited). Details chosen by the implementer while the owner was away; reviewed by the owner on 2026-10-16 with changes.
 
 ## Decisions
 
@@ -10,3 +10,9 @@ Status: accepted for now (owner's backlog item 2026-10-13: "Напомнить �
 4. **Who may send**: `tenants.manage` (platform owner), like the other customer actions.
 5. **Repeats**: the same topic for the same organisation at most once in 10 minutes (409 `reminder_recently_sent`) to stop double clicks; the preview shows when it was last sent.
 6. **Audit**: `tenant.reminder_sent` with the topic, recipient user ids and a hash of each language's letter — no email addresses or texts in the audit. The letter itself goes through the normal mailer (no copy is stored).
+
+## Owner decision (2026-10-16)
+
+- Recipients are chosen by the staff member from the organisation's members, not only the owners.
+- Every template is editable before sending; the panel has two actions: "save template" (stores the edited text as the template) and "send". The fixed no-amount wording of the subscription and payment templates is no longer enforced by code; the sender is responsible for the text.
+- A full copy of each sent reminder is stored and shown in the customer card: who sent it, when, to whom (addresses) and the exact subject and text per language. This replaces the hash-only audit of point 6.

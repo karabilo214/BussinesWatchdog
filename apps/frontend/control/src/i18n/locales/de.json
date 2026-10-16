@@ -59,6 +59,9 @@
     "service": {
       "title": "Dienst"
     },
+    "public_checks": {
+      "title": "Öffentliche Prüfungen"
+    },
     "staff": {
       "title": "Mitarbeiter"
     },
@@ -77,6 +80,18 @@
     "contacts": {
       "title": "Anfragen"
     }
+  },
+  "public_checks": {
+    "hint": "Verlauf der URL-Prüfungen. IP und Browser des Besuchers bleiben 90 Tage gespeichert; öffentliche Ergebnisse und Screenshots sind 5 Minuten verfügbar.",
+    "empty": "Noch keine öffentlichen Prüfungen.",
+    "date": "Datum und Uhrzeit",
+    "url": "URL",
+    "ip": "IP",
+    "browser": "Browser des Besuchers",
+    "worker": "Prüfbrowser",
+    "result": "Ergebnis",
+    "more": "Mehr anzeigen",
+    "status": {"queued": "Wartend", "running": "Läuft", "passed": "Erfolgreich", "failed": "Websitefehler", "inconclusive": "Unklar", "blocked": "Blockiert", "unsupported": "Nicht unterstützt", "cancelled": "Abgebrochen", "expired": "Abgelaufen"}
   },
   "common": {
     "loading": "Wird geladen…",

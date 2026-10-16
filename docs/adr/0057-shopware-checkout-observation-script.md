@@ -29,3 +29,7 @@ Spike on Shopware 6.7.2.2 with a minimal app: a JS file shipped in the app (`Res
 ## Verification
 
 `tests/Feature/Checkout/CheckoutObservationTest.php`; `plugins/shopware-app/tests/observation/observation-e2e.sh` on Shopware 6.6.10.6 and 6.7.2.2 with the real app archive and real shoppers' browsers: not observed while the check stops before sign-in; with the guest way all stages counted; three submits cancelled by a broken page script open `CHECKOUT_SUBMIT_FAILING` (an earlier order does not hide them); a real order reaches the finish page and resolves it; the browser check finds the script and is neither counted nor reported — PASS.
+
+## Legal review package (2026-10-16)
+
+A draft for the lawyer (questions on § 25 TDDDG, legal basis, processor role and DPA, web server log retention, plus privacy policy paragraphs in German and English for stores) was prepared as the doc «Скрипт наблюдения за оформлением заказа — вопросы юристу» and handed to the owner. Open technical point found while writing it: retention of IP/User-Agent in the production web server access log for `/api/v1/observe/*` is not set yet.
