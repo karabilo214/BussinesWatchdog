@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { changeMemberRole, inviteMember, listInvitations, listMembers, removeMember, revokeInvitation, transferOwnership } from '@/api/account';
+import { changeMemberRole, getMoneyVisibility, inviteMember, listInvitations, listMembers, removeMember, revokeInvitation, transferOwnership, updateMoneyVisibility } from '@/api/account';
 import type { TeamInvitation, TeamMember, TeamRole } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
@@ -34,6 +34,8 @@ const transfer = reactive({ password: '', code: '' });
 const transferBusy = ref(false);
 const transferError = ref<unknown>(null);
 const transferStepUpKey = computed(() => stepUpErrorKey(transferError.value));
+const showMoneyAmounts = ref(true);
+const moneyVisibilityBusy = ref(false);
 const needsCode = computed(() => session.value?.user.mfa_enabled === true);
 
 const canInvite = computed(() => canManageStores.value && assignable.value.length > 0);
@@ -76,6 +78,8 @@ async function load(): Promise<void> {
 
   try {
     const result = await listMembers();
+    const visibility = await getMoneyVisibility();
+    showMoneyAmounts.value = visibility.show_money_amounts_to_team;
     members.value = result.data;
     assignable.value = result.assignable_roles;
     invitations.value = canManageStores.value ? await listInvitations() : [];
@@ -87,6 +91,22 @@ async function load(): Promise<void> {
     error.value = caught;
   } finally {
     loading.value = false;
+  }
+}
+
+async function saveMoneyVisibility(input: HTMLInputElement): Promise<void> {
+  const enabled = input.checked;
+  moneyVisibilityBusy.value = true;
+  actionError.value = null;
+
+  try {
+    const visibility = await updateMoneyVisibility(enabled);
+    showMoneyAmounts.value = visibility.show_money_amounts_to_team;
+  } catch (caught) {
+    actionError.value = caught;
+    input.checked = showMoneyAmounts.value;
+  } finally {
+    moneyVisibilityBusy.value = false;
   }
 }
 
@@ -155,6 +175,15 @@ onMounted(load);
 
       <template v-else>
         <ErrorNotice v-if="actionError" :error="actionError" />
+
+        <section v-if="myRole === 'owner'" class="rounded-xl border border-border bg-surface p-5" data-panel="money-visibility">
+          <h2 class="text-lg font-semibold">{{ $t('money_visibility.title') }}</h2>
+          <p class="mt-1 text-sm text-text-muted">{{ $t('money_visibility.description') }}</p>
+          <label class="mt-4 flex items-center gap-3 text-sm">
+            <input type="checkbox" :checked="showMoneyAmounts" :disabled="moneyVisibilityBusy" @change="saveMoneyVisibility($event.target as HTMLInputElement)" />
+            {{ $t('money_visibility.show_to_team') }}
+          </label>
+        </section>
 
         <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="members-title" data-panel="members">
           <div class="flex flex-col gap-1">

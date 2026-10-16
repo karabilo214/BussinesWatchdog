@@ -13,7 +13,7 @@ class IncidentDto
     /**
      * @return array<string, mixed>
      */
-    public function toArray(Incident $incident, ?int $currencyExponent = null): array
+    public function toArray(Incident $incident, ?int $currencyExponent = null, bool $showMoneyAmounts = true): array
     {
         $currencyExponent ??= $this->currencyExponents(collect([$incident]))[$incident->id] ?? null;
 
@@ -27,9 +27,10 @@ class IncidentDto
             'title_code' => $incident->title_code,
             'currency' => $incident->currency,
             'currency_exponent' => $currencyExponent,
-            'verified_discrepancy_minor' => $incident->verified_discrepancy_minor === null
+            'verified_discrepancy_minor' => ! $showMoneyAmounts || $incident->verified_discrepancy_minor === null
                 ? null
                 : (string) $incident->verified_discrepancy_minor,
+            'money_amounts_hidden' => ! $showMoneyAmounts && $incident->family === 'money',
             'first_seen_at' => $incident->first_seen_at?->toJSON(),
             'last_seen_at' => $incident->last_seen_at?->toJSON(),
             'last_good_at' => $incident->last_good_at?->toJSON(),
@@ -48,12 +49,12 @@ class IncidentDto
      * @param  Collection<int, Incident>  $incidents
      * @return list<array<string, mixed>>
      */
-    public function collection(Collection $incidents): array
+    public function collection(Collection $incidents, bool $showMoneyAmounts = true): array
     {
         $exponents = $this->currencyExponents($incidents);
 
         return $incidents
-            ->map(fn (Incident $incident): array => $this->toArray($incident, $exponents[$incident->id] ?? null))
+            ->map(fn (Incident $incident): array => $this->toArray($incident, $exponents[$incident->id] ?? null, $showMoneyAmounts))
             ->values()
             ->all();
     }

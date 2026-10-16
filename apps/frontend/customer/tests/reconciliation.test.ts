@@ -58,6 +58,16 @@ beforeEach(() => {
 });
 
 describe('FindingsTable', () => {
+  it('labels owner-hidden amounts instead of calling them unknown', () => {
+    const wrapper = mount(FindingsTable, {
+      props: { findings: [finding({ expected_minor: null, actual_minor: null, difference_minor: null, money_amounts_hidden: true })] },
+      global,
+    });
+
+    expect(wrapper.get('[data-finding-id="f-1"]').text()).toContain('Скрыто владельцем компании');
+    expect(wrapper.get('[data-finding-id="f-1"]').text()).not.toContain('неизвестно');
+  });
+
   it('colours only matches green, links the order and keeps unknown amounts unknown', () => {
     const wrapper = mount(FindingsTable, {
       props: { findings: [finding(), finding({ id: 'f-2', status: 'unknown', rule_code: 'MONEY_UNSUPPORTED', expected_minor: null, actual_minor: null, difference_minor: null })] },

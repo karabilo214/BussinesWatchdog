@@ -6,6 +6,7 @@ use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\Membership;
 use App\Models\Order;
+use App\Models\ReconciliationFinding;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
@@ -287,6 +288,51 @@ class IncidentApiTest extends TestCase
         $this->assertSame('500', $groups['EUR/refund']['total_minor']);
         $this->assertSame('1000', $groups['USD/capture']['total_minor']);
         $this->assertNull($groups['USD/capture']['currency_exponent']);
+    }
+
+    public function test_owner_can_hide_discrepancy_amounts_from_other_team_roles_at_the_api_boundary(): void
+    {
+        $owner = $this->context('owner');
+        $admin = $this->context('admin', $owner['tenant'], $owner['store'], $owner['integration']);
+        $incidentId = $this->triggerIncident($owner);
+        $finding = ReconciliationFinding::query()->where('tenant_id', $owner['tenant']->id)->whereNotNull('expected_minor')->firstOrFail();
+        $this->assertSame('18400', (string) $finding->expected_minor);
+
+        $this->actingAs($admin['user'])->withSession(['active_tenant_id' => $owner['tenant']->id])
+            ->patchJson('/api/v1/money-visibility', ['show_money_amounts_to_team' => false])->assertForbidden();
+
+        $this->actingAs($owner['user'])->withSession(['active_tenant_id' => $owner['tenant']->id])
+            ->patchJson('/api/v1/money-visibility', ['show_money_amounts_to_team' => false])
+            ->assertOk()->assertJsonPath('show_money_amounts_to_team', false);
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $owner['tenant']->id, 'action' => 'tenant.money_visibility_updated']);
+
+        $this->actingAs($admin['user'])->withSession(['active_tenant_id' => $owner['tenant']->id])
+            ->getJson('/api/v1/money-visibility')->assertOk()->assertJsonPath('can_view_money_amounts', false);
+        $this->getJson('/api/v1/overview')->assertOk()
+            ->assertJsonPath('money_amounts_hidden', true)
+            ->assertJsonPath('discrepancies.0.total_minor', null)
+            ->assertJsonPath('incidents.latest.0.verified_discrepancy_minor', null);
+        $this->getJson('/api/v1/incidents')->assertOk()
+            ->assertJsonPath('data.0.money_amounts_hidden', true)
+            ->assertJsonPath('data.0.verified_discrepancy_minor', null);
+        $this->getJson("/api/v1/incidents/{$incidentId}")->assertOk()
+            ->assertJsonPath('verified_discrepancy_minor', null)
+            ->assertJsonPath('findings.0.expected_minor', null)
+            ->assertJsonPath('findings.0.evidence', []);
+        $this->getJson("/api/v1/stores/{$owner['store']->id}/findings")->assertOk()
+            ->assertJsonPath('data.0.money_amounts_hidden', true)
+            ->assertJsonPath('data.0.expected_minor', null);
+        $this->getJson("/api/v1/orders/{$finding->order_id}")->assertOk()
+            ->assertJsonPath('findings.0.expected_minor', null);
+
+        $this->actingAs($owner['user'])->withSession(['active_tenant_id' => $owner['tenant']->id])
+            ->getJson("/api/v1/incidents/{$incidentId}")->assertOk()
+            ->assertJsonPath('findings.0.expected_minor', '18400');
+
+        $this->patchJson('/api/v1/money-visibility', ['show_money_amounts_to_team' => true])->assertOk();
+        $this->actingAs($admin['user'])->withSession(['active_tenant_id' => $owner['tenant']->id])
+            ->getJson("/api/v1/incidents/{$incidentId}")->assertOk()
+            ->assertJsonPath('findings.0.expected_minor', '18400');
     }
 
     public function test_user_cannot_read_or_act_on_a_foreign_tenant_incident(): void

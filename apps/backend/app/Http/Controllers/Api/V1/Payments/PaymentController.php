@@ -14,8 +14,10 @@ use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
 use App\Models\RefundAllocation;
 use App\Support\Billing\HistoryWindow;
+use App\Support\Tenancy\MoneyAmountVisibility;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
@@ -27,7 +29,7 @@ class PaymentController extends Controller
         private readonly ReconciliationFindingDto $findingDto,
     ) {}
 
-    public function show(Payment $payment, TenantContext $tenantContext): JsonResponse
+    public function show(Request $request, Payment $payment, TenantContext $tenantContext): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('read payment');
 
@@ -56,7 +58,7 @@ class PaymentController extends Controller
             ->values();
 
         return response()->json(array_merge($this->paymentDto->toArray($payment), [
-            'findings' => $this->findingDto->collection($latestFindings),
+            'findings' => $this->findingDto->collection($latestFindings, app(MoneyAmountVisibility::class)->allows($request, $tenantId)),
             'transactions' => $transactions->map(fn (FinancialTransaction $t): array => $this->transactionDto->toArray($t))->all(),
             'allocations' => $allocations->map(fn (PaymentAllocation $a): array => $this->paymentAllocationDto->toArray($a))->all(),
             'refund_allocations' => $refundAllocations->map(fn (RefundAllocation $a): array => $this->refundAllocationDto->toArray($a))->all(),

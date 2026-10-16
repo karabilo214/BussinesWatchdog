@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { createExport, openExportDownload } from '@/api/exports';
+import { getMoneyVisibility } from '@/api/account';
 import { listIncidents } from '@/api/incidents';
 import { listStores } from '@/api/stores';
 import type { Incident, IncidentSeverity, IncidentState, Store } from '@/api/types';
@@ -26,6 +27,7 @@ const error = ref<unknown>(null);
 const exporting = ref(false);
 const exportError = ref<unknown>(null);
 const exportNotice = ref<string | null>(null);
+const canExportAmounts = ref(false);
 
 const tab = computed<Tab>(() => (route.query.tab === 'resolved' ? 'resolved' : 'active'));
 const storeId = computed(() => (typeof route.query.store === 'string' ? route.query.store : ''));
@@ -110,6 +112,10 @@ listStores()
   })
   .catch(() => undefined);
 
+getMoneyVisibility()
+  .then((visibility) => { canExportAmounts.value = visibility.can_view_money_amounts; })
+  .catch(() => undefined);
+
 watch([tab, storeId, severity], () => load(), { immediate: true });
 </script>
 
@@ -138,6 +144,7 @@ watch([tab, storeId, severity], () => load(), { immediate: true });
             </button>
           </div>
           <button
+            v-if="canExportAmounts"
             type="button"
             class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
             :disabled="exporting || storeId === ''"

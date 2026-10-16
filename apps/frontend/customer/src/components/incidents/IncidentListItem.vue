@@ -29,6 +29,7 @@ const amount = computed(() => discrepancy(props.incident));
     </div>
     <div class="flex shrink-0 flex-col gap-1 text-[13px] text-text-muted sm:items-end">
       <span v-if="amount" class="font-mono text-sm font-medium text-text" data-amount>{{ $t('incident.discrepancy_short', { amount }) }}</span>
+      <span v-else-if="incident.money_amounts_hidden && incident.family === 'money'">{{ $t('money_visibility.hidden_amount') }}</span>
       <span>{{ $t('incident.last_seen', { time: dateTime(incident.last_seen_at) }) }}</span>
       <span v-if="incident.resolved_at">{{ $t('incident.resolved_at', { time: dateTime(incident.resolved_at) }) }}</span>
     </div>

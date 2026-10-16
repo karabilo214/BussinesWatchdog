@@ -1316,6 +1316,12 @@
       "code_or_recovery": "App code or recovery code"
     }
   },
+  "money_visibility": {
+    "title": "Money amounts",
+    "description": "Choose whether other team members can see discrepancy amounts in the overview, incidents and findings.",
+    "show_to_team": "Show discrepancy amounts to the team",
+    "hidden_amount": "Hidden by the team owner"
+  },
   "team": {
     "members": "Members",
     "roles_hint": "The owner and admins manage the team; operators handle incidents and reconciliation; viewers only look.",

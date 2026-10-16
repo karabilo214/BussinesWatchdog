@@ -39,9 +39,9 @@ const { amount } = useIncidentText();
             </RouterLink>
             <span v-else class="text-text-muted">{{ $t('incident.evidence.no_order') }}</span>
           </td>
-          <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ amount(finding.expected_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown') }}</td>
-          <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ amount(finding.actual_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown') }}</td>
-          <td class="py-2 text-right font-mono whitespace-nowrap">{{ amount(finding.difference_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown') }}</td>
+          <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ finding.money_amounts_hidden ? $t('money_visibility.hidden_amount') : (amount(finding.expected_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown')) }}</td>
+          <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ finding.money_amounts_hidden ? $t('money_visibility.hidden_amount') : (amount(finding.actual_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown')) }}</td>
+          <td class="py-2 text-right font-mono whitespace-nowrap">{{ finding.money_amounts_hidden ? $t('money_visibility.hidden_amount') : (amount(finding.difference_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown')) }}</td>
         </tr>
       </tbody>
     </table>

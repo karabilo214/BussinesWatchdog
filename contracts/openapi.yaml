@@ -2664,6 +2664,46 @@ paths:
                     items: {enum: [admin, operator, viewer]}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
+  /api/v1/money-visibility:
+    get:
+      tags: [Team]
+      operationId: getMoneyVisibility
+      description: "ADR 0018: current team setting and effective visibility for this member. Owner always sees discrepancy amounts."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Money visibility setting
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MoneyVisibility"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+    patch:
+      tags: [Team]
+      operationId: updateMoneyVisibility
+      description: "Tenant owner only. Audited; existing exports are checked again at download time."
+      security:
+        - {UserSession: []}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [show_money_amounts_to_team]
+              properties:
+                show_money_amounts_to_team: {type: boolean}
+      responses:
+        "200":
+          description: Updated setting
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MoneyVisibility"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/memberships/{user_id}:
     patch:
       tags: [Team]
@@ -4495,7 +4535,7 @@ paths:
     get:
       tags: [Incidents]
       operationId: getOverview
-      description: "Tenant summary for the dashboard (ADR 0018). Discrepancies are verified amounts of active money incidents, summed per currency and component only; incidents without a verified amount are counted separately. Not a loss figure."
+      description: "Tenant summary for the dashboard (ADR 0018). Discrepancies are verified amounts of active money incidents, summed per currency and component only; incidents without a verified amount are counted separately. Not a loss figure. When the owner hides amounts from the team, total_minor is null."
       security:
         - {UserSession: []}
       responses:
@@ -4505,7 +4545,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [incidents, discrepancies, unknown_amount_incidents, recent_checks]
+                required: [incidents, discrepancies, unknown_amount_incidents, money_amounts_hidden, recent_checks]
                 properties:
                   incidents:
                     type: object
@@ -4532,9 +4572,13 @@ paths:
                         currency: {type: string, pattern: "^[A-Z]{3}$"}
                         currency_exponent: {type: [integer, "null"]}
                         component: {type: string}
-                        total_minor: {$ref: "#/components/schemas/MoneyMinor"}
+                        total_minor:
+                          oneOf:
+                            - {$ref: "#/components/schemas/MoneyMinor"}
+                            - {type: "null"}
                         incident_count: {type: integer}
                   unknown_amount_incidents: {type: integer}
+                  money_amounts_hidden: {type: boolean}
                   recent_checks:
                     type: array
                     maxItems: 5
@@ -6251,6 +6295,7 @@ components:
           oneOf:
             - {$ref: "#/components/schemas/MoneyMinor"}
             - {type: "null"}
+        money_amounts_hidden: {type: boolean, description: "When true, finding amounts are null and evidence is empty."}
         evidence: {type: object}
         evaluated_at: {type: string, format: date-time}
         order_display_number: {type: [string, "null"], description: "Store order number; present in finding lists and incident details."}
@@ -6429,6 +6474,12 @@ components:
               currency: {type: string, pattern: "^[A-Z]{3}$"}
               currency_exponent: {type: integer}
               mode: {type: [string, "null"]}
+    MoneyVisibility:
+      type: object
+      required: [show_money_amounts_to_team, can_view_money_amounts]
+      properties:
+        show_money_amounts_to_team: {type: boolean}
+        can_view_money_amounts: {type: boolean}
     TeamMember:
       type: object
       required: [user_id, tenant_id, role, is_you]
@@ -6485,6 +6536,7 @@ components:
           oneOf:
             - {$ref: "#/components/schemas/MoneyMinor"}
             - {type: "null"}
+        money_amounts_hidden: {type: boolean}
         first_seen_at: {type: string, format: date-time}
         last_seen_at: {type: string, format: date-time}
         last_good_at: {type: [string, "null"], format: date-time}

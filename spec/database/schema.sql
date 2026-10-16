@@ -25,6 +25,7 @@ CREATE TABLE tenants (
  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','suspended','deleting','deleted')),
  locale text NOT NULL DEFAULT 'ru',
  timezone text NOT NULL DEFAULT 'Europe/Kyiv',
+ show_money_amounts_to_team boolean NOT NULL DEFAULT true,
  config_version bigint NOT NULL DEFAULT 1 CHECK (config_version > 0),
  created_at timestamptz NOT NULL DEFAULT now(),
  updated_at timestamptz NOT NULL DEFAULT now()

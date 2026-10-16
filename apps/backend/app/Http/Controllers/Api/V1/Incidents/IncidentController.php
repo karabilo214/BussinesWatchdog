@@ -22,6 +22,7 @@ use App\Models\Suppression;
 use App\Support\Api\UuidCursor;
 use App\Support\Billing\HistoryWindow;
 use App\Support\Incidents\IncidentLifecycleService;
+use App\Support\Tenancy\MoneyAmountVisibility;
 use App\Support\Tenancy\TenantContext;
 use DateTimeImmutable;
 use Illuminate\Http\JsonResponse;
@@ -87,14 +88,15 @@ class IncidentController extends Controller
             : null;
 
         return response()->json([
-            'data' => $this->incidentDto->collection($items),
+            'data' => $this->incidentDto->collection($items, app(MoneyAmountVisibility::class)->allows($request, $tenantId)),
             'next_cursor' => $nextCursor,
         ]);
     }
 
-    public function show(Incident $incident, TenantContext $tenantContext): JsonResponse
+    public function show(Request $request, Incident $incident, TenantContext $tenantContext): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('read incident');
+        $showMoneyAmounts = app(MoneyAmountVisibility::class)->allows($request, $tenantId);
 
         abort_unless($incident->tenant_id === $tenantId, 404);
         $cutoff = app(HistoryWindow::class)->cutoff($tenantId);
@@ -124,11 +126,11 @@ class IncidentController extends Controller
             ->whereIn('id', $findings->pluck('order_id')->filter()->unique()->values())
             ->pluck('display_number', 'id');
 
-        return response()->json(array_merge($this->incidentDto->toArray($incident), [
+        return response()->json(array_merge($this->incidentDto->toArray($incident, null, $showMoneyAmounts), [
             'signals' => $this->signalDto->collection($signals),
             'findings' => $findings
                 ->map(fn (ReconciliationFinding $finding): array => [
-                    ...$this->findingDto->toArray($finding),
+                    ...$this->findingDto->toArray($finding, $showMoneyAmounts),
                     'order_display_number' => $finding->order_id === null ? null : ($orderNumbers[$finding->order_id] ?? null),
                 ])
                 ->values()
@@ -150,7 +152,7 @@ class IncidentController extends Controller
             return $this->rejectedResponse($exception);
         }
 
-        return response()->json($this->incidentDto->toArray($acknowledged))->setEtag((string) $acknowledged->revision);
+        return response()->json($this->incidentDto->toArray($acknowledged, null, app(MoneyAmountVisibility::class)->allows($request, $tenantId)))->setEtag((string) $acknowledged->revision);
     }
 
     public function resolve(ResolveIncidentRequest $request, Incident $incident, TenantContext $tenantContext): JsonResponse
@@ -165,7 +167,7 @@ class IncidentController extends Controller
             return $this->rejectedResponse($exception);
         }
 
-        return response()->json($this->incidentDto->toArray($resolved))->setEtag((string) $resolved->revision);
+        return response()->json($this->incidentDto->toArray($resolved, null, app(MoneyAmountVisibility::class)->allows($request, $tenantId)))->setEtag((string) $resolved->revision);
     }
 
     public function comment(CommentIncidentRequest $request, Incident $incident, TenantContext $tenantContext): JsonResponse

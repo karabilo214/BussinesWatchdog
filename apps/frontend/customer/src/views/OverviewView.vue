@@ -113,7 +113,7 @@ onMounted(load);
             <ul v-else class="flex flex-col gap-1 text-sm">
               <li v-for="row in overview.discrepancies" :key="`${row.currency}-${row.component}`" class="flex flex-wrap items-baseline justify-between gap-x-3" :data-discrepancy="`${row.currency}-${row.component}`">
                 <span class="text-text-muted">{{ $te(componentLabel(row.component)) ? $t(componentLabel(row.component)) : row.component }}</span>
-                <span class="font-mono font-semibold">{{ amount(row.total_minor, row.currency, row.currency_exponent) ?? `${row.total_minor} ${row.currency} (${$t('overview.tiles.minor_units')})` }}</span>
+                <span class="font-mono font-semibold">{{ overview.money_amounts_hidden ? $t('money_visibility.hidden_amount') : (amount(row.total_minor, row.currency, row.currency_exponent) ?? `${row.total_minor} ${row.currency} (${$t('overview.tiles.minor_units')})`) }}</span>
               </li>
               <li v-if="overview.unknown_amount_incidents" class="text-[13px] text-text-muted">{{ $t('overview.tiles.unknown_amounts', { n: overview.unknown_amount_incidents }) }}</li>
             </ul>

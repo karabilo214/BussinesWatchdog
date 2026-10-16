@@ -8,8 +8,10 @@ use App\Http\Dto\Incidents\IncidentDto;
 use App\Models\CheckRun;
 use App\Models\Incident;
 use App\Models\ReconciliationFinding;
+use App\Support\Tenancy\MoneyAmountVisibility;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class OverviewController extends Controller
 {
@@ -22,9 +24,10 @@ class OverviewController extends Controller
         private readonly CheckDto $checkDto,
     ) {}
 
-    public function show(TenantContext $tenantContext): JsonResponse
+    public function show(Request $request, TenantContext $tenantContext, MoneyAmountVisibility $visibility): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('read overview');
+        $showMoneyAmounts = $visibility->allows($request, $tenantId);
 
         $active = Incident::query()->where('tenant_id', $tenantId)->whereIn('state', self::ACTIVE_STATES);
         $bySeverity = (clone $active)->selectRaw('severity, COUNT(*) AS total')->groupBy('severity')->pluck('total', 'severity');
@@ -39,9 +42,11 @@ class OverviewController extends Controller
                 ],
                 'latest' => $this->incidentDto->collection(
                     (clone $active)->orderByDesc('last_seen_at')->orderByDesc('id')->limit(self::LATEST_LIMIT)->get(),
+                    $showMoneyAmounts,
                 ),
             ],
-            ...$this->discrepancies($tenantId),
+            ...$this->discrepancies($tenantId, $showMoneyAmounts),
+            'money_amounts_hidden' => ! $showMoneyAmounts,
             'recent_checks' => CheckRun::query()
                 ->where('tenant_id', $tenantId)
                 ->whereNotNull('finished_at')
@@ -61,7 +66,7 @@ class OverviewController extends Controller
      *
      * @return array{discrepancies: list<array<string, mixed>>, unknown_amount_incidents: int}
      */
-    private function discrepancies(string $tenantId): array
+    private function discrepancies(string $tenantId, bool $showMoneyAmounts): array
     {
         $money = Incident::query()
             ->where('tenant_id', $tenantId)
@@ -89,7 +94,7 @@ class OverviewController extends Controller
                 'currency' => $row->currency,
                 'currency_exponent' => isset($exponents[$row->currency]) ? (int) $exponents[$row->currency] : null,
                 'component' => $row->component,
-                'total_minor' => $this->minorString($row->total_minor),
+                'total_minor' => $showMoneyAmounts ? $this->minorString($row->total_minor) : null,
                 'incident_count' => (int) $row->incident_count,
             ])->values()->all(),
             'unknown_amount_incidents' => (clone $money)

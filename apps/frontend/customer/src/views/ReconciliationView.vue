@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { createExport, openExportDownload } from '@/api/exports';
+import { getMoneyVisibility } from '@/api/account';
 import { recheckMoney } from '@/api/incidents';
 import { listFindings } from '@/api/reconciliation';
 import { listStores } from '@/api/stores';
@@ -33,6 +34,7 @@ const scanDone = ref(false);
 const exporting = ref(false);
 const exportError = ref<unknown>(null);
 const exportNotice = ref<string | null>(null);
+const canExportAmounts = ref(false);
 const unmatchedKey = ref(0);
 
 function param(name: string): string {
@@ -57,6 +59,10 @@ const from = computed(() => (/^\d{4}-\d{2}-\d{2}$/.test(param('from')) ? param('
 const to = computed(() => (/^\d{4}-\d{2}-\d{2}$/.test(param('to')) ? param('to') : ''));
 const currencyOptions = computed(() => currencies(...stores.value.map((item) => item.default_currency)));
 const moneyCovered = computed(() => store.value?.coverage.money.state === 'reconciling');
+
+getMoneyVisibility()
+  .then((visibility) => { canExportAmounts.value = visibility.can_view_money_amounts; })
+  .catch(() => undefined);
 
 function setQuery(changes: Record<string, string>): void {
   const query: Record<string, string> = {};
@@ -235,7 +241,7 @@ watch([storeId, tab, history, status, rule, currency, from, to], () => loadFindi
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button
-              v-if="tab === 'findings'"
+              v-if="tab === 'findings' && canExportAmounts"
               type="button"
               class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
               :disabled="exporting"

@@ -7,6 +7,7 @@ use App\Http\Requests\Exports\CreateExportRequest;
 use App\Models\ExportFile;
 use App\Models\Store;
 use App\Support\Exports\CsvExportService;
+use App\Support\Tenancy\MoneyAmountVisibility;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class ExportController extends Controller
         abort_unless($store->tenant_id === $tenantId, 404);
 
         $validated = $request->validated();
+        $this->authorizeMoneyExport($request, $tenantId, $validated['kind']);
         $export = $exports->create(
             $store,
             $tenantId,
@@ -33,20 +35,22 @@ class ExportController extends Controller
         return response()->json($this->dto($export), 202);
     }
 
-    public function show(ExportFile $export, TenantContext $tenantContext): JsonResponse
+    public function show(Request $request, ExportFile $export, TenantContext $tenantContext): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('read export');
 
         abort_unless($export->tenant_id === $tenantId, 404);
+        $this->authorizeMoneyExport($request, $tenantId, $export->kind);
 
         return response()->json($this->dto($export));
     }
 
-    public function download(ExportFile $export, TenantContext $tenantContext, CsvExportService $exports): StreamedResponse
+    public function download(Request $request, ExportFile $export, TenantContext $tenantContext, CsvExportService $exports): StreamedResponse
     {
         $tenantId = $tenantContext->requireTenantId('download export');
 
         abort_unless($export->tenant_id === $tenantId, 404);
+        $this->authorizeMoneyExport($request, $tenantId, $export->kind);
         abort_unless($this->isDownloadable($export), 404);
 
         return response()->streamDownload(
@@ -87,5 +91,12 @@ class ExportController extends Controller
         return $export->state === ExportFile::STATE_READY
             && $export->object_key !== null
             && ($export->expires_at === null || $export->expires_at->isFuture());
+    }
+
+    private function authorizeMoneyExport(Request $request, string $tenantId, string $kind): void
+    {
+        if (in_array($kind, [ExportFile::KIND_FINDINGS, ExportFile::KIND_INCIDENTS], true)) {
+            abort_unless(app(MoneyAmountVisibility::class)->allows($request, $tenantId), 403);
+        }
     }
 }

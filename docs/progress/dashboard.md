@@ -186,3 +186,13 @@ Status: complete
 - Owner's backlog item. The «Business Watchdog» logo in the account header and on the sign-in/registration pages is now a plain link to the public site home in the current interface language (`/ru`, `/en`, `/de` on the same origin as `/app`) instead of the account overview.
 
 Verification: `tests/maintenance.test.ts` +1 (logo href follows the language). Customer 115 tests; frontend check green. Backend SQLite 555 passed, 4 skipped (unchanged).
+
+### Step 161: Tenant Owner Controls Discrepancy Amount Visibility (ADR 0018; Spec §7, §24, §25.3, §26; ACC-02)
+
+Status: complete
+
+- The tenant owner can turn off discrepancy amounts for other team roles under Settings → Team. Existing teams keep the prior visible default. `GET/PATCH /api/v1/money-visibility` reports the setting and effective access; only the owner can change it. Every change increments the tenant config version and is recorded in the tenant audit log.
+- The backend masks minor-unit fields in overview totals, incident list/detail/action responses and finding lists/details, including findings embedded in order/payment views. Finding evidence is omitted while amounts are hidden. Counts, status, currency and rule codes remain available; the UI labels masked amounts separately from unknown amounts. Existing and new findings/incident CSV exports are denied to nonowners while the setting is off, including downloads of previously generated files. Platform support views retain their separate permissions.
+- Migration `2026_10_16_130000_add_show_money_amounts_to_tenants.php` adds the boolean tenant setting, default true. Updated `contracts/openapi.yaml`, `contracts/ui-api-catalog.md` and the reference `spec/database/schema.sql`. No event contract changed.
+
+Verification: backend SQLite 592 passed, 4 skipped (596 total); PostgreSQL 18 596/596; customer typecheck, 128/128 tests and build. No live browser smoke. The setting governs discrepancy amounts on the named surfaces; underlying order and provider transaction amounts remain subject to their existing role permissions.

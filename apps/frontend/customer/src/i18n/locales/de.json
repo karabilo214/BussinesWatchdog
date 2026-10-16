@@ -1316,6 +1316,12 @@
       "code_or_recovery": "App-Code oder Wiederherstellungscode"
     }
   },
+  "money_visibility": {
+    "title": "Geldbeträge",
+    "description": "Legen Sie fest, ob andere Teammitglieder Abweichungsbeträge in der Übersicht, bei Vorfällen und Feststellungen sehen können.",
+    "show_to_team": "Abweichungsbeträge für das Team anzeigen",
+    "hidden_amount": "Vom Inhaber des Unternehmens ausgeblendet"
+  },
   "team": {
     "members": "Mitglieder",
     "roles_hint": "Inhaber und Administratoren verwalten das Team; Operatoren bearbeiten Vorfälle und Abgleich; Betrachter sehen nur zu.",

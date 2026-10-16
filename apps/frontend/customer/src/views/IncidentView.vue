@@ -95,7 +95,7 @@ watch(
           <div v-if="incident.family === 'money'" class="flex flex-col gap-0.5">
             <span class="text-[13px] text-text-muted">{{ $t('incident.fields.discrepancy') }}</span>
             <span v-if="amount" class="font-mono text-sm font-medium" data-amount>{{ amount }}</span>
-            <span v-else class="text-sm font-medium">{{ $t('incident.fields.no_amount') }}</span>
+            <span v-else class="text-sm font-medium">{{ $t(incident.money_amounts_hidden ? 'money_visibility.hidden_amount' : 'incident.fields.no_amount') }}</span>
           </div>
           <p v-if="incident.last_good_at && incident.first_bad_at" class="text-[13px] text-text-muted sm:col-span-2 lg:col-span-4">
             {{ $t('incident.fields.window_note') }}

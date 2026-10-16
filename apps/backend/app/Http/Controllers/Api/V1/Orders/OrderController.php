@@ -21,8 +21,10 @@ use App\Models\Refund;
 use App\Models\RefundAllocation;
 use App\Support\Billing\HistoryWindow;
 use App\Support\Reconciliation\ReconciliationResultRecorder;
+use App\Support\Tenancy\MoneyAmountVisibility;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
@@ -36,7 +38,7 @@ class OrderController extends Controller
         private readonly ReconciliationFindingDto $findingDto,
     ) {}
 
-    public function show(Order $order, TenantContext $tenantContext): JsonResponse
+    public function show(Request $request, Order $order, TenantContext $tenantContext): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('read order');
 
@@ -90,7 +92,7 @@ class OrderController extends Controller
             ->get();
 
         return response()->json(array_merge($this->orderDto->toArray($order), [
-            'findings' => $this->findingDto->collection($latestFindings),
+            'findings' => $this->findingDto->collection($latestFindings, app(MoneyAmountVisibility::class)->allows($request, $tenantId)),
             'captures' => $captures->map(fn (FinancialTransaction $t): array => $this->transactionDto->toArray($t))->all(),
             'refunds' => $refunds->map(fn (Refund $r): array => $this->refundDto->toArray($r))->all(),
             'refund_transactions' => $refundTransactions->map(fn (FinancialTransaction $t): array => $this->transactionDto->toArray($t))->all(),

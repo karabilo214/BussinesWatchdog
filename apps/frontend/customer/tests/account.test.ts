@@ -16,6 +16,8 @@ const session = ref<AuthSession | null>(null);
 
 vi.mock('@/api/account', () => ({
   listMembers: vi.fn(),
+  getMoneyVisibility: vi.fn(),
+  updateMoneyVisibility: vi.fn(),
   listInvitations: vi.fn(),
   changeMemberRole: vi.fn(),
   removeMember: vi.fn(),
@@ -73,6 +75,7 @@ async function mountWith(component: object, path: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocked.getMoneyVisibility.mockResolvedValue({ show_money_amounts_to_team: true, can_view_money_amounts: true });
   setLocale('ru');
 });
 
@@ -135,6 +138,24 @@ describe('TeamView', () => {
     await wrapper.get('[data-member="oleg@example.test"]').findAll('button').find((button) => button.text() === 'Удалить')!.trigger('click');
     await flushPromises();
     expect(mocked.removeMember).toHaveBeenCalledWith('u-op');
+  });
+
+  it('lets only the owner change whether the team sees discrepancy amounts', async () => {
+    session.value = sessionFor('owner');
+    mocked.listMembers.mockResolvedValue({ data: members, assignable_roles: ['admin', 'operator', 'viewer'] });
+    mocked.listInvitations.mockResolvedValue([]);
+    mocked.updateMoneyVisibility.mockResolvedValue({ show_money_amounts_to_team: false, can_view_money_amounts: true });
+    const wrapper = await mountWith(TeamView, '/team');
+    await flushPromises();
+
+    await wrapper.get('[data-panel="money-visibility"] input').setValue(false);
+    await flushPromises();
+    expect(mocked.updateMoneyVisibility).toHaveBeenCalledWith(false);
+
+    session.value = sessionFor('admin');
+    const admin = await mountWith(TeamView, '/team');
+    await flushPromises();
+    expect(admin.find('[data-panel="money-visibility"]').exists()).toBe(false);
   });
 });
 

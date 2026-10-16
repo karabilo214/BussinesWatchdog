@@ -26,5 +26,5 @@ Spec §24: the overview shows active incidents, source coverage, the last succes
 ## Owner decision (2026-10-16)
 
 - Totals logic (active incidents only, per currency and per component, labelled "verified discrepancy", unknown amounts counted separately) and the overall state rules are confirmed.
-- Visibility of money amounts to non-owner roles becomes a company setting controlled by the tenant owner (follow-up task).
+- Visibility of money amounts to non-owner roles becomes a company setting controlled by the tenant owner (implemented in Step 161).
 - Test-mode and live incidents must not be combined in totals (follow-up task).

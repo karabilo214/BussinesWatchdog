@@ -16,6 +16,7 @@ use App\Support\Incidents\MoneyIncidentCorrelator;
 use App\Support\Reconciliation\GraceRecheckScheduler;
 use App\Support\Reconciliation\OrderReconciliationService;
 use App\Support\Reconciliation\UnmatchedPaymentScanner;
+use App\Support\Tenancy\MoneyAmountVisibility;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
@@ -86,6 +87,7 @@ class ReconciliationController extends Controller
     public function findings(ListFindingsRequest $request, Store $store, TenantContext $tenantContext): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('list findings');
+        $showMoneyAmounts = app(MoneyAmountVisibility::class)->allows($request, $tenantId);
 
         abort_unless($store->tenant_id === $tenantId, 404);
 
@@ -149,7 +151,7 @@ class ReconciliationController extends Controller
         return response()->json([
             'data' => $items
                 ->map(fn (ReconciliationFinding $finding): array => [
-                    ...$this->findingDto->toArray($finding),
+                    ...$this->findingDto->toArray($finding, $showMoneyAmounts),
                     'order_display_number' => $finding->order_id === null ? null : ($orderNumbers[$finding->order_id] ?? null),
                 ])
                 ->values()

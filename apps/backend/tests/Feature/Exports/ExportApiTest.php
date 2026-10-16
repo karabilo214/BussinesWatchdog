@@ -64,6 +64,31 @@ class ExportApiTest extends TestCase
         $this->assertStringContainsString("'=1001", $csv);
     }
 
+    public function test_hiding_amounts_blocks_new_and_existing_findings_exports_for_team_members(): void
+    {
+        Storage::fake('artifacts');
+        $context = $this->context('viewer');
+        $this->finding($context, '#1001');
+
+        $request = $this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->withHeaders(['Idempotency-Key' => (string) Str::uuid()]);
+        $exportId = $request->postJson("/api/v1/stores/{$context['store']->id}/exports", [
+            'kind' => ExportFile::KIND_FINDINGS,
+            'format' => ExportFile::FORMAT_CSV,
+        ])->assertAccepted()->json('id');
+
+        $context['tenant']->forceFill(['show_money_amounts_to_team' => false])->save();
+
+        $request->getJson("/api/v1/exports/{$exportId}")->assertForbidden();
+        $request->get("/api/v1/exports/{$exportId}/download")->assertForbidden();
+        $request->withHeaders(['Idempotency-Key' => (string) Str::uuid()])
+            ->postJson("/api/v1/stores/{$context['store']->id}/exports", [
+                'kind' => ExportFile::KIND_FINDINGS,
+                'format' => ExportFile::FORMAT_CSV,
+            ])->assertForbidden();
+    }
+
     public function test_incident_export_is_scoped_to_the_active_tenant_and_store(): void
     {
         Storage::fake('artifacts');

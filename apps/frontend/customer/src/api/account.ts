@@ -25,6 +25,19 @@ export async function listMembers(): Promise<{ data: TeamMember[]; assignable_ro
   return (await request<{ data: TeamMember[]; assignable_roles: Exclude<TeamRole, 'owner'>[] }>('GET', '/api/v1/memberships')).data;
 }
 
+export interface MoneyVisibility {
+  show_money_amounts_to_team: boolean;
+  can_view_money_amounts: boolean;
+}
+
+export async function getMoneyVisibility(): Promise<MoneyVisibility> {
+  return (await request<MoneyVisibility>('GET', '/api/v1/money-visibility')).data;
+}
+
+export async function updateMoneyVisibility(enabled: boolean): Promise<MoneyVisibility> {
+  return (await request<MoneyVisibility>('PATCH', '/api/v1/money-visibility', { body: { show_money_amounts_to_team: enabled } })).data;
+}
+
 export async function changeMemberRole(userId: string, role: Exclude<TeamRole, 'owner'>): Promise<TeamMember> {
   return (await request<TeamMember>('PATCH', `/api/v1/memberships/${encodeURIComponent(userId)}`, { body: { role } })).data;
 }
