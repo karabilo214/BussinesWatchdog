@@ -71,6 +71,7 @@ watch(
           <div class="flex flex-wrap items-center gap-2">
             <StatusBadge :tone="SEVERITY_TONES[incident.severity]" :label="$t(`incident.severity.${incident.severity}`)" solid />
             <StatusBadge :tone="STATE_TONES[incident.state]" :label="$t(`incident.state.${incident.state}`)" />
+            <StatusBadge v-if="incident.family === 'money'" tone="note" :label="$t(`financial_mode.${incident.mode ?? 'unknown'}`)" />
             <span class="text-sm text-text-muted">{{ $t(`incident.family.${incident.family}`) }}</span>
           </div>
           <h1 class="text-2xl font-semibold">{{ title(incident.title_code) }}</h1>

@@ -483,6 +483,7 @@ class OrderReconciliationService
             'payment_id' => null,
             'rule_code' => $ruleCode,
             'currency' => $order->currency,
+            'mode' => ($order->metadata['mode_reported'] ?? true) === false ? null : $order->mode,
             'currency_exponent' => $order->currency_exponent,
             'gross_minor' => null,
             'captured_minor' => null,

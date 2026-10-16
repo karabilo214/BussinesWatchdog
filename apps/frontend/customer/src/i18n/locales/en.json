@@ -3,6 +3,7 @@
     "name": "Business Watchdog",
     "tagline": "Monitoring for store sales and payments"
   },
+  "financial_mode": {"live": "Live mode", "test": "Test mode", "unknown": "Mode unverified"},
   "nav": {
     "main": "Main navigation",
     "overview": "Overview",
@@ -105,7 +106,7 @@
       "discrepancies": "Verified discrepancies",
       "no_discrepancies": "No discrepancies in active incidents.",
       "unknown_amounts": "Incidents without a verified amount: {n}",
-      "discrepancies_note": "Differences found by reconciliation, not losses. Currencies and kinds are never added up.",
+      "discrepancies_note": "Differences found by reconciliation, not losses. Modes, currencies and kinds are never added up.",
       "minor_units": "in minor units",
       "last_check": "Last successful checkout check",
       "uncovered": "Stores with incomplete coverage: {n}",

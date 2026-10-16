@@ -72,7 +72,7 @@ class MoneyIncidentCorrelator
         return DB::transaction(function () use ($finding): Incident {
             $entityId = $finding->order_id ?? $finding->payment_id;
             $component = $this->component($finding->rule_code);
-            $fingerprint = $this->fingerprint($component, $entityId);
+            $fingerprint = $this->fingerprint($component, $entityId, $finding->mode);
             $now = $finding->evaluated_at ?? Carbon::now();
             $notificationKind = null;
 
@@ -114,6 +114,7 @@ class MoneyIncidentCorrelator
                     'severity' => Incident::SEVERITY_WARNING,
                     'title_code' => $finding->rule_code,
                     'currency' => $finding->currency,
+                    'mode' => $finding->mode,
                     'verified_discrepancy_minor' => $this->verifiedDiscrepancy($finding),
                     'first_seen_at' => $now,
                     'last_seen_at' => $now,
@@ -155,7 +156,7 @@ class MoneyIncidentCorrelator
             return null;
         }
 
-        $fingerprint = $this->fingerprint($this->component($finding->rule_code), $entityId);
+        $fingerprint = $this->fingerprint($this->component($finding->rule_code), $entityId, $finding->mode);
 
         return DB::transaction(function () use ($finding, $fingerprint): ?Incident {
             $incident = Incident::query()
@@ -279,9 +280,9 @@ class MoneyIncidentCorrelator
         return $finding->difference_minor === null ? null : abs($finding->difference_minor);
     }
 
-    private function fingerprint(string $component, ?string $entityId): string
+    private function fingerprint(string $component, ?string $entityId, ?string $mode): string
     {
-        return hash('sha256', implode('|', [self::FAMILY, $component, $entityId ?? 'none']));
+        return hash('sha256', implode('|', [self::FAMILY, $component, $entityId ?? 'none', $mode ?? 'unknown']));
     }
 
     private function component(string $ruleCode): string

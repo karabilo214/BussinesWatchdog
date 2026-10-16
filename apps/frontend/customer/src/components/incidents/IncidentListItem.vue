@@ -19,6 +19,7 @@ const amount = computed(() => discrepancy(props.incident));
       <div class="flex flex-wrap items-center gap-2">
         <StatusBadge :tone="SEVERITY_TONES[incident.severity]" :label="$t(`incident.severity.${incident.severity}`)" />
         <StatusBadge :tone="STATE_TONES[incident.state]" :label="$t(`incident.state.${incident.state}`)" />
+        <StatusBadge v-if="incident.family === 'money'" tone="note" :label="$t(`financial_mode.${incident.mode ?? 'unknown'}`)" />
       </div>
       <RouterLink :to="{ name: 'incident', params: { id: incident.id } }" class="font-medium hover:text-primary hover:underline">
         {{ title(incident.title_code) }}

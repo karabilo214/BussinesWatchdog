@@ -233,7 +233,7 @@ class IncidentApiTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_overview_sums_verified_discrepancies_per_currency_and_component_only(): void
+    public function test_overview_sums_verified_discrepancies_per_mode_currency_and_component_only(): void
     {
         $context = $this->context('admin');
         $real = Incident::query()->findOrFail($this->triggerIncident($context));
@@ -254,7 +254,8 @@ class IncidentApiTest extends TestCase
                 'updated_at' => now(),
             ], $attributes));
         };
-        $make(['currency' => 'EUR', 'verified_discrepancy_minor' => 9000000000000000000]);
+        $make(['currency' => 'EUR', 'mode' => 'live', 'verified_discrepancy_minor' => 9000000000000000000]);
+        $make(['currency' => 'EUR', 'mode' => 'test', 'verified_discrepancy_minor' => 42]);
         $make(['currency' => 'EUR', 'verified_discrepancy_minor' => 500, 'component' => 'refund', 'state' => 'acknowledged', 'title_code' => 'MONEY_REFUND_MISSING']);
         $make(['currency' => 'USD', 'verified_discrepancy_minor' => 1000]);
         $make(['currency' => null, 'verified_discrepancy_minor' => null]);
@@ -273,21 +274,22 @@ class IncidentApiTest extends TestCase
             ->withSession(['active_tenant_id' => $context['tenant']->id])
             ->getJson('/api/v1/overview')
             ->assertOk()
-            ->assertJsonPath('incidents.active', 6)
+            ->assertJsonPath('incidents.active', 7)
             ->assertJsonPath('incidents.by_severity.critical', 1)
-            ->assertJsonPath('incidents.by_severity.warning', 5)
+            ->assertJsonPath('incidents.by_severity.warning', 6)
             ->assertJsonCount(5, 'incidents.latest')
             ->assertJsonPath('unknown_amount_incidents', 1);
 
-        $groups = collect($response->json('discrepancies'))->keyBy(fn (array $row): string => $row['currency'].'/'.$row['component']);
+        $groups = collect($response->json('discrepancies'))->keyBy(fn (array $row): string => ($row['mode'] ?? 'unknown').'/'.$row['currency'].'/'.$row['component']);
 
-        $this->assertSame(['EUR/capture', 'EUR/refund', 'USD/capture'], $groups->keys()->sort()->values()->all());
-        $this->assertSame(bcadd('9000000000000000000', (string) $real->verified_discrepancy_minor), $groups['EUR/capture']['total_minor']);
-        $this->assertSame(2, $groups['EUR/capture']['incident_count']);
-        $this->assertSame(2, $groups['EUR/capture']['currency_exponent']);
-        $this->assertSame('500', $groups['EUR/refund']['total_minor']);
-        $this->assertSame('1000', $groups['USD/capture']['total_minor']);
-        $this->assertNull($groups['USD/capture']['currency_exponent']);
+        $this->assertSame(['live/EUR/capture', 'test/EUR/capture', 'unknown/EUR/refund', 'unknown/USD/capture'], $groups->keys()->sort()->values()->all());
+        $this->assertSame(bcadd('9000000000000000000', (string) $real->verified_discrepancy_minor), $groups['live/EUR/capture']['total_minor']);
+        $this->assertSame(2, $groups['live/EUR/capture']['incident_count']);
+        $this->assertSame('2', (string) $groups['live/EUR/capture']['currency_exponent']);
+        $this->assertSame('42', $groups['test/EUR/capture']['total_minor']);
+        $this->assertSame('500', $groups['unknown/EUR/refund']['total_minor']);
+        $this->assertSame('1000', $groups['unknown/USD/capture']['total_minor']);
+        $this->assertNull($groups['unknown/USD/capture']['currency_exponent']);
     }
 
     public function test_owner_can_hide_discrepancy_amounts_from_other_team_roles_at_the_api_boundary(): void

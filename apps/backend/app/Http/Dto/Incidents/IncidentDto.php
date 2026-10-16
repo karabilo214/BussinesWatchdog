@@ -26,6 +26,7 @@ class IncidentDto
             'severity' => $incident->severity,
             'title_code' => $incident->title_code,
             'currency' => $incident->currency,
+            'mode' => $incident->mode,
             'currency_exponent' => $currencyExponent,
             'verified_discrepancy_minor' => ! $showMoneyAmounts || $incident->verified_discrepancy_minor === null
                 ? null

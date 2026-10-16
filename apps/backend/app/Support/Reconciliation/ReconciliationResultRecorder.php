@@ -30,7 +30,7 @@ class ReconciliationResultRecorder
         ReconciliationFinding::STATUS_MISMATCH => 4,
     ];
 
-    private const HASHED = ['rule_code', 'status', 'reason_code', 'order_id', 'payment_id', 'currency', 'currency_exponent', 'expected_minor', 'actual_minor', 'difference_minor', 'gross_minor', 'captured_minor', 'refund_expected_minor', 'refund_actual_minor', 'evidence'];
+    private const HASHED = ['rule_code', 'status', 'reason_code', 'order_id', 'payment_id', 'mode', 'currency', 'currency_exponent', 'expected_minor', 'actual_minor', 'difference_minor', 'gross_minor', 'captured_minor', 'refund_expected_minor', 'refund_actual_minor', 'evidence'];
 
     /**
      * @param  array<string, mixed>  $run  attributes of the run (without status, counters, finished_at)

@@ -197,6 +197,7 @@ export interface Incident {
   severity: IncidentSeverity;
   title_code: string;
   currency: string | null;
+  mode: 'live' | 'test' | null;
   currency_exponent: number | null;
   verified_discrepancy_minor: string | null;
   money_amounts_hidden?: boolean;
@@ -237,6 +238,7 @@ export interface Finding {
   status: FindingStatus;
   reason_code: string | null;
   currency: string | null;
+  mode: 'live' | 'test' | null;
   currency_exponent: number | null;
   expected_minor: string | null;
   actual_minor: string | null;
@@ -565,7 +567,7 @@ export interface NotificationDelivery {
 
 export interface Overview {
   incidents: { active: number; by_severity: Record<IncidentSeverity, number>; latest: Incident[] };
-  discrepancies: { currency: string; currency_exponent: number | null; component: string; total_minor: string | null; incident_count: number }[];
+  discrepancies: { mode: 'live' | 'test' | null; currency: string; currency_exponent: number | null; component: string; total_minor: string | null; incident_count: number }[];
   unknown_amount_incidents: number;
   money_amounts_hidden?: boolean;
   recent_checks: CheckRunSummary[];

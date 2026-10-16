@@ -21,6 +21,7 @@ class ReconciliationFindingDto
             'status' => $finding->status,
             'reason_code' => $finding->reason_code,
             'currency' => $finding->currency,
+            'mode' => $finding->mode,
             'currency_exponent' => $finding->currency_exponent,
             'expected_minor' => $showMoneyAmounts ? $this->moneyOrNull($finding->expected_minor) : null,
             'actual_minor' => $showMoneyAmounts ? $this->moneyOrNull($finding->actual_minor) : null,

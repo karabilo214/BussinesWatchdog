@@ -47,9 +47,9 @@ describe('OverviewView', () => {
     vi.mocked(overviewApi.getOverview).mockResolvedValue({
       incidents: { active: 3, by_severity: { critical: 1, warning: 2, info: 0 }, latest: [] },
       discrepancies: [
-        { currency: 'EUR', currency_exponent: 2, component: 'capture', total_minor: '26100', incident_count: 2 },
-        { currency: 'EUR', currency_exponent: 2, component: 'refund', total_minor: '500', incident_count: 1 },
-        { currency: 'USD', currency_exponent: null, component: 'capture', total_minor: '1000', incident_count: 1 },
+        { mode: 'live', currency: 'EUR', currency_exponent: 2, component: 'capture', total_minor: '26100', incident_count: 2 },
+        { mode: 'test', currency: 'EUR', currency_exponent: 2, component: 'refund', total_minor: '500', incident_count: 1 },
+        { mode: null, currency: 'USD', currency_exponent: null, component: 'capture', total_minor: '1000', incident_count: 1 },
       ],
       unknown_amount_incidents: 1,
       recent_checks: [],
@@ -59,9 +59,10 @@ describe('OverviewView', () => {
     await flushPromises();
 
     expect(wrapper.get('[data-verdict]').attributes('data-verdict')).toBe('problems');
-    expect(wrapper.get('[data-discrepancy="EUR-capture"]').text()).toContain('261,00');
-    expect(wrapper.get('[data-discrepancy="EUR-refund"]').text()).toContain('5,00');
-    expect(wrapper.get('[data-discrepancy="USD-capture"]').text()).toContain('1000 USD');
+    expect(wrapper.get('[data-discrepancy="live-EUR-capture"]').text()).toContain('261,00');
+    expect(wrapper.get('[data-discrepancy="test-EUR-refund"]').text()).toContain('5,00');
+    expect(wrapper.get('[data-discrepancy="unknown-USD-capture"]').text()).toContain('1000 USD');
+    expect(wrapper.get('[data-discrepancy="test-EUR-refund"]').text()).toContain('Тестовый режим');
     expect(wrapper.text()).not.toContain('266,00');
     expect(wrapper.text()).toContain('Инцидентов без подтверждённой суммы: 1');
     expect(wrapper.text()).toContain('не потери');

@@ -81,7 +81,10 @@ class UnmatchedPaymentScanner
                 ->whereIn('provider', [WooCommerceApiConnector::PROVIDER])
                 ->whereIn('status', [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED])
                 ->exists();
-            $testPayments = $modeNeedsPlugin ? Payment::query()->whereIn('id', $orphanCaptures->pluck('payment_id')->filter())->where('mode', 'test')->pluck('id')->flip() : collect();
+            $testPayments = $modeNeedsPlugin ? Payment::query()->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)
+                ->whereIn('id', $orphanCaptures->pluck('payment_id')->filter())->where('mode', 'test')->pluck('id')->flip() : collect();
+            $paymentModes = Payment::query()->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)
+                ->whereIn('id', $orphanCaptures->pluck('payment_id')->filter())->pluck('mode', 'id');
 
             $findings = [];
 
@@ -96,6 +99,7 @@ class UnmatchedPaymentScanner
                     'status' => $unknownMode ? ReconciliationFinding::STATUS_UNKNOWN : ReconciliationFinding::STATUS_PENDING,
                     'reason_code' => $unknownMode ? ProviderCoverage::REASON_MODE_NEEDS_PLUGIN : 'unmatched_capture_awaiting_review',
                     'currency' => $capture->currency,
+                    'mode' => $paymentModes[$capture->payment_id] ?? null,
                     'currency_exponent' => $capture->currency_exponent,
                     'actual_minor' => $capture->amount_minor,
                     'evidence' => [

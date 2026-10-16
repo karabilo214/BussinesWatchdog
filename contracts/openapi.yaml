@@ -4567,8 +4567,9 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [currency, component, total_minor, incident_count]
+                      required: [mode, currency, component, total_minor, incident_count]
                       properties:
+                        mode: {type: [string, "null"], enum: [live, test, null], description: "Provider mode; null means unverified. Amounts are never combined across modes."}
                         currency: {type: string, pattern: "^[A-Z]{3}$"}
                         currency_exponent: {type: [integer, "null"]}
                         component: {type: string}
@@ -6266,6 +6267,7 @@ components:
         status: {enum: [ok, pending, mismatch, unsupported, unknown]}
         reason_code: {type: [string, "null"]}
         currency: {type: [string, "null"], pattern: "^[A-Z]{3}$"}
+        mode: {type: [string, "null"], enum: [live, test, null]}
         currency_exponent: {type: [integer, "null"]}
         expected_minor:
           oneOf:
@@ -6531,6 +6533,7 @@ components:
         severity: {enum: [info, warning, critical]}
         title_code: {type: string, description: Stable code; the UI translates it (ru/en/de).}
         currency: {type: [string, "null"], pattern: "^[A-Z]{3}$"}
+        mode: {type: [string, "null"], enum: [live, test, null], description: "Financial mode; null when unverified or not applicable."}
         currency_exponent: {type: [integer, "null"], minimum: 0, description: "Exponent of verified_discrepancy_minor, from the linked reconciliation finding; null when unknown."}
         verified_discrepancy_minor:
           oneOf:

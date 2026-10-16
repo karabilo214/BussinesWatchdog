@@ -75,6 +75,37 @@ class MoneyIncidentCorrelatorTest extends TestCase
         ]);
     }
 
+    public function test_same_order_in_different_provider_modes_has_separate_incidents(): void
+    {
+        $context = $this->context();
+        $order = $this->order($context, ['paid_marked_at' => now()->subMinutes(31)]);
+        $correlator = app(MoneyIncidentCorrelator::class);
+
+        [$live] = $correlator->correlate(app(OrderReconciliationService::class)->evaluate($order));
+        $this->assertSame('live', $live->mode);
+
+        $order->forceFill(['mode' => 'test'])->save();
+        $testRun = app(OrderReconciliationService::class)->evaluate($order->fresh());
+        $this->assertTrue($testRun->resultChanged);
+        [$test] = $correlator->correlate($testRun);
+
+        $this->assertSame('test', $test->mode);
+        $this->assertNotSame($live->id, $test->id);
+        $this->assertSame(Incident::STATE_OPEN, $live->fresh()->state);
+        $this->assertSame(2, Incident::query()->count());
+    }
+
+    public function test_unreported_order_mode_stays_unknown(): void
+    {
+        $context = $this->context();
+        $order = $this->order($context, ['paid_marked_at' => now()->subMinutes(31), 'metadata' => ['mode_reported' => false]]);
+        $run = app(OrderReconciliationService::class)->evaluate($order);
+
+        $this->assertNull(ReconciliationFinding::query()->where('run_id', $run->id)->firstOrFail()->mode);
+        [$incident] = app(MoneyIncidentCorrelator::class)->correlate($run);
+        $this->assertNull($incident->mode);
+    }
+
     public function test_a_fresh_ok_finding_auto_resolves_the_open_incident(): void
     {
         $context = $this->context();

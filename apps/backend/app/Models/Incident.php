@@ -36,6 +36,7 @@ class Incident extends Model
         'severity',
         'title_code',
         'currency',
+        'mode',
         'verified_discrepancy_minor',
         'first_seen_at',
         'last_seen_at',

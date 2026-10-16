@@ -25,6 +25,7 @@ function finding(overrides: Partial<Finding> = {}): Finding {
     status: 'mismatch',
     reason_code: 'capture_amount_mismatch',
     currency: 'EUR',
+    mode: 'live',
     currency_exponent: 2,
     expected_minor: '18400',
     actual_minor: '18000',

@@ -3,6 +3,7 @@
     "name": "Business Watchdog",
     "tagline": "Überwachung von Verkäufen und Zahlungen"
   },
+  "financial_mode": {"live": "Live-Modus", "test": "Testmodus", "unknown": "Modus nicht bestätigt"},
   "nav": {
     "main": "Hauptnavigation",
     "overview": "Übersicht",
@@ -105,7 +106,7 @@
       "discrepancies": "Bestätigte Abweichungen",
       "no_discrepancies": "Keine Abweichungen in aktiven Vorfällen.",
       "unknown_amounts": "Vorfälle ohne bestätigten Betrag: {n}",
-      "discrepancies_note": "Differenzen aus dem Abgleich, keine Verluste. Währungen und Arten werden nie addiert.",
+      "discrepancies_note": "Differenzen aus dem Abgleich, keine Verluste. Modi, Währungen und Arten werden nie addiert.",
       "minor_units": "in kleinsten Einheiten",
       "last_check": "Letzte erfolgreiche Checkout-Prüfung",
       "uncovered": "Shops mit unvollständiger Abdeckung: {n}",

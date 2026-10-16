@@ -46,7 +46,7 @@
 | ACC-32 | P1 | done | Manual Woo refund | Reconciliation/provider coverage tests: store claim is not provider refund | — |
 | ACC-33 | P1 | done | Authorization without capture | Stripe and PayPal connector tests; Steps 65, 70 | — |
 | ACC-34 | P1 | done | Fee/net payout отличается от total | Money semantics exclude fees/payouts from order underpayment; reconciliation tests | — |
-| ACC-35 | P1 | done | Two currencies | Multi-currency reconciliation and overview totals tests; Steps 60, 63, 70 | — |
+| ACC-35 | P1 | done | Two currencies | Multi-currency reconciliation and overview totals tests; Steps 60, 63, 70, 162 (mode/currency/component isolation) | — |
 | ACC-36 | P1 | done | Concurrent manual allocation | `PaymentAllocationServiceTest`; row locks and allocation bounds | — |
 | ACC-37 | P1 | done | Revoked API key | Provider coverage tests; rejected Stripe/PayPal credentials degrade to unknown | — |
 | ACC-38 | P1 | done | Telegram binding чужому chat | Telegram pending channel, secret-protected bot bind and native update endpoints, masked destination, sender success/failure, webhook registration command, binding collision tests and live Telegram bot binding/test delivery smoke through Cloudflare tunnel; Steps 88-94 | Use a stable production tunnel/domain for deployment |

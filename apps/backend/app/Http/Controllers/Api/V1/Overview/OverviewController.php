@@ -76,8 +76,9 @@ class OverviewController extends Controller
         $rows = (clone $money)
             ->whereNotNull('verified_discrepancy_minor')
             ->whereNotNull('currency')
-            ->selectRaw('currency, component, SUM(verified_discrepancy_minor) AS total_minor, COUNT(*) AS incident_count')
-            ->groupBy('currency', 'component')
+            ->selectRaw('mode, currency, component, SUM(verified_discrepancy_minor) AS total_minor, COUNT(*) AS incident_count')
+            ->groupBy('mode', 'currency', 'component')
+            ->orderBy('mode')
             ->orderBy('currency')
             ->orderBy('component')
             ->get();
@@ -92,6 +93,7 @@ class OverviewController extends Controller
         return [
             'discrepancies' => $rows->map(fn ($row): array => [
                 'currency' => $row->currency,
+                'mode' => $row->mode,
                 'currency_exponent' => isset($exponents[$row->currency]) ? (int) $exponents[$row->currency] : null,
                 'component' => $row->component,
                 'total_minor' => $showMoneyAmounts ? $this->minorString($row->total_minor) : null,

@@ -52,6 +52,7 @@ class ReconciliationFinding extends Model
         'status',
         'reason_code',
         'currency',
+        'mode',
         'currency_exponent',
         'expected_minor',
         'actual_minor',
