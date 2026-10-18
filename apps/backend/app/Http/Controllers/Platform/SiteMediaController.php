@@ -10,6 +10,7 @@ use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
 
 class SiteMediaController extends Controller
 {
@@ -17,14 +18,18 @@ class SiteMediaController extends Controller
 
     public function index(): JsonResponse
     {
-        return response()->json(['data' => $this->media->items()]);
+        return response()->json(['data' => $this->media->items(), 'limits' => $this->media->limits()]);
     }
 
     public function store(Request $request): JsonResponse|Response
     {
-        $request->validate(['file' => ['required', 'file']]);
+        $file = $request->file('file');
 
-        return $this->guard(fn (PlatformStaff $staff): JsonResponse => response()->json($this->media->upload($staff->id, $request->file('file')), 201), $request);
+        if (! $file instanceof UploadedFile) {
+            return response()->json(['code' => 'media_missing', 'message' => 'Choose a file to upload.'], 422);
+        }
+
+        return $this->guard(fn (PlatformStaff $staff): JsonResponse => response()->json($this->media->upload($staff->id, $file), 201), $request);
     }
 
     public function delete(Request $request, string $media): JsonResponse|Response
@@ -47,7 +52,7 @@ class SiteMediaController extends Controller
         try {
             return $action($staff);
         } catch (SiteRejected $exception) {
-            return response()->json(['code' => $exception->reasonCode, 'message' => 'The image was rejected.'], $exception->status);
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The file was rejected.'], $exception->status);
         }
     }
 }

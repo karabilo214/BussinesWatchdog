@@ -198,12 +198,16 @@
     "maintenance_not_scheduled": "No maintenance is planned.",
     "version_is_legal": "Versions of legal documents and versions customers accepted cannot be deleted.",
     "version_not_retired": "Only an old, already replaced version can be deleted.",
-    "media_type_unsupported": "This file cannot be used: a JPEG, PNG or WebP image is needed (SVG, GIF and animations are not supported).",
-    "media_too_large": "The file is larger than 5 MB.",
-    "media_dimensions_too_large": "The image is too large: at most 6000 px per side and 16 megapixels.",
+    "media_type_unsupported": "This file format is not allowed. The allowed formats are listed below the upload field.",
+    "media_too_large": "The file is larger than allowed.",
+    "media_dimensions_too_large": "The image is too large — the allowed size is listed below the upload field.",
     "media_unreadable": "The image could not be read — the file may be damaged.",
     "media_in_use": "The image is still used on a page, in a draft, an old version or a block template — remove it there first.",
-    "media_not_found": "The image has already been deleted."
+    "media_not_found": "The image has already been deleted.",
+    "media_too_large_for_server": "The server does not have enough memory for such a large image — make it smaller and upload again.",
+    "media_processing_unavailable": "The server cannot process images of this format right now (a PHP module is missing). Tell the administrator.",
+    "media_storage_unavailable": "File storage is not available right now — try again later.",
+    "media_missing": "Choose a file to upload."
   },
   "period": {
     "per": {
@@ -980,9 +984,13 @@
     "media": {
       "upload": "Upload from computer",
       "uploading": "Uploading…",
-      "hint": "JPEG, PNG or WebP up to 5 MB and 6000 px per side. Metadata (camera, location) is removed from the file before it is stored. You can pick an uploaded image below or enter an https address.",
       "delete": "Delete",
-      "delete_confirm": "Delete the image “{name}” from the library? This is only possible when no page, draft, version or block template uses it."
+      "delete_confirm": "Delete the image “{name}” from the library? This is only possible when no page, draft, version or block template uses it.",
+      "hint_formats": "Formats: {formats}, up to {size} MB.",
+      "hint_images": "Images at most {side} px per side and {megapixels} MP; metadata (camera, location) is removed.",
+      "hint_resize": "Images longer than {side} px are made smaller.",
+      "hint_pdf": "A PDF is stored as it is and inserted as a link — make sure it contains nothing private.",
+      "link_text": "Link text"
     }
   },
   "blocks": {

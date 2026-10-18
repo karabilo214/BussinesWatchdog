@@ -198,12 +198,16 @@
     "maintenance_not_scheduled": "Keine Wartung geplant.",
     "version_is_legal": "Versionen rechtlicher Dokumente und Versionen, denen Kunden zugestimmt haben, können nicht gelöscht werden.",
     "version_not_retired": "Löschen kann man nur eine alte, bereits ersetzte Version.",
-    "media_type_unsupported": "Diese Datei passt nicht: Es wird ein JPEG-, PNG- oder WebP-Bild benötigt (SVG, GIF und Animationen werden nicht unterstützt).",
-    "media_too_large": "Die Datei ist größer als 5 MB.",
-    "media_dimensions_too_large": "Das Bild ist zu groß: höchstens 6000 px pro Seite und 16 Megapixel.",
+    "media_type_unsupported": "Dieses Dateiformat ist nicht erlaubt. Die erlaubten Formate stehen unter dem Upload-Feld.",
+    "media_too_large": "Die Datei ist größer als erlaubt.",
+    "media_dimensions_too_large": "Das Bild ist zu groß – die erlaubte Größe steht unter dem Upload-Feld.",
     "media_unreadable": "Das Bild konnte nicht gelesen werden – die Datei ist möglicherweise beschädigt.",
     "media_in_use": "Das Bild wird noch auf einer Seite, in einem Entwurf, einer alten Version oder einer Blockvorlage verwendet – entfernen Sie es dort zuerst.",
-    "media_not_found": "Das Bild wurde bereits gelöscht."
+    "media_not_found": "Das Bild wurde bereits gelöscht.",
+    "media_too_large_for_server": "Der Server hat nicht genug Speicher für ein so großes Bild – verkleinern Sie es und laden Sie es erneut hoch.",
+    "media_processing_unavailable": "Der Server kann Bilder dieses Formats gerade nicht verarbeiten (ein PHP-Modul fehlt). Informieren Sie den Administrator.",
+    "media_storage_unavailable": "Der Dateispeicher ist gerade nicht erreichbar – versuchen Sie es später erneut.",
+    "media_missing": "Wählen Sie eine Datei zum Hochladen."
   },
   "period": {
     "per": {
@@ -980,9 +984,13 @@
     "media": {
       "upload": "Vom Computer hochladen",
       "uploading": "Wird hochgeladen…",
-      "hint": "JPEG, PNG oder WebP bis 5 MB und 6000 px pro Seite. Metadaten (Kamera, Aufnahmeort) werden vor dem Speichern aus der Datei entfernt. Unten können Sie ein hochgeladenes Bild wählen oder eine https-Adresse eingeben.",
       "delete": "Löschen",
-      "delete_confirm": "Das Bild „{name}“ aus der Bibliothek löschen? Das geht nur, wenn keine Seite, kein Entwurf, keine Version und keine Blockvorlage es verwendet."
+      "delete_confirm": "Das Bild „{name}“ aus der Bibliothek löschen? Das geht nur, wenn keine Seite, kein Entwurf, keine Version und keine Blockvorlage es verwendet.",
+      "hint_formats": "Formate: {formats}, bis {size} MB.",
+      "hint_images": "Bilder höchstens {side} px pro Seite und {megapixels} MP; Metadaten (Kamera, Aufnahmeort) werden entfernt.",
+      "hint_resize": "Bilder mit mehr als {side} px an der langen Seite werden verkleinert.",
+      "hint_pdf": "Ein PDF wird unverändert gespeichert und als Link eingefügt – prüfen Sie, dass es nichts Privates enthält.",
+      "link_text": "Linktext"
     }
   },
   "blocks": {

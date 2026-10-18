@@ -149,9 +149,14 @@ return [
         'owner_url' => env('WATCHDOG_SITE_OWNER_URL', rtrim((string) env('APP_URL', 'http://localhost'), '/').'/owner'),
         'cache_seconds' => (int) env('WATCHDOG_SITE_CACHE_SECONDS', 60),
         'media_disk' => env('WATCHDOG_SITE_MEDIA_DISK', env('WATCHDOG_ARTIFACTS_DISK', 'artifacts')),
+        'media_types' => array_values(array_filter(array_map('trim', explode(',', strtolower((string) env('WATCHDOG_SITE_MEDIA_TYPES', 'jpeg,png,webp')))))),
         'media_max_bytes' => (int) env('WATCHDOG_SITE_MEDIA_MAX_BYTES', 5 * 1024 * 1024),
-        'media_max_pixels' => 16_000_000,
-        'media_max_side' => 6000,
+        'media_max_side' => (int) env('WATCHDOG_SITE_MEDIA_MAX_SIDE', 6000),
+        'media_max_pixels' => (int) env('WATCHDOG_SITE_MEDIA_MAX_PIXELS', 16_000_000),
+        'media_resize_max_side' => (int) env('WATCHDOG_SITE_MEDIA_RESIZE_MAX_SIDE', 2560),
+        'media_jpeg_quality' => (int) env('WATCHDOG_SITE_MEDIA_JPEG_QUALITY', 82),
+        'media_webp_quality' => (int) env('WATCHDOG_SITE_MEDIA_WEBP_QUALITY', 82),
+        'media_png_compression' => (int) env('WATCHDOG_SITE_MEDIA_PNG_COMPRESSION', 9),
     ],
 
     'public_check' => [

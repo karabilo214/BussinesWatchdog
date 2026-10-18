@@ -25,6 +25,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY infra/docker/backend/php-uploads.ini /usr/local/etc/php/conf.d/zz-watchdog-uploads.ini
 
 ENV COMPOSER_HOME=/tmp/composer-cache
 WORKDIR /workspace/apps/backend
@@ -52,6 +53,8 @@ RUN apt-get update \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
+
+COPY infra/docker/backend/php-uploads.ini /usr/local/etc/php/conf.d/zz-watchdog-uploads.ini
 
 WORKDIR /var/www/html
 

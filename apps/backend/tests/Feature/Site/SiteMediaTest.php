@@ -81,6 +81,62 @@ class SiteMediaTest extends TestCase
         $this->assertSame(2, SiteMedia::query()->count());
     }
 
+    public function test_large_images_are_made_smaller_with_the_configured_side_and_quality(): void
+    {
+        $this->signIn();
+        config()->set('watchdog.site.media_resize_max_side', 10);
+        config()->set('watchdog.site.media_png_compression', 6);
+
+        $this->upload(UploadedFile::fake()->createWithContent('wide.png', $this->gd(40, 20, 'imagepng')))->assertCreated()->assertJsonPath('width', 10)->assertJsonPath('height', 5);
+        $this->upload(UploadedFile::fake()->createWithContent('small.png', $this->gd(8, 4, 'imagepng')))->assertCreated()->assertJsonPath('width', 8);
+
+        config()->set('watchdog.site.media_resize_max_side', 0);
+        $this->upload(UploadedFile::fake()->createWithContent('kept.png', $this->gd(40, 20, 'imagepng')))->assertCreated()->assertJsonPath('width', 40);
+    }
+
+    public function test_limits_and_formats_come_from_the_configuration_and_pdf_is_taken_only_when_enabled(): void
+    {
+        $this->signIn();
+        $pdf = "%PDF-1.4\n1 0 obj <<>> endobj\ntrailer <<>>\n%%EOF\n";
+
+        $this->upload(UploadedFile::fake()->createWithContent('price.pdf', $pdf))->assertStatus(422)->assertJsonPath('code', 'media_type_unsupported');
+
+        config()->set('watchdog.site.media_types', ['jpeg', 'pdf', 'tiff']);
+        config()->set('watchdog.site.media_max_bytes', 1000);
+        $this->getJson('/platform-api/v1/site-media')->assertOk()
+            ->assertJsonPath('limits.types', ['jpeg', 'pdf'])
+            ->assertJsonPath('limits.extensions', ['jpg', 'pdf'])
+            ->assertJsonPath('limits.max_bytes', 1000);
+
+        $document = $this->upload(UploadedFile::fake()->createWithContent('Preise 2026.pdf', $pdf))->assertCreated()
+            ->assertJsonPath('kind', 'document')
+            ->assertJsonPath('content_type', 'application/pdf')
+            ->assertJsonPath('width', null)
+            ->json();
+        $this->assertStringEndsWith('.pdf', $document['url']);
+        $served = $this->get($document['url'])->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertSame($pdf, $served->getContent());
+        $this->assertStringContainsString('sandbox', (string) $served->headers->get('Content-Security-Policy'));
+
+        $this->upload(UploadedFile::fake()->createWithContent('broken.pdf', "%PDF-1.4\n1 0 obj"))->assertStatus(422)->assertJsonPath('code', 'media_unreadable');
+        $this->upload(UploadedFile::fake()->createWithContent('logo.png', $this->gd(4, 4, 'imagepng')))->assertStatus(422)->assertJsonPath('code', 'media_type_unsupported');
+        $this->upload(UploadedFile::fake()->createWithContent('price.jpg', $pdf))->assertCreated()->assertJsonPath('kind', 'document');
+    }
+
+    public function test_files_the_server_cannot_handle_are_refused_instead_of_failing(): void
+    {
+        $this->signIn();
+        config()->set('watchdog.site.media_max_side', 100000);
+        config()->set('watchdog.site.media_max_pixels', PHP_INT_MAX);
+
+        $this->upload(UploadedFile::fake()->createWithContent('bomb.png', $this->pngHeader(90000, 90000)))->assertStatus(422)->assertJsonPath('code', 'media_too_large_for_server');
+        $this->upload(UploadedFile::fake()->createWithContent('cut.png', $this->pngHeader(20, 20)))->assertStatus(422)->assertJsonPath('code', 'media_unreadable');
+        $this->upload(UploadedFile::fake()->createWithContent('empty.jpg', ''))->assertStatus(422);
+        $this->post('/platform-api/v1/site-media', [], ['Accept' => 'application/json'])->assertStatus(422)->assertJsonPath('code', 'media_missing');
+        $this->call('POST', '/platform-api/v1/site-media', [], [], [], ['CONTENT_LENGTH' => (string) (PHP_INT_MAX >> 1), 'HTTP_ACCEPT' => 'application/json'])->assertStatus(413)->assertJsonPath('code', 'media_too_large');
+        $this->assertSame(0, SiteMedia::query()->count());
+    }
+
     public function test_an_image_still_on_a_page_or_block_cannot_be_deleted(): void
     {
         $this->signIn();
@@ -141,6 +197,17 @@ class SiteMediaTest extends TestCase
             ."\xFF\xE1".pack('n', strlen($exif) + 2).$exif
             ."\xFF\xFE".pack('n', strlen($comment) + 2).$comment
             .substr($jpeg, 2);
+    }
+
+    /**
+     * A PNG signature and header announcing the given size, without image data: what a decompression bomb looks like
+     * to `getimagesize`.
+     */
+    private function pngHeader(int $width, int $height): string
+    {
+        $ihdr = 'IHDR'.pack('NNCCCCC', $width, $height, 8, 6, 0, 0, 0);
+
+        return "\x89PNG\r\n\x1a\n".pack('N', 13).$ihdr.pack('N', crc32($ihdr));
     }
 
     private function signIn(string $role = PlatformStaff::ROLE_OWNER): void

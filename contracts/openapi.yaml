@@ -1094,7 +1094,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListSiteMedia
-      description: "Capability content.manage. Images uploaded for the page editor (ADR 0063), newest first, at most 200: id, url (relative /media/{id}.{ext}, served by the public site), original name, type, width, height, bytes, created_at."
+      description: "Capability content.manage. Files uploaded for the page editor (ADR 0063), newest first, at most 200: id, url (relative /media/{id}.{ext}, served by the public site), kind (image or document), original name, type, width and height (null for a document), bytes, created_at; and the limits in force (configured formats, extensions, content types, max_bytes — never above the PHP upload limit — max_side, max_pixels, resize_max_side)."
       security:
         - {StaffSession: []}
       responses:
@@ -1104,15 +1104,25 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [data]
+                required: [data, limits]
                 properties:
                   data: {type: array, items: {type: object}}
+                  limits:
+                    type: object
+                    properties:
+                      types: {type: array, items: {enum: [jpeg, png, webp, pdf]}}
+                      extensions: {type: array, items: {type: string}}
+                      content_types: {type: array, items: {type: string}}
+                      max_bytes: {type: integer}
+                      max_side: {type: integer}
+                      max_pixels: {type: integer}
+                      resize_max_side: {type: integer, description: "0 keeps the size"}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
     post:
       tags: [Platform]
       operationId: platformUploadSiteMedia
-      description: "Capability content.manage. Uploads one image (multipart field file). Only JPEG, PNG and WebP recognised by content (422 media_type_unsupported — SVG, GIF and animated images included), at most WATCHDOG_SITE_MEDIA_MAX_BYTES (default 5 MiB, 422 media_too_large), at most 6000 px per side and 16 megapixels (422 media_dimensions_too_large); a file that cannot be decoded is 422 media_unreadable. The image is decoded and encoded again: EXIF/XMP metadata is dropped, a JPEG orientation is applied first. Audited with a content hash."
+      description: "Capability content.manage. Uploads one file (multipart field file; 422 media_missing). The format is recognised by content and must be one of WATCHDOG_SITE_MEDIA_TYPES (jpeg, png, webp, pdf; default without pdf; else 422 media_type_unsupported — SVG, GIF and animated images are never taken). At most the limits from the list (422 or 413 media_too_large, 422 media_dimensions_too_large); an image the server memory cannot decode is 422 media_too_large_for_server, a missing GD format 503 media_processing_unavailable, unreachable storage 503 media_storage_unavailable, a damaged file 422 media_unreadable. Images are decoded and encoded again (EXIF/XMP dropped, JPEG orientation applied, quality from the configuration) and made smaller to resize_max_side; a PDF is checked for its header and end marker and stored as it is. Audited with a content hash."
       security:
         - {StaffSession: []}
       requestBody:

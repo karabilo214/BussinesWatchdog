@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
-import { deleteSiteMedia, fetchSiteMedia, uploadSiteMedia, type SiteMedia } from '@/api';
+import { deleteSiteMedia, fetchSiteMedia, uploadSiteMedia, type SiteMedia, type SiteMediaLimits } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { CONTAINER_STYLES, LINK_STYLES, TEXT_STYLES, editorExtensions } from './extensions';
 
@@ -104,6 +104,21 @@ function applyLink(): void {
 
 const { t } = useI18n();
 const media = ref<SiteMedia[]>([]);
+const limits = ref<SiteMediaLimits | null>(null);
+const picked = computed(() => media.value.find((item) => item.url === panel.src) ?? null);
+const accept = computed(() => (limits.value ? limits.value.content_types.join(',') : 'image/jpeg,image/png,image/webp'));
+const mediaHint = computed(() => {
+  const current = limits.value;
+  if (!current) return '';
+  const parts = [
+    t('editor.media.hint_formats', { formats: current.extensions.map((extension) => extension.toUpperCase()).join(', '), size: (current.max_bytes / 1048576).toLocaleString(undefined, { maximumFractionDigits: 1 }) }),
+    t('editor.media.hint_images', { side: current.max_side, megapixels: (current.max_pixels / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 }) }),
+  ];
+  if (current.resize_max_side > 0) parts.push(t('editor.media.hint_resize', { side: current.resize_max_side }));
+  if (current.types.includes('pdf')) parts.push(t('editor.media.hint_pdf'));
+
+  return parts.join(' ');
+});
 const mediaBusy = ref(false);
 const mediaError = ref<unknown>(null);
 
@@ -111,7 +126,9 @@ async function loadMedia(): Promise<void> {
   mediaError.value = null;
 
   try {
-    media.value = await fetchSiteMedia();
+    const loaded = await fetchSiteMedia();
+    media.value = loaded.data;
+    limits.value = loaded.limits;
   } catch (error) {
     mediaError.value = error;
   }
@@ -158,7 +175,15 @@ async function removeImage(item: SiteMedia): Promise<void> {
 
 function applyImage(): void {
   const src = panel.src.trim();
-  if (src !== '') editor.value?.chain().focus().setImage({ src, alt: panel.alt.trim() }).run();
+  const document = picked.value?.kind === 'document' ? picked.value : null;
+
+  if (document) {
+    const text = panel.alt.trim() || document.name;
+    editor.value?.chain().focus().insertContent({ type: 'text', text, marks: [{ type: 'link', attrs: { href: document.url } }] }).run();
+  } else if (src !== '') {
+    editor.value?.chain().focus().setImage({ src, alt: panel.alt.trim() }).run();
+  }
+
   panel.open = null;
 }
 
@@ -253,25 +278,26 @@ defineExpose({ editor });
       <div class="flex flex-wrap items-end gap-2">
         <label class="flex flex-col gap-1">
           <span class="font-medium">{{ $t('editor.media.upload') }}</span>
-          <input type="file" accept="image/jpeg,image/png,image/webp" class="text-sm" :disabled="mediaBusy" data-field="file" @change="uploadImage" />
+          <input type="file" :accept="accept" class="text-sm" :disabled="mediaBusy" data-field="file" @change="uploadImage" />
         </label>
         <label class="flex min-w-60 flex-1 flex-col gap-1">
           <span class="font-medium">{{ $t('editor.image_src') }}</span>
           <input v-model="panel.src" class="rounded border border-border-strong bg-surface px-2 py-1" placeholder="https://" data-field="src" />
         </label>
         <label class="flex min-w-40 flex-1 flex-col gap-1">
-          <span class="font-medium">{{ $t('editor.image_alt') }}</span>
+          <span class="font-medium">{{ picked?.kind === 'document' ? $t('editor.media.link_text') : $t('editor.image_alt') }}</span>
           <input v-model="panel.alt" class="rounded border border-border-strong bg-surface px-2 py-1" data-field="alt" />
         </label>
         <button type="submit" class="rounded bg-primary px-3 py-1 font-semibold text-text-inverse" data-action="apply-image">{{ $t('editor.apply') }}</button>
         <button type="button" class="rounded border border-border-strong px-3 py-1" @click="panel.open = null">{{ $t('common.cancel') }}</button>
       </div>
-      <p class="text-text-muted">{{ mediaBusy ? $t('editor.media.uploading') : $t('editor.media.hint') }}</p>
+      <p class="text-text-muted">{{ mediaBusy ? $t('editor.media.uploading') : mediaHint }}</p>
       <ErrorNotice v-if="mediaError" :error="mediaError" />
       <ul v-if="media.length" class="flex max-h-56 flex-wrap gap-2 overflow-y-auto" data-media-library>
         <li v-for="item in media" :key="item.id" class="flex w-28 flex-col gap-1">
           <button type="button" class="overflow-hidden rounded border bg-surface" :class="panel.src === item.url ? 'border-primary ring-2 ring-primary' : 'border-border'" :title="item.name" :data-media="item.id" @click="panel.src = item.url">
-            <img :src="item.url" :alt="item.name" class="h-20 w-full object-cover" loading="lazy" />
+            <img v-if="item.kind === 'image'" :src="item.url" :alt="item.name" class="h-20 w-full object-cover" loading="lazy" />
+            <span v-else class="flex h-20 w-full items-center justify-center text-sm font-semibold text-text-muted">PDF</span>
           </button>
           <span class="truncate text-xs text-text-muted" :title="item.name">{{ item.name }}</span>
           <button type="button" class="self-start text-xs text-crit hover:underline" :data-delete-media="item.id" @click="removeImage(item)">{{ $t('editor.media.delete') }}</button>

@@ -123,9 +123,11 @@ describe('visual page editor', () => {
   });
 
   it('uploads an image or picks one from the library and keeps its site address', async () => {
-    const team = { id: 'm-1', url: '/media/m-1.jpg', name: 'team.jpg', content_type: 'image/jpeg', width: 800, height: 600, bytes: 1000, created_at: '2026-10-18T10:00:00Z' };
+    const team = { id: 'm-1', url: '/media/m-1.jpg', kind: 'image' as const, name: 'team.jpg', content_type: 'image/jpeg', width: 800, height: 600, bytes: 1000, created_at: '2026-10-18T10:00:00Z' };
     const logo = { ...team, id: 'm-2', url: '/media/m-2.png', name: 'logo.png', content_type: 'image/png' };
-    mocked.fetchSiteMedia.mockResolvedValue([team]);
+    const prices = { ...team, id: 'm-3', url: '/media/m-3.pdf', kind: 'document' as const, name: 'Preise.pdf', content_type: 'application/pdf', width: null, height: null };
+    const limits = { types: ['jpeg', 'png', 'pdf'], extensions: ['jpg', 'png', 'pdf'], content_types: ['image/jpeg', 'image/png', 'application/pdf'], max_bytes: 10485760, max_side: 4000, max_pixels: 12000000, resize_max_side: 2000 };
+    mocked.fetchSiteMedia.mockResolvedValue({ data: [team, prices], limits });
     mocked.uploadSiteMedia.mockResolvedValue(logo);
     mocked.deleteSiteMedia.mockResolvedValue();
     const wrapper = await mountEditor('<p>Text</p>');
@@ -133,6 +135,10 @@ describe('visual page editor', () => {
     await wrapper.get('[data-tool="image"]').trigger('click');
     await flushPromises();
     expect(wrapper.find('[data-media="m-1"]').exists()).toBe(true);
+    expect(wrapper.get('[data-field="file"]').attributes('accept')).toBe('image/jpeg,image/png,application/pdf');
+    expect(wrapper.get('[data-panel="image"]').text()).toContain('JPG, PNG, PDF, до 10 МБ');
+    expect(wrapper.get('[data-panel="image"]').text()).toContain('4000 px');
+    expect(wrapper.get('[data-panel="image"]').text()).toContain('больше 2000 px');
 
     const input = wrapper.get('[data-field="file"]');
     const file = new File(['x'], 'logo.png', { type: 'image/png' });
@@ -147,6 +153,14 @@ describe('visual page editor', () => {
     await wrapper.get('[data-panel="image"]').trigger('submit');
     await settle();
     expect(wrapper.props('modelValue')).toContain('<img src="/media/m-1.jpg" alt="Команда">');
+
+    await wrapper.get('[data-tool="image"]').trigger('click');
+    await flushPromises();
+    await wrapper.get('[data-media="m-3"]').trigger('click');
+    await wrapper.get('[data-panel="image"]').trigger('submit');
+    await settle();
+    expect(wrapper.props('modelValue')).toContain('href="/media/m-3.pdf"');
+    expect(wrapper.props('modelValue')).toContain('>Preise.pdf</a>');
 
     await wrapper.get('[data-tool="image"]').trigger('click');
     await flushPromises();

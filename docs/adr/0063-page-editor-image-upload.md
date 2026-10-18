@@ -1,6 +1,6 @@
 # ADR 0063: Image upload in the page editor
 
-Status: implemented (Step 169); the owner asked for the upload on 2026-10-16 (ADR 0045 owner decision). The limits and the formats below were chosen by the implementer and wait for the owner's confirmation.
+Status: implemented (Step 169), made configurable with compression and optional PDF in Step 170 by the owner's decision of 2026-10-18.
 
 ## Context
 
@@ -21,3 +21,11 @@ The page editor (ADR 0045) took images only as an https address. The owner wants
 - An uploaded image is public as soon as its address is known (the id is a random UUID v7, not listed anywhere public) — like any image on the site.
 - No image resizing or responsive variants yet; the owner uploads an image in a reasonable size.
 - Deleting an old page version (Step 139) frees its images for deletion.
+
+## Owner decision (2026-10-18)
+
+- Formats and limits are configurable by the owner, not fixed: `WATCHDOG_SITE_MEDIA_TYPES` (`jpeg,png,webp`, optionally `pdf`), `WATCHDOG_SITE_MEDIA_MAX_BYTES` (5 MiB), `WATCHDOG_SITE_MEDIA_MAX_SIDE` (6000), `WATCHDOG_SITE_MEDIA_MAX_PIXELS` (16 000 000). The panel shows the limits in force from the server.
+- Images are compressed: made smaller to `WATCHDOG_SITE_MEDIA_RESIZE_MAX_SIDE` (default 2560 px on the longer side, 0 keeps the size) and encoded with `WATCHDOG_SITE_MEDIA_JPEG_QUALITY` / `WATCHDOG_SITE_MEDIA_WEBP_QUALITY` (82) and `WATCHDOG_SITE_MEDIA_PNG_COMPRESSION` (9, lossless).
+- PDF may be allowed later; it must not break anything. Implementation (Step 170): with `pdf` in the list a PDF is recognised by its `%PDF-` header, must end with `%%EOF`, is stored as it is (PHP cannot rewrite it, so its own metadata stays — the panel says so), served with a sandbox CSP and inserted into a page as a link. Without `pdf` it is refused like any other format.
+- Not failing: the effective size limit is never above PHP's `upload_max_filesize`/`post_max_size` (a request over them answers 413 `media_too_large`, not a server error); before decoding, the memory an image needs is checked against `memory_limit` (422 `media_too_large_for_server` instead of a fatal out-of-memory); a missing GD format answers 503 `media_processing_unavailable`, unreachable storage 503 `media_storage_unavailable`; damaged files 422 `media_unreadable`. The backend image sets `upload_max_filesize=32M`, `post_max_size=34M`, `memory_limit=256M` (`infra/docker/backend/php-uploads.ini`), nginx accepts 34 MB; to allow more, raise those together with `WATCHDOG_SITE_MEDIA_MAX_BYTES`.
+

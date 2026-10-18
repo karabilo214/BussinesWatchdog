@@ -1,6 +1,5 @@
 <?php
 
-use App\Exceptions\Tenancy\MissingTenantContext;
 use App\Console\Commands\CheckStoreVerifications;
 use App\Console\Commands\DeliverNotifications;
 use App\Console\Commands\DispatchDomainOutbox;
@@ -9,6 +8,7 @@ use App\Console\Commands\PlanNotificationReminders;
 use App\Console\Commands\ProcessDirtyReconciliation;
 use App\Console\Commands\ReencryptSecrets;
 use App\Console\Commands\RunNightlyReconciliationSweep;
+use App\Exceptions\Tenancy\MissingTenantContext;
 use App\Http\Middleware\Api\AssignRequestId;
 use App\Http\Middleware\Auth\RequireStatefulSession;
 use App\Http\Middleware\Browser\AuthenticateBrowserWorker;
@@ -19,10 +19,15 @@ use App\Http\Middleware\Platform\UsePlatformSession;
 use App\Http\Middleware\Platform\ValidatePlatformCsrfToken;
 use App\Http\Middleware\Tenancy\RequireTenantRole;
 use App\Http\Middleware\Tenancy\SetTenantContextFromSession;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -54,11 +59,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->group('platform', [
             AssignRequestId::class,
             UsePlatformSession::class,
-            \Illuminate\Cookie\Middleware\EncryptCookies::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
+            EncryptCookies::class,
+            AddQueuedCookiesToResponse::class,
+            StartSession::class,
             ValidatePlatformCsrfToken::class,
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            SubstituteBindings::class,
         ]);
         $middleware->alias([
             'platform.staff' => RequirePlatformStaff::class,
@@ -74,6 +79,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->is('internal/*') || $request->is('platform-api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(fn (PostTooLargeException $exception, Request $request) => $request->is('platform-api/v1/site-media')
+            ? response()->json(['code' => 'media_too_large', 'message' => 'The file is larger than the server accepts.'], 413)
+            : null);
 
         $exceptions->render(fn (MissingTenantContext $exception, Request $request) => $request->is('api/*')
             ? response()->json(['code' => 'tenant_forbidden', 'message' => 'No access to an active team.'], 403)

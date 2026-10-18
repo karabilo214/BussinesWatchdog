@@ -857,16 +857,27 @@ export async function sendTenantReminder(tenantId: string, input: ReminderInput)
 export interface SiteMedia {
   id: string;
   url: string;
+  kind: 'image' | 'document';
   name: string;
   content_type: string;
-  width: number;
-  height: number;
+  width: number | null;
+  height: number | null;
   bytes: number;
   created_at: string;
 }
 
-export async function fetchSiteMedia(): Promise<SiteMedia[]> {
-  return (await request<{ data: SiteMedia[] }>('GET', '/platform-api/v1/site-media')).data.data;
+export interface SiteMediaLimits {
+  types: string[];
+  extensions: string[];
+  content_types: string[];
+  max_bytes: number;
+  max_side: number;
+  max_pixels: number;
+  resize_max_side: number;
+}
+
+export async function fetchSiteMedia(): Promise<{ data: SiteMedia[]; limits: SiteMediaLimits }> {
+  return (await request<{ data: SiteMedia[]; limits: SiteMediaLimits }>('GET', '/platform-api/v1/site-media')).data;
 }
 
 export async function uploadSiteMedia(file: File): Promise<SiteMedia> {
