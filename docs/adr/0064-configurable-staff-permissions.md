@@ -1,6 +1,6 @@
 # ADR 0064: Staff permissions set by the platform owner
 
-Status: implemented (Step 173). Owner decision of 2026-10-16 (ADR 0046, ADR 0052): instead of fixed roles in code the platform owner assigns each staff member what they may do. Points 3 and 4 below were chosen by the implementer and wait for the owner's confirmation.
+Status: implemented (Step 173). Owner decision of 2026-10-16 (ADR 0046, ADR 0052): instead of fixed roles in code the platform owner assigns each staff member what they may do. Points 3 and 4 were chosen by the implementer and confirmed by the owner on 2026-10-18.
 
 ## Decisions
 
@@ -16,3 +16,8 @@ Status: implemented (Step 173). Owner decision of 2026-10-16 (ADR 0046, ADR 0052
 
 - No hidden capability: the server checks the member's own list on every request (`PlatformCapabilities::forStaff`).
 - Owner-specific rules elsewhere stay with the owner role (for example the unmasked customer email in the organisation card).
+
+## Owner decision (2026-10-18)
+
+- Point 3 (staff management and refund approval only for platform owners) — confirmed.
+- Point 4 (a change capability brings its view capability) — confirmed.

@@ -368,7 +368,7 @@ Verification: `StoreCapacityPauseTest` (resume records the period, notice disapp
 
 ### Step 173: Staff Permissions Set by the Platform Owner
 
-Status: complete (ADR 0064; owner-only capabilities and implied capabilities wait for confirmation)
+Status: complete (ADR 0064; owner-only and implied capabilities confirmed by the owner on 2026-10-18)
 
 - Migration `2026_10_18_150000_add_capabilities_to_platform_staff`: `capabilities` jsonb on staff and invitations; roles `platform_owner` / `platform_member` (PostgreSQL checks: role list, owner ⇔ no list); existing admin/support/billing members and invitations become members with their former capabilities.
 - `PlatformCapabilities`: `ALL`, `OWNER_ONLY` (`staff.manage`, `refunds.approve`), `IMPLIES`, `PRESETS`, `forStaff`/`allows`/`normalize`; the middleware, `/me` and the organisation card use the member's own list. `PlatformStaff::settleRole` turns a preset name into a member with that preset and normalises the list.
