@@ -961,7 +961,7 @@ paths:
     post:
       tags: [Platform]
       operationId: platformPreviewTenantReminder
-      description: "Capability tenants.manage. Shows who would get a reminder (active owners of the organisation, each in their language) and the letter per language for the topic subscription, payment or other (own subject and message); when the same topic was last sent. Nothing is sent."
+      description: "Capability tenants.manage. For the reminder editor (ADR 0047): members of the organisation to choose from (name, email, language, role, active), the suggested recipients (active owners), the templates of the topic per language (subject and body with the placeholders :tenant and :link; customized when saved by staff), and the letters as they would be sent to the chosen recipients (recipient_ids, or the suggested ones) with the given letters or the templates; when the same topic was last sent. Nothing is sent."
       security:
         - {StaffSession: []}
       parameters:
@@ -975,18 +975,28 @@ paths:
               required: [topic]
               properties:
                 topic: {enum: [subscription, payment, other]}
-                subject: {type: [string, "null"], maxLength: 150}
-                message: {type: [string, "null"], maxLength: 5000}
+                recipient_ids: {type: [array, "null"], items: {type: string, format: uuid}, maxItems: 200}
+                letters:
+                  type: object
+                  description: Letter per language of the recipients (ru, en, de); plain text with the placeholders :tenant and :link.
+                  additionalProperties: false
+                  properties:
+                    ru: {$ref: "#/components/schemas/ReminderLetter"}
+                    en: {$ref: "#/components/schemas/ReminderLetter"}
+                    de: {$ref: "#/components/schemas/ReminderLetter"}
       responses:
         "200":
-          description: Reminder preview
+          description: Reminder editor data
           content:
             application/json:
               schema:
                 type: object
-                required: [recipients, letters, last_sent_at]
+                required: [members, suggested_recipient_ids, templates, placeholders, letters, last_sent_at]
                 properties:
-                  recipients: {type: array, items: {type: object}}
+                  members: {type: array, items: {type: object}}
+                  suggested_recipient_ids: {type: array, items: {type: string, format: uuid}}
+                  templates: {type: object}
+                  placeholders: {type: array, items: {type: string}}
                   letters: {type: array, items: {type: object}}
                   last_sent_at: {type: [string, "null"], format: date-time}
         "401": {$ref: "#/components/responses/Problem"}
@@ -994,10 +1004,31 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/reminders:
+    get:
+      tags: [Platform]
+      operationId: platformListTenantReminders
+      description: "Capability tenants.read. Sent reminders of the organisation, newest first (at most 100): topic, when, who sent it, and every letter as sent (address, language, subject, text)."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Sent reminders
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: {type: array, items: {type: object}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
     post:
       tags: [Platform]
       operationId: platformSendTenantReminder
-      description: "Capability tenants.manage. Emails the reminder to the active owners of the organisation, each in their language, with a link to the billing page of the account; topic other needs a subject (3–150) and a message (10–5000). The same topic at most once in 10 minutes (409 reminder_recently_sent); no owner to write to: 409 no_recipients. Audited as tenant.reminder_sent with the topic, recipient user ids and content hashes (no addresses)."
+      description: "Capability tenants.manage. Emails the letters to the chosen active members of the organisation (422 recipients_invalid for anyone else), each in their language; every recipient language needs a letter with a subject (3–150) and a text (10–10000) (422 letter_invalid with details.locale). :tenant and :link are replaced. The same topic at most once in 10 minutes (409 reminder_recently_sent); an organisation without active members: 409 no_recipients. Every letter is stored in full; audited as tenant.reminder_sent with the reminder id, topic, recipient addresses and subjects. Returns the stored reminder."
       security:
         - {StaffSession: []}
       parameters:
@@ -1008,26 +1039,53 @@ paths:
           application/json:
             schema:
               type: object
-              required: [topic]
+              required: [topic, recipient_ids, letters]
               properties:
                 topic: {enum: [subscription, payment, other]}
-                subject: {type: [string, "null"], minLength: 3, maxLength: 150}
-                message: {type: [string, "null"], minLength: 10, maxLength: 5000}
+                recipient_ids: {type: array, items: {type: string, format: uuid}, minItems: 1, maxItems: 200}
+                letters:
+                  type: object
+                  description: Letter per language of the recipients (ru, en, de); plain text with the placeholders :tenant and :link.
+                  additionalProperties: false
+                  properties:
+                    ru: {$ref: "#/components/schemas/ReminderLetter"}
+                    en: {$ref: "#/components/schemas/ReminderLetter"}
+                    de: {$ref: "#/components/schemas/ReminderLetter"}
       responses:
-        "200":
-          description: Sent
+        "201":
+          description: Sent and stored
           content:
             application/json:
-              schema:
-                type: object
-                required: [topic, recipients]
-                properties:
-                  topic: {type: string}
-                  recipients: {type: integer}
+              schema: {type: object}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/reminder-templates/{topic}/{locale}:
+    put:
+      tags: [Platform]
+      operationId: platformSaveReminderTemplate
+      description: "Capability tenants.manage. Saves the edited letter as the template of the topic and language for every organisation (\"save template\"); placeholders :tenant and :link stay as written. 422 letter_invalid outside the limits. Audited with the text before and after."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: topic, in: path, required: true, schema: {enum: [subscription, payment, other]}}
+        - {name: locale, in: path, required: true, schema: {enum: [ru, en, de]}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ReminderLetter"}
+      responses:
+        "200":
+          description: Saved template
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/actions/{action}:
     post:
@@ -5921,6 +5979,12 @@ components:
               interval_count: {type: integer}
               state: {enum: [draft, published, retired]}
               at_provider: {type: boolean}
+    ReminderLetter:
+      type: object
+      required: [subject, body]
+      properties:
+        subject: {type: string, minLength: 3, maxLength: 150}
+        body: {type: string, minLength: 10, maxLength: 10000}
     PlatformMe:
       type: object
       additionalProperties: false

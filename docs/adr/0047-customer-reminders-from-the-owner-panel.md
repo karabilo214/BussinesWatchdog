@@ -16,3 +16,11 @@ Status: accepted for now (owner's backlog item 2026-10-13: "Напомнить �
 - Recipients are chosen by the staff member from the organisation's members, not only the owners.
 - Every template is editable before sending; the panel has two actions: "save template" (stores the edited text as the template) and "send". The fixed no-amount wording of the subscription and payment templates is no longer enforced by code; the sender is responsible for the text.
 - A full copy of each sent reminder is stored and shown in the customer card: who sent it, when, to whom (addresses) and the exact subject and text per language. This replaces the hash-only audit of point 6.
+
+## Implementation of the owner decision (Step 174)
+
+- Recipients: the editor lists every member of the organisation (name, address, role, language; disabled accounts greyed out) and suggests the active owners; any active member can be chosen (422 `recipients_invalid` otherwise).
+- Templates: one per topic and language (`reminder_templates`), plain text with `:tenant` and `:link`; until saved, the text from `lang/*/account.php` (the "other" template is a greeting and the account link to write into). "Save as template" stores the edited letter for every organisation (audited `reminder.template_saved` with the text before and after); "Send" needs a valid letter (subject 3–150, text 10–10 000) for each language of the chosen recipients (422 `letter_invalid` with the language).
+- Copies: `tenant_reminders` (topic, sender, time) and `tenant_reminder_messages` (address, language, exact subject and text) for every letter; the card has a "Reminders" tab with all of them (capability `tenants.read`), the audit `tenant.reminder_sent` names the reminder, the addresses and the subjects. Copies are deleted with the organisation.
+- The 10-minute repeat guard per topic stays.
+

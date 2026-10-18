@@ -38,8 +38,8 @@ return [
         'body' => "Hello,\n\nThis is a reminder about the payment for the Business Watchdog subscription of “:tenant”. Please check the payment method and the latest invoices in your account:\n:link\n\nIf the payment has already gone through, simply ignore this email. Questions? Just reply to it.",
     ],
     'reminder_other' => [
-        'subject' => 'Business Watchdog: :subject',
-        'body' => "Hello,\n\n:message\n\nAccount of “:tenant”: :link",
+        'subject' => 'Business Watchdog: ',
+        'body' => "Hello,\n\n\n\nAccount of “:tenant”: :link",
     ],
     'platform_inviter' => 'The Business Watchdog team',
     'staff_invitation' => [

@@ -19,6 +19,8 @@ vi.mock('@/api', () => ({
   applyTenantAction: vi.fn(),
   previewTenantReminder: vi.fn(),
   sendTenantReminder: vi.fn(),
+  fetchTenantReminders: vi.fn(),
+  saveReminderTemplate: vi.fn(),
   createCustomerStore: vi.fn(),
   fetchCustomerStore: vi.fn(),
   fetchStoreFindings: vi.fn(),
@@ -168,42 +170,62 @@ describe('tenants', () => {
     expect(wrapper.find('[data-action="resume"]').exists()).toBe(true);
   });
 
-  it('reminds the customer about a payment after showing the email, and writes an own message', async () => {
+  it('reminds chosen members with an edited letter, saves the template and shows the sent letters', async () => {
+    const template = { subject: 'Business Watchdog: напоминание об оплате «:tenant»', body: 'Здравствуйте!\n\nНапоминаем об оплате: :link', customized: false };
     mocked.previewTenantReminder.mockResolvedValue({
-      recipients: [{ user_id: 'u-1', name: 'Anna', email: 'anna@example.test', locale: 'ru' }],
-      letters: [{ locale: 'ru', subject: 'Business Watchdog: напоминание об оплате «Kaffee Lindner GmbH»', body: 'Здравствуйте!\n\nНапоминаем об оплате.' }],
+      members: [
+        { user_id: 'u-1', name: 'Anna', email: 'anna@example.test', locale: 'ru', role: 'owner', active: true },
+        { user_id: 'u-2', name: 'Jonas', email: 'jonas@example.test', locale: 'de', role: 'operator', active: true },
+        { user_id: 'u-3', name: 'Gone', email: 'gone@example.test', locale: 'ru', role: 'owner', active: false },
+      ],
+      suggested_recipient_ids: ['u-1'],
+      templates: { ru: template, en: { ...template, subject: 'Payment reminder for :tenant' }, de: { ...template, subject: 'Zahlungserinnerung für :tenant', body: 'Hallo,\n\nbitte prüfen: :link' } },
+      placeholders: [':tenant', ':link'],
+      letters: [{ locale: 'ru', subject: 'Business Watchdog: напоминание об оплате «Kaffee Lindner GmbH»', body: 'Здравствуйте!' }],
       last_sent_at: '2026-10-19T10:00:00Z',
     });
-    mocked.sendTenantReminder.mockResolvedValue({ topic: 'payment', recipients: 1 });
+    mocked.saveReminderTemplate.mockResolvedValue({ subject: 'Оплата «:tenant»', body: 'Здравствуйте!\n\nНапоминаем об оплате: :link', customized: true });
+    mocked.sendTenantReminder.mockResolvedValue({ id: 'r-1', topic: 'payment', sent_at: '2026-10-20T10:00:00Z', sender: { name: 'Founder', email: 'f@example.test' }, messages: [{ email: 'anna@example.test', locale: 'ru', subject: 'Оплата', body: 'x' }, { email: 'jonas@example.test', locale: 'de', subject: 'Zahlung', body: 'y' }] });
     const { wrapper } = await open('/owner/tenants/t-1');
 
     await wrapper.get('[data-action="remind"]').trigger('click');
     await wrapper.get('[data-topic="payment"]').setValue(true);
-    expect(wrapper.find('[data-action="reminder-send"]').exists()).toBe(false);
-    await wrapper.get('[data-form="reminder"]').trigger('submit');
     await flushPromises();
-
     expect(mocked.previewTenantReminder).toHaveBeenCalledWith('t-1', { topic: 'payment' });
-    expect(wrapper.get('[data-recipients]').text()).toBe('Anna <anna@example.test>');
-    expect(wrapper.get('[data-letter="ru"]').text()).toContain('напоминание об оплате');
+    expect((wrapper.get('[data-recipient="anna@example.test"]').element as HTMLInputElement).checked).toBe(true);
+    expect(wrapper.get('[data-recipient="gone@example.test"]').attributes('disabled')).toBeDefined();
     expect(wrapper.find('[data-last-sent]').exists()).toBe(true);
-    expect(mocked.sendTenantReminder).not.toHaveBeenCalled();
+    expect(wrapper.find('[data-letter-editor="de"]').exists()).toBe(false);
+
+    await wrapper.get('[data-recipient="jonas@example.test"]').setValue(true);
+    expect((wrapper.get('[data-field="subject-de"]').element as HTMLInputElement).value).toBe('Zahlungserinnerung für :tenant');
+    await wrapper.get('[data-field="subject-ru"]').setValue('Оплата «:tenant»');
+    await wrapper.get('[data-action="save-template-ru"]').trigger('click');
+    await flushPromises();
+    expect(mocked.saveReminderTemplate).toHaveBeenCalledWith('payment', 'ru', { subject: 'Оплата «:tenant»', body: 'Здравствуйте!\n\nНапоминаем об оплате: :link' });
+    expect(wrapper.find('[data-template-saved]').exists()).toBe(true);
+
+    await wrapper.get('[data-action="reminder-preview"]').trigger('click');
+    await flushPromises();
+    expect(mocked.previewTenantReminder).toHaveBeenLastCalledWith('t-1', { topic: 'payment', recipient_ids: ['u-1', 'u-2'], letters: { ru: { subject: 'Оплата «:tenant»', body: 'Здравствуйте!\n\nНапоминаем об оплате: :link' }, de: { subject: 'Zahlungserinnerung für :tenant', body: 'Hallo,\n\nbitte prüfen: :link' } } });
+    expect(wrapper.get('[data-letter="ru"]').text()).toContain('Kaffee Lindner GmbH');
 
     await wrapper.get('[data-form="reminder"]').trigger('submit');
     await flushPromises();
-    expect(mocked.sendTenantReminder).toHaveBeenCalledWith('t-1', { topic: 'payment' });
-    expect(mocked.fetchTenant).toHaveBeenCalledTimes(2);
-    expect(wrapper.get('[data-done="reminder"]').text()).toContain('получателей: 1');
+    expect(mocked.sendTenantReminder).toHaveBeenCalledWith('t-1', { topic: 'payment', recipient_ids: ['u-1', 'u-2'], letters: { ru: { subject: 'Оплата «:tenant»', body: 'Здравствуйте!\n\nНапоминаем об оплате: :link' }, de: { subject: 'Zahlungserinnerung für :tenant', body: 'Hallo,\n\nbitte prüfen: :link' } } });
+    expect(wrapper.get('[data-done="reminder"]').text()).toContain('получателей: 2');
     expect(wrapper.find('[data-form="reminder"]').exists()).toBe(false);
+  });
 
-    await wrapper.get('[data-action="remind"]').trigger('click');
-    await wrapper.get('[data-topic="other"]').setValue(true);
-    expect(wrapper.get('[data-action="reminder-preview"]').attributes('disabled')).toBeDefined();
-    await wrapper.get('[data-field="reminder-subject"]').setValue('Новый отчёт');
-    await wrapper.get('[data-field="reminder-message"]').setValue('Мы добавили отчёт по возвратам.');
-    await wrapper.get('[data-form="reminder"]').trigger('submit');
-    await flushPromises();
-    expect(mocked.previewTenantReminder).toHaveBeenLastCalledWith('t-1', { topic: 'other', subject: 'Новый отчёт', message: 'Мы добавили отчёт по возвратам.' });
+  it('shows every sent reminder with its letters in the card', async () => {
+    mocked.fetchTenantReminders.mockResolvedValue([{ id: 'r-1', topic: 'other', sent_at: '2026-10-20T10:00:00Z', sender: { name: 'Founder', email: 'f@example.test' }, messages: [{ email: 'anna@example.test', locale: 'ru', subject: 'Новый отчёт', body: 'Мы добавили отчёт по возвратам.' }] }]);
+    const { wrapper } = await open('/owner/tenants/t-1?tab=reminders');
+
+    expect(mocked.fetchTenantReminders).toHaveBeenCalledWith('t-1');
+    const item = wrapper.get('[data-reminder="r-1"]');
+    expect(item.text()).toContain('Другое');
+    expect(item.text()).toContain('Founder');
+    expect(item.get('[data-message="anna@example.test"]').text()).toContain('отчёт по возвратам');
   });
 
   it('invites a team member for the customer and revokes a pending invitation', async () => {

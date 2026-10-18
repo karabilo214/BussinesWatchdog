@@ -506,7 +506,8 @@
       "stores": "Shops",
       "subscription": "Abonnement",
       "members": "Team",
-      "audit": "Audit"
+      "audit": "Audit",
+      "reminders": "Erinnerungen"
     },
     "access_reasons": "Grund für den Zugang",
     "created": "Erstellt",
@@ -611,7 +612,7 @@
     "reminder": {
       "button": "Erinnern an…",
       "title": "Erinnerung an den Kunden",
-      "hint": "Die E-Mail geht an die aktiven Inhaber der Organisation in ihrer Sprache, mit einem Link zur Abonnementseite im Kundenkonto. Sehen Sie sich die E-Mail zuerst an und senden Sie sie dann.",
+      "hint": "Wählen Sie die Empfänger unter den Mitgliedern der Organisation und passen Sie den Brief bei Bedarf an. „Als Vorlage speichern“ merkt sich den Text für alle Organisationen; „Senden“ verschickt den Brief. Jeder gesendete Brief wird im Tab „Erinnerungen“ gespeichert.",
       "topic": "Woran erinnern",
       "topics": {
         "subscription": "Abonnement",
@@ -620,12 +621,17 @@
       },
       "subject": "Betreff",
       "message": "Nachricht",
-      "preview": "E-Mail anzeigen",
+      "preview": "Anzeigen wie beim Empfänger",
       "send": "Senden",
-      "recipients": "Empfänger:",
-      "no_recipients": "Die Organisation hat keinen aktiven Inhaber — niemand kann angeschrieben werden.",
+      "recipients": "Empfänger",
+      "no_recipients": "Die Organisation hat keine Mitglieder – es gibt niemanden zum Anschreiben.",
       "last_sent": "Diese Erinnerung wurde bereits gesendet: {date}.",
-      "done": "Erinnerung gesendet, Empfänger: {n}."
+      "done": "Erinnerung gesendet, Empfänger: {n}.",
+      "inactive": "deaktiviert",
+      "placeholders": "Betreff und Text dürfen {list} enthalten – sie werden durch den Namen der Organisation und den Link zur Abonnementseite ersetzt.",
+      "customized": "eigene Vorlage",
+      "save_template": "Als Vorlage speichern",
+      "template_saved": "Vorlage gespeichert."
     },
     "team": {
       "hint": "Die Einladung geht im Namen des Business-Watchdog-Teams an die Adresse; die Person tritt der Organisation über den Link in der E-Mail bei — wie bei einer Einladung aus dem Kundenkonto. Der Grund wird im Audit erfasst.",
@@ -642,6 +648,11 @@
       "mfa_reset_warning": "Alle Sitzungen der Person enden und Wiederherstellungscodes werden ungültig. Die Person erhält eine E-Mail. Bestätigen Sie mit Ihrem Authenticator-Code.",
       "confirmation_code": "Authenticator-Code",
       "mfa_reset_done": "MFA wurde zurückgesetzt. Eine Benachrichtigung wurde gesendet."
+    },
+    "reminders": {
+      "hint": "Alle gesendeten Erinnerungen: wer, wann, an wen und mit welchem Text.",
+      "empty": "Noch keine Erinnerungen.",
+      "unknown_sender": "Mitarbeiter entfernt"
     }
   },
   "audit_action": {

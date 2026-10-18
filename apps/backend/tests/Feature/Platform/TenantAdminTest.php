@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\Feature\Notifications\NotificationTestContext;
 use Tests\TestCase;
 
@@ -272,53 +274,82 @@ class TenantAdminTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    public function test_owner_reminds_the_organisation_owners_by_email_in_their_language_with_audit(): void
+    public function test_owner_reminds_chosen_members_with_edited_letters_saves_templates_and_keeps_every_letter(): void
     {
         Mail::fake();
         config()->set('app.url', 'https://watchdog.test');
         $context = $this->context();
         $context['tenant']->forceFill(['name' => 'Kaffee GmbH'])->save();
-        $context['user']->forceFill(['email' => 'anna@kaffee.test'])->save();
-        $this->context('owner', $context['tenant'])['user']->forceFill(['email' => 'jonas@kaffee.test', 'locale' => 'de'])->save();
-        $this->context('owner', $context['tenant'])['user']->forceFill(['email' => 'gone@kaffee.test', 'disabled_at' => now()])->save();
-        $this->context('admin', $context['tenant'])['user']->forceFill(['email' => 'admin@kaffee.test'])->save();
+        $anna = $context['user']->forceFill(['email' => 'anna@kaffee.test']);
+        $anna->save();
+        $jonas = $this->context('owner', $context['tenant'])['user']->forceFill(['email' => 'jonas@kaffee.test', 'locale' => 'de']);
+        $jonas->save();
+        $gone = $this->context('owner', $context['tenant'])['user']->forceFill(['email' => 'gone@kaffee.test', 'disabled_at' => now()]);
+        $gone->save();
+        $admin = $this->context('admin', $context['tenant'])['user']->forceFill(['email' => 'admin@kaffee.test', 'locale' => 'en']);
+        $admin->save();
         $tenant = $context['tenant']->id;
         $this->signIn();
 
         $preview = $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders/preview", ['topic' => 'payment'])->assertOk()->json();
-        $this->assertSame(['anna@kaffee.test', 'jonas@kaffee.test'], array_column($preview['recipients'], 'email'));
+        $this->assertSame(['admin@kaffee.test', 'anna@kaffee.test', 'gone@kaffee.test', 'jonas@kaffee.test'], array_column($preview['members'], 'email'));
+        $this->assertFalse(collect($preview['members'])->firstWhere('email', 'gone@kaffee.test')['active']);
+        $this->assertEqualsCanonicalizing([$anna->id, $jonas->id], $preview['suggested_recipient_ids']);
         $this->assertSame(['ru', 'de'], array_column($preview['letters'], 'locale'));
+        $this->assertSame('Business Watchdog: напоминание об оплате «:tenant»', $preview['templates']['ru']['subject']);
+        $this->assertFalse($preview['templates']['ru']['customized']);
         $this->assertSame('Business Watchdog: напоминание об оплате «Kaffee GmbH»', $preview['letters'][0]['subject']);
         $this->assertStringContainsString('https://watchdog.test/app/settings/billing', $preview['letters'][1]['body']);
-        $this->assertStringContainsString('Zahlung', $preview['letters'][1]['body']);
-        $this->assertNull($preview['last_sent_at']);
+        $this->assertSame([':tenant', ':link'], $preview['placeholders']);
         Mail::assertNothingSent();
 
-        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment'])->assertOk()->assertJsonPath('recipients', 2);
-        Mail::assertSent(NotificationMessageMail::class, 2);
-        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('jonas@kaffee.test') && str_contains($mail->subjectLine, 'Zahlungserinnerung'));
-        Mail::assertNotSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('gone@kaffee.test') || $mail->hasTo('admin@kaffee.test'));
+        $chosen = $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders/preview", ['topic' => 'payment', 'recipient_ids' => [$admin->id, $jonas->id], 'letters' => ['en' => ['subject' => 'Invoice for :tenant', 'body' => 'Please check the invoice: :link']]])->assertOk()->json();
+        $this->assertSame(['en', 'de'], array_column($chosen['letters'], 'locale'));
+        $this->assertSame('Invoice for Kaffee GmbH', $chosen['letters'][0]['subject']);
 
-        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment'])->assertStatus(409)->assertJsonPath('code', 'reminder_recently_sent');
+        $letters = ['en' => ['subject' => 'Invoice for :tenant', 'body' => 'Please check the invoice: :link'], 'de' => ['subject' => 'Rechnung für :tenant', 'body' => 'Bitte prüfen Sie die Rechnung: :link']];
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment', 'recipient_ids' => [$admin->id], 'letters' => ['de' => $letters['de']]])->assertStatus(422)->assertJsonPath('code', 'letter_invalid')->assertJsonPath('details.locale', 'en');
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment', 'recipient_ids' => [$gone->id], 'letters' => $letters])->assertStatus(422)->assertJsonPath('code', 'recipients_invalid');
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment', 'recipient_ids' => [(string) Str::uuid()], 'letters' => $letters])->assertStatus(422)->assertJsonPath('code', 'recipients_invalid');
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'refund', 'recipient_ids' => [$admin->id], 'letters' => $letters])->assertStatus(422);
+        Mail::assertNothingSent();
+
+        $sent = $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment', 'recipient_ids' => [$admin->id, $jonas->id], 'letters' => $letters])->assertCreated()->json();
+        $this->assertSame('payment', $sent['topic']);
+        $this->assertSame('staff@platform.test', $sent['sender']['email']);
+        $this->assertSame([['email' => 'admin@kaffee.test', 'locale' => 'en', 'subject' => 'Invoice for Kaffee GmbH', 'body' => 'Please check the invoice: https://watchdog.test/app/settings/billing'], ['email' => 'jonas@kaffee.test', 'locale' => 'de', 'subject' => 'Rechnung für Kaffee GmbH', 'body' => 'Bitte prüfen Sie die Rechnung: https://watchdog.test/app/settings/billing']], $sent['messages']);
+        Mail::assertSent(NotificationMessageMail::class, 2);
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('jonas@kaffee.test') && $mail->subjectLine === 'Rechnung für Kaffee GmbH');
+        Mail::assertNotSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('anna@kaffee.test'));
+
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment', 'recipient_ids' => [$admin->id], 'letters' => $letters])->assertStatus(409)->assertJsonPath('code', 'reminder_recently_sent');
         $this->assertNotNull($this->postJson("/platform-api/v1/tenants/{$tenant}/reminders/preview", ['topic' => 'payment'])->json('last_sent_at'));
 
-        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'other'])->assertStatus(422);
-        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'refund'])->assertStatus(422);
-        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'other', 'subject' => 'Новый отчёт', 'message' => 'Мы добавили отчёт по возвратам, загляните в кабинет.'])->assertOk();
-        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo('anna@kaffee.test') && $mail->subjectLine === 'Business Watchdog: Новый отчёт' && str_contains($mail->bodyText, 'отчёт по возвратам'));
+        $this->putJson('/platform-api/v1/reminder-templates/payment/de', ['subject' => 'x', 'body' => 'too short'])->assertStatus(422)->assertJsonPath('code', 'letter_invalid');
+        $this->putJson('/platform-api/v1/reminder-templates/payment/de', $letters['de'])->assertOk()->assertJsonPath('customized', true)->assertJsonPath('subject', 'Rechnung für :tenant');
+        $this->assertSame('Rechnung für :tenant', $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders/preview", ['topic' => 'payment'])->json('templates.de.subject'));
+        $this->putJson('/platform-api/v1/reminder-templates/refund/de', $letters['de'])->assertNotFound();
+        $template = json_decode((string) DB::table('platform_audit_log')->where('action', 'reminder.template_saved')->value('sanitized_changes'), true);
+        $this->assertSame('Rechnung für :tenant', $template['after']['subject']);
 
         Carbon::setTestNow(Carbon::now()->addMinutes(11));
-        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'payment'])->assertOk();
+        $other = $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders/preview", ['topic' => 'other', 'recipient_ids' => [$anna->id]])->assertOk()->json();
+        $this->assertSame('Business Watchdog:', trim($other['templates']['ru']['subject']));
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/reminders", ['topic' => 'other', 'recipient_ids' => [$anna->id], 'letters' => ['ru' => ['subject' => 'Business Watchdog: новый отчёт', 'body' => "Здравствуйте!\n\nМы добавили отчёт по возвратам.\n\n:link"]]])->assertCreated();
 
-        $audit = DB::table('platform_audit_log')->where('action', 'tenant.reminder_sent')->where('target_tenant_id', $tenant)->get();
-        $this->assertCount(3, $audit);
+        $history = $this->getJson("/platform-api/v1/tenants/{$tenant}/reminders")->assertOk()->json('data');
+        $this->assertSame(['other', 'payment'], array_column($history, 'topic'));
+        $this->assertSame('anna@kaffee.test', $history[0]['messages'][0]['email']);
+        $this->assertStringContainsString('отчёт по возвратам', $history[0]['messages'][0]['body']);
+
+        $audit = DB::table('platform_audit_log')->where('action', 'tenant.reminder_sent')->where('target_tenant_id', $tenant)->orderBy('created_at')->get();
+        $this->assertCount(2, $audit);
         $changes = json_decode((string) $audit->first()->sanitized_changes, true);
-        $this->assertSame('payment', $changes['topic']);
-        $this->assertCount(2, $changes['recipient_user_ids']);
-        $this->assertStringNotContainsString('kaffee.test', (string) $audit->pluck('sanitized_changes')->implode(''));
+        $this->assertSame(['admin@kaffee.test', 'jonas@kaffee.test'], $changes['recipients']);
+        $this->assertSame($sent['id'], $changes['reminder_id']);
 
         $empty = Tenant::query()->create(['name' => 'Empty', 'locale' => 'ru', 'timezone' => 'Europe/Berlin']);
-        $this->postJson("/platform-api/v1/tenants/{$empty->id}/reminders", ['topic' => 'subscription'])->assertStatus(409)->assertJsonPath('code', 'no_recipients');
+        $this->postJson("/platform-api/v1/tenants/{$empty->id}/reminders", ['topic' => 'subscription', 'recipient_ids' => [$anna->id], 'letters' => $letters])->assertStatus(409)->assertJsonPath('code', 'no_recipients');
     }
 
     public function test_owner_invites_and_revokes_team_members_of_the_organisation_with_a_reason(): void
@@ -421,7 +452,7 @@ class TenantAdminTest extends TestCase
     /**
      * @param  array<string, mixed>  $body
      */
-    private function act(string $tenantId, string $action, array $body): \Illuminate\Testing\TestResponse
+    private function act(string $tenantId, string $action, array $body): TestResponse
     {
         return $this->postJson("/platform-api/v1/tenants/{$tenantId}/actions/{$action}", $body + ['confirmation_code' => $this->code()]);
     }

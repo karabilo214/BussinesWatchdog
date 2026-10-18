@@ -506,7 +506,8 @@
       "stores": "Stores",
       "subscription": "Subscription",
       "members": "Team",
-      "audit": "Audit"
+      "audit": "Audit",
+      "reminders": "Reminders"
     },
     "access_reasons": "Why this access",
     "created": "Created",
@@ -611,7 +612,7 @@
     "reminder": {
       "button": "Remind about…",
       "title": "Reminder to the customer",
-      "hint": "The email goes to the active owners of the organisation in their language, with a link to the subscription page of the account. Look at the email first, then send it.",
+      "hint": "Choose the recipients among the organisation's members and edit the letter if needed. “Save as template” keeps the text for every organisation; “Send” sends the letter. Every sent letter is kept in the Reminders tab.",
       "topic": "What to remind about",
       "topics": {
         "subscription": "Subscription",
@@ -620,12 +621,17 @@
       },
       "subject": "Subject",
       "message": "Message",
-      "preview": "Show the email",
+      "preview": "Show as received",
       "send": "Send",
-      "recipients": "Recipients:",
-      "no_recipients": "The organisation has no active owner — there is nobody to email.",
+      "recipients": "Recipients",
+      "no_recipients": "The organisation has no members — there is nobody to write to.",
       "last_sent": "This reminder was already sent: {date}.",
-      "done": "Reminder sent, recipients: {n}."
+      "done": "Reminder sent, recipients: {n}.",
+      "inactive": "disabled",
+      "placeholders": "Subject and text may use {list} — they are replaced by the organisation's name and the link to its subscription page.",
+      "customized": "own template",
+      "save_template": "Save as template",
+      "template_saved": "Template saved."
     },
     "team": {
       "hint": "The invitation goes to the address on behalf of the Business Watchdog team; the person joins the organisation with the link in the email — as with an invitation from the account. The reason is recorded in the audit.",
@@ -642,6 +648,11 @@
       "mfa_reset_warning": "All user sessions will end and recovery codes will stop working. The user will receive an email. Confirm with your authenticator code.",
       "confirmation_code": "Authenticator code",
       "mfa_reset_done": "The user's MFA was reset. A notification was sent."
+    },
+    "reminders": {
+      "hint": "Every sent reminder: who, when, to whom and with which text.",
+      "empty": "No reminders yet.",
+      "unknown_sender": "staff member removed"
     }
   },
   "audit_action": {

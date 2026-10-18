@@ -38,8 +38,8 @@ return [
         'body' => "Здравствуйте!\n\nНапоминаем об оплате подписки Business Watchdog для организации «:tenant». Проверьте, пожалуйста, способ оплаты и последние счета в кабинете:\n:link\n\nЕсли оплата уже прошла, просто проигнорируйте это письмо. Есть вопросы — ответьте на него.",
     ],
     'reminder_other' => [
-        'subject' => 'Business Watchdog: :subject',
-        'body' => "Здравствуйте!\n\n:message\n\nКабинет организации «:tenant»: :link",
+        'subject' => 'Business Watchdog: ',
+        'body' => "Здравствуйте!\n\n\n\nКабинет организации «:tenant»: :link",
     ],
     'platform_inviter' => 'Служба Business Watchdog',
     'staff_invitation' => [

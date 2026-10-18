@@ -377,3 +377,14 @@ Status: complete (ADR 0064; owner-only and implied capabilities confirmed by the
 - Contracts: `openapi.yaml` (staff endpoints, `PlatformMe.role`); `spec/panels/OWNER-PANEL.md` §1.
 
 Verification: `StaffAdminTest` (invitation with capabilities and invalid sets, join keeps them, `/me`, access exactly as given, change ends sessions and is audited, promotion to owner clears the list), `PlatformAuthTest`; all other platform tests still sign in with the former role names as presets. Backend SQLite 616 passed + 4 skipped; PostgreSQL 18: 620/620. Control typecheck, 61/61 (`staff.test.ts`: picker, presets, owner-only, implied, change to owner, menu filtered), build. Manual browser smoke was not run.
+
+### Step 174: Reminders with Chosen Recipients, Editable Templates and Full History
+
+Status: complete (ADR 0047 owner decision)
+
+- Migration `2026_10_18_160000_create_tenant_reminders`: `reminder_templates` (topic + locale), `tenant_reminders`, `tenant_reminder_messages` (cascade with the organisation).
+- `TenantReminders` rewritten: `preview` (members, suggested owners, templates per language, rendered letters, last sent), `send` (chosen active members, letter per recipient language, `:tenant`/`:link` replaced, every letter stored, audit with addresses and subjects), `saveTemplate`, `history`. Default "other" template in `lang/*/account.php` is now a greeting with the account link.
+- Platform API: `POST /tenants/{tenant}/reminders/preview`, `POST /tenants/{tenant}/reminders` (201, the stored reminder), `GET /tenants/{tenant}/reminders` (`tenants.read`), `PUT /reminder-templates/{topic}/{locale}`; `openapi.yaml` with `ReminderLetter`.
+- Owner panel: `TenantReminder.vue` (topic → members to tick, a subject/text editor per recipient language with "Save as template", preview as received, send), new card tab "Reminders" (`TenantReminders.vue`) with every letter.
+
+Verification: `TenantAdminTest` (members and suggestion, edited letters per language, invalid recipients and letters, nothing sent before, sent letters stored exactly, repeat guard, template saved and used, audit, history order, no members), control `tenants.test.ts` (editor flow and history tab). Backend SQLite 616 passed + 4 skipped; PostgreSQL 18: 620/620. Control typecheck, 62/62, build. Manual browser and SMTP smoke were not run.

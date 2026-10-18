@@ -7,13 +7,14 @@ import ErrorNotice from '@/components/ErrorNotice.vue';
 import TenantAudit from '@/components/tenant/TenantAudit.vue';
 import TenantMembers from '@/components/tenant/TenantMembers.vue';
 import TenantOverview from '@/components/tenant/TenantOverview.vue';
+import TenantReminders from '@/components/tenant/TenantReminders.vue';
 import TenantStores from '@/components/tenant/TenantStores.vue';
 import TenantSubscription from '@/components/tenant/TenantSubscription.vue';
 import { ACCESS_TONES, SUBSCRIPTION_TONES } from '@/components/tones';
 import { useStaff } from '@/composables/useStaff';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 
-const TABS = ['overview', 'stores', 'subscription', 'members', 'audit'] as const;
+const TABS = ['overview', 'stores', 'subscription', 'members', 'reminders', 'audit'] as const;
 type Tab = (typeof TABS)[number];
 
 const props = defineProps<{ id: string }>();
@@ -77,6 +78,7 @@ onMounted(load);
         <TenantStores v-else-if="tab === 'stores'" :card="card" :can-manage="canManage" @updated="card = $event" />
         <TenantSubscription v-else-if="tab === 'subscription' && card.billing" :billing="card.billing" />
         <TenantMembers v-else-if="tab === 'members'" :card="card" :can-manage="canManage" :can-reset-mfa="canResetMfa" @updated="card = $event" />
+        <TenantReminders v-else-if="tab === 'reminders'" :tenant-id="card.id" />
         <TenantAudit v-else-if="tab === 'audit'" :card="card" />
       </template>
     </div>

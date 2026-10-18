@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Platform;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformStaff;
 use App\Models\Tenant;
+use App\Support\Account\AccountMailer;
 use App\Support\Account\MfaService;
 use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Platform\PlatformAudit;
@@ -121,9 +122,9 @@ class TenantController extends Controller
             return response()->json(['code' => 'not_found', 'message' => 'Not found.'], 404);
         }
 
-        $validated = $this->reminderInput($request, false);
+        $validated = $request->validate($this->reminderRules(false));
 
-        return response()->json($reminders->preview($model, $validated['topic'], $validated));
+        return response()->json($reminders->preview($model, $validated['topic'], $validated['recipient_ids'] ?? null, $validated['letters'] ?? []));
     }
 
     public function remind(Request $request, string $tenant, TenantReminders $reminders): JsonResponse
@@ -134,29 +135,58 @@ class TenantController extends Controller
             return response()->json(['code' => 'not_found', 'message' => 'Not found.'], 404);
         }
 
-        $validated = $this->reminderInput($request, true);
+        $validated = $request->validate($this->reminderRules(true));
 
         try {
-            $sent = $reminders->send($model, $validated['topic'], $validated, $this->staff($request)->id);
+            $sent = $reminders->send($model, $validated['topic'], $validated['recipient_ids'], $validated['letters'], $this->staff($request)->id);
         } catch (ReminderRejected $exception) {
-            return response()->json(['code' => $exception->reasonCode, 'message' => 'The reminder was not sent.'], $exception->status);
+            return $this->reminderRejected($exception);
         }
 
-        return response()->json(['topic' => $validated['topic'], 'recipients' => $sent]);
+        return response()->json($sent, 201);
+    }
+
+    public function reminders(string $tenant, TenantReminders $reminders): JsonResponse
+    {
+        $model = $this->tenantOr404($tenant);
+
+        if ($model === null) {
+            return response()->json(['code' => 'not_found', 'message' => 'Not found.'], 404);
+        }
+
+        return response()->json(['data' => $reminders->history($model)]);
+    }
+
+    public function saveReminderTemplate(Request $request, string $topic, string $locale, TenantReminders $reminders): JsonResponse
+    {
+        abort_unless(in_array($topic, TenantReminders::TOPICS, true) && in_array($locale, AccountMailer::LOCALES, true), 404);
+        $validated = $request->validate(['subject' => ['required', 'string', 'max:'.TenantReminders::SUBJECT_MAX], 'body' => ['required', 'string', 'max:'.TenantReminders::BODY_MAX]]);
+
+        try {
+            return response()->json($reminders->saveTemplate($this->staff($request)->id, $topic, $locale, $validated));
+        } catch (ReminderRejected $exception) {
+            return $this->reminderRejected($exception);
+        }
     }
 
     /**
-     * @return array{topic: string, subject?: ?string, message?: ?string}
+     * @return array<string, mixed>
      */
-    private function reminderInput(Request $request, bool $sending): array
+    private function reminderRules(bool $sending): array
     {
-        $other = $request->input('topic') === 'other';
-
-        return $request->validate([
+        return [
             'topic' => ['required', 'string', Rule::in(TenantReminders::TOPICS)],
-            'subject' => [$other && $sending ? 'required' : 'nullable', 'string', 'min:3', 'max:150'],
-            'message' => [$other && $sending ? 'required' : 'nullable', 'string', 'min:10', 'max:5000'],
-        ]);
+            'recipient_ids' => [$sending ? 'required' : 'nullable', 'array', 'max:200'],
+            'recipient_ids.*' => ['string', 'uuid'],
+            'letters' => [$sending ? 'required' : 'nullable', 'array:'.implode(',', AccountMailer::LOCALES)],
+            'letters.*.subject' => ['nullable', 'string', 'max:'.TenantReminders::SUBJECT_MAX],
+            'letters.*.body' => ['nullable', 'string', 'max:'.TenantReminders::BODY_MAX],
+        ];
+    }
+
+    private function reminderRejected(ReminderRejected $exception): JsonResponse
+    {
+        return response()->json(array_filter(['code' => $exception->reasonCode, 'message' => 'The reminder was not sent.', 'details' => $exception->locale === null ? null : ['locale' => $exception->locale]]), $exception->status);
     }
 
     /**

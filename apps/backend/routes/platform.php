@@ -41,6 +41,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/lookup', [DiscountController::class, 'tenants']);
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants', [TenantController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/{tenant}', [TenantController::class, 'show']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/{tenant}/reminders', [TenantController::class, 'reminders'])->whereUuid('tenant');
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/subscriptions', [TenantController::class, 'subscriptions']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/payments', [PaymentController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/overview', [OverviewController::class, 'show']);
@@ -75,6 +76,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/tenants/{tenant}/actions/{action}', [TenantController::class, 'act'])->middleware('throttle:platform-step-up');
         Route::post('/tenants/{tenant}/reminders/preview', [TenantController::class, 'reminderPreview']);
         Route::post('/tenants/{tenant}/reminders', [TenantController::class, 'remind']);
+        Route::put('/reminder-templates/{topic}/{locale}', [TenantController::class, 'saveReminderTemplate'])->where(['topic' => 'subscription|payment|other', 'locale' => 'ru|en|de']);
         Route::post('/tenants/{tenant}/stores', [TenantStoreController::class, 'create']);
         Route::get('/tenants/{tenant}/invitations', [TenantTeamController::class, 'invitations']);
         Route::post('/tenants/{tenant}/invitations', [TenantTeamController::class, 'invite'])->middleware('throttle:invitations');

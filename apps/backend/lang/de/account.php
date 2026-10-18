@@ -38,8 +38,8 @@ return [
         'body' => "Hallo,\n\nwir erinnern an die Zahlung für das Business-Watchdog-Abonnement von „:tenant“. Bitte prüfen Sie die Zahlungsmethode und die letzten Rechnungen im Kundenkonto:\n:link\n\nIst die Zahlung bereits erfolgt, ignorieren Sie diese E-Mail einfach. Fragen? Antworten Sie einfach darauf.",
     ],
     'reminder_other' => [
-        'subject' => 'Business Watchdog: :subject',
-        'body' => "Hallo,\n\n:message\n\nKundenkonto von „:tenant“: :link",
+        'subject' => 'Business Watchdog: ',
+        'body' => "Hallo,\n\n\n\nKundenkonto von „:tenant“: :link",
     ],
     'platform_inviter' => 'Das Business-Watchdog-Team',
     'staff_invitation' => [

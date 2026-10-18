@@ -838,25 +838,59 @@ export async function cancelMaintenance(input: { reason: string; confirmation_co
 }
 
 export type ReminderTopic = 'subscription' | 'payment' | 'other';
+export type ReminderLocale = 'ru' | 'en' | 'de';
 
-export interface ReminderInput {
-  topic: ReminderTopic;
-  subject?: string;
-  message?: string;
+export interface ReminderLetter {
+  subject: string;
+  body: string;
 }
 
-export interface ReminderPreview {
-  recipients: { user_id: string; name: string; email: string; locale: string }[];
-  letters: { locale: string; subject: string; body: string }[];
+export interface ReminderMember {
+  user_id: string;
+  name: string;
+  email: string;
+  locale: ReminderLocale;
+  role: string;
+  active: boolean;
+}
+
+export interface ReminderEditor {
+  members: ReminderMember[];
+  suggested_recipient_ids: string[];
+  templates: Record<ReminderLocale, ReminderLetter & { customized: boolean }>;
+  placeholders: string[];
+  letters: (ReminderLetter & { locale: ReminderLocale })[];
   last_sent_at: string | null;
 }
 
-export async function previewTenantReminder(tenantId: string, input: ReminderInput): Promise<ReminderPreview> {
-  return (await request<ReminderPreview>('POST', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/reminders/preview`, { body: input })).data;
+export interface SentReminder {
+  id: string;
+  topic: ReminderTopic;
+  sent_at: string;
+  sender: { name: string | null; email: string } | null;
+  messages: (ReminderLetter & { email: string; locale: ReminderLocale })[];
 }
 
-export async function sendTenantReminder(tenantId: string, input: ReminderInput): Promise<{ topic: ReminderTopic; recipients: number }> {
-  return (await request<{ topic: ReminderTopic; recipients: number }>('POST', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/reminders`, { body: input })).data;
+export interface ReminderDraft {
+  topic: ReminderTopic;
+  recipient_ids?: string[];
+  letters?: Partial<Record<ReminderLocale, ReminderLetter>>;
+}
+
+export async function previewTenantReminder(tenantId: string, input: ReminderDraft): Promise<ReminderEditor> {
+  return (await request<ReminderEditor>('POST', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/reminders/preview`, { body: input })).data;
+}
+
+export async function sendTenantReminder(tenantId: string, input: Required<ReminderDraft>): Promise<SentReminder> {
+  return (await request<SentReminder>('POST', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/reminders`, { body: input })).data;
+}
+
+export async function fetchTenantReminders(tenantId: string): Promise<SentReminder[]> {
+  return (await request<{ data: SentReminder[] }>('GET', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/reminders`)).data.data;
+}
+
+export async function saveReminderTemplate(topic: ReminderTopic, locale: ReminderLocale, letter: ReminderLetter): Promise<ReminderLetter & { customized: boolean }> {
+  return (await request<ReminderLetter & { customized: boolean }>('PUT', `/platform-api/v1/reminder-templates/${topic}/${locale}`, { body: letter })).data;
 }
 
 export interface SiteMedia {
