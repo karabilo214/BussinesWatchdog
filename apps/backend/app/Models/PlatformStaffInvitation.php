@@ -13,7 +13,12 @@ class PlatformStaffInvitation extends Model
 
     public const TTL_HOURS = 72;
 
-    protected $fillable = ['email', 'role', 'capabilities', 'token_hash', 'invited_by', 'expires_at', 'accepted_at', 'accepted_staff_id', 'revoked_at'];
+    public const PURPOSE_JOIN = 'join';
+
+    /** A link to connect a new authenticator after the platform owner reset it (ADR 0052). */
+    public const PURPOSE_MFA_RESET = 'mfa_reset';
+
+    protected $fillable = ['email', 'role', 'capabilities', 'purpose', 'staff_id', 'token_hash', 'invited_by', 'expires_at', 'accepted_at', 'accepted_staff_id', 'revoked_at'];
 
     protected function casts(): array
     {

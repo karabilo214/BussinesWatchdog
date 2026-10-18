@@ -46,6 +46,10 @@ return [
         'subject' => 'Business Watchdog: invitation to the service team',
         'body' => ":inviter invites you to the Business Watchdog control panel with the role “:role”.\n\nTo accept, open the link (valid for :hours h), set a password and connect an authenticator app:\n:link\n\nIf you did not expect this invitation, ignore this email.",
     ],
+    'staff_mfa_reset' => [
+        'subject' => 'Business Watchdog: connect a new authenticator',
+        'body' => "A platform owner reset your authenticator app for the Business Watchdog control panel: old codes no longer work and all sessions are ended.\n\nTo sign in again, open the link (valid for :hours h), enter your password and connect a new authenticator app:\n:link\n\nIf you did not ask for this, tell a platform owner.",
+    ],
     'service_alert' => [
         'problem' => [
             'subject' => 'Business Watchdog (:environment): service problem',

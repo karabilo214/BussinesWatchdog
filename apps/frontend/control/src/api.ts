@@ -759,12 +759,16 @@ export async function updateStaff(id: string, input: { role?: StaffRole; capabil
   return (await request<StaffCatalog>('PATCH', `/platform-api/v1/staff/${encodeURIComponent(id)}`, { body: input })).data;
 }
 
+export async function resetStaffMfa(id: string, reason: string, confirmationCode: string): Promise<StaffCatalog> {
+  return (await request<StaffCatalog>('POST', `/platform-api/v1/staff/${encodeURIComponent(id)}/mfa/reset`, { body: { reason, confirmation_code: confirmationCode } })).data;
+}
+
 export async function revokeStaffSessions(id: string, reason: string): Promise<void> {
   await request<null>('POST', `/platform-api/v1/staff/${encodeURIComponent(id)}/sessions/revoke`, { body: { reason } });
 }
 
-export async function lookupStaffInvitation(token: string): Promise<{ email: string; role: StaffRole; capabilities: string[] | null; expires_at: string; account_exists: boolean }> {
-  return (await request<{ email: string; role: StaffRole; capabilities: string[] | null; expires_at: string; account_exists: boolean }>('GET', '/platform-api/v1/staff-invitations/lookup', { query: { token } })).data;
+export async function lookupStaffInvitation(token: string): Promise<{ email: string; role: StaffRole; capabilities: string[] | null; purpose?: 'join' | 'mfa_reset'; expires_at: string; account_exists: boolean }> {
+  return (await request<{ email: string; role: StaffRole; capabilities: string[] | null; purpose?: 'join' | 'mfa_reset'; expires_at: string; account_exists: boolean }>('GET', '/platform-api/v1/staff-invitations/lookup', { query: { token } })).data;
 }
 
 export async function startStaffInvitation(input: { token: string; name?: string; password: string }): Promise<{ mfa_enabled: boolean; otpauth_uri?: string; secret?: string; qr_svg?: string }> {

@@ -19,3 +19,5 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Сотрудн�
 - Roles become per-member permission sets assigned by the platform owner (ADR 0046 decision).
 
 - Per-member permissions implemented in Step 173 (ADR 0064).
+- Implemented in Step 180: the platform owner resets the authenticator of a member (not an owner, not oneself) from «Сотрудники» with a reason and their code; the old one stops working, sessions end, and an e-mailed one-time link (72 h, an invitation with purpose `mfa_reset`) lets the member connect a new one with their password. An owner's authenticator stays server-only. `staff.invited` now stores the invited address in clear text.
+

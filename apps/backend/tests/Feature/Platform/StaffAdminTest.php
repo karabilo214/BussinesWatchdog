@@ -84,6 +84,7 @@ class StaffAdminTest extends TestCase
         $this->getJson('/platform-api/v1/audit')->assertForbidden();
         $this->assertSame(1, DB::table('platform_audit_log')->where('action', 'staff.joined')->count());
         $this->assertSame('New ops', DB::table('platform_audit_log')->where('action', 'staff.invited')->where('result', 'succeeded')->value('reason'));
+        $this->assertSame('ops@platform.test', json_decode((string) DB::table('platform_audit_log')->where('action', 'staff.invited')->where('result', 'succeeded')->value('sanitized_changes'), true)['email']);
         $this->assertSame($owner->id, DB::table('platform_staff_invitations')->value('invited_by'));
     }
 
@@ -202,6 +203,45 @@ class StaffAdminTest extends TestCase
         $this->assertSame('platform_owner', $owner->fresh()->role);
         $this->staff('second@platform.test', PlatformStaff::ROLE_OWNER);
         $this->assertSame('disabled', $staff->update($admin, $owner->id, ['state' => 'disabled'], 'Test')->state);
+    }
+
+    public function test_the_owner_resets_a_member_authenticator_and_the_member_connects_a_new_one_by_link(): void
+    {
+        Mail::fake();
+        $owner = $this->staff('owner@platform.test', PlatformStaff::ROLE_OWNER);
+        $second = $this->staff('second@platform.test', PlatformStaff::ROLE_OWNER);
+        $member = $this->staff('ops@platform.test', PlatformStaff::ROLE_SUPPORT);
+        $this->signIn('owner@platform.test');
+
+        $this->postJson("/platform-api/v1/staff/{$member->id}/mfa/reset", ['reason' => 'Lost phone', 'confirmation_code' => '000000'])->assertForbidden()->assertJsonPath('code', 'step_up_failed');
+        $this->postJson("/platform-api/v1/staff/{$second->id}/mfa/reset", ['reason' => 'Owner', 'confirmation_code' => $this->code('owner@platform.test')])->assertStatus(409)->assertJsonPath('code', 'owner_mfa_server_only');
+        $this->postJson("/platform-api/v1/staff/{$owner->id}/mfa/reset", ['reason' => 'Self', 'confirmation_code' => $this->code('owner@platform.test')])->assertStatus(409)->assertJsonPath('code', 'self_change');
+        $catalog = $this->postJson("/platform-api/v1/staff/{$member->id}/mfa/reset", ['reason' => 'Lost phone', 'confirmation_code' => $this->code('owner@platform.test')])->assertOk()->json();
+        $this->assertFalse(collect($catalog['staff'])->firstWhere('id', $member->id)['mfa_enabled']);
+        $this->assertSame([], $catalog['invitations'], 'A reset link is not a pending invitation.');
+        $this->assertSame(2, $member->fresh()->permission_version);
+        $this->assertSame('Lost phone', DB::table('platform_audit_log')->where('action', 'staff.mfa_reset')->where('result', 'succeeded')->value('reason'));
+
+        $token = null;
+        Mail::assertSent(NotificationMessageMail::class, function (NotificationMessageMail $mail) use (&$token): bool {
+            preg_match('/staff-invitation\?token=([A-Za-z0-9]+)/', $mail->bodyText, $match);
+            $token = $match[1] ?? null;
+
+            return $mail->hasTo('ops@platform.test') && str_contains($mail->subjectLine, 'новый аутентификатор');
+        });
+        $this->postJson('/platform-api/v1/auth/logout')->assertNoContent();
+
+        $this->postJson('/platform-api/v1/auth/login', ['email' => 'ops@platform.test', 'password' => 'staff-password-1234'])->assertStatus(403);
+        $this->getJson('/platform-api/v1/staff-invitations/lookup?token='.$token)->assertOk()->assertJsonPath('purpose', 'mfa_reset')->assertJsonPath('account_exists', true);
+        $this->postJson('/platform-api/v1/staff-invitations/start', ['token' => $token, 'password' => 'wrong-password-1234'])->assertStatus(422)->assertJsonPath('code', 'password_wrong');
+        $setup = $this->postJson('/platform-api/v1/staff-invitations/start', ['token' => $token, 'password' => 'staff-password-1234'])->assertOk()->assertJsonPath('mfa_enabled', false)->json();
+        $this->secrets['ops@platform.test'] = $setup['secret'];
+        $this->postJson('/platform-api/v1/staff-invitations/confirm', ['token' => $token, 'code' => $this->code('ops@platform.test')])->assertOk()->assertJsonPath('staff_id', $member->id);
+        $this->assertSame(3, PlatformStaff::query()->count());
+        $this->signIn('ops@platform.test');
+        $this->getJson('/platform-api/v1/me')->assertOk()->assertJsonPath('staff_id', $member->id);
+        $this->assertSame(1, DB::table('platform_audit_log')->where('action', 'staff.mfa_reenrolled')->count());
+        $this->getJson('/platform-api/v1/staff-invitations/lookup?token='.$token)->assertStatus(422);
     }
 
     public function test_reset_mfa_command_disables_the_old_authenticator_ends_sessions_and_is_audited(): void

@@ -34,7 +34,7 @@ class StaffOnboarding
     }
 
     /**
-     * @return array{email: string, role: string, capabilities: list<string>|null, expires_at: string, account_exists: bool}
+     * @return array{email: string, role: string, capabilities: list<string>|null, purpose: string, expires_at: string, account_exists: bool}
      */
     public function lookup(string $token): array
     {
@@ -44,6 +44,7 @@ class StaffOnboarding
             'email' => $invitation->email,
             'role' => $invitation->role,
             'capabilities' => $invitation->capabilities,
+            'purpose' => $invitation->purpose,
             'expires_at' => $invitation->expires_at->toJSON(),
             'account_exists' => User::query()->where('email', $invitation->email)->exists(),
         ];
@@ -62,9 +63,17 @@ class StaffOnboarding
                 throw new StaffRejected('password_wrong');
             }
 
-            if (PlatformStaff::query()->where('user_id', $user->id)->exists()) {
+            $resetting = $invitation->purpose === PlatformStaffInvitation::PURPOSE_MFA_RESET;
+
+            if ($resetting && PlatformStaff::query()->whereKey($invitation->staff_id)->where('user_id', $user->id)->doesntExist()) {
+                throw new StaffRejected('invitation_invalid');
+            }
+
+            if (! $resetting && PlatformStaff::query()->where('user_id', $user->id)->exists()) {
                 throw new StaffRejected('already_staff', 409);
             }
+        } elseif ($invitation->purpose === PlatformStaffInvitation::PURPOSE_MFA_RESET) {
+            throw new StaffRejected('invitation_invalid');
         } else {
             if ($name === null || trim($name) === '') {
                 throw new StaffRejected('name_required');
@@ -118,6 +127,20 @@ class StaffOnboarding
         $staff = DB::transaction(function () use ($invitation, $user): PlatformStaff {
             /** @var PlatformStaffInvitation $locked */
             $locked = PlatformStaffInvitation::query()->whereKey($invitation->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->purpose === PlatformStaffInvitation::PURPOSE_MFA_RESET) {
+                /** @var PlatformStaff|null $existing */
+                $existing = PlatformStaff::query()->whereKey($locked->staff_id)->where('user_id', $user->id)->first();
+
+                if (! $locked->pending() || $existing === null) {
+                    throw new StaffRejected('invitation_invalid');
+                }
+
+                $locked->forceFill(['accepted_at' => Carbon::now(), 'accepted_staff_id' => $existing->id])->save();
+                $this->audit->record($existing->id, 'staff.mfa_reenrolled', 'staff', $existing->id, PlatformAudit::RESULT_SUCCEEDED, ['invitation_id' => $locked->id]);
+
+                return $existing;
+            }
 
             if (! $locked->pending() || PlatformStaff::query()->where('user_id', $user->id)->exists()) {
                 throw new StaffRejected('invitation_invalid');

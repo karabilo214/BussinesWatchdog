@@ -9,7 +9,8 @@ import { useFormat } from '@/composables/useFormat';
 const route = useRoute();
 const { dateTime } = useFormat();
 const token = typeof route.query.token === 'string' ? route.query.token : '';
-const invitation = ref<{ email: string; role: StaffRole; expires_at: string; account_exists: boolean } | null>(null);
+const invitation = ref<{ email: string; role: StaffRole; purpose?: 'join' | 'mfa_reset'; expires_at: string; account_exists: boolean } | null>(null);
+const resetting = computed(() => invitation.value?.purpose === 'mfa_reset');
 const step = ref<'loading' | 'invalid' | 'account' | 'mfa' | 'done'>('loading');
 const setup = ref<{ mfa_enabled: boolean; otpauth_uri?: string; secret?: string; qr_svg?: string } | null>(null);
 const recoveryCodes = ref<string[]>([]);
@@ -83,8 +84,8 @@ async function confirm(): Promise<void> {
       </section>
 
       <form v-else-if="step === 'account' && invitation" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6 shadow-sm" data-step="account" @submit.prevent="start">
-        <h1 class="text-2xl font-semibold">{{ $t('staff_join.title') }}</h1>
-        <p class="text-sm text-text-muted">{{ $t('staff_join.offer', { email: invitation.email, role: $t(`role.${invitation.role}`), date: dateTime(invitation.expires_at) }) }}</p>
+        <h1 class="text-2xl font-semibold">{{ $t(resetting ? 'staff_join.reset_title' : 'staff_join.title') }}</h1>
+        <p class="text-sm text-text-muted">{{ resetting ? $t('staff_join.reset_offer', { email: invitation.email, date: dateTime(invitation.expires_at) }) : $t('staff_join.offer', { email: invitation.email, role: $t(`role.${invitation.role}`), date: dateTime(invitation.expires_at) }) }}</p>
         <ErrorNotice v-if="error" :error="error" />
         <p v-if="invitation.account_exists" class="text-sm">{{ $t('staff_join.existing') }}</p>
         <label v-else class="flex flex-col gap-1.5 text-sm">
@@ -120,7 +121,7 @@ async function confirm(): Promise<void> {
       </form>
 
       <section v-else-if="step === 'done'" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6" data-step="done">
-        <h1 class="text-2xl font-semibold">{{ $t('staff_join.done_title') }}</h1>
+        <h1 class="text-2xl font-semibold">{{ $t(resetting ? 'staff_join.reset_done_title' : 'staff_join.done_title') }}</h1>
         <template v-if="recoveryCodes.length > 0">
           <p class="text-sm">{{ $t('staff_join.recovery') }}</p>
           <ul class="grid grid-cols-2 gap-1 rounded-md bg-surface-muted p-3 font-mono text-sm" data-recovery>

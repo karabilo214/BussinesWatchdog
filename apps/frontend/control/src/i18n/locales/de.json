@@ -213,7 +213,8 @@
     "member_not_found": "Das Mitglied gehört nicht mehr zum Team.",
     "note_not_yours": "Sie können nur Ihre eigenen Notizen bearbeiten.",
     "note_not_found": "Die Notiz wurde nicht gefunden.",
-    "template_text_invalid": "Betreff 3–200 Zeichen, Text nicht leer."
+    "template_text_invalid": "Betreff 3–200 Zeichen, Text nicht leer.",
+    "owner_mfa_server_only": "Der Authenticator eines Plattform-Inhabers wird nur mit dem Serverbefehl platform:reset-mfa zurückgesetzt."
   },
   "period": {
     "per": {
@@ -694,8 +695,9 @@
       "joined": "Mitarbeitende beigetreten",
       "updated": "Mitarbeitende geändert",
       "sessions_revoked": "Sitzungen beendet",
-      "mfa_reset": "Authenticator zurückgesetzt",
-      "bootstrap_owner": "Erster Inhaber angelegt"
+      "mfa_reset": "Authenticator eines Mitarbeiters zurückgesetzt",
+      "bootstrap_owner": "Erster Inhaber angelegt",
+      "mfa_reenrolled": "Mitarbeiter hat einen neuen Authenticator verbunden"
     },
     "site": {
       "page": {
@@ -1379,13 +1381,14 @@
     "expires": "gültig bis {date}",
     "revoke": "Widerrufen",
     "apply": "Bestätigen",
-    "mfa_reset": "Den Authenticator eines Mitglieds setzt man nur mit einem Serverbefehl zurück (siehe README, „Wartung“).",
+    "mfa_reset": "Der Authenticator eines Mitarbeiters wird hier zurückgesetzt: Er erhält einen Link, um einen neuen zu verbinden. Den Authenticator eines Plattform-Inhabers nur mit dem Serverbefehl platform:reset-mfa (siehe README, Wartung).",
     "confirm": {
       "role": "Der neue Zugang gilt sofort, alle Sitzungen des Mitglieds enden.",
       "disable": "Das Mitglied kann sich nicht mehr anmelden; alle Sitzungen enden.",
       "enable": "Das Mitglied kann sich wieder anmelden.",
       "sessions": "Alle Sitzungen des Mitglieds enden; es muss sich neu anmelden.",
-      "revoke-invitation": "Der Link in der E-Mail funktioniert nicht mehr."
+      "revoke-invitation": "Der Link in der E-Mail funktioniert nicht mehr.",
+      "mfa": "Der alte Authenticator funktioniert nicht mehr, alle Sitzungen des Mitglieds enden; an seine Adresse geht ein Link zum Verbinden eines neuen (gültig 72 Stunden)."
     },
     "done": {
       "invited": "Einladung gesendet.",
@@ -1393,12 +1396,14 @@
       "disabled": "Mitglied deaktiviert.",
       "enabled": "Mitglied wieder aktiv.",
       "sessions": "Sitzungen beendet.",
-      "invitation_revoked": "Einladung widerrufen."
+      "invitation_revoked": "Einladung widerrufen.",
+      "mfa": "Authenticator zurückgesetzt, Link gesendet."
     },
     "access": "Was erlaubt ist",
     "presets": "Ausfüllen wie:",
     "owner_only": "Nur für Plattform-Inhaber.",
-    "owner_all": "Alles, einschließlich Mitarbeitern und Genehmigung von Erstattungen."
+    "owner_all": "Alles, einschließlich Mitarbeitern und Genehmigung von Erstattungen.",
+    "mfa_reset_button": "Authenticator zurücksetzen"
   },
   "staff_join": {
     "title": "Einladung ins Team",
@@ -1416,7 +1421,10 @@
     "join": "Beitreten",
     "done_title": "Fertig, Sie sind im Team",
     "recovery": "Speichern Sie die Wiederherstellungscodes — sie werden einmal angezeigt und gebraucht, falls die App nicht verfügbar ist:",
-    "sign_in": "In der Verwaltung anmelden"
+    "sign_in": "In der Verwaltung anmelden",
+    "reset_title": "Neuer Authenticator",
+    "reset_offer": "Adresse {email}. Geben Sie Ihr Passwort ein und verbinden Sie eine neue Authenticator-App. Der Link gilt bis {date}.",
+    "reset_done_title": "Fertig, der neue Authenticator ist verbunden"
   },
   "audit": {
     "hint": "Protokoll der Aktionen von Mitarbeitenden und System: wer, was, an welchem Objekt, Ergebnis und Grund. Änderungen werden ohne Geheimnisse und personenbezogene Daten gespeichert.",

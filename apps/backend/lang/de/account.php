@@ -46,6 +46,10 @@ return [
         'subject' => 'Business Watchdog: Einladung ins Team des Dienstes',
         'body' => ":inviter lädt Sie in die Verwaltung von Business Watchdog mit der Rolle „:role“ ein.\n\nZum Annehmen öffnen Sie den Link (gültig :hours h), legen ein Passwort fest und verbinden eine Authenticator-App:\n:link\n\nWenn Sie diese Einladung nicht erwartet haben, ignorieren Sie diese E-Mail.",
     ],
+    'staff_mfa_reset' => [
+        'subject' => 'Business Watchdog: neuen Authenticator verbinden',
+        'body' => "Ein Plattform-Inhaber hat Ihre Authenticator-App für die Verwaltung von Business Watchdog zurückgesetzt: Alte Codes funktionieren nicht mehr, alle Sitzungen sind beendet.\n\nUm sich wieder anzumelden, öffnen Sie den Link (gültig :hours h), geben Ihr Passwort ein und verbinden eine neue Authenticator-App:\n:link\n\nWenn Sie das nicht angefordert haben, informieren Sie einen Plattform-Inhaber.",
+    ],
     'service_alert' => [
         'problem' => [
             'subject' => 'Business Watchdog (:environment): Problem im Dienst',

@@ -1601,7 +1601,7 @@ paths:
     post:
       tags: [Platform]
       operationId: platformInviteStaff
-      description: "Capability staff.manage. Invites a staff member by email: role platform_owner (everything) or platform_member with capabilities (at least one, only assignable ones, implied ones are added; else 422 capabilities_invalid; ignored for an owner); the link is valid 72 h, an earlier pending invitation of the address is revoked, an existing staff account answers 409 already_staff. Needs a reason and the authenticator code (403 step_up_failed). Audited as staff.invited without the address (hash)."
+      description: "Capability staff.manage. Invites a staff member by email: role platform_owner (everything) or platform_member with capabilities (at least one, only assignable ones, implied ones are added; else 422 capabilities_invalid; ignored for an owner); the link is valid 72 h, an earlier pending invitation of the address is revoked, an existing staff account answers 409 already_staff. Needs a reason and the authenticator code (403 step_up_failed). Audited as staff.invited with the invited address (ADR 0052 owner decision)."
       security:
         - {StaffSession: []}
       requestBody:
@@ -1711,6 +1711,37 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/staff/{staff}/mfa/reset:
+    post:
+      tags: [Platform]
+      operationId: platformResetStaffMfa
+      description: "Capability staff.manage (platform owner, ADR 0052). Resets the authenticator of a staff member who is not a platform owner (409 owner_mfa_server_only — that is only platform:reset-mfa on the server) and not oneself (409 self_change), with a reason and the owner's authenticator code (403 step_up_failed). The old authenticator stops working, the member's sessions end, and a link (72 h, purpose mfa_reset on the staff-invitation pages) to connect a new one with their password is e-mailed. Audited (staff.mfa_reset; joining back: staff.mfa_reenrolled). Returns the staff catalog."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: staff, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, confirmation_code]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+                confirmation_code: {type: string, maxLength: 32}
+      responses:
+        "200":
+          description: Staff catalog
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/staff-invitations/lookup:
     get:
       tags: [Platform]

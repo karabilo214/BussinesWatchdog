@@ -213,7 +213,8 @@
     "member_not_found": "The member is no longer in the team.",
     "note_not_yours": "You can only edit your own notes.",
     "note_not_found": "The note was not found.",
-    "template_text_invalid": "Subject 3–200 characters, text not empty."
+    "template_text_invalid": "Subject 3–200 characters, text not empty.",
+    "owner_mfa_server_only": "A platform owner's authenticator is reset only with the server command platform:reset-mfa."
   },
   "period": {
     "per": {
@@ -694,8 +695,9 @@
       "joined": "Staff member joined",
       "updated": "Staff member changed",
       "sessions_revoked": "Staff sessions ended",
-      "mfa_reset": "Authenticator reset",
-      "bootstrap_owner": "First owner created"
+      "mfa_reset": "Staff authenticator reset",
+      "bootstrap_owner": "First owner created",
+      "mfa_reenrolled": "Staff member connected a new authenticator"
     },
     "site": {
       "page": {
@@ -1379,13 +1381,14 @@
     "expires": "valid until {date}",
     "revoke": "Revoke",
     "apply": "Confirm",
-    "mfa_reset": "Resetting a staff member’s authenticator is done only with a server command (see README, «Maintenance»).",
+    "mfa_reset": "A staff member's authenticator is reset here: they get a link to connect a new one. A platform owner's authenticator only with the server command platform:reset-mfa (see README, Maintenance).",
     "confirm": {
       "role": "The new access applies at once and all sessions of the member end.",
       "disable": "The member can no longer sign in; all their sessions end.",
       "enable": "The member can sign in again.",
       "sessions": "All sessions of the member end; they need to sign in again.",
-      "revoke-invitation": "The link in the email stops working."
+      "revoke-invitation": "The link in the email stops working.",
+      "mfa": "The old authenticator stops working and all the member's sessions end; a link to connect a new one goes to their address (valid for 72 hours)."
     },
     "done": {
       "invited": "Invitation sent.",
@@ -1393,12 +1396,14 @@
       "disabled": "Staff member disabled.",
       "enabled": "Staff member active again.",
       "sessions": "Sessions ended.",
-      "invitation_revoked": "Invitation revoked."
+      "invitation_revoked": "Invitation revoked.",
+      "mfa": "Authenticator reset, link sent."
     },
     "access": "What is allowed",
     "presets": "Fill in as:",
     "owner_only": "Platform owners only.",
-    "owner_all": "Everything, including staff and refund approval."
+    "owner_all": "Everything, including staff and refund approval.",
+    "mfa_reset_button": "Reset authenticator"
   },
   "staff_join": {
     "title": "Invitation to the team",
@@ -1416,7 +1421,10 @@
     "join": "Join",
     "done_title": "Done, you are in the team",
     "recovery": "Save the recovery codes — they are shown once and needed if the app is unavailable:",
-    "sign_in": "Sign in to the panel"
+    "sign_in": "Sign in to the panel",
+    "reset_title": "New authenticator",
+    "reset_offer": "Address {email}. Enter your password and connect a new authenticator app. The link is valid until {date}.",
+    "reset_done_title": "Done, the new authenticator is connected"
   },
   "audit": {
     "hint": "Log of actions by service staff and the system: who, what, on which object, result and reason. Changes are kept without secrets or personal data.",

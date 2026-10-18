@@ -27,7 +27,7 @@ class StaffAdmin
         $staff = PlatformStaff::query()->with('user')->orderBy('created_at')->get();
         $logins = DB::table('platform_audit_log')->where('action', 'staff.login')->where('result', PlatformAudit::RESULT_SUCCEEDED)->whereIn('actor_staff_id', $staff->pluck('id'))
             ->groupBy('actor_staff_id')->select('actor_staff_id', DB::raw('max(created_at) as last_login_at'))->pluck('last_login_at', 'actor_staff_id');
-        $invitations = PlatformStaffInvitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', Carbon::now())->orderByDesc('created_at')->get();
+        $invitations = PlatformStaffInvitation::query()->where('purpose', PlatformStaffInvitation::PURPOSE_JOIN)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', Carbon::now())->orderByDesc('created_at')->get();
 
         return [
             'staff' => $staff->map(fn (PlatformStaff $member): array => [
@@ -70,7 +70,7 @@ class StaffAdmin
 
         $token = Str::random(48);
         $invitation = DB::transaction(function () use ($actor, $email, $role, $capabilities, $token): PlatformStaffInvitation {
-            PlatformStaffInvitation::query()->where('email', $email)->whereNull('accepted_at')->whereNull('revoked_at')->update(['revoked_at' => Carbon::now()]);
+            PlatformStaffInvitation::query()->where('email', $email)->where('purpose', PlatformStaffInvitation::PURPOSE_JOIN)->whereNull('accepted_at')->whereNull('revoked_at')->update(['revoked_at' => Carbon::now()]);
 
             return PlatformStaffInvitation::query()->create([
                 'email' => $email,
@@ -88,7 +88,7 @@ class StaffAdmin
             'hours' => PlatformStaffInvitation::TTL_HOURS,
             'link' => rtrim((string) config('watchdog.site.owner_url'), '/').'/staff-invitation?'.http_build_query(['token' => $token]),
         ]);
-        $this->audit->record($actor->id, 'staff.invited', 'staff_invitation', $invitation->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $role, 'capabilities' => $capabilities, 'email_hash' => hash('sha256', $email)], $reason);
+        $this->audit->record($actor->id, 'staff.invited', 'staff_invitation', $invitation->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $role, 'capabilities' => $capabilities, 'email' => $email], $reason);
 
         return $invitation;
     }
@@ -97,7 +97,7 @@ class StaffAdmin
     {
         $invitation = PlatformStaffInvitation::query()->whereKey($invitationId)->first();
 
-        if ($invitation === null || ! $invitation->pending()) {
+        if ($invitation === null || ! $invitation->pending() || $invitation->purpose !== PlatformStaffInvitation::PURPOSE_JOIN) {
             throw new StaffRejected('invitation_not_found', 404);
         }
 
@@ -149,6 +149,54 @@ class StaffAdmin
 
             return $member;
         });
+    }
+
+    /**
+     * The platform owner resets a staff member's authenticator from the panel (ADR 0052): the old one stops working at
+     * once, every session ends, and the member gets a link (72 hours) to connect a new one with their password. A
+     * platform owner's authenticator is reset only on the server (`platform:reset-mfa`).
+     */
+    public function resetMfa(PlatformStaff $actor, string $staffId, string $reason): void
+    {
+        $token = Str::random(48);
+        $member = DB::transaction(function () use ($actor, $staffId, $reason, $token): PlatformStaff {
+            /** @var PlatformStaff|null $member */
+            $member = PlatformStaff::query()->with('user')->whereKey($staffId)->lockForUpdate()->first();
+
+            if ($member === null || $member->user === null) {
+                throw new StaffRejected('staff_not_found', 404);
+            }
+
+            if ($member->id === $actor->id) {
+                throw new StaffRejected('self_change', 409);
+            }
+
+            if ($member->role === PlatformStaff::ROLE_OWNER) {
+                throw new StaffRejected('owner_mfa_server_only', 409);
+            }
+
+            $this->mfa->disable($member->user);
+            $member->forceFill(['permission_version' => $member->permission_version + 1])->save();
+            PlatformStaffInvitation::query()->where('staff_id', $member->id)->where('purpose', PlatformStaffInvitation::PURPOSE_MFA_RESET)->whereNull('accepted_at')->whereNull('revoked_at')->update(['revoked_at' => Carbon::now()]);
+            PlatformStaffInvitation::query()->create([
+                'email' => $member->user->email,
+                'role' => $member->role,
+                'capabilities' => $member->capabilities,
+                'purpose' => PlatformStaffInvitation::PURPOSE_MFA_RESET,
+                'staff_id' => $member->id,
+                'token_hash' => hash('sha256', $token),
+                'invited_by' => $actor->id,
+                'expires_at' => Carbon::now()->addHours(PlatformStaffInvitation::TTL_HOURS),
+            ]);
+            $this->audit->record($actor->id, 'staff.mfa_reset', 'staff', $member->id, PlatformAudit::RESULT_SUCCEEDED, ['sessions_revoked' => true, 'link_sent_to' => $member->user->email], $reason);
+
+            return $member;
+        });
+        $locale = in_array($member->user?->locale, AccountMailer::LOCALES, true) ? (string) $member->user->locale : 'en';
+        $this->mailer->send((string) $member->user?->email, $locale, 'staff_mfa_reset', [
+            'hours' => PlatformStaffInvitation::TTL_HOURS,
+            'link' => rtrim((string) config('watchdog.site.owner_url'), '/').'/staff-invitation?'.http_build_query(['token' => $token]),
+        ]);
     }
 
     public function revokeSessions(PlatformStaff $actor, string $staffId, string $reason): void

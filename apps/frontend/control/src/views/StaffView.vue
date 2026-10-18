@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { StatusBadge } from '@bw/ui';
-import { fetchStaff, inviteStaff, revokeStaffInvitation, revokeStaffSessions, updateStaff, type StaffCatalog, type StaffMember, type StaffRole } from '@/api';
+import { fetchStaff, inviteStaff, resetStaffMfa, revokeStaffInvitation, revokeStaffSessions, updateStaff, type StaffCatalog, type StaffMember, type StaffRole } from '@/api';
 import CapabilityPicker from '@/components/CapabilityPicker.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
@@ -21,9 +21,9 @@ const actionError = ref<unknown>(null);
 const busy = ref(false);
 const notice = ref<string | null>(null);
 const invite = reactive({ open: false, email: '', role: 'platform_member' as StaffRole, capabilities: [] as string[], reason: '', code: '' });
-const action = reactive({ kind: null as 'role' | 'disable' | 'enable' | 'sessions' | 'revoke-invitation' | null, target: '', role: 'platform_member' as StaffRole, capabilities: [] as string[], reason: '', code: '' });
+const action = reactive({ kind: null as 'role' | 'disable' | 'enable' | 'sessions' | 'mfa' | 'revoke-invitation' | null, target: '', role: 'platform_member' as StaffRole, capabilities: [] as string[], reason: '', code: '' });
 
-const needsCode = computed(() => action.kind === 'role' || action.kind === 'disable' || action.kind === 'enable');
+const needsCode = computed(() => action.kind === 'role' || action.kind === 'disable' || action.kind === 'enable' || action.kind === 'mfa');
 const accessReady = (role: StaffRole, capabilities: string[]) => role === 'platform_owner' || capabilities.length > 0;
 const inviteReady = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invite.email.trim()) && accessReady(invite.role, invite.capabilities) && invite.reason.trim().length >= 3 && invite.code.trim().length >= 6);
 const actionReady = computed(() => action.reason.trim().length >= 3 && (!needsCode.value || action.code.trim().length >= 6) && (action.kind !== 'role' || accessReady(action.role, action.capabilities)));
@@ -87,6 +87,8 @@ async function confirmAction(): Promise<void> {
       return run(() => updateStaff(action.target, { state: 'active', reason, confirmation_code: code }), 'staff.done.enabled');
     case 'sessions':
       return run(() => revokeStaffSessions(action.target, reason), 'staff.done.sessions');
+    case 'mfa':
+      return run(() => resetStaffMfa(action.target, reason, code), 'staff.done.mfa');
     default:
       return run(() => revokeStaffInvitation(action.target, reason), 'staff.done.invitation_revoked');
   }
@@ -179,6 +181,7 @@ onMounted(load);
                   <div v-if="!self(member)" class="flex flex-wrap justify-end gap-1.5">
                     <button type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="role" @click="ask('role', member.id, member)">{{ $t('staff.change_role') }}</button>
                     <button v-if="member.state === 'active'" type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="sessions" @click="ask('sessions', member.id)">{{ $t('staff.sign_out') }}</button>
+                    <button v-if="member.role !== 'platform_owner'" type="button" class="rounded-md border border-warn-border px-2.5 py-1 font-medium text-warn hover:bg-warn-soft" data-action="mfa" @click="ask('mfa', member.id)">{{ $t('staff.mfa_reset_button') }}</button>
                     <button v-if="member.state === 'active'" type="button" class="rounded-md border border-crit-border px-2.5 py-1 font-medium text-crit hover:bg-crit-soft" data-action="disable" @click="ask('disable', member.id)">{{ $t('staff.disable') }}</button>
                     <button v-else type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="enable" @click="ask('enable', member.id)">{{ $t('staff.enable') }}</button>
                   </div>

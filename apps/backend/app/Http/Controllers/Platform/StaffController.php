@@ -74,6 +74,17 @@ class StaffController extends Controller
         });
     }
 
+    public function resetMfa(Request $request, string $staff): Response|JsonResponse
+    {
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500'], 'confirmation_code' => ['required', 'string', 'max:32']]);
+
+        return $this->stepUp($request, 'staff.mfa_reset', $validated['confirmation_code'], function (PlatformStaff $actor) use ($staff, $validated): JsonResponse {
+            $this->staff->resetMfa($actor, $staff, trim($validated['reason']));
+
+            return response()->json($this->staff->catalog());
+        });
+    }
+
     public function revokeSessions(Request $request, string $staff): Response|JsonResponse
     {
         $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);

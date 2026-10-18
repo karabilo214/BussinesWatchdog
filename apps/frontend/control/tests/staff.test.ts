@@ -17,6 +17,7 @@ vi.mock('@/api', () => ({
   revokeStaffInvitation: vi.fn(),
   updateStaff: vi.fn(),
   revokeStaffSessions: vi.fn(),
+  resetStaffMfa: vi.fn(),
   lookupStaffInvitation: vi.fn(),
   startStaffInvitation: vi.fn(),
   confirmStaffInvitation: vi.fn(),
@@ -160,5 +161,29 @@ describe('staff', () => {
     expect(menu).toContain('Сайт');
     expect(menu).not.toContain('Обзор');
     expect(menu).not.toContain('Сотрудники');
+  });
+
+  it('resets a member authenticator with a reason and code, never for an owner', async () => {
+    mocked.fetchStaff.mockResolvedValue(CATALOG);
+    mocked.resetStaffMfa.mockResolvedValue(CATALOG);
+    const { wrapper } = await open('/owner/staff', ['staff.manage']);
+
+    expect(wrapper.get('[data-staff="f@example.test"]').find('[data-action="mfa"]').exists()).toBe(false);
+    await wrapper.get('[data-staff="ops@example.test"] [data-action="mfa"]').trigger('click');
+    await wrapper.get('[data-field="action-reason"]').setValue('Lost phone');
+    expect(wrapper.get('[data-action="confirm"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-field="action-code"]').setValue('123456');
+    await wrapper.get('[data-form="mfa"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.resetStaffMfa).toHaveBeenCalledWith('s-2', 'Lost phone', '123456');
+    expect(wrapper.get('[data-notice]').text()).toBe('Аутентификатор сброшен, ссылка отправлена.');
+  });
+
+  it('a reset link asks only for the password and a new authenticator', async () => {
+    mocked.lookupStaffInvitation.mockResolvedValue({ email: 'ops@example.test', role: 'platform_member', capabilities: ['service.read'], purpose: 'mfa_reset', expires_at: '2026-10-23T10:00:00Z', account_exists: true });
+    const { wrapper } = await open('/owner/staff-invitation?token=reset1', null);
+
+    expect(wrapper.get('[data-step="account"] h1').text()).toBe('Новый аутентификатор');
+    expect(wrapper.find('[data-field="name"]').exists()).toBe(false);
   });
 });

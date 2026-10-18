@@ -415,3 +415,12 @@ Status: complete (ADR 0048 owner decision)
 - Owner panel: "Change role" and "Remove from team" for every member except the owner in the card's team tab, with a reason; labels for the new audit actions.
 
 Verification: `TenantAdminTest` (reason required, owner role neither given nor taken, unknown role, foreign user 404, role changed, owner not removable, removal and second removal 404, both audits), control `tenants.test.ts`. Backend SQLite 621 passed + 4 skipped; PostgreSQL 18: 625/625. Control typecheck, 65/65, build. Manual browser smoke was not run.
+
+### Step 180: Reset a Staff Authenticator from the Owner Panel; Invited Address in the Audit
+
+Status: complete (ADR 0052 owner decision)
+
+- Migration `2026_10_18_200000_add_purpose_to_platform_staff_invitations` (`purpose` join/mfa_reset, `staff_id`; PostgreSQL check). `StaffAdmin::resetMfa` (row lock, not oneself, not an owner, MFA disabled, `permission_version` bumped, earlier reset links revoked, link e-mailed `account.staff_mfa_reset`, audit); `StaffOnboarding` handles the reset link: existing account and password, new authenticator, no new staff row, audit `staff.mfa_reenrolled`. Reset links are not listed or revocable as invitations; a new join invitation does not revoke them. `staff.invited` keeps the address instead of a hash. `POST /platform-api/v1/staff/{staff}/mfa/reset` with the step-up limiter; `openapi.yaml`.
+- Owner panel: "Reset authenticator" for members (code and reason); the staff-invitation page shows "New authenticator" without the name field for a reset link.
+
+Verification: `StaffAdminTest` (wrong code, owner and self refused, reset ends sessions, no pending invitation listed, e-mail with link, sign-in refused without authenticator, wrong password, new authenticator connected, the same staff row, signs in, audit, link used up; invited address in the audit). Control 67/67, typecheck, build. Backend SQLite 625 passed + 4 skipped; PostgreSQL 18: 629/629. SMTP smoke was not run.
