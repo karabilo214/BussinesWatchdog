@@ -220,3 +220,13 @@ Status: complete (owner decision 2026-10-18, ADR 0063)
 - Not failing: effective size limit capped at PHP `upload_max_filesize`/`post_max_size`; `PostTooLargeException` on the upload route → 413 `media_too_large`; memory need checked against `memory_limit` before decoding (`media_too_large_for_server`); missing GD format → 503 `media_processing_unavailable`; storage error → 503 `media_storage_unavailable`; decode/encode errors caught → `media_unreadable`; no file → `media_missing`. Backend image gets `php-uploads.ini` (32M/34M/256M), nginx `client_max_body_size 34m` — before, the PHP default of 2 MB would have refused most 5 MB uploads.
 
 Verification: `SiteMediaTest` 7 (new: resize to the configured side and kept size with 0; limits and formats from the configuration, PDF refused by default, accepted when enabled, served unchanged, damaged PDF refused, a PDF named `.jpg` still a document; a 90000×90000 PNG header refused before decoding, cut PNG unreadable, empty file, missing file, oversized request 413). Control `editor.test.ts`: hint and `accept` from the server limits, PDF inserted as a link. Backend SQLite 615 passed + 4 skipped; PostgreSQL 18: 619/619. Control typecheck, 59/59, build. Backend fpm image built: upload_max_filesize 32M, post_max_size 34M, memory_limit 256M, GD available. Manual browser smoke on the local stand was not run.
+
+### Step 171: Syntax Highlighting in the HTML Mode of the Page Editor
+
+Status: complete (ADR 0045, owner decision 2026-10-16)
+
+- `HtmlCodeEditor.vue` (CodeMirror 6, exact versions in `apps/frontend/control/package.json`) replaces the text field of the "HTML code" mode in `PageView` and `BlockView`: highlighting in the panel palette tokens (works in the dark theme), line numbers, active line, bracket matching, auto-closing tags, undo/redo, Tab indent, line wrapping; `aria-label` from the field label. Two-way `v-model`; an outside change (restore, discard, language switch) replaces the text.
+- Loaded with `defineAsyncComponent`, so CodeMirror (~164 KB gzip) is fetched only when the HTML mode is opened; the visual editor chunk stays ~141 KB gzip.
+- Tests: helper `tests/code.ts` reads and sets the code editor (waits for the async chunk); site and block tests use it; `editor.test.ts` checks highlighting spans, line numbers and sync both ways.
+
+Verification: control typecheck, 60/60 tests, production build. Backend not changed; backend SQLite 615 passed + 4 skipped. Manual browser smoke was not run.

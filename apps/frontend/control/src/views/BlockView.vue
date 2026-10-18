@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, defineAsyncComponent, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { archivePageBlock, createPageBlock, fetchPageBlock, updatePageBlock, type PageBlock, type PageBlockCategory, type SiteLocale } from '@/api';
@@ -7,6 +7,8 @@ import ErrorNotice from '@/components/ErrorNotice.vue';
 import RichEditor from '@/components/editor/RichEditor.vue';
 import { SITE_LOCALES } from '@/components/site';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
+
+const HtmlCodeEditor = defineAsyncComponent(() => import('@/components/editor/HtmlCodeEditor.vue'));
 
 const CATEGORIES: PageBlockCategory[] = ['hero', 'features', 'steps', 'pricing', 'faq', 'cta', 'text', 'other'];
 
@@ -153,7 +155,7 @@ onMounted(load);
           </div>
 
           <RichEditor v-if="mode === 'visual'" :key="locale" v-model="form.bodies[locale]" :label="$t('blocks.content', { locale: locale.toUpperCase() })" />
-          <textarea v-else v-model="form.bodies[locale]" rows="18" spellcheck="false" :aria-label="$t('blocks.content', { locale: locale.toUpperCase() })" class="min-h-80 rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-[13px] leading-5" data-field="body" />
+          <HtmlCodeEditor v-else :key="`code-${locale}`" v-model="form.bodies[locale]" :label="$t('blocks.content', { locale: locale.toUpperCase() })" />
           <p class="text-text-muted">{{ $t('blocks.languages_hint') }}</p>
 
           <div class="flex flex-wrap items-center gap-2">

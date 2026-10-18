@@ -6,6 +6,7 @@ import App from '@/App.vue';
 import { useStaff } from '@/composables/useStaff';
 import { localization } from '@/i18n';
 import { buildRouter } from '@/router';
+import { setCode } from './code';
 
 vi.mock('@/api', () => ({
   fetchMe: vi.fn(),
@@ -70,7 +71,7 @@ describe('block templates', () => {
     expect(wrapper.get('[data-action="save"]').attributes('disabled')).toBeDefined();
     await wrapper.get('[data-field="name"]').setValue('Отзывы');
     await wrapper.get('[data-mode="html"]').trigger('click');
-    await wrapper.get('[data-field="body"]').setValue('<p>Отзыв</p>');
+    await setCode(wrapper, '<p>Отзыв</p>');
     await wrapper.get('[data-form="block"]').trigger('submit');
     await flushPromises();
 
@@ -91,9 +92,9 @@ describe('block templates', () => {
     await wrapper.get('[data-field="name"]').setValue('FAQ');
     await wrapper.get('[data-locale="de"]').trigger('click');
     await wrapper.get('[data-mode="html"]').trigger('click');
-    await wrapper.get('[data-field="body"]').setValue('<h2>Fragen</h2>');
+    await setCode(wrapper, '<h2>Fragen</h2>');
     await wrapper.get('[data-locale="en"]').trigger('click');
-    await wrapper.get('[data-field="body"]').setValue('');
+    await setCode(wrapper, '');
     await wrapper.get('[data-form="block"]').trigger('submit');
     await flushPromises();
     expect(mocked.updatePageBlock).toHaveBeenCalledWith('b-1', { name: 'FAQ', category: 'faq', sort: 10, bodies: { ru: '<h2>Вопросы</h2>', en: null, de: '<h2>Fragen</h2>' } });

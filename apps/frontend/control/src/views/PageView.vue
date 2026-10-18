@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { StatusBadge } from '@bw/ui';
@@ -9,6 +9,8 @@ import RichEditor from '@/components/editor/RichEditor.vue';
 import { CONTENT_CLASSES, SITE_LOCALES, publicUrl } from '@/components/site';
 import { useFormat } from '@/composables/useFormat';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
+
+const HtmlCodeEditor = defineAsyncComponent(() => import('@/components/editor/HtmlCodeEditor.vue'));
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
@@ -286,15 +288,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <RichEditor v-if="editorMode === 'visual'" v-model="form.body" :label="$t('site.field.content')" :blocks="insertable" />
-                <textarea
-                  v-else
-                  v-model="form.body"
-                  rows="22"
-                  spellcheck="false"
-                  aria-labelledby="page-body-label"
-                  class="min-h-80 rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-[13px] leading-5"
-                  data-field="body"
-                />
+                <HtmlCodeEditor v-else v-model="form.body" :label="$t('site.field.content')" />
                 <span class="text-text-muted">{{ $t(page.kind === 'page' ? 'site.field.body_hint' : 'site.field.body_hint_system') }}</span>
                 <span v-if="editorMode === 'html'" class="text-text-muted">{{ $t('site.mode.html_hint') }}</span>
               </div>

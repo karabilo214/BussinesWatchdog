@@ -1,7 +1,9 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import * as api from '@/api';
+import HtmlCodeEditor from '@/components/editor/HtmlCodeEditor.vue';
 import RichEditor from '@/components/editor/RichEditor.vue';
+import { code, setCode } from './code';
 import { localization } from '@/i18n';
 
 vi.mock('@/api', () => ({ fetchSiteMedia: vi.fn(), uploadSiteMedia: vi.fn(), deleteSiteMedia: vi.fn() }));
@@ -169,6 +171,23 @@ describe('visual page editor', () => {
     await flushPromises();
     expect(mocked.deleteSiteMedia).toHaveBeenCalledWith('m-1');
     expect(wrapper.find('[data-media="m-1"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('highlights HTML in the code mode and keeps the text in sync both ways', async () => {
+    const wrapper = mount(HtmlCodeEditor, { props: { modelValue: '<section class="hero"><!-- note --><h1>Hi</h1></section>', label: 'Содержимое', 'onUpdate:modelValue': (next: string) => wrapper.setProps({ modelValue: next }) }, attachTo: document.body });
+    await flushPromises();
+    const content = wrapper.get('[data-code]');
+
+    expect(content.attributes('aria-label')).toBe('Содержимое');
+    expect(content.findAll('span').length).toBeGreaterThan(3);
+    expect(wrapper.findAll('.cm-lineNumbers .cm-gutterElement').length).toBeGreaterThan(0);
+
+    await setCode(wrapper, '<p class="lead">Text</p>');
+    expect(wrapper.props('modelValue')).toBe('<p class="lead">Text</p>');
+
+    await wrapper.setProps({ modelValue: '<h2>Neu</h2>' });
+    expect(await code(wrapper)).toBe('<h2>Neu</h2>');
     wrapper.unmount();
   });
 });

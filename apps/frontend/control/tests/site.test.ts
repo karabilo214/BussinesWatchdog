@@ -6,6 +6,7 @@ import App from '@/App.vue';
 import { useStaff } from '@/composables/useStaff';
 import { localization } from '@/i18n';
 import { buildRouter } from '@/router';
+import { code, setCode } from './code';
 
 vi.mock('@/api', () => ({
   fetchMe: vi.fn(),
@@ -120,7 +121,7 @@ describe('site', () => {
     mocked.publishPage.mockResolvedValue(card({ content: { ...card().content, ru: { draft: null, published: { ...card().content.ru.draft!, published_at: '2026-10-12T12:00:00Z' } } } }));
     const { wrapper } = await open('/owner/site/pages/p-1');
 
-    expect((wrapper.get('[data-field="body"]').element as HTMLTextAreaElement).value).toBe('<p>Новый текст</p>');
+    expect(await code(wrapper)).toBe('<p>Новый текст</p>');
     const frame = wrapper.get('[data-preview]');
     expect(frame.attributes('sandbox')).toBe('');
     await vi.waitFor(() => expect(mocked.previewPage).toHaveBeenCalledWith('p-1', 'ru', { title: 'О компании', description: null, body: '<p>Новый текст</p>' }));
@@ -128,7 +129,7 @@ describe('site', () => {
     expect(frame.attributes('srcdoc')).toBe('<p>preview</p>');
 
     expect(wrapper.get('[data-action="save"]').attributes('disabled')).toBeDefined();
-    await wrapper.get('[data-field="body"]').setValue('<h2>Мы</h2>');
+    await setCode(wrapper, '<h2>Мы</h2>');
     expect(wrapper.find('[data-unsaved]').exists()).toBe(true);
     expect(wrapper.get('[data-action="publish"]').attributes('disabled')).toBeDefined();
     await wrapper.get('[data-form="page-draft"]').trigger('submit');
@@ -155,11 +156,11 @@ describe('site', () => {
     const { wrapper } = await open('/owner/site/pages/home');
 
     expect((wrapper.get('[data-field="title"]').element as HTMLInputElement).value).toBe('Business Watchdog');
-    expect((wrapper.get('[data-field="body"]').element as HTMLTextAreaElement).value).toBe(builtin.body);
+    expect(await code(wrapper)).toBe(builtin.body);
     await vi.waitFor(() => expect(mocked.previewPage).toHaveBeenCalledWith('home', 'ru', { title: 'Business Watchdog', description: 'Контроль оплаты', body: builtin.body }));
     expect(wrapper.get('[data-action="save"]').attributes('disabled')).toBeDefined();
 
-    await wrapper.get('[data-field="body"]').setValue('<section class="hero"><h1>Своя главная</h1></section>');
+    await setCode(wrapper, '<section class="hero"><h1>Своя главная</h1></section>');
     await wrapper.get('[data-form="page-draft"]').trigger('submit');
     await flushPromises();
     expect(mocked.savePageDraft).toHaveBeenCalledWith('home', 'ru', { title: 'Business Watchdog', description: 'Контроль оплаты', body: '<section class="hero"><h1>Своя главная</h1></section>' });
