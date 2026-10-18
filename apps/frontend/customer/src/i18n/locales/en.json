@@ -131,7 +131,8 @@
     "recent_checks": "Recent checks",
     "capacity_paused": "This store is paused: the plan includes fewer stores. No data is received or reconciled; history and settings are kept. When the pause ends, the data of this period is caught up.",
     "capacity_choose": "Choose stores",
-    "paused_badge": "paused"
+    "paused_badge": "paused",
+    "pause_deviation": "From {from} to {until} the store was paused by the plan. The data of this period has been caught up, but deviations are possible because the store was paused: for example orders and refunds deleted meanwhile, or payment attempts started before the pause."
   },
   "store_status": {
     "onboarding": "Onboarding",

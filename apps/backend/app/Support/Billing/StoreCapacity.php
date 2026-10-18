@@ -20,6 +20,8 @@ class StoreCapacity
 {
     public const ERROR_PAUSED = 'store_capacity_paused';
 
+    public const DEVIATION_NOTICE_DAYS = 30;
+
     public function __construct(
         private readonly EntitlementCalculator $calculator,
         private readonly StoreCatchUp $catchUp,
@@ -120,11 +122,32 @@ class StoreCapacity
             return;
         }
 
-        $this->stores($tenantId)->whereKey($resumed->pluck('id')->all())->update(['capacity_paused_at' => null]);
+        $now = Carbon::now();
 
         foreach ($resumed as $store) {
+            $this->stores($tenantId)->whereKey($store->id)->update([
+                'capacity_paused_at' => null,
+                'capacity_last_paused_from' => $store->capacity_paused_at,
+                'capacity_last_resumed_at' => $now,
+            ]);
             $this->catchUp->resumed($tenantId, $store->id, $store->capacity_paused_at);
         }
+    }
+
+    /**
+     * The last capacity pause, for a notice that data of that period may deviate (ADR 0037 point 7): shown for a while
+     * after the resume, because what the connectors could not catch up is the owner's choice, not a fault.
+     *
+     * @return array{from: string, until: string}|null
+     */
+    public static function recentPause(Store $store): ?array
+    {
+        if ($store->capacity_last_paused_from === null || $store->capacity_last_resumed_at === null
+            || $store->capacity_last_resumed_at->lessThan(Carbon::now()->subDays(self::DEVIATION_NOTICE_DAYS))) {
+            return null;
+        }
+
+        return ['from' => $store->capacity_last_paused_from->toJSON(), 'until' => $store->capacity_last_resumed_at->toJSON()];
     }
 
     private function limit(string $tenantId): ?int

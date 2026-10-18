@@ -4,6 +4,7 @@ import type { Store } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
 import CoverageList from './CoverageList.vue';
+import PauseDeviationNotice from './PauseDeviationNotice.vue';
 import { storeHost } from './storeHost';
 
 const props = defineProps<{ store: Store }>();
@@ -32,6 +33,8 @@ const host = computed(() => storeHost(props.store.base_url));
       {{ $t('overview.capacity_paused') }}
       <RouterLink :to="{ name: 'billing' }" class="font-medium underline">{{ $t('overview.capacity_choose') }}</RouterLink>
     </p>
+
+    <PauseDeviationNotice v-if="!store.capacity_paused_at && store.last_capacity_pause" :pause="store.last_capacity_pause" />
 
     <CoverageList :coverage="store.coverage" />
 

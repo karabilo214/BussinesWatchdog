@@ -6320,6 +6320,12 @@ components:
         status: {enum: [onboarding, active, paused, degraded, deleted]}
         verified_at: {type: [string, "null"], format: date-time}
         capacity_paused_at: {type: [string, "null"], format: date-time, description: "Set while the plan allows fewer stores and the owner did not keep this one: the store is fully paused — no event ingestion, provider sync, reconciliation, freshness evaluation or browser checks; history and setup stay, money results are unknown (ADR 0037 point 7)"}
+        last_capacity_pause:
+          type: [object, "null"]
+          description: "The last capacity pause, for 30 days after it ended: data of that period may deviate (deletions and results the connectors could not catch up)."
+          properties:
+            from: {type: string, format: date-time}
+            until: {type: string, format: date-time}
         browser_enabled: {type: boolean}
         telemetry_enabled: {type: boolean}
         config_version: {type: integer, minimum: 1}

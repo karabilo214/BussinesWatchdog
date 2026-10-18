@@ -145,6 +145,7 @@ class StoreCapacityPauseTest extends TestCase
         app(StoreCapacity::class)->settle($this->tenant->id);
 
         $this->assertSame(0, Store::query()->whereNotNull('capacity_paused_at')->count());
+        $this->assertSame(['from' => now()->subHour()->toJSON(), 'until' => now()->toJSON()], StoreCapacity::recentPause($this->store->refresh()), 'The customer is told that data of the paused period may deviate.');
         Queue::assertPushed(SyncIntegration::class, fn (SyncIntegration $job): bool => $job->integrationId === $this->stripe->id && $job->mode === IntegrationSyncRunner::MODE_AUDIT);
         Queue::assertPushed(SyncIntegration::class, fn (SyncIntegration $job): bool => $job->integrationId === $this->api->id && $job->mode === IntegrationSyncRunner::MODE_AUDIT);
         Queue::assertNotPushed(SyncIntegration::class, fn (SyncIntegration $job): bool => $job->integrationId === $this->plugin->id);
@@ -165,6 +166,9 @@ class StoreCapacityPauseTest extends TestCase
 
         app(StoreCapacity::class)->settle($this->tenant->id);
         Queue::assertPushed(SyncIntegration::class, 2);
+
+        Carbon::setTestNow(now()->addDays(StoreCapacity::DEVIATION_NOTICE_DAYS + 1));
+        $this->assertNull(StoreCapacity::recentPause($this->store->refresh()));
     }
 
     private function pause(Store $store): void

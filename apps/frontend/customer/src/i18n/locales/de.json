@@ -131,7 +131,8 @@
     "recent_checks": "Letzte Prüfungen",
     "capacity_paused": "Dieser Shop ist pausiert: Der Tarif umfasst weniger Shops. Es werden keine Daten empfangen oder abgeglichen; Verlauf und Einstellungen bleiben erhalten. Nach der Pause werden die Daten dieses Zeitraums nachgeladen.",
     "capacity_choose": "Shops auswählen",
-    "paused_badge": "pausiert"
+    "paused_badge": "pausiert",
+    "pause_deviation": "Vom {from} bis {until} war der Shop durch den Tarif pausiert. Die Daten dieses Zeitraums wurden nachgeladen, durch die Pause sind aber Abweichungen möglich: zum Beispiel in dieser Zeit gelöschte Bestellungen und Erstattungen oder vor der Pause begonnene Zahlungsversuche."
   },
   "store_status": {
     "onboarding": "Einrichtung",

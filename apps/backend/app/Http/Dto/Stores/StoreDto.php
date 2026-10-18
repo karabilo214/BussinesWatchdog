@@ -3,6 +3,7 @@
 namespace App\Http\Dto\Stores;
 
 use App\Models\Store;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Stores\StoreCoverage;
 use Illuminate\Support\Collection;
 
@@ -31,6 +32,7 @@ class StoreDto
             'status' => $store->status,
             'verified_at' => $store->verified_at?->toJSON(),
             'capacity_paused_at' => $store->capacity_paused_at?->toJSON(),
+            'last_capacity_pause' => StoreCapacity::recentPause($store),
             'browser_enabled' => $store->browser_enabled,
             'telemetry_enabled' => $store->telemetry_enabled,
             'config_version' => $store->config_version,

@@ -78,6 +78,7 @@ export interface Store {
   status: 'onboarding' | 'active' | 'paused' | 'degraded' | 'deleted';
   verified_at: string | null;
   capacity_paused_at: string | null;
+  last_capacity_pause?: { from: string; until: string } | null;
   browser_enabled: boolean;
   telemetry_enabled: boolean;
   config_version: number;

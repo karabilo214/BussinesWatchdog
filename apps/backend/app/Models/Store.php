@@ -32,6 +32,8 @@ class Store extends Model
         return [
             'verified_at' => 'datetime',
             'capacity_paused_at' => 'datetime',
+            'capacity_last_paused_from' => 'datetime',
+            'capacity_last_resumed_at' => 'datetime',
             'order_volume_average' => 'integer',
             'order_volume_checked_at' => 'datetime',
             'order_volume_over_since' => 'datetime',

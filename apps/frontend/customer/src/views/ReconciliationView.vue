@@ -8,6 +8,7 @@ import { listFindings } from '@/api/reconciliation';
 import { listStores } from '@/api/stores';
 import type { Finding, FindingStatus, Store } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import PauseDeviationNotice from '@/components/PauseDeviationNotice.vue';
 import FindingsTable from '@/components/reconciliation/FindingsTable.vue';
 import { FINDING_STATUSES, RULE_CODES } from '@/components/reconciliation/tones';
 import UnmatchedPayments from '@/components/reconciliation/UnmatchedPayments.vue';
@@ -223,6 +224,8 @@ watch([storeId, tab, history, status, rule, currency, from, to], () => loadFindi
           <p class="font-medium">{{ $t(`coverage.money.${store.coverage.money.state}`) }}</p>
           <p>{{ $t(`reconciliation.coverage.${store.coverage.money.state}`) }}</p>
         </div>
+
+        <PauseDeviationNotice v-if="!store.capacity_paused_at && store.last_capacity_pause" :pause="store.last_capacity_pause" />
 
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex gap-1 rounded-lg border border-border bg-surface p-1" role="tablist">

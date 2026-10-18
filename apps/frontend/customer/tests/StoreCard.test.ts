@@ -75,4 +75,13 @@ describe('StoreCard', () => {
     expect(wrapper.text()).toContain('неизвестно: магазин на паузе');
     expect(wrapper.get('[data-store-paused="capacity"]').text()).toContain('Данные не принимаются и не сверяются');
   });
+
+  it('after a capacity pause tells that data of the paused period may deviate', () => {
+    setLocale('ru');
+    const resumed = store({ last_capacity_pause: { from: '2026-10-01T10:00:00Z', until: '2026-10-10T10:00:00Z' } });
+    const wrapper = mount(StoreCard, { props: { store: resumed }, global: { plugins: [localization], stubs: { RouterLink: RouterLinkStub } } });
+
+    expect(wrapper.get('[data-pause-deviation]').text()).toContain('возможны отклонения из-за постановки магазина на паузу');
+    expect(mount(StoreCard, { props: { store: store() }, global: { plugins: [localization], stubs: { RouterLink: RouterLinkStub } } }).find('[data-pause-deviation]').exists()).toBe(false);
+  });
 });

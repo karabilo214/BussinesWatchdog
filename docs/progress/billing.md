@@ -355,3 +355,13 @@ Status: complete (ADR 0037 point 7)
 - Assumptions recorded in ADR 0037 for the owner: `capacity_choice_required` still pauses only browser checks; WooCommerce deletions during the pause are not re-sent by the backfill; attempts pending at the pause may count as stuck right after the resume.
 
 Verification: `tests/Feature/Stores/StoreCapacityPauseTest.php` (4: skipped events and heartbeat while paused; no sync, freshness incident or reconciliation claim; paused/unknown coverage; resume dispatches audit syncs, asks the plugin for a backfill since the pause, restarts the freshness wait and accepts events again). Backend SQLite 608 passed + 4 skipped; PostgreSQL 18: 612/612. Plugin integration 56/56 on all six matrix targets (2 new: skipped results leave the outbox; the backfill request re-sends an unchanged order once), PHP 7.4 lint ok. Customer typecheck, 132/132 tests and production build passed. Real paused stores against live Stripe/PayPal/Shopware and a manual browser smoke were not run.
+
+### Step 168: Tell the Customer That Data of a Capacity Pause May Deviate
+
+Status: complete (owner decision on the Step 167 assumptions, ADR 0037 point 7)
+
+- Owner accepted: `capacity_choice_required` keeps pausing only browser checks; deviations the catch-up cannot repair (WooCommerce deletions during the pause, attempts pending at the pause) are the consequence of the owner's choice and are communicated, not fixed.
+- Migration `2026_10_18_130000_add_last_capacity_pause_to_stores`: `capacity_last_paused_from`, `capacity_last_resumed_at`, set by `StoreCapacity` on resume. `StoreCapacity::recentPause()` returns the period for `DEVIATION_NOTICE_DAYS` (30) after the resume; the store API exposes it as `last_capacity_pause` (`openapi.yaml`).
+- Customer dashboard: `PauseDeviationNotice` on the store card and the reconciliation screen — "deviations are possible because the store was paused", with the period (ru/en/de).
+
+Verification: `StoreCapacityPauseTest` (resume records the period, notice disappears after 30 days). Backend SQLite 608 passed + 4 skipped; PostgreSQL 18: 612/612. Customer typecheck, 133/133 tests and production build passed. Manual browser smoke was not run.
