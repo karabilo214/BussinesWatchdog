@@ -699,6 +699,7 @@
     }
   },
   "site": {
+    "tabs": {"pages": "Pages", "blocks": "Block templates"},
     "hint": "Pages of the public website. Every page has its own address and a separate text per language: draft → preview → publish. Published versions never change and stay in the history.",
     "col": {
       "page": "Page",

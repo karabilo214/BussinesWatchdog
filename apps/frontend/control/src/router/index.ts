@@ -7,7 +7,7 @@ declare module 'vue-router' {
   }
 }
 
-export const OWNER_SECTIONS = ['overview', 'tenants', 'subscriptions', 'payments', 'plans', 'site', 'blocks', 'contacts', 'public_checks', 'service', 'staff', 'audit', 'settings'] as const;
+export const OWNER_SECTIONS = ['overview', 'tenants', 'subscriptions', 'payments', 'plans', 'site', 'contacts', 'public_checks', 'service', 'staff', 'audit', 'settings'] as const;
 export type OwnerSection = (typeof OWNER_SECTIONS)[number];
 
 export function buildRouter(): Router {
@@ -30,8 +30,9 @@ export function buildRouter(): Router {
       { path: '/owner/payments', name: 'owner-payments', component: () => import('@/views/PaymentsView.vue') },
       { path: '/owner/site', name: 'owner-site', component: () => import('@/views/PagesView.vue') },
       { path: '/owner/site/pages/:id', name: 'owner-page', component: () => import('@/views/PageView.vue'), props: true },
-      { path: '/owner/blocks', name: 'owner-blocks', component: () => import('@/views/BlocksView.vue') },
-      { path: '/owner/blocks/:id', name: 'owner-block', component: () => import('@/views/BlockView.vue'), props: true },
+      { path: '/owner/site/blocks', name: 'owner-blocks', component: () => import('@/views/BlocksView.vue') },
+      { path: '/owner/site/blocks/:id', name: 'owner-block', component: () => import('@/views/BlockView.vue'), props: true },
+      { path: '/owner/blocks/:id?', redirect: (to) => (to.params.id ? { name: 'owner-block', params: { id: to.params.id } } : { name: 'owner-blocks' }) },
       { path: '/owner/contacts', name: 'owner-contacts', component: () => import('@/views/ContactsView.vue') },
       { path: '/owner/contact-requests/:id', name: 'owner-contact', component: () => import('@/views/ContactView.vue'), props: true },
       { path: '/owner/plans', name: 'owner-plans', component: () => import('@/views/PlansView.vue') },

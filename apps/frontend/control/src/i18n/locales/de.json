@@ -699,6 +699,7 @@
     }
   },
   "site": {
+    "tabs": {"pages": "Seiten", "blocks": "Blockvorlagen"},
     "hint": "Seiten der öffentlichen Website. Jede Seite hat eine eigene Adresse und je Sprache einen eigenen Text: Entwurf → Vorschau → Veröffentlichung. Veröffentlichte Versionen ändern sich nie und bleiben im Verlauf.",
     "col": {
       "page": "Seite",

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { StatusBadge } from '@bw/ui';
 import { createPage, fetchPages, type PageMenu, type PageSummary, type SiteLocale } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import SiteTabs from '@/components/SiteTabs.vue';
 import { SITE_LOCALES, publicUrl } from '@/components/site';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 
@@ -75,6 +76,8 @@ onMounted(load);
         <h1 class="text-2xl font-semibold">{{ $t('section.site.title') }}</h1>
         <p class="text-sm text-text-muted">{{ $t('site.hint') }}</p>
       </div>
+
+      <SiteTabs current="pages" />
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
       <ErrorNotice v-else-if="error" :error="error" />

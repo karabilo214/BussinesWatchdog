@@ -51,11 +51,14 @@ beforeEach(() => {
 });
 
 describe('block templates', () => {
-  it('lists templates with their group and languages in a section of its own', async () => {
+  it('lists templates with their group and languages under the website section, not in the main menu', async () => {
     mocked.fetchPageBlocks.mockResolvedValue([block(), block({ id: 'b-2', category: 'hero', name: 'Первый экран', bodies: { de: '<h1>Hallo</h1>' } })]);
-    const { wrapper } = await open('/owner/blocks');
+    const { wrapper } = await open('/owner/site/blocks');
 
-    expect(wrapper.get('nav').text()).toContain('Шаблоны блоков');
+    expect(wrapper.get('#owner-menu').text()).not.toContain('Шаблоны блоков');
+    expect(wrapper.get('#owner-menu .bg-primary-soft').text()).toBe('Сайт');
+    expect(wrapper.get('[data-site-tab="blocks"]').attributes('aria-current')).toBe('page');
+    expect(wrapper.get('[data-site-tab="pages"]').text()).toBe('Страницы');
     const row = wrapper.get('[data-block-row="b-1"]');
     expect(row.text()).toContain('Вопросы и ответы');
     expect(row.text()).toContain('ru · en');
@@ -76,7 +79,7 @@ describe('block templates', () => {
     await flushPromises();
 
     expect(mocked.createPageBlock).toHaveBeenCalledWith({ name: 'Отзывы', category: 'other', sort: 0, bodies: { ru: '<p>Отзыв</p>', en: null, de: null } });
-    expect(router.currentRoute.value.fullPath).toBe('/owner/blocks/b-9');
+    expect(router.currentRoute.value.fullPath).toBe('/owner/site/blocks/b-9');
     expect(wrapper.get('[data-notice]').text()).toBe('Шаблон сохранён.');
     expect(wrapper.find('[data-unsaved]').exists()).toBe(false);
   });
@@ -84,7 +87,7 @@ describe('block templates', () => {
   it('edits languages of a template in the visual editor and deletes it with a reason', async () => {
     mocked.fetchPageBlock.mockResolvedValue(block());
     mocked.updatePageBlock.mockResolvedValue(block({ name: 'FAQ', bodies: { ru: '<h2>Вопросы</h2>', de: '<h2>Fragen</h2>' } }));
-    const { wrapper, router } = await open('/owner/blocks/b-1');
+    const { wrapper, router } = await open('/owner/site/blocks/b-1');
 
     expect(wrapper.get('[data-visual]').html()).toContain('Вопросы');
     expect(wrapper.get('[data-locale="en"]').text()).toContain('✓');
@@ -105,7 +108,7 @@ describe('block templates', () => {
     await wrapper.get('[data-form="archive"]').trigger('submit');
     await flushPromises();
     expect(mocked.archivePageBlock).toHaveBeenCalledWith('b-1', 'Не нужен');
-    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/owner/blocks'));
+    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/owner/site/blocks'));
     wrapper.unmount();
   });
 });

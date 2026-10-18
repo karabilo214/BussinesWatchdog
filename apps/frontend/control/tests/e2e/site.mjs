@@ -54,7 +54,7 @@ try {
   console.log('ok   home opens in the visual editor with its built-in text; pricing is edited in code');
 
   const blockName = `Отзывы ${Date.now().toString(36)}`;
-  await page.goto(`${base}/owner/blocks`);
+  await page.goto(`${base}/owner/site/blocks`);
   await page.locator('[data-block-row]').first().waitFor();
   await page.locator('[data-action="new-block"]').click();
   await page.locator('[data-field="name"]').fill(blockName);
@@ -67,7 +67,7 @@ try {
   await page.waitForURL(/\/owner\/blocks\/[0-9a-f-]{36}$/);
   const blockUrl = page.url();
   await shot(page, '0-block-template');
-  await page.goto(`${base}/owner/blocks`);
+  await page.goto(`${base}/owner/site/blocks`);
   await page.getByRole('link', { name: blockName }).waitFor();
   console.log('ok   block template created in its own section with the visual editor');
   await page.goto(`${base}/owner/site`);

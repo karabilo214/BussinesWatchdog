@@ -230,3 +230,11 @@ Status: complete (ADR 0045, owner decision 2026-10-16)
 - Tests: helper `tests/code.ts` reads and sets the code editor (waits for the async chunk); site and block tests use it; `editor.test.ts` checks highlighting spans, line numbers and sync both ways.
 
 Verification: control typecheck, 60/60 tests, production build. Backend not changed; backend SQLite 615 passed + 4 skipped. Manual browser smoke was not run.
+
+### Step 172: Block Templates Inside the Website Section
+
+Status: complete (ADR 0045, owner decision 2026-10-16)
+
+- `OWNER_SECTIONS` no longer has `blocks`; routes moved to `/owner/site/blocks` and `/owner/site/blocks/:id`, `/owner/blocks/:id?` redirects there. `SiteTabs.vue` ("Pages" | "Block templates", `aria-current`) on the pages list and the template list; the "Website" menu item stays highlighted on pages, templates and a template. The e2e script uses the new address.
+
+Verification: control typecheck, 60/60 (`blocks.test.ts`: not in the main menu, website highlighted, tab current; the old address of a new template redirects), build. Backend not changed; backend SQLite 615 passed + 4 skipped. Manual browser smoke was not run.

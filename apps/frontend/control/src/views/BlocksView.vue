@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { fetchPageBlocks, type PageBlock } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import SiteTabs from '@/components/SiteTabs.vue';
 import { SITE_LOCALES } from '@/components/site';
 import { useFormat } from '@/composables/useFormat';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -31,11 +32,13 @@ onMounted(load);
     <div class="flex max-w-6xl flex-col gap-6">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div class="flex flex-col gap-1">
-          <h1 class="text-2xl font-semibold">{{ $t('section.blocks.title') }}</h1>
+          <h1 class="text-2xl font-semibold">{{ $t('section.site.title') }}</h1>
           <p class="text-sm text-text-muted">{{ $t('blocks.hint') }}</p>
         </div>
         <RouterLink :to="{ name: 'owner-block', params: { id: 'new' } }" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover" data-action="new-block">{{ $t('blocks.new') }}</RouterLink>
       </div>
+
+      <SiteTabs current="blocks" />
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
       <ErrorNotice v-else-if="error" :error="error" />
