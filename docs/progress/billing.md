@@ -333,3 +333,12 @@ Status: complete
 - Found while testing on PostgreSQL / live stand: `pluck` over a `max(...)` expression needs an alias; `FOR UPDATE` with `count()` is not allowed — the guard locks rows and counts them in PHP; the QR SVG overflowed its frame; the live script needed a fresh TOTP step after joining (replay protection is correct).
 
 Verification: `tests/Feature/Platform/StaffAdminTest.php` (5: invite with step-up, join as a new account with the authenticator and sign in with the new role; join with an existing account and authenticator; role change, disable, re-enable, end sessions, self guard; last-owner guard in the service; reset command). Control 50 tests (`tests/staff.test.ts`, 3). Frontend check green. Backend SQLite 551 passed, 4 skipped; PostgreSQL 18: 555 of 555. Live in Chromium (`run-live.sh staff`): invitation email in Mailpit, joined with the QR secret, signed in as support (no staff section), disabled by the owner and the session ended at once — PASS.
+
+### Step 166: Forfeit Plan-Restricted Discounts on an Effective Plan Change
+
+Status: complete (ADR 0037 point 6)
+
+- Migration `2026_10_18_120000_add_forfeited_at_to_billing_discount_grants` adds a nullable, permanent forfeiture marker. A confirmed immediate change or an effective scheduled change marks grants whose plan list excludes the target; an unknown provider outcome is handled after readback. A withdrawn scheduled change, extra-store-only change and unrestricted discounts keep their grants.
+- `DiscountLedger` excludes forfeited grants from renewals and return previews. The marker survives re-planning that gives back a previously planned period; the platform MRR discounted-contract count also excludes it. The customer plan-change preview warns that plan-restricted discounts do not return after a switch. No API contract shape changed.
+
+Verification: `PlanChangeTest` covers immediate forfeiture of a forever Start-only discount, return preview without it, preservation of an unrestricted discount, extra stores and scheduled withdrawal preserving a finite Pro-only discount, forfeiture at the scheduled effective time, repeat settlement; `BusinessOverviewTest` excludes a forfeited grant. Backend SQLite 604 passed + 4 skipped; PostgreSQL 18: 608/608. Customer typecheck, 131/131 tests and production build passed. Live Paddle sandbox and manual browser smoke were not run.

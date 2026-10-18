@@ -31,6 +31,7 @@ vi.mock('@/api', () => ({
   fetchTenantInvitations: vi.fn(),
   inviteTenantMember: vi.fn(),
   revokeTenantInvitation: vi.fn(),
+  resetCustomerMfa: vi.fn(),
   fetchSubscriptions: vi.fn(),
 }));
 
@@ -64,7 +65,7 @@ function card(overrides: Partial<TenantCard> = {}): TenantCard {
     trial_consumed_at: null,
     access: { state: 'active', reasons: ['paid_period'], enforced: true },
     capacity: { limit: 2, stores: 1, paused: 0, choice_required: false },
-    members: [{ role: 'owner', joined_at: '2026-10-01T10:00:00Z', name: 'Anna', email: 'anna@example.test', email_verified: true }],
+    members: [{ user_id: 'u-1', role: 'owner', mfa_enabled: true, joined_at: '2026-10-01T10:00:00Z', name: 'Anna', email: 'anna@example.test', email_verified: true }],
     stores: [{ id: 's-1', name: 'Shop', host: 'kaffee.example', platform: 'woocommerce', status: 'active', verified: true, browser_enabled: true, capacity_paused_at: null, open_incidents: 1, orders_this_month: 640, orders_average: 1267, orders_over_since: '2026-10-20T04:10:00Z', created_at: null }], orders_limit: 1000,
     billing: {
       mode: 'test',
@@ -102,6 +103,23 @@ beforeEach(() => {
 });
 
 describe('tenants', () => {
+  it('lets support reset a customer authenticator with a reason and code', async () => {
+    mocked.fetchTenant.mockResolvedValueOnce(card()).mockResolvedValueOnce(card({ members: [{ user_id: 'u-1', role: 'owner', mfa_enabled: false, joined_at: null, name: 'Anna', email: 'anna@example.test', email_verified: true }] }));
+    mocked.resetCustomerMfa.mockResolvedValue();
+    const { wrapper } = await open('/owner/tenants/t-1?tab=members', ['tenants.read', 'customers.mfa_reset']);
+    await wrapper.get('[data-action="reset-mfa"]').trigger('click');
+    const form = wrapper.get('[data-form="mfa-reset"]');
+    const inputs = form.findAll('input');
+    await inputs[0]!.setValue('Customer called');
+    await inputs[1]!.setValue('123456');
+    await form.trigger('submit');
+    await flushPromises();
+
+    expect(mocked.resetCustomerMfa).toHaveBeenCalledWith('t-1', 'u-1', 'Customer called', '123456');
+    expect(wrapper.text()).toContain('MFA пользователя сброшена');
+    expect(wrapper.find('[data-action="reset-mfa"]').exists()).toBe(false);
+  });
+
   it('lists organisations with access and billing apart and keeps filters, not the search, in the address', async () => {
     const { wrapper, router } = await open('/owner/tenants');
 

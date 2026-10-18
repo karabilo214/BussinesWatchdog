@@ -185,6 +185,8 @@ Step 64 (ADR 0019): реализованы password reset (request/complete), e-
 
 Step 69 (ADR 0021): MFA (TOTP) — `GET /auth/mfa`, `POST /auth/mfa/setup|confirm|disable|recovery-codes`, второй шаг входа `POST /auth/mfa/challenge` (login при включённой MFA отвечает `{mfa_required: true}` без сессии); `POST /ownership-transfer` принимает `target_user_id`, `current_password` и `code` (код MFA или резервный, если MFA включена), прежний владелец становится admin. TeamMember дополнен `email_verified`. Колонка `users.mfa_secret_ciphertext` — text (keyring), а не bytea.
 
+Step 165 (ADR 0021): TeamMember дополнен `mfa_enabled`. `POST /memberships/{user_id}/mfa/reset` доступен только владельцу active tenant с паролем, кодом MFA при её наличии и причиной; `POST /platform-api/v1/tenants/{tenant}/members/{user}/mfa/reset` доступен сотруднику платформы с `customers.mfa_reset`, кодом и причиной. Сброс действует на пользователя во всех его командах: завершаются сессии, удаляются резервные коды, пишется аудит в каждой команде и письмо пользователю. Платформенные аккаунты защищены от этого действия.
+
 Step 70 (ADR 0022): PayPal — `POST /stores/{id}/integrations/paypal` (environment, client_id, client_secret, webhook_id, обязательный `write_access_acknowledged`), `PUT /integrations/{id}/webhook-id`, `POST /webhooks/paypal/{id}`; `POST /integrations/{id}/sync` работает для Stripe и PayPal. Стратегия связи возвратов `unique_amount`.
 
 Ещё не реализовано из каталога: `POST /tenants` и переключатель команд в кабинете, billing/privacy exports, maintenance windows, rules, billing, privacy deletion, real Telegram bot webhook registration and live update delivery.

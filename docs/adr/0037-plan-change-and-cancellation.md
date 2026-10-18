@@ -1,6 +1,6 @@
 # ADR 0037: Plan change and cancellation in the customer dashboard
 
-Status: implemented (Step 108); points 3, 4, 6 and 7 reviewed by the owner on 2026-10-16 — 3 and 4 accepted, 6 and 7 changed (follow-ups in `docs/backlog.md`)
+Status: implemented (Step 108); points 3, 4, 6 and 7 reviewed by the owner on 2026-10-16 — 3 and 4 accepted, 6 changed and implemented in Step 166, 7 remains a follow-up in `docs/backlog.md`
 
 ## Context
 
@@ -36,4 +36,5 @@ spec/panels/PUBLIC-SUBSCRIPTION-FRONTEND.md §7 and §9, CLIENT-PANELS.md §5, O
 - Point 3 (next-period change applied at Paddle at once with `do_not_bill`, our projection switches at the period end) — accepted, including Paddle showing the new items early.
 - Point 4 (proration charge without the subscription discount) — accepted.
 - Point 6 — changed: a discount restricted to certain plans is forfeited when the subscription moves to a plan it does not cover; it does not come back after a change back (prevents gaming the discount by switching plans). Unrestricted discounts and a change of only the number of extra stores are not affected.
+- Point 6 implementation (Step 166): an effective change marks the grant `forfeited_at` if the target plan is uncovered. A scheduled change keeps the grant until its effective date; withdrawal before then preserves it. Renewal planning, return previews and the platform discounted-contract count exclude forfeited grants. The customer sees the consequence before confirming a plan change.
 - Point 7 — changed: stores above the plan limit are fully paused, not only their browser checks. This changes the earlier entitlement policy that ingestion is never limited. The paused store keeps history and setup; nothing is deleted. A paused store must show as paused and its money results as `unknown`, never as healthy or zero, and must not raise freshness incidents; after resuming, the data of the paused period is caught up through the connectors' audit window.

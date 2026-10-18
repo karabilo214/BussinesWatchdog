@@ -5,6 +5,7 @@ namespace App\Support\Account;
 use App\Models\AuditLog;
 use App\Models\Membership;
 use App\Models\MfaRecoveryCode;
+use App\Models\PlatformStaff;
 use App\Models\User;
 use App\Support\Security\Keyring;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
@@ -30,6 +31,7 @@ class MfaService
     public function __construct(
         private readonly Totp $totp,
         private readonly Keyring $keyring,
+        private readonly AccountMailer $mailer,
     ) {}
 
     public function enabled(User $user): bool
@@ -151,6 +153,67 @@ class MfaService
             MfaRecoveryCode::query()->where('user_id', $user->id)->delete();
             $this->audit($user, 'user.mfa_disabled');
         });
+    }
+
+    /** Reset a customer's factor after a scoped support decision. MFA is global to the user. */
+    public function resetForAssistance(string $tenantId, string $targetUserId, ?User $actor, string $source, string $reason): User
+    {
+        return DB::transaction(function () use ($tenantId, $targetUserId, $actor, $source, $reason): User {
+            /** @var User|null $target */
+            $target = User::query()->whereKey($targetUserId)->whereNull('disabled_at')->lockForUpdate()->first();
+
+            if ($target === null || ! Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->exists()) {
+                throw new AccountRejected('member_not_found', 404);
+            }
+
+            // A customer support action must never disable the factor required by a platform staff account.
+            if (PlatformStaff::query()->where('user_id', $targetUserId)->exists()) {
+                throw new AccountRejected('platform_staff_mfa_protected', 403);
+            }
+
+            if (! $this->enabled($target)) {
+                throw new AccountRejected('mfa_not_enabled', 409);
+            }
+
+            $target->forceFill([
+                'mfa_secret_ciphertext' => null,
+                'mfa_key_version' => null,
+                'mfa_confirmed_at' => null,
+                'mfa_last_used_step' => null,
+                'remember_token' => Str::random(60),
+            ])->save();
+            MfaRecoveryCode::query()->where('user_id', $target->id)->delete();
+            DB::table('sessions')->where('user_id', $target->id)->delete();
+
+            $requestId = (string) Str::uuid();
+            foreach (Membership::query()->where('user_id', $target->id)->pluck('tenant_id') as $affectedTenantId) {
+                AuditLog::query()->create([
+                    'tenant_id' => $affectedTenantId,
+                    'store_id' => null,
+                    'actor_user_id' => $actor?->id,
+                    'actor_type' => $actor === null ? AuditLog::ACTOR_SYSTEM : AuditLog::ACTOR_USER,
+                    'action' => 'user.mfa_reset',
+                    'entity_type' => 'user',
+                    'entity_id' => $target->id,
+                    'changes' => ['source' => $source, 'requested_in_tenant_id' => $tenantId, 'sessions_revoked' => true, 'reason' => $reason],
+                    'request_id' => $requestId,
+                    'created_at' => Carbon::now(),
+                ]);
+            }
+
+            return $target;
+        });
+    }
+
+    public function notifyReset(User $target): void
+    {
+        try {
+            $this->mailer->send($target->email, $target->locale, 'mfa_reset', [
+                'link' => $this->mailer->link('/app/settings/profile'),
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 
     /**

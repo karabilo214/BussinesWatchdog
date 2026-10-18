@@ -69,6 +69,11 @@
   "overview": {
     "title": "Overview",
     "subtitle": "The essentials across all stores. “No data” does not mean everything is fine.",
+    "mfa_warning": {
+      "title": "MFA is off — your account is at serious risk",
+      "body": "A password alone is enough to sign in. Set up an authenticator app to protect access to your stores and company data.",
+      "action": "Turn on MFA"
+    },
     "empty_title": "No stores yet",
     "empty_body": "Stores you add appear here with the state of the plugin, money reconciliation, payment attempts and checkout checks.",
     "active_incidents": "Active incidents: {n}",
@@ -478,6 +483,8 @@
     "integration_not_active": "Only an active connection can be synchronised.",
     "mfa_already_enabled": "Two-factor authentication is already on.",
     "mfa_not_enabled": "Two-factor authentication is not on.",
+    "cannot_reset_own_mfa": "Reset your own MFA in your profile settings.",
+    "platform_staff_mfa_protected": "A platform staff member's MFA cannot be reset from the customer account.",
     "mfa_setup_missing": "Setup was not started or has expired. Start again.",
     "mfa_code_invalid": "That code did not work. Enter a new app code or an unused recovery code.",
     "mfa_code_required": "Enter an app code or a recovery code.",
@@ -1358,6 +1365,13 @@
       "warning": "{name} becomes the team owner and you become an admin. Only the new owner can transfer it back.",
       "unverified": "{name} has not confirmed their e-mail address yet. Ownership can only go to a member with a confirmed address.",
       "submit": "Transfer ownership"
+    },
+    "mfa_reset": {
+      "open": "Reset MFA",
+      "warning": "Reset MFA for {name}? All their sessions will end and recovery codes will stop working. They will receive an email.",
+      "reason": "Reason for reset",
+      "confirm": "Reset MFA",
+      "done": "MFA was reset. The user was notified by email."
     }
   },
   "provider": {
@@ -1606,6 +1620,7 @@
       "next_payment": "Next payment",
       "immediate_note": "The difference for the rest of the current period is charged now, without discounts. The next payment is the new plan with the discounts that apply to it. If the payment fails, the plan does not change.",
       "next_period_note": "Nothing is charged now. The current plan stays until the paid period ends; the next payment is the new plan.",
+      "restricted_discount_note": "Discounts limited to your current plan will be forfeited when the new plan takes effect. Returning to this plan will not restore their remaining periods.",
       "retained_note": "Chosen stores keep being checked: {n}.",
       "confirm_pay": "Confirm and pay {amount}",
       "confirm_schedule": "Confirm the change from the next period",

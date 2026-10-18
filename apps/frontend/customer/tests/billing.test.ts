@@ -423,6 +423,7 @@ describe('BillingView', () => {
     expect(panel.get('[data-preview="due-now"]').text()).toMatch(/33,41\s€/);
     expect(panel.get('[data-preview="next"]').text()).toMatch(/56,00\s€\s+50,40\s€/);
     expect(panel.text()).toContain('без скидок');
+    expect(panel.text()).toContain('При возврате на этот тариф оставшиеся периоды скидки не восстановятся');
 
     await panel.get('[data-action="confirm-change"]').trigger('click');
     await flushPromises();

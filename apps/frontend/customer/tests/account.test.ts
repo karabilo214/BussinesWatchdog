@@ -28,6 +28,7 @@ vi.mock('@/api/account', () => ({
   registerWithInvitation: vi.fn(),
   resendEmailVerification: vi.fn(),
   transferOwnership: vi.fn(),
+  resetMemberMfa: vi.fn(),
   fetchMfa: vi.fn(),
   beginMfaSetup: vi.fn(),
   confirmMfa: vi.fn(),
@@ -96,10 +97,10 @@ describe('PasswordFields', () => {
 
 describe('TeamView', () => {
   const members = [
-    { user_id: 'u-owner', tenant_id: 't-1', name: 'Olga', email: 'olga@example.test', role: 'owner' as const, is_you: false, created_at: null },
-    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', email: 'me@example.test', role: 'admin' as const, is_you: true, created_at: null },
-    { user_id: 'u-admin2', tenant_id: 't-1', name: 'Anna', email: 'anna@example.test', role: 'admin' as const, is_you: false, created_at: null },
-    { user_id: 'u-op', tenant_id: 't-1', name: 'Oleg', email: 'oleg@example.test', role: 'operator' as const, is_you: false, created_at: null },
+    { user_id: 'u-owner', tenant_id: 't-1', name: 'Olga', email: 'olga@example.test', role: 'owner' as const, mfa_enabled: false, is_you: false, created_at: null },
+    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', email: 'me@example.test', role: 'admin' as const, mfa_enabled: false, is_you: true, created_at: null },
+    { user_id: 'u-admin2', tenant_id: 't-1', name: 'Anna', email: 'anna@example.test', role: 'admin' as const, mfa_enabled: true, is_you: false, created_at: null },
+    { user_id: 'u-op', tenant_id: 't-1', name: 'Oleg', email: 'oleg@example.test', role: 'operator' as const, mfa_enabled: false, is_you: false, created_at: null },
   ];
 
   it('lets an admin manage only operators and viewers and invite with those roles', async () => {
@@ -161,9 +162,9 @@ describe('TeamView', () => {
 
 describe('ownership transfer', () => {
   const team = [
-    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', email: 'me@example.test', email_verified: true, role: 'owner' as const, is_you: true, created_at: null },
-    { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', email: 'anna@example.test', email_verified: true, role: 'admin' as const, is_you: false, created_at: null },
-    { user_id: 'u-new', tenant_id: 't-1', name: 'Neu', email: 'new@example.test', email_verified: false, role: 'viewer' as const, is_you: false, created_at: null },
+    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', email: 'me@example.test', email_verified: true, mfa_enabled: true, role: 'owner' as const, is_you: true, created_at: null },
+    { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', email: 'anna@example.test', email_verified: true, mfa_enabled: true, role: 'admin' as const, is_you: false, created_at: null },
+    { user_id: 'u-new', tenant_id: 't-1', name: 'Neu', email: 'new@example.test', email_verified: false, mfa_enabled: false, role: 'viewer' as const, is_you: false, created_at: null },
   ];
 
   it('is offered only to the owner and asks for the password and, with MFA on, a code', async () => {
@@ -205,6 +206,32 @@ describe('ownership transfer', () => {
     await flushPromises();
 
     expect(wrapper.text()).not.toContain('Передать владение');
+  });
+});
+
+describe('team MFA reset', () => {
+  it('lets the owner reset a member with a reason and step-up, then refreshes the team', async () => {
+    session.value = { ...sessionFor('owner'), user: { ...sessionFor('owner').user, mfa_enabled: true } };
+    const member = { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', email: 'anna@example.test', role: 'admin' as const, mfa_enabled: true, is_you: false, created_at: null };
+    mocked.listMembers.mockResolvedValueOnce({ data: [member], assignable_roles: ['admin', 'operator', 'viewer'] })
+      .mockResolvedValueOnce({ data: [{ ...member, mfa_enabled: false }], assignable_roles: ['admin', 'operator', 'viewer'] });
+    mocked.listInvitations.mockResolvedValue([]);
+    mocked.resetMemberMfa.mockResolvedValue();
+    const wrapper = await mountWith(TeamView, '/team');
+    await flushPromises();
+
+    await wrapper.get('[data-member="anna@example.test"] button').trigger('click');
+    const form = wrapper.get('[data-mfa-reset]');
+    const inputs = form.findAll('input');
+    await inputs[0]!.setValue('Lost phone');
+    await inputs[1]!.setValue('very-secure-password');
+    await inputs[2]!.setValue('123456');
+    await form.trigger('submit');
+    await flushPromises();
+
+    expect(mocked.resetMemberMfa).toHaveBeenCalledWith('u-anna', 'Lost phone', 'very-secure-password', '123456');
+    expect(wrapper.text()).toContain('MFA сброшена');
+    expect(wrapper.find('[data-mfa-reset]').exists()).toBe(false);
   });
 });
 

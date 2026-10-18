@@ -68,6 +68,7 @@ class BusinessOverview
             ->whereIn('price_kind', [BillingPrice::KIND_EXTRA_STORE, BillingPrice::KIND_FASTER_CHECKS])
             ->get();
         $discounted = DB::table('billing_discount_grants')
+            ->whereNull('forfeited_at')
             ->whereIn('contract_id', $contracts->pluck('id'))
             ->where(fn ($active) => $active->whereNull('periods_total')->orWhereColumn('periods_used', '<', 'periods_total'))
             ->distinct()->pluck('contract_id')->all();

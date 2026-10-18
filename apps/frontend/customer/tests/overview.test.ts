@@ -1,9 +1,10 @@
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
+import { ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import * as overviewApi from '@/api/overview';
 import * as storesApi from '@/api/stores';
-import type { Store } from '@/api/types';
+import type { AuthSession, Store } from '@/api/types';
 import { lastSuccessfulCheck, verdict } from '@/components/overview/verdict';
 import { localization, setLocale } from '@/i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -12,6 +13,8 @@ import { makeStore } from './fixtures';
 
 vi.mock('@/api/overview', () => ({ getOverview: vi.fn() }));
 vi.mock('@/api/stores', () => ({ listStores: vi.fn() }));
+const session = ref<AuthSession | null>(null);
+vi.mock('@/composables/useSession', () => ({ useSession: () => ({ session, load: vi.fn(async () => session.value) }) }));
 
 function covered(overrides: Partial<Store> = {}): Store {
   return makeStore({
@@ -41,6 +44,28 @@ describe('verdict', () => {
 });
 
 describe('OverviewView', () => {
+  it('warns a user without MFA even before a store is added and hides the warning after enrollment', async () => {
+    setLocale('ru');
+    const currentSession: AuthSession = {
+      user: { id: 'u-1', name: 'Owner', email: 'owner@example.test', locale: 'ru', email_verified: true, mfa_enabled: false },
+      active_tenant_id: 't-1',
+      memberships: [{ tenant_id: 't-1', role: 'owner', created_at: '2026-10-01T00:00:00Z' }],
+    };
+    session.value = currentSession;
+    vi.mocked(storesApi.listStores).mockResolvedValue([]);
+    vi.mocked(overviewApi.getOverview).mockResolvedValue({ incidents: { active: 0, by_severity: { critical: 0, warning: 0, info: 0 }, latest: [] }, discrepancies: [], unknown_amount_incidents: 0, recent_checks: [] });
+    const router = createRouter({ history: createMemoryHistory('/app/'), routes: [{ path: '/:p(.*)*', name: 'overview', component: OverviewView }] });
+    const wrapper = mount(OverviewView, { global: { plugins: [localization, router], stubs: { RouterLink: RouterLinkStub } } });
+    await flushPromises();
+
+    expect(wrapper.get('[data-mfa-warning]').text()).toContain('MFA не подключена');
+    expect(wrapper.get('[data-mfa-warning]').findComponent(RouterLinkStub).props('to')).toEqual({ name: 'profile' });
+    session.value = { ...currentSession, user: { ...currentSession.user, mfa_enabled: true } };
+    await flushPromises();
+    expect(wrapper.find('[data-mfa-warning]').exists()).toBe(false);
+    session.value = null;
+  });
+
   it('shows discrepancies per currency and kind, never added together, and unknown amounts separately', async () => {
     setLocale('ru');
     vi.mocked(storesApi.listStores).mockResolvedValue([covered()]);

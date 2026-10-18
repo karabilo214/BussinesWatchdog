@@ -62,6 +62,8 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/staff/{staff}/sessions/revoke', [StaffController::class, 'revokeSessions'])->whereUuid('staff');
     });
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/refunds', [RefundController::class, 'index']);
+    Route::post('/tenants/{tenant}/members/{user}/mfa/reset', [TenantTeamController::class, 'resetMfa'])
+        ->whereUuid(['tenant', 'user'])->middleware(['platform.staff:'.PlatformCapabilities::CUSTOMER_MFA_RESET, 'throttle:platform-step-up']);
     Route::middleware('platform.staff:'.PlatformCapabilities::REFUNDS_REQUEST)->post('/payments/{payment}/refunds', [RefundController::class, 'store'])->whereUuid('payment');
     Route::middleware('platform.staff:'.PlatformCapabilities::REFUNDS_APPROVE)->group(function (): void {
         Route::post('/refunds/{refund}/approve', [RefundController::class, 'approve'])->whereUuid('refund')->middleware('throttle:platform-step-up');

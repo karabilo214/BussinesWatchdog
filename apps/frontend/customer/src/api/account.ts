@@ -97,3 +97,7 @@ export async function regenerateRecoveryCodes(currentPassword: string, code: str
 export async function transferOwnership(targetUserId: string, currentPassword: string, code: string | null): Promise<void> {
   await request('POST', '/api/v1/ownership-transfer', { body: { target_user_id: targetUserId, current_password: currentPassword, code } });
 }
+
+export async function resetMemberMfa(userId: string, reason: string, currentPassword: string, code: string | null): Promise<void> {
+  await request('POST', `/api/v1/memberships/${encodeURIComponent(userId)}/mfa/reset`, { body: { reason, current_password: currentPassword, code } });
+}

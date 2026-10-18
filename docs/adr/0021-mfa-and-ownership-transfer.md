@@ -2,7 +2,7 @@
 
 Date: 2026-10-10
 
-Status: accepted with changes by the owner on 2026-10-16 (implemented in Step 69; follow-ups in `docs/backlog.md`).
+Status: accepted with changes by the owner on 2026-10-16 (Step 69; MFA warning Step 164, customer MFA reset Step 165; later enhancements in `docs/backlog.md`).
 
 ## Context
 
@@ -17,13 +17,13 @@ Spec §2 (auth): MFA is mandatory for system operators and SHOULD for the tenant
 - **Sign-in.** With MFA on, a correct password answers `{"mfa_required": true}` and no session is authenticated; the session only remembers the pending sign-in (user, "remember me") for **5 minutes and 5 wrong codes**. `POST /auth/mfa/challenge` accepts an authenticator or recovery code and only then signs in. Expiry answers `401 mfa_challenge_expired` and the dashboard goes back to the password. Limits: 10 challenge requests per minute per IP on top of the existing login limit.
 - **Re-authentication (step-up)** for disabling MFA, new recovery codes and ownership transfer: current password, plus an authenticator or recovery code when MFA is on. 10 such requests per minute per user.
 - **MFA is not forced for tenant owners** (spec says SHOULD): the profile shows owners without MFA a recommendation. A password reset does not turn MFA off.
-- **Lost phone and lost recovery codes:** there is no self-service recovery; resetting MFA needs support through a future secure recovery runbook (platform staff panel, not built yet).
+- **Lost phone and lost recovery codes:** there is no self-service recovery. Tenant-owner and platform-staff reset paths were added in Step 165, with step-up, audit, session revocation and an email to the user.
 - **Audit.** `user.mfa_enabled`, `user.mfa_disabled`, `user.mfa_recovery_codes_regenerated`, `user.mfa_recovery_code_used` are written to every team the user belongs to (MFA belongs to the person, the audit log is per team).
 - **Ownership transfer.** Only the owner; the target is an existing member of the team with a **confirmed e-mail address** (not the owner themself, not a disabled account). In one transaction with both memberships locked: the target becomes owner, the previous owner becomes **admin** (they keep access; the new owner may change or remove them later). Audit `membership.ownership_transferred` with both user ids and the target's previous role. The target does not have to have MFA.
 
 ## Not done
 
-MFA for platform staff (with the panels), WebAuthn/passkeys, MFA reset by support, a "trusted device" option, a list of sessions per device, forcing MFA per team.
+WebAuthn/passkeys, a "trusted device" option, a list of sessions per device, forcing MFA per team. Platform-staff authenticator reset remains a separate backlog item (ADR 0052).
 
 ## Owner decision (2026-10-16)
 

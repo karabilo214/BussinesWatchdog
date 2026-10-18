@@ -626,7 +626,11 @@
       "revoked": "Einladung widerrufen.",
       "pending": "Warten auf Antwort",
       "expires": "gültig bis {date}",
-      "revoke": "Widerrufen"
+      "revoke": "Widerrufen",
+      "mfa_reset": "MFA deaktivieren",
+      "mfa_reset_warning": "Alle Sitzungen der Person enden und Wiederherstellungscodes werden ungültig. Die Person erhält eine E-Mail. Bestätigen Sie mit Ihrem Authenticator-Code.",
+      "confirmation_code": "Authenticator-Code",
+      "mfa_reset_done": "MFA wurde zurückgesetzt. Eine Benachrichtigung wurde gesendet."
     }
   },
   "audit_action": {
@@ -641,6 +645,7 @@
       "reminder_sent": "Erinnerung gesendet",
       "member_invited": "Teammitglied eingeladen",
       "invitation_revoked": "Einladung widerrufen",
+      "member_mfa_reset": "Kunden-MFA zurückgesetzt",
       "store_created": "Shop hinzugefügt",
       "store_viewed": "Shopdaten geöffnet"
     },

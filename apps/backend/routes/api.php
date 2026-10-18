@@ -245,6 +245,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware(['tenant.role:'.implode(',', TenantRoles::teamManage()), 'throttle:invitations']);
     Route::post('/ownership-transfer', [TeamController::class, 'transferOwnership'])
         ->middleware(['tenant.role:'.TenantRoles::OWNER, 'throttle:auth-step-up']);
+    Route::post('/memberships/{user}/mfa/reset', [TeamController::class, 'resetMemberMfa'])
+        ->whereUuid('user')->middleware(['tenant.role:'.TenantRoles::OWNER, 'throttle:auth-step-up']);
     Route::post('/invitations/{invitation}/revoke', [TeamController::class, 'revoke'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::teamManage()));
     Route::get('/overview', [OverviewController::class, 'show'])

@@ -8,6 +8,7 @@ use App\Models\Membership;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Account\AccountRejected;
+use App\Support\Account\MfaService;
 use App\Support\Account\StepUp;
 use App\Support\Account\TeamService;
 use App\Support\Tenancy\TenantContext;
@@ -19,6 +20,7 @@ class TeamController extends Controller
 {
     public function __construct(
         private readonly TeamService $team,
+        private readonly MfaService $mfa,
     ) {}
 
     public function members(Request $request, TenantContext $tenantContext): JsonResponse
@@ -60,6 +62,32 @@ class TeamController extends Controller
         } catch (AccountRejected $exception) {
             return $this->rejected($exception);
         }
+
+        return response()->json(null, 204);
+    }
+
+    public function resetMemberMfa(Request $request, string $user, TenantContext $tenantContext, StepUp $stepUp): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
+            'current_password' => ['required', 'string', 'max:128'],
+            'code' => ['nullable', 'string', 'max:32'],
+        ]);
+        $tenantId = $tenantContext->requireTenantId('reset member MFA');
+
+        if ($user === $request->user()->id) {
+            return $this->rejected(new AccountRejected('cannot_reset_own_mfa', 403));
+        }
+
+        $stepUp->require($request->user(), $validated['current_password'], $validated['code'] ?? null);
+
+        try {
+            $target = $this->mfa->resetForAssistance($tenantId, $user, $request->user(), 'tenant_owner', trim($validated['reason']));
+        } catch (AccountRejected $exception) {
+            return $this->rejected($exception);
+        }
+
+        $this->mfa->notifyReset($target);
 
         return response()->json(null, 204);
     }
@@ -164,6 +192,7 @@ class TeamController extends Controller
             'name' => $membership->user?->name,
             'email' => $membership->user?->email,
             'email_verified' => $membership->user?->email_verified_at !== null,
+            'mfa_enabled' => $membership->user?->mfa_confirmed_at !== null,
             'role' => $membership->role,
             'is_you' => $membership->user_id === $viewer->id,
             'created_at' => $membership->created_at?->toJSON(),

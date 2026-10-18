@@ -140,7 +140,9 @@ class TenantDirectory
             'access' => $this->access($tenant->id),
             'capacity' => $this->capacity->state($tenant->id),
             'members' => $members->map(fn (Membership $member): array => [
+                'user_id' => $member->user_id,
                 'role' => $member->role,
+                'mfa_enabled' => $member->user?->mfa_confirmed_at !== null,
                 'joined_at' => $member->created_at?->toJSON(),
             ] + $this->contact($member->user, $fullContacts))->values()->all(),
             'stores' => Store::query()->where('tenant_id', $tenant->id)->whereNot('status', 'deleted')->orderBy('created_at')->get()->map(fn (Store $store): array => [

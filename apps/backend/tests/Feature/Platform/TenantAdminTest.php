@@ -351,6 +351,36 @@ class TenantAdminTest extends TestCase
         $this->postJson("/platform-api/v1/tenants/{$other['tenant']->id}/invitations/{$invitation['id']}/revoke", ['reason' => 'Wrong tenant'])->assertNotFound();
     }
 
+    public function test_support_resets_customer_mfa_with_step_up_and_scoped_audit(): void
+    {
+        Mail::fake();
+        $context = $this->context();
+        $tenantId = $context['tenant']->id;
+        $target = $context['user'];
+        $target->forceFill(['locale' => 'de'])->save();
+        $mfa = app(MfaService::class);
+        $secret = $mfa->beginSetup($target)['secret'];
+        $mfa->confirm($target, (new Totp)->codeAt($secret, (new Totp)->step(now()->getTimestamp())));
+        DB::table('sessions')->insert(['id' => 'customer-device', 'user_id' => $target->id, 'payload' => '', 'last_activity' => time()]);
+        $this->signIn(PlatformStaff::ROLE_SUPPORT);
+
+        $path = "/platform-api/v1/tenants/{$tenantId}/members/{$target->id}/mfa/reset";
+        $this->postJson($path, ['reason' => 'Customer called'])->assertStatus(422)->assertJsonValidationErrors('confirmation_code');
+        $this->postJson($path, ['reason' => 'Customer called', 'confirmation_code' => '000000'])->assertForbidden()->assertJsonPath('code', 'step_up_failed');
+        $this->assertNotNull($target->refresh()->mfa_confirmed_at);
+        $this->postJson($path, ['reason' => 'Customer called', 'confirmation_code' => $this->code()])->assertNoContent();
+
+        $this->assertNull($target->refresh()->mfa_confirmed_at);
+        $this->assertDatabaseMissing('sessions', ['id' => 'customer-device']);
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $tenantId, 'action' => 'user.mfa_reset', 'entity_id' => $target->id]);
+        $this->assertSame('Customer called', DB::table('platform_audit_log')->where('action', 'tenant.member_mfa_reset')->where('result', 'succeeded')->value('reason'));
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo($target->email) && str_contains($mail->bodyText, 'Alle aktiven Sitzungen'));
+
+        $other = $this->context();
+        $this->postJson("/platform-api/v1/tenants/{$other['tenant']->id}/members/{$target->id}/mfa/reset", ['reason' => 'Wrong tenant', 'confirmation_code' => $this->code()])
+            ->assertNotFound();
+    }
+
     private function paidCustomer(string $name): array
     {
         $context = $this->context();

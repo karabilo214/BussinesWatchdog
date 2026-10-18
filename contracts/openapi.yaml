@@ -716,6 +716,35 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/members/{user}/mfa/reset:
+    post:
+      tags: [Platform]
+      operationId: platformResetCustomerMfa
+      description: "Capability customers.mfa_reset (owner/admin/support). Scoped customer member; platform staff accounts protected. Requires a fresh staff authenticator code and reason. Audited in platform and affected tenant teams; revokes sessions and recovery codes and emails the user."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: user, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, confirmation_code]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+                confirmation_code: {type: string}
+      responses:
+        "204": {description: MFA reset}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/stores:
     post:
       tags: [Platform]
@@ -724,7 +753,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
       requestBody:
         required: true
         content:
@@ -758,7 +787,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
       responses:
         "200":
@@ -777,7 +806,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
       responses:
         "200":
@@ -796,7 +825,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: limit, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 100}}
         - {name: cursor, in: query, required: false, schema: {type: string, maxLength: 128}}
@@ -818,7 +847,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: limit, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 100}}
         - {name: cursor, in: query, required: false, schema: {type: string, maxLength: 128}}
@@ -840,7 +869,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
       responses:
         "200":
@@ -859,7 +888,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: order, in: path, required: true, schema: {type: string, format: uuid}}
       responses:
         "200":
@@ -878,7 +907,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: check, in: path, required: true, schema: {type: string, format: uuid}}
       responses:
         "200":
@@ -897,7 +926,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: artifact, in: path, required: true, schema: {type: string, format: uuid}}
       responses:
         "200":
@@ -916,7 +945,7 @@ paths:
       security:
         - {StaffSession: []}
       parameters:
-      - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
         - {name: incident, in: path, required: true, schema: {type: string, format: uuid}}
       responses:
         "200":
@@ -2744,6 +2773,35 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/memberships/{user_id}/mfa/reset:
+    post:
+      tags: [Team]
+      operationId: resetMemberMfa
+      description: "ADR 0021: tenant owner only; another member of the active tenant, never self or a platform staff account. Password and MFA code when enabled, reason, tenant audit in every affected team, revoke all sessions and recovery codes, email the target."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, current_password]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+                current_password: {type: string}
+                code: {type: [string, "null"]}
+      responses:
+        "204": {description: MFA reset}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /api/v1/invitations:
     get:
       tags: [Team]
@@ -6552,13 +6610,14 @@ components:
         can_view_money_amounts: {type: boolean}
     TeamMember:
       type: object
-      required: [user_id, tenant_id, role, is_you]
+      required: [user_id, tenant_id, role, is_you, mfa_enabled]
       properties:
         user_id: {type: string, format: uuid}
         tenant_id: {type: string, format: uuid}
         name: {type: [string, "null"]}
         email: {type: [string, "null"]}
         email_verified: {type: boolean}
+        mfa_enabled: {type: boolean}
         role: {enum: [owner, admin, operator, viewer]}
         is_you: {type: boolean}
         created_at: {type: [string, "null"], format: date-time}

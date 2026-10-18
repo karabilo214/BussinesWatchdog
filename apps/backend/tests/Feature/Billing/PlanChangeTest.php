@@ -364,10 +364,54 @@ class PlanChangeTest extends TestCase
         $this->assertSame(1, DB::table('billing_discount_application_lines')->where('application_id', $application->id)->count(), 'The Start-only code no longer applies.');
         $this->assertSame(2, (int) DB::table('billing_discount_grants')->where('discount_id', $discount->id)->value('periods_used'));
         $this->assertSame(1, (int) DB::table('billing_discount_grants')->where('discount_id', $starter->id)->value('periods_used'));
+        $this->assertNull(DB::table('billing_discount_grants')->where('discount_id', $discount->id)->value('forfeited_at'));
+        $this->assertNotNull(DB::table('billing_discount_grants')->where('discount_id', $starter->id)->value('forfeited_at'));
+        $this->preview($context, 'start')->assertJsonPath('next_amount_minor', '1710');
         $writes = collect($this->paddleWrites());
         $this->assertTrue($writes->contains(fn (array $write): bool => $write['url'] === self::API.'/subscriptions/sub_1' && array_key_exists('discount', $write['body']) && $write['body']['discount'] === null), 'The old combined discount is removed.');
         $this->assertSame('490', $writes->where('url', self::API.'/discounts')->last()['body']['amount']);
         $this->assertNotNull(BillingPlanChange::query()->value('discounts_settled_at'));
+    }
+
+    public function test_restricted_discount_is_kept_for_extra_stores_and_forfeited_only_when_scheduled_plan_takes_effect(): void
+    {
+        $context = $this->subscribed('pro', 0);
+        $contract = BillingSubscriptionContract::query()->firstOrFail();
+        $discount = BillingDiscount::query()->create([
+            'name' => 'Pro offer', 'label' => ['en' => 'Pro offer'], 'kind' => BillingDiscount::KIND_FLAT, 'amount_minor' => 500,
+            'currency' => 'EUR', 'currency_exponent' => 2, 'audience' => BillingDiscount::AUDIENCE_CODE, 'code' => 'PRO500',
+            'duration' => 'periods', 'duration_periods' => 3, 'plan_ids' => [$this->plans['pro']['plan']->id],
+            'state' => BillingDiscount::STATE_ACTIVE, 'provider_discount_ref' => 'dsc_pro',
+            'mode' => 'test', 'provider' => 'paddle', 'provider_account_ref' => 'default',
+        ]);
+        $session = $this->checkoutSession($context, $contract);
+        DB::table('billing_discount_grants')->insert([
+            'id' => (string) Str::uuid7(), 'tenant_id' => $context['tenant']->id, 'checkout_session_id' => $session->id,
+            'contract_id' => $contract->id, 'discount_id' => $discount->id, 'position' => 3,
+            'periods_total' => 3, 'periods_used' => 1, 'created_at' => now(),
+        ]);
+        app(DiscountLedger::class)->planNextPeriod($contract);
+
+        $extra = $this->preview($context, 'pro', 1)->assertJsonPath('next_amount_minor', '5100')->json('preview_token');
+        $this->confirm($context, $extra)->assertStatus(202);
+        $this->assertNull(DB::table('billing_discount_grants')->where('discount_id', $discount->id)->value('forfeited_at'));
+
+        $down = $this->preview($context, 'start')->assertJsonPath('next_amount_minor', '1900')->json('preview_token');
+        $this->confirm($context, $down)->assertStatus(202)->assertJsonPath('change.status', BillingPlanChange::STATUS_SCHEDULED);
+        $this->assertNull(DB::table('billing_discount_grants')->where('discount_id', $discount->id)->value('forfeited_at'));
+
+        $this->asMember($context)->withHeaders(['Idempotency-Key' => (string) Str::uuid()])->postJson('/api/v1/billing/plan-change/cancel')->assertOk();
+        $this->assertNull(DB::table('billing_discount_grants')->where('discount_id', $discount->id)->value('forfeited_at'));
+        $this->assertSame(2, (int) DB::table('billing_discount_grants')->where('discount_id', $discount->id)->value('periods_used'));
+
+        $down = $this->preview($context, 'start')->json('preview_token');
+        $this->confirm($context, $down)->assertStatus(202);
+        Carbon::setTestNow('2026-11-11T00:00:30Z');
+        app(PaddleSubscriptionActions::class)->settle();
+        $this->assertNotNull(DB::table('billing_discount_grants')->where('discount_id', $discount->id)->value('forfeited_at'));
+        $this->preview($context, 'pro')->assertJsonPath('next_amount_minor', '4900');
+        app(PaddleSubscriptionActions::class)->settle();
+        $this->assertNotNull(DB::table('billing_discount_grants')->where('discount_id', $discount->id)->value('forfeited_at'));
     }
 
     /**

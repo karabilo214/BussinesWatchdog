@@ -69,6 +69,11 @@
   "overview": {
     "title": "Übersicht",
     "subtitle": "Das Wichtigste über alle Shops. „Keine Daten“ heißt nicht, dass alles in Ordnung ist.",
+    "mfa_warning": {
+      "title": "MFA ist nicht aktiv – Ihr Konto ist stark gefährdet",
+      "body": "Zur Anmeldung genügt derzeit Ihr Passwort. Richten Sie eine Authenticator-App ein, um den Zugang zu Ihren Shops und Unternehmensdaten zu schützen.",
+      "action": "MFA aktivieren"
+    },
     "empty_title": "Noch keine Shops",
     "empty_body": "Hinzugefügte Shops erscheinen hier mit dem Status von Plugin, Zahlungsabgleich, Zahlungsversuchen und Checkout-Prüfungen.",
     "active_incidents": "Aktive Vorfälle: {n}",
@@ -478,6 +483,8 @@
     "integration_not_active": "Nur eine aktive Verbindung kann synchronisiert werden.",
     "mfa_already_enabled": "Die Zwei-Faktor-Authentifizierung ist bereits aktiv.",
     "mfa_not_enabled": "Die Zwei-Faktor-Authentifizierung ist nicht aktiv.",
+    "cannot_reset_own_mfa": "Setzen Sie Ihre eigene MFA in den Profileinstellungen zurück.",
+    "platform_staff_mfa_protected": "Die MFA von Plattformmitarbeitenden kann nicht im Kundenkonto zurückgesetzt werden.",
     "mfa_setup_missing": "Die Einrichtung wurde nicht gestartet oder ist abgelaufen. Beginnen Sie neu.",
     "mfa_code_invalid": "Der Code passt nicht. Geben Sie einen neuen App-Code oder einen unbenutzten Wiederherstellungscode ein.",
     "mfa_code_required": "Geben Sie einen App-Code oder einen Wiederherstellungscode ein.",
@@ -1358,6 +1365,13 @@
       "warning": "{name} wird Inhaber des Teams, Sie werden Administrator. Zurückübertragen kann nur der neue Inhaber.",
       "unverified": "{name} hat die E-Mail-Adresse noch nicht bestätigt. Die Inhaberschaft kann nur an ein Mitglied mit bestätigter Adresse gehen.",
       "submit": "Inhaberschaft übertragen"
+    },
+    "mfa_reset": {
+      "open": "MFA zurücksetzen",
+      "warning": "MFA für {name} zurücksetzen? Alle Sitzungen enden und die Wiederherstellungscodes werden ungültig. Die Person erhält eine E-Mail.",
+      "reason": "Grund für das Zurücksetzen",
+      "confirm": "MFA zurücksetzen",
+      "done": "MFA wurde zurückgesetzt. Die Person wurde per E-Mail benachrichtigt."
     }
   },
   "provider": {
@@ -1606,6 +1620,7 @@
       "next_payment": "Nächste Zahlung",
       "immediate_note": "Jetzt wird die Differenz für den Rest des aktuellen Zeitraums berechnet, ohne Rabatte. Die nächste Zahlung erfolgt zum neuen Tarif mit den dafür geltenden Rabatten. Schlägt die Zahlung fehl, ändert sich der Tarif nicht.",
       "next_period_note": "Jetzt wird nichts berechnet. Bis zum Ende des bezahlten Zeitraums gilt der aktuelle Tarif, die nächste Zahlung erfolgt zum neuen.",
+      "restricted_discount_note": "Rabatte, die auf Ihren aktuellen Tarif begrenzt sind, verfallen beim Wechsel. Bei einer Rückkehr werden die übrigen Rabattzeiträume nicht wiederhergestellt.",
       "retained_note": "Ausgewählte Shops werden weiter geprüft: {n}.",
       "confirm_pay": "Bestätigen und {amount} zahlen",
       "confirm_schedule": "Wechsel ab dem nächsten Zeitraum bestätigen",

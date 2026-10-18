@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { fetchTenantInvitations, inviteTenantMember, revokeTenantInvitation, type InvitableRole, type TenantCard, type TenantInvitation } from '@/api';
+import { fetchTenant, fetchTenantInvitations, inviteTenantMember, resetCustomerMfa, revokeTenantInvitation, type InvitableRole, type TenantCard, type TenantInvitation } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 
 const ROLES: InvitableRole[] = ['admin', 'operator', 'viewer'];
 
-const props = defineProps<{ card: TenantCard; canManage?: boolean }>();
+const props = defineProps<{ card: TenantCard; canManage?: boolean; canResetMfa?: boolean }>();
+const emit = defineEmits<{ updated: [card: TenantCard] }>();
 const { dateTime } = useFormat();
 
 const invitations = ref<TenantInvitation[]>([]);
@@ -16,6 +17,7 @@ const error = ref<unknown>(null);
 const notice = ref<string | null>(null);
 const form = reactive({ email: '', role: 'operator' as InvitableRole, reason: '' });
 const revoke = reactive({ id: null as string | null, reason: '' });
+const reset = reactive({ userId: null as string | null, reason: '', code: '' });
 const ready = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) && form.reason.trim().length >= 3);
 
 async function load(): Promise<void> {
@@ -58,6 +60,24 @@ async function confirmRevoke(): Promise<void> {
     Object.assign(revoke, { id: null, reason: '' });
     notice.value = 'tenant.team.revoked';
     await load();
+  } catch (caught) {
+    error.value = caught;
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function confirmMfaReset(): Promise<void> {
+  if (reset.userId === null || reset.reason.trim().length < 3 || reset.code.trim().length < 6 || busy.value) return;
+  busy.value = true;
+  error.value = null;
+  notice.value = null;
+
+  try {
+    await resetCustomerMfa(props.card.id, reset.userId, reset.reason.trim(), reset.code.trim());
+    Object.assign(reset, { userId: null, reason: '', code: '' });
+    emit('updated', await fetchTenant(props.card.id));
+    notice.value = 'tenant.team.mfa_reset_done';
   } catch (caught) {
     error.value = caught;
   } finally {
@@ -109,10 +129,23 @@ onMounted(load);
             <td class="px-4 py-3">{{ member.email ?? '—' }} <span v-if="member.email_verified" class="text-ok">✓</span></td>
             <td class="px-4 py-3">{{ $t(`member_role.${member.role}`, member.role) }}</td>
             <td class="px-4 py-3 text-text-muted">{{ dateTime(member.joined_at) }}</td>
+            <td class="px-4 py-3 text-right">
+              <button v-if="canResetMfa && member.mfa_enabled" type="button" class="rounded-md border border-warn-border px-2.5 py-1 text-warn hover:bg-warn-soft" data-action="reset-mfa" @click="Object.assign(reset, { userId: member.user_id, reason: '', code: '' }); notice = null">{{ $t('tenant.team.mfa_reset') }}</button>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <form v-if="reset.userId" class="flex flex-col gap-3 rounded-xl border border-warn-border bg-warn-soft p-4 text-sm" data-form="mfa-reset" @submit.prevent="confirmMfaReset">
+      <p>{{ $t('tenant.team.mfa_reset_warning') }}</p>
+      <label class="flex flex-col gap-1 font-medium">{{ $t('tenant.actions.reason') }}<input v-model="reset.reason" maxlength="500" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-normal" /></label>
+      <label class="flex flex-col gap-1 font-medium">{{ $t('tenant.team.confirmation_code') }}<input v-model="reset.code" autocomplete="one-time-code" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-normal" /></label>
+      <div class="flex gap-2">
+        <button type="submit" class="rounded-md bg-crit-solid px-3 py-2 font-medium text-white disabled:opacity-60" :disabled="busy || reset.reason.trim().length < 3 || reset.code.trim().length < 6">{{ $t('tenant.team.mfa_reset') }}</button>
+        <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-2" @click="reset.userId = null">{{ $t('common.cancel') }}</button>
+      </div>
+    </form>
 
     <div v-if="canManage && invitations.length > 0" class="flex flex-col gap-2">
       <h2 class="text-lg font-semibold">{{ $t('tenant.team.pending') }}</h2>

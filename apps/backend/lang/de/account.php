@@ -13,6 +13,14 @@ return [
         'subject' => 'Business Watchdog: Einladung in das Team „:tenant“',
         'body' => ":inviter lädt Sie in das Team „:tenant“ bei Business Watchdog mit der Rolle „:role“ ein.\n\nZum Annehmen öffnen Sie diesen Link (gültig bis :expires):\n:link\n\nFalls Sie keine Einladung erwartet haben, ignorieren Sie diese E-Mail.",
     ],
+    'new_owner_mfa_warning' => [
+        'subject' => 'Business Watchdog: Aktivieren Sie MFA zum Schutz Ihres Kontos',
+        'body' => "Sie sind jetzt Inhaber des Teams „:tenant“. MFA ist nicht aktiv – Ihr Konto ist stark gefährdet, da zur Anmeldung derzeit Ihr Passwort genügt. Richten Sie eine Authenticator-App in Ihren Profileinstellungen ein:\n:link",
+    ],
+    'mfa_reset' => [
+        'subject' => 'Business Watchdog: Zwei-Faktor-Authentifizierung zurückgesetzt',
+        'body' => "Die Zwei-Faktor-Authentifizierung Ihres Business-Watchdog-Kontos wurde zurückgesetzt. Alle aktiven Sitzungen wurden beendet. Melden Sie sich erneut an und richten Sie eine Authenticator-App in Ihren Profileinstellungen ein:\n:link\n\nFalls Sie dies nicht angefordert haben, wenden Sie sich sofort an den Support und ändern Sie Ihr Passwort.",
+    ],
     'order_volume_over' => [
         'subject' => 'Business Watchdog: Shop „:store“ ist aus seinem Paket herausgewachsen',
         'body' => "Der Shop „:store“ hatte in den letzten drei Monaten durchschnittlich :average Bestellungen im Monat; Ihr Paket umfasst bis zu :limit Bestellungen im Monat pro Shop.\n\nDer Schutz läuft unverändert weiter; nichts wird abgeschaltet und nichts zusätzlich berechnet. Bitte wählen Sie bis zum :date im Konto ein passendes Paket:\n:link\n\nWar es eine einmalige Spitze und liegt das Volumen wieder im Paket, ist nichts zu tun.",

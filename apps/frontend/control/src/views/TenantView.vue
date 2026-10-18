@@ -27,6 +27,7 @@ const error = ref<unknown>(null);
 const tab = computed<Tab>(() => (TABS as readonly string[]).includes(String(route.query.tab)) ? (route.query.tab as Tab) : 'overview');
 const tabs = computed(() => TABS.filter((item) => item !== 'subscription' || card.value?.billing !== null));
 const canManage = computed(() => me.value?.capabilities.includes('tenants.manage') === true);
+const canResetMfa = computed(() => me.value?.capabilities.includes('customers.mfa_reset') === true);
 
 async function load(): Promise<void> {
   try {
@@ -75,7 +76,7 @@ onMounted(load);
         <TenantOverview v-if="tab === 'overview'" :card="card" :can-manage="canManage" @updated="card = $event" />
         <TenantStores v-else-if="tab === 'stores'" :card="card" :can-manage="canManage" @updated="card = $event" />
         <TenantSubscription v-else-if="tab === 'subscription' && card.billing" :billing="card.billing" />
-        <TenantMembers v-else-if="tab === 'members'" :card="card" :can-manage="canManage" />
+        <TenantMembers v-else-if="tab === 'members'" :card="card" :can-manage="canManage" :can-reset-mfa="canResetMfa" @updated="card = $event" />
         <TenantAudit v-else-if="tab === 'audit'" :card="card" />
       </template>
     </div>

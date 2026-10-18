@@ -13,6 +13,14 @@ return [
         'subject' => 'Business Watchdog: invitation to the “:tenant” team',
         'body' => ":inviter invites you to the “:tenant” team on Business Watchdog as :role.\n\nTo accept, open this link (valid until :expires):\n:link\n\nIf you were not expecting this, ignore this email.",
     ],
+    'new_owner_mfa_warning' => [
+        'subject' => 'Business Watchdog: turn on MFA to protect your account',
+        'body' => "You are now the owner of the “:tenant” team. MFA is off — your account is at serious risk because a password alone is enough to sign in. Set up an authenticator app in your profile settings:\n:link",
+    ],
+    'mfa_reset' => [
+        'subject' => 'Business Watchdog: two-factor authentication was reset',
+        'body' => "Two-factor authentication on your Business Watchdog account was reset. All active sessions have ended. Sign in again and set up an authenticator app in your profile settings:\n:link\n\nIf you did not request this, contact support immediately and change your password.",
+    ],
     'order_volume_over' => [
         'subject' => 'Business Watchdog: store “:store” has outgrown its package',
         'body' => "Over the last three months the store “:store” has had :average orders a month on average, while your package covers up to :limit orders a month per store.\n\nProtection keeps working as before; nothing is switched off and nothing extra is charged. Please choose a fitting package in your account by :date:\n:link\n\nIf this was a one-off spike and the volume returns within the package, there is nothing to do.",

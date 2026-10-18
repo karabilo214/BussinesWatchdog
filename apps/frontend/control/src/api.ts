@@ -336,7 +336,7 @@ export interface TenantCard {
   trial_consumed_at: string | null;
   access: TenantAccess;
   capacity: StoreCapacity;
-  members: (Contact & { role: string; joined_at: string | null })[];
+  members: (Contact & { user_id: string; role: string; mfa_enabled: boolean; joined_at: string | null })[];
   stores: { id: string; name: string; host: string; platform: string; status: string; verified: boolean; browser_enabled: boolean; capacity_paused_at: string | null; open_incidents: number; orders_this_month: number; orders_average: number | null; orders_over_since: string | null; created_at: string | null }[];
   orders_limit?: number | null;
   billing: {
@@ -635,6 +635,10 @@ export async function inviteTenantMember(tenantId: string, input: { email: strin
 
 export async function revokeTenantInvitation(tenantId: string, invitationId: string, reason: string): Promise<TenantInvitation> {
   return (await request<TenantInvitation>('POST', tenantPath(tenantId, `invitations/${encodeURIComponent(invitationId)}/revoke`), { body: { reason } })).data;
+}
+
+export async function resetCustomerMfa(tenantId: string, userId: string, reason: string, confirmationCode: string): Promise<void> {
+  await request('POST', tenantPath(tenantId, `members/${encodeURIComponent(userId)}/mfa/reset`), { body: { reason, confirmation_code: confirmationCode } });
 }
 
 export interface BusinessOverview {

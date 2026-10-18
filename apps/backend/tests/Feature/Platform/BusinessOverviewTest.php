@@ -94,6 +94,9 @@ class BusinessOverviewTest extends TestCase
         $this->assertSame(['ended' => 1, 'at_start' => 6], $overview['churn']);
         $this->assertNotNull($overview['last_synced_at']);
 
+        DB::table('billing_discount_grants')->where('contract_id', $discounted->id)->update(['forfeited_at' => now()]);
+        $this->assertSame(0, $this->getJson('/platform-api/v1/overview?from=2026-09-21&to=2026-10-20')->assertOk()->json('mrr.0.discounted_contracts'));
+
         $test = $this->getJson('/platform-api/v1/overview?mode=test')->assertOk()->json();
         $this->assertSame(1, $test['customers']['paying']);
         $this->assertSame('1900', $test['mrr'][0]['numerator_minor']);

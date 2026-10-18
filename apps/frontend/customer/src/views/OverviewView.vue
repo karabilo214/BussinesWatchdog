@@ -11,10 +11,12 @@ import { useIncidentText } from '@/components/incidents/useIncidentText';
 import { lastSuccessfulCheck, verdict, type Verdict } from '@/components/overview/verdict';
 import { useFormat } from '@/composables/useFormat';
 import { useRole } from '@/composables/useRole';
+import { useSession } from '@/composables/useSession';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { StatusBadge, type Tone } from '@bw/ui';
 
 const { canManageStores } = useRole();
+const { session } = useSession();
 const { dateTime } = useFormat();
 const { amount } = useIncidentText();
 
@@ -73,6 +75,14 @@ onMounted(load);
           {{ $t('overview.add_store') }}
         </RouterLink>
       </div>
+
+      <section v-if="session && !session.user.mfa_enabled" class="rounded-xl border border-crit-border bg-crit-soft p-5" role="alert" data-mfa-warning>
+        <h2 class="text-lg font-semibold text-crit">{{ $t('overview.mfa_warning.title') }}</h2>
+        <p class="mt-1 text-sm">{{ $t('overview.mfa_warning.body') }}</p>
+        <RouterLink :to="{ name: 'profile' }" class="mt-3 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover">
+          {{ $t('overview.mfa_warning.action') }}
+        </RouterLink>
+      </section>
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
 

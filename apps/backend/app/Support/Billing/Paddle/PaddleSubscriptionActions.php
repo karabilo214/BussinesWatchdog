@@ -243,6 +243,9 @@ class PaddleSubscriptionActions
             'due_now_minor' => $change->due_now_minor,
         ]);
         $this->syncQuietly((string) $contract->provider_subscription_ref);
+        if ($immediate) {
+            $this->ledger->forfeitOnPlanChange($change);
+        }
         $this->settleDiscounts($change);
 
         if ($immediate) {
@@ -334,6 +337,7 @@ class PaddleSubscriptionActions
 
         foreach (BillingPlanChange::query()->where('status', BillingPlanChange::STATUS_SCHEDULED)->where('effective_at', '<=', $now)->get() as $change) {
             $change->forceFill(['status' => BillingPlanChange::STATUS_APPLIED, 'applied_at' => $now])->save();
+            $this->ledger->forfeitOnPlanChange($change);
             $this->projector->project($change->tenant_id, PaddleConfig::mode(), $now);
             $this->capacity->settle($change->tenant_id, $change->retained_store_ids);
             $applied++;
@@ -357,6 +361,7 @@ class PaddleSubscriptionActions
             $resolved++;
 
             if ($landed && $change->kind === BillingPlanChange::KIND_IMMEDIATE) {
+                $this->ledger->forfeitOnPlanChange($change);
                 $this->capacity->settle($change->tenant_id, $change->retained_store_ids);
             }
         }

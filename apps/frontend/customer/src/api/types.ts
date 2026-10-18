@@ -582,6 +582,7 @@ export interface TeamMember {
   name: string | null;
   email: string | null;
   email_verified?: boolean;
+  mfa_enabled: boolean;
   role: TeamRole;
   is_you: boolean;
   created_at: string | null;

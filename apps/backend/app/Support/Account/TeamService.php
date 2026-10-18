@@ -99,7 +99,7 @@ class TeamService
      */
     public function transferOwnership(string $tenantId, User $actor, string $targetUserId): Membership
     {
-        return DB::transaction(function () use ($tenantId, $actor, $targetUserId): Membership {
+        $newOwner = DB::transaction(function () use ($tenantId, $actor, $targetUserId): Membership {
             [$actorRole, $target] = $this->lockPair($tenantId, $actor, $targetUserId);
 
             if ($actorRole !== TenantRoles::OWNER) {
@@ -131,6 +131,20 @@ class TeamService
 
             return Membership::query()->where('tenant_id', $tenantId)->where('user_id', $target->user_id)->with('user')->firstOrFail();
         });
+
+        $user = $newOwner->user;
+        if ($user !== null && $user->mfa_confirmed_at === null) {
+            try {
+                $this->mailer->send($user->email, $user->locale, 'new_owner_mfa_warning', [
+                    'tenant' => Tenant::query()->whereKey($tenantId)->value('name') ?? '',
+                    'link' => $this->mailer->link('/app/settings/profile'),
+                ]);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        return $newOwner;
     }
 
     /**

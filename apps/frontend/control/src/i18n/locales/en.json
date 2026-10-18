@@ -626,7 +626,11 @@
       "revoked": "Invitation revoked.",
       "pending": "Waiting for an answer",
       "expires": "valid until {date}",
-      "revoke": "Revoke"
+      "revoke": "Revoke",
+      "mfa_reset": "Disable MFA",
+      "mfa_reset_warning": "All user sessions will end and recovery codes will stop working. The user will receive an email. Confirm with your authenticator code.",
+      "confirmation_code": "Authenticator code",
+      "mfa_reset_done": "The user's MFA was reset. A notification was sent."
     }
   },
   "audit_action": {
@@ -641,6 +645,7 @@
       "reminder_sent": "Reminder sent",
       "member_invited": "Team member invited",
       "invitation_revoked": "Invitation revoked",
+      "member_mfa_reset": "Customer MFA reset",
       "store_created": "Store added",
       "store_viewed": "Store data opened"
     },

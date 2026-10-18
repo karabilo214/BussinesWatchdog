@@ -737,6 +737,7 @@ onBeforeUnmount(stopPolling);
               </div>
             </dl>
             <p class="text-[13px] text-text-muted">{{ change.preview.kind === 'immediate' ? $t('billing.change.immediate_note') : $t('billing.change.next_period_note') }}</p>
+            <p v-if="subscription?.plan_code !== change.plan.plan_code" class="text-[13px] text-warn">{{ $t('billing.change.restricted_discount_note') }}</p>
             <p v-if="change.preview.retained_store_ids" class="text-[13px] text-text-muted">{{ $t('billing.change.retained_note', { n: count(change.preview.retained_store_ids.length) }) }}</p>
           <div v-if="documents.length > 0" class="flex items-start gap-2 rounded-md border border-border bg-surface p-3 text-sm" data-consent="change">
             <input id="billing-consent-change" v-model="consent" type="checkbox" class="mt-0.5 size-4 accent-primary" data-field="consent" />

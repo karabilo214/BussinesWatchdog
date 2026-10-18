@@ -196,3 +196,11 @@ Status: complete
 - Migration `2026_10_16_130000_add_show_money_amounts_to_tenants.php` adds the boolean tenant setting, default true. Updated `contracts/openapi.yaml`, `contracts/ui-api-catalog.md` and the reference `spec/database/schema.sql`. No event contract changed.
 
 Verification: backend SQLite 592 passed, 4 skipped (596 total); PostgreSQL 18 596/596; customer typecheck, 128/128 tests and build. No live browser smoke. The setting governs discrepancy amounts on the named surfaces; underlying order and provider transaction amounts remain subject to their existing role permissions.
+
+### Step 164: MFA Warning on the Customer Overview (ADR 0021; Spec §7, §24; EXT-03)
+
+- The overview shows a prominent warning and a direct link to profile MFA setup whenever the current user has MFA off, including when the team has no stores. It disappears when the session reports MFA enabled. ru/en/de copy added.
+- After a successful ownership transfer, a new owner without MFA receives the warning by email in their locale with a profile link. The email is sent after the role transaction commits; a mail failure is reported without returning a false transfer failure. An owner with MFA receives no warning email.
+- No migrations, API or event contracts changed.
+
+Verification: `MfaApiTest` 8/8; backend SQLite suite 600 passed + 4 skipped, PostgreSQL 18 suite 604/604; customer typecheck, 130/130 tests and build. Live browser smoke was not run.

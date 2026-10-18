@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { changeMemberRole, getMoneyVisibility, inviteMember, listInvitations, listMembers, removeMember, revokeInvitation, transferOwnership, updateMoneyVisibility } from '@/api/account';
+import { changeMemberRole, getMoneyVisibility, inviteMember, listInvitations, listMembers, removeMember, resetMemberMfa, revokeInvitation, transferOwnership, updateMoneyVisibility } from '@/api/account';
 import type { TeamInvitation, TeamMember, TeamRole } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
@@ -34,6 +34,11 @@ const transfer = reactive({ password: '', code: '' });
 const transferBusy = ref(false);
 const transferError = ref<unknown>(null);
 const transferStepUpKey = computed(() => stepUpErrorKey(transferError.value));
+const resettingMfa = ref<string | null>(null);
+const reset = reactive({ reason: '', password: '', code: '' });
+const resetBusy = ref(false);
+const resetError = ref<unknown>(null);
+const resetDone = ref(false);
 const showMoneyAmounts = ref(true);
 const moneyVisibilityBusy = ref(false);
 const needsCode = computed(() => session.value?.user.mfa_enabled === true);
@@ -54,6 +59,33 @@ function openTransfer(member: TeamMember): void {
   transfer.password = '';
   transfer.code = '';
   transferError.value = null;
+}
+
+function openMfaReset(member: TeamMember): void {
+  resettingMfa.value = member.user_id;
+  reset.reason = '';
+  reset.password = '';
+  reset.code = '';
+  resetError.value = null;
+  resetDone.value = false;
+}
+
+async function submitMfaReset(member: TeamMember): Promise<void> {
+  resetBusy.value = true;
+  resetError.value = null;
+
+  try {
+    await resetMemberMfa(member.user_id, reset.reason.trim(), reset.password, needsCode.value ? reset.code.trim() : null);
+    resettingMfa.value = null;
+    resetDone.value = true;
+    await load();
+  } catch (caught) {
+    resetError.value = caught;
+  } finally {
+    reset.password = '';
+    reset.code = '';
+    resetBusy.value = false;
+  }
 }
 
 async function submitTransfer(member: TeamMember): Promise<void> {
@@ -175,6 +207,7 @@ onMounted(load);
 
       <template v-else>
         <ErrorNotice v-if="actionError" :error="actionError" />
+        <p v-if="resetDone" role="status" class="rounded-md border border-ok-border bg-ok-soft p-3 text-sm">{{ $t('team.mfa_reset.done') }}</p>
 
         <section v-if="myRole === 'owner'" class="rounded-xl border border-border bg-surface p-5" data-panel="money-visibility">
           <h2 class="text-lg font-semibold">{{ $t('money_visibility.title') }}</h2>
@@ -208,6 +241,8 @@ onMounted(load);
                     <option v-for="role in assignable" :key="role" :value="role">{{ $t(`team.role.${role}`) }}</option>
                   </select>
                   <StatusBadge v-else :tone="member.role === 'owner' ? 'note' : 'unknown'" :label="$t(`team.role.${member.role}`)" />
+                  <StatusBadge :tone="member.mfa_enabled ? 'ok' : 'warn'" :label="$t(member.mfa_enabled ? 'account.mfa.on' : 'account.mfa.off')" />
+                  <button v-if="myRole === 'owner' && !member.is_you && member.mfa_enabled && resettingMfa !== member.user_id" type="button" class="rounded-md border border-warn-border px-3 py-1.5 text-sm font-medium hover:bg-warn-soft" @click="openMfaReset(member)">{{ $t('team.mfa_reset.open') }}</button>
                   <button
                     v-if="(manageable(member) || (member.is_you && member.role !== 'owner')) && confirming !== member.user_id"
                     type="button"
@@ -226,6 +261,17 @@ onMounted(load);
                   </button>
                 </div>
               </div>
+              <form v-if="resettingMfa === member.user_id" class="flex flex-col gap-3 rounded-md border border-warn-border bg-warn-soft p-3 text-sm" data-mfa-reset @submit.prevent="submitMfaReset(member)">
+                <p>{{ $t('team.mfa_reset.warning', { name: member.name }) }}</p>
+                <label class="flex flex-col gap-1 font-medium">{{ $t('team.mfa_reset.reason') }}<input v-model="reset.reason" maxlength="500" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-normal" /></label>
+                <label class="flex flex-col gap-1 font-medium">{{ $t('account.password.current') }}<input v-model="reset.password" type="password" autocomplete="current-password" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-normal" /></label>
+                <label v-if="needsCode" class="flex flex-col gap-1 font-medium">{{ $t('account.mfa.code_or_recovery') }}<input v-model="reset.code" autocomplete="one-time-code" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-normal" /></label>
+                <ErrorNotice v-if="resetError" :error="resetError" />
+                <div class="flex gap-2">
+                  <button type="submit" class="rounded-md bg-crit-solid px-3 py-1.5 font-medium text-white disabled:opacity-60" :disabled="resetBusy || reset.reason.trim().length < 3 || !reset.password || (needsCode && reset.code.trim().length < 6)">{{ $t('team.mfa_reset.confirm') }}</button>
+                  <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5" @click="resettingMfa = null">{{ $t('common.cancel') }}</button>
+                </div>
+              </form>
               <form
                 v-if="transferring === member.user_id"
                 class="flex flex-col gap-3 rounded-md border border-warn-border bg-warn-soft p-3 text-sm"

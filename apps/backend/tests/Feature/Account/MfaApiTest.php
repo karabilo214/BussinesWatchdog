@@ -4,12 +4,15 @@ namespace Tests\Feature\Account;
 
 use App\Models\AuditLog;
 use App\Models\Membership;
+use App\Models\PlatformStaff;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Mail\NotificationMessageMail;
 use App\Support\Account\Totp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class MfaApiTest extends TestCase
@@ -123,6 +126,7 @@ class MfaApiTest extends TestCase
 
     public function test_the_owner_hands_the_team_to_a_confirmed_member_and_stays_as_admin(): void
     {
+        Mail::fake();
         $owner = $this->user();
         $tenantId = Membership::query()->where('user_id', $owner->id)->value('tenant_id');
         $admin = $this->member($tenantId, 'admin@example.test', 'admin');
@@ -149,12 +153,19 @@ class MfaApiTest extends TestCase
         $this->assertSame('admin', $roles[$owner->id]);
         $audit = AuditLog::query()->where('action', 'membership.ownership_transferred')->firstOrFail();
         $this->assertSame([$owner->id, $admin->id], [$audit->changes['owner']['from'], $audit->changes['owner']['to']]);
+        Mail::assertSent(NotificationMessageMail::class, function (NotificationMessageMail $mail) use ($admin): bool {
+            return $mail->hasTo($admin->email)
+                && str_contains($mail->bodyText, 'MFA не подключена')
+                && str_contains($mail->bodyText, '/app/settings/profile');
+        });
+        Mail::assertSentCount(1);
         $this->actingAs($owner)->withSession($session)->postJson('/api/v1/ownership-transfer', ['target_user_id' => $admin->id, 'current_password' => 'very-secure-password'])
             ->assertStatus(403);
     }
 
     public function test_an_owner_with_mfa_must_give_a_code_to_transfer_ownership(): void
     {
+        Mail::fake();
         [$owner, $secret] = $this->enrolled();
         $tenantId = Membership::query()->where('user_id', $owner->id)->value('tenant_id');
         $admin = $this->member($tenantId, 'admin@example.test', 'admin');
@@ -166,6 +177,68 @@ class MfaApiTest extends TestCase
         $this->actingAs($owner)->withSession(['active_tenant_id' => $tenantId])->postJson('/api/v1/ownership-transfer', ['target_user_id' => $admin->id, 'current_password' => 'very-secure-password', 'code' => $this->code($secret)])
             ->assertNoContent();
         $this->assertSame('owner', Membership::query()->where('user_id', $admin->id)->value('role'));
+    }
+
+    public function test_new_owner_with_mfa_does_not_receive_the_warning(): void
+    {
+        Mail::fake();
+        $owner = $this->user();
+        $tenantId = Membership::query()->where('user_id', $owner->id)->value('tenant_id');
+        $admin = $this->member($tenantId, 'admin@example.test', 'admin');
+        $secret = $this->actingAs($admin)->postJson('/api/v1/auth/mfa/setup', ['current_password' => 'very-secure-password'])->json('secret');
+        $this->actingAs($admin)->postJson('/api/v1/auth/mfa/confirm', ['code' => $this->code($secret)])->assertOk();
+
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenantId])
+            ->postJson('/api/v1/ownership-transfer', ['target_user_id' => $admin->id, 'current_password' => 'very-secure-password'])
+            ->assertNoContent();
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_only_the_tenant_owner_can_reset_a_members_factor_and_all_sessions_end(): void
+    {
+        Mail::fake();
+        $owner = $this->user();
+        $tenantId = Membership::query()->where('user_id', $owner->id)->value('tenant_id');
+        $member = $this->member($tenantId, 'member@example.test', 'admin');
+        $other = Tenant::query()->create(['name' => 'Other', 'timezone' => 'Europe/Berlin']);
+        Membership::query()->create(['tenant_id' => $other->id, 'user_id' => $member->id, 'role' => 'viewer']);
+        $secret = $this->actingAs($member)->postJson('/api/v1/auth/mfa/setup', ['current_password' => 'very-secure-password'])->json('secret');
+        $this->actingAs($member)->postJson('/api/v1/auth/mfa/confirm', ['code' => $this->code($secret)])->assertOk();
+        DB::table('sessions')->insert(['id' => 'member-device', 'user_id' => $member->id, 'payload' => '', 'last_activity' => time()]);
+
+        $path = "/api/v1/memberships/{$member->id}/mfa/reset";
+        $this->actingAs($member)->withSession(['active_tenant_id' => $tenantId])->postJson($path, ['reason' => 'Lost phone', 'current_password' => 'very-secure-password'])->assertForbidden();
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenantId])->postJson($path, ['reason' => 'Lost phone', 'current_password' => 'wrong-password'])->assertStatus(422);
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenantId])->postJson($path, ['reason' => 'Lost phone', 'current_password' => 'very-secure-password'])->assertNoContent();
+
+        $this->assertNull($member->refresh()->mfa_confirmed_at);
+        $this->assertNull($member->mfa_secret_ciphertext);
+        $this->assertDatabaseMissing('sessions', ['id' => 'member-device']);
+        $this->assertDatabaseCount('mfa_recovery_codes', 0);
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $tenantId, 'actor_user_id' => $owner->id, 'action' => 'user.mfa_reset', 'entity_id' => $member->id]);
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $other->id, 'actor_user_id' => $owner->id, 'action' => 'user.mfa_reset', 'entity_id' => $member->id]);
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo($member->email) && str_contains($mail->bodyText, 'Все активные сеансы завершены'));
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenantId])->postJson($path, ['reason' => 'Again', 'current_password' => 'very-secure-password'])->assertStatus(409);
+
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $other->id])->postJson($path, ['reason' => 'Wrong team', 'current_password' => 'very-secure-password'])->assertForbidden();
+
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenantId])->postJson("/api/v1/memberships/{$owner->id}/mfa/reset", ['reason' => 'Self', 'current_password' => 'very-secure-password'])->assertForbidden();
+    }
+
+    public function test_client_reset_cannot_disable_a_platform_staff_factor(): void
+    {
+        $owner = $this->user();
+        $tenantId = Membership::query()->where('user_id', $owner->id)->value('tenant_id');
+        $member = $this->member($tenantId, 'staff@example.test', 'admin');
+        $secret = $this->actingAs($member)->postJson('/api/v1/auth/mfa/setup', ['current_password' => 'very-secure-password'])->json('secret');
+        $this->actingAs($member)->postJson('/api/v1/auth/mfa/confirm', ['code' => $this->code($secret)])->assertOk();
+        PlatformStaff::query()->create(['user_id' => $member->id, 'role' => PlatformStaff::ROLE_SUPPORT, 'state' => PlatformStaff::STATE_ACTIVE]);
+
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenantId])
+            ->postJson("/api/v1/memberships/{$member->id}/mfa/reset", ['reason' => 'Lost phone', 'current_password' => 'very-secure-password'])
+            ->assertForbidden()->assertJsonPath('code', 'platform_staff_mfa_protected');
+        $this->assertNotNull($member->refresh()->mfa_confirmed_at);
     }
 
     /**
