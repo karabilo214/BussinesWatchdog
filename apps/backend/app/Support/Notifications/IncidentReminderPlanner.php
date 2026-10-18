@@ -7,6 +7,7 @@ use App\Models\NotificationChannel;
 use App\Models\NotificationDelivery;
 use App\Models\Store;
 use App\Models\Tenant;
+use App\Support\Platform\MaintenanceWindow;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -18,6 +19,10 @@ class IncidentReminderPlanner
 
     public function planDue(int $limit = 100): int
     {
+        if (app(MaintenanceWindow::class)->active()) {
+            return 0;
+        }
+
         $planned = 0;
 
         $incidents = Incident::query()

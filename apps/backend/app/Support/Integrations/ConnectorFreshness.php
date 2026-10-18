@@ -8,6 +8,7 @@ use App\Models\ReconciliationDirtySubject;
 use App\Models\Signal;
 use App\Support\Billing\StoreCapacity;
 use App\Support\Incidents\IncidentRecorder;
+use App\Support\Platform\MaintenanceWindow;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use App\Support\Stores\StoreCatchUp;
 use Illuminate\Support\Carbon;
@@ -95,14 +96,17 @@ class ConnectorFreshness
         }
 
         $staleAfter = self::HEARTBEAT_INTERVAL_SECONDS * self::MISSED_HEARTBEATS;
+        $window = app(MaintenanceWindow::class);
 
         if ($integration->last_heartbeat_at === null) {
-            return $integration->created_at !== null && $integration->created_at->lessThanOrEqualTo($now->copy()->subSeconds($staleAfter))
+            $since = $window->since($integration->created_at, $now);
+
+            return $since !== null && $since->lessThanOrEqualTo($now->copy()->subSeconds($staleAfter))
                 ? ['state' => self::STATE_STALE, 'reason' => 'no_heartbeat_since_pairing']
                 : ['state' => self::STATE_WARMING_UP, 'reason' => null];
         }
 
-        if ($integration->last_heartbeat_at->lessThanOrEqualTo($now->copy()->subSeconds($staleAfter))) {
+        if ($window->since($integration->last_heartbeat_at, $now)->lessThanOrEqualTo($now->copy()->subSeconds($staleAfter))) {
             return ['state' => self::STATE_STALE, 'reason' => 'heartbeats_missed'];
         }
 
@@ -112,7 +116,7 @@ class ConnectorFreshness
 
         $oldestPending = $integration->health['heartbeat']['oldest_pending_at'] ?? null;
 
-        if (is_string($oldestPending) && Carbon::parse($oldestPending)->lessThanOrEqualTo($now->copy()->subSeconds(self::DELIVERY_LAG_SECONDS))) {
+        if (is_string($oldestPending) && $window->since(Carbon::parse($oldestPending), $now)->lessThanOrEqualTo($now->copy()->subSeconds(self::DELIVERY_LAG_SECONDS))) {
             return ['state' => self::STATE_PARTIAL, 'reason' => 'delivery_backlog'];
         }
 
@@ -140,6 +144,8 @@ class ConnectorFreshness
             $last = $resumedAt;
         }
 
+        $last = app(MaintenanceWindow::class)->since($last, $now);
+
         if ($last !== null && $last->lessThanOrEqualTo($staleBefore)) {
             return ['state' => self::STATE_STALE, 'reason' => $integration->last_successful_sync_at === null ? 'api_not_synced_yet' : 'api_sync_failing'];
         }
@@ -156,6 +162,10 @@ class ConnectorFreshness
     {
         $checked = 0;
         $changed = 0;
+
+        if (app(MaintenanceWindow::class)->active()) {
+            return ['checked' => 0, 'changed' => 0];
+        }
 
         Integration::query()
             ->where('source_authority', Integration::SOURCE_STORE_REPORTED)

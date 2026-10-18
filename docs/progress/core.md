@@ -844,3 +844,11 @@ Status: complete (ADR 0053 owner decision)
 - Command `platform:audit-purge` (chunked delete, scheduled daily 03:50 UTC), config `watchdog.platform.audit_retention_days` (`WATCHDOG_PLATFORM_AUDIT_RETENTION_DAYS`, 730); «Настройки» lists the period; README variables, schedule and maintenance command.
 
 Verification: `PlatformAuditPurgeTest` (entry just older than two years deleted, newer kept; shorter configured period). Control 67/67, typecheck, build. Backend SQLite 626 passed + 4 skipped; PostgreSQL 18: 630/630.
+
+### Step 182: Pause Alerts During a Maintenance Window
+
+Status: complete (ADR 0054 owner decision)
+
+- `App\Support\Platform\MaintenanceWindow` (`active`, `lastEndedAt`, `since`). Guards in `CheckScheduler::scheduleDue`, `ConnectorFreshness::checkAll`, `NotificationDeliveryWorker::deliverDue` (sweep only), `IncidentReminderPlanner::planDue`, `ObservedPaymentAttempts::markStuck`, `CheckoutObservationEvaluator::evaluateAll`; `ConnectorFreshness::assess` counts heartbeat, delivery backlog and polled sync gaps from the end of the last window.
+
+Verification: `ConnectorFreshnessTest` (active window: no freshness change, no scheduled run, no delivery; right after the end no incident; still silent 15 minutes later — stale and one incident; a window cancelled before start changes nothing). Backend SQLite 628 passed + 4 skipped; PostgreSQL 18: 632/632. No migration, no contract change.

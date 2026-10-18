@@ -9,6 +9,7 @@ use App\Models\ObservedPaymentAttempt;
 use App\Models\PaymentAttemptWindow;
 use App\Models\Signal;
 use App\Support\Incidents\IncidentRecorder;
+use App\Support\Platform\MaintenanceWindow;
 use App\Support\Providers\Shopware\ShopwareConnector;
 use Illuminate\Support\Carbon;
 
@@ -47,6 +48,10 @@ class CheckoutObservationEvaluator
 
     public function evaluateAll(): int
     {
+        if (app(MaintenanceWindow::class)->active()) {
+            return 0;
+        }
+
         $count = 0;
 
         Integration::query()

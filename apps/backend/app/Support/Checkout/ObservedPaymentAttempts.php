@@ -6,6 +6,7 @@ use App\Models\Integration;
 use App\Models\ObservedPaymentAttempt;
 use App\Models\PaymentAttemptWindow;
 use App\Support\Billing\StoreCapacity;
+use App\Support\Platform\MaintenanceWindow;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -92,6 +93,10 @@ class ObservedPaymentAttempts
      */
     public function markStuck(): int
     {
+        if (app(MaintenanceWindow::class)->active()) {
+            return 0;
+        }
+
         $count = 0;
         $threshold = Carbon::now()->subMinutes(self::STUCK_AFTER_MINUTES);
 

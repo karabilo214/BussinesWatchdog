@@ -6,6 +6,7 @@ use App\Models\NotificationChannel;
 use App\Models\NotificationDelivery;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
 use App\Support\Notifications\Channels\SendResult;
+use App\Support\Platform\MaintenanceWindow;
 use App\Support\Security\Keyring;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Carbon;
@@ -39,6 +40,7 @@ class NotificationDeliveryWorker
      */
     public function deliverDue(int $limit = 50, int $sendingLeaseSeconds = 300): array
     {
+        $paused = app(MaintenanceWindow::class)->active();
         $totals = [
             'claimed' => 0,
             NotificationDelivery::STATUS_SENT => 0,
@@ -48,6 +50,10 @@ class NotificationDeliveryWorker
             NotificationDelivery::STATUS_SUPPRESSED => 0,
             'swept' => $this->sweepLostSends(),
         ];
+
+        if ($paused) {
+            return $totals;
+        }
 
         $claimed = $this->claimDue(max(1, min($limit, 200)), max(30, min($sendingLeaseSeconds, 3600)));
         $totals['claimed'] = $claimed->count();

@@ -10,6 +10,7 @@ use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Billing\StoreCapacity;
 use App\Support\Billing\UsageMeter;
+use App\Support\Platform\MaintenanceWindow;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -42,6 +43,10 @@ class CheckScheduler
     public function scheduleDue(int $limit = 200): array
     {
         $now = Carbon::now();
+
+        if (app(MaintenanceWindow::class)->active($now)) {
+            return ['due' => 0, 'created' => 0];
+        }
         $due = CheckScenario::query()
             ->where('enabled', true)
             ->where(fn ($query) => $query->whereNull('next_due_at')->orWhere('next_due_at', '<=', $now))

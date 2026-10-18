@@ -6,13 +6,18 @@ use App\Models\DomainOutbox;
 use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
+use App\Models\MaintenanceNotice;
 use App\Models\NotificationDelivery;
+use App\Models\PlatformStaff;
 use App\Models\ReconciliationDirtySubject;
 use App\Models\ReconciliationFinding;
+use App\Models\User;
+use App\Support\Browser\CheckScheduler;
 use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
 use App\Support\Notifications\NotificationDeliveryWorker;
 use App\Support\Outbox\DomainOutboxDispatcher;
+use App\Support\Platform\MaintenanceWindow;
 use App\Support\Reconciliation\OrderReconciliationService;
 use App\Support\Reconciliation\UnmatchedPaymentScanner;
 use Illuminate\Console\Scheduling\Schedule;
@@ -208,6 +213,51 @@ class ConnectorFreshnessTest extends TestCase
         $this->assertNotNull($event);
         $this->assertSame('* * * * *', $event->expression);
         $this->artisan('integrations:check-freshness')->assertSuccessful();
+    }
+
+    public function test_our_maintenance_window_pauses_freshness_and_a_gap_inside_it_counts_from_its_end(): void
+    {
+        $context = $this->context();
+        [$connector] = $this->connector($context, now());
+        $this->check();
+        $this->maintenance(now()->addMinutes(5), now()->addHour());
+        $window = app(MaintenanceWindow::class);
+
+        Carbon::setTestNow(now()->addMinutes(30));
+        $this->assertTrue($window->active());
+        $this->check();
+        $this->assertSame(ConnectorFreshness::STATE_FRESH, $connector->fresh()->health['freshness']['state'], 'No freshness change while we are down.');
+        $this->assertSame(['due' => 0, 'created' => 0], app(CheckScheduler::class)->scheduleDue());
+        $this->assertSame(0, app(NotificationDeliveryWorker::class)->deliverDue()['claimed']);
+
+        Carbon::setTestNow(now()->addMinutes(31));
+        $this->assertFalse($window->active());
+        $this->check();
+        $this->assertSame(0, Incident::query()->count(), 'The gap inside the window is measured from its end.');
+
+        Carbon::setTestNow(now()->addMinutes(15));
+        $this->check();
+        $this->assertSame(ConnectorFreshness::STATE_STALE, $connector->fresh()->health['freshness']['state'], 'A gap that goes on after the window still counts.');
+        $this->assertSame(1, Incident::query()->count());
+    }
+
+    public function test_a_window_cancelled_before_it_started_changes_nothing(): void
+    {
+        $context = $this->context();
+        [$connector] = $this->connector($context, now()->subMinutes(20));
+        $this->maintenance(now()->addMinutes(5), now()->addHour(), now());
+
+        Carbon::setTestNow(now()->addHours(2));
+        $this->assertNull(app(MaintenanceWindow::class)->lastEndedAt());
+        $this->check();
+        $this->assertSame(ConnectorFreshness::STATE_STALE, $connector->fresh()->health['freshness']['state']);
+    }
+
+    private function maintenance(Carbon $starts, Carbon $ends, ?Carbon $cancelled = null): void
+    {
+        $user = User::query()->create(['name' => 'Owner', 'email' => 'owner-'.Str::random(6).'@platform.test', 'password_hash' => 'x', 'locale' => 'ru']);
+        $staff = PlatformStaff::query()->create(['user_id' => $user->id, 'role' => PlatformStaff::ROLE_OWNER, 'state' => PlatformStaff::STATE_ACTIVE]);
+        MaintenanceNotice::query()->create(['version' => 1, 'starts_at' => $starts, 'ends_at' => $ends, 'messages' => ['ru' => 'Работы'], 'reason' => 'Upgrade', 'created_by' => $staff->id, 'cancelled_at' => $cancelled]);
     }
 
     private function check(): void

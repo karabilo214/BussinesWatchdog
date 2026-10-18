@@ -15,3 +15,9 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Настрой�
 - Read-only configuration with secrets only as set / fingerprint is confirmed; the maintenance window rules are confirmed.
 - During an active maintenance window scheduled browser checks, freshness assessment and customer notifications are paused automatically, so our own outage does not produce false alerts; data gaps that started inside the window must not raise incidents right after it ends. Billing is not paused (Paddle renews on its own).
 - The maintenance banner is also shown on the public site, in the page language.
+
+## Implementation of the pause (Step 182)
+
+- `MaintenanceWindow`: a window is active from `starts_at` to `ends_at` unless cancelled. While active: no scheduled browser checks are created (manual runs stay possible), connector freshness is not assessed, customer notification deliveries and incident reminders wait (queued deliveries go out after the window), stuck payment attempts and the checkout-script evaluation are not run. Billing, ingestion, provider sync and reconciliation keep running.
+- After a window ends, freshness counts a gap from the end of the window (heartbeat, delivery backlog, polled sync), so a gap that started inside it raises an incident only if it goes on past the usual threshold after the end. A window cancelled before it started changes nothing; one cancelled while running ends at the cancellation.
+
