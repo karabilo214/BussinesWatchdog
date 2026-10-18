@@ -1486,7 +1486,7 @@
       "sessions": "Staff sessions",
       "sessions_value": "idle {idle_minutes} min, at most {absolute_hours} h",
       "retention": "Retention",
-      "retention_value": "screenshots {screenshots_days} days, exports {exports_days} days, messages {contact_days} days after closing",
+      "retention_value": "screenshots {screenshots_days} days, exports {exports_days} days, messages {contact_days} days after closing, platform audit {platform_audit_days} days",
       "site": "Site",
       "site_value": "message notification recipients: {contact_notify}, page cache {cache_seconds} s",
       "site_value_owners": "message notifications go to every service owner, page cache {cache_seconds} s",

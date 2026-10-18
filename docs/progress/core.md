@@ -836,3 +836,11 @@ Status: complete (ADR 0051 owner decision)
 - Migration `2026_10_18_190000_create_service_alert_state`; `App\Support\Platform\ServiceAlerts`, command `service:alerts` (scheduled every minute, without overlapping, on one server); config `watchdog.service_alerts.email|locale` (`WATCHDOG_SERVICE_ALERT_EMAIL`, `WATCHDOG_SERVICE_ALERT_LOCALE`); texts `account.service_alert.*` (ru/en/de) naming the problem parts; platform audit `service.alert_sent`; «Настройки» shows the number of recipients. README: variables, schedule, maintenance command.
 
 Verification: `ServiceAlertsTest` (nothing while fine; one problem e-mail to each valid address with the parts and the link; no repeat while it lasts; one recovery e-mail when it drops to attention; nothing more; audit; a failed e-mail leaves the state unsent for a retry; no address — nothing). Control 65/65, typecheck, build. Backend SQLite 624 passed + 4 skipped; PostgreSQL 18: 628/628. A real SMTP send was not run.
+
+### Step 181: Platform Audit Kept for Two Years
+
+Status: complete (ADR 0053 owner decision)
+
+- Command `platform:audit-purge` (chunked delete, scheduled daily 03:50 UTC), config `watchdog.platform.audit_retention_days` (`WATCHDOG_PLATFORM_AUDIT_RETENTION_DAYS`, 730); «Настройки» lists the period; README variables, schedule and maintenance command.
+
+Verification: `PlatformAuditPurgeTest` (entry just older than two years deleted, newer kept; shorter configured period). Control 67/67, typecheck, build. Backend SQLite 626 passed + 4 skipped; PostgreSQL 18: 630/630.

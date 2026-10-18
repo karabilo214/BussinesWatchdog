@@ -1486,7 +1486,7 @@
       "sessions": "Сессии сотрудников",
       "sessions_value": "бездействие {idle_minutes} мин, максимум {absolute_hours} ч",
       "retention": "Хранение",
-      "retention_value": "скриншоты {screenshots_days} дн., выгрузки {exports_days} дн., обращения {contact_days} дн. после закрытия",
+      "retention_value": "скриншоты {screenshots_days} дн., выгрузки {exports_days} дн., обращения {contact_days} дн. после закрытия, аудит платформы {platform_audit_days} дн.",
       "site": "Сайт",
       "site_value": "получателей писем об обращениях: {contact_notify}, кэш страниц {cache_seconds} с",
       "site_value_owners": "письма об обращениях — всем владельцам сервиса, кэш страниц {cache_seconds} с",

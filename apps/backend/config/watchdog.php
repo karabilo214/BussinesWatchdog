@@ -140,6 +140,7 @@ return [
         'login_per_minute' => (int) env('WATCHDOG_PLATFORM_LOGIN_PER_MINUTE', 5),
         'mfa_pending_seconds' => 300,
         'mfa_max_attempts' => 5,
+        'audit_retention_days' => (int) env('WATCHDOG_PLATFORM_AUDIT_RETENTION_DAYS', 730),
     ],
 
     'site' => [

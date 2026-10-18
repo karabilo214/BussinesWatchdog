@@ -1486,7 +1486,7 @@
       "sessions": "Sitzungen der Mitarbeitenden",
       "sessions_value": "Leerlauf {idle_minutes} Min., höchstens {absolute_hours} h",
       "retention": "Aufbewahrung",
-      "retention_value": "Screenshots {screenshots_days} Tage, Exporte {exports_days} Tage, Anfragen {contact_days} Tage nach Abschluss",
+      "retention_value": "Screenshots {screenshots_days} Tage, Exporte {exports_days} Tage, Anfragen {contact_days} Tage nach Abschluss, Plattform-Audit {platform_audit_days} Tage",
       "site": "Website",
       "site_value": "Empfänger für Anfragen: {contact_notify}, Seiten-Cache {cache_seconds} s",
       "site_value_owners": "Benachrichtigungen zu Anfragen an alle Inhaber, Seiten-Cache {cache_seconds} s",

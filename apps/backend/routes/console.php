@@ -146,6 +146,12 @@ Schedule::command('site:contact-notify')
     ->withoutOverlapping(10)
     ->onOneServer();
 
+Schedule::command('platform:audit-purge')
+    ->dailyAt('03:50')
+    ->timezone('UTC')
+    ->withoutOverlapping(60)
+    ->onOneServer();
+
 Schedule::command('site:contact-purge')
     ->dailyAt('03:35')
     ->timezone('UTC')

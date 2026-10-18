@@ -840,7 +840,7 @@ export interface PlatformSettingsView {
     mail: { mailer: string; from: string };
     telegram: { bot: string; token: SecretState; webhook_secret: SecretState };
     sessions: { idle_minutes: number; absolute_hours: number };
-    retention: { screenshots_days: number; exports_days: number; contact_days: number };
+    retention: { screenshots_days: number; exports_days: number; contact_days: number; platform_audit_days?: number };
     site: { contact_notify: number; cache_seconds: number };
     service_alerts?: number;
   };

@@ -50,6 +50,7 @@ class PlatformSettings
                     'screenshots_days' => (int) config('watchdog.artifacts.retention_days'),
                     'exports_days' => (int) config('watchdog.exports.retention_days'),
                     'contact_days' => (int) config('watchdog.site.contact_retention_days'),
+                    'platform_audit_days' => (int) config('watchdog.platform.audit_retention_days'),
                 ],
                 'site' => ['contact_notify' => $this->recipients((string) config('watchdog.site.contact_notify')), 'cache_seconds' => (int) config('watchdog.site.cache_seconds')],
                 'service_alerts' => $this->recipients((string) config('watchdog.service_alerts.email')),

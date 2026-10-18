@@ -13,3 +13,4 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Аудит» se
 
 - Points 1–3 are confirmed; the filtered CSV export with at most 10 000 rows is enough.
 - Retention changes: platform audit entries are deleted 2 years after they were written (they now include e-mail addresses and texts, ADR 0047/0049/0052).
+- Implemented in Step 181: `platform:audit-purge` (daily 03:50 UTC) deletes platform audit entries older than `WATCHDOG_PLATFORM_AUDIT_RETENTION_DAYS` (730); «Настройки» shows the period. The organisation audit is not affected.
