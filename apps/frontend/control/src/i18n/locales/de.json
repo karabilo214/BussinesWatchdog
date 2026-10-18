@@ -1148,7 +1148,8 @@
       "check_trigger": {
         "scheduled": "geplant",
         "manual": "manuell gestartet",
-        "incident": "Nachprüfung eines Vorfalls"
+        "incident": "Nachprüfung eines Vorfalls",
+        "support": "vom Support neu gestartet"
       },
       "check_status": {
         "queued": "in Warteschlange",
@@ -1191,6 +1192,21 @@
         "lease_expired": "Der Browser reagierte nicht mehr; der Versuch wurde abgebrochen.",
         "cancelled_by_user": "Von einem Benutzer abgebrochen.",
         "test_account_rejected": "Der Shop hat die Anmeldung des Testkunden nicht akzeptiert."
+      }
+    },
+    "support": {
+      "rerun": "Prüfung für den Kunden neu starten",
+      "acknowledge": "Für den Kunden annehmen",
+      "resolve": "Für den Kunden schließen",
+      "confirm": {
+        "rerun": "Die Prüfung startet jetzt. Das Kontingent manueller Prüfungen des Kunden wird nicht verbraucht; sein Protokoll zeigt, dass der Support sie gestartet hat.",
+        "acknowledge": "Der Vorfall wird als vom Support angenommen markiert.",
+        "resolve": "Der Vorfall wird mit diesem Grund geschlossen; das Protokoll des Kunden zeigt, dass der Support ihn geschlossen hat."
+      },
+      "done": {
+        "rerun": "Prüfung gestartet.",
+        "acknowledge": "Vorfall angenommen.",
+        "resolve": "Vorfall geschlossen."
       }
     }
   },
@@ -1444,6 +1460,10 @@
     "customers_mfa_reset": {
       "label": "Kunden: MFA zurücksetzen",
       "hint": "Authenticator eines Kundennutzers abschalten (mit Grund und Code)."
+    },
+    "tenants_support": {
+      "label": "Kunden: Support-Aktionen",
+      "hint": "Prüfung neu starten, Vorfall für den Kunden annehmen und schließen – mit Grund, ohne seine Kontingente zu verbrauchen."
     },
     "billing_read": {
       "label": "Zahlungen: ansehen",

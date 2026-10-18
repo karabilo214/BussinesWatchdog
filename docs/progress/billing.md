@@ -388,3 +388,13 @@ Status: complete (ADR 0047 owner decision)
 - Owner panel: `TenantReminder.vue` (topic → members to tick, a subject/text editor per recipient language with "Save as template", preview as received, send), new card tab "Reminders" (`TenantReminders.vue`) with every letter.
 
 Verification: `TenantAdminTest` (members and suggestion, edited letters per language, invalid recipients and letters, nothing sent before, sent letters stored exactly, repeat guard, template saved and used, audit, history order, no members), control `tenants.test.ts` (editor flow and history tab). Backend SQLite 616 passed + 4 skipped; PostgreSQL 18: 620/620. Control typecheck, 62/62, build. Manual browser and SMTP smoke were not run.
+
+### Step 175: Support Actions in Customer Stores
+
+Status: complete (ADR 0048 owner decision)
+
+- `PlatformCapabilities::TENANTS_SUPPORT` (implies `tenants.read`, in the support preset). `CheckRun::TRIGGER_SUPPORT`; migration `2026_10_18_170000_allow_support_check_runs` widens the PostgreSQL trigger check. `CheckScheduler::runForSupport` shares the manual-run path without the usage meter (rate limit per trigger).
+- `IncidentLifecycleService::acknowledge/resolve` take an activity context; `TenantStoreController::rerunCheck/acknowledgeIncident/resolveIncident` (reason, tenant scope, platform + organisation audit). Routes under `tenants.support` with the step-up limiter; `openapi.yaml` (`post` on the store checks path, two incident operations, trigger `support`).
+- Owner panel: rerun button on the checks tab, acknowledge/resolve in the incident detail, reason form; capability label in the staff picker. Customer dashboard: timeline shows "Business Watchdog support" and the acknowledgement reason; trigger label "rerun by support" (ru/en/de in both apps).
+
+Verification: `TenantStoreDataTest` (rerun with reason, foreign scenario 404, no usage entries, rate limit, audits, incident acknowledge/resolve with activity `by: platform`, conflict on a second resolve, permission needed). Control 64/64 (`tenants.test.ts` support flow and no actions without the permission), customer 134/134 (`incidents.test.ts` support entry); typecheck and builds. Backend SQLite 618 passed + 4 skipped; PostgreSQL 18: 622/622 (jsonb key order made one assertion order-independent). Manual browser smoke was not run.

@@ -126,6 +126,48 @@ class TenantStoreDataTest extends TestCase
         $this->postJson("/platform-api/v1/tenants/{$context['tenant']->id}/stores", ['reason' => 'x'])->assertForbidden();
     }
 
+    public function test_support_reruns_a_check_and_handles_an_incident_for_the_customer_without_using_their_allowance(): void
+    {
+        $context = $this->context();
+        $context['store']->forceFill(['status' => 'active', 'browser_enabled' => true, 'verified_at' => now()])->save();
+        $context['tenant']->forceFill(['status' => 'active'])->save();
+        $data = $this->storeData($context);
+        $foreign = $this->storeData($this->context());
+        $tenant = $context['tenant']->id;
+        $store = $context['store']->id;
+        $scenario = CheckScenario::query()->where('store_id', $store)->value('id');
+        $this->signIn(PlatformStaff::ROLE_SUPPORT);
+
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}/checks", ['scenario_id' => $scenario])->assertStatus(422)->assertJsonValidationErrors('reason');
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}/checks", ['scenario_id' => CheckScenario::query()->where('store_id', '!=', $store)->value('id'), 'reason' => 'Customer asked'])->assertNotFound();
+        $run = $this->postJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}/checks", ['scenario_id' => $scenario, 'reason' => 'Customer asked by phone'])->assertStatus(202)->assertJsonPath('trigger', 'support')->json();
+        $this->assertSame(0, DB::table('usage_entries')->count(), 'A support rerun uses none of the customer allowance.');
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}/checks", ['scenario_id' => $scenario, 'reason' => 'Again'])->assertStatus(429);
+        $this->assertSame('Customer asked by phone', DB::table('platform_audit_log')->where('action', 'tenant.check_rerun')->where('target_id', $run['run_id'])->value('reason'));
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $tenant, 'action' => 'check_run.support_started', 'entity_id' => $run['run_id'], 'actor_type' => 'system']);
+
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/incidents/{$foreign['incident']}/acknowledge", ['reason' => 'Wrong tenant'])->assertNotFound();
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/incidents/{$data['incident']}/acknowledge", ['reason' => 'Looking into it'])->assertOk()->assertJsonPath('state', 'acknowledged');
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/incidents/{$data['incident']}/resolve", ['reason' => 'Fixed with the customer'])->assertOk()->assertJsonPath('state', 'resolved');
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/incidents/{$data['incident']}/resolve", ['reason' => 'Twice'])->assertStatus(409);
+        $activity = DB::table('incident_activity')->where('incident_id', $data['incident'])->where('kind', 'resolved')->first();
+        $this->assertNull($activity->actor_id);
+        $this->assertEqualsCanonicalizing(['reason' => 'Fixed with the customer', 'by' => 'platform'], json_decode((string) $activity->sanitized_data, true));
+        $this->assertSame(['tenant.incident_acknowledged', 'tenant.incident_resolved'], DB::table('platform_audit_log')->where('target_id', $data['incident'])->orderBy('created_at')->pluck('action')->all());
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $tenant, 'action' => 'incident.resolved_by_platform', 'entity_id' => $data['incident']]);
+    }
+
+    public function test_support_actions_need_their_own_permission(): void
+    {
+        $context = $this->context();
+        $data = $this->storeData($context);
+        $this->signIn(PlatformStaff::ROLE_BILLING);
+
+        $this->postJson("/platform-api/v1/tenants/{$context['tenant']->id}/stores/{$context['store']->id}/checks", ['scenario_id' => (string) Str::uuid(), 'reason' => 'Try'])->assertForbidden();
+        $this->postJson("/platform-api/v1/tenants/{$context['tenant']->id}/incidents/{$data['incident']}/resolve", ['reason' => 'Try'])->assertForbidden();
+        $this->assertSame('open', Incident::query()->whereKey($data['incident'])->value('state'));
+    }
+
     /**
      * @param  array<string, mixed>  $context
      * @return array{order: string, newer_order: string, finding: string, run: string, artifact: string, incident: string}

@@ -65,7 +65,21 @@ class CheckScheduler
 
     public function runNow(CheckScenario $scenario): CheckRun|string
     {
-        return DB::transaction(function () use ($scenario): CheckRun|string {
+        return $this->runOnDemand($scenario, CheckRun::TRIGGER_MANUAL);
+    }
+
+    /**
+     * A rerun by platform staff for the customer (ADR 0048): the same checks as a manual run, but the customer's
+     * manual-run allowance is neither checked nor used.
+     */
+    public function runForSupport(CheckScenario $scenario): CheckRun|string
+    {
+        return $this->runOnDemand($scenario, CheckRun::TRIGGER_SUPPORT);
+    }
+
+    private function runOnDemand(CheckScenario $scenario, string $trigger): CheckRun|string
+    {
+        return DB::transaction(function () use ($scenario, $trigger): CheckRun|string {
             /** @var CheckScenario $locked */
             $locked = CheckScenario::query()->whereKey($scenario->id)->lockForUpdate()->firstOrFail();
             $store = $this->eligibleStore($locked);
@@ -86,7 +100,7 @@ class CheckScheduler
 
             $recentManual = CheckRun::query()
                 ->where('store_id', $locked->store_id)
-                ->where('trigger', CheckRun::TRIGGER_MANUAL)
+                ->where('trigger', $trigger)
                 ->where('created_at', '>', Carbon::now()->subSeconds((int) (60 / max(1, (int) config('watchdog.browser.manual_runs_per_minute')))))
                 ->exists();
 
@@ -98,13 +112,13 @@ class CheckScheduler
                 return self::ERROR_RUN_ACTIVE;
             }
 
-            $dedupeKey = 'manual:'.Str::uuid7();
+            $dedupeKey = $trigger.':'.Str::uuid7();
 
-            if (! $this->usage->consume($locked->tenant_id, UsageMeter::MANUAL_RUNS, $dedupeKey, $entitlements->limit(FeatureCatalog::MANUAL_RUNS_PER_DAY), 'manual_check_run')) {
+            if ($trigger === CheckRun::TRIGGER_MANUAL && ! $this->usage->consume($locked->tenant_id, UsageMeter::MANUAL_RUNS, $dedupeKey, $entitlements->limit(FeatureCatalog::MANUAL_RUNS_PER_DAY), 'manual_check_run')) {
                 return self::ERROR_USAGE_LIMIT;
             }
 
-            return $this->createRun($locked, $store, CheckRun::TRIGGER_MANUAL, $dedupeKey);
+            return $this->createRun($locked, $store, $trigger, $dedupeKey);
         });
     }
 

@@ -525,6 +525,7 @@ export interface StoreOrderDetail extends StoreOrder {
 
 export interface StoreCheck {
   id: string;
+  scenario_id: string;
   trigger: string;
   status: string;
   error_code: string | null;
@@ -600,6 +601,14 @@ export async function fetchStoreChecks(tenantId: string, storeId: string, cursor
 
 export async function fetchStoreIncidents(tenantId: string, storeId: string, cursor?: string | null): Promise<Page<StoreIncident>> {
   return (await request<Page<StoreIncident>>('GET', tenantPath(tenantId, `stores/${encodeURIComponent(storeId)}/incidents${paged(cursor)}`))).data;
+}
+
+export async function rerunStoreCheck(tenantId: string, storeId: string, scenarioId: string, reason: string): Promise<StoreCheck> {
+  return (await request<StoreCheck>('POST', tenantPath(tenantId, `stores/${encodeURIComponent(storeId)}/checks`), { body: { scenario_id: scenarioId, reason } })).data;
+}
+
+export async function changeStoreIncident(tenantId: string, incidentId: string, action: 'acknowledge' | 'resolve', reason: string): Promise<StoreIncident> {
+  return (await request<StoreIncident>('POST', tenantPath(tenantId, `incidents/${encodeURIComponent(incidentId)}/${action}`), { body: { reason } })).data;
 }
 
 export async function fetchCustomerOrder(tenantId: string, orderId: string): Promise<StoreOrderDetail> {

@@ -802,7 +802,8 @@
       "actor": {
         "system": "system",
         "you": "you",
-        "member": "team member"
+        "member": "team member",
+        "platform": "Business Watchdog support"
       },
       "kind": {
         "created": "Opened",
@@ -1056,7 +1057,8 @@
     "trigger": {
       "scheduled": "scheduled",
       "manual": "started manually",
-      "incident": "incident recheck"
+      "incident": "incident recheck",
+      "support": "rerun by support"
     },
     "status": {
       "queued": "queued",

@@ -20,6 +20,7 @@ const error = ref<unknown>(null);
 const entries = computed(() => [...props.activity].reverse());
 
 function actor(entry: IncidentActivity): string {
+  if (entry.data.by === 'platform') return 'incident.timeline.actor.platform';
   if (entry.actor_id === null) return 'incident.timeline.actor.system';
   if (entry.actor_id === session.value?.user.id) return 'incident.timeline.actor.you';
 
@@ -32,6 +33,7 @@ function detail(entry: IncidentActivity): string | null {
   if (entry.kind === 'comment' && typeof data.text === 'string') return data.text;
   if (entry.kind === 'resolved' && typeof data.reason === 'string') return resolution(data.reason);
   if (entry.kind === 'suppressed' && typeof data.reason === 'string') return data.reason;
+  if (entry.kind === 'acknowledged' && typeof data.reason === 'string') return data.reason;
 
   return null;
 }

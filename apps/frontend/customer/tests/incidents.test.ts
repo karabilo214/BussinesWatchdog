@@ -246,4 +246,19 @@ describe('IncidentTimeline', () => {
     expect(mocked.commentIncident).toHaveBeenCalledWith('inc-1', 'Looking into it');
     expect(wrapper.emitted('commented')).toHaveLength(1);
   });
+
+  it('shows what Business Watchdog support did on the incident and why', () => {
+    const wrapper = mount(IncidentTimeline, {
+      props: {
+        incidentId: 'inc-1',
+        canComment: false,
+        activity: [{ id: 'a-1', incident_id: 'inc-1', kind: 'resolved', actor_id: null, incident_revision: 2, data: { reason: 'Fixed together by phone', by: 'platform' }, created_at: '2026-10-09T10:10:00Z' }],
+      },
+      global,
+    });
+
+    expect(wrapper.text()).toContain('поддержка Business Watchdog');
+    expect(wrapper.text()).toContain('Fixed together by phone');
+    expect(wrapper.text()).not.toContain('система');
+  });
 });

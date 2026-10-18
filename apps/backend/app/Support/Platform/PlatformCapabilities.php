@@ -20,6 +20,8 @@ final class PlatformCapabilities
 
     public const CUSTOMER_MFA_RESET = 'customers.mfa_reset';
 
+    public const TENANTS_SUPPORT = 'tenants.support';
+
     public const BILLING_READ = 'billing.read';
 
     public const CONTENT_MANAGE = 'content.manage';
@@ -38,7 +40,7 @@ final class PlatformCapabilities
 
     /** Every capability of the owner panel, in the order the panel lists them. */
     public const ALL = [
-        self::TENANTS_READ, self::TENANTS_MANAGE, self::CUSTOMER_MFA_RESET,
+        self::TENANTS_READ, self::TENANTS_MANAGE, self::CUSTOMER_MFA_RESET, self::TENANTS_SUPPORT,
         self::BILLING_READ, self::REFUNDS_REQUEST, self::REFUNDS_APPROVE,
         self::PLANS_READ, self::PLANS_MANAGE,
         self::CONTENT_MANAGE, self::CONTACTS_READ, self::CONTACTS_MANAGE,
@@ -55,6 +57,7 @@ final class PlatformCapabilities
     public const IMPLIES = [
         self::TENANTS_MANAGE => [self::TENANTS_READ],
         self::CUSTOMER_MFA_RESET => [self::TENANTS_READ],
+        self::TENANTS_SUPPORT => [self::TENANTS_READ],
         self::REFUNDS_REQUEST => [self::BILLING_READ],
         self::PLANS_MANAGE => [self::PLANS_READ],
         self::CONTACTS_MANAGE => [self::CONTACTS_READ],
@@ -63,7 +66,7 @@ final class PlatformCapabilities
     /** Starting points for a new member; the former fixed roles. */
     public const PRESETS = [
         PlatformStaff::ROLE_ADMIN => [self::PLANS_READ, self::TENANTS_READ, self::CUSTOMER_MFA_RESET, self::AUDIT_READ, self::CONTACTS_READ, self::SERVICE_READ],
-        PlatformStaff::ROLE_SUPPORT => [self::TENANTS_READ, self::CUSTOMER_MFA_RESET, self::CONTACTS_READ, self::CONTACTS_MANAGE],
+        PlatformStaff::ROLE_SUPPORT => [self::TENANTS_READ, self::CUSTOMER_MFA_RESET, self::TENANTS_SUPPORT, self::CONTACTS_READ, self::CONTACTS_MANAGE],
         PlatformStaff::ROLE_BILLING => [self::PLANS_READ, self::TENANTS_READ, self::BILLING_READ, self::REFUNDS_REQUEST],
     ];
 

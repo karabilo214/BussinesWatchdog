@@ -802,7 +802,8 @@
       "actor": {
         "system": "System",
         "you": "Sie",
-        "member": "Teammitglied"
+        "member": "Teammitglied",
+        "platform": "Business-Watchdog-Support"
       },
       "kind": {
         "created": "Geöffnet",
@@ -1056,7 +1057,8 @@
     "trigger": {
       "scheduled": "geplant",
       "manual": "manuell gestartet",
-      "incident": "Nachprüfung eines Vorfalls"
+      "incident": "Nachprüfung eines Vorfalls",
+      "support": "vom Support neu gestartet"
     },
     "status": {
       "queued": "in Warteschlange",

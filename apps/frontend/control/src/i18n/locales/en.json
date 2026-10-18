@@ -1148,7 +1148,8 @@
       "check_trigger": {
         "scheduled": "scheduled",
         "manual": "started manually",
-        "incident": "incident recheck"
+        "incident": "incident recheck",
+        "support": "rerun by support"
       },
       "check_status": {
         "queued": "queued",
@@ -1191,6 +1192,21 @@
         "lease_expired": "The browser stopped responding; the attempt was interrupted.",
         "cancelled_by_user": "Cancelled by a user.",
         "test_account_rejected": "The shop did not accept the test customer sign-in."
+      }
+    },
+    "support": {
+      "rerun": "Rerun the check for the customer",
+      "acknowledge": "Acknowledge for the customer",
+      "resolve": "Resolve for the customer",
+      "confirm": {
+        "rerun": "The check starts now. The customer's manual-run allowance is not used; their log shows that support started it.",
+        "acknowledge": "The incident is marked as acknowledged by support.",
+        "resolve": "The incident is resolved with this reason; the customer's log shows that support resolved it."
+      },
+      "done": {
+        "rerun": "Check started.",
+        "acknowledge": "Incident acknowledged.",
+        "resolve": "Incident resolved."
       }
     }
   },
@@ -1444,6 +1460,10 @@
     "customers_mfa_reset": {
       "label": "Customers: MFA reset",
       "hint": "Turn off a customer user's authenticator (with a reason and a code)."
+    },
+    "tenants_support": {
+      "label": "Customers: support actions",
+      "hint": "Rerun a check, acknowledge and resolve an incident for the customer — with a reason, without using their limits."
     },
     "billing_read": {
       "label": "Billing: view",

@@ -12,9 +12,12 @@ use Illuminate\Support\Facades\DB;
 
 class IncidentLifecycleService
 {
-    public function acknowledge(Incident $incident, ?string $actorId, ?int $expectedRevision = null): Incident
+    /**
+     * @param  array<string, mixed>  $context  kept with the activity, for example who acted for the customer
+     */
+    public function acknowledge(Incident $incident, ?string $actorId, ?int $expectedRevision = null, array $context = []): Incident
     {
-        return DB::transaction(function () use ($incident, $actorId, $expectedRevision): Incident {
+        return DB::transaction(function () use ($incident, $actorId, $expectedRevision, $context): Incident {
             /** @var Incident $locked */
             $locked = Incident::query()->whereKey($incident->id)->lockForUpdate()->firstOrFail();
 
@@ -37,15 +40,18 @@ class IncidentLifecycleService
                 'updated_at' => $now,
             ])->save();
 
-            $this->writeActivity($locked, IncidentActivity::KIND_ACKNOWLEDGED, $actorId, []);
+            $this->writeActivity($locked, IncidentActivity::KIND_ACKNOWLEDGED, $actorId, $context);
 
             return $locked->refresh();
         });
     }
 
-    public function resolve(Incident $incident, string $reason, ?string $actorId, ?int $expectedRevision = null): Incident
+    /**
+     * @param  array<string, mixed>  $context  kept with the activity, for example who acted for the customer
+     */
+    public function resolve(Incident $incident, string $reason, ?string $actorId, ?int $expectedRevision = null, array $context = []): Incident
     {
-        return DB::transaction(function () use ($incident, $reason, $actorId, $expectedRevision): Incident {
+        return DB::transaction(function () use ($incident, $reason, $actorId, $expectedRevision, $context): Incident {
             $this->assertNonEmpty($reason, 'incident_reason_required');
 
             /** @var Incident $locked */
@@ -66,7 +72,7 @@ class IncidentLifecycleService
                 'updated_at' => $now,
             ])->save();
 
-            $this->writeActivity($locked, IncidentActivity::KIND_RESOLVED, $actorId, ['reason' => $reason]);
+            $this->writeActivity($locked, IncidentActivity::KIND_RESOLVED, $actorId, ['reason' => $reason] + $context);
 
             return $locked->refresh();
         });

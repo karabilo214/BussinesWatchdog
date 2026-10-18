@@ -27,6 +27,8 @@ vi.mock('@/api', () => ({
   fetchStoreOrders: vi.fn(),
   fetchStoreChecks: vi.fn(),
   fetchStoreIncidents: vi.fn(),
+  rerunStoreCheck: vi.fn(),
+  changeStoreIncident: vi.fn(),
   fetchCustomerOrder: vi.fn(),
   fetchCustomerCheck: vi.fn(),
   fetchCustomerArtifactUrl: vi.fn(),
@@ -279,8 +281,8 @@ describe('tenants', () => {
     mocked.fetchStoreFindings.mockResolvedValue({ data: [{ id: 'f-1', order_id: 'o-1', order_display_number: '#15238', rule_code: 'MONEY_CAPTURE_MISSING', status: 'mismatch', reason_code: 'x', currency: 'EUR', currency_exponent: 2, difference_minor: '18400', evaluated_at: '2026-10-20T10:00:00Z' }], next_cursor: 'c-2' });
     mocked.fetchStoreOrders.mockResolvedValue({ data: [{ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: null, is_synthetic: false, source_created_at: '2026-10-20T07:00:00Z' }], next_cursor: null });
     mocked.fetchCustomerOrder.mockResolvedValue({ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: null, is_synthetic: false, source_created_at: null, transaction_ref: null, financial_support: 'supported', findings: [], captures: [{ id: 'tx-1', kind: 'capture', status: 'succeeded', currency: 'EUR', currency_exponent: 2, amount_minor: '18400', occurred_at: null }], refunds: [], revisions: [{}, {}] });
-    mocked.fetchStoreChecks.mockResolvedValue({ data: [{ id: 'r-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z' }], next_cursor: null });
-    mocked.fetchCustomerCheck.mockResolvedValue({ id: 'r-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z', attempts: [{ id: 'a-1', attempt_number: 1, status: 'failed', error_code: 'site_failure', started_at: '2026-10-20T09:00:00Z', finished_at: null, artifacts: [{ id: 'art-1', kind: 'screenshot', content_type: 'image/jpeg', size_bytes: 2048, expires_at: '2026-11-19T00:00:00Z' }], steps: [{ index: 0, code: 'payment_form', status: 'failed', error_code: 'selector_changed' }] }] });
+    mocked.fetchStoreChecks.mockResolvedValue({ data: [{ id: 'r-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z' }], next_cursor: null });
+    mocked.fetchCustomerCheck.mockResolvedValue({ id: 'r-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z', attempts: [{ id: 'a-1', attempt_number: 1, status: 'failed', error_code: 'site_failure', started_at: '2026-10-20T09:00:00Z', finished_at: null, artifacts: [{ id: 'art-1', kind: 'screenshot', content_type: 'image/jpeg', size_bytes: 2048, expires_at: '2026-11-19T00:00:00Z' }], steps: [{ index: 0, code: 'payment_form', status: 'failed', error_code: 'selector_changed' }] }] });
     mocked.fetchCustomerArtifactUrl.mockResolvedValue({ url: 'https://objects.example.test/shot.jpg', content_type: 'image/jpeg' });
     mocked.fetchStoreIncidents.mockResolvedValue({ data: [{ id: 'i-1', family: 'money', state: 'open', severity: 'warning', title_code: 'MONEY_CAPTURE_MISSING', currency: 'EUR', currency_exponent: 2, verified_discrepancy_minor: '18400', first_seen_at: null, last_seen_at: '2026-10-20T10:00:00Z', resolved_at: null }], next_cursor: null });
     const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1');
@@ -316,6 +318,49 @@ describe('tenants', () => {
     await flushPromises();
     await wrapper.get('[data-incident="i-1"] button').trigger('click');
     expect(wrapper.get('[data-detail="incident"]').text()).toMatch(/184,00/);
+  });
+
+  it('lets support rerun a check and handle an incident for the customer with a reason', async () => {
+    const incident = { id: 'i-1', family: 'money', state: 'open', severity: 'warning', title_code: 'MONEY_CAPTURE_MISSING', currency: 'EUR', currency_exponent: 2, verified_discrepancy_minor: '18400', first_seen_at: null, last_seen_at: '2026-10-20T10:00:00Z', resolved_at: null };
+    mocked.fetchCustomerStore.mockResolvedValue({ id: 's-1', name: 'Shop', base_url: 'https://kaffee.example', platform: 'woocommerce', status: 'active', default_currency: 'EUR', timezone: 'Europe/Berlin' });
+    mocked.fetchStoreFindings.mockResolvedValue({ data: [], next_cursor: null });
+    mocked.fetchStoreChecks.mockResolvedValue({ data: [{ id: 'r-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: null, scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z' }], next_cursor: null });
+    mocked.fetchStoreIncidents.mockResolvedValue({ data: [incident], next_cursor: null });
+    mocked.rerunStoreCheck.mockResolvedValue({ id: 'r-2', scenario_id: 'sc-1', trigger: 'support', status: 'queued', error_code: null, scheduled_at: '2026-10-20T10:00:00Z', started_at: null, finished_at: null });
+    mocked.changeStoreIncident.mockResolvedValueOnce({ ...incident, state: 'acknowledged' }).mockResolvedValueOnce({ ...incident, state: 'resolved', resolved_at: '2026-10-20T10:05:00Z' });
+    const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1?tab=checks', ['tenants.read', 'tenants.support']);
+
+    await wrapper.get('[data-action="support-rerun"]').trigger('click');
+    expect(wrapper.get('[data-action="support-confirm"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-field="support-reason"]').setValue('Customer asked');
+    await wrapper.get('[data-form="support-rerun"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.rerunStoreCheck).toHaveBeenCalledWith('t-1', 's-1', 'sc-1', 'Customer asked');
+    expect(wrapper.get('[data-support-done]').text()).toBe('Проверка запущена.');
+
+    await router.replace({ query: { tab: 'incidents' } });
+    await flushPromises();
+    await wrapper.get('[data-incident="i-1"] button').trigger('click');
+    await wrapper.get('[data-action="support-acknowledge"]').trigger('click');
+    await wrapper.get('[data-field="support-reason"]').setValue('Looking into it');
+    await wrapper.get('[data-form="support-acknowledge"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.changeStoreIncident).toHaveBeenCalledWith('t-1', 'i-1', 'acknowledge', 'Looking into it');
+    expect(wrapper.find('[data-action="support-acknowledge"]').exists()).toBe(false);
+    await wrapper.get('[data-action="support-resolve"]').trigger('click');
+    await wrapper.get('[data-field="support-reason"]').setValue('Fixed together');
+    await wrapper.get('[data-form="support-resolve"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.changeStoreIncident).toHaveBeenLastCalledWith('t-1', 'i-1', 'resolve', 'Fixed together');
+    expect(wrapper.find('[data-action="support-resolve"]').exists()).toBe(false);
+  });
+
+  it('offers no support actions without the permission', async () => {
+    mocked.fetchCustomerStore.mockResolvedValue({ id: 's-1', name: 'Shop', base_url: 'https://kaffee.example', platform: 'woocommerce', status: 'active', default_currency: 'EUR', timezone: 'Europe/Berlin' });
+    mocked.fetchStoreChecks.mockResolvedValue({ data: [{ id: 'r-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: null, scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: null }], next_cursor: null });
+    const { wrapper } = await open('/owner/tenants/t-1/stores/s-1?tab=checks', ['tenants.read']);
+
+    expect(wrapper.find('[data-action="support-rerun"]').exists()).toBe(false);
   });
 
   it('grants temporary access of a published plan until a date', async () => {

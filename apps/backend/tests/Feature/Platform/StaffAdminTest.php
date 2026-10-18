@@ -155,7 +155,7 @@ class StaffAdminTest extends TestCase
         $this->staff('owner@platform.test', PlatformStaff::ROLE_OWNER);
         $member = $this->staff('ops@platform.test', PlatformStaff::ROLE_SUPPORT);
         $this->assertSame('platform_member', $member->role);
-        $this->assertSame(['tenants.read', 'customers.mfa_reset', 'contacts.read', 'contacts.manage'], $member->capabilities);
+        $this->assertSame(['tenants.read', 'customers.mfa_reset', 'tenants.support', 'contacts.read', 'contacts.manage'], $member->capabilities);
 
         $this->signIn('ops@platform.test');
         $this->getJson('/platform-api/v1/contact-requests')->assertOk();
@@ -171,7 +171,7 @@ class StaffAdminTest extends TestCase
         $this->patchJson("/platform-api/v1/staff/{$member->id}", ['capabilities' => [], 'reason' => 'Nothing', 'confirmation_code' => $this->code('owner@platform.test')])->assertStatus(422)->assertJsonPath('code', 'capabilities_invalid');
         $audit = json_decode((string) DB::table('platform_audit_log')->where('action', 'staff.updated')->where('result', 'succeeded')->value('sanitized_changes'), true);
         $this->assertSame(['content.manage'], $audit['after']['capabilities']);
-        $this->assertSame(['tenants.read', 'customers.mfa_reset', 'contacts.read', 'contacts.manage'], $audit['before']['capabilities']);
+        $this->assertSame(['tenants.read', 'customers.mfa_reset', 'tenants.support', 'contacts.read', 'contacts.manage'], $audit['before']['capabilities']);
         $this->postJson('/platform-api/v1/auth/logout')->assertNoContent();
 
         $this->signIn('ops@platform.test');

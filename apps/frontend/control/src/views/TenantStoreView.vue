@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { StatusBadge, formatMinor } from '@bw/ui';
 import {
+  changeStoreIncident,
   fetchCustomerArtifactUrl,
   fetchCustomerCheck,
   fetchCustomerOrder,
@@ -12,6 +13,7 @@ import {
   fetchStoreFindings,
   fetchStoreIncidents,
   fetchStoreOrders,
+  rerunStoreCheck,
   type CustomerStore,
   type Page,
   type StoreCheck,
@@ -23,6 +25,7 @@ import {
 } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
+import { useStaff } from '@/composables/useStaff';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 
 const TABS = ['findings', 'orders', 'checks', 'incidents'] as const;
@@ -48,6 +51,38 @@ const order = ref<StoreOrderDetail | null>(null);
 const check = ref<StoreCheckDetail | null>(null);
 const incident = ref<StoreIncident | null>(null);
 const screenshots = ref<Record<string, string>>({});
+const { can } = useStaff();
+const canSupport = computed(() => can('tenants.support'));
+const support = reactive({ kind: null as 'rerun' | 'acknowledge' | 'resolve' | null, reason: '', busy: false, error: null as unknown, done: null as string | null });
+const scenarioToRerun = computed(() => checks.value[0]?.scenario_id ?? null);
+
+function askSupport(kind: NonNullable<typeof support.kind>): void {
+  Object.assign(support, { kind, reason: '', error: null, done: null });
+}
+
+async function confirmSupport(): Promise<void> {
+  const kind = support.kind;
+  const reason = support.reason.trim();
+  if (kind === null || reason.length < 3 || support.busy) return;
+  support.busy = true;
+  support.error = null;
+
+  try {
+    if (kind === 'rerun' && scenarioToRerun.value) {
+      await rerunStoreCheck(props.id, props.storeId, scenarioToRerun.value, reason);
+      await loadTab();
+    } else if (kind !== 'rerun' && incident.value) {
+      incident.value = await changeStoreIncident(props.id, incident.value.id, kind, reason);
+      incidents.value = incidents.value.map((row) => (row.id === incident.value?.id ? incident.value : row));
+    }
+    support.done = `store_data.support.done.${kind}`;
+    support.kind = null;
+  } catch (caught) {
+    support.error = caught;
+  } finally {
+    support.busy = false;
+  }
+}
 
 const tab = computed<Tab>(() => ((TABS as readonly string[]).includes(String(route.query.tab)) ? (route.query.tab as Tab) : 'findings'));
 
@@ -176,6 +211,21 @@ watch(tab, () => void loadTab());
         </nav>
 
         <ErrorNotice v-if="listError" :error="listError" />
+
+        <p v-if="support.done" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-support-done>{{ $t(support.done) }}</p>
+        <button v-if="canSupport && tab === 'checks' && scenarioToRerun" type="button" class="self-start rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft" data-action="support-rerun" @click="askSupport('rerun')">{{ $t('store_data.support.rerun') }}</button>
+        <form v-if="support.kind" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-4 text-sm" :data-form="`support-${support.kind}`" @submit.prevent="confirmSupport">
+          <p class="font-medium">{{ $t(`store_data.support.confirm.${support.kind}`) }}</p>
+          <label class="flex flex-col gap-1.5">
+            <span class="font-medium">{{ $t('tenant.actions.reason') }}</span>
+            <textarea v-model="support.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="support-reason" />
+          </label>
+          <ErrorNotice v-if="support.error" :error="support.error" />
+          <div class="flex flex-wrap gap-2">
+            <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="support.busy || support.reason.trim().length < 3" data-action="support-confirm">{{ $t('staff.apply') }}</button>
+            <button type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted" @click="support.kind = null">{{ $t('common.cancel') }}</button>
+          </div>
+        </form>
 
         <div class="overflow-x-auto rounded-xl border border-border bg-surface" :data-list="tab">
           <table v-if="tab === 'findings' && findings.length > 0" class="w-full min-w-[48rem] text-sm">
@@ -337,6 +387,10 @@ watch(tab, () => void loadTab());
             <div><dt class="text-text-muted">{{ $t('store_data.incident.discrepancy') }}</dt><dd class="tabular-nums">{{ money(incident.verified_discrepancy_minor, incident.currency, incident.currency_exponent) }}</dd></div>
           </dl>
           <p v-if="incident.resolved_at">{{ $t('store_data.incident.resolved') }}: {{ dateTime(incident.resolved_at) }}</p>
+          <div v-if="canSupport && incident.state !== 'resolved'" class="flex flex-wrap gap-2">
+            <button v-if="incident.state === 'open'" type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="support-acknowledge" @click="askSupport('acknowledge')">{{ $t('store_data.support.acknowledge') }}</button>
+            <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="support-resolve" @click="askSupport('resolve')">{{ $t('store_data.support.resolve') }}</button>
+          </div>
         </section>
       </template>
     </div>

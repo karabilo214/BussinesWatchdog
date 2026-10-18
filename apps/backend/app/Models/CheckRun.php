@@ -32,6 +32,9 @@ class CheckRun extends Model
 
     public const TRIGGER_MANUAL = 'manual';
 
+    /** Started by platform staff on behalf of the customer (ADR 0048): never counted against the customer's usage. */
+    public const TRIGGER_SUPPORT = 'support';
+
     public $timestamps = false;
 
     protected $fillable = [

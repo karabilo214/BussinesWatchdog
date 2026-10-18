@@ -862,6 +862,37 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Platform]
+      operationId: platformRerunTenantCheck
+      description: "Capability tenants.support (ADR 0048). Reruns a browser check scenario of the customer's store for the customer, with a reason: the same conditions as a manual run (store eligible, in plan, not paused, no active run, at most one support run a minute — 429), but the customer's manual-run allowance is neither checked nor used; the run has trigger support. Audited in the platform audit (tenant.check_rerun) and the organisation audit (check_run.support_started, by platform). 202 with the run."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scenario_id, reason]
+              properties:
+                scenario_id: {type: string, format: uuid}
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "202":
+          description: Run queued
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/stores/{store}/incidents:
     get:
       tags: [Platform]
@@ -957,6 +988,68 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/incidents/{incident}/acknowledge:
+    post:
+      tags: [Platform]
+      operationId: platformAcknowledgeTenantIncident
+      description: "Capability tenants.support (ADR 0048). Acknowledges an incident of the organisation for the customer with a reason; the incident activity records by platform and the reason (no customer user as actor). Audited in the platform audit (tenant.incident_acknowledged) and the organisation audit (incident.acknowledged_by_platform). 409 when already resolved."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: incident, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "200":
+          description: Incident
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/incidents/{incident}/resolve:
+    post:
+      tags: [Platform]
+      operationId: platformResolveTenantIncident
+      description: "Capability tenants.support (ADR 0048). Resolves an incident of the organisation for the customer; the reason is the resolution reason. Activity by platform; audited (tenant.incident_resolved, incident.resolved_by_platform). 409 when already resolved."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: incident, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "200":
+          description: Incident
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/reminders/preview:
     post:
       tags: [Platform]
@@ -7036,7 +7129,7 @@ components:
         store_id: {type: string, format: uuid}
         scenario_id: {type: string, format: uuid}
         scenario_version: {type: integer}
-        trigger: {enum: [scheduled, manual, incident]}
+        trigger: {enum: [scheduled, manual, incident, support], description: "support: rerun by platform staff for the customer (ADR 0048), not counted against the customer's manual runs"}
         status: {enum: [queued, running, passed, failed, inconclusive, blocked, unsupported, cancelled]}
         error_code: {type: [string, "null"]}
         scheduled_at: {type: string, format: date-time}

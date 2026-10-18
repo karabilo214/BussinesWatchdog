@@ -21,3 +21,11 @@ Status: accepted for now (owner's backlog item 2026-10-13: in the customer card,
 - Audit records actions that change something (POST/PUT/PATCH/DELETE), not views: `tenant.store_viewed` is dropped; every change made from the panel is recorded in the platform audit and in the organisation audit as `by: platform`.
 - The plan's store limit stays strict for adding stores. Actions started by staff (for example a browser check rerun) do not consume the customer's limits or usage.
 - Staff may change roles and remove existing members of the customer's team (on the customer's request), with a reason and audited; the owner role still moves only through ownership transfer.
+
+## Implementation of the support actions (Step 175)
+
+- Capability `tenants.support` ("Customers: support actions", implies customers view, in the support preset for new members; ADR 0064) — given by the platform owner.
+- Rerun: `POST /platform-api/v1/tenants/{tenant}/stores/{store}/checks` with a scenario and a reason. Same conditions as a manual run (eligible store, in plan, not capacity-paused, no active run, one support run a minute), but the customer's manual-run allowance is neither checked nor used; the run has trigger `support` (shown to the customer as "rerun by support").
+- Incidents: `POST …/incidents/{incident}/acknowledge|resolve` with a reason. The incident activity has no customer user as actor and records `by: platform` with the reason; the customer sees "Business Watchdog support" and the reason in the timeline.
+- Every action is in the platform audit (`tenant.check_rerun`, `tenant.incident_acknowledged`, `tenant.incident_resolved`, with the reason) and in the organisation audit (`check_run.support_started`, `incident.acknowledged_by_platform`, `incident.resolved_by_platform`, `by: platform`).
+
