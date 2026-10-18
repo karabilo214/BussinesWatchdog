@@ -19,3 +19,9 @@ Status: accepted for now (owner's backlog items 2026-10-13: a «Reply» button �
 - Reply templates become editable in the owner panel with a "save template" action next to "send", as for customer reminders (ADR 0047).
 - Retention of 365 days after closing is confirmed.
 - The author may edit their own note; the audit records the text before and after the change.
+
+## Implementation of the owner decision (Step 178)
+
+- Reply templates per code and language are stored in `contact_reply_templates`; until saved, the built-in text from `lang/*/site.php`. The reply form has "Save as template (DE)" next to "Send"; templates saved by staff are marked "own". Audit `site.contact.template_saved` with the text before and after.
+- The author edits their own note (`PATCH …/notes/{note}`, 403 `note_not_yours` otherwise); the note shows "edited at"; audit `site.contact.note_edited` with the text before and after.
+

@@ -1107,6 +1107,65 @@ paths:
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/contact-requests/{contactRequest}/notes/{note}:
+    patch:
+      tags: [Platform]
+      operationId: platformEditContactNote
+      description: "Capability contacts.manage (ADR 0049). The author changes their own internal note (1–2000 characters; 403 note_not_yours for anyone else, 404 note_not_found). The note shows when it was edited; the audit (site.contact.note_edited) keeps the text before and after. Returns the request."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: contactRequest, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: note, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: {type: string, maxLength: 2000}
+      responses:
+        "200":
+          description: Contact request
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/contact-reply-templates/{code}/{locale}:
+    put:
+      tags: [Platform]
+      operationId: platformSaveContactReplyTemplate
+      description: "Capability contacts.manage (ADR 0049). \"Save template\" next to \"Send\": the subject (3–200) and text (up to 10 000) become the reply template of that code and language for every request (422 template_text_invalid). Audited (site.contact.template_saved) with the text before and after."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: code, in: path, required: true, schema: {enum: [answer, more_details, resolved]}}
+        - {name: locale, in: path, required: true, schema: {enum: [ru, en, de]}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, body]
+              properties:
+                subject: {type: string, maxLength: 200}
+                body: {type: string, maxLength: 10000}
+      responses:
+        "200":
+          description: Saved template
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/reminders/preview:
     post:
       tags: [Platform]

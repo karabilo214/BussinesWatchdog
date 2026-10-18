@@ -238,3 +238,12 @@ Status: complete (ADR 0045, owner decision 2026-10-16)
 - `OWNER_SECTIONS` no longer has `blocks`; routes moved to `/owner/site/blocks` and `/owner/site/blocks/:id`, `/owner/blocks/:id?` redirects there. `SiteTabs.vue` ("Pages" | "Block templates", `aria-current`) on the pages list and the template list; the "Website" menu item stays highlighted on pages, templates and a template. The e2e script uses the new address.
 
 Verification: control typecheck, 60/60 (`blocks.test.ts`: not in the main menu, website highlighted, tab current; the old address of a new template redirects), build. Backend not changed; backend SQLite 615 passed + 4 skipped. Manual browser smoke was not run.
+
+### Step 178: Editable Contact Reply Templates and Note Edits
+
+Status: complete (ADR 0049 owner decision)
+
+- Migration `2026_10_18_180000_add_contact_reply_templates_and_note_edits` (`contact_reply_templates`, `contact_request_notes.edited_at`). `ContactInbox::replyTemplate/saveReplyTemplate/editNote`; `ContactRequestController::saveTemplate/editNote`; routes under `contacts.manage`; `openapi.yaml`.
+- Owner panel: "Save as template" in the reply form, own templates marked; "Edit" on the staff member's own notes with "edited" time; labels for the new audit actions.
+
+Verification: `PublicSiteTest` (template limits, unknown code 404, saved template used and marked, audit before/after; note edit by the author with audit, another author's note 403, missing note 404), control `site.test.ts` (save template without sending, edit own note, no edit for read-only staff). Backend SQLite 622 passed + 4 skipped; PostgreSQL 18: 626/626. Control typecheck, 65/65, build. Manual browser smoke was not run.

@@ -127,6 +127,8 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     });
     Route::middleware('platform.staff:'.PlatformCapabilities::CONTACTS_MANAGE)->patch('/contact-requests/{contactRequest}', [ContactRequestController::class, 'update'])->whereUuid('contactRequest');
     Route::middleware('platform.staff:'.PlatformCapabilities::CONTACTS_MANAGE)->post('/contact-requests/{contactRequest}/notes', [ContactRequestController::class, 'note'])->whereUuid('contactRequest');
+    Route::middleware('platform.staff:'.PlatformCapabilities::CONTACTS_MANAGE)->patch('/contact-requests/{contactRequest}/notes/{note}', [ContactRequestController::class, 'editNote'])->whereUuid(['contactRequest', 'note']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::CONTACTS_MANAGE)->put('/contact-reply-templates/{code}/{locale}', [ContactRequestController::class, 'saveTemplate'])->where(['code' => 'answer|more_details|resolved', 'locale' => 'ru|en|de']);
     Route::middleware(['platform.staff:'.PlatformCapabilities::CONTACTS_MANAGE, 'throttle:contact-replies'])->post('/contact-requests/{contactRequest}/replies', [ContactRequestController::class, 'reply'])->whereUuid('contactRequest');
 
     Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_MANAGE)->group(function (): void {

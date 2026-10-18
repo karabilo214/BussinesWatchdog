@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { StatusBadge } from '@bw/ui';
-import { addContactNote, fetchContactRequest, updateContactRequest, type ContactRequest, type ContactStatus } from '@/api';
+import { addContactNote, editContactNote, fetchContactRequest, updateContactRequest, type ContactNote, type ContactRequest, type ContactStatus } from '@/api';
 import ContactReplies from '@/components/ContactReplies.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { CONTACT_TONES } from '@/components/tones';
@@ -11,7 +11,7 @@ import OwnerLayout from '@/layouts/OwnerLayout.vue';
 
 const props = defineProps<{ id: string }>();
 const { dateTime } = useFormat();
-const { can } = useStaff();
+const { can, me } = useStaff();
 const item = ref<ContactRequest | null>(null);
 const loading = ref(true);
 const error = ref<unknown>(null);
@@ -20,6 +20,26 @@ const busy = ref(false);
 const saved = ref(false);
 const form = reactive({ status: 'new' as ContactStatus });
 const note = reactive({ body: '', busy: false, error: null as unknown });
+const editing = reactive({ id: null as string | null, body: '', busy: false, error: null as unknown });
+
+function mine(entry: ContactNote): boolean {
+  return manage.value && entry.author_staff_id !== null && entry.author_staff_id === me.value?.staff_id;
+}
+
+async function saveNote(): Promise<void> {
+  if (item.value === null || editing.id === null || editing.body.trim() === '' || editing.busy) return;
+  editing.busy = true;
+  editing.error = null;
+
+  try {
+    accept(await editContactNote(item.value.id, editing.id, editing.body.trim()));
+    editing.id = null;
+  } catch (caught) {
+    editing.error = caught;
+  } finally {
+    editing.busy = false;
+  }
+}
 
 const manage = computed(() => can('contacts.manage'));
 
@@ -122,8 +142,19 @@ onMounted(load);
           <p v-if="(item.notes ?? []).length === 0" class="text-sm text-text-muted">{{ $t('contacts.notes.none') }}</p>
           <ul v-else class="flex flex-col gap-2 text-sm">
             <li v-for="entry in item.notes" :key="entry.id" class="flex flex-col gap-1 rounded-lg border border-border bg-surface px-4 py-3" :data-note="entry.id">
-              <span class="text-text-muted">{{ dateTime(entry.created_at) }} · {{ entry.author ?? '—' }}</span>
-              <span class="whitespace-pre-wrap break-words">{{ entry.body }}</span>
+              <span class="text-text-muted">{{ dateTime(entry.created_at) }} · {{ entry.author ?? '—' }}<template v-if="entry.edited_at"> · {{ $t('contacts.notes.edited', { time: dateTime(entry.edited_at) }) }}</template></span>
+              <form v-if="editing.id === entry.id" class="flex flex-col gap-2" data-form="edit-note" @submit.prevent="saveNote">
+                <textarea v-model="editing.body" maxlength="2000" rows="3" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="edit-note" />
+                <ErrorNotice v-if="editing.error" :error="editing.error" />
+                <div class="flex gap-2">
+                  <button type="submit" class="rounded-md bg-primary px-3 py-1.5 font-semibold text-text-inverse disabled:opacity-60" :disabled="editing.busy || editing.body.trim() === ''" data-action="save-note">{{ $t('contacts.notes.save') }}</button>
+                  <button type="button" class="rounded-md border border-border-strong px-3 py-1.5" @click="editing.id = null">{{ $t('common.cancel') }}</button>
+                </div>
+              </form>
+              <template v-else>
+                <span class="whitespace-pre-wrap break-words">{{ entry.body }}</span>
+                <button v-if="mine(entry)" type="button" class="self-start text-[13px] font-medium text-primary hover:underline" data-action="edit-note" @click="Object.assign(editing, { id: entry.id, body: entry.body, error: null })">{{ $t('contacts.notes.edit') }}</button>
+              </template>
             </li>
           </ul>
         </section>

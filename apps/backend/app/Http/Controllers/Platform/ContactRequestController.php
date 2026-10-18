@@ -50,6 +50,34 @@ class ContactRequestController extends Controller
         }
     }
 
+    public function editNote(Request $request, string $contactRequest, string $note): JsonResponse
+    {
+        $validated = $request->validate(['body' => ['required', 'string', 'max:2000']]);
+        /** @var PlatformStaff $staff */
+        $staff = $request->attributes->get('platform_staff');
+
+        try {
+            $this->inbox->editNote($staff->id, $contactRequest, $note, $validated['body']);
+
+            return response()->json($this->inbox->dto($this->inbox->find($contactRequest)));
+        } catch (SiteRejected $exception) {
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The note was not changed.'], $exception->status);
+        }
+    }
+
+    public function saveTemplate(Request $request, string $code, string $locale): JsonResponse
+    {
+        $validated = $request->validate(['subject' => ['required', 'string', 'max:200'], 'body' => ['required', 'string', 'max:10000']]);
+        /** @var PlatformStaff $staff */
+        $staff = $request->attributes->get('platform_staff');
+
+        try {
+            return response()->json($this->inbox->saveReplyTemplate($staff->id, $code, $locale, $validated['subject'], $validated['body']));
+        } catch (SiteRejected $exception) {
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The template was not saved.'], $exception->status);
+        }
+    }
+
     public function reply(Request $request, string $contactRequest): JsonResponse
     {
         $validated = $request->validate([

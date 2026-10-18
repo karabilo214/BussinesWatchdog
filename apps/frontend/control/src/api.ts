@@ -1037,7 +1037,13 @@ export interface ContactNote {
   id: string;
   body: string;
   author: string | null;
+  author_staff_id: string | null;
   created_at: string | null;
+  edited_at: string | null;
+}
+
+export async function editContactNote(id: string, noteId: string, body: string): Promise<ContactRequest> {
+  return (await request<ContactRequest>('PATCH', `/platform-api/v1/contact-requests/${encodeURIComponent(id)}/notes/${encodeURIComponent(noteId)}`, { body: { body } })).data;
 }
 
 export async function addContactNote(id: string, body: string): Promise<ContactRequest> {
@@ -1050,6 +1056,11 @@ export interface ContactReplyTemplate {
   code: ContactReplyTemplateCode;
   subject: string;
   body: string;
+  customized?: boolean;
+}
+
+export async function saveContactReplyTemplate(code: ContactReplyTemplateCode, locale: string, input: { subject: string; body: string }): Promise<Omit<ContactReplyTemplate, 'code'>> {
+  return (await request<Omit<ContactReplyTemplate, 'code'>>('PUT', `/platform-api/v1/contact-reply-templates/${code}/${encodeURIComponent(locale)}`, { body: input })).data;
 }
 
 export interface ContactReply {

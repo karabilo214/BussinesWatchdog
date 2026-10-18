@@ -210,7 +210,10 @@
     "media_storage_unavailable": "File storage is not available right now — try again later.",
     "media_missing": "Choose a file to upload.",
     "owner_role_protected": "The owner role only moves through an ownership transfer in the customer account.",
-    "member_not_found": "The member is no longer in the team."
+    "member_not_found": "The member is no longer in the team.",
+    "note_not_yours": "You can only edit your own notes.",
+    "note_not_found": "The note was not found.",
+    "template_text_invalid": "Subject 3–200 characters, text not empty."
   },
   "period": {
     "per": {
@@ -712,7 +715,9 @@
       "contact": {
         "updated": "Message status changed",
         "replied": "Message replied",
-        "noted": "Note on a message"
+        "noted": "Note on a message",
+        "template_saved": "Reply template saved",
+        "note_edited": "Note edited"
       },
       "media": {
         "uploaded": "Site file uploaded",
@@ -875,13 +880,19 @@
         "answer": "Answer",
         "more_details": "Need details",
         "resolved": "Resolved"
-      }
+      },
+      "save_template": "Save as template ({locale})",
+      "template_saved": "Template saved.",
+      "customized": "own"
     },
     "notes": {
       "title": "Internal notes",
       "new": "New note",
       "add": "Add note",
-      "none": "No notes yet."
+      "none": "No notes yet.",
+      "edit": "Edit",
+      "save": "Save",
+      "edited": "edited {time}"
     }
   },
   "contact_status": {

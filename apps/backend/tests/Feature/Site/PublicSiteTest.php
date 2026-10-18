@@ -341,6 +341,36 @@ class PublicSiteTest extends TestCase
         $this->assertSame(0, DB::table('contact_request_replies')->count());
     }
 
+    public function test_reply_templates_are_saved_by_staff_and_authors_edit_their_own_notes(): void
+    {
+        $request = ContactRequest::query()->create(['locale' => 'de', 'name' => 'Jonas', 'email' => 'jonas@shop.test', 'message' => 'Wie verbinde ich zwei Shops?', 'status' => 'new']);
+        $this->signIn(PlatformStaff::ROLE_SUPPORT);
+
+        $this->putJson('/platform-api/v1/contact-reply-templates/answer/de', ['subject' => 'x', 'body' => 'Text'])->assertStatus(422)->assertJsonPath('code', 'template_text_invalid');
+        $this->putJson('/platform-api/v1/contact-reply-templates/other/de', ['subject' => 'Antwort', 'body' => 'Text'])->assertNotFound();
+        $this->putJson('/platform-api/v1/contact-reply-templates/answer/de', ['subject' => 'Antwort von Business Watchdog', 'body' => "Danke für Ihre Nachricht.\n\n"])->assertOk()->assertJsonPath('customized', true);
+        $card = $this->getJson("/platform-api/v1/contact-requests/{$request->id}")->assertOk()->json();
+        $this->assertSame('Antwort von Business Watchdog', $card['reply_templates'][0]['subject']);
+        $this->assertTrue($card['reply_templates'][0]['customized']);
+        $this->assertFalse($card['reply_templates'][1]['customized']);
+        $saved = json_decode((string) DB::table('platform_audit_log')->where('action', 'site.contact.template_saved')->value('sanitized_changes'), true);
+        $this->assertSame('Antwort von Business Watchdog', $saved['after']['subject']);
+        $this->assertNotSame($saved['before']['subject'], $saved['after']['subject']);
+
+        $note = $this->postJson("/platform-api/v1/contact-requests/{$request->id}/notes", ['body' => 'Called back, no answer'])->assertCreated()->json('notes.0');
+        $this->assertNull($note['edited_at']);
+        $edited = $this->patchJson("/platform-api/v1/contact-requests/{$request->id}/notes/{$note['id']}", ['body' => 'Called back, will try tomorrow'])->assertOk()->json('notes.0');
+        $this->assertSame('Called back, will try tomorrow', $edited['body']);
+        $this->assertNotNull($edited['edited_at']);
+        $audit = json_decode((string) DB::table('platform_audit_log')->where('action', 'site.contact.note_edited')->value('sanitized_changes'), true);
+        $this->assertEqualsCanonicalizing(['note_id' => $note['id'], 'before' => 'Called back, no answer', 'after' => 'Called back, will try tomorrow'], $audit);
+
+        $other = PlatformStaff::query()->create(['user_id' => User::query()->create(['name' => 'Other', 'email' => 'other@platform.test', 'password_hash' => Hash::make('x-password-1234'), 'locale' => 'en'])->id, 'role' => PlatformStaff::ROLE_SUPPORT, 'state' => PlatformStaff::STATE_ACTIVE]);
+        DB::table('contact_request_notes')->where('id', $note['id'])->update(['staff_id' => $other->id]);
+        $this->patchJson("/platform-api/v1/contact-requests/{$request->id}/notes/{$note['id']}", ['body' => 'Not mine'])->assertForbidden()->assertJsonPath('code', 'note_not_yours');
+        $this->patchJson("/platform-api/v1/contact-requests/{$request->id}/notes/".Str::uuid(), ['body' => 'Missing'])->assertNotFound();
+    }
+
     public function test_messages_are_handled_in_the_owner_panel_by_role_and_closed_ones_expire(): void
     {
         $request = ContactRequest::query()->create(['locale' => 'de', 'name' => 'Jonas', 'email' => 'jonas@shop.test', 'message' => str_repeat('Frage zur Einrichtung. ', 20), 'status' => 'new']);
@@ -436,5 +466,4 @@ class PublicSiteTest extends TestCase
 
         return $totp->codeAt($this->secret, $totp->step(Carbon::now()->getTimestamp()));
     }
-
 }

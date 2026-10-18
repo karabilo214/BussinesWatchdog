@@ -11,5 +11,10 @@ class ContactRequestNote extends Model
 
     public const UPDATED_AT = null;
 
-    protected $fillable = ['contact_request_id', 'staff_id', 'body'];
+    protected $fillable = ['contact_request_id', 'staff_id', 'body', 'edited_at'];
+
+    protected function casts(): array
+    {
+        return ['edited_at' => 'datetime'];
+    }
 }

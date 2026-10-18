@@ -108,15 +108,84 @@ class ContactInbox
     }
 
     /**
-     * @return list<array{code: string, subject: string, body: string}>
+     * The author edits their own note (ADR 0049); the audit keeps the text before and after.
+     */
+    public function editNote(string $staffId, string $id, string $noteId, string $body): ContactRequestNote
+    {
+        $request = $this->find($id);
+        $body = trim($body);
+
+        if ($body === '' || mb_strlen($body) > 2000) {
+            throw new SiteRejected('note_invalid');
+        }
+
+        /** @var ContactRequestNote|null $note */
+        $note = Str::isUuid($noteId) ? ContactRequestNote::query()->where('contact_request_id', $request->id)->whereKey($noteId)->first() : null;
+
+        if ($note === null) {
+            throw new SiteRejected('note_not_found', 404);
+        }
+
+        if ($note->staff_id !== $staffId) {
+            throw new SiteRejected('note_not_yours', 403);
+        }
+
+        $before = $note->body;
+        $note->forceFill(['body' => $body, 'edited_at' => Carbon::now()])->save();
+        $this->audit->record($staffId, 'site.contact.note_edited', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, ['note_id' => $note->id, 'before' => $before, 'after' => $body]);
+
+        return $note;
+    }
+
+    /**
+     * Reply templates of the request's language: saved by staff, otherwise the built-in text.
+     *
+     * @return list<array{code: string, subject: string, body: string, customized: bool}>
      */
     public function replyTemplates(ContactRequest $request): array
     {
-        return array_map(fn (string $code): array => [
-            'code' => $code,
-            'subject' => trans("site.contact.reply.templates.{$code}.subject", [], $request->locale),
-            'body' => trans("site.contact.reply.templates.{$code}.body", [], $request->locale),
-        ], ContactRequestReply::TEMPLATES);
+        return array_map(fn (string $code): array => ['code' => $code] + $this->replyTemplate($code, (string) $request->locale), ContactRequestReply::TEMPLATES);
+    }
+
+    /**
+     * @return array{subject: string, body: string, customized: bool}
+     */
+    public function replyTemplate(string $code, string $locale): array
+    {
+        $saved = DB::table('contact_reply_templates')->where('code', $code)->where('locale', $locale)->first(['subject', 'body']);
+
+        return $saved !== null
+            ? ['subject' => (string) $saved->subject, 'body' => (string) $saved->body, 'customized' => true]
+            : ['subject' => trans("site.contact.reply.templates.{$code}.subject", [], $locale), 'body' => trans("site.contact.reply.templates.{$code}.body", [], $locale), 'customized' => false];
+    }
+
+    /**
+     * "Save template" next to "Send" (ADR 0049): the edited subject and text become the template of that code and
+     * language for every request. Audited with the text before and after.
+     *
+     * @return array{subject: string, body: string, customized: bool}
+     */
+    public function saveReplyTemplate(string $staffId, string $code, string $locale, string $subject, string $body): array
+    {
+        $subject = trim($subject);
+        $body = trim($body);
+
+        if (! in_array($code, ContactRequestReply::TEMPLATES, true)) {
+            throw new SiteRejected('template_invalid', 404);
+        }
+
+        if (mb_strlen($subject) < 3 || mb_strlen($subject) > 200 || $body === '' || mb_strlen($body) > 10000) {
+            throw new SiteRejected('template_text_invalid');
+        }
+
+        $before = $this->replyTemplate($code, $locale);
+        DB::table('contact_reply_templates')->updateOrInsert(['code' => $code, 'locale' => $locale], ['subject' => $subject, 'body' => $body, 'updated_by' => $staffId, 'updated_at' => Carbon::now()]);
+        $this->audit->record($staffId, 'site.contact.template_saved', 'contact_reply_template', $code.':'.$locale, PlatformAudit::RESULT_SUCCEEDED, [
+            'before' => ['subject' => $before['subject'], 'body' => $before['body']],
+            'after' => ['subject' => $subject, 'body' => $body],
+        ]);
+
+        return $this->replyTemplate($code, $locale);
     }
 
     /**
@@ -204,7 +273,9 @@ class ContactInbox
             'id' => $note->id,
             'body' => $note->body,
             'author' => $note->staff_id === null ? null : $staff->get($note->staff_id)?->user?->name,
+            'author_staff_id' => $note->staff_id,
             'created_at' => $note->created_at?->toJSON(),
+            'edited_at' => $note->edited_at?->toJSON(),
         ])->values()->all();
     }
 

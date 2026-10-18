@@ -210,7 +210,10 @@
     "media_storage_unavailable": "Der Dateispeicher ist gerade nicht erreichbar – versuchen Sie es später erneut.",
     "media_missing": "Wählen Sie eine Datei zum Hochladen.",
     "owner_role_protected": "Die Inhaberrolle wechselt nur durch Übergabe im Kundenkonto.",
-    "member_not_found": "Das Mitglied gehört nicht mehr zum Team."
+    "member_not_found": "Das Mitglied gehört nicht mehr zum Team.",
+    "note_not_yours": "Sie können nur Ihre eigenen Notizen bearbeiten.",
+    "note_not_found": "Die Notiz wurde nicht gefunden.",
+    "template_text_invalid": "Betreff 3–200 Zeichen, Text nicht leer."
   },
   "period": {
     "per": {
@@ -712,7 +715,9 @@
       "contact": {
         "updated": "Status der Anfrage geändert",
         "replied": "Anfrage beantwortet",
-        "noted": "Notiz zur Anfrage"
+        "noted": "Notiz zur Anfrage",
+        "template_saved": "Antwortvorlage gespeichert",
+        "note_edited": "Notiz bearbeitet"
       },
       "media": {
         "uploaded": "Website-Datei hochgeladen",
@@ -875,13 +880,19 @@
         "answer": "Antwort",
         "more_details": "Details nötig",
         "resolved": "Geklärt"
-      }
+      },
+      "save_template": "Als Vorlage speichern ({locale})",
+      "template_saved": "Vorlage gespeichert.",
+      "customized": "eigene"
     },
     "notes": {
       "title": "Interne Notizen",
       "new": "Neue Notiz",
       "add": "Notiz hinzufügen",
-      "none": "Noch keine Notizen."
+      "none": "Noch keine Notizen.",
+      "edit": "Bearbeiten",
+      "save": "Speichern",
+      "edited": "bearbeitet {time}"
     }
   },
   "contact_status": {
