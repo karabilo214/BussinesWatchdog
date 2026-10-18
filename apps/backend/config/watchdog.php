@@ -148,6 +148,10 @@ return [
         'contact_per_hour' => (int) env('WATCHDOG_SITE_CONTACT_PER_HOUR', 5),
         'owner_url' => env('WATCHDOG_SITE_OWNER_URL', rtrim((string) env('APP_URL', 'http://localhost'), '/').'/owner'),
         'cache_seconds' => (int) env('WATCHDOG_SITE_CACHE_SECONDS', 60),
+        'media_disk' => env('WATCHDOG_SITE_MEDIA_DISK', env('WATCHDOG_ARTIFACTS_DISK', 'artifacts')),
+        'media_max_bytes' => (int) env('WATCHDOG_SITE_MEDIA_MAX_BYTES', 5 * 1024 * 1024),
+        'media_max_pixels' => 16_000_000,
+        'media_max_side' => 6000,
     ],
 
     'public_check' => [

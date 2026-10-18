@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
+import { deleteSiteMedia, fetchSiteMedia, uploadSiteMedia, type SiteMedia } from '@/api';
+import ErrorNotice from '@/components/ErrorNotice.vue';
 import { CONTAINER_STYLES, LINK_STYLES, TEXT_STYLES, editorExtensions } from './extensions';
 
 export interface InsertableBlock {
@@ -99,10 +102,58 @@ function applyLink(): void {
   panel.open = null;
 }
 
+const { t } = useI18n();
+const media = ref<SiteMedia[]>([]);
+const mediaBusy = ref(false);
+const mediaError = ref<unknown>(null);
+
+async function loadMedia(): Promise<void> {
+  mediaError.value = null;
+
+  try {
+    media.value = await fetchSiteMedia();
+  } catch (error) {
+    mediaError.value = error;
+  }
+}
+
 function openImage(): void {
   panel.src = '';
   panel.alt = '';
   panel.open = 'image';
+  void loadMedia();
+}
+
+async function uploadImage(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  mediaBusy.value = true;
+  mediaError.value = null;
+
+  try {
+    const uploaded = await uploadSiteMedia(file);
+    media.value = [uploaded, ...media.value.filter((item) => item.id !== uploaded.id)];
+    panel.src = uploaded.url;
+  } catch (error) {
+    mediaError.value = error;
+  } finally {
+    mediaBusy.value = false;
+  }
+}
+
+async function removeImage(item: SiteMedia): Promise<void> {
+  if (!window.confirm(t('editor.media.delete_confirm', { name: item.name }))) return;
+  mediaError.value = null;
+
+  try {
+    await deleteSiteMedia(item.id);
+    media.value = media.value.filter((other) => other.id !== item.id);
+    if (panel.src === item.url) panel.src = '';
+  } catch (error) {
+    mediaError.value = error;
+  }
 }
 
 function applyImage(): void {
@@ -198,17 +249,34 @@ defineExpose({ editor });
       <p class="w-full text-text-muted">{{ $t('editor.link_hint') }}</p>
     </form>
 
-    <form v-if="panel.open === 'image'" class="flex flex-wrap items-end gap-2 border-b border-border bg-surface-muted px-3 py-2 text-sm" data-panel="image" @submit.prevent="applyImage">
-      <label class="flex min-w-60 flex-1 flex-col gap-1">
-        <span class="font-medium">{{ $t('editor.image_src') }}</span>
-        <input v-model="panel.src" class="rounded border border-border-strong bg-surface px-2 py-1" placeholder="https://" data-field="src" />
-      </label>
-      <label class="flex min-w-40 flex-1 flex-col gap-1">
-        <span class="font-medium">{{ $t('editor.image_alt') }}</span>
-        <input v-model="panel.alt" class="rounded border border-border-strong bg-surface px-2 py-1" data-field="alt" />
-      </label>
-      <button type="submit" class="rounded bg-primary px-3 py-1 font-semibold text-text-inverse" data-action="apply-image">{{ $t('editor.apply') }}</button>
-      <button type="button" class="rounded border border-border-strong px-3 py-1" @click="panel.open = null">{{ $t('common.cancel') }}</button>
+    <form v-if="panel.open === 'image'" class="flex flex-col gap-2 border-b border-border bg-surface-muted px-3 py-2 text-sm" data-panel="image" @submit.prevent="applyImage">
+      <div class="flex flex-wrap items-end gap-2">
+        <label class="flex flex-col gap-1">
+          <span class="font-medium">{{ $t('editor.media.upload') }}</span>
+          <input type="file" accept="image/jpeg,image/png,image/webp" class="text-sm" :disabled="mediaBusy" data-field="file" @change="uploadImage" />
+        </label>
+        <label class="flex min-w-60 flex-1 flex-col gap-1">
+          <span class="font-medium">{{ $t('editor.image_src') }}</span>
+          <input v-model="panel.src" class="rounded border border-border-strong bg-surface px-2 py-1" placeholder="https://" data-field="src" />
+        </label>
+        <label class="flex min-w-40 flex-1 flex-col gap-1">
+          <span class="font-medium">{{ $t('editor.image_alt') }}</span>
+          <input v-model="panel.alt" class="rounded border border-border-strong bg-surface px-2 py-1" data-field="alt" />
+        </label>
+        <button type="submit" class="rounded bg-primary px-3 py-1 font-semibold text-text-inverse" data-action="apply-image">{{ $t('editor.apply') }}</button>
+        <button type="button" class="rounded border border-border-strong px-3 py-1" @click="panel.open = null">{{ $t('common.cancel') }}</button>
+      </div>
+      <p class="text-text-muted">{{ mediaBusy ? $t('editor.media.uploading') : $t('editor.media.hint') }}</p>
+      <ErrorNotice v-if="mediaError" :error="mediaError" />
+      <ul v-if="media.length" class="flex max-h-56 flex-wrap gap-2 overflow-y-auto" data-media-library>
+        <li v-for="item in media" :key="item.id" class="flex w-28 flex-col gap-1">
+          <button type="button" class="overflow-hidden rounded border bg-surface" :class="panel.src === item.url ? 'border-primary ring-2 ring-primary' : 'border-border'" :title="item.name" :data-media="item.id" @click="panel.src = item.url">
+            <img :src="item.url" :alt="item.name" class="h-20 w-full object-cover" loading="lazy" />
+          </button>
+          <span class="truncate text-xs text-text-muted" :title="item.name">{{ item.name }}</span>
+          <button type="button" class="self-start text-xs text-crit hover:underline" :data-delete-media="item.id" @click="removeImage(item)">{{ $t('editor.media.delete') }}</button>
+        </li>
+      </ul>
     </form>
 
     <div v-if="panel.open === 'blocks'" class="flex flex-col gap-2 border-b border-border bg-surface-muted px-3 py-2 text-sm" data-panel="blocks">

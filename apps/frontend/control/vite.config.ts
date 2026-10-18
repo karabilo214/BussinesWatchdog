@@ -8,6 +8,7 @@ const backend = process.env.BW_BACKEND_URL ?? 'http://127.0.0.1:8000';
 const proxy = {
   '/platform-api': { target: backend, changeOrigin: false },
   '/sanctum': { target: backend, changeOrigin: false },
+  '/media': { target: backend, changeOrigin: false },
 };
 
 export default defineConfig({

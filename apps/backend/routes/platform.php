@@ -4,17 +4,18 @@ use App\Http\Controllers\Platform\AuditController;
 use App\Http\Controllers\Platform\ContactRequestController;
 use App\Http\Controllers\Platform\DiscountController;
 use App\Http\Controllers\Platform\OverviewController;
-use App\Http\Controllers\Platform\PublicStorefrontCheckHistoryController;
 use App\Http\Controllers\Platform\PageBlockController;
-use App\Http\Controllers\Platform\ServiceHealthController;
-use App\Http\Controllers\Platform\SettingsController;
-use App\Http\Controllers\Platform\StaffController;
-use App\Http\Controllers\Platform\StaffInvitationController;
 use App\Http\Controllers\Platform\PageController;
 use App\Http\Controllers\Platform\PaymentController;
-use App\Http\Controllers\Platform\RefundController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformAuthController;
+use App\Http\Controllers\Platform\PublicStorefrontCheckHistoryController;
+use App\Http\Controllers\Platform\RefundController;
+use App\Http\Controllers\Platform\ServiceHealthController;
+use App\Http\Controllers\Platform\SettingsController;
+use App\Http\Controllers\Platform\SiteMediaController;
+use App\Http\Controllers\Platform\StaffController;
+use App\Http\Controllers\Platform\StaffInvitationController;
 use App\Http\Controllers\Platform\TenantController;
 use App\Http\Controllers\Platform\TenantStoreController;
 use App\Http\Controllers\Platform\TenantTeamController;
@@ -91,6 +92,9 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
 
     Route::middleware('platform.staff:'.PlatformCapabilities::CONTENT_MANAGE)->group(function (): void {
         Route::get('/pages', [PageController::class, 'index']);
+        Route::get('/site-media', [SiteMediaController::class, 'index']);
+        Route::post('/site-media', [SiteMediaController::class, 'store']);
+        Route::post('/site-media/{media}/delete', [SiteMediaController::class, 'delete'])->whereUuid('media');
         Route::get('/page-blocks', [PageBlockController::class, 'index']);
         Route::post('/page-blocks', [PageBlockController::class, 'store']);
         Route::get('/page-blocks/{block}', [PageBlockController::class, 'show'])->whereUuid('block');

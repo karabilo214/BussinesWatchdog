@@ -1,7 +1,11 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import * as api from '@/api';
 import RichEditor from '@/components/editor/RichEditor.vue';
 import { localization } from '@/i18n';
+
+vi.mock('@/api', () => ({ fetchSiteMedia: vi.fn(), uploadSiteMedia: vi.fn(), deleteSiteMedia: vi.fn() }));
+const mocked = vi.mocked(api);
 
 const EMPTY_RECT = { x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, toJSON: () => ({}) } as DOMRect;
 Range.prototype.getClientRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as unknown as DOMRectList;
@@ -115,6 +119,42 @@ describe('visual page editor', () => {
 
     expect(wrapper.get('[data-visual]').html()).toContain('<h2>Новый</h2>');
     expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it('uploads an image or picks one from the library and keeps its site address', async () => {
+    const team = { id: 'm-1', url: '/media/m-1.jpg', name: 'team.jpg', content_type: 'image/jpeg', width: 800, height: 600, bytes: 1000, created_at: '2026-10-18T10:00:00Z' };
+    const logo = { ...team, id: 'm-2', url: '/media/m-2.png', name: 'logo.png', content_type: 'image/png' };
+    mocked.fetchSiteMedia.mockResolvedValue([team]);
+    mocked.uploadSiteMedia.mockResolvedValue(logo);
+    mocked.deleteSiteMedia.mockResolvedValue();
+    const wrapper = await mountEditor('<p>Text</p>');
+
+    await wrapper.get('[data-tool="image"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-media="m-1"]').exists()).toBe(true);
+
+    const input = wrapper.get('[data-field="file"]');
+    const file = new File(['x'], 'logo.png', { type: 'image/png' });
+    Object.defineProperty(input.element, 'files', { value: [file] });
+    await input.trigger('change');
+    await flushPromises();
+    expect(mocked.uploadSiteMedia).toHaveBeenCalledWith(file);
+    expect((wrapper.get('[data-field="src"]').element as HTMLInputElement).value).toBe('/media/m-2.png');
+
+    await wrapper.get('[data-media="m-1"]').trigger('click');
+    await wrapper.get('[data-field="alt"]').setValue('Команда');
+    await wrapper.get('[data-panel="image"]').trigger('submit');
+    await settle();
+    expect(wrapper.props('modelValue')).toContain('<img src="/media/m-1.jpg" alt="Команда">');
+
+    await wrapper.get('[data-tool="image"]').trigger('click');
+    await flushPromises();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await wrapper.get('[data-delete-media="m-1"]').trigger('click');
+    await flushPromises();
+    expect(mocked.deleteSiteMedia).toHaveBeenCalledWith('m-1');
+    expect(wrapper.find('[data-media="m-1"]').exists()).toBe(false);
     wrapper.unmount();
   });
 });

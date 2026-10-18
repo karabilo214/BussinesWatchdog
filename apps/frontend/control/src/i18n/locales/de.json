@@ -197,7 +197,13 @@
     "maintenance_message_invalid": "Die Nachricht braucht in jeder Sprache 3 bis 300 Zeichen.",
     "maintenance_not_scheduled": "Keine Wartung geplant.",
     "version_is_legal": "Versionen rechtlicher Dokumente und Versionen, denen Kunden zugestimmt haben, können nicht gelöscht werden.",
-    "version_not_retired": "Löschen kann man nur eine alte, bereits ersetzte Version."
+    "version_not_retired": "Löschen kann man nur eine alte, bereits ersetzte Version.",
+    "media_type_unsupported": "Diese Datei passt nicht: Es wird ein JPEG-, PNG- oder WebP-Bild benötigt (SVG, GIF und Animationen werden nicht unterstützt).",
+    "media_too_large": "Die Datei ist größer als 5 MB.",
+    "media_dimensions_too_large": "Das Bild ist zu groß: höchstens 6000 px pro Seite und 16 Megapixel.",
+    "media_unreadable": "Das Bild konnte nicht gelesen werden – die Datei ist möglicherweise beschädigt.",
+    "media_in_use": "Das Bild wird noch auf einer Seite, in einem Entwurf, einer alten Version oder einer Blockvorlage verwendet – entfernen Sie es dort zuerst.",
+    "media_not_found": "Das Bild wurde bereits gelöscht."
   },
   "period": {
     "per": {
@@ -956,7 +962,7 @@
       "button": "Schaltfläche",
       "secondary": "Zweite Schaltfläche"
     },
-    "image_src": "Bildadresse (https)",
+    "image_src": "Bildadresse",
     "image_alt": "Beschreibung für blinde Leser",
     "apply": "Übernehmen",
     "insert_block": "+ Block",
@@ -970,6 +976,13 @@
       "cta": "Handlungsaufruf",
       "text": "Text",
       "other": "Sonstiges"
+    },
+    "media": {
+      "upload": "Vom Computer hochladen",
+      "uploading": "Wird hochgeladen…",
+      "hint": "JPEG, PNG oder WebP bis 5 MB und 6000 px pro Seite. Metadaten (Kamera, Aufnahmeort) werden vor dem Speichern aus der Datei entfernt. Unten können Sie ein hochgeladenes Bild wählen oder eine https-Adresse eingeben.",
+      "delete": "Löschen",
+      "delete_confirm": "Das Bild „{name}“ aus der Bibliothek löschen? Das geht nur, wenn keine Seite, kein Entwurf, keine Version und keine Blockvorlage es verwendet."
     }
   },
   "blocks": {

@@ -1090,6 +1090,64 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/site-media:
+    get:
+      tags: [Platform]
+      operationId: platformListSiteMedia
+      description: "Capability content.manage. Images uploaded for the page editor (ADR 0063), newest first, at most 200: id, url (relative /media/{id}.{ext}, served by the public site), original name, type, width, height, bytes, created_at."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Images
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: {type: array, items: {type: object}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Platform]
+      operationId: platformUploadSiteMedia
+      description: "Capability content.manage. Uploads one image (multipart field file). Only JPEG, PNG and WebP recognised by content (422 media_type_unsupported — SVG, GIF and animated images included), at most WATCHDOG_SITE_MEDIA_MAX_BYTES (default 5 MiB, 422 media_too_large), at most 6000 px per side and 16 megapixels (422 media_dimensions_too_large); a file that cannot be decoded is 422 media_unreadable. The image is decoded and encoded again: EXIF/XMP metadata is dropped, a JPEG orientation is applied first. Audited with a content hash."
+      security:
+        - {StaffSession: []}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses:
+        "201":
+          description: Image
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/site-media/{media}/delete:
+    post:
+      tags: [Platform]
+      operationId: platformDeleteSiteMedia
+      description: "Capability content.manage. Deletes an image and its file. 409 media_in_use while any page version (published, draft or archived) or an active block template still contains its address. Audited."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: media, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "204": {description: Deleted}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/page-blocks:
     get:
       tags: [Platform]

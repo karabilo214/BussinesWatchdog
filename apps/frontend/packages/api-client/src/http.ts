@@ -71,7 +71,9 @@ export async function request<T>(method: string, path: string, options: RequestO
     }
   }
 
-  if (options.body !== undefined) {
+  const form = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
+  if (options.body !== undefined && !form) {
     headers['Content-Type'] = 'application/json';
   }
 
@@ -94,7 +96,7 @@ export async function request<T>(method: string, path: string, options: RequestO
       method: verb,
       credentials: 'same-origin',
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: options.body === undefined ? undefined : form ? (options.body as FormData) : JSON.stringify(options.body),
     });
   } catch {
     throw new ApiError(0, 'network_unavailable');

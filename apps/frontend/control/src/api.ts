@@ -854,6 +854,32 @@ export async function sendTenantReminder(tenantId: string, input: ReminderInput)
   return (await request<{ topic: ReminderTopic; recipients: number }>('POST', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/reminders`, { body: input })).data;
 }
 
+export interface SiteMedia {
+  id: string;
+  url: string;
+  name: string;
+  content_type: string;
+  width: number;
+  height: number;
+  bytes: number;
+  created_at: string;
+}
+
+export async function fetchSiteMedia(): Promise<SiteMedia[]> {
+  return (await request<{ data: SiteMedia[] }>('GET', '/platform-api/v1/site-media')).data.data;
+}
+
+export async function uploadSiteMedia(file: File): Promise<SiteMedia> {
+  const body = new FormData();
+  body.append('file', file);
+
+  return (await request<SiteMedia>('POST', '/platform-api/v1/site-media', { body })).data;
+}
+
+export async function deleteSiteMedia(id: string): Promise<void> {
+  await request<null>('POST', `/platform-api/v1/site-media/${encodeURIComponent(id)}/delete`);
+}
+
 export async function fetchPageBlocks(): Promise<PageBlock[]> {
   return (await request<{ data: PageBlock[] }>('GET', '/platform-api/v1/page-blocks')).data.data;
 }

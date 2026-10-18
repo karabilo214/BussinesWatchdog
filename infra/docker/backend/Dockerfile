@@ -7,8 +7,14 @@ RUN apt-get update \
         libicu-dev \
         libpq-dev \
         libzip-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        libwebp-dev \
+    && docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install \
         bcmath \
+        exif \
+        gd \
         intl \
         opcache \
         pcntl \
@@ -30,8 +36,14 @@ RUN apt-get update \
         libicu-dev \
         libpq-dev \
         libzip-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        libwebp-dev \
+    && docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install \
         bcmath \
+        exif \
+        gd \
         intl \
         opcache \
         pcntl \

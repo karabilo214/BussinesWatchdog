@@ -197,7 +197,13 @@
     "maintenance_message_invalid": "The message in every language needs 3 to 300 characters.",
     "maintenance_not_scheduled": "No maintenance is planned.",
     "version_is_legal": "Versions of legal documents and versions customers accepted cannot be deleted.",
-    "version_not_retired": "Only an old, already replaced version can be deleted."
+    "version_not_retired": "Only an old, already replaced version can be deleted.",
+    "media_type_unsupported": "This file cannot be used: a JPEG, PNG or WebP image is needed (SVG, GIF and animations are not supported).",
+    "media_too_large": "The file is larger than 5 MB.",
+    "media_dimensions_too_large": "The image is too large: at most 6000 px per side and 16 megapixels.",
+    "media_unreadable": "The image could not be read — the file may be damaged.",
+    "media_in_use": "The image is still used on a page, in a draft, an old version or a block template — remove it there first.",
+    "media_not_found": "The image has already been deleted."
   },
   "period": {
     "per": {
@@ -956,7 +962,7 @@
       "button": "Button",
       "secondary": "Secondary button"
     },
-    "image_src": "Image address (https)",
+    "image_src": "Image address",
     "image_alt": "Description for blind readers",
     "apply": "Apply",
     "insert_block": "+ Block",
@@ -970,6 +976,13 @@
       "cta": "Call to action",
       "text": "Text",
       "other": "Other"
+    },
+    "media": {
+      "upload": "Upload from computer",
+      "uploading": "Uploading…",
+      "hint": "JPEG, PNG or WebP up to 5 MB and 6000 px per side. Metadata (camera, location) is removed from the file before it is stored. You can pick an uploaded image below or enter an https address.",
+      "delete": "Delete",
+      "delete_confirm": "Delete the image “{name}” from the library? This is only possible when no page, draft, version or block template uses it."
     }
   },
   "blocks": {
