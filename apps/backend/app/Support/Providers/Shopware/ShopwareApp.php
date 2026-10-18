@@ -8,6 +8,7 @@ use App\Models\IntegrationCredential;
 use App\Models\ReconciliationDirtySubject;
 use App\Models\Store;
 use App\Support\Account\AccountRejected;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Integrations\OrderSources;
 use App\Support\Network\PublicDestinationPolicy;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
@@ -255,7 +256,10 @@ class ShopwareApp
 
         $orderOfEvent = is_string($payload['order']['id'] ?? null) ? [$payload['order']['id']] : [];
 
+        $paused = (in_array($event, ['order.written', 'checkout.order.placed'], true) || str_starts_with($event, 'state_enter.')) && StoreCapacity::paused($integration);
+
         $result = match (true) {
+            $paused => StoreCapacity::ERROR_PAUSED,
             $event === 'order.written' => $this->sync->syncChanged($integration, $keys('order'), [])['status'],
             $event === 'checkout.order.placed', str_starts_with($event, 'state_enter.') => $this->sync->syncChanged($integration, $orderOfEvent, [])['status'],
             $event === 'app.deleted' => $this->revoke($integration, 'app_deleted'),

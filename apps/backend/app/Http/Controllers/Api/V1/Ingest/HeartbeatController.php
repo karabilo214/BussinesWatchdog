@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Integration;
 use App\Models\Store;
 use App\Models\StoreVerification;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Checkout\CheckoutObservation;
 use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Integrations\IntegrationCredentialService;
+use App\Support\Stores\StoreCatchUp;
 use App\Support\Stores\StoreVerificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +30,9 @@ class HeartbeatController extends Controller
             'credential_rotation_requested' => isset($integration->health[IntegrationCredentialService::HEALTH_ROTATION_REQUESTED_AT]),
             'store_verification' => $this->pendingPluginChallenge($integration, $verifications),
             'checkout_observation' => ['observe' => $observation->decide($integration->id)['observe']],
+            'store_paused' => StoreCapacity::paused($integration),
+            'backfill_requested_at' => StoreCatchUp::resumedAt($integration)?->toJSON(),
+            'backfill_since' => StoreCatchUp::pausedFrom($integration)?->toJSON(),
         ]);
     }
 

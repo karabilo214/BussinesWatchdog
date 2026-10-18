@@ -27,6 +27,7 @@ paths:
         Verify raw-body HMAC before JSON parse. Maximum 100 events and 1 MiB uncompressed.
         Fresh transport nonce is required for retry; event IDs remain unchanged.
         Accepted means committed to durable PostgreSQL inbox, not fully processed.
+        While the store is paused by the plan every record comes back `skipped` with code `store_capacity_paused` (207) and nothing is kept.
       parameters:
         - $ref: '#/components/parameters/SignatureTimestamp'
         - $ref: '#/components/parameters/SignatureNonce'
@@ -4705,6 +4706,7 @@ paths:
                             - {type: "null"}
                         incident_count: {type: integer}
                   unknown_amount_incidents: {type: integer}
+                  capacity_paused_stores: {type: integer, description: "Stores paused by the plan (ADR 0037 point 7): nothing is received or reconciled for them, so their money results are unknown — not zero and not healthy."}
                   money_amounts_hidden: {type: boolean}
                   recent_checks:
                     type: array
@@ -5556,6 +5558,12 @@ paths:
                     description: Whether the plugin should put the checkout observation script on the store and count checkout pages (ADR 0059).
                     properties:
                       observe: {type: boolean}
+                  store_paused: {type: boolean, description: "The store is paused by the plan (ADR 0037 point 7): events are answered skipped and not kept."}
+                  backfill_requested_at:
+                    type: [string, "null"]
+                    format: date-time
+                    description: Set after a capacity pause ended. A connector that has not yet handled this exact value sends the current snapshot of every order changed since backfill_since once, even when it sent that snapshot during the pause, so the paused period is caught up.
+                  backfill_since: {type: [string, "null"], format: date-time, description: "When the last capacity pause began."}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
       security:
@@ -6169,7 +6177,7 @@ components:
               index: {type: integer, minimum: 0, maximum: 99}
               event_id: {type: [string, 'null'], format: uuid}
               inbox_id: {type: [string, 'null'], format: uuid}
-              status: {type: string, enum: [accepted, duplicate, invalid, conflict, temporarily_rejected]}
+              status: {type: string, enum: [accepted, duplicate, invalid, conflict, temporarily_rejected, skipped], description: "skipped (code store_capacity_paused): the store is paused by the plan (ADR 0037 point 7); the record is not kept and must not be retried — the connector's audit window catches it up after the pause."}
               code: {type: string}
     User:
       type: object
@@ -6231,7 +6239,7 @@ components:
           type: object
           required: [state]
           properties:
-            state: {enum: [not_connected, warming_up, fresh, stale, partial]}
+            state: {enum: [not_connected, warming_up, fresh, stale, partial, capacity_paused], description: "capacity_paused: the store is paused by the plan (ADR 0037 point 7) — nothing is received, synced or reconciled."}
             provider: {type: [string, "null"], description: "woocommerce (plugin) or woocommerce_api (REST API key)"}
             last_heartbeat_at: {type: [string, "null"], format: date-time}
             last_sync_at: {type: [string, "null"], format: date-time, description: "Last successful sync of a REST API connection (it has no heartbeat)."}
@@ -6241,7 +6249,7 @@ components:
           required: [state, providers]
           properties:
             state:
-              enum: [provider_not_connected, store_not_connected, store_data_stale, reconciling]
+              enum: [provider_not_connected, store_not_connected, store_data_stale, capacity_paused, reconciling]
               description: "Money is reconciled only with a connected independent provider and fresh store data; otherwise results are unknown, never \"fine\"."
             providers:
               type: array
@@ -6255,7 +6263,7 @@ components:
           type: object
           required: [state]
           properties:
-            state: {enum: [store_not_connected, store_data_stale, no_attempts_seen, no_recent_attempts, observing]}
+            state: {enum: [store_not_connected, store_data_stale, capacity_paused, no_attempts_seen, no_recent_attempts, observing]}
             last_window_end_at: {type: [string, "null"], format: date-time}
         browser_checks:
           type: object
@@ -6264,6 +6272,7 @@ components:
             state:
               enum:
                 - store_not_verified
+                - capacity_paused
                 - disabled
                 - not_configured
                 - scenario_disabled
@@ -6280,7 +6289,7 @@ components:
           required: [state, last_report_at]
           description: Checkout observation script of the Shopware app (ADR 0057) or the WooCommerce plugin (ADR 0059).
           properties:
-            state: {enum: [not_available, needs_app, needs_plugin, connection_without_script, app_not_active, store_not_active, check_does_not_reach_payment, not_in_plan, not_seen_by_check, waiting, no_recent_reports, observing]}
+            state: {enum: [not_available, needs_app, needs_plugin, connection_without_script, app_not_active, store_not_active, capacity_paused, check_does_not_reach_payment, not_in_plan, not_seen_by_check, waiting, no_recent_reports, observing]}
             last_report_at: {type: [string, "null"], format: date-time}
     Store:
       type: object
@@ -6310,7 +6319,7 @@ components:
         default_currency: {type: string, pattern: "^[A-Z]{3}$"}
         status: {enum: [onboarding, active, paused, degraded, deleted]}
         verified_at: {type: [string, "null"], format: date-time}
-        capacity_paused_at: {type: [string, "null"], format: date-time, description: "Set while the plan allows fewer stores and the owner did not keep this one: scheduled and manual browser checks are paused, history and setup stay (ADR 0037)"}
+        capacity_paused_at: {type: [string, "null"], format: date-time, description: "Set while the plan allows fewer stores and the owner did not keep this one: the store is fully paused — no event ingestion, provider sync, reconciliation, freshness evaluation or browser checks; history and setup stay, money results are unknown (ADR 0037 point 7)"}
         browser_enabled: {type: boolean}
         telemetry_enabled: {type: boolean}
         config_version: {type: integer, minimum: 1}

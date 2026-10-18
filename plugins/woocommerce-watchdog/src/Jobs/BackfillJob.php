@@ -24,12 +24,13 @@ final class BackfillJob
 
     public const STATE = 'backfill';
 
-    public static function start(string $reason): array
+    public static function start(string $reason, ?int $resendChangedSince = null): array
     {
         $state = [
             'status' => 'running',
             'reason' => $reason,
             'window_start' => time() - self::WINDOW_DAYS * 86400,
+            'resend_changed_since' => $resendChangedSince === null ? null : max($resendChangedSince, time() - self::WINDOW_DAYS * 86400),
             'next_page' => 1,
             'scanned' => 0,
             'recorded' => 0,
@@ -75,9 +76,10 @@ final class BackfillJob
 
         try {
             for ($i = 0; $i < $pagesPerRun; $i++) {
-                $ids = (array) wc_get_orders([
+                $resendSince = isset($state['resend_changed_since']) ? (int) $state['resend_changed_since'] : null;
+                $window = $resendSince === null ? ['date_created' => '>' . (int) $state['window_start']] : ['date_modified' => '>=' . $resendSince];
+                $ids = (array) wc_get_orders($window + [
                     'type' => 'shop_order',
-                    'date_created' => '>' . (int) $state['window_start'],
                     'orderby' => 'ID',
                     'order' => 'ASC',
                     'limit' => self::PAGE_SIZE,
@@ -89,7 +91,7 @@ final class BackfillJob
                     $state['scanned']++;
 
                     try {
-                        $state['recorded'] += OrderCapture::captureById((int) $id);
+                        $state['recorded'] += $resendSince === null ? OrderCapture::captureById((int) $id) : OrderCapture::resendById((int) $id);
                     } catch (\Throwable $exception) {
                         OrderCapture::reportError((int) $id, $exception);
                     }

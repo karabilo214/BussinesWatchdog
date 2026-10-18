@@ -19,6 +19,8 @@ final class OrderCapture
 
     private static $afterFlush = null;
 
+    private static bool $resending = false;
+
     public static function onRecorded(callable $callback): void
     {
         self::$afterFlush = $callback;
@@ -97,6 +99,17 @@ final class OrderCapture
         }
 
         return $object instanceof \WC_Order ? self::captureOrder($object) : 0;
+    }
+
+    public static function resendById(int $id): int
+    {
+        self::$resending = true;
+
+        try {
+            return self::captureById($id);
+        } finally {
+            self::$resending = false;
+        }
     }
 
     public static function captureOrder(\WC_Order $order): int
@@ -179,6 +192,11 @@ final class OrderCapture
         }
 
         $revision = Revisions::observe($key, hash('sha256', (string) wp_json_encode($data)), $parentKey, $data);
+
+        if ($revision === null && self::$resending) {
+            $known = Revisions::find($key);
+            $revision = is_array($known) ? (int) $known['revision'] : null;
+        }
 
         if ($revision === null) {
             return 0;

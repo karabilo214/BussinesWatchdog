@@ -45,6 +45,11 @@ Not yet (at Step 47): browser-check support (test product, synthetic marker), te
 - It counts checkout stages only (page loaded, payment form ready, order sent, error shown, stalled 60 s, order-received page) and sends them with `sendBeacon` to this site's `POST /wp-json/business-watchdog/v1/observe` with a short-lived token (page kind and expiry only). No cookies or storage, no form values, no visitor identifiers.
 - The plugin counts the pages it renders itself (and a `noscript` beacon) in `wp_bw_checkout_observation`, 5-minute windows, and sends closed windows as `checkout.observation` through the outbox (`bw_checkout_observation` every minute; `wp business-watchdog checkout-observation --advance=N` runs it now). Pages rendered for a verified browser check are not counted and the script sends nothing there.
 
+## Store paused by the plan (0.3.1, ADR 0037 point 7)
+
+- While the store is paused by the plan the service answers every event `skipped` (`store_capacity_paused`); the plugin removes those events from the queue instead of retrying or dead-lettering them, and the heartbeat answer switches the checkout observation off.
+- After the pause the heartbeat carries `backfill_requested_at` and `backfill_since`. Once per value the plugin starts a backfill (`reason: capacity_resumed`) that sends the current snapshot of every order changed since `backfill_since` (at most 90 days back) with its current revision, even when that snapshot was already sent during the pause.
+
 ## Emergency instructions (WooCommerce)
 
 1. Admin works: WooCommerce → Business Watchdog → **Stop monitoring**, or deactivate the plugin.

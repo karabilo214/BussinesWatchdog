@@ -5,6 +5,7 @@ use BusinessWatchdog\WooCommerce\Connection\Connection;
 use BusinessWatchdog\WooCommerce\Jobs\BackfillJob;
 use BusinessWatchdog\WooCommerce\Jobs\DeliveryJob;
 use BusinessWatchdog\WooCommerce\Jobs\EnvironmentEvents;
+use BusinessWatchdog\WooCommerce\Jobs\HeartbeatJob;
 use BusinessWatchdog\WooCommerce\Jobs\RescanJob;
 use BusinessWatchdog\WooCommerce\Storage\Outbox;
 use BusinessWatchdog\WooCommerce\Storage\Schema;
@@ -118,6 +119,51 @@ bw_test('per-event results keep accepted and dead-letter rejected events', funct
 
     $rows = bw_outbox_rows();
     bw_assert(count($rows) === 1 && $rows[0]['state'] === Outbox::STATE_DEAD_LETTER && $rows[0]['last_error'] === 'quarantined:schema_invalid', 'unexpected rows: ' . wp_json_encode($rows));
+});
+
+bw_test('events skipped while the store is paused by the plan leave the outbox', function () {
+    bw_reset_outbox();
+    bw_seed_events(2);
+    [, $filter] = bw_fake_backend(static function ($body) {
+        $results = bw_all_results($body, 'skipped');
+        $results[0]['code'] = $results[1]['code'] = 'store_capacity_paused';
+
+        return [207, ['results' => $results]];
+    });
+    $result = DeliveryJob::run();
+    remove_filter('pre_http_request', $filter, 10);
+
+    bw_assert($result['delivered'] === 2 && bw_outbox_rows() === [], 'skipped events kept or dead-lettered: ' . wp_json_encode(bw_outbox_rows()));
+});
+
+bw_test('a backfill request after a capacity pause re-sends orders changed since the pause once', function () {
+    bw_reset_outbox();
+    State::delete(HeartbeatJob::STATE_BACKFILL_REQUEST);
+    $order = bw_make_order();
+    OrderCapture::flush();
+    $revision = bw_events(OrderCapture::orderKey($order->get_id()))[0]['aggregate_revision'];
+    bw_reset_outbox();
+    $requestedAt = gmdate('Y-m-d\TH:i:s\Z');
+    [, $filter] = bw_fake_backend(static function () use ($requestedAt) {
+        return [200, ['status' => 'ok', 'store_paused' => false, 'backfill_requested_at' => $requestedAt, 'backfill_since' => gmdate('Y-m-d\TH:i:s\Z', time() - 3600)]];
+    });
+    HeartbeatJob::run();
+    $state = State::get(BackfillJob::STATE);
+    bw_assert($state['status'] === 'running' && $state['reason'] === 'capacity_resumed', 'no backfill started: ' . wp_json_encode($state));
+
+    for ($i = 0; $i < 50 && $state['status'] === 'running'; $i++) {
+        $state = BackfillJob::run(10, false);
+    }
+
+    $events = bw_events(OrderCapture::orderKey($order->get_id()));
+    bw_assert(count($events) === 1 && $events[0]['aggregate_revision'] === $revision, 'unchanged order not sent again: ' . wp_json_encode($events));
+
+    bw_reset_outbox();
+    HeartbeatJob::run();
+    remove_filter('pre_http_request', $filter, 10);
+    bw_assert(State::get(BackfillJob::STATE)['status'] === 'completed', 'the same request started a second backfill');
+    OrderCapture::captureById($order->get_id());
+    bw_assert(bw_events(OrderCapture::orderKey($order->get_id())) === [], 'an ordinary capture re-sent an unchanged order');
 });
 
 bw_test('rate limiting honours Retry-After and server errors back off', function () {

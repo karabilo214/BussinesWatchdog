@@ -5,6 +5,7 @@ namespace App\Support\Checkout;
 use App\Models\Integration;
 use App\Models\ObservedPaymentAttempt;
 use App\Models\PaymentAttemptWindow;
+use App\Support\Billing\StoreCapacity;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -97,6 +98,7 @@ class ObservedPaymentAttempts
         ObservedPaymentAttempt::query()
             ->where('outcome', ObservedPaymentAttempt::OUTCOME_PENDING)
             ->where('attempted_at', '<=', $threshold)
+            ->whereNotIn('store_id', StoreCapacity::pausedStoreIds())
             ->select(['store_id', 'tenant_id', 'integration_id'])
             ->distinct()
             ->get()

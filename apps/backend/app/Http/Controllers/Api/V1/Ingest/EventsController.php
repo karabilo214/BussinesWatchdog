@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Ingest;
 
 use App\Http\Controllers\Controller;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Ingest\EventIngestor;
 use App\Support\Ingest\EventValidationResult;
 use Illuminate\Http\JsonResponse;
@@ -30,6 +31,8 @@ class EventsController extends Controller
     public const RESULT_CONFLICT = EventIngestor::RESULT_CONFLICT;
 
     public const RESULT_QUARANTINED = EventIngestor::RESULT_QUARANTINED;
+
+    public const RESULT_SKIPPED = 'skipped';
 
     public function __construct(
         private readonly EventIngestor $ingestor,
@@ -60,6 +63,18 @@ class EventsController extends Controller
 
         if (count($body['events']) < 1 || count($body['events']) > 100) {
             return $this->problem(EventValidationResult::ERROR_SCHEMA_INVALID, 'The events batch size is invalid.', 422, $requestId);
+        }
+
+        if (StoreCapacity::paused($integration)) {
+            return response()->json([
+                'request_id' => $requestId,
+                'results' => array_map(fn (mixed $event, int $index): array => array_filter([
+                    'index' => $index,
+                    'event_id' => is_array($event) && is_string($event['event_id'] ?? null) ? $event['event_id'] : null,
+                    'status' => self::RESULT_SKIPPED,
+                    'code' => StoreCapacity::ERROR_PAUSED,
+                ], fn (mixed $value): bool => $value !== null), array_values($body['events']), array_keys(array_values($body['events']))),
+            ], 207);
         }
 
         $results = $this->ingestor->ingest($integration, array_values($body['events']), is_array($rawEvents) ? $rawEvents : null, $requestId);

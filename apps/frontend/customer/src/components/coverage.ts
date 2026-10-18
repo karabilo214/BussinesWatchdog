@@ -8,6 +8,7 @@ export const CONNECTOR_TONES: Record<ConnectorState, Tone> = {
   stale: 'crit',
   warming_up: 'unknown',
   not_connected: 'unknown',
+  capacity_paused: 'unknown',
 };
 
 export const MONEY_TONES: Record<MoneyState, Tone> = {
@@ -15,6 +16,7 @@ export const MONEY_TONES: Record<MoneyState, Tone> = {
   provider_not_connected: 'unknown',
   store_not_connected: 'unknown',
   store_data_stale: 'unknown',
+  capacity_paused: 'unknown',
 };
 
 export const PAYMENT_ATTEMPTS_TONES: Record<PaymentAttemptsState, Tone> = {
@@ -23,6 +25,7 @@ export const PAYMENT_ATTEMPTS_TONES: Record<PaymentAttemptsState, Tone> = {
   no_attempts_seen: 'unknown',
   store_data_stale: 'unknown',
   store_not_connected: 'unknown',
+  capacity_paused: 'unknown',
 };
 
 export const BROWSER_CHECK_TONES: Record<BrowserChecksState, Tone> = {
@@ -34,6 +37,7 @@ export const BROWSER_CHECK_TONES: Record<BrowserChecksState, Tone> = {
   not_configured: 'unknown',
   disabled: 'unknown',
   store_not_verified: 'unknown',
+  capacity_paused: 'unknown',
 };
 
 export const CHECKOUT_SCRIPT_TONES: Record<CheckoutScriptState, Tone> = {
@@ -49,4 +53,5 @@ export const CHECKOUT_SCRIPT_TONES: Record<CheckoutScriptState, Tone> = {
   needs_plugin: 'unknown',
   needs_app: 'unknown',
   not_available: 'unknown',
+  capacity_paused: 'unknown',
 };

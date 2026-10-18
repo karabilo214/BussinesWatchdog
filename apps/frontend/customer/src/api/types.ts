@@ -25,10 +25,11 @@ export interface AuthSession {
   memberships: Membership[];
 }
 
-export type ConnectorState = 'not_connected' | 'warming_up' | 'fresh' | 'stale' | 'partial';
-export type MoneyState = 'provider_not_connected' | 'store_not_connected' | 'store_data_stale' | 'reconciling';
-export type PaymentAttemptsState = 'store_not_connected' | 'store_data_stale' | 'no_attempts_seen' | 'no_recent_attempts' | 'observing';
+export type ConnectorState = 'not_connected' | 'warming_up' | 'fresh' | 'stale' | 'partial' | 'capacity_paused';
+export type MoneyState = 'provider_not_connected' | 'store_not_connected' | 'store_data_stale' | 'capacity_paused' | 'reconciling';
+export type PaymentAttemptsState = 'store_not_connected' | 'store_data_stale' | 'capacity_paused' | 'no_attempts_seen' | 'no_recent_attempts' | 'observing';
 export type CheckoutScriptState =
+  | 'capacity_paused'
   | 'not_available'
   | 'needs_app'
   | 'connection_without_script'
@@ -43,6 +44,7 @@ export type CheckoutScriptState =
   | 'observing';
 export type BrowserChecksState =
   | 'store_not_verified'
+  | 'capacity_paused'
   | 'disabled'
   | 'not_configured'
   | 'scenario_disabled'
@@ -570,6 +572,7 @@ export interface Overview {
   incidents: { active: number; by_severity: Record<IncidentSeverity, number>; latest: Incident[] };
   discrepancies: { mode: 'live' | 'test' | null; currency: string; currency_exponent: number | null; component: string; total_minor: string | null; incident_count: number }[];
   unknown_amount_incidents: number;
+  capacity_paused_stores?: number;
   money_amounts_hidden?: boolean;
   recent_checks: CheckRunSummary[];
 }

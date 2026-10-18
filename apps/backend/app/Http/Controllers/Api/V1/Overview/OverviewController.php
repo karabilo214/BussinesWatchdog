@@ -8,6 +8,7 @@ use App\Http\Dto\Incidents\IncidentDto;
 use App\Models\CheckRun;
 use App\Models\Incident;
 use App\Models\ReconciliationFinding;
+use App\Models\Store;
 use App\Support\Tenancy\MoneyAmountVisibility;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +48,11 @@ class OverviewController extends Controller
             ],
             ...$this->discrepancies($tenantId, $showMoneyAmounts),
             'money_amounts_hidden' => ! $showMoneyAmounts,
+            'capacity_paused_stores' => Store::query()
+                ->where('tenant_id', $tenantId)
+                ->whereNotIn('status', ['deleted', 'deleting'])
+                ->whereNotNull('capacity_paused_at')
+                ->count(),
             'recent_checks' => CheckRun::query()
                 ->where('tenant_id', $tenantId)
                 ->whereNotNull('finished_at')

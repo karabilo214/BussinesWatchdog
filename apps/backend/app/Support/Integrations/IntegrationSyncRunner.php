@@ -4,6 +4,7 @@ namespace App\Support\Integrations;
 
 use App\Jobs\SyncIntegration;
 use App\Models\Integration;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Providers\PayPal\PayPalSync;
 use App\Support\Providers\Shopware\ShopwareConnector;
 use App\Support\Providers\Shopware\ShopwareSync;
@@ -21,6 +22,8 @@ class IntegrationSyncRunner
 {
     public const MODE_POINTERS = 'pointers';
 
+    public const MODE_AUDIT = 'audit';
+
     /** @var array<string, list<string>> */
     private const STATUSES = [
         'stripe' => [Integration::STATUS_ACTIVE],
@@ -37,6 +40,7 @@ class IntegrationSyncRunner
         return Integration::query()
             ->where('provider', $provider)
             ->whereIn('status', self::STATUSES[$provider] ?? throw new InvalidArgumentException('Unknown provider '.$provider))
+            ->whereNotIn('store_id', StoreCapacity::pausedStoreIds())
             ->orderByRaw('last_successful_sync_at IS NOT NULL')
             ->orderBy('last_successful_sync_at')
             ->orderBy('id');
@@ -62,7 +66,7 @@ class IntegrationSyncRunner
 
     public function eligible(Integration $integration): bool
     {
-        return in_array($integration->status, self::STATUSES[$integration->provider] ?? [], true);
+        return in_array($integration->status, self::STATUSES[$integration->provider] ?? [], true) && ! StoreCapacity::paused($integration);
     }
 
     /**

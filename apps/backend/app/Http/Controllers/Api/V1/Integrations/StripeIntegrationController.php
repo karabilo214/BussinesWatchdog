@@ -7,6 +7,7 @@ use App\Http\Dto\Integrations\IntegrationDto;
 use App\Models\Integration;
 use App\Models\Store;
 use App\Support\Account\AccountRejected;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Providers\Stripe\StripeConnector;
 use App\Support\Providers\Stripe\StripeSync;
 use App\Support\Tenancy\TenantContext;
@@ -67,6 +68,10 @@ class StripeIntegrationController extends Controller
 
         if ($integration->status !== Integration::STATUS_ACTIVE) {
             return response()->json(['code' => 'integration_not_active', 'message' => 'Only an active integration can be synchronised.'], 409);
+        }
+
+        if (StoreCapacity::paused($integration)) {
+            return response()->json(['code' => StoreCapacity::ERROR_PAUSED, 'message' => 'The store is paused by the plan.'], 409);
         }
 
         $result = $this->sync->run($integration, $validated['kind'] ?? StripeSync::MODE_DELTA);

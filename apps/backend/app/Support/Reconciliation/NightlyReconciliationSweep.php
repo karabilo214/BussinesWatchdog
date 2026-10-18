@@ -61,6 +61,7 @@ class NightlyReconciliationSweep
         Store::query()
             ->whereIn('status', self::STORE_STATUSES)
             ->whereIn('tenant_id', Tenant::query()->where('status', 'active')->select('id'))
+            ->whereNull('capacity_paused_at')
             ->orderBy('id')
             ->select(['id', 'tenant_id'])
             ->chunk(100, function ($chunk) use (&$totals, $slot): void {

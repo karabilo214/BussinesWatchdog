@@ -115,7 +115,8 @@
       "minor_units": "in minor units",
       "last_check": "Last successful checkout check",
       "uncovered": "Stores with incomplete coverage: {n}",
-      "all_covered": "All stores are monitored."
+      "all_covered": "All stores are monitored.",
+      "paused_stores": "Stores paused by the plan: {n} — their amounts are not reconciled and unknown."
     },
     "component": {
       "capture": "Captures",
@@ -128,8 +129,9 @@
     "latest_incidents": "Latest active incidents",
     "no_active_incidents": "No active incidents.",
     "recent_checks": "Recent checks",
-    "capacity_paused": "Checks paused: the plan includes fewer stores.",
-    "capacity_choose": "Choose stores"
+    "capacity_paused": "This store is paused: the plan includes fewer stores. No data is received or reconciled; history and settings are kept. When the pause ends, the data of this period is caught up.",
+    "capacity_choose": "Choose stores",
+    "paused_badge": "paused"
   },
   "store_status": {
     "onboarding": "Onboarding",
@@ -147,7 +149,8 @@
       "warming_up": "waiting for first data",
       "not_connected": "not connected",
       "detail_heartbeat": "last signal {time}",
-      "detail_sync": "last sync {time}"
+      "detail_sync": "last sync {time}",
+      "capacity_paused": "paused by the plan"
     },
     "money": {
       "label": "Money reconciliation",
@@ -155,7 +158,8 @@
       "provider_not_connected": "no payment provider connected",
       "store_not_connected": "store not connected",
       "store_data_stale": "store data out of date",
-      "detail_provider": "connect Stripe or PayPal to reconcile"
+      "detail_provider": "connect Stripe or PayPal to reconcile",
+      "capacity_paused": "unknown: store paused"
     },
     "payment_attempts": {
       "label": "Payment attempts",
@@ -164,7 +168,8 @@
       "no_attempts_seen": "no attempts seen yet",
       "store_data_stale": "store data out of date",
       "store_not_connected": "store not connected",
-      "detail_window": "last window {time}"
+      "detail_window": "last window {time}",
+      "capacity_paused": "paused by the plan"
     },
     "browser_checks": {
       "label": "Checkout path",
@@ -176,7 +181,8 @@
       "not_configured": "check not set up",
       "disabled": "checks turned off",
       "store_not_verified": "domain not verified",
-      "detail_next": "next {time}"
+      "detail_next": "next {time}",
+      "capacity_paused": "paused by the plan"
     },
     "checkout_script": {
       "label": "Checkout observation",
@@ -192,7 +198,8 @@
       "needs_app": "only when connected through the app",
       "needs_plugin": "only when connected through the plugin",
       "not_available": "not available",
-      "detail_report": "last data {time}"
+      "detail_report": "last data {time}",
+      "capacity_paused": "paused by the plan"
     }
   },
   "store": {
@@ -571,7 +578,7 @@
     "provider_outcome_unknown": "Paddle did not answer. We will check the subscription ourselves — do not repeat the action, reload the page in a minute.",
     "no_scheduled_change": "No plan change is scheduled.",
     "cancel_not_scheduled": "The subscription is not cancelled.",
-    "store_capacity_paused": "This store is paused by the plan: choose it on the subscription page to check it again.",
+    "store_capacity_paused": "This store is paused by the plan: choose it on the subscription page to resume it.",
     "faster_checks_unavailable": "This package has no faster-checks add-on.",
     "policy_acceptance_required": "The documents have changed. Read the new version and confirm your consent again.",
     "invoice_not_available": "There is no invoice for this payment.",
@@ -831,7 +838,8 @@
     "coverage": {
       "provider_not_connected": "Without a connected payment provider, captures and refunds are not visible, so every reconciliation result is “unknown”, not “all fine”.",
       "store_not_connected": "The store plugin is not connected: the service cannot see orders.",
-      "store_data_stale": "Store data is stale: until the plugin sends fresh data, reconciliation results are undetermined."
+      "store_data_stale": "Store data is stale: until the plugin sends fresh data, reconciliation results are undetermined.",
+      "capacity_paused": "This store is paused by the plan: no data is received or reconciled, so reconciliation results are unknown. When the pause ends, the data is caught up."
     },
     "filter": {
       "view": "Show",

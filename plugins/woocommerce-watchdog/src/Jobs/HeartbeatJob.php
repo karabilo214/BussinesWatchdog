@@ -20,6 +20,8 @@ final class HeartbeatJob
 
     public const STATE_PENDING_CHALLENGE = 'pending_store_verification';
 
+    public const STATE_BACKFILL_REQUEST = 'backfill_request_handled';
+
     private const SUSPENDING_CODES = ['credential_revoked', 'signature_invalid'];
 
     public static function run(): array
@@ -57,6 +59,7 @@ final class HeartbeatJob
 
         self::rememberChallenge($response->json['store_verification'] ?? null);
         ObservationSettings::remember($response->json['checkout_observation'] ?? null);
+        self::followBackfillRequest($response->json['backfill_requested_at'] ?? null, $response->json['backfill_since'] ?? null);
 
         $rotated = false;
 
@@ -90,6 +93,17 @@ final class HeartbeatJob
     {
         return ($response->status === 401 && in_array($response->errorCode, self::SUSPENDING_CODES, true))
             || $response->status === 403;
+    }
+
+    private static function followBackfillRequest($requestedAt, $since): void
+    {
+        if (! is_string($requestedAt) || $requestedAt === '' || State::get(self::STATE_BACKFILL_REQUEST) === $requestedAt) {
+            return;
+        }
+
+        $from = is_string($since) ? strtotime($since) : false;
+        BackfillJob::start('capacity_resumed', $from === false ? null : $from);
+        State::set(self::STATE_BACKFILL_REQUEST, $requestedAt);
     }
 
     private static function rememberChallenge($verification): void

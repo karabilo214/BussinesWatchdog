@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Integrations;
 use App\Http\Controllers\Controller;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Providers\Stripe\StripeConnector;
 use App\Support\Providers\Stripe\StripeObjectIngestor;
 use Illuminate\Http\JsonResponse;
@@ -51,6 +52,10 @@ class StripeWebhookController extends Controller
 
         if ($target->status !== Integration::STATUS_ACTIVE) {
             return response()->json(['received' => true, 'ignored' => 'integration_not_active']);
+        }
+
+        if (StoreCapacity::paused($target)) {
+            return response()->json(['received' => true, 'ignored' => StoreCapacity::ERROR_PAUSED]);
         }
 
         $object = $event->data->object->toArray();

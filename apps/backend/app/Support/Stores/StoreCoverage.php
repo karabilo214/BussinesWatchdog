@@ -24,6 +24,8 @@ class StoreCoverage
 {
     public const PAYMENT_ATTEMPTS_QUIET_HOURS = 24;
 
+    public const CAPACITY_PAUSED = 'capacity_paused';
+
     /**
      * @param  Collection<int, Store>  $stores
      * @return array<string, array{coverage: array<string, mixed>, last_successful_check_at: ?string, active_incident_count: int}>
@@ -86,7 +88,12 @@ class StoreCoverage
             $storeIntegrations = $integrations->get($store->id, collect());
             $connector = $storeIntegrations->firstWhere('source_authority', Integration::SOURCE_STORE_REPORTED);
             $provider = $storeIntegrations->first(fn (Integration $integration): bool => $integration->source_authority === Integration::SOURCE_INDEPENDENT_PROVIDER && $integration->status === Integration::STATUS_ACTIVE);
-            $connectorState = $connector === null ? 'not_connected' : ($connector->health['freshness']['state'] ?? ConnectorFreshness::STATE_WARMING_UP);
+            $paused = $store->capacity_paused_at !== null;
+            $connectorState = match (true) {
+                $connector === null => 'not_connected',
+                $paused => self::CAPACITY_PAUSED,
+                default => $connector->health['freshness']['state'] ?? ConnectorFreshness::STATE_WARMING_UP,
+            };
             $storeDataStale = in_array($connectorState, ConnectorFreshness::DEGRADED_STATES, true);
             $windowEnd = $lastWindow->get($store->id);
             $passedAt = $lastPassed->get($store->id);
@@ -104,6 +111,7 @@ class StoreCoverage
                         'state' => match (true) {
                             $provider === null => 'provider_not_connected',
                             $connector === null => 'store_not_connected',
+                            $paused => self::CAPACITY_PAUSED,
                             $storeDataStale => 'store_data_stale',
                             default => 'reconciling',
                         },
@@ -116,6 +124,7 @@ class StoreCoverage
                     'payment_attempts' => [
                         'state' => match (true) {
                             $connector === null => 'store_not_connected',
+                            $paused => self::CAPACITY_PAUSED,
                             $storeDataStale => 'store_data_stale',
                             $windowEnd === null => 'no_attempts_seen',
                             Carbon::parse($windowEnd)->lessThan(Carbon::now()->subHours(self::PAYMENT_ATTEMPTS_QUIET_HOURS)) => 'no_recent_attempts',
@@ -177,6 +186,7 @@ class StoreCoverage
     {
         $state = match (true) {
             $store->verified_at === null => 'store_not_verified',
+            $store->capacity_paused_at !== null => self::CAPACITY_PAUSED,
             ! $store->browser_enabled => 'disabled',
             $scenario === null => 'not_configured',
             ! $scenario->enabled => 'scenario_disabled',
@@ -191,7 +201,7 @@ class StoreCoverage
             'last_run_status' => $lastRun?->status,
             'last_run_error_code' => $lastRun?->error_code,
             'last_run_finished_at' => $lastRun?->finished_at?->toJSON(),
-            'next_due_at' => $scenario?->enabled ? $scenario->next_due_at?->toJSON() : null,
+            'next_due_at' => $scenario?->enabled && $store->capacity_paused_at === null ? $scenario->next_due_at?->toJSON() : null,
         ];
     }
 }

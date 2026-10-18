@@ -8,6 +8,7 @@ use App\Models\Integration;
 use App\Models\Store;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Providers\Shopware\ShopwareConnector;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,10 @@ class CheckoutObservation
 
         if (Store::query()->whereKey($integration->store_id)->where('status', 'active')->doesntExist()) {
             return ['observe' => false, 'reason' => 'store_not_active'];
+        }
+
+        if (StoreCapacity::paused($integration)) {
+            return ['observe' => false, 'reason' => 'capacity_paused'];
         }
 
         if ($integration->provider === ShopwareConnector::PROVIDER) {

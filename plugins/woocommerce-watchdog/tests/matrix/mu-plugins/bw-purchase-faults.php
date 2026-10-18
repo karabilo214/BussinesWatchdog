@@ -22,12 +22,11 @@ add_action('wp_footer', static function (): void {
         return;
     }
 
-    $script = match ($mode) {
+    $script = [
         'product_button' => "document.querySelectorAll('form.cart .single_add_to_cart_button').forEach(b => { b.disabled = true; b.setAttribute('aria-disabled', 'true'); });",
         'cart_button' => "document.querySelectorAll('a.checkout-button').forEach(b => { b.style.pointerEvents = 'none'; b.setAttribute('aria-disabled', 'true'); });",
         'cart_script' => "document.querySelectorAll('a.checkout-button').forEach(b => b.addEventListener('click', e => { e.preventDefault(); e.stopImmediatePropagation(); }, true));",
-        default => '',
-    };
+    ][$mode];
     echo '<script data-bw-fault="' . esc_attr($mode) . '">' . $script . '</script>';
 }, 1000);
 

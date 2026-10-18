@@ -127,6 +127,7 @@ onMounted(load);
               </li>
               <li v-if="overview.unknown_amount_incidents" class="text-[13px] text-text-muted">{{ $t('overview.tiles.unknown_amounts', { n: overview.unknown_amount_incidents }) }}</li>
             </ul>
+            <span v-if="overview.capacity_paused_stores" class="text-[13px] text-unknown" data-paused-stores>{{ $t('overview.tiles.paused_stores', { n: overview.capacity_paused_stores }) }}</span>
             <span class="text-[13px] text-text-muted">{{ $t('overview.tiles.discrepancies_note') }}</span>
           </RouterLink>
 

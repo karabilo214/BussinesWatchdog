@@ -77,6 +77,7 @@ describe('OverviewView', () => {
         { mode: null, currency: 'USD', currency_exponent: null, component: 'capture', total_minor: '1000', incident_count: 1 },
       ],
       unknown_amount_incidents: 1,
+      capacity_paused_stores: 1,
       recent_checks: [],
     });
     const router = createRouter({ history: createMemoryHistory('/app/'), routes: [{ path: '/:p(.*)*', name: 'overview', component: OverviewView }] });
@@ -90,6 +91,7 @@ describe('OverviewView', () => {
     expect(wrapper.get('[data-discrepancy="test-EUR-refund"]').text()).toContain('Тестовый режим');
     expect(wrapper.text()).not.toContain('266,00');
     expect(wrapper.text()).toContain('Инцидентов без подтверждённой суммы: 1');
+    expect(wrapper.get('[data-paused-stores]').text()).toContain('Магазинов на паузе по тарифу: 1');
     expect(wrapper.text()).toContain('не потери');
   });
 });

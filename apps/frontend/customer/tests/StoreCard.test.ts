@@ -55,4 +55,24 @@ describe('StoreCard', () => {
     expect(wrapper.text()).toContain('kein Zahlungsanbieter verbunden');
     expect(wrapper.text()).not.toMatch(/coverage\.|overview\./);
   });
+
+  it('a store paused by the plan reads as paused and unknown, never as healthy', () => {
+    setLocale('ru');
+    const paused = store({
+      active_incident_count: 0,
+      capacity_paused_at: '2026-10-20T00:00:00Z',
+      coverage: {
+        connector: { state: 'capacity_paused', provider: 'woocommerce', last_heartbeat_at: null, plugin_version: null },
+        money: { state: 'capacity_paused', providers: [] },
+        payment_attempts: { state: 'capacity_paused', last_window_end_at: null },
+        browser_checks: { state: 'capacity_paused', last_run_status: null, last_run_error_code: null, last_run_finished_at: null, next_due_at: null },
+      },
+    });
+    const wrapper = mount(StoreCard, { props: { store: paused }, global: { plugins: [localization], stubs: { RouterLink: RouterLinkStub } } });
+
+    expect(wrapper.findAll('[data-tone="ok"]')).toHaveLength(0);
+    expect(wrapper.text()).not.toContain('Нет активных инцидентов');
+    expect(wrapper.text()).toContain('неизвестно: магазин на паузе');
+    expect(wrapper.get('[data-store-paused="capacity"]').text()).toContain('Данные не принимаются и не сверяются');
+  });
 });

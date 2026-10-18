@@ -51,7 +51,7 @@ Tabs invoices, payment attempts, plan change, billing profile. Owner видит 
 
 Actions: buy/renew через hosted checkout, manage method через provider portal, upgrade preview/confirm, downgrade at period end, cancel at period end, resume scheduled cancel если provider supports. Unsupported provider action disabled с объяснением. Повторная кнопка retry возвращает existing checkout/action. После возврата от provider «Подтверждаем платёж» до verified backend state, а не активная подписка по querystring.
 
-Если max stores уменьшается, owner выбирает retained store IDs перед effective_at. При отсутствии выбора — `capacity_choice_required`, scheduled browser jobs pause, история и setup доступны, stores не удаляются. При этом invoices и контракт продления не переписываются. Source ingestion limits продолжают действовать по entitlement policy и отображаются явно.
+Если max stores уменьшается, owner выбирает retained store IDs перед effective_at. Магазины вне выбора полностью на паузе (ADR 0037 п. 7): приём данных, синхронизация провайдеров, сверка, оценка свежести и browser checks остановлены, история и setup доступны, stores не удаляются; в кабинете магазин «на паузе», денежные результаты `unknown`, инцидентов свежести нет; после снятия паузы данные периода догружаются через окно аудита коннекторов. При отсутствии выбора — `capacity_choice_required`, scheduled browser jobs pause. При этом invoices и контракт продления не переписываются.
 
 Past_due grace proposed7д: banner due date+safe payment action. После grace paused_billing, сохраняется кабинет/history/payment/support. Renew после pause запускает восстановление scheduled jobs/backfill в quota limits, не создаёт storm historical alerts. Trial по окончании без оплаты не даёт permanent monitoring access.
 

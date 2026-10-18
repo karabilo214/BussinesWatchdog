@@ -6,8 +6,10 @@ use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\ReconciliationDirtySubject;
 use App\Models\Signal;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Incidents\IncidentRecorder;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
+use App\Support\Stores\StoreCatchUp;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -119,7 +121,8 @@ class ConnectorFreshness
 
     /**
      * A store read through its API has no heartbeat: it is stale when the key was rejected or no sync succeeded for
-     * a while, and fresh again after the next successful sync.
+     * a while, and fresh again after the next successful sync. A capacity pause syncs nothing, so the wait starts again
+     * when the store resumes.
      *
      * @return array{state: string, reason: ?string}
      */
@@ -131,6 +134,11 @@ class ConnectorFreshness
 
         $staleBefore = $now->copy()->subMinutes((int) config('watchdog.woocommerce_api.stale_after_minutes'));
         $last = $integration->last_successful_sync_at ?? $integration->created_at;
+        $resumedAt = StoreCatchUp::resumedAt($integration);
+
+        if ($resumedAt !== null && ($last === null || $resumedAt->greaterThan($last))) {
+            $last = $resumedAt;
+        }
 
         if ($last !== null && $last->lessThanOrEqualTo($staleBefore)) {
             return ['state' => self::STATE_STALE, 'reason' => $integration->last_successful_sync_at === null ? 'api_not_synced_yet' : 'api_sync_failing'];
@@ -152,6 +160,7 @@ class ConnectorFreshness
         Integration::query()
             ->where('source_authority', Integration::SOURCE_STORE_REPORTED)
             ->whereIn('status', [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED])
+            ->whereNotIn('store_id', StoreCapacity::pausedStoreIds())
             ->orderBy('id')
             ->select('id')
             ->chunk(100, function ($chunk) use (&$checked, &$changed, $limit): bool {
@@ -179,7 +188,7 @@ class ConnectorFreshness
             /** @var Integration|null $integration */
             $integration = Integration::query()->whereKey($integrationId)->lockForUpdate()->first();
 
-            if ($integration === null || ! in_array($integration->status, [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED], true)) {
+            if ($integration === null || ! in_array($integration->status, [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED], true) || StoreCapacity::paused($integration)) {
                 return false;
             }
 

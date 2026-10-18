@@ -24,6 +24,7 @@ const host = computed(() => storeHost(props.store.base_url));
       <RouterLink v-if="store.active_incident_count > 0" :to="{ name: 'incidents', query: { store: store.id } }" class="rounded-full focus-visible:outline-2">
         <StatusBadge tone="crit" solid :label="$t('overview.active_incidents', { n: store.active_incident_count })" />
       </RouterLink>
+      <StatusBadge v-else-if="store.capacity_paused_at" tone="unknown" :label="$t('overview.paused_badge')" />
       <StatusBadge v-else tone="ok" :label="$t('overview.no_incidents')" />
     </header>
 

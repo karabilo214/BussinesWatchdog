@@ -23,7 +23,7 @@ final class DeliveryJob
 
     public const STATE_LAST = 'last_delivery';
 
-    private const DONE_STATUSES = ['accepted', 'duplicate'];
+    private const DONE_STATUSES = ['accepted', 'duplicate', 'skipped'];
 
     public static function run(): array
     {

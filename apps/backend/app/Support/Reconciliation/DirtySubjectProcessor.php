@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\ReconciliationDirtySubject;
 use App\Models\ReconciliationRun;
 use App\Models\Store;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Incidents\MoneyIncidentCorrelator;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Carbon;
@@ -79,6 +80,7 @@ class DirtySubjectProcessor
             $subjects = ReconciliationDirtySubject::query()
                 ->where('due_at', '<=', $now)
                 ->where(fn ($query) => $query->whereNull('lease_until')->orWhere('lease_until', '<=', $now))
+                ->whereNotIn('store_id', StoreCapacity::pausedStoreIds())
                 ->orderBy('due_at')
                 ->orderBy('id')
                 ->limit($limit)
