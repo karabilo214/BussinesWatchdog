@@ -320,6 +320,10 @@ return [
         'body' => 'Diese Seite existiert nicht oder ist nicht mehr veröffentlicht.',
         'back' => 'Zur Startseite',
     ],
+    'maintenance' => [
+        'active' => 'Wartungsarbeiten bis :to.',
+        'planned' => 'Geplante Wartung: :from — :to.',
+    ],
     'preview' => 'Vorschau — die Seite ist nicht veröffentlicht',
     'chooser' => 'Sprache wählen',
 ];

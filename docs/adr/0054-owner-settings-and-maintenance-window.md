@@ -20,4 +20,4 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Настрой�
 
 - `MaintenanceWindow`: a window is active from `starts_at` to `ends_at` unless cancelled. While active: no scheduled browser checks are created (manual runs stay possible), connector freshness is not assessed, customer notification deliveries and incident reminders wait (queued deliveries go out after the window), stuck payment attempts and the checkout-script evaluation are not run. Billing, ingestion, provider sync and reconciliation keep running.
 - After a window ends, freshness counts a gap from the end of the window (heartbeat, delivery backlog, polled sync), so a gap that started inside it raises an incident only if it goes on past the usual threshold after the end. A window cancelled before it started changes nothing; one cancelled while running ends at the cancellation.
-
+- Public site banner (Step 183): every public page (not the editor preview) shows the current window in the page language — planned with start and end, or in progress until the end — in Berlin time, with the window's message for that language.

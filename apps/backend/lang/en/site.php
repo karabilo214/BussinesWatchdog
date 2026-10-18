@@ -320,6 +320,10 @@ return [
         'body' => 'This page does not exist or is no longer published.',
         'back' => 'Go to the home page',
     ],
+    'maintenance' => [
+        'active' => 'Maintenance in progress until :to.',
+        'planned' => 'Planned maintenance: :from — :to.',
+    ],
     'preview' => 'Preview — the page is not published',
     'chooser' => 'Choose your language',
 ];

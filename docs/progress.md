@@ -12,6 +12,6 @@ Step history is split by area. Read only the file you need; add a new step to th
 | [`progress/exports.md`](progress/exports.md) | CSV exports: findings, incidents and transaction exports, retention purge, download URLs, reference schema | 75, 77, 81, 82, 83, 84, 87 |
 | [`progress/dashboard.md`](progress/dashboard.md) | Customer dashboard: palette, dashboard scaffold and workspaces, store/incident/reconciliation/check/notification screens, overview, account and team, MFA | 56, 57, 58, 59, 60, 61, 62, 63, 64, 69, 135, 161, 164 |
 | [`progress/billing.md`](progress/billing.md) | SaaS billing and owner panel: plans and entitlements, Paddle adapter, trials, usage, subscription page, platform staff sign-in, plans/prices/discounts in the owner panel, plan change and cancellation, customers and subscriptions, volume packages, pause, add-ons, retention, invoices and payments, refunds | 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 108, 109, 110, 114, 115, 116, 117, 119, 120, 125, 126, 127, 130, 132, 166, 167, 168 |
-| [`progress/public-site.md`](progress/public-site.md) | Public site: server-rendered public site, content pages, contact form, sign-up and consent to legal documents | 111, 118, 121, 122, 123, 124, 128, 129, 138, 139, 145, 149, 150, 151, 152, 153, 158, 169, 170, 171, 172, 178 |
+| [`progress/public-site.md`](progress/public-site.md) | Public site: server-rendered public site, content pages, contact form, sign-up and consent to legal documents | 111, 118, 121, 122, 123, 124, 128, 129, 138, 139, 145, 149, 150, 151, 152, 153, 158, 169, 170, 171, 172, 178, 183 |
 
-Last step: 182 (`progress/core.md`).
+Last step: 183 (`progress/public-site.md`).

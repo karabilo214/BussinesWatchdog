@@ -7,6 +7,7 @@ use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
 use App\Models\ContactRequest;
+use App\Models\MaintenanceNotice;
 use App\Models\PlatformStaff;
 use App\Models\PublicPage;
 use App\Models\PublicPageVersion;
@@ -369,6 +370,23 @@ class PublicSiteTest extends TestCase
         DB::table('contact_request_notes')->where('id', $note['id'])->update(['staff_id' => $other->id]);
         $this->patchJson("/platform-api/v1/contact-requests/{$request->id}/notes/{$note['id']}", ['body' => 'Not mine'])->assertForbidden()->assertJsonPath('code', 'note_not_yours');
         $this->patchJson("/platform-api/v1/contact-requests/{$request->id}/notes/".Str::uuid(), ['body' => 'Missing'])->assertNotFound();
+    }
+
+    public function test_the_public_site_shows_the_maintenance_window_in_the_page_language(): void
+    {
+        Carbon::setTestNow('2026-10-20T08:00:00Z');
+        $this->get('/de')->assertOk()->assertDontSee('data-maintenance', false);
+        $owner = PlatformStaff::query()->create(['user_id' => User::query()->create(['name' => 'Owner', 'email' => 'owner@platform.test', 'password_hash' => 'x', 'locale' => 'ru'])->id, 'role' => PlatformStaff::ROLE_OWNER, 'state' => PlatformStaff::STATE_ACTIVE]);
+        MaintenanceNotice::query()->create(['version' => 1, 'starts_at' => Carbon::parse('2026-10-21T20:00:00Z'), 'ends_at' => Carbon::parse('2026-10-21T22:00:00Z'), 'messages' => ['ru' => 'Обновляем серверы.', 'de' => 'Wir aktualisieren die Server.', 'en' => 'We are updating servers.'], 'reason' => 'Upgrade', 'created_by' => $owner->id]);
+
+        $this->get('/de')->assertOk()->assertSee('Geplante Wartung: 21.10.2026 22:00 — 22.10.2026 00:00 CEST. Wir aktualisieren die Server.');
+        $this->get('/ru/pricing')->assertOk()->assertSee('Плановые технические работы')->assertSee('Обновляем серверы.');
+
+        Carbon::setTestNow('2026-10-21T21:00:00Z');
+        $this->get('/en')->assertOk()->assertSee('Maintenance in progress until 22.10.2026 00:00 CEST. We are updating servers.');
+
+        Carbon::setTestNow('2026-10-21T22:01:00Z');
+        $this->get('/en')->assertOk()->assertDontSee('data-maintenance', false);
     }
 
     public function test_messages_are_handled_in_the_owner_panel_by_role_and_closed_ones_expire(): void

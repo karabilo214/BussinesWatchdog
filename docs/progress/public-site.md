@@ -247,3 +247,11 @@ Status: complete (ADR 0049 owner decision)
 - Owner panel: "Save as template" in the reply form, own templates marked; "Edit" on the staff member's own notes with "edited" time; labels for the new audit actions.
 
 Verification: `PublicSiteTest` (template limits, unknown code 404, saved template used and marked, audit before/after; note edit by the author with audit, another author's note 403, missing note 404), control `site.test.ts` (save template without sending, edit own note, no edit for read-only staff). Backend SQLite 622 passed + 4 skipped; PostgreSQL 18: 626/626. Control typecheck, 65/65, build. Manual browser smoke was not run.
+
+### Step 183: Maintenance Banner on the Public Site
+
+Status: complete (ADR 0054 owner decision)
+
+- `site/layout.blade.php` shows the current maintenance window (`PlatformSettings::forCustomer` in the page language) above the header, reusing the warning strip style; texts `site.maintenance.planned|active` (ru/en/de), times in Europe/Berlin. Not shown in the editor preview. Pages are cached for `WATCHDOG_SITE_CACHE_SECONDS`, so the banner may appear or disappear up to that delay late.
+
+Verification: `PublicSiteTest` (no banner without a window; planned in German and Russian with the window's message; in progress in English; gone after the end). Backend SQLite 629 passed + 4 skipped; PostgreSQL 18: 633/633. Manual browser smoke was not run.

@@ -33,6 +33,10 @@
 @if ($preview)
     <p class="site-preview" role="status">{{ __('site.preview') }}</p>
 @endif
+@php($maintenance = $preview ? null : app(\App\Support\Platform\PlatformSettings::class)->forCustomer($locale))
+@if ($maintenance)
+    <p class="site-preview" role="status" data-maintenance>{{ __($maintenance['active'] ? 'site.maintenance.active' : 'site.maintenance.planned', ['from' => \Illuminate\Support\Carbon::parse($maintenance['starts_at'])->timezone('Europe/Berlin')->format('d.m.Y H:i'), 'to' => \Illuminate\Support\Carbon::parse($maintenance['ends_at'])->timezone('Europe/Berlin')->format('d.m.Y H:i T')]) }} {{ $maintenance['message'] }}</p>
+@endif
 <header class="site-header">
     <div class="site-wrap site-header-row">
         <a class="site-brand" href="{{ \App\Support\Site\SiteContent::url($locale) }}">{{ __('site.brand') }}</a>
