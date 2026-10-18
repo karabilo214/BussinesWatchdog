@@ -94,6 +94,47 @@ class TeamService
     }
 
     /**
+     * Platform staff change a member's role at the customer's request (ADR 0048). The owner role is never given or
+     * taken here — it only moves through an ownership transfer.
+     */
+    public function changeRoleForPlatform(string $tenantId, string $targetUserId, string $role, string $reason): Membership
+    {
+        return DB::transaction(function () use ($tenantId, $targetUserId, $role, $reason): Membership {
+            $target = $this->lockedMember($tenantId, $targetUserId);
+
+            if ($target->role === TenantRoles::OWNER || $role === TenantRoles::OWNER) {
+                throw new AccountRejected('owner_role_protected', 409);
+            }
+
+            if (! in_array($role, self::ASSIGNABLE, true)) {
+                throw new AccountRejected('role_not_assignable');
+            }
+
+            $previous = $target->role;
+            Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->update(['role' => $role]);
+            $this->audit($tenantId, null, 'membership.role_changed', 'membership', $targetUserId, ['role' => ['from' => $previous, 'to' => $role], 'by' => 'platform', 'reason' => $reason]);
+
+            return Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->with('user')->firstOrFail();
+        });
+    }
+
+    public function removeForPlatform(string $tenantId, string $targetUserId, string $reason): Membership
+    {
+        return DB::transaction(function () use ($tenantId, $targetUserId, $reason): Membership {
+            $target = $this->lockedMember($tenantId, $targetUserId);
+
+            if ($target->role === TenantRoles::OWNER) {
+                throw new AccountRejected('owner_role_protected', 409);
+            }
+
+            Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->delete();
+            $this->audit($tenantId, null, 'membership.removed', 'membership', $targetUserId, ['role' => $target->role, 'by' => 'platform', 'reason' => $reason]);
+
+            return $target;
+        });
+    }
+
+    /**
      * The owner hands the team to a member with a confirmed address and stays as admin; both changes happen together,
      * so the team always has exactly one owner (ADR 0021). Re-authentication is checked by the caller.
      */
@@ -318,6 +359,14 @@ class TeamService
     /**
      * @return array{0: string, 1: Membership}
      */
+    private function lockedMember(string $tenantId, string $userId): Membership
+    {
+        /** @var Membership|null $member */
+        $member = Membership::query()->where('tenant_id', $tenantId)->where('user_id', $userId)->lockForUpdate()->first();
+
+        return $member ?? throw new AccountRejected('member_not_found', 404);
+    }
+
     private function lockPair(string $tenantId, User $actor, string $targetUserId): array
     {
         $actorRole = Membership::query()->where('tenant_id', $tenantId)->where('user_id', $actor->id)->lockForUpdate()->value('role');

@@ -86,6 +86,8 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::get('/tenants/{tenant}/invitations', [TenantTeamController::class, 'invitations']);
         Route::post('/tenants/{tenant}/invitations', [TenantTeamController::class, 'invite'])->middleware('throttle:invitations');
         Route::post('/tenants/{tenant}/invitations/{invitation}/revoke', [TenantTeamController::class, 'revoke']);
+        Route::patch('/tenants/{tenant}/members/{user}', [TenantTeamController::class, 'changeRole'])->whereUuid(['tenant', 'user']);
+        Route::post('/tenants/{tenant}/members/{user}/remove', [TenantTeamController::class, 'removeMember'])->whereUuid(['tenant', 'user']);
         Route::get('/tenants/{tenant}/stores/{store}', [TenantStoreController::class, 'show']);
         Route::get('/tenants/{tenant}/stores/{store}/findings', [TenantStoreController::class, 'findings']);
         Route::get('/tenants/{tenant}/stores/{store}/orders', [TenantStoreController::class, 'orders']);

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { fetchTenant, fetchTenantInvitations, inviteTenantMember, resetCustomerMfa, revokeTenantInvitation, type InvitableRole, type TenantCard, type TenantInvitation } from '@/api';
+import { changeTenantMemberRole, fetchTenant, fetchTenantInvitations, inviteTenantMember, removeTenantMember, resetCustomerMfa, revokeTenantInvitation, type InvitableRole, type TenantCard, type TenantInvitation } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 
@@ -18,6 +18,31 @@ const notice = ref<string | null>(null);
 const form = reactive({ email: '', role: 'operator' as InvitableRole, reason: '' });
 const revoke = reactive({ id: null as string | null, reason: '' });
 const reset = reactive({ userId: null as string | null, reason: '', code: '' });
+const change = reactive({ kind: null as 'role' | 'remove' | null, userId: '', role: 'operator' as InvitableRole, reason: '' });
+
+function askChange(kind: 'role' | 'remove', userId: string, role: string): void {
+  Object.assign(change, { kind, userId, role: (ROLES as string[]).includes(role) ? role : 'operator', reason: '' });
+  notice.value = null;
+}
+
+async function confirmChange(): Promise<void> {
+  if (change.kind === null || change.reason.trim().length < 3 || busy.value) return;
+  busy.value = true;
+  error.value = null;
+  notice.value = null;
+
+  try {
+    if (change.kind === 'role') await changeTenantMemberRole(props.card.id, change.userId, change.role, change.reason.trim());
+    else await removeTenantMember(props.card.id, change.userId, change.reason.trim());
+    notice.value = change.kind === 'role' ? 'tenant.team.role_changed' : 'tenant.team.removed';
+    change.kind = null;
+    emit('updated', await fetchTenant(props.card.id));
+  } catch (caught) {
+    error.value = caught;
+  } finally {
+    busy.value = false;
+  }
+}
 const ready = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) && form.reason.trim().length >= 3);
 
 async function load(): Promise<void> {
@@ -130,12 +155,30 @@ onMounted(load);
             <td class="px-4 py-3">{{ $t(`member_role.${member.role}`, member.role) }}</td>
             <td class="px-4 py-3 text-text-muted">{{ dateTime(member.joined_at) }}</td>
             <td class="px-4 py-3 text-right">
+              <span v-if="canManage && member.role !== 'owner' && member.user_id" class="mr-1.5 inline-flex gap-1.5">
+                <button type="button" class="rounded-md border border-border-strong px-2.5 py-1 text-primary hover:bg-primary-soft" data-action="change-role" @click="askChange('role', member.user_id, member.role)">{{ $t('tenant.team.change_role') }}</button>
+                <button type="button" class="rounded-md border border-crit-border px-2.5 py-1 text-crit hover:bg-crit-soft" data-action="remove-member" @click="askChange('remove', member.user_id, member.role)">{{ $t('tenant.team.remove') }}</button>
+              </span>
               <button v-if="canResetMfa && member.mfa_enabled" type="button" class="rounded-md border border-warn-border px-2.5 py-1 text-warn hover:bg-warn-soft" data-action="reset-mfa" @click="Object.assign(reset, { userId: member.user_id, reason: '', code: '' }); notice = null">{{ $t('tenant.team.mfa_reset') }}</button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <form v-if="change.kind" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-4 text-sm" :data-form="`member-${change.kind}`" @submit.prevent="confirmChange">
+      <p>{{ $t(change.kind === 'role' ? 'tenant.team.role_hint' : 'tenant.team.remove_warning') }}</p>
+      <label v-if="change.kind === 'role'" class="flex max-w-xs flex-col gap-1 font-medium">{{ $t('tenant.team.role') }}
+        <select v-model="change.role" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-normal" data-field="member-role">
+          <option v-for="role in ROLES" :key="role" :value="role">{{ $t(`member_role.${role}`, role) }}</option>
+        </select>
+      </label>
+      <label class="flex flex-col gap-1 font-medium">{{ $t('tenant.actions.reason') }}<input v-model="change.reason" maxlength="500" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-normal" data-field="member-reason" /></label>
+      <div class="flex gap-2">
+        <button type="submit" class="rounded-md bg-primary px-3 py-2 font-medium text-text-inverse disabled:opacity-60" :disabled="busy || change.reason.trim().length < 3" data-action="member-confirm">{{ $t(change.kind === 'role' ? 'tenant.team.change_role' : 'tenant.team.remove') }}</button>
+        <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-2" @click="change.kind = null">{{ $t('common.cancel') }}</button>
+      </div>
+    </form>
 
     <form v-if="reset.userId" class="flex flex-col gap-3 rounded-xl border border-warn-border bg-warn-soft p-4 text-sm" data-form="mfa-reset" @submit.prevent="confirmMfaReset">
       <p>{{ $t('tenant.team.mfa_reset_warning') }}</p>

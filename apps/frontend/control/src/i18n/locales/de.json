@@ -208,7 +208,9 @@
     "media_too_large_for_server": "Der Server hat nicht genug Speicher für ein so großes Bild – verkleinern Sie es und laden Sie es erneut hoch.",
     "media_processing_unavailable": "Der Server kann Bilder dieses Formats gerade nicht verarbeiten (ein PHP-Modul fehlt). Informieren Sie den Administrator.",
     "media_storage_unavailable": "Der Dateispeicher ist gerade nicht erreichbar – versuchen Sie es später erneut.",
-    "media_missing": "Wählen Sie eine Datei zum Hochladen."
+    "media_missing": "Wählen Sie eine Datei zum Hochladen.",
+    "owner_role_protected": "Die Inhaberrolle wechselt nur durch Übergabe im Kundenkonto.",
+    "member_not_found": "Das Mitglied gehört nicht mehr zum Team."
   },
   "period": {
     "per": {
@@ -647,7 +649,13 @@
       "mfa_reset": "MFA deaktivieren",
       "mfa_reset_warning": "Alle Sitzungen der Person enden und Wiederherstellungscodes werden ungültig. Die Person erhält eine E-Mail. Bestätigen Sie mit Ihrem Authenticator-Code.",
       "confirmation_code": "Authenticator-Code",
-      "mfa_reset_done": "MFA wurde zurückgesetzt. Eine Benachrichtigung wurde gesendet."
+      "mfa_reset_done": "MFA wurde zurückgesetzt. Eine Benachrichtigung wurde gesendet.",
+      "change_role": "Rolle ändern",
+      "remove": "Aus dem Team entfernen",
+      "role_hint": "Die neue Rolle gilt sofort. Die Inhaberrolle wechselt nur durch Übergabe im Kundenkonto.",
+      "remove_warning": "Das Mitglied verliert den Zugang zur Organisation; sein Konto bleibt bestehen.",
+      "role_changed": "Rolle geändert.",
+      "removed": "Mitglied aus dem Team entfernt."
     },
     "reminders": {
       "hint": "Alle gesendeten Erinnerungen: wer, wann, an wen und mit welchem Text.",
@@ -672,7 +680,9 @@
       "store_viewed": "Shopdaten geöffnet",
       "check_rerun": "Prüfung vom Support neu gestartet",
       "incident_acknowledged": "Vorfall vom Support angenommen",
-      "incident_resolved": "Vorfall vom Support geschlossen"
+      "incident_resolved": "Vorfall vom Support geschlossen",
+      "member_role_changed": "Rolle eines Kundenmitglieds geändert",
+      "member_removed": "Kundenmitglied entfernt"
     },
     "staff": {
       "login": "Anmeldung",

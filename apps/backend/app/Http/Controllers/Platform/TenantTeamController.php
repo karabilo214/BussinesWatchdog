@@ -82,6 +82,48 @@ class TenantTeamController extends Controller
         return response()->json($this->invitation($revoked));
     }
 
+    public function changeRole(Request $request, string $tenant, string $user): JsonResponse
+    {
+        $model = $this->tenant($tenant);
+
+        if ($model === null || ! Str::isUuid($user)) {
+            return $this->missing();
+        }
+
+        $validated = $request->validate(['role' => ['required', 'string'], 'reason' => ['required', 'string', 'min:3', 'max:500']]);
+
+        try {
+            $member = $this->team->changeRoleForPlatform($model->id, $user, $validated['role'], trim($validated['reason']));
+        } catch (AccountRejected $exception) {
+            return $this->rejected($exception);
+        }
+
+        $this->audit->record($this->staff($request)->id, 'tenant.member_role_changed', 'user', $user, PlatformAudit::RESULT_SUCCEEDED, ['role' => $member->role], trim($validated['reason']), $model->id);
+
+        return response()->json(['user_id' => $user, 'role' => $member->role]);
+    }
+
+    public function removeMember(Request $request, string $tenant, string $user): JsonResponse
+    {
+        $model = $this->tenant($tenant);
+
+        if ($model === null || ! Str::isUuid($user)) {
+            return $this->missing();
+        }
+
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);
+
+        try {
+            $removed = $this->team->removeForPlatform($model->id, $user, trim($validated['reason']));
+        } catch (AccountRejected $exception) {
+            return $this->rejected($exception);
+        }
+
+        $this->audit->record($this->staff($request)->id, 'tenant.member_removed', 'user', $user, PlatformAudit::RESULT_SUCCEEDED, ['role' => $removed->role], trim($validated['reason']), $model->id);
+
+        return response()->json(null, 204);
+    }
+
     public function resetMfa(Request $request, string $tenant, string $user): JsonResponse
     {
         $model = $this->tenant($tenant);
@@ -151,6 +193,6 @@ class TenantTeamController extends Controller
 
     private function rejected(AccountRejected $exception): JsonResponse
     {
-        return response()->json(['code' => $exception->reasonCode, 'message' => 'The invitation change was rejected.'], $exception->status);
+        return response()->json(['code' => $exception->reasonCode, 'message' => 'The team change was rejected.'], $exception->status);
     }
 }

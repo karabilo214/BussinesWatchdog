@@ -638,6 +638,14 @@ export async function fetchTenantInvitations(tenantId: string): Promise<TenantIn
   return (await request<{ data: TenantInvitation[] }>('GET', tenantPath(tenantId, 'invitations'))).data.data;
 }
 
+export async function changeTenantMemberRole(tenantId: string, userId: string, role: InvitableRole, reason: string): Promise<{ user_id: string; role: InvitableRole }> {
+  return (await request<{ user_id: string; role: InvitableRole }>('PATCH', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/members/${encodeURIComponent(userId)}`, { body: { role, reason } })).data;
+}
+
+export async function removeTenantMember(tenantId: string, userId: string, reason: string): Promise<void> {
+  await request<null>('POST', `/platform-api/v1/tenants/${encodeURIComponent(tenantId)}/members/${encodeURIComponent(userId)}/remove`, { body: { reason } });
+}
+
 export async function inviteTenantMember(tenantId: string, input: { email: string; role: InvitableRole; reason: string }): Promise<TenantInvitation> {
   return (await request<TenantInvitation>('POST', tenantPath(tenantId, 'invitations'), { body: input })).data;
 }

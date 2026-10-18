@@ -1050,6 +1050,63 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/members/{user}:
+    patch:
+      tags: [Platform]
+      operationId: platformChangeTenantMemberRole
+      description: "Capability tenants.manage (ADR 0048). Changes the role of a customer team member at the customer's request (admin, operator, viewer; 422 role_not_assignable) with a reason. The owner role is never given or taken here (409 owner_role_protected) — it only moves through an ownership transfer. 404 member_not_found. Audited in the platform audit (tenant.member_role_changed) and the organisation audit (membership.role_changed, by platform)."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: user, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, reason]
+              properties:
+                role: {enum: [admin, operator, viewer]}
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "200":
+          description: New role
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/members/{user}/remove:
+    post:
+      tags: [Platform]
+      operationId: platformRemoveTenantMember
+      description: "Capability tenants.manage (ADR 0048). Removes a member from the customer's team with a reason; the user account stays. Never the owner (409 owner_role_protected). Audited (tenant.member_removed, membership.removed by platform)."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: user, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "204": {description: Removed}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/reminders/preview:
     post:
       tags: [Platform]

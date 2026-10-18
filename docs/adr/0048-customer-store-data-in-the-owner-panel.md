@@ -33,4 +33,5 @@ Status: accepted for now (owner's backlog item 2026-10-13: in the customer card,
 
 - `tenant.store_viewed` is no longer written (older entries stay in the journal with their label).
 - `RecordPlatformChanges` (in the `platform` middleware group): a successful POST/PUT/PATCH/DELETE of a signed-in staff member that wrote no platform audit entry of its own gets `platform.change` (method, route pattern, status; the organisation as target when the route has one); a change under `/tenants/{tenant}/…` that wrote nothing to the organisation's audit gets `platform.change` there with `by: platform`. Sign-in, staff invitation pages and previews are left out; failed requests are not recorded as changes.
+- Team changes (Step 177): `PATCH /platform-api/v1/tenants/{tenant}/members/{user}` (admin/operator/viewer) and `POST …/members/{user}/remove`, capability `tenants.manage`, reason required; the owner is never changed or removed here (409 `owner_role_protected`); audited in the platform and the organisation audit (`by: platform`).
 

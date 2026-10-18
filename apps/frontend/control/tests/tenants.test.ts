@@ -28,6 +28,8 @@ vi.mock('@/api', () => ({
   fetchStoreChecks: vi.fn(),
   fetchStoreIncidents: vi.fn(),
   rerunStoreCheck: vi.fn(),
+  changeTenantMemberRole: vi.fn(),
+  removeTenantMember: vi.fn(),
   changeStoreIncident: vi.fn(),
   fetchCustomerOrder: vi.fn(),
   fetchCustomerCheck: vi.fn(),
@@ -228,6 +230,34 @@ describe('tenants', () => {
     expect(item.text()).toContain('Другое');
     expect(item.text()).toContain('Founder');
     expect(item.get('[data-message="anna@example.test"]').text()).toContain('отчёт по возвратам');
+  });
+
+  it('changes the role of a customer member and removes one, never offering it for the owner', async () => {
+    const members = [
+      { user_id: 'u-1', role: 'owner', mfa_enabled: true, joined_at: null, name: 'Anna', email: 'anna@example.test', email_verified: true },
+      { user_id: 'u-2', role: 'operator', mfa_enabled: false, joined_at: null, name: 'Jonas', email: 'jonas@example.test', email_verified: true },
+    ];
+    mocked.fetchTenant.mockResolvedValue(card({ members }));
+    mocked.fetchTenantInvitations.mockResolvedValue([]);
+    mocked.changeTenantMemberRole.mockResolvedValue({ user_id: 'u-2', role: 'admin' });
+    mocked.removeTenantMember.mockResolvedValue();
+    const { wrapper } = await open('/owner/tenants/t-1?tab=members');
+
+    expect(wrapper.get('[data-member="anna@example.test"]').find('[data-action="change-role"]').exists()).toBe(false);
+    await wrapper.get('[data-member="jonas@example.test"] [data-action="change-role"]').trigger('click');
+    await wrapper.get('[data-field="member-role"]').setValue('admin');
+    expect(wrapper.get('[data-action="member-confirm"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-field="member-reason"]').setValue('Customer asked');
+    await wrapper.get('[data-form="member-role"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.changeTenantMemberRole).toHaveBeenCalledWith('t-1', 'u-2', 'admin', 'Customer asked');
+    expect(wrapper.get('[data-done="team"]').text()).toBe('Роль изменена.');
+
+    await wrapper.get('[data-member="jonas@example.test"] [data-action="remove-member"]').trigger('click');
+    await wrapper.get('[data-field="member-reason"]').setValue('Left the company');
+    await wrapper.get('[data-form="member-remove"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.removeTenantMember).toHaveBeenCalledWith('t-1', 'u-2', 'Left the company');
   });
 
   it('invites a team member for the customer and revokes a pending invitation', async () => {

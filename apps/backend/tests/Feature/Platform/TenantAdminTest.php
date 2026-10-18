@@ -352,6 +352,37 @@ class TenantAdminTest extends TestCase
         $this->postJson("/platform-api/v1/tenants/{$empty->id}/reminders", ['topic' => 'subscription', 'recipient_ids' => [$anna->id], 'letters' => $letters])->assertStatus(409)->assertJsonPath('code', 'no_recipients');
     }
 
+    public function test_staff_change_roles_and_remove_members_of_the_customer_team_but_never_the_owner(): void
+    {
+        $context = $this->context();
+        $tenant = $context['tenant']->id;
+        $owner = $context['user'];
+        $operator = $this->context('operator', $context['tenant'])['user'];
+        $viewer = $this->context('viewer', $context['tenant'])['user'];
+        $stranger = $this->context()['user'];
+        $this->signIn();
+
+        $this->patchJson("/platform-api/v1/tenants/{$tenant}/members/{$operator->id}", ['role' => 'admin'])->assertStatus(422)->assertJsonValidationErrors('reason');
+        $this->patchJson("/platform-api/v1/tenants/{$tenant}/members/{$operator->id}", ['role' => 'owner', 'reason' => 'Asked'])->assertStatus(409)->assertJsonPath('code', 'owner_role_protected');
+        $this->patchJson("/platform-api/v1/tenants/{$tenant}/members/{$owner->id}", ['role' => 'viewer', 'reason' => 'Asked'])->assertStatus(409)->assertJsonPath('code', 'owner_role_protected');
+        $this->patchJson("/platform-api/v1/tenants/{$tenant}/members/{$operator->id}", ['role' => 'root', 'reason' => 'Asked'])->assertStatus(422)->assertJsonPath('code', 'role_not_assignable');
+        $this->patchJson("/platform-api/v1/tenants/{$tenant}/members/{$stranger->id}", ['role' => 'admin', 'reason' => 'Asked'])->assertNotFound();
+        $this->patchJson("/platform-api/v1/tenants/{$tenant}/members/{$operator->id}", ['role' => 'admin', 'reason' => 'Customer asked by email'])->assertOk()->assertJsonPath('role', 'admin');
+        $this->assertSame('admin', DB::table('memberships')->where('tenant_id', $tenant)->where('user_id', $operator->id)->value('role'));
+
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/members/{$owner->id}/remove", ['reason' => 'Asked'])->assertStatus(409)->assertJsonPath('code', 'owner_role_protected');
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/members/{$viewer->id}/remove", ['reason' => 'Left the company'])->assertNoContent();
+        $this->assertFalse(DB::table('memberships')->where('tenant_id', $tenant)->where('user_id', $viewer->id)->exists());
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/members/{$viewer->id}/remove", ['reason' => 'Twice'])->assertNotFound();
+
+        $this->assertSame('Customer asked by email', DB::table('platform_audit_log')->where('action', 'tenant.member_role_changed')->value('reason'));
+        $this->assertSame('Left the company', DB::table('platform_audit_log')->where('action', 'tenant.member_removed')->value('reason'));
+        $removed = json_decode((string) DB::table('audit_log')->where('tenant_id', $tenant)->where('action', 'membership.removed')->value('changes'), true);
+        $this->assertSame('platform', $removed['by']);
+        $this->assertSame('viewer', $removed['role']);
+        $this->assertNull(DB::table('audit_log')->where('tenant_id', $tenant)->where('action', 'membership.role_changed')->value('actor_user_id'));
+    }
+
     public function test_owner_invites_and_revokes_team_members_of_the_organisation_with_a_reason(): void
     {
         Mail::fake();

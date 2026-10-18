@@ -406,3 +406,12 @@ Status: complete (ADR 0048 owner decision)
 - Dropped `tenant.store_viewed`. New middleware `App\Http\Middleware\Platform\RecordPlatformChanges` at the end of the `platform` group; `PlatformAudit::record` and `AuditLog::created` mark the request as audited (platform / per organisation), so actions that already write their own entries get no generic one. Labels for `platform.change` and the new actions of Steps 169–175 in the owner panel journal (ru/en/de). `openapi.yaml` description of the customer store view.
 
 Verification: `PlatformChangeAuditTest` (generic entry for an unaudited change with method/route/status, none for an audited one, organisation entry `by: platform`, nothing for a failed request, a preview or a view; a team invitation with its own entries gets no generic ones), `TenantStoreDataTest` (opening a store writes nothing). Backend SQLite 620 passed + 4 skipped; PostgreSQL 18: 624/624. Control typecheck, 64/64, build. Manual browser smoke was not run.
+
+### Step 177: Change Roles and Remove Members of a Customer Team from the Owner Panel
+
+Status: complete (ADR 0048 owner decision)
+
+- `TeamService::changeRoleForPlatform/removeForPlatform` (row lock, owner protected, organisation audit with `by: platform` and the reason); `TenantTeamController::changeRole/removeMember` with the platform audit; routes under `tenants.manage`; `openapi.yaml`.
+- Owner panel: "Change role" and "Remove from team" for every member except the owner in the card's team tab, with a reason; labels for the new audit actions.
+
+Verification: `TenantAdminTest` (reason required, owner role neither given nor taken, unknown role, foreign user 404, role changed, owner not removable, removal and second removal 404, both audits), control `tenants.test.ts`. Backend SQLite 621 passed + 4 skipped; PostgreSQL 18: 625/625. Control typecheck, 65/65, build. Manual browser smoke was not run.

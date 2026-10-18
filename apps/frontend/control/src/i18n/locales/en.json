@@ -208,7 +208,9 @@
     "media_too_large_for_server": "The server does not have enough memory for such a large image — make it smaller and upload again.",
     "media_processing_unavailable": "The server cannot process images of this format right now (a PHP module is missing). Tell the administrator.",
     "media_storage_unavailable": "File storage is not available right now — try again later.",
-    "media_missing": "Choose a file to upload."
+    "media_missing": "Choose a file to upload.",
+    "owner_role_protected": "The owner role only moves through an ownership transfer in the customer account.",
+    "member_not_found": "The member is no longer in the team."
   },
   "period": {
     "per": {
@@ -647,7 +649,13 @@
       "mfa_reset": "Disable MFA",
       "mfa_reset_warning": "All user sessions will end and recovery codes will stop working. The user will receive an email. Confirm with your authenticator code.",
       "confirmation_code": "Authenticator code",
-      "mfa_reset_done": "The user's MFA was reset. A notification was sent."
+      "mfa_reset_done": "The user's MFA was reset. A notification was sent.",
+      "change_role": "Change role",
+      "remove": "Remove from team",
+      "role_hint": "The new role applies at once. The owner role only moves through an ownership transfer in the customer account.",
+      "remove_warning": "The member loses access to the organisation; their account stays.",
+      "role_changed": "Role changed.",
+      "removed": "Member removed from the team."
     },
     "reminders": {
       "hint": "Every sent reminder: who, when, to whom and with which text.",
@@ -672,7 +680,9 @@
       "store_viewed": "Store data opened",
       "check_rerun": "Check rerun by support",
       "incident_acknowledged": "Incident acknowledged by support",
-      "incident_resolved": "Incident resolved by support"
+      "incident_resolved": "Incident resolved by support",
+      "member_role_changed": "Customer member role changed",
+      "member_removed": "Customer member removed"
     },
     "staff": {
       "login": "Staff sign-in",
