@@ -56,7 +56,7 @@ class TenantStoreDataTest extends TestCase
         $this->signIn();
 
         $this->getJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}")->assertOk()->assertJsonPath('id', $store)->assertJsonPath('name', 'Main Shop');
-        $this->assertSame(1, DB::table('platform_audit_log')->where('action', 'tenant.store_viewed')->where('target_id', $store)->where('target_tenant_id', $tenant)->count());
+        $this->assertSame(0, DB::table('platform_audit_log')->where('target_tenant_id', $tenant)->count(), 'Views are not audited.');
 
         $findings = $this->getJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}/findings")->assertOk()->json('data');
         $this->assertSame([$data['finding']], array_column($findings, 'id'));

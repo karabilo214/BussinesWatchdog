@@ -58,11 +58,10 @@ class TenantStoreController extends Controller
         });
     }
 
-    public function show(Request $request, string $tenant, string $store): JsonResponse
+    public function show(string $tenant, string $store): JsonResponse
     {
-        return $this->as($tenant, function (Tenant $model) use ($request, $store): JsonResponse {
+        return $this->as($tenant, function (Tenant $model) use ($store): JsonResponse {
             $found = $this->find(Store::class, $model, $store);
-            $this->audit->record($this->staff($request)->id, 'tenant.store_viewed', 'store', $found->id, PlatformAudit::RESULT_SUCCEEDED, [], null, $model->id);
 
             return app()->call([app(StoreController::class), 'show'], ['store' => $found]);
         });

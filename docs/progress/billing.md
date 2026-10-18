@@ -398,3 +398,11 @@ Status: complete (ADR 0048 owner decision)
 - Owner panel: rerun button on the checks tab, acknowledge/resolve in the incident detail, reason form; capability label in the staff picker. Customer dashboard: timeline shows "Business Watchdog support" and the acknowledgement reason; trigger label "rerun by support" (ru/en/de in both apps).
 
 Verification: `TenantStoreDataTest` (rerun with reason, foreign scenario 404, no usage entries, rate limit, audits, incident acknowledge/resolve with activity `by: platform`, conflict on a second resolve, permission needed). Control 64/64 (`tenants.test.ts` support flow and no actions without the permission), customer 134/134 (`incidents.test.ts` support entry); typecheck and builds. Backend SQLite 618 passed + 4 skipped; PostgreSQL 18: 622/622 (jsonb key order made one assertion order-independent). Manual browser smoke was not run.
+
+### Step 176: Owner Panel Audit Records Changes, Not Views
+
+Status: complete (ADR 0048 owner decision)
+
+- Dropped `tenant.store_viewed`. New middleware `App\Http\Middleware\Platform\RecordPlatformChanges` at the end of the `platform` group; `PlatformAudit::record` and `AuditLog::created` mark the request as audited (platform / per organisation), so actions that already write their own entries get no generic one. Labels for `platform.change` and the new actions of Steps 169–175 in the owner panel journal (ru/en/de). `openapi.yaml` description of the customer store view.
+
+Verification: `PlatformChangeAuditTest` (generic entry for an unaudited change with method/route/status, none for an audited one, organisation entry `by: platform`, nothing for a failed request, a preview or a view; a team invitation with its own entries gets no generic ones), `TenantStoreDataTest` (opening a store writes nothing). Backend SQLite 620 passed + 4 skipped; PostgreSQL 18: 624/624. Control typecheck, 64/64, build. Manual browser smoke was not run.

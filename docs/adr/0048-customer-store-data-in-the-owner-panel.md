@@ -29,3 +29,8 @@ Status: accepted for now (owner's backlog item 2026-10-13: in the customer card,
 - Incidents: `POST …/incidents/{incident}/acknowledge|resolve` with a reason. The incident activity has no customer user as actor and records `by: platform` with the reason; the customer sees "Business Watchdog support" and the reason in the timeline.
 - Every action is in the platform audit (`tenant.check_rerun`, `tenant.incident_acknowledged`, `tenant.incident_resolved`, with the reason) and in the organisation audit (`check_run.support_started`, `incident.acknowledged_by_platform`, `incident.resolved_by_platform`, `by: platform`).
 
+## Implementation of the audit decision (Step 176)
+
+- `tenant.store_viewed` is no longer written (older entries stay in the journal with their label).
+- `RecordPlatformChanges` (in the `platform` middleware group): a successful POST/PUT/PATCH/DELETE of a signed-in staff member that wrote no platform audit entry of its own gets `platform.change` (method, route pattern, status; the organisation as target when the route has one); a change under `/tenants/{tenant}/…` that wrote nothing to the organisation's audit gets `platform.change` there with `by: platform`. Sign-in, staff invitation pages and previews are left out; failed requests are not recorded as changes.
+

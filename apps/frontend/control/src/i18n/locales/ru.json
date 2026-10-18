@@ -669,7 +669,10 @@
       "invitation_revoked": "Приглашение отозвано",
       "member_mfa_reset": "MFA клиента сброшена",
       "store_created": "Добавлен магазин",
-      "store_viewed": "Открыты данные магазина"
+      "store_viewed": "Открыты данные магазина",
+      "check_rerun": "Проверка перезапущена поддержкой",
+      "incident_acknowledged": "Инцидент принят поддержкой",
+      "incident_resolved": "Инцидент закрыт поддержкой"
     },
     "staff": {
       "login": "Вход сотрудника",
@@ -700,6 +703,10 @@
         "updated": "Изменён статус обращения",
         "replied": "Ответ на обращение",
         "noted": "Заметка к обращению"
+      },
+      "media": {
+        "uploaded": "Загружен файл сайта",
+        "deleted": "Удалён файл сайта"
       }
     },
     "audit": {
@@ -708,6 +715,12 @@
     "settings": {
       "maintenance_scheduled": "Запланированы работы",
       "maintenance_cancelled": "Работы отменены"
+    },
+    "platform": {
+      "change": "Изменение из админки"
+    },
+    "reminder": {
+      "template_saved": "Сохранён шаблон напоминания"
     }
   },
   "site": {

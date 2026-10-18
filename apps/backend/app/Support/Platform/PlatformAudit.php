@@ -2,6 +2,7 @@
 
 namespace App\Support\Platform;
 
+use App\Http\Middleware\Platform\RecordPlatformChanges;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -20,6 +21,7 @@ class PlatformAudit
     public function record(?string $staffId, string $action, string $targetType, string $targetId, string $result, array $changes = [], ?string $reason = null, ?string $targetTenantId = null): void
     {
         $requestId = request()?->attributes->get('request_id');
+        request()?->attributes->set(RecordPlatformChanges::AUDITED, true);
 
         DB::table('platform_audit_log')->insert([
             'id' => (string) Str::uuid7(),

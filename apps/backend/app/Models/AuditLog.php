@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Middleware\Platform\RecordPlatformChanges;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -70,6 +71,17 @@ class AuditLog extends Model
     public $timestamps = false;
 
     protected $table = 'audit_log';
+
+    protected static function booted(): void
+    {
+        static::created(function (self $entry): void {
+            $request = request();
+
+            if ($request !== null && $request->is('platform-api/*')) {
+                $request->attributes->set(RecordPlatformChanges::TENANTS_AUDITED, [...(array) $request->attributes->get(RecordPlatformChanges::TENANTS_AUDITED, []), $entry->tenant_id]);
+            }
+        });
+    }
 
     protected $fillable = [
         'tenant_id',

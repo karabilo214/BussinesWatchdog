@@ -669,7 +669,10 @@
       "invitation_revoked": "Einladung widerrufen",
       "member_mfa_reset": "Kunden-MFA zurückgesetzt",
       "store_created": "Shop hinzugefügt",
-      "store_viewed": "Shopdaten geöffnet"
+      "store_viewed": "Shopdaten geöffnet",
+      "check_rerun": "Prüfung vom Support neu gestartet",
+      "incident_acknowledged": "Vorfall vom Support angenommen",
+      "incident_resolved": "Vorfall vom Support geschlossen"
     },
     "staff": {
       "login": "Anmeldung",
@@ -700,6 +703,10 @@
         "updated": "Status der Anfrage geändert",
         "replied": "Anfrage beantwortet",
         "noted": "Notiz zur Anfrage"
+      },
+      "media": {
+        "uploaded": "Website-Datei hochgeladen",
+        "deleted": "Website-Datei gelöscht"
       }
     },
     "audit": {
@@ -708,6 +715,12 @@
     "settings": {
       "maintenance_scheduled": "Wartung geplant",
       "maintenance_cancelled": "Wartung abgesagt"
+    },
+    "platform": {
+      "change": "Änderung im Admin-Bereich"
+    },
+    "reminder": {
+      "template_saved": "Erinnerungsvorlage gespeichert"
     }
   },
   "site": {

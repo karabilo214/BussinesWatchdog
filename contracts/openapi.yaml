@@ -784,7 +784,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformShowTenantStore
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Opening a store is audited as tenant.store_viewed."
+      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Views are not audited (ADR 0048); every change from the panel is."
       security:
         - {StaffSession: []}
       parameters:

@@ -669,7 +669,10 @@
       "invitation_revoked": "Invitation revoked",
       "member_mfa_reset": "Customer MFA reset",
       "store_created": "Store added",
-      "store_viewed": "Store data opened"
+      "store_viewed": "Store data opened",
+      "check_rerun": "Check rerun by support",
+      "incident_acknowledged": "Incident acknowledged by support",
+      "incident_resolved": "Incident resolved by support"
     },
     "staff": {
       "login": "Staff sign-in",
@@ -700,6 +703,10 @@
         "updated": "Message status changed",
         "replied": "Message replied",
         "noted": "Note on a message"
+      },
+      "media": {
+        "uploaded": "Site file uploaded",
+        "deleted": "Site file deleted"
       }
     },
     "audit": {
@@ -708,6 +715,12 @@
     "settings": {
       "maintenance_scheduled": "Maintenance planned",
       "maintenance_cancelled": "Maintenance cancelled"
+    },
+    "platform": {
+      "change": "Change from the owner panel"
+    },
+    "reminder": {
+      "template_saved": "Reminder template saved"
     }
   },
   "site": {

@@ -14,6 +14,7 @@ use App\Http\Middleware\Auth\RequireStatefulSession;
 use App\Http\Middleware\Browser\AuthenticateBrowserWorker;
 use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
 use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
+use App\Http\Middleware\Platform\RecordPlatformChanges;
 use App\Http\Middleware\Platform\RequirePlatformStaff;
 use App\Http\Middleware\Platform\UsePlatformSession;
 use App\Http\Middleware\Platform\ValidatePlatformCsrfToken;
@@ -64,6 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
             StartSession::class,
             ValidatePlatformCsrfToken::class,
             SubstituteBindings::class,
+            RecordPlatformChanges::class,
         ]);
         $middleware->alias([
             'platform.staff' => RequirePlatformStaff::class,
