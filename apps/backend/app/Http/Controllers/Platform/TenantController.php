@@ -187,6 +187,6 @@ class TenantController extends Controller
 
     private function can(PlatformStaff $staff, string $capability): bool
     {
-        return in_array($capability, PlatformCapabilities::for($staff->role), true);
+        return PlatformCapabilities::allows($staff, $capability);
     }
 }

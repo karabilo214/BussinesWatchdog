@@ -13,15 +13,21 @@ class PlatformStaffInvitation extends Model
 
     public const TTL_HOURS = 72;
 
-    protected $fillable = ['email', 'role', 'token_hash', 'invited_by', 'expires_at', 'accepted_at', 'accepted_staff_id', 'revoked_at'];
+    protected $fillable = ['email', 'role', 'capabilities', 'token_hash', 'invited_by', 'expires_at', 'accepted_at', 'accepted_staff_id', 'revoked_at'];
 
     protected function casts(): array
     {
         return [
+            'capabilities' => 'array',
             'expires_at' => 'datetime',
             'accepted_at' => 'datetime',
             'revoked_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(fn (self $invitation) => PlatformStaff::settleRole($invitation));
     }
 
     public function pending(): bool

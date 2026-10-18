@@ -34,7 +34,7 @@ class StaffOnboarding
     }
 
     /**
-     * @return array{email: string, role: string, expires_at: string, account_exists: bool}
+     * @return array{email: string, role: string, capabilities: list<string>|null, expires_at: string, account_exists: bool}
      */
     public function lookup(string $token): array
     {
@@ -43,6 +43,7 @@ class StaffOnboarding
         return [
             'email' => $invitation->email,
             'role' => $invitation->role,
+            'capabilities' => $invitation->capabilities,
             'expires_at' => $invitation->expires_at->toJSON(),
             'account_exists' => User::query()->where('email', $invitation->email)->exists(),
         ];
@@ -122,9 +123,9 @@ class StaffOnboarding
                 throw new StaffRejected('invitation_invalid');
             }
 
-            $staff = PlatformStaff::query()->create(['user_id' => $user->id, 'role' => $locked->role, 'state' => PlatformStaff::STATE_ACTIVE]);
+            $staff = PlatformStaff::query()->create(['user_id' => $user->id, 'role' => $locked->role, 'capabilities' => $locked->capabilities, 'state' => PlatformStaff::STATE_ACTIVE]);
             $locked->forceFill(['accepted_at' => Carbon::now(), 'accepted_staff_id' => $staff->id])->save();
-            $this->audit->record($staff->id, 'staff.joined', 'staff', $staff->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $locked->role, 'invitation_id' => $locked->id]);
+            $this->audit->record($staff->id, 'staff.joined', 'staff', $staff->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $locked->role, 'capabilities' => $locked->capabilities, 'invitation_id' => $locked->id]);
 
             return $staff;
         });

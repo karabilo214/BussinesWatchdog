@@ -5,6 +5,7 @@ namespace App\Support\Platform;
 use App\Models\MaintenanceNotice;
 use App\Models\PlatformStaff;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class PlatformSettings
@@ -144,7 +145,7 @@ class PlatformSettings
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<string, PlatformStaff>  $staff
+     * @param  Collection<string, PlatformStaff>  $staff
      * @return array<string, mixed>
      */
     private function notice(MaintenanceNotice $notice, $staff): array

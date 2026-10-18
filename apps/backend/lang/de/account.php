@@ -48,6 +48,7 @@ return [
     ],
     'staff_roles' => [
         'platform_owner' => 'Inhaber des Dienstes',
+        'platform_member' => 'Mitarbeiter',
         'platform_admin' => 'Administrator',
         'platform_support' => 'Support',
         'platform_billing' => 'Finanzen',

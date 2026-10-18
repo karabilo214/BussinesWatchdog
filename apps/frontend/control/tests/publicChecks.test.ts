@@ -11,7 +11,7 @@ vi.mock('@/api', () => ({ fetchMe: vi.fn(), logout: vi.fn(), fetchPublicStorefro
 const mocked = vi.mocked(api);
 
 async function open(capabilities: string[]) {
-  const staff: StaffMe = { staff_id: 's-1', name: 'Ops', email: 'ops@example.test', locale: 'ru', role: 'platform_admin', mfa_enabled: true, capabilities, billing_mode: 'live', session: { idle_minutes: 30, absolute_hours: 8 } };
+  const staff: StaffMe = { staff_id: 's-1', name: 'Ops', email: 'ops@example.test', locale: 'ru', role: 'platform_member', mfa_enabled: true, capabilities, billing_mode: 'live', session: { idle_minutes: 30, absolute_hours: 8 } };
   mocked.fetchMe.mockResolvedValue(staff);
   await useStaff().load(true);
   const router = buildRouter();

@@ -126,7 +126,7 @@ class PlatformAuthController extends Controller
             'locale' => $staff->user->locale,
             'role' => $staff->role,
             'mfa_enabled' => true,
-            'capabilities' => PlatformCapabilities::for($staff->role),
+            'capabilities' => PlatformCapabilities::forStaff($staff),
             'billing_mode' => PaddleConfig::mode(),
             'session' => [
                 'idle_minutes' => (int) config('watchdog.platform.idle_minutes'),

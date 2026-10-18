@@ -7,14 +7,12 @@
 | Роль | Кто это | Панель | Граница |
 |---|---|---|---|
 | platform_owner | Владелец Business Watchdog | /owner | Весь сервис и его собственная коммерция |
-| platform_admin | Сотрудник эксплуатации сервиса | /admin | Разрешённые support и operational actions |
-| platform_support | Поддержка клиентов | /admin | Заявленные клиенты и безопасная диагностика |
-| platform_billing | Сотрудник финансов сервиса | /admin/billing | Оплаты нашей услуги, без магазинных secrets |
+| platform_member | Сотрудник сервиса (эксплуатация, поддержка, финансы, контент) | /owner | Только права, которые ему отметил platform_owner (ADR 0064); управление сотрудниками и одобрение возвратов — только у platform_owner |
 | tenant_owner | Владелец организации клиента | /app | Свои магазины, подписка, сотрудники |
 | tenant_admin | Администратор клиента | /app | Свои магазины и настройки, без управления подпиской |
 | tenant_operator / tenant_viewer | Сотрудники клиента | /app | По матрице основного ТЗ |
 
-Названия owner/admin в существующей `memberships.role` обозначают только tenant_owner/tenant_admin. Они не дают platform права. Platform staff хранится в отдельной таблице, имеет отдельный login/session guard. Staff одновременно может быть клиентом, но две sessions и permissions не объединяются. В P1 один сотрудник имеет одну platform role; гибридный custom RBAC LATER. Активных platform_owner может быть несколько, но нельзя отключить/понизить последнего.
+Названия owner/admin в существующей `memberships.role` обозначают только tenant_owner/tenant_admin. Они не дают platform права. Platform staff хранится в отдельной таблице, имеет отдельный login/session guard. Staff одновременно может быть клиентом, но две sessions и permissions не объединяются. По решению владельца (2026-10-16, ADR 0064) права сотрудника — его собственный набор capabilities, который назначает platform_owner; прежние роли platform_admin / platform_support / platform_billing остались готовыми наборами для заполнения. Активных platform_owner может быть несколько, но нельзя отключить/понизить последнего.
 
 ## 2 Вход и каркас
 

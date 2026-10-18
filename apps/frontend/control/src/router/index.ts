@@ -10,6 +10,26 @@ declare module 'vue-router' {
 export const OWNER_SECTIONS = ['overview', 'tenants', 'subscriptions', 'payments', 'plans', 'site', 'contacts', 'public_checks', 'service', 'staff', 'audit', 'settings'] as const;
 export type OwnerSection = (typeof OWNER_SECTIONS)[number];
 
+/** The capability a section needs (ADR 0064): the menu shows only what the staff member may open. */
+export const SECTION_CAPABILITY: Record<OwnerSection, string> = {
+  overview: 'billing.read',
+  tenants: 'tenants.read',
+  subscriptions: 'billing.read',
+  payments: 'billing.read',
+  plans: 'plans.read',
+  site: 'content.manage',
+  contacts: 'contacts.read',
+  public_checks: 'service.read',
+  service: 'service.read',
+  staff: 'staff.manage',
+  audit: 'audit.read',
+  settings: 'settings.manage',
+};
+
+export function allowedSections(capabilities: string[]): OwnerSection[] {
+  return OWNER_SECTIONS.filter((section) => capabilities.includes(SECTION_CAPABILITY[section]));
+}
+
 export function buildRouter(): Router {
   const router = createRouter({
     history: createWebHistory('/'),
@@ -54,6 +74,12 @@ export function buildRouter(): Router {
 
     if (to.name === 'login' && me !== null) {
       return { name: 'owner-overview' };
+    }
+
+    if (to.name === 'owner-overview' && me !== null && !me.capabilities.includes(SECTION_CAPABILITY.overview)) {
+      const first = allowedSections(me.capabilities)[0];
+
+      if (first) return { name: `owner-${first}` };
     }
 
     return true;

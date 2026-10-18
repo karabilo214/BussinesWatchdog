@@ -33,12 +33,14 @@ class StaffController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'email:rfc', 'max:254'],
             'role' => ['required', Rule::in(PlatformStaff::ROLES)],
+            'capabilities' => ['sometimes', 'nullable', 'array', 'max:50'],
+            'capabilities.*' => ['string', 'max:64'],
             'reason' => ['required', 'string', 'min:3', 'max:500'],
             'confirmation_code' => ['required', 'string', 'max:32'],
         ]);
 
         return $this->stepUp($request, 'staff.invited', $validated['confirmation_code'], fn (PlatformStaff $actor): JsonResponse => response()->json(
-            $this->staff->invitation($this->staff->invite($actor, $validated['email'], $validated['role'], trim($validated['reason']))),
+            $this->staff->invitation($this->staff->invite($actor, $validated['email'], $validated['role'], $validated['capabilities'] ?? null, trim($validated['reason']))),
             201,
         ));
     }
@@ -58,13 +60,15 @@ class StaffController extends Controller
     {
         $validated = $request->validate([
             'role' => ['sometimes', Rule::in(PlatformStaff::ROLES)],
+            'capabilities' => ['sometimes', 'array', 'max:50'],
+            'capabilities.*' => ['string', 'max:64'],
             'state' => ['sometimes', Rule::in([PlatformStaff::STATE_ACTIVE, PlatformStaff::STATE_DISABLED])],
             'reason' => ['required', 'string', 'min:3', 'max:500'],
             'confirmation_code' => ['required', 'string', 'max:32'],
         ]);
 
         return $this->stepUp($request, 'staff.updated', $validated['confirmation_code'], function (PlatformStaff $actor) use ($staff, $validated): JsonResponse {
-            $this->staff->update($actor, $staff, array_intersect_key($validated, ['role' => true, 'state' => true]), trim($validated['reason']));
+            $this->staff->update($actor, $staff, array_intersect_key($validated, ['role' => true, 'state' => true, 'capabilities' => true]), trim($validated['reason']));
 
             return response()->json($this->staff->catalog());
         });

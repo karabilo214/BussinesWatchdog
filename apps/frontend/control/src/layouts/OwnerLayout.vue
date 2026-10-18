@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LocaleSwitch } from '@bw/i18n';
 import { StatusBadge } from '@bw/ui';
 import { useStaff } from '@/composables/useStaff';
-import { OWNER_SECTIONS } from '@/router';
+import { allowedSections } from '@/router';
 
 const route = useRoute();
 const router = useRouter();
 const { me, signOut } = useStaff();
 const menuOpen = ref(false);
+const sections = computed(() => allowedSections(me.value?.capabilities ?? []));
 
 async function leave(): Promise<void> {
   await signOut().catch(() => undefined);
@@ -54,7 +55,7 @@ watch(() => route.fullPath, () => {
         :class="menuOpen ? 'block' : 'hidden'"
       >
         <ul class="flex flex-col gap-1">
-          <li v-for="section in OWNER_SECTIONS" :key="section">
+          <li v-for="section in sections" :key="section">
             <RouterLink
               :to="{ name: `owner-${section}` }"
               class="block rounded-md px-3 py-2 text-sm font-medium text-text-muted hover:bg-surface-muted hover:text-text"

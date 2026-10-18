@@ -48,6 +48,7 @@ return [
     ],
     'staff_roles' => [
         'platform_owner' => 'service owner',
+        'platform_member' => 'staff member',
         'platform_admin' => 'administrator',
         'platform_support' => 'support',
         'platform_billing' => 'billing',

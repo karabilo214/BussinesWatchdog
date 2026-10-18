@@ -1319,7 +1319,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListStaff
-      description: "Capability staff.manage (owner). Platform staff (name, email, role, state, authenticator connected, created, disabled, last sign-in) and pending staff invitations (ADR 0052)."
+      description: "Capability staff.manage (owner). Platform staff (name, email, role, effective capabilities, state, authenticator connected, created, disabled, last sign-in), pending staff invitations with their capabilities (ADR 0052), and for the permission editor (ADR 0064): capability_catalog (every capability in panel order with owner_only — staff.manage and refunds.approve are never given to a member), presets (the former fixed roles platform_admin, platform_support, platform_billing as capability lists) and implies (a capability that brings another one along)."
       security:
         - {StaffSession: []}
       responses:
@@ -1334,7 +1334,7 @@ paths:
     post:
       tags: [Platform]
       operationId: platformInviteStaff
-      description: "Capability staff.manage. Invites a staff member by email with a role; the link is valid 72 h, an earlier pending invitation of the address is revoked, an existing staff account answers 409 already_staff. Needs a reason and the authenticator code (403 step_up_failed). Audited as staff.invited without the address (hash)."
+      description: "Capability staff.manage. Invites a staff member by email: role platform_owner (everything) or platform_member with capabilities (at least one, only assignable ones, implied ones are added; else 422 capabilities_invalid; ignored for an owner); the link is valid 72 h, an earlier pending invitation of the address is revoked, an existing staff account answers 409 already_staff. Needs a reason and the authenticator code (403 step_up_failed). Audited as staff.invited without the address (hash)."
       security:
         - {StaffSession: []}
       requestBody:
@@ -1346,7 +1346,8 @@ paths:
               required: [email, role, reason, confirmation_code]
               properties:
                 email: {type: string, format: email, maxLength: 254}
-                role: {enum: [platform_owner, platform_admin, platform_support, platform_billing]}
+                role: {enum: [platform_owner, platform_member]}
+                capabilities: {type: [array, "null"], items: {type: string}, maxItems: 50}
                 reason: {type: string, minLength: 3, maxLength: 500}
                 confirmation_code: {type: string, maxLength: 32}
       responses:
@@ -1388,7 +1389,7 @@ paths:
     patch:
       tags: [Platform]
       operationId: platformUpdateStaff
-      description: "Capability staff.manage. Changes the role and/or disables or re-enables a staff member with a reason and the authenticator code; not oneself (409 self_change) and never the last active owner (409 last_owner). Ends that member's sessions. Audited with before/after. Returns the staff catalog."
+      description: "Capability staff.manage. Changes the role (platform_owner / platform_member), the capabilities of a member (422 capabilities_invalid as for an invitation; a member becoming an owner loses the list, an owner becoming a member needs one) and/or disables or re-enables a staff member with a reason and the authenticator code; not oneself (409 self_change) and never the last active owner (409 last_owner). Ends that member's sessions. Audited with before/after. Returns the staff catalog."
       security:
         - {StaffSession: []}
       parameters:
@@ -1401,7 +1402,8 @@ paths:
               type: object
               required: [reason, confirmation_code]
               properties:
-                role: {enum: [platform_owner, platform_admin, platform_support, platform_billing]}
+                role: {enum: [platform_owner, platform_member]}
+                capabilities: {type: [array, "null"], items: {type: string}, maxItems: 50}
                 state: {enum: [active, disabled]}
                 reason: {type: string, minLength: 3, maxLength: 500}
                 confirmation_code: {type: string, maxLength: 32}
@@ -5928,9 +5930,9 @@ components:
         name: {type: string}
         email: {type: string}
         locale: {type: string}
-        role: {enum: [platform_owner, platform_admin, platform_support, platform_billing]}
+        role: {enum: [platform_owner, platform_member]}
         mfa_enabled: {const: true}
-        capabilities: {type: array, items: {type: string}}
+        capabilities: {type: array, items: {type: string}, description: "An owner: every capability; a member: the set the owner gave (ADR 0064)."}
         billing_mode: {enum: [test, live]}
         session:
           type: object

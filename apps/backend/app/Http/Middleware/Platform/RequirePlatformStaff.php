@@ -39,7 +39,7 @@ class RequirePlatformStaff
         }
 
         foreach ($capabilities as $capability) {
-            if (! in_array($capability, PlatformCapabilities::for($staff->role), true)) {
+            if (! PlatformCapabilities::allows($staff, $capability)) {
                 return response()->json(['code' => 'platform_forbidden', 'message' => 'This action is not allowed for your role.'], 403);
             }
         }

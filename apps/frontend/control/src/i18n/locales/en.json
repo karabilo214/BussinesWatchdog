@@ -14,7 +14,8 @@
     "platform_owner": "service owner",
     "platform_admin": "administrator",
     "platform_support": "support",
-    "platform_billing": "finance"
+    "platform_billing": "finance",
+    "platform_member": "staff member"
   },
   "auth": {
     "tagline": "Service owner panel",
@@ -1288,10 +1289,10 @@
     "later": "Maintenance windows and worker limits will be configured later in «Settings»."
   },
   "staff": {
-    "hint": "Service staff and their roles. An invitation is valid for 72 hours; the new member sets a password and connects an authenticator app. Changing a role or disabling needs the code from the app; you cannot change yourself or the last owner.",
+    "hint": "Platform staff and their permissions: an owner can do everything, for everyone else you tick what they may do. An invitation is valid for 72 hours; the new member sets a password and connects an authenticator app. Changing access and disabling need a code from the app; you cannot change yourself or the last owner.",
     "forbidden": "This section is available to the service owner.",
     "invite": "Invite a staff member",
-    "invite_hint": "An email with the link goes to the address. The «Service owner» role gives full access.",
+    "invite_hint": "An email with a link goes to the address. A platform owner gets full access; for a staff member tick what they may do.",
     "email": "Email",
     "role": "Role",
     "send": "Send invitation",
@@ -1306,7 +1307,7 @@
       "disabled": "Disabled"
     },
     "no_mfa": "no authenticator",
-    "change_role": "Change role",
+    "change_role": "Change access",
     "sign_out": "End sessions",
     "disable": "Disable",
     "enable": "Enable",
@@ -1316,7 +1317,7 @@
     "apply": "Confirm",
     "mfa_reset": "Resetting a staff member’s authenticator is done only with a server command (see README, «Maintenance»).",
     "confirm": {
-      "role": "The new role applies at once; all sessions of the member end.",
+      "role": "The new access applies at once and all sessions of the member end.",
       "disable": "The member can no longer sign in; all their sessions end.",
       "enable": "The member can sign in again.",
       "sessions": "All sessions of the member end; they need to sign in again.",
@@ -1324,12 +1325,16 @@
     },
     "done": {
       "invited": "Invitation sent.",
-      "role": "Role changed.",
+      "role": "Access changed.",
       "disabled": "Staff member disabled.",
       "enabled": "Staff member active again.",
       "sessions": "Sessions ended.",
       "invitation_revoked": "Invitation revoked."
-    }
+    },
+    "access": "What is allowed",
+    "presets": "Fill in as:",
+    "owner_only": "Platform owners only.",
+    "owner_all": "Everything, including staff and refund approval."
   },
   "staff_join": {
     "title": "Invitation to the team",
@@ -1415,5 +1420,67 @@
       "site_value_owners": "message notifications go to every service owner, page cache {cache_seconds} s"
     },
     "later": "Browser check worker limits are set only in the server environment for now."
+  },
+  "capability": {
+    "tenants_read": {
+      "label": "Customers: view",
+      "hint": "Company cards, stores, their data and teams."
+    },
+    "tenants_manage": {
+      "label": "Customers: change",
+      "hint": "Pause, trial extension, temporary access, reminders, customer team."
+    },
+    "customers_mfa_reset": {
+      "label": "Customers: MFA reset",
+      "hint": "Turn off a customer user's authenticator (with a reason and a code)."
+    },
+    "billing_read": {
+      "label": "Billing: view",
+      "hint": "Overview, subscriptions, payments, invoices and refunds."
+    },
+    "refunds_request": {
+      "label": "Refunds: request",
+      "hint": "Request a refund of a payment; a platform owner approves it."
+    },
+    "refunds_approve": {
+      "label": "Refunds: approve",
+      "hint": "Send a requested refund to Paddle."
+    },
+    "plans_read": {
+      "label": "Plans: view",
+      "hint": "Plans, packages and discounts."
+    },
+    "plans_manage": {
+      "label": "Plans: change",
+      "hint": "Create and publish plans, prices and discounts."
+    },
+    "content_manage": {
+      "label": "Website",
+      "hint": "Pages, block templates and files of the public site."
+    },
+    "contacts_read": {
+      "label": "Contact requests: view",
+      "hint": "Messages from the contact form."
+    },
+    "contacts_manage": {
+      "label": "Contact requests: reply",
+      "hint": "Replies, notes and status of requests."
+    },
+    "service_read": {
+      "label": "Service",
+      "hint": "Service health and the public check history."
+    },
+    "audit_read": {
+      "label": "Audit",
+      "hint": "Journal of staff actions and its export."
+    },
+    "settings_manage": {
+      "label": "Settings",
+      "hint": "Maintenance window and service settings."
+    },
+    "staff_manage": {
+      "label": "Staff",
+      "hint": "Inviting staff and their permissions."
+    }
   }
 }

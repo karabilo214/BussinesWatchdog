@@ -14,7 +14,8 @@
     "platform_owner": "Inhaber des Dienstes",
     "platform_admin": "Administrator",
     "platform_support": "Support",
-    "platform_billing": "Finanzen"
+    "platform_billing": "Finanzen",
+    "platform_member": "Mitarbeiter"
   },
   "auth": {
     "tagline": "Panel des Dienstinhabers",
@@ -1288,10 +1289,10 @@
     "later": "Wartungsfenster und Worker-Limits werden später unter „Einstellungen“ konfiguriert."
   },
   "staff": {
-    "hint": "Mitarbeitende des Dienstes und ihre Rollen. Eine Einladung gilt 72 Stunden; das neue Mitglied legt ein Passwort fest und verbindet eine Authenticator-App. Rollenwechsel und Deaktivieren brauchen den Code aus der App; sich selbst und den letzten Inhaber kann man nicht ändern.",
+    "hint": "Mitarbeiter der Plattform und ihre Rechte: Ein Inhaber darf alles, bei allen anderen haken Sie an, was sie dürfen. Eine Einladung gilt 72 Stunden; das neue Mitglied legt ein Passwort fest und verbindet eine Authenticator-App. Zugangsänderungen und Deaktivierung brauchen einen Code aus der App; sich selbst und den letzten Inhaber können Sie nicht ändern.",
     "forbidden": "Dieser Bereich steht dem Inhaber des Dienstes zur Verfügung.",
     "invite": "Mitarbeitende einladen",
-    "invite_hint": "Eine E-Mail mit dem Link geht an die Adresse. Die Rolle „Inhaber des Dienstes“ gibt vollen Zugriff.",
+    "invite_hint": "Eine E-Mail mit Link geht an die Adresse. Ein Plattform-Inhaber erhält vollen Zugang; für ein Mitglied haken Sie an, was es darf.",
     "email": "E-Mail",
     "role": "Rolle",
     "send": "Einladung senden",
@@ -1306,7 +1307,7 @@
       "disabled": "Deaktiviert"
     },
     "no_mfa": "kein Authenticator",
-    "change_role": "Rolle ändern",
+    "change_role": "Zugang ändern",
     "sign_out": "Sitzungen beenden",
     "disable": "Deaktivieren",
     "enable": "Aktivieren",
@@ -1316,7 +1317,7 @@
     "apply": "Bestätigen",
     "mfa_reset": "Den Authenticator eines Mitglieds setzt man nur mit einem Serverbefehl zurück (siehe README, „Wartung“).",
     "confirm": {
-      "role": "Die neue Rolle gilt sofort; alle Sitzungen des Mitglieds enden.",
+      "role": "Der neue Zugang gilt sofort, alle Sitzungen des Mitglieds enden.",
       "disable": "Das Mitglied kann sich nicht mehr anmelden; alle Sitzungen enden.",
       "enable": "Das Mitglied kann sich wieder anmelden.",
       "sessions": "Alle Sitzungen des Mitglieds enden; es muss sich neu anmelden.",
@@ -1324,12 +1325,16 @@
     },
     "done": {
       "invited": "Einladung gesendet.",
-      "role": "Rolle geändert.",
+      "role": "Zugang geändert.",
       "disabled": "Mitglied deaktiviert.",
       "enabled": "Mitglied wieder aktiv.",
       "sessions": "Sitzungen beendet.",
       "invitation_revoked": "Einladung widerrufen."
-    }
+    },
+    "access": "Was erlaubt ist",
+    "presets": "Ausfüllen wie:",
+    "owner_only": "Nur für Plattform-Inhaber.",
+    "owner_all": "Alles, einschließlich Mitarbeitern und Genehmigung von Erstattungen."
   },
   "staff_join": {
     "title": "Einladung ins Team",
@@ -1415,5 +1420,67 @@
       "site_value_owners": "Benachrichtigungen zu Anfragen an alle Inhaber, Seiten-Cache {cache_seconds} s"
     },
     "later": "Worker-Limits für Browserprüfungen werden vorerst nur in der Serverumgebung festgelegt."
+  },
+  "capability": {
+    "tenants_read": {
+      "label": "Kunden: ansehen",
+      "hint": "Firmenkarten, Shops, ihre Daten und Teams."
+    },
+    "tenants_manage": {
+      "label": "Kunden: ändern",
+      "hint": "Pause, Testphase verlängern, befristeter Zugang, Erinnerungen, Kundenteam."
+    },
+    "customers_mfa_reset": {
+      "label": "Kunden: MFA zurücksetzen",
+      "hint": "Authenticator eines Kundennutzers abschalten (mit Grund und Code)."
+    },
+    "billing_read": {
+      "label": "Zahlungen: ansehen",
+      "hint": "Übersicht, Abonnements, Zahlungen, Rechnungen und Erstattungen."
+    },
+    "refunds_request": {
+      "label": "Erstattungen: anfragen",
+      "hint": "Erstattung einer Zahlung anfragen; ein Plattform-Inhaber genehmigt sie."
+    },
+    "refunds_approve": {
+      "label": "Erstattungen: genehmigen",
+      "hint": "Eine angefragte Erstattung an Paddle senden."
+    },
+    "plans_read": {
+      "label": "Tarife: ansehen",
+      "hint": "Tarife, Pakete und Rabatte."
+    },
+    "plans_manage": {
+      "label": "Tarife: ändern",
+      "hint": "Tarife, Preise und Rabatte anlegen und veröffentlichen."
+    },
+    "content_manage": {
+      "label": "Website",
+      "hint": "Seiten, Blockvorlagen und Dateien der öffentlichen Website."
+    },
+    "contacts_read": {
+      "label": "Anfragen: ansehen",
+      "hint": "Nachrichten aus dem Kontaktformular."
+    },
+    "contacts_manage": {
+      "label": "Anfragen: beantworten",
+      "hint": "Antworten, Notizen und Status von Anfragen."
+    },
+    "service_read": {
+      "label": "Dienst",
+      "hint": "Dienstzustand und Verlauf der öffentlichen Prüfungen."
+    },
+    "audit_read": {
+      "label": "Audit",
+      "hint": "Protokoll der Mitarbeiteraktionen und Export."
+    },
+    "settings_manage": {
+      "label": "Einstellungen",
+      "hint": "Wartungsfenster und Diensteinstellungen."
+    },
+    "staff_manage": {
+      "label": "Mitarbeiter",
+      "hint": "Mitarbeiter einladen und ihre Rechte."
+    }
   }
 }

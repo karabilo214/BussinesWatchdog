@@ -365,3 +365,15 @@ Status: complete (owner decision on the Step 167 assumptions, ADR 0037 point 7)
 - Customer dashboard: `PauseDeviationNotice` on the store card and the reconciliation screen — "deviations are possible because the store was paused", with the period (ru/en/de).
 
 Verification: `StoreCapacityPauseTest` (resume records the period, notice disappears after 30 days). Backend SQLite 608 passed + 4 skipped; PostgreSQL 18: 612/612. Customer typecheck, 133/133 tests and production build passed. Manual browser smoke was not run.
+
+### Step 173: Staff Permissions Set by the Platform Owner
+
+Status: complete (ADR 0064; owner-only capabilities and implied capabilities wait for confirmation)
+
+- Migration `2026_10_18_150000_add_capabilities_to_platform_staff`: `capabilities` jsonb on staff and invitations; roles `platform_owner` / `platform_member` (PostgreSQL checks: role list, owner ⇔ no list); existing admin/support/billing members and invitations become members with their former capabilities.
+- `PlatformCapabilities`: `ALL`, `OWNER_ONLY` (`staff.manage`, `refunds.approve`), `IMPLIES`, `PRESETS`, `forStaff`/`allows`/`normalize`; the middleware, `/me` and the organisation card use the member's own list. `PlatformStaff::settleRole` turns a preset name into a member with that preset and normalises the list.
+- `StaffAdmin`/`StaffController`: invitation and change take `capabilities` (422 `capabilities_invalid`), audit before/after with the list, `permission_version` bump ends sessions; joining copies the invitation's list; the catalog returns `capability_catalog`, `presets`, `implies`. Invitation email names the role «сотрудник».
+- Owner panel: `CapabilityPicker.vue` (presets, owner-only greyed out, implied ones locked while needed), staff table shows access, change form edits role and capabilities; the main menu shows only allowed sections (`SECTION_CAPABILITY`), a member without billing access starts in the first allowed one.
+- Contracts: `openapi.yaml` (staff endpoints, `PlatformMe.role`); `spec/panels/OWNER-PANEL.md` §1.
+
+Verification: `StaffAdminTest` (invitation with capabilities and invalid sets, join keeps them, `/me`, access exactly as given, change ends sessions and is audited, promotion to owner clears the list), `PlatformAuthTest`; all other platform tests still sign in with the former role names as presets. Backend SQLite 616 passed + 4 skipped; PostgreSQL 18: 620/620. Control typecheck, 61/61 (`staff.test.ts`: picker, presets, owner-only, implied, change to owner, menu filtered), build. Manual browser smoke was not run.

@@ -1,6 +1,6 @@
 import { request } from '@bw/api-client';
 
-export type StaffRole = 'platform_owner' | 'platform_admin' | 'platform_support' | 'platform_billing';
+export type StaffRole = 'platform_owner' | 'platform_member';
 
 export interface PublicStorefrontCheckHistory {
   id: string;
@@ -701,6 +701,7 @@ export interface StaffMember {
   name: string | null;
   email: string | null;
   role: StaffRole;
+  capabilities: string[];
   state: 'active' | 'disabled';
   mfa_enabled: boolean;
   created_at: string | null;
@@ -712,6 +713,7 @@ export interface StaffInvitation {
   id: string;
   email: string;
   role: StaffRole;
+  capabilities: string[] | null;
   expires_at: string;
   created_at: string | null;
 }
@@ -719,13 +721,16 @@ export interface StaffInvitation {
 export interface StaffCatalog {
   staff: StaffMember[];
   invitations: StaffInvitation[];
+  capability_catalog: { code: string; owner_only: boolean }[];
+  presets: Record<string, string[]>;
+  implies: Record<string, string[]>;
 }
 
 export async function fetchStaff(): Promise<StaffCatalog> {
   return (await request<StaffCatalog>('GET', '/platform-api/v1/staff')).data;
 }
 
-export async function inviteStaff(input: { email: string; role: StaffRole; reason: string; confirmation_code: string }): Promise<StaffInvitation> {
+export async function inviteStaff(input: { email: string; role: StaffRole; capabilities?: string[]; reason: string; confirmation_code: string }): Promise<StaffInvitation> {
   return (await request<StaffInvitation>('POST', '/platform-api/v1/staff/invitations', { body: input })).data;
 }
 
@@ -733,7 +738,7 @@ export async function revokeStaffInvitation(id: string, reason: string): Promise
   await request<null>('POST', `/platform-api/v1/staff/invitations/${encodeURIComponent(id)}/revoke`, { body: { reason } });
 }
 
-export async function updateStaff(id: string, input: { role?: StaffRole; state?: 'active' | 'disabled'; reason: string; confirmation_code: string }): Promise<StaffCatalog> {
+export async function updateStaff(id: string, input: { role?: StaffRole; capabilities?: string[]; state?: 'active' | 'disabled'; reason: string; confirmation_code: string }): Promise<StaffCatalog> {
   return (await request<StaffCatalog>('PATCH', `/platform-api/v1/staff/${encodeURIComponent(id)}`, { body: input })).data;
 }
 
@@ -741,8 +746,8 @@ export async function revokeStaffSessions(id: string, reason: string): Promise<v
   await request<null>('POST', `/platform-api/v1/staff/${encodeURIComponent(id)}/sessions/revoke`, { body: { reason } });
 }
 
-export async function lookupStaffInvitation(token: string): Promise<{ email: string; role: StaffRole; expires_at: string; account_exists: boolean }> {
-  return (await request<{ email: string; role: StaffRole; expires_at: string; account_exists: boolean }>('GET', '/platform-api/v1/staff-invitations/lookup', { query: { token } })).data;
+export async function lookupStaffInvitation(token: string): Promise<{ email: string; role: StaffRole; capabilities: string[] | null; expires_at: string; account_exists: boolean }> {
+  return (await request<{ email: string; role: StaffRole; capabilities: string[] | null; expires_at: string; account_exists: boolean }>('GET', '/platform-api/v1/staff-invitations/lookup', { query: { token } })).data;
 }
 
 export async function startStaffInvitation(input: { token: string; name?: string; password: string }): Promise<{ mfa_enabled: boolean; otpauth_uri?: string; secret?: string; qr_svg?: string }> {

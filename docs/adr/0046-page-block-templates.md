@@ -17,3 +17,5 @@ Status: accepted for now (owner's backlog items 2026-10-13: ready block and sect
 - No prices in templates and independence of inserted copies from the template are confirmed.
 - Access must extend to staff with a content permission. Instead of a fixed role, the platform owner will assign permissions to each staff member in the owner panel (backlog: configurable staff roles and permissions).
 - The built-in set stays as is for now; many more templates will be added later so pages can be assembled easily.
+
+- Implemented in Step 173 (ADR 0064): staff capabilities are set per member by the platform owner; content access is the `content.manage` capability.

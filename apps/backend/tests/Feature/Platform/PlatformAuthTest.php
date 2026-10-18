@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Account\MfaService;
 use App\Support\Account\Totp;
+use App\Support\Platform\PlatformCapabilities;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +38,7 @@ class PlatformAuthTest extends TestCase
             ->assertOk()
             ->assertJsonPath('role', 'platform_owner')
             ->assertJsonPath('mfa_enabled', true)
-            ->assertJsonPath('capabilities.0', 'plans.manage');
+            ->assertJsonPath('capabilities', PlatformCapabilities::ALL);
 
         $this->getJson('/platform-api/v1/me')->assertOk()->assertJsonPath('staff_id', $staff->id);
         $this->assertSame(['staff.login:denied', 'staff.login:denied', 'staff.login:succeeded'], DB::table('platform_audit_log')->orderBy('id')->get()->map(fn ($row) => $row->action.':'.$row->result)->all());

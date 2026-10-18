@@ -17,3 +17,5 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Сотрудн�
 - Authenticator reset of non-owner staff becomes a panel action for the platform owner (reason, authenticator code, audit). The authenticator of a platform owner is reset only on the server (`platform:reset-mfa`).
 - Audit stores the invited address in clear text (as for customer reminders, ADR 0047), not a hash.
 - Roles become per-member permission sets assigned by the platform owner (ADR 0046 decision).
+
+- Per-member permissions implemented in Step 173 (ADR 0064).

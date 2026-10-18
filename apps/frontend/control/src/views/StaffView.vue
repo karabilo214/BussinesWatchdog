@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { StatusBadge } from '@bw/ui';
 import { fetchStaff, inviteStaff, revokeStaffInvitation, revokeStaffSessions, updateStaff, type StaffCatalog, type StaffMember, type StaffRole } from '@/api';
+import CapabilityPicker from '@/components/CapabilityPicker.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useStaff } from '@/composables/useStaff';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 
-const ROLES: StaffRole[] = ['platform_owner', 'platform_admin', 'platform_support', 'platform_billing'];
+const ROLES: StaffRole[] = ['platform_member', 'platform_owner'];
 
+const { t } = useI18n();
 const { dateTime } = useFormat();
 const { can, me } = useStaff();
 const allowed = computed(() => can('staff.manage'));
@@ -17,12 +20,13 @@ const error = ref<unknown>(null);
 const actionError = ref<unknown>(null);
 const busy = ref(false);
 const notice = ref<string | null>(null);
-const invite = reactive({ open: false, email: '', role: 'platform_support' as StaffRole, reason: '', code: '' });
-const action = reactive({ kind: null as 'role' | 'disable' | 'enable' | 'sessions' | 'revoke-invitation' | null, target: '', role: 'platform_support' as StaffRole, reason: '', code: '' });
+const invite = reactive({ open: false, email: '', role: 'platform_member' as StaffRole, capabilities: [] as string[], reason: '', code: '' });
+const action = reactive({ kind: null as 'role' | 'disable' | 'enable' | 'sessions' | 'revoke-invitation' | null, target: '', role: 'platform_member' as StaffRole, capabilities: [] as string[], reason: '', code: '' });
 
 const needsCode = computed(() => action.kind === 'role' || action.kind === 'disable' || action.kind === 'enable');
-const inviteReady = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invite.email.trim()) && invite.reason.trim().length >= 3 && invite.code.trim().length >= 6);
-const actionReady = computed(() => action.reason.trim().length >= 3 && (!needsCode.value || action.code.trim().length >= 6));
+const accessReady = (role: StaffRole, capabilities: string[]) => role === 'platform_owner' || capabilities.length > 0;
+const inviteReady = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invite.email.trim()) && accessReady(invite.role, invite.capabilities) && invite.reason.trim().length >= 3 && invite.code.trim().length >= 6);
+const actionReady = computed(() => action.reason.trim().length >= 3 && (!needsCode.value || action.code.trim().length >= 6) && (action.kind !== 'role' || accessReady(action.role, action.capabilities)));
 
 async function load(): Promise<void> {
   if (!allowed.value) return;
@@ -55,13 +59,18 @@ async function run(task: () => Promise<StaffCatalog | void>, message: string): P
 
 async function sendInvite(): Promise<void> {
   if (!inviteReady.value || busy.value) return;
-  await run(() => inviteStaff({ email: invite.email.trim(), role: invite.role, reason: invite.reason.trim(), confirmation_code: invite.code.trim() }).then(() => undefined), 'staff.done.invited');
-  if (notice.value) Object.assign(invite, { email: '', reason: '', code: '' });
+  const capabilities = invite.role === 'platform_member' ? invite.capabilities : undefined;
+  await run(() => inviteStaff({ email: invite.email.trim(), role: invite.role, capabilities, reason: invite.reason.trim(), confirmation_code: invite.code.trim() }).then(() => undefined), 'staff.done.invited');
+  if (notice.value) Object.assign(invite, { email: '', capabilities: [], reason: '', code: '' });
 }
 
-function ask(kind: NonNullable<typeof action.kind>, target: string, role?: StaffRole): void {
-  Object.assign(action, { kind, target, role: role ?? 'platform_support', reason: '', code: '' });
+function ask(kind: NonNullable<typeof action.kind>, target: string, member?: StaffMember): void {
+  Object.assign(action, { kind, target, role: member?.role ?? 'platform_member', capabilities: member?.role === 'platform_member' ? [...member.capabilities] : [], reason: '', code: '' });
   actionError.value = null;
+}
+
+function capabilityLabels(codes: string[] | null): string {
+  return (codes ?? []).map((code) => t(`capability.${code.replace('.', '_')}.label`)).join(', ');
 }
 
 async function confirmAction(): Promise<void> {
@@ -71,7 +80,7 @@ async function confirmAction(): Promise<void> {
 
   switch (action.kind) {
     case 'role':
-      return run(() => updateStaff(action.target, { role: action.role, reason, confirmation_code: code }), 'staff.done.role');
+      return run(() => updateStaff(action.target, { role: action.role, ...(action.role === 'platform_member' ? { capabilities: action.capabilities } : {}), reason, confirmation_code: code }), 'staff.done.role');
     case 'disable':
       return run(() => updateStaff(action.target, { state: 'disabled', reason, confirmation_code: code }), 'staff.done.disabled');
     case 'enable':
@@ -120,6 +129,8 @@ onMounted(load);
             </select>
           </label>
         </div>
+        <CapabilityPicker v-if="invite.role === 'platform_member' && catalog" v-model="invite.capabilities" :catalog="catalog" />
+        <p v-else-if="invite.role === 'platform_owner'" class="text-text-muted">{{ $t('staff.owner_all') }}</p>
         <label class="flex flex-col gap-1.5">
           <span class="font-medium">{{ $t('tenant.actions.reason') }}</span>
           <textarea v-model="invite.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="reason" />
@@ -153,7 +164,10 @@ onMounted(load);
                   <span v-if="self(member)" class="ml-1 text-text-muted">({{ $t('staff.you') }})</span>
                   <span class="block text-[13px] text-text-muted">{{ member.email }}</span>
                 </td>
-                <td class="px-4 py-3">{{ $t(`role.${member.role}`) }}</td>
+                <td class="px-4 py-3">
+                  <span>{{ $t(`role.${member.role}`) }}</span>
+                  <span class="block max-w-72 text-[13px] text-text-muted" data-access>{{ member.role === 'platform_owner' ? $t('staff.owner_all') : capabilityLabels(member.capabilities) }}</span>
+                </td>
                 <td class="px-4 py-3">
                   <div class="flex flex-wrap gap-1.5">
                     <StatusBadge :tone="member.state === 'active' ? 'ok' : 'unknown'" :label="$t(`staff.state.${member.state}`)" />
@@ -163,7 +177,7 @@ onMounted(load);
                 <td class="px-4 py-3 whitespace-nowrap">{{ dateTime(member.last_login_at) }}</td>
                 <td class="px-4 py-3">
                   <div v-if="!self(member)" class="flex flex-wrap justify-end gap-1.5">
-                    <button type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="role" @click="ask('role', member.id, member.role)">{{ $t('staff.change_role') }}</button>
+                    <button type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="role" @click="ask('role', member.id, member)">{{ $t('staff.change_role') }}</button>
                     <button v-if="member.state === 'active'" type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="sessions" @click="ask('sessions', member.id)">{{ $t('staff.sign_out') }}</button>
                     <button v-if="member.state === 'active'" type="button" class="rounded-md border border-crit-border px-2.5 py-1 font-medium text-crit hover:bg-crit-soft" data-action="disable" @click="ask('disable', member.id)">{{ $t('staff.disable') }}</button>
                     <button v-else type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="enable" @click="ask('enable', member.id)">{{ $t('staff.enable') }}</button>
@@ -181,7 +195,10 @@ onMounted(load);
               <tbody class="divide-y divide-border">
                 <tr v-for="invitation in catalog.invitations" :key="invitation.id" :data-invitation="invitation.email">
                   <td class="px-4 py-3">{{ invitation.email }}</td>
-                  <td class="px-4 py-3">{{ $t(`role.${invitation.role}`) }}</td>
+                  <td class="px-4 py-3">
+                    <span>{{ $t(`role.${invitation.role}`) }}</span>
+                    <span class="block max-w-72 text-[13px] text-text-muted">{{ invitation.role === 'platform_owner' ? $t('staff.owner_all') : capabilityLabels(invitation.capabilities) }}</span>
+                  </td>
                   <td class="px-4 py-3 text-text-muted">{{ $t('staff.expires', { date: dateTime(invitation.expires_at) }) }}</td>
                   <td class="px-4 py-3 text-right"><button type="button" class="rounded-md border border-crit-border px-2.5 py-1 font-medium text-crit hover:bg-crit-soft" data-action="revoke-invitation" @click="ask('revoke-invitation', invitation.id)">{{ $t('staff.revoke') }}</button></td>
                 </tr>
@@ -200,6 +217,7 @@ onMounted(load);
             <option v-for="role in ROLES" :key="role" :value="role">{{ $t(`role.${role}`) }}</option>
           </select>
         </label>
+        <CapabilityPicker v-if="action.kind === 'role' && action.role === 'platform_member' && catalog" v-model="action.capabilities" :catalog="catalog" />
         <label class="flex flex-col gap-1.5">
           <span class="font-medium">{{ $t('tenant.actions.reason') }}</span>
           <textarea v-model="action.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="action-reason" />
