@@ -46,6 +46,29 @@ return [
         'subject' => 'Business Watchdog: Einladung ins Team des Dienstes',
         'body' => ":inviter lädt Sie in die Verwaltung von Business Watchdog mit der Rolle „:role“ ein.\n\nZum Annehmen öffnen Sie den Link (gültig :hours h), legen ein Passwort fest und verbinden eine Authenticator-App:\n:link\n\nWenn Sie diese Einladung nicht erwartet haben, ignorieren Sie diese E-Mail.",
     ],
+    'service_alert' => [
+        'problem' => [
+            'subject' => 'Business Watchdog (:environment): Problem im Dienst',
+            'body' => "Hallo,\n\nDer Gesamtzustand von «Dienst» ist „Problem“ (:time).\n\nWas nicht stimmt:\n:parts\n\nDetails: :link\n\nSobald alles wieder läuft, kommt eine weitere E-Mail.",
+        ],
+        'recovered' => [
+            'subject' => 'Business Watchdog (:environment): Dienst wieder in Ordnung',
+            'body' => "Hallo,\n\nDer Gesamtzustand von «Dienst» ist nicht mehr „Problem“ (:time).\n\nDetails: :link",
+        ],
+        'parts' => [
+            'component_database' => 'Datenbank',
+            'component_redis' => 'Redis',
+            'component_cache' => 'Cache',
+            'component_keyring' => 'Verschlüsselungsschlüssel',
+            'queue_event_inbox' => 'Empfang von Shop-Ereignissen',
+            'queue_domain_outbox' => 'interne Ereigniswarteschlange',
+            'queue_billing_events' => 'Paddle-Ereignisse',
+            'queue_reconciliation' => 'Abgleich-Warteschlange',
+            'queue_notifications' => 'Kundenbenachrichtigungen',
+            'queue_jobs' => 'Hintergrundaufgaben',
+            'browser_checks' => 'Browserprüfungen (keine Worker)',
+        ],
+    ],
     'staff_roles' => [
         'platform_owner' => 'Inhaber des Dienstes',
         'platform_member' => 'Mitarbeiter',

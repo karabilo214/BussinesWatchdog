@@ -46,6 +46,29 @@ return [
         'subject' => 'Business Watchdog: приглашение в команду сервиса',
         'body' => ":inviter приглашает вас в панель управления Business Watchdog с ролью «:role».\n\nЧтобы принять приглашение, откройте ссылку (действует :hours ч.), задайте пароль и подключите приложение-аутентификатор:\n:link\n\nЕсли вы не ждали приглашения, проигнорируйте это письмо.",
     ],
+    'service_alert' => [
+        'problem' => [
+            'subject' => 'Business Watchdog (:environment): проблема в работе сервиса',
+            'body' => "Здравствуйте!\n\nОбщее состояние раздела «Сервис» стало «проблема» (:time).\n\nЧто не в порядке:\n:parts\n\nПодробности: :link\n\nКогда всё восстановится, придёт отдельное письмо.",
+        ],
+        'recovered' => [
+            'subject' => 'Business Watchdog (:environment): сервис снова в порядке',
+            'body' => "Здравствуйте!\n\nОбщее состояние раздела «Сервис» больше не «проблема» (:time).\n\nПодробности: :link",
+        ],
+        'parts' => [
+            'component_database' => 'база данных',
+            'component_redis' => 'Redis',
+            'component_cache' => 'кеш',
+            'component_keyring' => 'ключи шифрования',
+            'queue_event_inbox' => 'приём событий магазинов',
+            'queue_domain_outbox' => 'внутренняя очередь событий',
+            'queue_billing_events' => 'события Paddle',
+            'queue_reconciliation' => 'очередь сверки',
+            'queue_notifications' => 'уведомления клиентам',
+            'queue_jobs' => 'фоновые задания',
+            'browser_checks' => 'браузерные проверки (нет воркеров)',
+        ],
+    ],
     'staff_roles' => [
         'platform_owner' => 'владелец сервиса',
         'platform_member' => 'сотрудник',

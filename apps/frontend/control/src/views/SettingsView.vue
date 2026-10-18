@@ -146,6 +146,7 @@ onMounted(load);
             </div>
             <div><dt class="text-text-muted">{{ $t('settings.config.sessions') }}</dt><dd>{{ $t('settings.config.sessions_value', settings.configuration.sessions) }}</dd></div>
             <div><dt class="text-text-muted">{{ $t('settings.config.retention') }}</dt><dd>{{ $t('settings.config.retention_value', settings.configuration.retention) }}</dd></div>
+            <div data-config="service-alerts"><dt class="text-text-muted">{{ $t('settings.config.service_alerts') }}</dt><dd>{{ settings.configuration.service_alerts ? $t('settings.config.service_alerts_value', { n: settings.configuration.service_alerts }) : $t('settings.config.service_alerts_off') }}</dd></div>
             <div><dt class="text-text-muted">{{ $t('settings.config.site') }}</dt><dd>{{ $t(settings.configuration.site.contact_notify === 0 ? 'settings.config.site_value_owners' : 'settings.config.site_value', settings.configuration.site) }}</dd></div>
           </dl>
           <p class="text-text-muted">{{ $t('settings.later') }}</p>

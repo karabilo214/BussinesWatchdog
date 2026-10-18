@@ -736,6 +736,9 @@
     },
     "reminder": {
       "template_saved": "Reminder template saved"
+    },
+    "service": {
+      "alert_sent": "«Service» alert sent"
     }
   },
   "site": {
@@ -1478,7 +1481,10 @@
       "retention_value": "screenshots {screenshots_days} days, exports {exports_days} days, messages {contact_days} days after closing",
       "site": "Site",
       "site_value": "message notification recipients: {contact_notify}, page cache {cache_seconds} s",
-      "site_value_owners": "message notifications go to every service owner, page cache {cache_seconds} s"
+      "site_value_owners": "message notifications go to every service owner, page cache {cache_seconds} s",
+      "service_alerts": "«Service» alerts",
+      "service_alerts_value": "recipients: {n} (WATCHDOG_SERVICE_ALERT_EMAIL)",
+      "service_alerts_off": "not set — set WATCHDOG_SERVICE_ALERT_EMAIL"
     },
     "later": "Browser check worker limits are set only in the server environment for now."
   },

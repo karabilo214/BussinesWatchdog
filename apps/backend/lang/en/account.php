@@ -46,6 +46,29 @@ return [
         'subject' => 'Business Watchdog: invitation to the service team',
         'body' => ":inviter invites you to the Business Watchdog control panel with the role “:role”.\n\nTo accept, open the link (valid for :hours h), set a password and connect an authenticator app:\n:link\n\nIf you did not expect this invitation, ignore this email.",
     ],
+    'service_alert' => [
+        'problem' => [
+            'subject' => 'Business Watchdog (:environment): service problem',
+            'body' => "Hello,\n\nThe overall state of «Service» became “problem” (:time).\n\nWhat is wrong:\n:parts\n\nDetails: :link\n\nYou will get another e-mail when it recovers.",
+        ],
+        'recovered' => [
+            'subject' => 'Business Watchdog (:environment): service recovered',
+            'body' => "Hello,\n\nThe overall state of «Service» is no longer “problem” (:time).\n\nDetails: :link",
+        ],
+        'parts' => [
+            'component_database' => 'database',
+            'component_redis' => 'Redis',
+            'component_cache' => 'cache',
+            'component_keyring' => 'encryption keys',
+            'queue_event_inbox' => 'store event intake',
+            'queue_domain_outbox' => 'internal event queue',
+            'queue_billing_events' => 'Paddle events',
+            'queue_reconciliation' => 'reconciliation queue',
+            'queue_notifications' => 'customer notifications',
+            'queue_jobs' => 'background jobs',
+            'browser_checks' => 'browser checks (no workers)',
+        ],
+    ],
     'staff_roles' => [
         'platform_owner' => 'service owner',
         'platform_member' => 'staff member',

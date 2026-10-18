@@ -15,3 +15,9 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Сервис» 
 - Thresholds (15/60 minutes, 24 hours) are confirmed for now.
 - When the overall state becomes "problem", an e-mail goes to the responsible person whose address is set in config (env).
 - Repair actions from the panel are not needed now; they may be added later.
+
+## Implementation of the alert decision (Step 179)
+
+- `service:alerts` (every minute) builds the same summary; when the overall state becomes "problem" (`crit`) it e-mails `WATCHDOG_SERVICE_ALERT_EMAIL` the parts that are a problem (names only, no tenant data) and a link to «Сервис»; when the state is no longer "problem" it e-mails the recovery. The last state written about is kept in `service_alert_state`, so a lasting problem is written about once; a failed e-mail is retried on the next run. Language `WATCHDOG_SERVICE_ALERT_LOCALE`. Each sent alert is in the platform audit (`service.alert_sent`, system). «Настройки» shows how many recipients are set.
+- "Attention" (`warn`) does not send e-mail; only "problem" does (owner decision: "when the overall state becomes problem").
+

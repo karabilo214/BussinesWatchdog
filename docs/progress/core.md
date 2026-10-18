@@ -828,3 +828,11 @@ Code change: the 90-day audit windows of Stripe, PayPal, WooCommerce REST API an
 - Added two API routes, `mfa_enabled` to team member responses and `user_id` plus `mfa_enabled` to platform tenant cards. Updated `contracts/openapi.yaml` and `contracts/ui-api-catalog.md`; corrected pre-existing indentation in the OpenAPI tenant-store parameters so the YAML parses. No migration or event schema change.
 
 Verification: owner and platform reset feature tests, including role/tenant isolation, wrong step-up, session/recovery-code revocation, platform staff protection, audit and email. Backend SQLite 603 passed + 4 skipped, PostgreSQL 18 607/607; customer 131/131, control 58/58, both typecheck/build. OpenAPI route guard passed and YAML parsed. No live browser or SMTP delivery smoke.
+
+### Step 179: E-mail the Responsible Person About Service Problems
+
+Status: complete (ADR 0051 owner decision)
+
+- Migration `2026_10_18_190000_create_service_alert_state`; `App\Support\Platform\ServiceAlerts`, command `service:alerts` (scheduled every minute, without overlapping, on one server); config `watchdog.service_alerts.email|locale` (`WATCHDOG_SERVICE_ALERT_EMAIL`, `WATCHDOG_SERVICE_ALERT_LOCALE`); texts `account.service_alert.*` (ru/en/de) naming the problem parts; platform audit `service.alert_sent`; «Настройки» shows the number of recipients. README: variables, schedule, maintenance command.
+
+Verification: `ServiceAlertsTest` (nothing while fine; one problem e-mail to each valid address with the parts and the link; no repeat while it lasts; one recovery e-mail when it drops to attention; nothing more; audit; a failed e-mail leaves the state unsent for a retry; no address — nothing). Control 65/65, typecheck, build. Backend SQLite 624 passed + 4 skipped; PostgreSQL 18: 628/628. A real SMTP send was not run.

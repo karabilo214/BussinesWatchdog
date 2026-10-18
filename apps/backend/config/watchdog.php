@@ -159,6 +159,11 @@ return [
         'media_png_compression' => (int) env('WATCHDOG_SITE_MEDIA_PNG_COMPRESSION', 9),
     ],
 
+    'service_alerts' => [
+        'email' => env('WATCHDOG_SERVICE_ALERT_EMAIL', ''),
+        'locale' => env('WATCHDOG_SERVICE_ALERT_LOCALE', 'ru'),
+    ],
+
     'public_check' => [
         'captcha_ttl_minutes' => (int) env('WATCHDOG_PUBLIC_CHECK_CAPTCHA_TTL_MINUTES', 10),
         'verify_dns' => (bool) env('WATCHDOG_PUBLIC_CHECK_VERIFY_DNS', true),

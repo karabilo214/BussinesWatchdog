@@ -136,6 +136,11 @@ Schedule::command('billing:plan-changes')
     ->withoutOverlapping(10)
     ->onOneServer();
 
+Schedule::command('service:alerts')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
 Schedule::command('site:contact-notify')
     ->everyMinute()
     ->withoutOverlapping(10)

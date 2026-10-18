@@ -736,6 +736,9 @@
     },
     "reminder": {
       "template_saved": "Erinnerungsvorlage gespeichert"
+    },
+    "service": {
+      "alert_sent": "«Dienst»-Benachrichtigung gesendet"
     }
   },
   "site": {
@@ -1478,7 +1481,10 @@
       "retention_value": "Screenshots {screenshots_days} Tage, Exporte {exports_days} Tage, Anfragen {contact_days} Tage nach Abschluss",
       "site": "Website",
       "site_value": "Empfänger für Anfragen: {contact_notify}, Seiten-Cache {cache_seconds} s",
-      "site_value_owners": "Benachrichtigungen zu Anfragen an alle Inhaber, Seiten-Cache {cache_seconds} s"
+      "site_value_owners": "Benachrichtigungen zu Anfragen an alle Inhaber, Seiten-Cache {cache_seconds} s",
+      "service_alerts": "«Dienst»-Benachrichtigungen",
+      "service_alerts_value": "Empfänger: {n} (WATCHDOG_SERVICE_ALERT_EMAIL)",
+      "service_alerts_off": "nicht eingerichtet — WATCHDOG_SERVICE_ALERT_EMAIL setzen"
     },
     "later": "Worker-Limits für Browserprüfungen werden vorerst nur in der Serverumgebung festgelegt."
   },

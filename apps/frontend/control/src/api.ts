@@ -838,6 +838,7 @@ export interface PlatformSettingsView {
     sessions: { idle_minutes: number; absolute_hours: number };
     retention: { screenshots_days: number; exports_days: number; contact_days: number };
     site: { contact_notify: number; cache_seconds: number };
+    service_alerts?: number;
   };
   maintenance: { current: MaintenanceNoticeRow | null; history: MaintenanceNoticeRow[]; limits: { max_hours: number; max_days_ahead: number } };
 }

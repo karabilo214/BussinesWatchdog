@@ -736,6 +736,9 @@
     },
     "reminder": {
       "template_saved": "Сохранён шаблон напоминания"
+    },
+    "service": {
+      "alert_sent": "Отправлено оповещение «Сервиса»"
     }
   },
   "site": {
@@ -1478,7 +1481,10 @@
       "retention_value": "скриншоты {screenshots_days} дн., выгрузки {exports_days} дн., обращения {contact_days} дн. после закрытия",
       "site": "Сайт",
       "site_value": "получателей писем об обращениях: {contact_notify}, кэш страниц {cache_seconds} с",
-      "site_value_owners": "письма об обращениях — всем владельцам сервиса, кэш страниц {cache_seconds} с"
+      "site_value_owners": "письма об обращениях — всем владельцам сервиса, кэш страниц {cache_seconds} с",
+      "service_alerts": "Оповещения «Сервиса»",
+      "service_alerts_value": "получателей: {n} (WATCHDOG_SERVICE_ALERT_EMAIL)",
+      "service_alerts_off": "не настроены — задайте WATCHDOG_SERVICE_ALERT_EMAIL"
     },
     "later": "Лимиты воркеров браузерных проверок пока задаются только в окружении сервера."
   },
