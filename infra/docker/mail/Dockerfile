@@ -44,6 +44,7 @@ RUN apk add --no-cache postfix dovecot dovecot-lmtpd dovecot-pigeonhole-plugin c
         '2525/inet/smtpd_recipient_restrictions=permit_mynetworks,reject' \
         '2525/inet/smtpd_sender_restrictions=' \
         '2525/inet/smtpd_milters=' \
+        '2525/inet/smtpd_tls_security_level=none' \
     && for service in submission submissions; do \
         postconf -M "$service/inet=$service inet n - n - - smtpd" \
         && postconf -P \
