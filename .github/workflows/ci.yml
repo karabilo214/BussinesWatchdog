@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (PHP 8.4, SQLite and PostgreSQL 18)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: business_watchdog_test
+          POSTGRES_USER: bw_app
+          POSTGRES_PASSWORD: bw_local_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U bw_app -d business_watchdog_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    defaults:
+      run:
+        working-directory: apps/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, exif, gd, intl, pcntl, pdo_pgsql, pdo_sqlite, zip, redis
+          coverage: none
+      - uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('apps/backend/composer.lock') }}
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Code style (Pint)
+        run: vendor/bin/pint --test
+      - name: Tests on SQLite
+        run: php artisan test
+      - name: Tests on PostgreSQL 18
+        run: php artisan test
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_DATABASE: business_watchdog_test
+
+  frontend:
+    name: Frontends (types, tests, builds)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+
+  browser-worker:
+    name: Browser worker
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/browser-worker
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/browser-worker/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+
+  plugins:
+    name: WooCommerce plugin (PHP 7.4 syntax)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: plugins/woocommerce-watchdog/tests/lint-php74.sh
+
+  production-config:
+    name: Production configuration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose file is valid
+        working-directory: infra/production
+        run: cp env.example .env && docker compose --profile browser config -q
+      - name: Shell scripts parse
+        run: for f in infra/production/deploy.sh infra/production/backup/backup.sh infra/docker/mail/entrypoint.sh infra/docker/mail/mailbox.sh infra/docker/rspamd/entrypoint.sh; do sh -n "$f"; done
+      - name: Backup retention rule
+        run: |
+          d=$(mktemp -d)
+          for day in 2026-09-15 2026-09-30 2026-10-05 2026-10-11 2026-10-12 2026-10-19; do touch "$d/db-${day}T031500Z.dump" "$d/mail-${day}T031500Z.tar.gz"; done
+          out=$(python3 infra/production/backup/prune.py "$d" --now 2026-10-19T04:00:00Z --dry-run)
+          echo "$out"
+          [ "$(echo "$out" | grep -c '^delete')" = 4 ]
+          echo "$out" | grep -q 'delete db-2026-10-05T031500Z.dump'
+          echo "$out" | grep -q 'keep   db-2026-10-11T031500Z.dump'
