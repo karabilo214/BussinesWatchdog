@@ -205,6 +205,15 @@ DNS у NIC.UA: `A` и `AAAA` для `@` и `www` на адреса сервер�
 - Сертификат — Let's Encrypt, его получает Caddy для `mail.business-watchdog.com`; `mail` берёт его из тома `caddy-data` и подхватывает продление сам (проверка раз в 10 минут).
 - DNS у NIC.UA: `A mail` → `167.86.85.23`; `MX @` → `mail.business-watchdog.com` (приоритет 10); TXT `@` — `v=spf1 ip4:167.86.85.23 ip6:2a02:c207:2367:8142::1 -all`; TXT `bw1._domainkey` — публичный DKIM-ключ; TXT `_dmarc` — `v=DMARC1; p=quarantine; adkim=r; aspf=r`. В панели Contabo обратная запись (PTR) обоих адресов — `mail.business-watchdog.com`. Проверка — `php artisan mail:auth-check --strict`.
 
+Первая настройка почты (один раз, с Mac; `ivan@` — пример, подставить свой адрес):
+
+1. У NIC.UA добавить запись **MX**: имя `@`, значение `mail.business-watchdog.com`, приоритет `10`. Без неё входящие письма на домен не доходят (запись `A mail` для этого недостаточна).
+2. Создать свой ящик (пароль вводится в терминале дважды, не короче 12 символов):
+   `ssh -t bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose exec mail mailbox add ivan@business-watchdog.com'`
+3. Направить служебные адреса в свой ящик — `hello@` (от него сервис шлёт письма; сюда придут ответы клиентов и возвраты недоставленных писем), `postmaster@` и `abuse@` (их ждут почтовые службы):
+   `ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && for a in hello postmaster abuse; do docker compose exec -T mail mailbox alias $a@business-watchdog.com ivan@business-watchdog.com; done'`
+4. Подключить ящик в почтовой программе (настройки ниже) и отправить себе письмо с Gmail — оно должно прийти во «Входящие».
+
 Ящики и псевдонимы (данные — том `mail-data`, пароль не короче 12 символов, вводится в терминале):
 
 ```sh
