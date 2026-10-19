@@ -442,3 +442,13 @@ Status: complete
 - Contact and sign-up forms are in a card (`.site-card`, the look of the editor's `.card`).
 
 Verification: `PayPageTest` (token and environment injected, Paddle.js, noindex, no-store, account link, three languages, no token; `pay` refused as a page address). Backend SQLite 629 passed + 4 skipped; PostgreSQL 18: 633/633. The Paddle checkout opening from a real `_ptxn` link was not exercised.
+
+### Step 196: Paddle Errors in the Log; First Live Checkout Refused by Paddle
+
+Status: complete; live checkout waits for Paddle to enable checkouts on the account
+
+- The owner's first live purchase (Start) failed four times with «Оплата не завершена»: our sessions ended `failed / paddle_request_rejected`. Repeating the request from the server showed Paddle's answer `transaction_checkout_not_enabled` («Checkouts aren't enabled for this account… you haven't fully completed the Paddle onboarding process») — the domain is approved, but the seller onboarding is not finished. No transaction was created.
+- Before each attempt the server created the combined one-time checkout discount at Paddle (ADR 0036), because a discount had been created in the panel at 12:55 — hence the `discount.created` events.
+- `PaddleClient` now logs every refused Paddle request: `billing.paddle_request_failed` with the HTTP status and Paddle's error code (no body, no key).
+
+Verification: `PaddleBillingTest::test_a_checkout_refused_by_paddle_fails_and_logs_paddle_reason`. Backend SQLite 630 passed + 4 skipped; PostgreSQL 18: 634/634.

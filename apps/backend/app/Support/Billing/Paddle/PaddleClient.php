@@ -6,6 +6,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Paddle Billing REST calls with the pinned API version. Response bodies are never logged or stored as they are; callers
@@ -65,6 +66,7 @@ class PaddleClient
 
         if (! $response->successful()) {
             $code = is_array($json) && is_string($json['error']['code'] ?? null) ? $json['error']['code'] : null;
+            Log::warning('billing.paddle_request_failed', ['status' => $response->status(), 'paddle_code' => $code]);
 
             throw new PaddleRequestFailed($this->errorCode($response), $response->status(), $code);
         }

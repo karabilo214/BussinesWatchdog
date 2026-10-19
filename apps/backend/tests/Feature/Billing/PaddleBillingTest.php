@@ -19,6 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\Feature\Notifications\NotificationTestContext;
@@ -80,6 +81,20 @@ class PaddleBillingTest extends TestCase
         Http::assertSent(fn (Request $request): bool => $request['items'] === [['price_id' => 'pri_base', 'quantity' => 1], ['price_id' => 'pri_extra', 'quantity' => 2]]
             && $request['custom_data'] === ['tenant_id' => $context['tenant']->id, 'checkout_id' => $response->json('id')]);
         $this->asMember($context)->getJson('/api/v1/billing/checkouts/'.$response->json('id'))->assertOk()->assertJsonPath('status', 'pending');
+    }
+
+    public function test_a_checkout_refused_by_paddle_fails_and_logs_paddle_reason(): void
+    {
+        $context = $this->context();
+        $plan = $this->plan();
+        Log::spy();
+        Http::fake([self::API.'/transactions' => Http::response(['error' => ['type' => 'request_error', 'code' => 'transaction_checkout_not_enabled', 'detail' => 'Checkouts aren\'t enabled for this account.']], 400)]);
+
+        $response = $this->checkout($context, ['price_id' => $plan['base']->id]);
+
+        $this->assertSame('failed', $response->json('status'));
+        $this->assertSame('paddle_request_rejected', $response->json('error_code'));
+        Log::shouldHaveReceived('warning')->with('billing.paddle_request_failed', ['status' => 400, 'paddle_code' => 'transaction_checkout_not_enabled'])->once();
     }
 
     public function test_checkout_adds_the_faster_checks_item_only_when_the_package_offers_it(): void
