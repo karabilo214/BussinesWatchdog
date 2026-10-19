@@ -74,6 +74,19 @@ services:
     deploy:
       replicas: ${BW_RECONCILIATION_WORKERS:-2}
 
+  mail:
+    image: business-watchdog/mail:${RELEASE:-latest}
+    build:
+      context: ../docker/postfix
+    restart: unless-stopped
+    environment:
+      MAIL_HOSTNAME: mail.${SITE_DOMAIN}
+      MAIL_DOMAIN: ${SITE_DOMAIN}
+    volumes:
+      - mail-queue:/var/spool/postfix
+    networks:
+      - internal
+
   web:
     image: business-watchdog/web:${RELEASE:-latest}
     build:
@@ -160,3 +173,4 @@ volumes:
   storage:
   caddy-data:
   caddy-config:
+  mail-queue:

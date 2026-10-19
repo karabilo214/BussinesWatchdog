@@ -37,6 +37,10 @@ if [ ! -f $ROOT/.env ]; then
     ring="base64:\$(openssl rand -base64 32)"
     pass="\$(openssl rand -hex 24)"
     sed -i "s|^APP_KEY=GENERATE|APP_KEY=\$key|; s|^WATCHDOG_KEYRING_V1=GENERATE|WATCHDOG_KEYRING_V1=\$ring|; s|^DB_PASSWORD=GENERATE|DB_PASSWORD=\$pass|" $ROOT/.env
+    openssl genrsa -out $ROOT/dkim.tmp 2048 2>/dev/null
+    python3 -c 'import pathlib as p; e = p.Path("$ROOT/.env"); k = p.Path("$ROOT/dkim.tmp").read_text().strip().replace(chr(10), chr(92) + "n"); e.write_text(e.read_text().replace("MAIL_DKIM_PRIVATE_KEY=GENERATE", "MAIL_DKIM_PRIVATE_KEY=" + k))'
+    echo "DKIM TXT record bw1._domainkey: v=DKIM1; k=rsa; p=\$(openssl rsa -in $ROOT/dkim.tmp -pubout 2>/dev/null | grep -v -- ----- | tr -d '[:space:]')"
+    rm $ROOT/dkim.tmp
     chmod 600 $ROOT/.env
     echo "Created $ROOT/.env — keep a copy of APP_KEY and WATCHDOG_KEYRING_V1 offline: without them encrypted data cannot be read."
 fi
