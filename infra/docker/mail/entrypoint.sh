@@ -38,7 +38,7 @@ postconf -e "myhostname = ${MAIL_HOSTNAME}" "mydomain = ${MAIL_DOMAIN}" "myorigi
 MAIL_DOMAIN="$MAIL_DOMAIN" mailbox rebuild
 mkdir -p /var/mail/vhosts && chown vmail:vmail /var/mail/vhosts
 newaliases
-postfix set-permissions >/dev/null 2>&1 || true
+chgrp postdrop /var/spool/postfix/public /var/spool/postfix/maildrop 2>/dev/null || true
 
 dovecot
 
