@@ -55,6 +55,9 @@ test -z "\$(git status --porcelain)" || { echo "The server working copy has loca
 cd infra/production
 ln -sfn $ROOT/.env .env
 sed -i "s|^RELEASE=.*|RELEASE=$SHORT|; s|^WATCHDOG_RELEASE=.*|WATCHDOG_RELEASE=$SHORT|" $ROOT/.env
+install -m 644 backup/bw-backup.service backup/bw-backup.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now bw-backup.timer >/dev/null
 docker compose build
 docker compose up -d --wait postgres redis
 docker compose run --rm --no-deps -u www-data app php artisan migrate --force

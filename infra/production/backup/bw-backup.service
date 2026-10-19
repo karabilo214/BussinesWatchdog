@@ -1,0 +1,8 @@
+[Unit]
+Description=Business Watchdog database backup with restore check
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/business-watchdog/repo/infra/production/backup/backup.sh
