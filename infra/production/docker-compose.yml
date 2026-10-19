@@ -1,9 +1,16 @@
 name: business-watchdog-prod
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: "5"
+
 x-backend: &backend
   image: business-watchdog/backend:${RELEASE:-latest}
   env_file: .env
   restart: unless-stopped
+  logging: *logging
   volumes:
     - storage:/var/www/html/storage
   depends_on:
@@ -23,6 +30,8 @@ services:
   postgres:
     image: postgres:18
     restart: unless-stopped
+    logging: *logging
+    logging: *logging
     environment:
       POSTGRES_DB: ${DB_DATABASE}
       POSTGRES_USER: ${DB_USERNAME}
@@ -106,6 +115,7 @@ services:
     build:
       context: ../docker/rspamd
     restart: unless-stopped
+    logging: *logging
     environment:
       MAIL_DOMAIN: ${SITE_DOMAIN}
       MAIL_DKIM_SELECTOR: ${MAIL_DKIM_SELECTOR}
@@ -131,6 +141,7 @@ services:
       dockerfile: infra/docker/backend/Dockerfile
       target: web
     restart: unless-stopped
+    logging: *logging
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN}
     ports:
@@ -170,6 +181,7 @@ services:
     cpus: 2.0
     pids_limit: 512
     restart: unless-stopped
+    logging: *logging
     deploy:
       replicas: ${BW_BROWSER_WORKERS:-1}
     depends_on:
@@ -193,6 +205,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    logging: *logging
     networks:
       - browser-egress
       - browser-internet

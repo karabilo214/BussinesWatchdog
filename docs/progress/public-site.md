@@ -263,3 +263,15 @@ Status: complete (ADR 0046, composition confirmed by the owner)
 - `database/data/page_blocks_more.php` (10 templates × ru/en/de) and migration `2026_10_19_110000_add_more_page_blocks` (PostgreSQL category check widened; templates appended after the existing ones, a template with the same name is skipped). `PageBlock::CATEGORIES`, `openapi.yaml` enums, owner panel type, category list and labels (ru/en/de).
 
 Verification: `PageBlockTest` (18 templates in order, every language kept unchanged by the sanitizer, links only to their own language). Control typecheck, 67/67, build. Backend SQLite 624 passed + 4 skipped; PostgreSQL 18: 628/628. The templates were not looked at in a browser.
+
+### Step 193: Legal Pages for Paddle (Terms, Privacy, Subscription and Refunds, Legal Notice)
+
+Status: drafts ready; publishing waits for the owner (legal name and address, review in the panel)
+
+- ADR 0065 (owner decisions 2026-10-19: private individual as seller, 14-day money-back on the first payment, business customers only, law of Ukraine, ADR 0041 price grid for now; live Paddle keys after the pages).
+- Texts in en/de/ru in `database/data/legal/{terms,privacy,refund,imprint}.php`: Terms with Paddle's Merchant of Record wording, liability, indemnity, termination and its consequences, force majeure, assignment, changes, governing law and disputes, and data processing on the customer's behalf (Art. 28 GDPR); Privacy Policy checked against the code (data, legal bases, retention from the configuration, processors, backups, cookies, rights, complaint to a supervisory authority); Subscription and Refund Policy (trial, renewal, cancellation, plan changes, price changes, failed payments, refunds through Paddle); Legal Notice / Impressum (§ 5 DDG, § 18 (2) MStV, no consumer arbitration).
+- `php artisan site:legal-drafts <owner email> --name= --address= [--email=]`: footer pages `terms`, `privacy`, `refund-policy`, `imprint` with document types `service_terms`, `privacy_notice`, `recurring_payment`; drafts in all three languages through `PageAdmin` (sanitized, audited as the owner); provider fields escaped; never publishes; refuses when another page holds a document type.
+- Production compose: container logs rotate (`json-file`, 20 MB × 5) so the privacy text about logs holds.
+- README «8а. Юридические страницы».
+
+Verification: `LegalDraftsTest` (4 pages, types and footer, 12 drafts in de/en/ru, no placeholders left, name HTML-escaped, Paddle wording and links per language, Impressum address lines, nothing public before publishing, a second run keeps the published version and updates the draft, refusals without provider/owner or with the type on another page leave nothing). Backend SQLite 626 passed + 4 skipped; PostgreSQL 18: 630/630. Not reviewed by a lawyer.
