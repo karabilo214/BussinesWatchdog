@@ -55,6 +55,7 @@ test -z "\$(git status --porcelain)" || { echo "The server working copy has loca
 cd infra/production
 ln -sfn $ROOT/.env .env
 sed -i "s|^RELEASE=.*|RELEASE=$SHORT|; s|^WATCHDOG_RELEASE=.*|WATCHDOG_RELEASE=$SHORT|" $ROOT/.env
+command -v age >/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq age >/dev/null
 install -m 644 backup/bw-backup.service backup/bw-backup.timer /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now bw-backup.timer >/dev/null

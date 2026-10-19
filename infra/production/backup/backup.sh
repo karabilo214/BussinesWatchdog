@@ -1,6 +1,8 @@
 #!/bin/sh
 # Daily PostgreSQL backup of the production server (run by bw-backup.timer).
-# Dumps the database, proves the dump restores into a throwaway PostgreSQL, then prunes old backups (prune.py).
+# Dumps the database, proves the dump restores into a throwaway PostgreSQL, prunes old backups (prune.py), and when
+# off-site storage is configured in .env encrypts the dump with age (public key only on the server) and uploads it to
+# S3-compatible storage, pruning the off-site copies by the same rule.
 set -eu
 
 ROOT=/opt/business-watchdog
@@ -11,6 +13,8 @@ cd "$HERE/.."
 env_value() { sed -n "s/^$1=//p" "$ROOT/.env" | tail -1 | tr -d '"'; }
 DB="$(env_value DB_DATABASE)"
 DB_USER="$(env_value DB_USERNAME)"
+BW_BACKUP_KEEP_MONTHS="$(env_value BW_BACKUP_KEEP_MONTHS)"
+export BW_BACKUP_KEEP_MONTHS="${BW_BACKUP_KEEP_MONTHS:-12}"
 
 mkdir -p "$DIR"
 chmod 700 "$DIR"
@@ -38,3 +42,29 @@ MIGRATIONS="$(docker exec "$CHECK" psql -U postgres -d restored -tAc "select cou
 echo "$STAMP $(du -h "$FILE" | cut -f1) tables=$TABLES migrations=$MIGRATIONS" > "$DIR/last-success"
 echo "backup ok: $FILE ($(du -h "$FILE" | cut -f1), $TABLES tables restored)"
 python3 "$HERE/prune.py" "$DIR"
+
+RECIPIENT="$(env_value BW_BACKUP_AGE_RECIPIENT)"
+BUCKET="$(env_value BW_BACKUP_S3_BUCKET)"
+if [ -z "$RECIPIENT" ] || [ -z "$BUCKET" ]; then
+    echo "off-site copy not configured (BW_BACKUP_AGE_RECIPIENT, BW_BACKUP_S3_*)"
+    exit 0
+fi
+
+age -r "$RECIPIENT" -o "$FILE.age" "$FILE"
+rclone() {
+    docker run --rm --network host -v "$DIR:/backups:ro" \
+        -e RCLONE_CONFIG_OFFSITE_TYPE=s3 -e RCLONE_CONFIG_OFFSITE_PROVIDER=Other \
+        -e RCLONE_CONFIG_OFFSITE_ENDPOINT="$(env_value BW_BACKUP_S3_ENDPOINT)" \
+        -e RCLONE_CONFIG_OFFSITE_ACCESS_KEY_ID="$(env_value BW_BACKUP_S3_ACCESS_KEY)" \
+        -e RCLONE_CONFIG_OFFSITE_SECRET_ACCESS_KEY="$(env_value BW_BACKUP_S3_SECRET_KEY)" \
+        -e RCLONE_CONFIG_OFFSITE_ACL=private \
+        rclone/rclone:1.71.2 "$@"
+}
+rclone copyto "/backups/$(basename "$FILE").age" "offsite:$BUCKET/$(basename "$FILE").age"
+rm -f "$FILE.age"
+rclone lsf "offsite:$BUCKET" | python3 "$HERE/prune.py" --names | while read -r old; do
+    rclone deletefile "offsite:$BUCKET/$old"
+    echo "off-site delete $old"
+done
+echo "off-site copy ok: $BUCKET/$(basename "$FILE").age"
+echo "$STAMP offsite=$BUCKET" > "$DIR/last-offsite"

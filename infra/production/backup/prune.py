@@ -4,6 +4,8 @@ of the current month only its last backup; of each earlier month only its last b
 BW_BACKUP_KEEP_MONTHS months (12). The newest backup is never deleted.
 
 Usage: prune.py <dir> [--now 2026-10-19T03:15:00Z] [--dry-run]
+       prune.py --names [--now ...]   reads backup names (one per line, optional ".age" suffix) from stdin and prints
+                                      the ones to delete — used for the off-site copies.
 """
 import argparse
 import os
@@ -11,7 +13,7 @@ import re
 import sys
 from datetime import datetime, timezone
 
-NAME = re.compile(r"^db-(\d{4}-\d{2}-\d{2}T\d{6}Z)\.dump$")
+NAME = re.compile(r"^db-(\d{4}-\d{2}-\d{2}T\d{6}Z)\.dump(\.age)?$")
 
 
 def stamp(name):
@@ -46,12 +48,21 @@ def keep(backups, now, months):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("dir")
+    parser.add_argument("dir", nargs="?")
+    parser.add_argument("--names", action="store_true")
     parser.add_argument("--now")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     now = datetime.strptime(args.now, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc) if args.now else datetime.now(timezone.utc)
     months = int(os.environ.get("BW_BACKUP_KEEP_MONTHS", "12"))
+    if args.names:
+        backups = [(stamp(name), name) for name in (line.strip() for line in sys.stdin) if stamp(name)]
+        kept = keep(backups, now, months)
+        for _, name in sorted(backups):
+            if name not in kept:
+                print(name)
+        return 0
+
     backups = [(stamp(name), name) for name in os.listdir(args.dir) if stamp(name)]
     kept = keep(backups, now, months)
 
