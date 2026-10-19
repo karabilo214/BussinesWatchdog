@@ -1,6 +1,6 @@
 # ADR 0066: Limits of the launch plans for one production server
 
-Status: limits accepted by the owner on 2026-10-19; extra-store prices proposed, not yet confirmed
+Status: accepted by the owner on 2026-10-19 (limits, extra-store prices and the volume grace period)
 
 ## Context
 
@@ -25,8 +25,8 @@ The server's bottleneck is the browser checks: one scheduled check takes about 3
 | `payment_attempts_script` | — | ✓ | ✓ | |
 
 - **Not sold yet**: `order_outcomes` and `agency_workspace` are in the feature catalog but not implemented (TZ §43); the «частые проверки» add-on stays off until a second worker or server — it creates the most browser load.
-- **Extra store** (proposal, to be confirmed): 9 € (Start), 8 € (Business), 7 € (Growth) a month — an extra store costs the server as much as an included one.
-- **Volume grace period** (ADR 0041 p. 3, proposal): 14 days.
+- **Extra store** (accepted): 9 € (Start), 8 € (Business), 7 € (Growth) a month — an extra store costs the server as much as an included one.
+- **Volume grace period** (ADR 0041 p. 3, accepted): 14 days.
 - **Billing period**: monthly prices only at launch; yearly prices are the owner's later choice.
 
 ## Capacity
