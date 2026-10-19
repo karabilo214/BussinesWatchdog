@@ -176,6 +176,18 @@ ssh -t bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compos
 ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose logs -f --tail 100 app web scheduler'
 ```
 
+**Бэкапы базы** — systemd-таймер `bw-backup.timer` (ставит `deploy.sh`), каждый день в 03:15 по Берлину: `pg_dump` в `/opt/business-watchdog/backups/db-<время UTC>.dump`, затем дамп восстанавливается во временный PostgreSQL — без успешного восстановления копия не считается; итог — в `backups/last-success`. Хранение (решение владельца): все копии текущей недели; от прошлых недель текущего месяца — последняя копия каждой недели; от прошлых месяцев — последняя копия каждого месяца, за `BW_BACKUP_KEEP_MONTHS` месяцев (12). Копии пока лежат **на том же сервере** — от потери сервера они не защищают.
+
+```sh
+ssh bw-prod 'systemctl start bw-backup.service && journalctl -u bw-backup.service -n 5'   # бэкап сейчас
+ssh bw-prod 'cat /opt/business-watchdog/backups/last-success; ls -lh /opt/business-watchdog/backups'
+scp bw-prod:/opt/business-watchdog/backups/db-<время>.dump .                                # копия себе
+# восстановление в работающую базу (остановить приложение, затем):
+ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose stop app scheduler sync-worker reconciliation-worker web \
+  && docker compose exec -T postgres pg_restore -U bw_app -d business_watchdog --clean --if-exists --no-owner < /opt/business-watchdog/backups/db-<время>.dump \
+  && docker compose up -d'
+```
+
 DNS у NIC.UA: `A` и `AAAA` для `@` и `www` на адреса сервера. Скриншоты, выгрузки и файлы сайта хранятся на диске сервера (том `storage`, `WATCHDOG_*_DISK=local`). Почта пока только пишется в лог (`MAIL_MAILER=log`) — до подключения SMTP-провайдера письма не уходят. Браузерный воркер запускается, когда в `.env` задан `BW_WORKER_TOKEN` (`php artisan browser:worker-create worker-1`).
 
 ## Обслуживание

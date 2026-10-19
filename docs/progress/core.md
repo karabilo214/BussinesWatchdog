@@ -862,3 +862,11 @@ Status: complete (owner chose Contabo Cloud VPS 8 and the domain business-watchd
 - Artifacts, exports and site media use the local disk volume; mail is log-only until an SMTP provider is chosen; Paddle keys are not set yet.
 
 Verification: from outside — `/` → `/en`, `/en`, `/de/pricing`, `/app/`, `/owner/login`, `/health/ready` (database, Redis, cache, keyring ok), `www` and `http` redirects, Let's Encrypt certificate until 2027-01-17, HSTS; scheduler runs its tasks; all migrations ran. Backend SQLite 624 passed + 4 skipped after the proxy change. No platform owner, worker token, SMTP or backups yet.
+
+### Step 188: Daily Production Database Backups with a Restore Check
+
+Status: complete (retention rule by the owner)
+
+- `infra/production/backup/backup.sh`: `pg_dump --format=custom` from the running PostgreSQL, restore into a throwaway `postgres:18` container (tables and migrations must exist), `last-success` marker, then `prune.py`. `prune.py`: all backups of the current ISO week; the last backup of each earlier week of the current month; the last backup of each earlier month for `BW_BACKUP_KEEP_MONTHS` (12, the owner did not fix a number); the newest is always kept. `bw-backup.service` / `bw-backup.timer` (03:15 Europe/Berlin, persistent), installed and enabled by `deploy.sh`. README: running, listing, copying and restoring.
+
+Verification: prune rule on 100 simulated daily backups at 2026-10-19 keeps 2026-07-31, 08-31, 09-30, 10-04, 10-11, 10-18 and 10-19; first real run on the server: 316 KB dump, 96 tables restored, timer scheduled. Open: the backups are on the same server (no off-site copy yet), so ACC-41 (restore on a new host) is still not done.
