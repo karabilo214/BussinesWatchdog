@@ -424,3 +424,12 @@ Status: complete (ADR 0052 owner decision)
 - Owner panel: "Reset authenticator" for members (code and reason); the staff-invitation page shows "New authenticator" without the name field for a reset link.
 
 Verification: `StaffAdminTest` (wrong code, owner and self refused, reset ends sessions, no pending invitation listed, e-mail with link, sign-in refused without authenticator, wrong password, new authenticator connected, the same staff row, signs in, audit, link used up; invited address in the audit). Control 67/67, typecheck, build. Backend SQLite 625 passed + 4 skipped; PostgreSQL 18: 629/629. SMTP smoke was not run.
+
+### Step 194: Launch Plans as Drafts (ADR 0066)
+
+Status: complete; publishing waits for the owner
+
+- `database/data/launch_plans.php`: Start, Business, Growth, Enterprise with the ADR 0066 limits, features (`order_outcomes` and `agency_workspace` not included, no faster-checks add-on), 14-day trial (Enterprise 0, «contact sales»), 14-day volume grace, names and descriptions in en/de/ru, monthly EUR prices 19/39/79 € and extra store 9/8/7 €.
+- `php artisan billing:launch-plans <owner email>` creates them through `PlanAdmin` as drafts (audited as the owner) in the current Paddle mode; nothing goes to Paddle until the owner publishes in `/owner/plans`; existing plan codes are left alone. README updated.
+
+Verification: `LaunchPlansTest` (refuses without an owner, four drafts, limits, features, trial/grace, descriptions, six draft EUR monthly prices with exact minor amounts, Enterprise contact sales without prices, a second run changes nothing). Backend SQLite 627 passed + 4 skipped; PostgreSQL 18: 631/631.
