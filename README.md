@@ -225,6 +225,8 @@ docker compose exec mail mailbox alias hello@business-watchdog.com anna@business
 docker compose exec mail mailbox unalias hello@business-watchdog.com
 ```
 
+Репутация домена в Gmail — Google Postmaster Tools (`postmaster.google.com`, вход аккаунтом владельца; домен подтверждён TXT-записью `google-site-verification=…` у NIC.UA, 2026-10-19). Данные появляются только при заметном потоке писем на Gmail; до этого — «Недостаточно данных».
+
 Подбор паролей к почте блокирует fail2ban (jail `bw-mail`, ставит `deploy.sh`): неверный пароль IMAP/SMTP или попытка входа на порт 25 — 6 раз за 10 минут, и адрес закрывается для портов 25/465/587/993 на час, при повторах дольше (до недели). Правило — в цепочке `DOCKER-USER`: обычный `INPUT` Docker обходит. Логи `mail` идут в journald (`journalctl CONTAINER_TAG=bw-mail`, `docker compose logs mail` тоже работает).
 
 ```sh
