@@ -893,3 +893,12 @@ Owner decision (2026-10-19): own mail server instead of a mail provider — Post
 - Production `.env`: `MAIL_MAILER=smtp`, `MAIL_HOST=mail`, `MAIL_PORT=2525`, DKIM key generated on the server (`deploy.sh init` does it for a new server and prints the DNS record). DNS (owner): `A mail`, SPF, DKIM `bw1`, DMARC `p=quarantine`, PTR of both addresses → `mail.business-watchdog.com`; MX pending.
 
 Verification: local stack (mail, rspamd, redis) — inbound letter for an alias delivered to the mailbox; unknown recipient 550; relay 554; no AUTH on 25; wrong IMAP password refused; IMAP lists INBOX, Drafts, Sent, Junk, Trash; on 587 no AUTH before TLS; sending as someone else's address 553; sending as own alias accepted; 465 login; staff letter signed (`DKIM_SIGNED business-watchdog.com:s=bw1`); GTUBE rejected; letters above the Junk threshold land in Junk with `X-Spam: Yes`. Production: a service letter to Gmail accepted (`250 2.0.0 OK`, TLS 1.3); from outside — Let's Encrypt certificate on 993 and 587 verifies; relay to Gmail 554, unknown recipient 550, no AUTH on 25. Backend SQLite 624 passed + 4 skipped.
+
+### Step 191: fail2ban for the Mail Server
+
+Status: complete
+
+- The `mail` container logs to journald (`tag: bw-mail`). Jail `infra/production/fail2ban/jail.d/bw-mail.conf` (systemd backend, `CONTAINER_TAG=bw-mail`): 6 failures in 10 minutes ban the address on 25/465/587/993 for 1 hour, growing on repeats up to a week. Filter `bw-mail`: Postfix SASL failures, any SMTP session that tried AUTH without success (`auth=0/N`, also on port 25, where AUTH is not offered — legitimate servers never try it), Dovecot IMAP `auth failed`. The ban rule goes into `DOCKER-USER` (`chain = DOCKER-USER`; a `chain` inside `banaction` is overridden by the jail default `INPUT`, which Docker-published ports bypass). `deploy.sh` installs the filter and the jail and reloads fail2ban.
+- The mail container fixes the queue group of `public`/`maildrop` itself (`postfix set-permissions` fails on the missing docs directory in Alpine).
+
+Verification: `fail2ban-regex` on three hours of production logs matched 5 bot sessions (port 25 and 587); a SASL failure line and a Dovecot 2.4 `auth failed` line matched. A manual ban of 203.0.113.9 put `-A DOCKER-USER -p tcp -m multiport --dports 25,465,587,993 -j f2b-bw-mail` and the REJECT rule in place; unban removed it; nothing in `INPUT`. No postdrop warnings after restart.
