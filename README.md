@@ -181,6 +181,12 @@ infra/production/deploy.sh <commit>     # конкретный коммит (о�
 infra/production/deploy.sh init         # первый запуск на новом сервере: клон репозитория и .env с новыми секретами
 ```
 
+**После правки `.env`** изменения не применяются сами: контейнеры читают `.env` только при создании. Пересоздать их (несколько секунд, данные и очереди сохраняются; `deploy.sh` делает это тоже):
+
+```sh
+ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose up -d && docker compose --profile browser up -d'
+```
+
 Команды artisan на сервере:
 
 ```sh
