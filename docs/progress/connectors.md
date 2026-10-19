@@ -419,3 +419,13 @@ Verification: backend full SQLite suite 590 passed, 4 skipped (incl. `CheckoutOb
 The Stripe App spike found that new Connect OAuth integrations cannot request `read_only`; Stripe Apps OAuth v2 supports `payment_intent_read` and `charge_read` (including refunds). The customer store panel now starts OAuth installation and keeps manual restricted-key entry as fallback. The backend binds one-use state to tenant/store/actor/mode, exchanges the code, verifies `stripe_apps` scope, mode, account and GET access to all three resources, encrypts access and rotating refresh tokens, and refreshes before the existing polling sync. Local revoke deletes stored OAuth tokens. Added the API contract, schema tables and platform setup instructions in `docs/spikes/stripe-app-oauth.md`.
 
 Verification: backend SQLite 599 passed + 4 skipped, PostgreSQL 18 603/603, customer dashboard 129/129 plus typecheck/build. Stripe App OAuth tests use simulated Stripe responses; a real public Stripe App is not configured or published yet, so this is not a live installation claim. The backlog item stays open until the owner creates the platform App and an external test installation passes.
+
+### Step 185: Stripe App OAuth Withdrawn (ADR 0020)
+
+Status: complete (owner decision 2026-10-19)
+
+- Not available for Ukraine: without a business registered in Germany Stripe does not let the platform account finish its setup, so neither the customer authorisation through the button nor the Stripe App External test works. If a company registered in Germany becomes available, this item can be taken up again.
+- Reverted the code of Step 163 (`db0bd13`): `StripeAppOAuth`, `StripeAppOAuthController`, the `stripe-app/*` routes, OAuth token handling in `StripeConnector`/`StripeSync`, config and `.env.example` entries, `openapi.yaml` and `ui-api-catalog.md` operations, `spec/database/schema.sql` tables, the customer dashboard button, API client and texts. New migration `2026_10_19_100000_drop_stripe_app_oauth_tables` drops the tables where the old migration ran. The uncommitted test App package `apps/stripe-app` was deleted. Restricted-key connection is unchanged.
+- Also fixed: the customer dashboard lacked texts for the team error codes `owner_role_protected` and `member_not_found` added in Step 177 (its translation test was red since then).
+
+Verification: backend SQLite 624 passed + 4 skipped (the 4 Stripe App OAuth tests removed); PostgreSQL 18: 628/628; customer dashboard typecheck, 133/133, build. OpenAPI parses (197 paths).

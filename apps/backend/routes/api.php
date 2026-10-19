@@ -26,7 +26,6 @@ use App\Http\Controllers\Api\V1\Integrations\ProviderSyncController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareAppController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\StripeIntegrationController;
-use App\Http\Controllers\Api\V1\Integrations\StripeAppOAuthController;
 use App\Http\Controllers\Api\V1\Integrations\StripeWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\WooCommerceApiIntegrationController;
 use App\Http\Controllers\Api\V1\Notifications\NotificationChannelController;
@@ -70,8 +69,6 @@ Route::middleware('stateful.session')->prefix('/v1/auth')->group(function (): vo
 });
 
 Route::post('/v1/webhooks/stripe/{integration}', [StripeWebhookController::class, 'store'])
-    ->middleware('throttle:provider-webhook');
-Route::get('/v1/stripe-app/callback', [StripeAppOAuthController::class, 'callback'])
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/paypal/{integration}', [PayPalWebhookController::class, 'store'])
     ->middleware('throttle:provider-webhook');
@@ -120,10 +117,6 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
     Route::post('/stores/{store}/integrations/stripe', [StripeIntegrationController::class, 'connect'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
-    Route::post('/stores/{store}/integrations/stripe-app/start', [StripeAppOAuthController::class, 'start'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
-    Route::get('/stores/{store}/integrations/stripe-app/availability', [StripeAppOAuthController::class, 'availability'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
     Route::put('/integrations/{integration}/webhook-secret', [StripeIntegrationController::class, 'webhookSecret'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::post('/stores/{store}/integrations/paypal', [PayPalIntegrationController::class, 'connect'])

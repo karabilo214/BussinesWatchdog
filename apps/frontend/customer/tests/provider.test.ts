@@ -11,7 +11,7 @@ import ProviderPanel from '@/components/ProviderPanel.vue';
 import en from '@/i18n/locales/en.json';
 import { localization, setLocale } from '@/i18n';
 
-vi.mock('@/api/providers', () => ({ connectStripe: vi.fn(), startStripeApp: vi.fn(), stripeAppAvailability: vi.fn(), connectPayPal: vi.fn(), setPayPalWebhookId: vi.fn(), setWebhookSecret: vi.fn(), syncProvider: vi.fn(), webhookUrl: (id: string, provider = 'stripe') => `https://app.example/api/v1/webhooks/${provider}/${id}` }));
+vi.mock('@/api/providers', () => ({ connectStripe: vi.fn(), connectPayPal: vi.fn(), setPayPalWebhookId: vi.fn(), setWebhookSecret: vi.fn(), syncProvider: vi.fn(), webhookUrl: (id: string, provider = 'stripe') => `https://app.example/api/v1/webhooks/${provider}/${id}` }));
 vi.mock('@/api/stores', () => ({ listStoreIntegrations: vi.fn(), revokeIntegration: vi.fn() }));
 
 const global = { plugins: [localization] };
@@ -29,24 +29,9 @@ function stripe(overrides: Partial<Integration> = {}): Integration {
 beforeEach(() => {
   vi.clearAllMocks();
   setLocale('ru');
-  vi.mocked(providers.stripeAppAvailability).mockResolvedValue({ test: false, live: false });
 });
 
 describe('ProviderPanel', () => {
-  it('offers one-click Stripe App setup and keeps the restricted key fallback', async () => {
-    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([]);
-    vi.mocked(providers.stripeAppAvailability).mockResolvedValue({ test: true, live: false });
-    vi.mocked(providers.startStripeApp).mockRejectedValue(new Error('app unavailable'));
-    const wrapper = mount(ProviderPanel, { props: { storeId: 's-1', canManage: true }, global });
-    await flushPromises();
-
-    await wrapper.findAll('button').find((item) => item.text() === 'Подключить в Stripe')!.trigger('click');
-    await flushPromises();
-
-    expect(providers.startStripeApp).toHaveBeenCalledWith('s-1', 'test');
-    expect(wrapper.find('#stripe-key').exists()).toBe(true);
-  });
-
   it('accepts only a restricted key and connects with it', async () => {
     vi.mocked(stores.listStoreIntegrations).mockResolvedValue([]);
     vi.mocked(providers.connectStripe).mockResolvedValue(stripe());
@@ -103,7 +88,7 @@ describe('ProviderPanel', () => {
     const dir = resolve(__dirname, '../../../backend/app/Support/Providers/Stripe');
     const files = [...readdirSync(dir).map((name) => resolve(dir, name)), resolve(__dirname, '../../../backend/app/Http/Controllers/Api/V1/Integrations/StripeIntegrationController.php')];
     const source = files.map((file) => readFileSync(file, 'utf8')).join('\n');
-    const codes = new Set([...source.matchAll(/(?:AccountRejected|StripeRequestFailed)\('(stripe_[a-z_]+|provider_already_connected|integration_not_active)'/g)].map((match) => match[1]!));
+    const codes = new Set([...source.matchAll(/'(stripe_[a-z_]+|provider_already_connected|integration_not_active)'/g)].map((match) => match[1]!));
 
     expect(codes.size).toBeGreaterThan(8);
 

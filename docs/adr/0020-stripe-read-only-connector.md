@@ -89,3 +89,8 @@ Disputes and fees (informational signals), multicapture (a growing `amount_captu
 ## Step 163: Stripe App OAuth spike and implementation (2026-10-16)
 
 The [spike](../spikes/stripe-app-oauth.md) found that legacy Connect OAuth `read_only` is only for Extensions, which Stripe no longer lets new developers create. Stripe Apps OAuth v2 offers the required `payment_intent_read` and `charge_read` permissions (the latter includes refunds). The customer dashboard now starts this flow with a one-use state and retains the restricted-key fallback. The backend validates scope/mode/account and GET permissions, stores rotating encrypted tokens, and uses them for the existing read-only polling connector. This was tested with simulated Stripe responses in SQLite and PostgreSQL. A platform-owned public Stripe App and a real external install are still required before the backlog item can be marked complete.
+
+## Stripe App OAuth withdrawn (2026-10-19, Step 185)
+
+Not available for Ukraine: Stripe does not let the platform account finish its setup without a business registered in Germany, and without it neither the customer authorisation through the one-click button nor the External test of the Stripe App works. The Stripe App OAuth path of Step 163 (backend endpoints, encrypted token storage, dashboard button) and the uploaded test App package were removed; the restricted-key connection stays the only way to connect Stripe. If a company registered in Germany becomes available, this item can be taken up again — the removed implementation is in commit `db0bd13` and the findings in `docs/spikes/stripe-app-oauth.md`.
+

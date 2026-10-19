@@ -106,11 +106,6 @@ class IntegrationController extends Controller
                         'rotated_at' => now(),
                     ]);
 
-                if ($locked->provider === 'stripe' && ($locked->health['auth_method'] ?? null) === 'stripe_app_oauth') {
-                    DB::table('stripe_app_oauth_connections')->where('tenant_id', $locked->tenant_id)
-                        ->where('store_id', $locked->store_id)->where('integration_id', $locked->id)->delete();
-                }
-
                 if ($locked->source_authority === Integration::SOURCE_INDEPENDENT_PROVIDER) {
                     $requeue->requeue($locked->tenant_id, $locked->store_id, ReconciliationDirtySubject::REASON_PROVIDER_COVERAGE_CHANGED);
                 }

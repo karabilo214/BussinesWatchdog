@@ -130,34 +130,6 @@ CREATE TABLE integration_credentials (
  FOREIGN KEY (tenant_id,store_id,integration_id) REFERENCES integrations(tenant_id,store_id,id)
 );
 
-CREATE TABLE stripe_app_oauth_attempts (
- id uuid PRIMARY KEY,
- tenant_id uuid NOT NULL,
- store_id uuid NOT NULL,
- actor_user_id uuid NOT NULL REFERENCES users(id),
- state_hash char(64) NOT NULL UNIQUE,
- mode text NOT NULL CHECK (mode IN ('live','test')),
- expires_at timestamptz NOT NULL,
- consumed_at timestamptz,
- created_at timestamptz NOT NULL,
- FOREIGN KEY (tenant_id,store_id) REFERENCES stores(tenant_id,id)
-);
-CREATE INDEX stripe_app_oauth_attempts_scope_idx ON stripe_app_oauth_attempts(tenant_id,store_id,expires_at);
-
-CREATE TABLE stripe_app_oauth_connections (
- integration_id uuid PRIMARY KEY,
- tenant_id uuid NOT NULL,
- store_id uuid NOT NULL,
- access_ciphertext text NOT NULL,
- refresh_ciphertext text NOT NULL,
- key_version integer NOT NULL CHECK (key_version>0),
- access_expires_at timestamptz NOT NULL,
- refresh_expires_at timestamptz NOT NULL,
- created_at timestamptz NOT NULL,
- updated_at timestamptz NOT NULL,
- FOREIGN KEY (tenant_id,store_id,integration_id) REFERENCES integrations(tenant_id,store_id,id)
-);
-
 CREATE TABLE pairing_codes (
  id uuid PRIMARY KEY,
  tenant_id uuid NOT NULL,

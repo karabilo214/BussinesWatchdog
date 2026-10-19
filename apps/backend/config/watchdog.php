@@ -64,15 +64,6 @@ return [
 
     'stripe' => [
         'api_base' => env('WATCHDOG_STRIPE_API_BASE', 'https://api.stripe.com'),
-        'app' => [
-            'client_id_test' => env('WATCHDOG_STRIPE_APP_CLIENT_ID_TEST'),
-            'client_id_live' => env('WATCHDOG_STRIPE_APP_CLIENT_ID_LIVE'),
-            'install_url_test' => env('WATCHDOG_STRIPE_APP_INSTALL_URL_TEST'),
-            'install_url_live' => env('WATCHDOG_STRIPE_APP_INSTALL_URL_LIVE'),
-            'secret_key_test' => env('WATCHDOG_STRIPE_APP_SECRET_KEY_TEST'),
-            'secret_key_live' => env('WATCHDOG_STRIPE_APP_SECRET_KEY_LIVE'),
-            'redirect_uri' => env('WATCHDOG_STRIPE_APP_REDIRECT_URI'),
-        ],
         'api_version' => '2026-09-30.endive',
         'timeout_seconds' => 20,
         'page_size' => 100,

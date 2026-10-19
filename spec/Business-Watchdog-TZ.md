@@ -163,7 +163,7 @@ Plugin settings: connection state, revoke/reconnect, режим telemetry, вы�
 
 ## 10 Источник Stripe
 
-P1 использует restricted read-only API key, введённый owner через backend TLS form. Хранить зашифрованным, показывать только suffix. Ключ не передаётся в Vue после сохранения. Решение владельца 2026-10-16 (ADR 0020): добавить подключение в один клик через Stripe App OAuth с правами только чтения; старый Connect OAuth `read_only` для новых приложений недоступен. Restricted key остаётся запасным путём. Установка и публикация Stripe App требуют отдельной проверки в аккаунте платформы.
+P1 использует restricted read-only API key, введённый owner через backend TLS form. Хранить зашифрованным, показывать только suffix. Ключ не передаётся в Vue после сохранения. Подключение в один клик через Stripe App OAuth (ADR 0020) не доступно для Украины: без зарегистрированной компании в Германии Stripe не даёт завершить настройку аккаунта платформы; если такая компания появится, к пункту можно вернуться. Сейчас подключение — только через restricted key.
 
 Adapter должен читать поддерживаемые charges/captures, refunds, payment intents и account metadata, принимать verified webhook. API version явно закрепляется в config и сохраняется в событии. Webhook endpoint secret отделён от API key; подпись проверяется штатной Stripe library по неизменённому raw body.
 
