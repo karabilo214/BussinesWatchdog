@@ -56,7 +56,7 @@ cd infra/production
 ln -sfn $ROOT/.env .env
 sed -i "s|^RELEASE=.*|RELEASE=$SHORT|; s|^WATCHDOG_RELEASE=.*|WATCHDOG_RELEASE=$SHORT|" $ROOT/.env
 docker compose build
-docker compose up -d postgres redis
+docker compose up -d --wait postgres redis
 docker compose run --rm --no-deps -u www-data app php artisan migrate --force
 docker compose up -d --remove-orphans
 if grep -q '^BW_WORKER_TOKEN=.\+' $ROOT/.env; then docker compose --profile browser up -d; fi
