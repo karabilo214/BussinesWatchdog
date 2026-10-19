@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Site;
 use App\Http\Controllers\Controller;
 use App\Models\PublicPage;
 use App\Models\PublicPageVersion;
+use App\Support\Billing\Paddle\PaddleConfig;
 use App\Support\Site\ContactInbox;
 use App\Support\Site\Policies;
 use App\Support\Site\PricingTable;
@@ -137,11 +138,23 @@ class SiteController extends Controller
         $data['preview'] = true;
         $data['canonical'] = null;
         $data['alternates'] = [];
+
         return view($page->kind === PublicPage::KIND_HOME ? 'site.home' : 'site.page', $data + [
             'title' => $title,
             'description' => $description,
             'body' => $body,
         ])->render();
+    }
+
+    /** Paddle's default payment link: Paddle.js opens the checkout of the `_ptxn` transaction in the address. */
+    public function pay(string $locale): Response
+    {
+        return response()->view('site.pay', array_merge($this->chrome($locale, null, null), [
+            'path' => 'pay',
+            'title' => trans('site.pay.title', [], $locale),
+            'description' => null,
+            'paddle' => ['token' => PaddleConfig::clientToken(), 'environment' => PaddleConfig::environment()],
+        ]))->header('Cache-Control', 'no-store');
     }
 
     public function missing(string $locale): Response

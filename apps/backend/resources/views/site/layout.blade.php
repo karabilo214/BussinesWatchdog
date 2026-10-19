@@ -11,7 +11,7 @@
         <meta name="robots" content="noindex, nofollow">
         <base target="_blank">
     @endif
-    @if (($path ?? null) === 'check-store')
+    @if (in_array($path ?? null, ['check-store', 'pay'], true))
         <meta name="robots" content="noindex, nofollow">
     @endif
     @if ($canonical)
@@ -71,5 +71,6 @@
         <p class="site-copy">© {{ now()->year }} {{ __('site.brand') }}</p>
     </div>
 </footer>
+@stack('scripts')
 </body>
 </html>

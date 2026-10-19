@@ -19,7 +19,7 @@ class PageAdmin
     public const SLUG_PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
 
     /** Top-level addresses served by the site itself. */
-    private const RESERVED = ['signup'];
+    private const RESERVED = ['signup', 'pay'];
 
     public function __construct(
         private readonly PageSanitizer $sanitizer,

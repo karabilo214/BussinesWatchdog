@@ -433,3 +433,12 @@ Status: complete; publishing waits for the owner
 - `php artisan billing:launch-plans <owner email>` creates them through `PlanAdmin` as drafts (audited as the owner) in the current Paddle mode; nothing goes to Paddle until the owner publishes in `/owner/plans`; existing plan codes are left alone. README updated.
 
 Verification: `LaunchPlansTest` (refuses without an owner, four drafts, limits, features, trial/grace, descriptions, six draft EUR monthly prices with exact minor amounts, Enterprise contact sales without prices, a second run changes nothing). Backend SQLite 627 passed + 4 skipped; PostgreSQL 18: 631/631.
+
+### Step 195: Default Payment Link Page
+
+Status: complete
+
+- Paddle requires a default payment link and appends `?_ptxn=txn_…` to it in its own links (for example the «update payment method» emails); the page must load Paddle.js, which then opens the checkout of that transaction. The pricing page loads no Paddle.js, so `/{locale}/pay` was added: site layout, `noindex`, `no-store`; loads `cdn.paddle.com/paddle/v2/paddle.js`, sets the sandbox environment when needed, `Paddle.Initialize` with the client token and the success URL `/app/settings/billing`; without `_ptxn` or a client token it explains where payments are and links to the account; a load failure is shown. ru/en/de texts with the Paddle reseller line. `pay` is a reserved page address. README: the link to set in Paddle is `https://business-watchdog.com/en/pay`.
+- Contact and sign-up forms are in a card (`.site-card`, the look of the editor's `.card`).
+
+Verification: `PayPageTest` (token and environment injected, Paddle.js, noindex, no-store, account link, three languages, no token; `pay` refused as a page address). Backend SQLite 629 passed + 4 skipped; PostgreSQL 18: 633/633. The Paddle checkout opening from a real `_ptxn` link was not exercised.

@@ -33,6 +33,14 @@ return [
         'limits_title' => 'What we do not promise',
         'limits_body' => 'We cannot guarantee that every purchase goes through: only a real payment can prove that. We tell you when shoppers stop paying successfully or the payment page stops working.',
     ],
+    'pay' => [
+        'title' => 'Payment',
+        'opening' => 'The secure payment form is opening…',
+        'none' => 'There is no payment to make on this page. Plans and payments are in your account under Settings → Subscription.',
+        'failed' => 'The payment form could not be loaded. Check your connection and reload the page, or open your account under Settings → Subscription.',
+        'reseller' => 'Payments are processed by Paddle.com, our reseller and the Merchant of Record for all our orders.',
+        'account' => 'Go to the account',
+    ],
     'pricing' => [
         'title' => 'Pricing',
         'lead' => 'Price per subscription period. The subscription renews automatically; you can stop the renewal in your account at any time and keep access until the end of the paid period.',

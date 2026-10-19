@@ -33,6 +33,14 @@ return [
         'limits_title' => 'Was wir nicht versprechen',
         'limits_body' => 'Wir können nicht garantieren, dass jeder Kauf durchgeht: Das kann nur eine echte Zahlung belegen. Wir melden, wenn Käufer nicht mehr erfolgreich bezahlen oder die Zahlungsseite nicht mehr funktioniert.',
     ],
+    'pay' => [
+        'title' => 'Zahlung',
+        'opening' => 'Das sichere Zahlungsformular wird geöffnet…',
+        'none' => 'Auf dieser Seite ist keine Zahlung offen. Tarife und Zahlungen finden Sie in Ihrem Konto unter Einstellungen → Abonnement.',
+        'failed' => 'Das Zahlungsformular konnte nicht geladen werden. Prüfen Sie Ihre Verbindung und laden Sie die Seite neu, oder öffnen Sie Ihr Konto unter Einstellungen → Abonnement.',
+        'reseller' => 'Zahlungen wickelt Paddle.com ab, unser Wiederverkäufer und Merchant of Record für alle unsere Bestellungen.',
+        'account' => 'Zum Konto',
+    ],
     'pricing' => [
         'title' => 'Preise',
         'lead' => 'Preis pro Abrechnungszeitraum. Das Abonnement verlängert sich automatisch; Sie können die Verlängerung jederzeit im Konto beenden und behalten den Zugang bis zum Ende des bezahlten Zeitraums.',
