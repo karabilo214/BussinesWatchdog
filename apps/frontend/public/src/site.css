@@ -90,6 +90,7 @@
   .site-limits dd { margin: 0; font-weight: 500; text-align: right; }
 
   .site-form { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 2rem; }
+  .site-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 0.75rem; padding: 1.5rem; }
   .site-field { display: flex; flex-direction: column; gap: 0.375rem; }
   .site-field label { font-weight: 500; }
   .site-check label { display: flex; align-items: flex-start; gap: 0.5rem; font-weight: 400; }

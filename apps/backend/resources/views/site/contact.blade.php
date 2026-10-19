@@ -25,7 +25,7 @@
                     </ul>
                 </div>
             @endif
-            <form method="post" action="{{ \App\Support\Site\SiteContent::url($locale, 'contact') }}" class="site-form" data-form="contact" novalidate>
+            <form method="post" action="{{ \App\Support\Site\SiteContent::url($locale, 'contact') }}" class="site-form site-card" data-form="contact" novalidate>
                 @csrf
                 <div class="site-field">
                     <label for="contact-name">{{ __('site.contact.name') }}</label>

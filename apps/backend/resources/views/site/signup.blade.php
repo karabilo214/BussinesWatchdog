@@ -16,7 +16,7 @@
             </div>
         @endif
 
-        <form method="post" action="{{ \App\Support\Site\SiteContent::url($locale, 'signup') }}" class="site-form" data-form="signup" novalidate>
+        <form method="post" action="{{ \App\Support\Site\SiteContent::url($locale, 'signup') }}" class="site-form site-card" data-form="signup" novalidate>
             @csrf
             <input type="hidden" name="plan" value="{{ $plan }}">
             @foreach ([['name', 'text', 'name', 100], ['organization_name', 'text', 'organization', 100], ['email', 'email', 'email', 255]] as [$field, $type, $autocomplete, $max])
