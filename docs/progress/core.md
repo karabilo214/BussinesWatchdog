@@ -852,3 +852,13 @@ Status: complete (ADR 0054 owner decision)
 - `App\Support\Platform\MaintenanceWindow` (`active`, `lastEndedAt`, `since`). Guards in `CheckScheduler::scheduleDue`, `ConnectorFreshness::checkAll`, `NotificationDeliveryWorker::deliverDue` (sweep only), `IncidentReminderPlanner::planDue`, `ObservedPaymentAttempts::markStuck`, `CheckoutObservationEvaluator::evaluateAll`; `ConnectorFreshness::assess` counts heartbeat, delivery backlog and polled sync gaps from the end of the last window.
 
 Verification: `ConnectorFreshnessTest` (active window: no freshness change, no scheduled run, no delivery; right after the end no incident; still silent 15 minutes later — stale and one incident; a window cancelled before start changes nothing). Backend SQLite 628 passed + 4 skipped; PostgreSQL 18: 632/632. No migration, no contract change.
+
+### Step 187: First Production Server
+
+Status: complete (owner chose Contabo Cloud VPS 8 and the domain business-watchdog.com)
+
+- Server hardening: key-only SSH (dedicated deploy key), ufw 22/80/443, fail2ban, unattended upgrades, Docker 29 / Compose 5.
+- `infra/production`: `docker-compose.yml` (Caddy `web` with Let's Encrypt and an internal `http://web:8080` for the browser worker, `app` PHP-FPM with baked code, `scheduler`, `sync-worker` ×2, `reconciliation-worker` ×2, PostgreSQL 18 and Redis unpublished, browser worker and egress under the `browser` profile), `Caddyfile` (site via PHP, `/app` and `/owner` SPAs with fallbacks, immutable asset caching, HSTS), `env.example`, `deploy.sh` (git working copy on the server, checkout of a pushed commit, refuses local changes, build, wait for PostgreSQL over TCP, migrate, start). New Docker stages `frontend`, `production`, `web`; `.dockerignore`. Backend trusts forwarded headers when `TRUSTED_PROXIES` is set (`bootstrap/app.php`). README section «Боевой сервер».
+- Artifacts, exports and site media use the local disk volume; mail is log-only until an SMTP provider is chosen; Paddle keys are not set yet.
+
+Verification: from outside — `/` → `/en`, `/en`, `/de/pricing`, `/app/`, `/owner/login`, `/health/ready` (database, Redis, cache, keyring ok), `www` and `http` redirects, Let's Encrypt certificate until 2027-01-17, HSTS; scheduler runs its tasks; all migrations ran. Backend SQLite 624 passed + 4 skipped after the proxy change. No platform owner, worker token, SMTP or backups yet.
