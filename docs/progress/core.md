@@ -902,3 +902,19 @@ Status: complete
 - The mail container fixes the queue group of `public`/`maildrop` itself (`postfix set-permissions` fails on the missing docs directory in Alpine).
 
 Verification: `fail2ban-regex` on three hours of production logs matched 5 bot sessions (port 25 and 587); a SASL failure line and a Dovecot 2.4 `auth failed` line matched. A manual ban of 203.0.113.9 put `-A DOCKER-USER -p tcp -m multiport --dports 25,465,587,993 -j f2b-bw-mail` and the REJECT rule in place; unban removed it; nothing in `INPUT`. No postdrop warnings after restart.
+
+### Step 197: CI on GitHub Actions; README Split Into docs/ops
+
+Status: complete
+
+- `.github/workflows/ci.yml` on every push to `main` and every pull request (a newer push cancels the running one):
+  - backend: PHP 8.4 with the image's extensions, Composer cache, `.env.example` + `key:generate`, `pint --test`, tests on SQLite and on a PostgreSQL 18 service;
+  - frontends: Node 24, `npm ci`, `npm run check` (palette, types, unit tests, builds, site stylesheet check);
+  - browser worker: `npm ci` without browser download, unit tests;
+  - WooCommerce plugin: PHP 7.4 syntax lint (`lint-php74.sh`);
+  - production configuration: `docker compose --profile browser config` with `env.example`, `sh -n` of the deploy, backup and mail scripts, the backup retention rule.
+- To make the style gate pass, 32 older backend files were formatted with Pint (whitespace, quotes, empty bodies only; separate commit).
+- README split on the owner's request: overview, «Что где лежит» and an index stay in `README.md`; the text moved unchanged to `docs/ops/` — `setup.md`, `production-server.md`, `backups.md`, `mail.md`, `billing.md`, `site.md`, `integrations.md`, `maintenance.md`, `development.md`. `CLAUDE.md`: new commands and steps go to the topic file in `docs/ops/`.
+- Production: plan entitlements enforced (`WATCHDOG_BILLING_ENFORCEMENT=enforce`, owner's decision; also in `env.example`); applying `.env` changes documented.
+
+Verification: the first CI run on `d074813` — all five jobs green (run 39263726906). Locally before that: backend from a clean export with `.env.example` (628 passed, 6 skipped), PostgreSQL 18 634/634, frontends 133 + 67 tests and builds, worker 27/27, PHP 7.4 lint ok.
