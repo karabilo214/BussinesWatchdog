@@ -1,7 +1,3 @@
-{
-	email {$ACME_EMAIL}
-}
-
 (app) {
 	encode zstd gzip
 	request_body {
