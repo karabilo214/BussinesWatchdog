@@ -176,7 +176,7 @@ ssh -t bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compos
 ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose logs -f --tail 100 app web scheduler'
 ```
 
-**Бэкапы базы** — systemd-таймер `bw-backup.timer` (ставит `deploy.sh`), каждый день в 03:15 по Берлину: `pg_dump` в `/opt/business-watchdog/backups/db-<время UTC>.dump`, затем дамп восстанавливается во временный PostgreSQL — без успешного восстановления копия не считается; итог — в `backups/last-success`. Хранение (решение владельца): все копии текущей недели; от прошлых недель текущего месяца — последняя копия каждой недели; от прошлых месяцев — последняя копия каждого месяца, за `BW_BACKUP_KEEP_MONTHS` месяцев (12). Кроме того, каждая проверенная копия шифруется ключом `age` и уходит во внешнее хранилище — Contabo Object Storage (`https://eu2.contabostorage.com`, бакет `business-watchdog-backups`; доступ — `BW_BACKUP_S3_*` в `.env` сервера), там хранится по тому же правилу; итог — `backups/last-offsite`. На сервере только **открытый** ключ (`BW_BACKUP_AGE_RECIPIENT`); закрытый — у владельца офлайн (менеджер паролей + запасная копия). Без него внешние копии не расшифровать.
+**Бэкапы базы и почты** — systemd-таймер `bw-backup.timer` (ставит `deploy.sh`), каждый день в 03:15 по Берлину: `pg_dump` в `/opt/business-watchdog/backups/db-<время UTC>.dump`, затем дамп восстанавливается во временный PostgreSQL — без успешного восстановления копия не считается; итог — в `backups/last-success`. Рядом — архив почтовых ящиков `mail-<время UTC>.tar.gz` (логины, псевдонимы и письма; проверяется чтением архива); хранится и уходит во внешнее хранилище по тому же правилу. Восстановить ящики: остановить `mail`, распаковать архив в том `mail-data` (`/var/mail`), запустить `mail`. Хранение (решение владельца): все копии текущей недели; от прошлых недель текущего месяца — последняя копия каждой недели; от прошлых месяцев — последняя копия каждого месяца, за `BW_BACKUP_KEEP_MONTHS` месяцев (12). Кроме того, каждая проверенная копия шифруется ключом `age` и уходит во внешнее хранилище — Contabo Object Storage (`https://eu2.contabostorage.com`, бакет `business-watchdog-backups`; доступ — `BW_BACKUP_S3_*` в `.env` сервера), там хранится по тому же правилу; итог — `backups/last-offsite`. На сервере только **открытый** ключ (`BW_BACKUP_AGE_RECIPIENT`); закрытый — у владельца офлайн (менеджер паролей + запасная копия). Без него внешние копии не расшифровать.
 
 Восстановление внешней копии на любом компьютере:
 
@@ -196,7 +196,27 @@ ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose s
   && docker compose up -d'
 ```
 
-DNS у NIC.UA: `A` и `AAAA` для `@` и `www` на адреса сервера. Скриншоты, выгрузки и файлы сайта хранятся на диске сервера (том `storage`, `WATCHDOG_*_DISK=local`). Почта пока только пишется в лог (`MAIL_MAILER=log`) — до подключения SMTP-провайдера письма не уходят. Браузерный воркер запускается, когда в `.env` задан `BW_WORKER_TOKEN` (`php artisan browser:worker-create worker-1`).
+DNS у NIC.UA: `A` и `AAAA` для `@` и `www` на адреса сервера. Скриншоты, выгрузки и файлы сайта хранятся на диске сервера (том `storage`, `WATCHDOG_*_DISK=local`). Браузерный воркер запускается, когда в `.env` задан `BW_WORKER_TOKEN` (`php artisan browser:worker-create worker-1`).
+
+**Почта** (`mail.business-watchdog.com`) — свой почтовый сервер в контейнерах `mail` (Postfix + Dovecot) и `rspamd` (фильтр спама):
+
+- Письма сервиса приложение передаёт в `mail` по внутреннему порту 2525 (`MAIL_HOST=mail`, `MAIL_PORT=2525`; наружу не открыт) и подписывает DKIM само (`MAIL_DKIM_*`, селектор `bw1`). Письма сотрудников подписывает `rspamd` тем же ключом.
+- Входящая почта на `@business-watchdog.com` — порт 25: принимается только для существующих ящиков и псевдонимов, чужую почту сервер не пересылает. `rspamd` отклоняет явный спам (балл ≥ 15), подозрительные письма (≥ 6) кладутся в папку «Junk». Пока `rspamd` недоступен, входящие письма получают временный отказ и отправители повторяют позже.
+- Сертификат — Let's Encrypt, его получает Caddy для `mail.business-watchdog.com`; `mail` берёт его из тома `caddy-data` и подхватывает продление сам (проверка раз в 10 минут).
+- DNS у NIC.UA: `A mail` → `167.86.85.23`; `MX @` → `mail.business-watchdog.com` (приоритет 10); TXT `@` — `v=spf1 ip4:167.86.85.23 ip6:2a02:c207:2367:8142::1 -all`; TXT `bw1._domainkey` — публичный DKIM-ключ; TXT `_dmarc` — `v=DMARC1; p=quarantine; adkim=r; aspf=r`. В панели Contabo обратная запись (PTR) обоих адресов — `mail.business-watchdog.com`. Проверка — `php artisan mail:auth-check --strict`.
+
+Ящики и псевдонимы (данные — том `mail-data`, пароль не короче 12 символов, вводится в терминале):
+
+```sh
+ssh -t bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose exec mail mailbox add anna@business-watchdog.com'
+docker compose exec mail mailbox list                                   # ящики и псевдонимы
+docker compose exec mail mailbox passwd anna@business-watchdog.com      # сменить пароль
+docker compose exec mail mailbox del anna@business-watchdog.com         # убрать логин (письма остаются на диске)
+docker compose exec mail mailbox alias hello@business-watchdog.com anna@business-watchdog.com   # письма на hello@ — в ящик anna@; anna может писать от hello@
+docker compose exec mail mailbox unalias hello@business-watchdog.com
+```
+
+Настройки почтовой программы: IMAP `mail.business-watchdog.com`, порт 993, SSL/TLS; SMTP `mail.business-watchdog.com`, порт 587 (STARTTLS) или 465 (SSL/TLS); логин — полный адрес. Отправить письмо можно только от своего адреса или от псевдонима, который ведёт в свой ящик.
 
 ## Обслуживание
 
