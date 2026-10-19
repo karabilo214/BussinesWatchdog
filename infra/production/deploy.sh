@@ -63,6 +63,8 @@ command -v age >/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y -
 install -m 644 backup/bw-backup.service backup/bw-backup.timer /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now bw-backup.timer >/dev/null
+install -m 644 apparmor/bw-browser-worker /etc/apparmor.d/bw-browser-worker
+apparmor_parser -r -W /etc/apparmor.d/bw-browser-worker
 install -m 644 fail2ban/filter.d/bw-mail.conf /etc/fail2ban/filter.d/
 install -m 644 fail2ban/jail.d/bw-mail.conf /etc/fail2ban/jail.d/
 docker compose build
