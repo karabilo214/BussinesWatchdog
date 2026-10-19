@@ -1,43 +1,60 @@
 #!/bin/sh
-# Ships the committed HEAD to the server and starts it there.
-#   infra/production/deploy.sh            build and start the current commit
-#   infra/production/deploy.sh init       first run: also create /opt/business-watchdog/.env with generated secrets
+# Deploys a pushed commit on the server from its git working copy (/opt/business-watchdog/repo).
+#   infra/production/deploy.sh            deploy the current local HEAD (must be pushed to origin)
+#   infra/production/deploy.sh <commit>   deploy that commit
+#   infra/production/deploy.sh init       first run: clone the repository and create /opt/business-watchdog/.env
+# The server never gets files any other way than git; nothing is edited there by hand except .env.
 # Needs an SSH host alias (default bw-prod, override with BW_HOST).
 set -eu
 
 HOST="${BW_HOST:-bw-prod}"
 ROOT=/opt/business-watchdog
+ORIGIN="${BW_ORIGIN:-https://github.com/karabilo214/BussinesWatchdog.git}"
 REPO="$(git rev-parse --show-toplevel)"
-RELEASE="$(git -C "$REPO" rev-parse --short HEAD)"
+MODE="${1:-}"
 
-if [ -n "$(git -C "$REPO" status --porcelain)" ]; then
-    echo "Uncommitted changes; only committed code is shipped (HEAD $RELEASE)." >&2
+if [ "$MODE" = "init" ]; then
+    COMMIT="$(git -C "$REPO" rev-parse HEAD)"
+elif [ -n "$MODE" ]; then
+    COMMIT="$(git -C "$REPO" rev-parse "$MODE")"
+else
+    COMMIT="$(git -C "$REPO" rev-parse HEAD)"
 fi
 
-echo "Shipping $RELEASE to $HOST"
-ssh "$HOST" "mkdir -p $ROOT/releases/$RELEASE"
-git -C "$REPO" archive --format=tar HEAD | ssh "$HOST" "tar -x -C $ROOT/releases/$RELEASE"
-ssh "$HOST" "ln -sfn $ROOT/releases/$RELEASE $ROOT/current"
+if ! git -C "$REPO" branch -r --contains "$COMMIT" | grep -q .; then
+    echo "Commit $COMMIT is not on origin; push it first." >&2
+    exit 1
+fi
 
-if [ "${1:-}" = "init" ]; then
+if [ "$MODE" = "init" ]; then
     ssh "$HOST" sh -s <<REMOTE
 set -eu
-if [ -f $ROOT/.env ]; then echo "$ROOT/.env exists, not touched"; exit 0; fi
-cp $ROOT/current/infra/production/env.example $ROOT/.env
-key="base64:\$(openssl rand -base64 32)"
-ring="base64:\$(openssl rand -base64 32)"
-pass="\$(openssl rand -hex 24)"
-sed -i "s|^APP_KEY=GENERATE|APP_KEY=\$key|; s|^WATCHDOG_KEYRING_V1=GENERATE|WATCHDOG_KEYRING_V1=\$ring|; s|^DB_PASSWORD=GENERATE|DB_PASSWORD=\$pass|" $ROOT/.env
-chmod 600 $ROOT/.env
-echo "Created $ROOT/.env — keep a copy of APP_KEY and WATCHDOG_KEYRING_V1 offline: without them encrypted data cannot be read."
+mkdir -p $ROOT
+[ -d $ROOT/repo/.git ] || git clone --quiet $ORIGIN $ROOT/repo
+if [ ! -f $ROOT/.env ]; then
+    cp $ROOT/repo/infra/production/env.example $ROOT/.env
+    key="base64:\$(openssl rand -base64 32)"
+    ring="base64:\$(openssl rand -base64 32)"
+    pass="\$(openssl rand -hex 24)"
+    sed -i "s|^APP_KEY=GENERATE|APP_KEY=\$key|; s|^WATCHDOG_KEYRING_V1=GENERATE|WATCHDOG_KEYRING_V1=\$ring|; s|^DB_PASSWORD=GENERATE|DB_PASSWORD=\$pass|" $ROOT/.env
+    chmod 600 $ROOT/.env
+    echo "Created $ROOT/.env — keep a copy of APP_KEY and WATCHDOG_KEYRING_V1 offline: without them encrypted data cannot be read."
+fi
 REMOTE
 fi
 
+SHORT="$(git -C "$REPO" rev-parse --short "$COMMIT")"
+echo "Deploying $SHORT to $HOST"
+
 ssh "$HOST" sh -s <<REMOTE
 set -eu
-cd $ROOT/current/infra/production
+cd $ROOT/repo
+git fetch --quiet origin
+git checkout --quiet --detach $COMMIT
+test -z "\$(git status --porcelain)" || { echo "The server working copy has local changes; refusing to deploy." >&2; exit 1; }
+cd infra/production
 ln -sfn $ROOT/.env .env
-sed -i "s|^RELEASE=.*|RELEASE=$RELEASE|; s|^WATCHDOG_RELEASE=.*|WATCHDOG_RELEASE=$RELEASE|" $ROOT/.env
+sed -i "s|^RELEASE=.*|RELEASE=$SHORT|; s|^WATCHDOG_RELEASE=.*|WATCHDOG_RELEASE=$SHORT|" $ROOT/.env
 docker compose build
 docker compose up -d postgres redis
 docker compose run --rm --no-deps -u www-data app php artisan migrate --force
