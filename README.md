@@ -196,7 +196,7 @@ ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose s
   && docker compose up -d'
 ```
 
-DNS у NIC.UA: `A` и `AAAA` для `@` и `www` на адреса сервера. Скриншоты, выгрузки и файлы сайта хранятся на диске сервера (том `storage`, `WATCHDOG_*_DISK=local`). Браузерный воркер запускается, когда в `.env` задан `BW_WORKER_TOKEN` (`php artisan browser:worker-create worker-1`).
+DNS у NIC.UA: `A` и `AAAA` для `@` и `www` на адреса сервера. Скриншоты, выгрузки и файлы сайта хранятся на диске сервера (том `storage`, `WATCHDOG_*_DISK=local`). Браузерный воркер (`worker-1`) запускается, когда в `.env` задан `BW_WORKER_TOKEN`. Токен создаётся и сразу записывается в `.env`, не показываясь на экране: `ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && T=$(docker compose exec -T -u www-data app php artisan browser:worker-create worker-1 | grep -oE "bwwk_[0-9a-f]{64}") && sed -i "s|^BW_WORKER_TOKEN=.*|BW_WORKER_TOKEN=$T|" /opt/business-watchdog/.env'`, затем `deploy.sh` (для смены токена — `--rotate`). Песочница Chromium включена (ADR 0011); на Ubuntu 24.04 ей нужен свой seccomp-профиль `infra/production/seccomp/bw-browser-worker.json` — стандартный профиль Docker, в котором разрешены только `unshare`, `clone`, `setns`, `chroot` для namespace-песочницы. Проверка: `docker compose --profile browser logs browser-worker` — строка `worker_started` с `"sandbox":true`.
 
 **Почта** (`mail.business-watchdog.com`) — свой почтовый сервер в контейнерах `mail` (Postfix + Dovecot) и `rspamd` (фильтр спама):
 

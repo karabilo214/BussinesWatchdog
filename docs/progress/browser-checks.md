@@ -126,3 +126,13 @@ Shopware's `test_customer` and `guest` scenarios now include a shipping step aft
 Verification: browser-worker unit 27/27, scheduled Shopware Playwright 11/11, scheduled WooCommerce Playwright 11/11; backend browser-filtered suite 32/32 (329 assertions), including `ShopwareBrowserChecksTest` 4/4. The real local Shopware 6.6.10.29 and 6.7.15.1 storefronts passed all three scheduled modes and the purchase-fault matrix; each scheduled phase created zero orders. Local WooCommerce 11.2.0 passed the scheduled adapter with Classic and Blocks checkout, with zero orders from the scheduled phase; the lab's virtual test product correctly skipped shipping. No migrations or API contract schema changed.
 
 Remaining: a full scheduler/lease run against an enrolled external merchant was not available. Third-party custom themes and checkout plugins may need reviewed selectors; an unrecognised layout must remain inconclusive or unsupported. The scheduled amount assertion is positive amount, not catalog-price parity, and WooCommerce's physical shipping path has Playwright fixture coverage but was not exercised on the virtual-product lab.
+
+### Step 192: Browser Worker on the Production Server
+
+Status: complete
+
+- Worker `worker-1` created on the server; the token went straight into `.env` (`BW_WORKER_TOKEN`) without being printed; `deploy.sh` starts the `browser` profile (worker + egress proxy).
+- The Chromium sandbox failed on Ubuntu 24.04 (Docker 29.9.1): Docker's default seccomp profile lets `unshare`/`clone`/`setns` of new namespaces only with `CAP_SYS_ADMIN`, and the worker drops all capabilities. `unshare -Ur` succeeded with seccomp off, and also under Docker's default AppArmor profile, so AppArmor needed no change (a custom AppArmor profile tried first was removed; `deploy.sh` unloads it). New `infra/production/seccomp/bw-browser-worker.json`: moby/profiles `seccomp/default.json` @ 6fe7deb1 plus one rule allowing `unshare`, `clone`, `setns`, `chroot`; `clone3` stays `ENOSYS` (glibc falls back to `clone`). The sandbox stays on (ADR 0011, TZ §Worker); capabilities still dropped, `no-new-privileges`, read-only root.
+- README: creating/rotating the token on the server, the seccomp profile, how to check `worker_started … "sandbox":true`.
+
+Verification: on the server — default seccomp: `unshare failed: Operation not permitted`; the new profile: `userns-ok` and `chromium.launch({chromiumSandbox: true})` → Chromium 140.0.7339.16. The worker logged `worker_started` with `sandbox: true`, `egress_proxy: true`, and `last_seen_at` was set. A public storefront check of `https://thompsonhanson.com` submitted through `PublicStorefrontCheckService` on the server finished `passed` in 28 s (`delivery: accepted`), traffic through the egress proxy.
