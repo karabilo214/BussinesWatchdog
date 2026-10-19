@@ -19,3 +19,5 @@ Status: accepted for now (owner's backlog items 2026-10-13: ready block and sect
 - The built-in set stays as is for now; many more templates will be added later so pages can be assembled easily.
 
 - Implemented in Step 173 (ADR 0064): staff capabilities are set per member by the platform owner; content access is the `content.manage` capability.
+- Step 186 (owner confirmed the composition on 2026-10-19): ten more built-in templates — testimonials, customer logos, comparison table, numbers, how it works (four steps as a list), team, gallery (three pictures), contacts, FAQ in two columns, banner with one button — and the new groups testimonials, logos, comparison, stats, team, gallery, contact. They use only the existing content classes, so the site stylesheet is unchanged. Placeholder texts make no claims about the service (no numbers, prices or terms) and must be replaced before publishing.
+

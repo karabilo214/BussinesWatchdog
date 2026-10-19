@@ -459,7 +459,7 @@ export async function createPage(input: { slug: string; parent_id: string | null
   return (await request<PageCard>('POST', '/platform-api/v1/pages', { body: input })).data;
 }
 
-export type PageBlockCategory = 'hero' | 'features' | 'steps' | 'pricing' | 'faq' | 'cta' | 'text' | 'other';
+export type PageBlockCategory = 'hero' | 'features' | 'steps' | 'pricing' | 'faq' | 'cta' | 'testimonials' | 'logos' | 'comparison' | 'stats' | 'team' | 'gallery' | 'contact' | 'text' | 'other';
 
 export interface PageBlock {
   id: string;

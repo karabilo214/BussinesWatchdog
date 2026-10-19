@@ -1429,7 +1429,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListPageBlocks
-      description: "Capability content.manage. Block templates for the page editor (ADR 0046), not archived, by order: category (hero, features, steps, pricing, faq, cta, text, other), name and per language (ru, en, de) the HTML on the content classes that the editor inserts at the cursor. Built-in templates come from the migration."
+      description: "Capability content.manage. Block templates for the page editor (ADR 0046), not archived, by order: category (hero, features, steps, pricing, faq, cta, testimonials, logos, comparison, stats, team, gallery, contact, text, other), name and per language (ru, en, de) the HTML on the content classes that the editor inserts at the cursor. Built-in templates come from the migration."
       security:
         - {StaffSession: []}
       responses:
@@ -1459,7 +1459,7 @@ paths:
               required: [name, category, bodies]
               properties:
                 name: {type: string, maxLength: 120}
-                category: {enum: [hero, features, steps, pricing, faq, cta, text, other]}
+                category: {enum: [hero, features, steps, pricing, faq, cta, testimonials, logos, comparison, stats, team, gallery, contact, text, other]}
                 sort: {type: integer, minimum: -1000, maximum: 1000}
                 bodies:
                   type: object
@@ -1510,7 +1510,7 @@ paths:
               type: object
               properties:
                 name: {type: string, maxLength: 120}
-                category: {enum: [hero, features, steps, pricing, faq, cta, text, other]}
+                category: {enum: [hero, features, steps, pricing, faq, cta, testimonials, logos, comparison, stats, team, gallery, contact, text, other]}
                 sort: {type: integer, minimum: -1000, maximum: 1000}
                 bodies: {type: object}
       responses:

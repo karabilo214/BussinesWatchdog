@@ -255,3 +255,11 @@ Status: complete (ADR 0054 owner decision)
 - `site/layout.blade.php` shows the current maintenance window (`PlatformSettings::forCustomer` in the page language) above the header, reusing the warning strip style; texts `site.maintenance.planned|active` (ru/en/de), times in Europe/Berlin. Not shown in the editor preview. Pages are cached for `WATCHDOG_SITE_CACHE_SECONDS`, so the banner may appear or disappear up to that delay late.
 
 Verification: `PublicSiteTest` (no banner without a window; planned in German and Russian with the window's message; in progress in English; gone after the end). Backend SQLite 629 passed + 4 skipped; PostgreSQL 18: 633/633. Manual browser smoke was not run.
+
+### Step 186: More Built-in Block Templates
+
+Status: complete (ADR 0046, composition confirmed by the owner)
+
+- `database/data/page_blocks_more.php` (10 templates × ru/en/de) and migration `2026_10_19_110000_add_more_page_blocks` (PostgreSQL category check widened; templates appended after the existing ones, a template with the same name is skipped). `PageBlock::CATEGORIES`, `openapi.yaml` enums, owner panel type, category list and labels (ru/en/de).
+
+Verification: `PageBlockTest` (18 templates in order, every language kept unchanged by the sanitizer, links only to their own language). Control typecheck, 67/67, build. Backend SQLite 624 passed + 4 skipped; PostgreSQL 18: 628/628. The templates were not looked at in a browser.

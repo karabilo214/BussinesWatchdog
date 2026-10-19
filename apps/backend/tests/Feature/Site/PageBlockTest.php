@@ -31,7 +31,7 @@ class PageBlockTest extends TestCase
         $this->signIn();
         $blocks = $this->getJson('/platform-api/v1/page-blocks')->assertOk()->json('data');
 
-        $this->assertSame(['hero', 'features', 'steps', 'pricing', 'faq', 'cta', 'text', 'text'], array_column($blocks, 'category'));
+        $this->assertSame(['hero', 'features', 'steps', 'pricing', 'faq', 'cta', 'text', 'text', 'testimonials', 'logos', 'comparison', 'stats', 'steps', 'team', 'gallery', 'contact', 'faq', 'cta'], array_column($blocks, 'category'));
         $this->assertSame('Первый экран', $blocks[0]['name']);
         $sanitizer = app(PageSanitizer::class);
 
@@ -72,13 +72,13 @@ class PageBlockTest extends TestCase
         $this->patchJson("/platform-api/v1/page-blocks/{$id}", ['bodies' => ['de' => '']])->assertStatus(422)->assertJsonPath('code', 'body_required');
         $this->patchJson("/platform-api/v1/page-blocks/{$id}", ['name' => ' '])->assertStatus(422);
         $this->getJson("/platform-api/v1/page-blocks/{$id}")->assertOk()->assertJsonPath('bodies.de', '<p>Bewertung</p>');
-        $this->assertCount(9, $this->getJson('/platform-api/v1/page-blocks')->json('data'));
+        $this->assertCount(19, $this->getJson('/platform-api/v1/page-blocks')->json('data'));
 
         $this->postJson("/platform-api/v1/page-blocks/{$id}/archive", ['reason' => ''])->assertStatus(422);
         $this->postJson("/platform-api/v1/page-blocks/{$id}/archive", ['reason' => 'Больше не нужен'])->assertNoContent();
         $this->getJson("/platform-api/v1/page-blocks/{$id}")->assertNotFound();
         $this->patchJson("/platform-api/v1/page-blocks/{$id}", ['name' => 'Снова'])->assertNotFound();
-        $this->assertCount(8, $this->getJson('/platform-api/v1/page-blocks')->json('data'));
+        $this->assertCount(18, $this->getJson('/platform-api/v1/page-blocks')->json('data'));
 
         $actions = DB::table('platform_audit_log')->where('target_type', 'page_block')->where('target_id', $id)->pluck('action')->all();
         $this->assertEqualsCanonicalizing(['site.block.created', 'site.block.updated', 'site.block.updated', 'site.block.archived'], $actions);

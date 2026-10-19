@@ -10,7 +10,7 @@ import OwnerLayout from '@/layouts/OwnerLayout.vue';
 
 const HtmlCodeEditor = defineAsyncComponent(() => import('@/components/editor/HtmlCodeEditor.vue'));
 
-const CATEGORIES: PageBlockCategory[] = ['hero', 'features', 'steps', 'pricing', 'faq', 'cta', 'text', 'other'];
+const CATEGORIES: PageBlockCategory[] = ['hero', 'features', 'steps', 'pricing', 'faq', 'cta', 'testimonials', 'logos', 'comparison', 'stats', 'team', 'gallery', 'contact', 'text', 'other'];
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();

@@ -1030,6 +1030,13 @@
       "pricing": "Plans",
       "faq": "FAQ",
       "cta": "Call to action",
+      "testimonials": "Testimonials",
+      "logos": "Logos",
+      "comparison": "Comparison",
+      "stats": "Numbers",
+      "team": "Team",
+      "gallery": "Gallery",
+      "contact": "Contact",
       "text": "Text",
       "other": "Other"
     },
