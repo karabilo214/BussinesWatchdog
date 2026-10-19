@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keeps database backups by the owner's rule (2026-10-19): every backup of the current week; of each earlier week
+"""Keeps backups (database dumps "db-…" and mailbox archives "mail-…", each kind on its own) by the owner's rule (2026-10-19): every backup of the current week; of each earlier week
 of the current month only its last backup; of each earlier month only its last backup, for the last
 BW_BACKUP_KEEP_MONTHS months (12). The newest backup is never deleted.
 
@@ -13,12 +13,19 @@ import re
 import sys
 from datetime import datetime, timezone
 
-NAME = re.compile(r"^db-(\d{4}-\d{2}-\d{2}T\d{6}Z)\.dump(\.age)?$")
+NAME = re.compile(r"^(db-(\d{4}-\d{2}-\d{2}T\d{6}Z)\.dump|mail-(\d{4}-\d{2}-\d{2}T\d{6}Z)\.tar\.gz)(\.age)?$")
 
 
 def stamp(name):
     match = NAME.match(name)
-    return datetime.strptime(match.group(1), "%Y-%m-%dT%H%M%SZ").replace(tzinfo=timezone.utc) if match else None
+    return datetime.strptime(match.group(2) or match.group(3), "%Y-%m-%dT%H%M%SZ").replace(tzinfo=timezone.utc) if match else None
+
+
+def kept_names(backups, now, months):
+    kept = set()
+    for kind in ("db-", "mail-"):
+        kept |= keep([backup for backup in backups if backup[1].startswith(kind)], now, months)
+    return kept
 
 
 def keep(backups, now, months):
@@ -57,14 +64,14 @@ def main():
     months = int(os.environ.get("BW_BACKUP_KEEP_MONTHS", "12"))
     if args.names:
         backups = [(stamp(name), name) for name in (line.strip() for line in sys.stdin) if stamp(name)]
-        kept = keep(backups, now, months)
+        kept = kept_names(backups, now, months)
         for _, name in sorted(backups):
             if name not in kept:
                 print(name)
         return 0
 
     backups = [(stamp(name), name) for name in os.listdir(args.dir) if stamp(name)]
-    kept = keep(backups, now, months)
+    kept = kept_names(backups, now, months)
 
     for _, name in sorted(backups):
         if name in kept:

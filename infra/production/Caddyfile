@@ -31,6 +31,11 @@
 	}
 }
 
+# Only for the certificate of the mail server (IMAP, SMTP); the mail container reads it from the caddy-data volume.
+mail.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN} permanent
+}
+
 www.{$SITE_DOMAIN} {
 	redir https://{$SITE_DOMAIN}{uri} permanent
 }

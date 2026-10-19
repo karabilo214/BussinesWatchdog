@@ -1,8 +1,8 @@
 #!/bin/sh
-# Daily PostgreSQL backup of the production server (run by bw-backup.timer).
-# Dumps the database, proves the dump restores into a throwaway PostgreSQL, prunes old backups (prune.py), and when
-# off-site storage is configured in .env encrypts the dump with age (public key only on the server) and uploads it to
-# S3-compatible storage, pruning the off-site copies by the same rule.
+# Daily backup of the production server (run by bw-backup.timer).
+# Dumps the database, proves the dump restores into a throwaway PostgreSQL, archives the mailboxes and checks the
+# archive reads back, prunes old backups (prune.py), and when off-site storage is configured in .env encrypts both with
+# age (public key only on the server) and uploads them to S3-compatible storage, pruning the off-site copies by the same rule.
 set -eu
 
 ROOT=/opt/business-watchdog
@@ -41,6 +41,13 @@ MIGRATIONS="$(docker exec "$CHECK" psql -U postgres -d restored -tAc "select cou
 
 echo "$STAMP $(du -h "$FILE" | cut -f1) tables=$TABLES migrations=$MIGRATIONS" > "$DIR/last-success"
 echo "backup ok: $FILE ($(du -h "$FILE" | cut -f1), $TABLES tables restored)"
+
+MAIL="$DIR/mail-$STAMP.tar.gz"
+docker compose exec -T mail tar czf - -C /var/mail config vhosts > "$MAIL.partial"
+tar tzf "$MAIL.partial" config/users >/dev/null || { echo "mailbox archive does not read back" >&2; exit 1; }
+mv "$MAIL.partial" "$MAIL"
+chmod 600 "$MAIL"
+echo "mail backup ok: $MAIL ($(du -h "$MAIL" | cut -f1))"
 python3 "$HERE/prune.py" "$DIR"
 
 RECIPIENT="$(env_value BW_BACKUP_AGE_RECIPIENT)"
@@ -50,7 +57,6 @@ if [ -z "$RECIPIENT" ] || [ -z "$BUCKET" ]; then
     exit 0
 fi
 
-age -r "$RECIPIENT" -o "$FILE.age" "$FILE"
 rclone() {
     docker run --rm --network host -v "$DIR:/backups:ro" \
         -e RCLONE_CONFIG_OFFSITE_TYPE=s3 -e RCLONE_CONFIG_OFFSITE_PROVIDER=Other \
@@ -60,11 +66,14 @@ rclone() {
         -e RCLONE_CONFIG_OFFSITE_ACL=private \
         rclone/rclone:1.71.2 "$@"
 }
-rclone copyto "/backups/$(basename "$FILE").age" "offsite:$BUCKET/$(basename "$FILE").age"
-rm -f "$FILE.age"
+for local in "$FILE" "$MAIL"; do
+    age -r "$RECIPIENT" -o "$local.age" "$local"
+    rclone copyto "/backups/$(basename "$local").age" "offsite:$BUCKET/$(basename "$local").age"
+    rm -f "$local.age"
+    echo "off-site copy ok: $BUCKET/$(basename "$local").age"
+done
 rclone lsf "offsite:$BUCKET" | python3 "$HERE/prune.py" --names | while read -r old; do
     rclone deletefile "offsite:$BUCKET/$old"
     echo "off-site delete $old"
 done
-echo "off-site copy ok: $BUCKET/$(basename "$FILE").age"
 echo "$STAMP offsite=$BUCKET" > "$DIR/last-offsite"

@@ -77,13 +77,46 @@ services:
   mail:
     image: business-watchdog/mail:${RELEASE:-latest}
     build:
-      context: ../docker/postfix
+      context: ../docker/mail
     restart: unless-stopped
     environment:
       MAIL_HOSTNAME: mail.${SITE_DOMAIN}
       MAIL_DOMAIN: ${SITE_DOMAIN}
+    ports:
+      - "0.0.0.0:25:25"
+      - "0.0.0.0:465:465"
+      - "0.0.0.0:587:587"
+      - "0.0.0.0:993:993"
     volumes:
       - mail-queue:/var/spool/postfix
+      - mail-data:/var/mail
+      - caddy-data:/caddy:ro
+    depends_on:
+      rspamd:
+        condition: service_healthy
+    networks:
+      - internal
+
+  rspamd:
+    image: business-watchdog/rspamd:${RELEASE:-latest}
+    build:
+      context: ../docker/rspamd
+    restart: unless-stopped
+    environment:
+      MAIL_DOMAIN: ${SITE_DOMAIN}
+      MAIL_DKIM_SELECTOR: ${MAIL_DKIM_SELECTOR}
+      MAIL_DKIM_PRIVATE_KEY: ${MAIL_DKIM_PRIVATE_KEY}
+    volumes:
+      - rspamd-data:/var/lib/rspamd
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "11332"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 10
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - internal
 
@@ -174,3 +207,5 @@ volumes:
   caddy-data:
   caddy-config:
   mail-queue:
+  mail-data:
+  rspamd-data:
