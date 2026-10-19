@@ -31,7 +31,6 @@ services:
     image: postgres:18
     restart: unless-stopped
     logging: *logging
-    logging: *logging
     environment:
       POSTGRES_DB: ${DB_DATABASE}
       POSTGRES_USER: ${DB_USERNAME}
@@ -49,6 +48,7 @@ services:
   redis:
     image: redis:8
     restart: unless-stopped
+    logging: *logging
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data
