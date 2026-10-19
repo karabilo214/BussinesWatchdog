@@ -55,6 +55,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+
+        if (($proxies = (string) env('TRUSTED_PROXIES', '')) !== '') {
+            $middleware->trustProxies(at: $proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
+        }
         $middleware->redirectGuestsTo(fn (Request $request): ?string => $request->is('api/*') || $request->is('platform-api/*') || $request->is('internal/*') ? null : '/app/login');
         $middleware->api(prepend: [AssignRequestId::class]);
         $middleware->group('platform', [

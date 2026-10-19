@@ -1,0 +1,12 @@
+.git
+**/node_modules
+**/.env
+apps/backend/vendor
+apps/backend/storage/logs/*
+apps/backend/storage/framework/cache/*
+apps/backend/storage/framework/sessions/*
+apps/backend/storage/framework/views/*
+apps/backend/storage/app/*
+apps/backend/public/site
+apps/frontend/*/dist
+plugins/woocommerce-watchdog/tests/matrix/.cache

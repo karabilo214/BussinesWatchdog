@@ -1,0 +1,55 @@
+{
+	email {$ACME_EMAIL}
+}
+
+(app) {
+	encode zstd gzip
+	request_body {
+		max_size 34MB
+	}
+
+	redir /app /app/
+	handle_path /app/* {
+		root * /srv/customer
+		@immutable path /assets/*
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+		try_files {path} /index.html
+		file_server
+	}
+
+	@control path /owner /owner/* /assets/*
+	handle @control {
+		root * /srv/control
+		@immutable path /assets/*
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+		try_files {path} /index.html
+		file_server
+	}
+
+	handle {
+		root * /var/www/html/public
+		php_fastcgi app:9000
+		file_server {
+			hide .*
+		}
+	}
+}
+
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+{$SITE_DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	import app
+}
+
+# Plain HTTP for the browser worker on the internal Docker network only (never published).
+http://web:8080 {
+	import app
+}
