@@ -63,10 +63,13 @@ command -v age >/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y -
 install -m 644 backup/bw-backup.service backup/bw-backup.timer /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now bw-backup.timer >/dev/null
+install -m 644 fail2ban/filter.d/bw-mail.conf /etc/fail2ban/filter.d/
+install -m 644 fail2ban/jail.d/bw-mail.conf /etc/fail2ban/jail.d/
 docker compose build
 docker compose up -d --wait postgres redis
 docker compose run --rm --no-deps -u www-data app php artisan migrate --force
 docker compose up -d --remove-orphans
 if grep -q '^BW_WORKER_TOKEN=.\+' $ROOT/.env; then docker compose --profile browser up -d; fi
+fail2ban-client reload >/dev/null
 docker compose ps
 REMOTE

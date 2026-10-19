@@ -79,6 +79,10 @@ services:
     build:
       context: ../docker/mail
     restart: unless-stopped
+    logging:
+      driver: journald
+      options:
+        tag: bw-mail
     environment:
       MAIL_HOSTNAME: mail.${SITE_DOMAIN}
       MAIL_DOMAIN: ${SITE_DOMAIN}
