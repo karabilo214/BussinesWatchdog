@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class IntegrationHmacAuthTest extends TestCase
@@ -165,7 +166,7 @@ class IntegrationHmacAuthTest extends TestCase
         string $body,
         ?string $timestamp = null,
         string $nonce = '550e8400-e29b-41d4-a716-446655440000',
-    ): \Illuminate\Testing\TestResponse {
+    ): TestResponse {
         $timestamp ??= (string) time();
 
         return $this->call('POST', '/api/v1/ingest/heartbeat', [], [], [], [

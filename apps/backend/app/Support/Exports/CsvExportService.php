@@ -11,6 +11,7 @@ use App\Models\ReconciliationFinding;
 use App\Models\Store;
 use App\Support\Billing\HistoryWindow;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -314,7 +315,7 @@ class CsvExportService
         return preg_match('/^[=\-+@\t\r]/', $cell) === 1 ? "'".$cell : $cell;
     }
 
-    private function currentFindingIds(string $tenantId, string $storeId): \Illuminate\Database\Query\Builder
+    private function currentFindingIds(string $tenantId, string $storeId): Builder
     {
         return DB::table('reconciliation_findings')
             ->where('tenant_id', $tenantId)

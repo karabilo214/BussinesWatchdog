@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Pairing;
 
-use App\Models\IntegrationCredential;
 use App\Models\AuditLog;
 use App\Models\Membership;
 use App\Models\PairingCode;

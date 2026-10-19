@@ -66,7 +66,7 @@ class RefundSnapshotProjector
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function isValidRefundData(array $data): bool
     {
@@ -84,7 +84,7 @@ class RefundSnapshotProjector
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function refundAttributes(EventInbox $event, array $data, Order $order, int $sourceRevision, string $payloadHash, mixed $now): array
@@ -107,5 +107,4 @@ class RefundSnapshotProjector
             'updated_at' => $now,
         ];
     }
-
 }

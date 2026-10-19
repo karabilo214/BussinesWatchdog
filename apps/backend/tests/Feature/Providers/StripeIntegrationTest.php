@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Providers;
 
+use App\Models\EventInbox;
 use App\Models\FinancialTransaction;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
@@ -15,13 +16,16 @@ use App\Models\RefundAllocation;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Ingest\EventIngestor;
 use App\Support\Outbox\DomainOutboxDispatcher;
 use App\Support\Providers\Stripe\StripeSync;
+use App\Support\Reconciliation\NightlyReconciliationSweep;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class StripeIntegrationTest extends TestCase
@@ -168,10 +172,10 @@ class StripeIntegrationTest extends TestCase
         $this->assertFalse(PaymentAllocation::query()->exists(), 'an unconfirmed domain must not be trusted');
         $payment = Payment::query()->where('external_id', 'pi_md_1')->firstOrFail();
         $this->assertSame(['provider_order_ref' => 'wc-41', 'provider_site_origin' => 'https://shop.example.test'], $payment->metadata);
-        $this->assertStringNotContainsString('buyer@example.test', json_encode(\App\Models\EventInbox::query()->pluck('payload'), JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('buyer@example.test', json_encode(EventInbox::query()->pluck('payload'), JSON_THROW_ON_ERROR));
 
         $this->store->forceFill(['verified_at' => now()])->save();
-        app(\App\Support\Reconciliation\NightlyReconciliationSweep::class)->run();
+        app(NightlyReconciliationSweep::class)->run();
 
         $allocation = PaymentAllocation::query()->where('order_id', $order->id)->firstOrFail();
         $this->assertSame([PaymentAllocation::STRATEGY_VERIFIED_METADATA, 1500], [$allocation->strategy, (int) $allocation->amount_minor]);
@@ -214,7 +218,7 @@ class StripeIntegrationTest extends TestCase
 
         $this->assertFalse(PaymentAllocation::query()->where('order_id', $ownPayment->id)->exists());
         $this->assertSame(hash('sha256', 'wc_order_old'), Payment::query()->where('external_id', 'pi_old_13')->value('metadata')['provider_order_key_hash']);
-        $this->assertStringNotContainsString('wc_order_old', json_encode(\App\Models\EventInbox::query()->pluck('payload'), JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('wc_order_old', json_encode(EventInbox::query()->pluck('payload'), JSON_THROW_ON_ERROR));
         $linked = PaymentAllocation::query()->where('order_id', $reused->id)->get();
         $this->assertCount(1, $linked);
         $this->assertSame(FinancialTransaction::query()->where('external_operation_id', 'ch_new_13')->value('id'), $linked->first()->capture_transaction_id);
@@ -228,7 +232,7 @@ class StripeIntegrationTest extends TestCase
         $this->drain();
         $this->assertFalse(PaymentAllocation::query()->exists());
 
-        app(\App\Support\Ingest\EventIngestor::class)->ingest($this->woo, [[
+        app(EventIngestor::class)->ingest($this->woo, [[
             'schema_version' => '1.0', 'event_id' => (string) Str::uuid(), 'type' => 'order.snapshot', 'aggregate_type' => 'order', 'aggregate_id' => 'wc-late',
             'aggregate_revision' => 1, 'occurred_at' => now()->toJSON(), 'observed_at' => now()->toJSON(), 'is_synthetic' => false,
             'data' => ['status' => 'processing', 'display_number' => '#LATE', 'currency' => 'EUR', 'currency_exponent' => 2, 'total_minor' => '2500', 'gateway' => 'stripe',
@@ -347,7 +351,7 @@ class StripeIntegrationTest extends TestCase
         $this->assertSame(5, FinancialTransaction::query()->where('kind', 'capture')->count());
     }
 
-    private function connect(array $body = []): \Illuminate\Testing\TestResponse
+    private function connect(array $body = []): TestResponse
     {
         return $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
             ->postJson("/api/v1/stores/{$this->store->id}/integrations/stripe", [...['restricted_api_key' => self::KEY], ...$body]);

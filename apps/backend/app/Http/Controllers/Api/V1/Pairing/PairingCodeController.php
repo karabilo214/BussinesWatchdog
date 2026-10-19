@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Pairing;
 
 use App\Http\Controllers\Controller;
-use App\Models\Store;
 use App\Models\PairingCode;
+use App\Models\Store;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Providers;
 
 use App\Models\AuditLog;
+use App\Models\EventInbox;
 use App\Models\FinancialTransaction;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
@@ -16,6 +17,7 @@ use App\Models\RefundAllocation;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Ingest\EventIngestor;
 use App\Support\Outbox\DomainOutboxDispatcher;
 use App\Support\Providers\PayPal\PayPalClient;
 use App\Support\Providers\PayPal\PayPalCurrency;
@@ -24,9 +26,11 @@ use App\Support\Providers\PayPal\PayPalSync;
 use App\Support\Reconciliation\OrderReconciliationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class PayPalIntegrationTest extends TestCase
@@ -227,7 +231,7 @@ class PayPalIntegrationTest extends TestCase
         $this->drain();
         $this->assertSame(0, RefundAllocation::query()->count());
 
-        app(\App\Support\Ingest\EventIngestor::class)->ingest($this->woo, [[
+        app(EventIngestor::class)->ingest($this->woo, [[
             'schema_version' => '1.0', 'event_id' => (string) Str::uuid(), 'type' => 'refund.snapshot', 'aggregate_type' => 'refund', 'aggregate_id' => 'wc-refund-55',
             'aggregate_revision' => 1, 'occurred_at' => now()->toJSON(), 'observed_at' => now()->toJSON(), 'is_synthetic' => false,
             'data' => ['order_id' => '55', 'currency' => 'USD', 'currency_exponent' => 2, 'amount_minor' => '400', 'external_required' => true, 'provider_ref' => null, 'status' => 'recorded'],
@@ -274,7 +278,7 @@ class PayPalIntegrationTest extends TestCase
         app(PayPalSync::class)->run($integration);
         $this->drain();
 
-        $this->assertSame($this->refreshedAt, \Illuminate\Support\Carbon::parse($integration->refresh()->health['sync']['watermark'])->toIso8601ZuluString());
+        $this->assertSame($this->refreshedAt, Carbon::parse($integration->refresh()->health['sync']['watermark'])->toIso8601ZuluString());
         $this->assertSame(1, PaymentAllocation::query()->count());
         $this->assertSame(0, RefundAllocation::query()->count(), 'two equal store refunds and two equal provider refunds are left for a person');
     }
@@ -321,7 +325,7 @@ class PayPalIntegrationTest extends TestCase
         $this->drain();
 
         $this->assertSame(['1250', '250'], FinancialTransaction::query()->orderBy('kind')->pluck('amount_minor')->map(fn ($value) => (string) $value)->all());
-        $this->assertStringNotContainsString('buyer@example.test', json_encode(\App\Models\EventInbox::query()->pluck('payload'), JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('buyer@example.test', json_encode(EventInbox::query()->pluck('payload'), JSON_THROW_ON_ERROR));
         $this->assertSame('PAYMENT.CAPTURE.REFUNDED', $integration->refresh()->health['webhook']['last_type']);
     }
 
@@ -361,7 +365,7 @@ class PayPalIntegrationTest extends TestCase
         $this->assertNull(PayPalCurrency::exponent('UAH'));
     }
 
-    private function connect(array $body = []): \Illuminate\Testing\TestResponse
+    private function connect(array $body = []): TestResponse
     {
         return $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
             ->postJson("/api/v1/stores/{$this->store->id}/integrations/paypal", [...['environment' => 'sandbox', 'client_id' => self::CLIENT_ID, 'client_secret' => self::CLIENT_SECRET, 'write_access_acknowledged' => true], ...$body]);
@@ -382,7 +386,7 @@ class PayPalIntegrationTest extends TestCase
         return 'WH1234567890ABCDEF';
     }
 
-    private function postWebhook(Integration $integration, ?string $webhookId, array $event, ?string $sentAt = null): \Illuminate\Testing\TestResponse
+    private function postWebhook(Integration $integration, ?string $webhookId, array $event, ?string $sentAt = null): TestResponse
     {
         return $this->call('POST', "/api/v1/webhooks/paypal/{$integration->id}", [], [], [], [
             'HTTP_PAYPAL_AUTH_ALGO' => 'SHA256withRSA',
@@ -448,7 +452,7 @@ class PayPalIntegrationTest extends TestCase
         return ['id' => $id, 'status' => $status, 'amount' => ['currency_code' => 'USD', 'value' => $value], 'create_time' => now()->subMinutes(20)->toIso8601ZuluString()];
     }
 
-    private function row(string $transactionId, string $eventCode, ?string $reference = null, ?\Illuminate\Support\Carbon $at = null): void
+    private function row(string $transactionId, string $eventCode, ?string $reference = null, ?Carbon $at = null): void
     {
         $this->rows[] = ['transaction_info' => array_filter([
             'transaction_id' => $transactionId,

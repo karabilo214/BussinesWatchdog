@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Models\BillingPlan;
+use App\Models\BillingPlanVersion;
+use App\Models\BillingPrice;
 use App\Models\BillingRefund;
 use App\Models\BillingSubscriptionContract;
 use App\Models\BillingTransaction;
@@ -153,9 +156,9 @@ class RefundTest extends TestCase
     {
         $context = $this->context();
         $this->customerUser = $context['user'];
-        $plan = \App\Models\BillingPlan::query()->create(['code' => 'start', 'state' => 'published']);
-        $version = \App\Models\BillingPlanVersion::query()->create(['plan_id' => $plan->id, 'version' => 1, 'state' => 'published', 'localized_content' => ['name' => ['en' => 'Start']], 'entitlements' => ['features' => [], 'limits' => []]]);
-        $price = \App\Models\BillingPrice::query()->create(['plan_version_id' => $version->id, 'provider' => 'paddle', 'provider_account_ref' => 'default', 'provider_price_ref' => 'pri_start', 'price_kind' => 'base', 'mode' => 'test', 'currency' => 'EUR', 'currency_exponent' => 2, 'amount_minor' => 2800, 'billing_interval' => 'month', 'tax_behavior' => 'provider_calculated', 'state' => 'published']);
+        $plan = BillingPlan::query()->create(['code' => 'start', 'state' => 'published']);
+        $version = BillingPlanVersion::query()->create(['plan_id' => $plan->id, 'version' => 1, 'state' => 'published', 'localized_content' => ['name' => ['en' => 'Start']], 'entitlements' => ['features' => [], 'limits' => []]]);
+        $price = BillingPrice::query()->create(['plan_version_id' => $version->id, 'provider' => 'paddle', 'provider_account_ref' => 'default', 'provider_price_ref' => 'pri_start', 'price_kind' => 'base', 'mode' => 'test', 'currency' => 'EUR', 'currency_exponent' => 2, 'amount_minor' => 2800, 'billing_interval' => 'month', 'tax_behavior' => 'provider_calculated', 'state' => 'published']);
         $contract = BillingSubscriptionContract::query()->create([
             'tenant_id' => $context['tenant']->id, 'provider' => 'paddle', 'provider_account_ref' => 'default', 'provider_subscription_ref' => 'sub_1', 'mode' => 'test',
             'normalized_state' => BillingSubscriptionContract::STATE_ACTIVE, 'plan_version_id' => $version->id, 'price_id' => $price->id, 'entitlement_snapshot' => ['features' => [], 'limits' => []], 'source_updated_at' => now(),

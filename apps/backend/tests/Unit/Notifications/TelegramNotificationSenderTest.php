@@ -89,7 +89,7 @@ class TelegramNotificationSenderTest extends TestCase
 
     private function sender(): TelegramNotificationSender
     {
-        return new TelegramNotificationSender();
+        return new TelegramNotificationSender;
     }
 
     private function message(): RenderedNotification

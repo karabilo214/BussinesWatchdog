@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Account;
 
+use App\Mail\NotificationMessageMail;
 use App\Models\AuditLog;
 use App\Models\Membership;
 use App\Models\PlatformStaff;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Mail\NotificationMessageMail;
 use App\Support\Account\Totp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

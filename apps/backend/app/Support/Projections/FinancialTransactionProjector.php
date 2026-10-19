@@ -96,7 +96,7 @@ class FinancialTransactionProjector
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function isValidTransactionData(array $data): bool
     {
@@ -131,7 +131,7 @@ class FinancialTransactionProjector
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function transactionAttributes(EventInbox $event, array $data, ?Payment $payment, string $operationHash): array
@@ -160,7 +160,7 @@ class FinancialTransactionProjector
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function operationHash(array $data): string
     {

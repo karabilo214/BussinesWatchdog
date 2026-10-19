@@ -57,7 +57,7 @@ class PaymentSnapshotProjector
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     /** Operations can arrive before their payment; they are attached once the payment exists. */
     private function linkEarlierTransactions(Payment $payment): void
@@ -85,7 +85,7 @@ class PaymentSnapshotProjector
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function paymentAttributes(EventInbox $event, array $data, string $payloadHash, mixed $now): array
@@ -113,5 +113,4 @@ class PaymentSnapshotProjector
             'updated_at' => $now,
         ];
     }
-
 }

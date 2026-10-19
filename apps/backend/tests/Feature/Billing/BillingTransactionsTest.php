@@ -11,7 +11,6 @@ use App\Support\Account\MfaService;
 use App\Support\Account\Totp;
 use App\Support\Billing\Paddle\PaddleEventProcessor;
 use App\Support\Billing\Paddle\PaddleEventRecorder;
-use App\Support\Billing\Paddle\PaddleTransactions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;

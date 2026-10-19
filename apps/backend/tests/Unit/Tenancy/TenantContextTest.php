@@ -10,7 +10,7 @@ class TenantContextTest extends TestCase
 {
     public function test_it_fails_closed_without_tenant(): void
     {
-        $context = new TenantContext();
+        $context = new TenantContext;
 
         $this->expectException(MissingTenantContext::class);
 
@@ -19,7 +19,7 @@ class TenantContextTest extends TestCase
 
     public function test_it_returns_current_tenant(): void
     {
-        $context = new TenantContext();
+        $context = new TenantContext;
 
         $context->set('tenant-1', 'test');
 
@@ -30,7 +30,7 @@ class TenantContextTest extends TestCase
 
     public function test_scope_restores_previous_context(): void
     {
-        $context = new TenantContext();
+        $context = new TenantContext;
         $context->set('tenant-a', 'outer');
 
         $result = $context->scope('tenant-b', 'inner', function (TenantContext $scoped): string {
@@ -47,7 +47,7 @@ class TenantContextTest extends TestCase
 
     public function test_scope_restores_context_after_exception(): void
     {
-        $context = new TenantContext();
+        $context = new TenantContext;
         $context->set('tenant-a', 'outer');
 
         try {

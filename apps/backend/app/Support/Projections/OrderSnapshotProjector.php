@@ -4,8 +4,8 @@ namespace App\Support\Projections;
 
 use App\Models\EventInbox;
 use App\Models\Order;
-use App\Support\Billing\OrderVolume;
 use App\Models\OrderRevision;
+use App\Support\Billing\OrderVolume;
 use App\Support\Ingest\EventProjectionResult;
 
 class OrderSnapshotProjector
@@ -81,7 +81,7 @@ class OrderSnapshotProjector
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function isValidOrderData(array $data): bool
     {
@@ -99,7 +99,7 @@ class OrderSnapshotProjector
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function orderAttributes(EventInbox $event, array $data, int $sourceRevision, string $payloadHash, mixed $now): array
@@ -135,5 +135,4 @@ class OrderSnapshotProjector
             'created_at' => $now,
         ];
     }
-
 }

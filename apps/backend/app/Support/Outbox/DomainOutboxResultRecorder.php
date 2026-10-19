@@ -9,8 +9,7 @@ class DomainOutboxResultRecorder
 {
     public function __construct(
         private readonly DomainOutboxBackoff $backoff,
-    ) {
-    }
+    ) {}
 
     public function markPublished(string $messageId): bool
     {

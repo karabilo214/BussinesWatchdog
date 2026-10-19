@@ -2,14 +2,17 @@
 
 namespace Tests\Feature\Providers;
 
+use App\Http\Dto\Orders\OrderDto;
 use App\Models\AuditLog;
 use App\Models\EventInbox;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
 use App\Models\Membership;
 use App\Models\Order;
+use App\Models\PairingCode;
 use App\Models\Refund;
 use App\Models\Store;
+use App\Models\StoreVerification;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Integrations\ConnectorFreshness;
@@ -18,11 +21,15 @@ use App\Support\Outbox\DomainOutboxDispatcher;
 use App\Support\Providers\WooCommerce\WooCommerceAmount;
 use App\Support\Providers\WooCommerce\WooCommerceApiClient;
 use App\Support\Providers\WooCommerce\WooCommerceApiSync;
+use App\Support\Reconciliation\OrderReconciliationService;
+use App\Support\Stores\StoreVerificationService;
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\Feature\Stores\FakeDnsClient;
 use Tests\TestCase;
 
@@ -126,7 +133,7 @@ class WooCommerceApiIntegrationTest extends TestCase
     public function test_one_order_source_per_store_and_private_addresses_are_refused(): void
     {
         Integration::query()->create([
-            'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'provider' => 'woocommerce', 'install_id' => (string) \Illuminate\Support\Str::uuid(),
+            'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'provider' => 'woocommerce', 'install_id' => (string) Str::uuid(),
             'mode' => 'live', 'source_authority' => Integration::SOURCE_STORE_REPORTED, 'status' => Integration::STATUS_ACTIVE, 'capabilities' => [], 'connector_version' => '0.2.0', 'health' => [],
         ]);
         $this->connect()->assertStatus(409)->assertJsonPath('code', 'order_source_already_connected');
@@ -251,10 +258,10 @@ class WooCommerceApiIntegrationTest extends TestCase
     {
         $this->connected();
         $code = 'bwpc_'.str_repeat('a', 40);
-        \App\Models\PairingCode::query()->create(['tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'code_hash' => hash('sha256', $code), 'created_by' => $this->user->id, 'expires_at' => now()->addMinutes(15), 'created_at' => now()]);
+        PairingCode::query()->create(['tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'code_hash' => hash('sha256', $code), 'created_by' => $this->user->id, 'expires_at' => now()->addMinutes(15), 'created_at' => now()]);
 
         $this->postJson('/api/v1/pairing/exchange', [
-            'pairing_code' => $code, 'base_url' => 'https://shop.example.test', 'install_id' => (string) \Illuminate\Support\Str::uuid(),
+            'pairing_code' => $code, 'base_url' => 'https://shop.example.test', 'install_id' => (string) Str::uuid(),
             'connector_code' => 'woocommerce', 'plugin_version' => '0.2.0', 'platform' => ['wordpress' => '6.8', 'woocommerce' => '9.9', 'php' => '8.3'],
         ])->assertStatus(409)->assertJsonPath('code', 'order_source_already_connected');
     }
@@ -267,18 +274,18 @@ class WooCommerceApiIntegrationTest extends TestCase
         app(WooCommerceApiSync::class)->run($integration);
         $this->drain();
         $stripeOrder = Order::query()->where('external_id', '41')->firstOrFail();
-        $this->assertSame(['live', false], [$stripeOrder->mode, app(\App\Http\Dto\Orders\OrderDto::class)->toArray($stripeOrder)['mode_reported']]);
-        $this->assertTrue(app(\App\Http\Dto\Orders\OrderDto::class)->toArray(Order::query()->where('external_id', '42')->firstOrFail())['mode_reported']);
+        $this->assertSame(['live', false], [$stripeOrder->mode, app(OrderDto::class)->toArray($stripeOrder)['mode_reported']]);
+        $this->assertTrue(app(OrderDto::class)->toArray(Order::query()->where('external_id', '42')->firstOrFail())['mode_reported']);
 
         $stripe = Integration::query()->create([
             'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'provider' => 'stripe', 'mode' => 'test',
             'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER, 'status' => Integration::STATUS_ACTIVE, 'capabilities' => [], 'connector_version' => '1', 'health' => [],
         ]);
-        $finding = app(\App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($stripeOrder)->findings()->sole();
+        $finding = app(OrderReconciliationService::class)->evaluate($stripeOrder)->findings()->sole();
         $this->assertSame(['unknown', 'payment_mode_needs_plugin'], [$finding->status, $finding->reason_code]);
 
         $stripe->forceFill(['mode' => 'live'])->save();
-        $live = app(\App\Support\Reconciliation\OrderReconciliationService::class)->evaluate($stripeOrder->refresh())->findings()->pluck('reason_code')->all();
+        $live = app(OrderReconciliationService::class)->evaluate($stripeOrder->refresh())->findings()->pluck('reason_code')->all();
         $this->assertNotContains('payment_mode_needs_plugin', $live, 'a live provider checks the order as usual');
     }
 
@@ -290,8 +297,8 @@ class WooCommerceApiIntegrationTest extends TestCase
         $store = $this->store->refresh();
         $this->assertNotNull($store->verified_at);
         $this->assertSame('active', $store->status);
-        $verification = \App\Models\StoreVerification::query()->where('store_id', $store->id)->sole();
-        $this->assertSame([\App\Models\StoreVerification::METHOD_API_KEY, 'verified', 'https://shop.example.test'], [$verification->method, $verification->status, $verification->verified_origin]);
+        $verification = StoreVerification::query()->where('store_id', $store->id)->sole();
+        $this->assertSame([StoreVerification::METHOD_API_KEY, 'verified', 'https://shop.example.test'], [$verification->method, $verification->status, $verification->verified_origin]);
         $this->assertSame('api_key', AuditLog::query()->where('action', AuditLog::ACTION_STORE_VERIFIED)->sole()->changes['method']);
 
         $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
@@ -300,10 +307,10 @@ class WooCommerceApiIntegrationTest extends TestCase
 
     public function test_a_store_already_verified_for_its_url_is_not_verified_again(): void
     {
-        app(\App\Support\Stores\StoreVerificationService::class)->confirmByApiKey($this->store);
-        $this->assertNull(app(\App\Support\Stores\StoreVerificationService::class)->confirmByApiKey($this->store->refresh()));
+        app(StoreVerificationService::class)->confirmByApiKey($this->store);
+        $this->assertNull(app(StoreVerificationService::class)->confirmByApiKey($this->store->refresh()));
         $this->connected();
-        $this->assertSame(1, \App\Models\StoreVerification::query()->where('store_id', $this->store->id)->count());
+        $this->assertSame(1, StoreVerification::query()->where('store_id', $this->store->id)->count());
     }
 
     public function test_amounts_are_converted_as_strings(): void
@@ -320,7 +327,7 @@ class WooCommerceApiIntegrationTest extends TestCase
     /**
      * @param  array<string, mixed>  $query
      */
-    private function listOrders(array $query): \GuzzleHttp\Promise\PromiseInterface
+    private function listOrders(array $query): PromiseInterface
     {
         $status = $query['status'] ?? 'any';
         $rows = array_filter($this->orders, function (array $order) use ($status, $query): bool {
@@ -386,7 +393,7 @@ class WooCommerceApiIntegrationTest extends TestCase
         $this->orders[$orderId]['date_modified_gmt'] = now()->format('Y-m-d\TH:i:s');
     }
 
-    private function connect(array $body = []): \Illuminate\Testing\TestResponse
+    private function connect(array $body = []): TestResponse
     {
         return $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
             ->postJson("/api/v1/stores/{$this->store->id}/integrations/woocommerce-api", [...['consumer_key' => self::KEY, 'consumer_secret' => self::SECRET], ...$body]);

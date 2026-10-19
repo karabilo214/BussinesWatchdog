@@ -22,8 +22,7 @@ class DomainOutboxDispatcher
         private readonly EventInboxProcessor $eventInboxProcessor,
         private readonly DomainOutboxSweeper $sweeper,
         private readonly IncidentNotificationPlanner $notificationPlanner,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{leased: int, published: int, failed: int}

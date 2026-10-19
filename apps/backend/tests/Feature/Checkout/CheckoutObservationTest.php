@@ -18,6 +18,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Browser\ScenarioDefinition;
 use App\Support\Checkout\CheckoutObservationEvaluator;
+use App\Support\Network\DnsClient;
 use App\Support\Notifications\IncidentNotificationContentBuilder;
 use App\Support\Notifications\NotificationPreferences;
 use App\Support\Notifications\NotificationRenderer;
@@ -28,14 +29,14 @@ use App\Support\Providers\Shopware\ShopwareConnector;
 use App\Support\Providers\Shopware\ShopwareRequestFailed;
 use App\Support\Providers\Shopware\ShopwareSync;
 use App\Support\Stores\StoreCoverage;
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Console\Scheduling\Schedule;
-use App\Support\Network\DnsClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\Feature\Stores\FakeDnsClient;
 use Tests\TestCase;
@@ -328,7 +329,7 @@ class CheckoutObservationTest extends TestCase
     /**
      * @param  list<array<string, mixed>>  $operations
      */
-    private function applySync(array $operations): \GuzzleHttp\Promise\PromiseInterface
+    private function applySync(array $operations): PromiseInterface
     {
         $this->syncs[] = $operations;
 

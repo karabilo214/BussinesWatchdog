@@ -191,7 +191,7 @@ class OrderReconciliationService
      * A provider-confirmed capture must eventually be reflected as paid by the store.
      * The store's own payment marker is never used as capture evidence.
      *
-     * @param Collection<int, PaymentAllocation> $allocations
+     * @param  Collection<int, PaymentAllocation>  $allocations
      * @return list<array<string, mixed>>
      */
     private function evaluateCaptureRecordedByStore(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Providers;
 
-use App\Models\AuditLog;
 use App\Models\EventInbox;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
@@ -25,6 +24,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Testing\TestResponse;
 use Tests\Feature\Stores\FakeDnsClient;
 use Tests\TestCase;
 
@@ -270,7 +270,7 @@ class ShopwareIntegrationTest extends TestCase
         ];
     }
 
-    private function connect(array $body = []): \Illuminate\Testing\TestResponse
+    private function connect(array $body = []): TestResponse
     {
         return $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
             ->postJson("/api/v1/stores/{$this->store->id}/integrations/shopware", [...['access_key' => self::ACCESS_KEY, 'secret_access_key' => self::SECRET, 'state_change_risk_acknowledged' => true], ...$body]);

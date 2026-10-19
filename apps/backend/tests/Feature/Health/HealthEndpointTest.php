@@ -4,6 +4,7 @@ namespace Tests\Feature\Health;
 
 use App\Support\Health\ReadinessChecks;
 use App\Support\Security\Keyring;
+use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;
 
 class HealthEndpointTest extends TestCase
@@ -60,7 +61,7 @@ class HealthEndpointTest extends TestCase
 
     public function test_ready_endpoint_reports_a_component_that_throws_an_error_instead_of_failing(): void
     {
-        \Illuminate\Support\Facades\Redis::shouldReceive('connection')->andThrow(new \Error('Class "Redis" not found'));
+        Redis::shouldReceive('connection')->andThrow(new \Error('Class "Redis" not found'));
 
         $checks = app(ReadinessChecks::class)->all();
 

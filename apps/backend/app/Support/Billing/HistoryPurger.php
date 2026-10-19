@@ -5,6 +5,7 @@ namespace App\Support\Billing;
 use App\Models\Artifact;
 use App\Models\Incident;
 use App\Models\Tenant;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -160,7 +161,7 @@ class HistoryPurger
         return $deleted;
     }
 
-    private function deleteChunked(\Illuminate\Database\Query\Builder $query): int
+    private function deleteChunked(Builder $query): int
     {
         $deleted = 0;
 

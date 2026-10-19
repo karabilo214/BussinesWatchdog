@@ -159,11 +159,11 @@ return new class extends Migration
             DB::statement("ALTER TABLE financial_transactions ADD CONSTRAINT financial_transactions_source_authority_check CHECK (source_authority IN ('store_reported','independent_provider'))");
             DB::statement("ALTER TABLE payment_allocations ADD CONSTRAINT payment_allocations_currency_check CHECK (currency ~ '^[A-Z]{3}$')");
             DB::statement("ALTER TABLE payment_allocations ADD CONSTRAINT payment_allocations_strategy_check CHECK (strategy IN ('exact_reference','verified_metadata','manual'))");
-            DB::statement("CREATE UNIQUE INDEX active_capture_order_allocation ON payment_allocations(capture_transaction_id,order_id) WHERE revoked_at IS NULL");
-            DB::statement("CREATE INDEX active_allocations_order_idx ON payment_allocations(order_id) WHERE revoked_at IS NULL");
+            DB::statement('CREATE UNIQUE INDEX active_capture_order_allocation ON payment_allocations(capture_transaction_id,order_id) WHERE revoked_at IS NULL');
+            DB::statement('CREATE INDEX active_allocations_order_idx ON payment_allocations(order_id) WHERE revoked_at IS NULL');
             DB::statement("ALTER TABLE refund_allocations ADD CONSTRAINT refund_allocations_currency_check CHECK (currency ~ '^[A-Z]{3}$')");
             DB::statement("ALTER TABLE refund_allocations ADD CONSTRAINT refund_allocations_strategy_check CHECK (strategy IN ('exact_reference','verified_metadata','manual'))");
-            DB::statement("CREATE UNIQUE INDEX active_refund_allocation ON refund_allocations(refund_id,refund_transaction_id,payment_allocation_id) WHERE revoked_at IS NULL");
+            DB::statement('CREATE UNIQUE INDEX active_refund_allocation ON refund_allocations(refund_id,refund_transaction_id,payment_allocation_id) WHERE revoked_at IS NULL');
         }
     }
 

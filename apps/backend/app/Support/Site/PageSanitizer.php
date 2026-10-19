@@ -28,7 +28,7 @@ class PageSanitizer
             return $this->sanitizer;
         }
 
-        $config = (new HtmlSanitizerConfig())
+        $config = (new HtmlSanitizerConfig)
             ->allowSafeElements()
             ->allowAttribute('class', '*')
             ->allowAttribute('id', '*')

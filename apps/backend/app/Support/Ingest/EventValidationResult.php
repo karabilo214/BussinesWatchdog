@@ -14,8 +14,7 @@ class EventValidationResult
         public readonly bool $valid,
         public readonly ?string $errorCode = null,
         public readonly bool $quarantinable = false,
-    ) {
-    }
+    ) {}
 
     public static function ok(): self
     {
