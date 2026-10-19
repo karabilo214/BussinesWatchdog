@@ -165,7 +165,7 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-      - apparmor=bw-browser-worker
+      - seccomp=./seccomp/bw-browser-worker.json
     mem_limit: 2g
     cpus: 2.0
     pids_limit: 512
