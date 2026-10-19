@@ -176,7 +176,15 @@ ssh -t bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compos
 ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose logs -f --tail 100 app web scheduler'
 ```
 
-**Бэкапы базы** — systemd-таймер `bw-backup.timer` (ставит `deploy.sh`), каждый день в 03:15 по Берлину: `pg_dump` в `/opt/business-watchdog/backups/db-<время UTC>.dump`, затем дамп восстанавливается во временный PostgreSQL — без успешного восстановления копия не считается; итог — в `backups/last-success`. Хранение (решение владельца): все копии текущей недели; от прошлых недель текущего месяца — последняя копия каждой недели; от прошлых месяцев — последняя копия каждого месяца, за `BW_BACKUP_KEEP_MONTHS` месяцев (12). Копии пока лежат **на том же сервере** — от потери сервера они не защищают.
+**Бэкапы базы** — systemd-таймер `bw-backup.timer` (ставит `deploy.sh`), каждый день в 03:15 по Берлину: `pg_dump` в `/opt/business-watchdog/backups/db-<время UTC>.dump`, затем дамп восстанавливается во временный PostgreSQL — без успешного восстановления копия не считается; итог — в `backups/last-success`. Хранение (решение владельца): все копии текущей недели; от прошлых недель текущего месяца — последняя копия каждой недели; от прошлых месяцев — последняя копия каждого месяца, за `BW_BACKUP_KEEP_MONTHS` месяцев (12). Кроме того, каждая проверенная копия шифруется ключом `age` и уходит во внешнее хранилище — Contabo Object Storage (`https://eu2.contabostorage.com`, бакет `business-watchdog-backups`; доступ — `BW_BACKUP_S3_*` в `.env` сервера), там хранится по тому же правилу; итог — `backups/last-offsite`. На сервере только **открытый** ключ (`BW_BACKUP_AGE_RECIPIENT`); закрытый — у владельца офлайн (менеджер паролей + запасная копия). Без него внешние копии не расшифровать.
+
+Восстановление внешней копии на любом компьютере:
+
+```sh
+rclone copy offsite:business-watchdog-backups/db-<время>.dump.age .     # или скачать в панели Contabo
+age -d -i business-watchdog-backup.agekey -o db.dump db-<время>.dump.age
+pg_restore --list db.dump                                               # проверить, затем pg_restore в новую базу
+```
 
 ```sh
 ssh bw-prod 'systemctl start bw-backup.service && journalctl -u bw-backup.service -n 5'   # бэкап сейчас

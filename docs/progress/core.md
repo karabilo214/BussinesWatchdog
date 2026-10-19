@@ -870,3 +870,11 @@ Status: complete (retention rule by the owner)
 - `infra/production/backup/backup.sh`: `pg_dump --format=custom` from the running PostgreSQL, restore into a throwaway `postgres:18` container (tables and migrations must exist), `last-success` marker, then `prune.py`. `prune.py`: all backups of the current ISO week; the last backup of each earlier week of the current month; the last backup of each earlier month for `BW_BACKUP_KEEP_MONTHS` (12, the owner did not fix a number); the newest is always kept. `bw-backup.service` / `bw-backup.timer` (03:15 Europe/Berlin, persistent), installed and enabled by `deploy.sh`. README: running, listing, copying and restoring.
 
 Verification: prune rule on 100 simulated daily backups at 2026-10-19 keeps 2026-07-31, 08-31, 09-30, 10-04, 10-11, 10-18 and 10-19; first real run on the server: 316 KB dump, 96 tables restored, timer scheduled. Open: the backups are on the same server (no off-site copy yet), so ACC-41 (restore on a new host) is still not done.
+
+### Step 189: Encrypted Off-site Backups
+
+Status: complete
+
+- `backup.sh`: after the restore check and local pruning, the dump is encrypted with `age` for `BW_BACKUP_AGE_RECIPIENT` (public key only; the private key was generated on the owner's Mac, `~/business-watchdog-backup.agekey`, to be kept offline), uploaded with `rclone/rclone:1.71.2` to `BW_BACKUP_S3_*` (Contabo Object Storage, `eu2.contabostorage.com`, bucket `business-watchdog-backups`), and off-site copies are pruned by the same rule (`prune.py --names`). `deploy.sh` installs `age`; `env.example` lists the variables. README: off-site copy and restore steps. ACC-41 → partial.
+
+Verification: on the server the backup uploaded `db-2026-10-19T094852Z.dump.age`; on the owner's Mac the copy was downloaded from the bucket, decrypted with the private key and listed by `pg_restore` (96 table data entries). `prune.py --names` keeps 09-30, 10-11, 10-12, 10-19 and deletes 09-15 for 2026-10-19. The storage credentials were pasted in the chat — the owner should issue a new key pair in Contabo and update `.env`.
