@@ -33,6 +33,15 @@ test('cart mutations are allowed', () => {
 
 const multipart = (fields) => fields.map(([name, value]) => `------B\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`).join('') + '------B--\r\n';
 
+test('PayPal Payments button lookups are allowed, its order and cart changes are not', () => {
+  assert.equal(decide('POST', `${store}/?wc-ajax=ppc-sdk-v6-client-token`, '{}').allow, true);
+  assert.equal(decide('POST', `${store}/?wc-ajax=ppc-sdk-v6-simulate-cart`, '{"products":[]}').allow, true);
+
+  for (const action of ['ppc-create-order', 'ppc-approve-order', 'ppc-change-cart']) {
+    assert.equal(decide('POST', `${store}/?wc-ajax=${action}`, '{}').allow, false, action);
+  }
+});
+
 test('multipart add-to-cart forms are recognised', () => {
   assert.equal(decide('POST', `${store}/?p=10`, multipart([['quantity', '1'], ['add-to-cart', '10']])).allow, true);
   assert.equal(decide('POST', `${store}/?p=10`, multipart([['add-to-cart', '10'], ['woocommerce-process-checkout-nonce', 'abc']])).operation, 'classic_checkout_submit');

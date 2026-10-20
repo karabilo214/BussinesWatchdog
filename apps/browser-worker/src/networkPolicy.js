@@ -6,6 +6,11 @@ const ALLOWED_WC_AJAX = new Set([
   'update_order_review',
   'update_shipping_method',
   'get_variation',
+  // WooCommerce PayPal Payments 4.x loads its buttons with these on every page: a client token for the PayPal SDK and
+  // the totals of a simulated cart. Neither changes the cart, an order or money; creating or approving a PayPal order
+  // (ppc-create-order, ppc-approve-order) and changing the cart (ppc-change-cart) stay blocked.
+  'ppc-sdk-v6-client-token',
+  'ppc-sdk-v6-simulate-cart',
 ]);
 
 const STORE_API = /^\/wc\/store(?:\/v\d+)?\/(.*)$/;
