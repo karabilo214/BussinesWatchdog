@@ -155,6 +155,12 @@ test('quiet paths on the store are dropped without counting as blocked traffic',
   assert.equal(sw.decide({ method: 'GET', url: 'https://other.example/storefront/script/bw-observe' }).reason, 'origin_not_allowed');
   assert.equal(sw.decide({ method: 'GET', url: `${store}/storefront/script/other` }).allow, true);
   assert.equal(sw.decide({ method: 'GET', url: `${store}/checkout/confirm` }).allow, true);
+
+  const woo = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, quietPaths: ['/business-watchdog/v1/observe', '/business-watchdog/v1/observe/noscript'] });
+  assert.deepEqual(woo.decide({ method: 'POST', url: `${store}/wp-json/business-watchdog/v1/observe`, postData: '{"stage":"rendered"}' }), { allow: false, reason: 'quiet' });
+  assert.deepEqual(woo.decide({ method: 'POST', url: `${store}/?rest_route=/business-watchdog/v1/observe`, postData: '{}' }), { allow: false, reason: 'quiet' });
+  assert.deepEqual(woo.decide({ method: 'GET', url: `${store}/wp-json/business-watchdog/v1/observe/noscript` }), { allow: false, reason: 'quiet' });
+  assert.equal(woo.decide({ method: 'POST', url: `${store}/wp-json/business-watchdog/v1/other`, postData: '{}' }).allow, false);
 });
 
 test('public storefront checks allow store cart-add and third-party subrequests without allowing checkout/payment', () => {

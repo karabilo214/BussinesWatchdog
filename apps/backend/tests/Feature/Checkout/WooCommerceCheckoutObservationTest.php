@@ -108,7 +108,7 @@ class WooCommerceCheckoutObservationTest extends TestCase
         ]);
         $snapshot = app(ScenarioDefinition::class)->snapshot($scenario, $this->store);
         $this->assertTrue($snapshot['expect_checkout_script']);
-        $this->assertSame([], $snapshot['network_policy']['quiet_paths'], 'the plugin script reports to the shop itself');
+        $this->assertSame(['/business-watchdog/v1/observe', '/business-watchdog/v1/observe/noscript'], $snapshot['network_policy']['quiet_paths'], 'the check browser sees the script but its beacons are dropped, so it is never counted as a shopper');
 
         $this->ingest($this->event($this->windowAgo(30), 1, ['checkout_rendered' => 1, 'script_loaded' => 1]));
         $this->assertSame('observing', $coverage());
