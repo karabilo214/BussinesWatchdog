@@ -11,7 +11,7 @@ Added:
 - `.env.example` with local infrastructure defaults.
 - `docker-compose.yml` for PostgreSQL, Redis, MinIO, and Mailpit.
 - `Makefile` helpers for setup, up/down, logs, and reset.
-- `docs/implementation-step-01-checklist.md`.
+- `docs/implementation/implementation-step-01-checklist.md`.
 
 Verification:
 
@@ -72,7 +72,7 @@ Added:
 - backend Compose services behind `tools` and `app` profiles.
 - Makefile targets: `backend-build`, `backend-create`, `backend-shell`, `backend-up`, `backend-logs`.
 - `infra/scripts/create-backend.sh` to create Laravel from inside the PHP 8.4 container.
-- `docs/implementation-step-03-checklist.md`.
+- `docs/implementation/implementation-step-03-checklist.md`.
 
 Verification:
 
@@ -104,7 +104,7 @@ Added:
 - CHECK constraints for role/state/currency/base URL/config version invariants.
 - Models and relationships for User, Tenant, Membership, Invitation, and Store.
 - User factory updated for `password_hash`.
-- `docs/implementation-step-04-checklist.md`.
+- `docs/implementation/implementation-step-04-checklist.md`.
 
 Verification:
 
@@ -128,7 +128,7 @@ Added:
 - Laravel container scoped binding.
 - Unit tests for fail-closed behavior and scoped restoration.
 - Feature test for container binding.
-- `docs/implementation-step-05-checklist.md`.
+- `docs/implementation/implementation-step-05-checklist.md`.
 
 Verification:
 
@@ -152,7 +152,7 @@ Added:
 - Transactional user + tenant + owner membership registration.
 - Session `active_tenant_id` assignment after register/login.
 - Feature tests for register, login/me, unauthenticated me, and logout.
-- `docs/implementation-step-06-checklist.md`.
+- `docs/implementation/implementation-step-06-checklist.md`.
 
 Verification:
 
@@ -174,7 +174,7 @@ Added:
 - Session-backed TenantContext middleware.
 - Diagnostic `GET /api/v1/tenants/context`.
 - Feature tests for own tenant activation, foreign tenant rejection, and auth requirement.
-- `docs/implementation-step-07-checklist.md`.
+- `docs/implementation/implementation-step-07-checklist.md`.
 
 Verification:
 
@@ -198,7 +198,7 @@ Added:
 - Store create request validation.
 - Store API controller scoped by `TenantContext`.
 - Feature tests for create/list/detail isolation and HTTPS validation.
-- `docs/implementation-step-08-checklist.md`.
+- `docs/implementation/implementation-step-08-checklist.md`.
 
 Verification:
 
@@ -222,7 +222,7 @@ Added:
 - 409 `version_conflict` response for stale updates.
 - Base URL change resets `verified_at` and disables browser checks.
 - Feature tests for update success, stale version, missing header, base URL reset, and foreign tenant rejection.
-- `docs/implementation-step-09-checklist.md`.
+- `docs/implementation/implementation-step-09-checklist.md`.
 
 Verification:
 
@@ -244,7 +244,7 @@ Added:
 - `tenant.role` route middleware.
 - Store read/manage route role checks.
 - Feature tests for viewer/operator/admin store permissions.
-- `docs/implementation-step-10-checklist.md`.
+- `docs/implementation/implementation-step-10-checklist.md`.
 
 Verification:
 
@@ -267,7 +267,7 @@ Added:
 - `GET /api/v1/stores/{store}/verification` for latest verification state.
 - Tenant scoping and store role checks for verification endpoints.
 - Feature tests for challenge creation, method validation, role denial, tenant isolation, latest state read, and pending expiration.
-- `docs/implementation-step-11-checklist.md`.
+- `docs/implementation/implementation-step-11-checklist.md`.
 
 Verification:
 
@@ -295,7 +295,7 @@ Added:
 - Base URL binding during exchange.
 - 32-byte HMAC secret issue with base64 response and encrypted storage.
 - Feature tests for code creation, role denial, foreign store isolation, exchange success, consumed/expired rejection, base URL mismatch, and connector code validation.
-- `docs/implementation-step-12-checklist.md`.
+- `docs/implementation/implementation-step-12-checklist.md`.
 
 Verification:
 
@@ -320,7 +320,7 @@ Added:
 - Credential status enforcement.
 - Protected `POST /api/v1/ingest/heartbeat`.
 - Feature tests for signed heartbeat, missing headers, altered body, nonce replay, stale timestamp, revoked credential, and query string rejection.
-- `docs/implementation-step-13-checklist.md`.
+- `docs/implementation/implementation-step-13-checklist.md`.
 
 Verification:
 
@@ -348,7 +348,7 @@ Added:
 - Conflict handling for same event ID with different payload hash.
 - `202` all accepted/duplicates and `207` mixed per-record results.
 - Feature tests for accept, duplicate, conflict, mixed invalid, bad envelope, and unsupported schema version.
-- `docs/implementation-step-14-checklist.md`.
+- `docs/implementation/implementation-step-14-checklist.md`.
 
 Verification:
 
@@ -371,7 +371,7 @@ Added:
 - Pending outbox message creation in the same transaction as newly accepted inbox events.
 - Dedupe by accepted `event_inbox.id`.
 - Tests for accepted event outbox creation, duplicate retry no-op, and mixed batch outbox count.
-- `docs/implementation-step-15-checklist.md`.
+- `docs/implementation/implementation-step-15-checklist.md`.
 
 Verification:
 
@@ -396,7 +396,7 @@ Added:
 - Attempt increment and `lease_until` update.
 - Terminal message exclusion.
 - Feature tests for due ordering, active lease skip, expired lease retry, and terminal status skip.
-- `docs/implementation-step-16-checklist.md`.
+- `docs/implementation/implementation-step-16-checklist.md`.
 
 Verification:
 
@@ -420,7 +420,7 @@ Added:
 - Stale lease result rejection.
 - Non-leased message result rejection.
 - Feature tests for publish, retry, dead-letter, stale lease rejection, and non-leased rejection.
-- `docs/implementation-step-17-checklist.md`.
+- `docs/implementation/implementation-step-17-checklist.md`.
 
 Verification:
 
@@ -443,7 +443,7 @@ Added:
 - `outbox:dispatch` console command.
 - Dispatch counters for leased/published/failed.
 - Feature tests for known topic publish, unsupported topic retry, and console command execution.
-- `docs/implementation-step-18-checklist.md`.
+- `docs/implementation/implementation-step-18-checklist.md`.
 
 Verification:
 
@@ -465,7 +465,7 @@ Added:
 - Idempotent success for already processed inbox rows.
 - Retry path for missing or unprocessable inbox references.
 - Feature tests for successful inbox processing, processed-row idempotency, missing inbox retry, unsupported topic retry, and console dispatch.
-- `docs/implementation-step-19-checklist.md`.
+- `docs/implementation/implementation-step-19-checklist.md`.
 
 Verification:
 
@@ -486,7 +486,7 @@ Added:
 - Explicit projector failure reason codes.
 - `EventInboxProcessor::lastErrorCode()`.
 - Outbox retry error propagation from projector failure codes.
-- `docs/implementation-step-26-checklist.md`.
+- `docs/implementation/implementation-step-26-checklist.md`.
 
 Verification:
 
@@ -522,7 +522,7 @@ Added:
 - Quarantine persistence for invalid-but-identifiable events without creating projection outbox messages.
 - Same-revision/source timestamp conflict detection for order, refund, and payment projections.
 - Focused tests for ingest limits, quarantine behavior, and projection conflict failure codes.
-- `docs/implementation-step-27-checklist.md`.
+- `docs/implementation/implementation-step-27-checklist.md`.
 
 Verification:
 
@@ -547,7 +547,7 @@ Added:
 - Dispatcher sweeper pass before each leasing cycle.
 - Bounded loop mode for `outbox:dispatch`.
 - Focused tests for retry backoff, expired lease recovery, and loop dispatch.
-- `docs/implementation-step-28-checklist.md`.
+- `docs/implementation/implementation-step-28-checklist.md`.
 
 Verification:
 
@@ -575,7 +575,7 @@ Added:
 - Revoke transaction that marks integration and non-revoked credentials revoked.
 - Audit rows for pairing exchange and integration revoke.
 - Focused tests for list/detail/filter/revoke/tenant isolation/role denial/audit.
-- `docs/implementation-step-29-checklist.md`.
+- `docs/implementation/implementation-step-29-checklist.md`.
 
 Verification:
 
@@ -597,7 +597,7 @@ Added:
 - `laravel/sanctum` ^4.3 with `statefulApi()`; removed the `api/*` CSRF exclusion; `auth:sanctum` on user routes; `RequireStatefulSession` middleware; explicit `web` guard in `AuthController`.
 - `auth-login` / `auth-signup` rate limiters from the spec's pilot defaults (`config/watchdog.php`).
 - `SESSION_DRIVER=database` and Sanctum/cookie settings in `.env.example`.
-- `docs/implementation-step-39-checklist.md`; ADR 0001 sections marked resolved.
+- `docs/implementation/implementation-step-39-checklist.md`; ADR 0001 sections marked resolved.
 
 Verification:
 
@@ -617,7 +617,7 @@ Added:
 - Pairing exchange throttle (20/hour/IP) and `integration.pairing_failed` audit.
 - `Keyring` versioned encryption for integration secrets and notification destinations; `security:reencrypt-secrets`; keyring readiness check.
 - Credential rotation: user request → heartbeat flag → signed plugin provisioning route → old key draining 24 h → revoked on first use of the new key; audit for each transition.
-- `docs/implementation-step-40-checklist.md`; ADR 0001 section marked resolved.
+- `docs/implementation/implementation-step-40-checklist.md`; ADR 0001 section marked resolved.
 
 Verification:
 
@@ -635,7 +635,7 @@ Added:
 
 - `opis/json-schema` 2.6; `EventSchemaValidator` against a backend copy of `contracts/event.schema.json` (sync test).
 - Every ingested event is validated against the Draft 2020-12 schema; violations are quarantined as `schema_invalid`. Non-object bodies return 422 instead of 500.
-- `docs/implementation-step-41-checklist.md`; ADR 0001 section marked resolved.
+- `docs/implementation/implementation-step-41-checklist.md`; ADR 0001 section marked resolved.
 
 Verification:
 
@@ -654,7 +654,7 @@ Added:
 - DNS TXT (`_bw-verify.<host>`) and connector challenge verification with HMAC-derived challenges, SSRF-safe fetcher (public IPs only, IP pinning, no redirects, timeout, size cap), on-demand check endpoint and scheduled `stores:check-verifications`.
 - Successful verification sets `verified_at`, activates onboarding stores, audits `store.verified`; unverified stores cannot enable browser checks or become active; private/non-standard store URLs are rejected.
 - Heartbeat delivers the pending challenge to the connector.
-- `docs/implementation-step-42-checklist.md`; ADR 0001 section marked resolved.
+- `docs/implementation/implementation-step-42-checklist.md`; ADR 0001 section marked resolved.
 
 Verification:
 
@@ -673,7 +673,7 @@ Added:
 - Full suite on PostgreSQL 18 via `make backend-test-pgsql`; PG-only constraint tests.
 - Scoped composite event FKs with `ON DELETE SET NULL (column)` on `order_revisions` and `financial_transactions`.
 - Fix: idempotency reservation no longer aborts the PostgreSQL transaction on a repeated key (was 500 on replay; hidden by SQLite).
-- `docs/implementation-step-43-checklist.md`; ADR 0001 sections marked resolved.
+- `docs/implementation/implementation-step-43-checklist.md`; ADR 0001 sections marked resolved.
 
 Verification:
 
@@ -803,7 +803,7 @@ Status: complete for planning documentation
 Added:
 
 - `docs/adr/0058-public-url-storefront-check.md`: proposed public pre-registration storefront smoke check by URL, explicitly limited to public pages and cautious verdicts. It records mandatory CAPTCHA, normalized host/origin cooldown (30 days), IP cooldown (one site per 10 days), submit-attempt limiting, SSRF protections, separate queue/capacity, no payment/financial/monitoring claims, and 5-minute artifact retention.
-- `docs/implementation-step-58-checklist.md`: implementation checklist for the future code slice, including URL normalization, anti-abuse gates, public-only browser policy, separate public diagnostic artifacts, purge job and verification plan.
+- `docs/implementation/implementation-step-58-checklist.md`: implementation checklist for the future code slice, including URL normalization, anti-abuse gates, public-only browser policy, separate public diagnostic artifacts, purge job and verification plan.
 
 Verification:
 

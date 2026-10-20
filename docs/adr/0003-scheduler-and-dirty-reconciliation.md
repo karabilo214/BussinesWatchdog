@@ -48,5 +48,5 @@ A subject whose evaluation throws is released with `error_code = dirty_subject_p
 
 ## Tracking
 
-- `docs/implementation-step-38-checklist.md`
+- `docs/implementation/implementation-step-38-checklist.md`
 - `docs/progress.md` (Step 38)

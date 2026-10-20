@@ -11,7 +11,7 @@ Added:
 - Browser check tables, worker credentials, `browser:schedule`, internal lease/heartbeat/result API with fencing and expiry recovery.
 - Outcome policy (two site failures confirm; worker problems never do), checkout and coverage incidents with scheduled-pass recovery, notifications (ru/en/de).
 - Strict validation of sanitized worker results; user API for the scenario, manual runs and run history; OpenAPI updated.
-- `docs/adr/0010-browser-check-backend.md`, `docs/implementation-step-51-checklist.md`.
+- `docs/adr/0010-browser-check-backend.md`, `docs/implementation/implementation-step-51-checklist.md`.
 
 Verification:
 
@@ -29,7 +29,7 @@ Added:
 
 - `apps/browser-worker`: lease loop, WooCommerce adapter (Classic + Blocks), network policy (cart-only mutations, order/pay/capture/refund blocked), sanitized diagnostics, Docker image (sandbox on, read-only, no capabilities), Compose service, unit tests.
 - `tests/matrix/browser-e2e.sh` (`make worker-e2e`) with the real backend; the matrix mu-plugin can disable its test gateway for the no-payment-methods case.
-- `docs/adr/0011-browser-worker.md`, `docs/implementation-step-52-checklist.md`, compatibility table.
+- `docs/adr/0011-browser-worker.md`, `docs/implementation/implementation-step-52-checklist.md`, compatibility table.
 
 Verification:
 
@@ -47,7 +47,7 @@ Added:
 
 - Backend synthetic marker in the lease; worker sends it to the store origin only; plugin verifies it, marks orders, flags synthetic events, skips payment-attempt monitoring and cleans only its own old checkout drafts.
 - Squid egress proxy (`infra/docker/egress`), Compose isolation of the worker, `make egress-test`; the worker refuses production without the proxy.
-- `docs/adr/0012-synthetic-marker-and-egress.md`, `docs/implementation-step-53-checklist.md`.
+- `docs/adr/0012-synthetic-marker-and-egress.md`, `docs/implementation/implementation-step-53-checklist.md`.
 
 Verification:
 
@@ -65,7 +65,7 @@ Added:
 
 - `artifacts` table and private S3 disk; lease-bound internal upload with size/signature/SHA-256 checks; 60-second user links; daily purge; OpenAPI.
 - Worker: masked viewport screenshot on failures, focused on the failing step.
-- `docs/adr/0013-check-artifacts.md`, `docs/implementation-step-54-checklist.md`.
+- `docs/adr/0013-check-artifacts.md`, `docs/implementation/implementation-step-54-checklist.md`.
 
 Verification:
 

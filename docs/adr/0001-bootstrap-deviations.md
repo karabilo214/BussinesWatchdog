@@ -135,9 +135,9 @@ Resolution (Step 43, 2026-10-09): resolved on PostgreSQL. Migration `2026_10_09_
 Related docs:
 
 - `docs/progress.md`
-- `docs/implementation-step-01-checklist.md`
-- `docs/implementation-step-06-checklist.md`
-- `docs/implementation-step-11-checklist.md`
-- `docs/implementation-step-12-checklist.md`
-- `docs/implementation-step-13-checklist.md`
-- `docs/implementation-step-14-checklist.md`
+- `docs/implementation/implementation-step-01-checklist.md`
+- `docs/implementation/implementation-step-06-checklist.md`
+- `docs/implementation/implementation-step-11-checklist.md`
+- `docs/implementation/implementation-step-12-checklist.md`
+- `docs/implementation/implementation-step-13-checklist.md`
+- `docs/implementation/implementation-step-14-checklist.md`

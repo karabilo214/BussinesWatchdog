@@ -1,7 +1,7 @@
 # Implementation Step 22 Checklist: Order Deleted Tests Complete
 
 Stage: D3 Woo projections bootstrap
-Spec references: `docs/implementation-step-21-checklist.md`.
+Spec references: `docs/implementation/implementation-step-21-checklist.md`.
 
 This step records the completed Docker test run for order deletion projection work.
 

@@ -10,7 +10,7 @@ Added:
 
 - `plugins/woocommerce-watchdog`: capability-detecting compat layer, local tables, secret storage, pairing (admin/REST/WP-CLI), signed heartbeat with rotation and suspension, public challenge endpoint, diagnostics, uninstall.
 - Docker matrix (6 pinned targets, legacy + HPOS, classic + blocks) with in-WordPress integration tests and an e2e against the backend.
-- `docs/compatibility.md` filled with executed combinations; `docs/adr/0005-woocommerce-plugin-compatibility.md`; `docs/implementation-step-45-checklist.md`.
+- `docs/compatibility.md` filled with executed combinations; `docs/adr/0005-woocommerce-plugin-compatibility.md`; `docs/implementation/implementation-step-45-checklist.md`.
 
 Verification:
 
@@ -28,7 +28,7 @@ Added:
 
 - Revisions (schema v2), outbox writes, minor-unit conversion, order/refund snapshot builders, shutdown-time capture from hooks, deletion/trash handling, cache busting.
 - The matrix found real version differences (WC 7.9 HPOS fires no hook on refund deletion and keeps stale caches after trash/refund deletion; `checkout-draft` absent in WC 6.0; refund deletion hooks differ between 8.9/9.9/11.2); each is handled and documented in `docs/compatibility.md`.
-- `docs/implementation-step-46-checklist.md`.
+- `docs/implementation/implementation-step-46-checklist.md`.
 
 Verification:
 
@@ -47,7 +47,7 @@ Added:
 - Signed batch delivery with per-event results, dead letter, suspension, Retry-After and jittered backoff; atomic delivery lock.
 - 48 h rescan every 15 min, 90-day resumable backfill after pairing and daily, capture gated on connection.
 - Capabilities and deployment events; WP-CLI deliver/rescan/backfill; diagnostics.
-- `docs/implementation-step-47-checklist.md`.
+- `docs/implementation/implementation-step-47-checklist.md`.
 
 Verification:
 
@@ -68,7 +68,7 @@ Added:
 - Plugin fix: delivery re-encoded events through PHP arrays, turning `{}` into `[]` (would have quarantined windows without failures).
 - Backend: `payment_attempt_windows`, semantic validation, `PaymentAttemptsProjector`, `PaymentAttemptMonitor` (`CHECKOUT_PAYMENTS_FAILING`, family `checkout_payment`, open/attach/auto-resolve/reopen), family-aware notifications (ru/en/de).
 - Matrix e2e now places real HTTP checkouts (Classic and Store API) with a declining test gateway (`tests/matrix/mu-plugins`), an invalid e-mail and bank transfer, then checks the local attempts and the backend windows.
-- ADR 0007 records the outcome semantics and thresholds chosen for the owner to confirm; `docs/implementation-step-49-checklist.md`.
+- ADR 0007 records the outcome semantics and thresholds chosen for the owner to confirm; `docs/implementation/implementation-step-49-checklist.md`.
 
 Verification:
 

@@ -66,5 +66,5 @@ Delays after attempts 1..5: 1 min, 5 min, 15 min, 1 h, 6 h; later attempts reuse
 
 ## Tracking
 
-- `docs/implementation-step-37-checklist.md`
+- `docs/implementation/implementation-step-37-checklist.md`
 - `docs/progress.md` (Step 37)

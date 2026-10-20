@@ -13,7 +13,7 @@ Added:
 - `NotificationDeliveryWorker` + `php artisan notifications:deliver`: retry 1m/5m/15m/1h/6h with `Retry-After`, dead letter after 24h with channel `health`, timeout → `uncertain` (not retried), stuck `sending` → `uncertain`.
 - `NotificationChannelSender` interface, `EmailNotificationSender`, PII-free structured content rendered per locale from `lang/{ru,en,de}/notifications.php`; amounts via string arithmetic (`MinorUnits`).
 - API: `GET/POST /notification-channels`, `PATCH /notification-channels/{id}`, `POST .../verify`, `POST .../test`, `GET /notification-deliveries`. Email verification code (hashed, 15 min, 5 attempts), owner-only critical quiet-hours bypass, audit on create/update/verify. Telegram rejected with `channel_kind_not_supported_yet`.
-- `docs/adr/0002-notification-delivery-decisions.md` (behaviour choices for owner review), `docs/implementation-step-37-checklist.md`.
+- `docs/adr/0002-notification-delivery-decisions.md` (behaviour choices for owner review), `docs/implementation/implementation-step-37-checklist.md`.
 - `AGENTS.md` intro no longer claims the repository is specification-only.
 
 Verification:

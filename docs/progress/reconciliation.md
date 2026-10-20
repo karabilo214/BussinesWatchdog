@@ -15,7 +15,7 @@ Added:
 - Current order upsert by integration and external order ID.
 - Immutable order revision insertion by order and source revision.
 - Stale revision protection for current order state.
-- `docs/implementation-step-20-checklist.md`.
+- `docs/implementation/implementation-step-20-checklist.md`.
 
 Verification:
 
@@ -38,7 +38,7 @@ Added:
 - Immutable order revision insertion for delete events.
 - Stale delete revision protection for current order state.
 - Retry path for delete events referencing unknown orders.
-- `docs/implementation-step-21-checklist.md`.
+- `docs/implementation/implementation-step-21-checklist.md`.
 
 Verification:
 
@@ -56,7 +56,7 @@ Status: complete
 Added:
 
 - Recorded the completed Docker test run for Step 21.
-- `docs/implementation-step-22-checklist.md`.
+- `docs/implementation/implementation-step-22-checklist.md`.
 
 Verification:
 
@@ -75,7 +75,7 @@ Added:
 - Refund upsert by integration and refund external ID.
 - Stale refund revision protection.
 - Retry path for refunds referencing unknown orders.
-- `docs/implementation-step-23-checklist.md`.
+- `docs/implementation/implementation-step-23-checklist.md`.
 
 Verification:
 
@@ -97,7 +97,7 @@ Added:
 - `payment.snapshot` processing inside `EventInboxProcessor`.
 - Payment upsert by integration and payment external ID.
 - Stale payment snapshot protection through `source_updated_at`.
-- `docs/implementation-step-24-checklist.md`.
+- `docs/implementation/implementation-step-24-checklist.md`.
 
 Verification:
 
@@ -120,7 +120,7 @@ Added:
 - Append-only transaction insert by integration, kind, and external operation ID.
 - Optional link to existing payment projection by `payment_external_id`.
 - Operation hash conflict rejection for duplicate operation keys with different content.
-- `docs/implementation-step-25-checklist.md`.
+- `docs/implementation/implementation-step-25-checklist.md`.
 
 Verification:
 
@@ -143,7 +143,7 @@ Added:
 - `PaymentAllocationService` for locked capture and refund allocations.
 - `AllocationRejected` exception with stable reason codes.
 - Focused tests for successful allocation, sum limit rejection, and cross-tenant rejection.
-- `docs/implementation-step-30-checklist.md`.
+- `docs/implementation/implementation-step-30-checklist.md`.
 
 Verification:
 
@@ -167,7 +167,7 @@ Added:
 - `audit_log` row per revoke (actor, reason, `revoked_at`) via new `AuditLog` action/entity constants.
 - `PaymentAllocation::refundAllocations()` inverse relation.
 - Focused tests for revoke success/audit, double-revoke, missing reason, blocked-by-active-refund-allocation, revoke-after-refund-unlinked, and capacity freed for re-allocation.
-- `docs/implementation-step-31-checklist.md`.
+- `docs/implementation/implementation-step-31-checklist.md`.
 
 Verification:
 
@@ -189,7 +189,7 @@ Added:
 - `ReconciliationRun` and `ReconciliationFinding` models.
 - `OrderReconciliationService::evaluate()`: locked per-order evaluation producing `MONEY_UNSUPPORTED`, `MONEY_CAPTURE_MISSING`, `MONEY_CAPTURE_AMOUNT`, `MONEY_REFUND_MISSING`, and `MONEY_REFUND_EXTRA` findings from the allocation primitives added in Steps 30–31, with capture/refund grace windows (30/60 minutes) and zero tolerance.
 - Focused tests covering pending/mismatch transitions, the no-op case, the unsupported short-circuit, the bookkeeping-only-refund-is-not-a-verified-refund case, and replay preserving finding history across runs.
-- `docs/implementation-step-32-checklist.md`.
+- `docs/implementation/implementation-step-32-checklist.md`.
 
 Verification:
 
@@ -213,7 +213,7 @@ Added:
 - `UnmatchedPaymentScanner::scan(Store $store)`: a genuinely store-wide scan for `MONEY_PAYMENT_WITHOUT_ORDER` — succeeded captures older than a 24h orphan grace with no active allocation, capped at 100 findings per run.
 - New `ReconciliationFinding` rule-code constants for all four.
 - Focused tests for each rule's present/absent cases.
-- `docs/implementation-step-33-checklist.md`.
+- `docs/implementation/implementation-step-33-checklist.md`.
 
 Verification:
 
@@ -236,7 +236,7 @@ Added:
 - `POST /payment-allocations`, `POST /payment-allocations/{id}/revoke`, `POST /refund-allocations`, `POST /refund-allocations/{id}/revoke`: tenant-scoped resolution, server-side currency revalidation, `AllocationRejected::httpStatus()` mapping (409 for state conflicts, 422 otherwise), `audit_log` row on every create and revoke.
 - `POST /stores/{id}/reconciliations` (order_ids or store-wide unmatched-payment scan, `dry_run` explicitly rejected) and `GET /stores/{id}/findings` (filtered, cursor-paginated by finding `id`).
 - Closed a real gap in `PaymentAllocationService::allocateRefund`: it now rejects linking a refund to a payment allocation from a *different* order (`ERROR_ORDER_MISMATCH`).
-- `docs/implementation-step-34-checklist.md`.
+- `docs/implementation/implementation-step-34-checklist.md`.
 
 Verification:
 
@@ -261,7 +261,7 @@ Added:
 - `App\Support\Api\UuidCursor`, extracted out of `ReconciliationController` and reused for the new unmatched-payments cursor.
 - New `OrderDto`, `RefundDto`, `OrderRevisionDto`, `PaymentDto`, `FinancialTransactionDto`.
 - Focused tests for all three endpoints, including cross-tenant 404s and the already-allocated-is-excluded case.
-- `docs/implementation-step-35-checklist.md`.
+- `docs/implementation/implementation-step-35-checklist.md`.
 
 Verification:
 
@@ -285,7 +285,7 @@ Added:
 - `IncidentLifecycleService`: acknowledge, resolve, comment, snooze, revoke-suppression, each with its own rejection rules (idempotent acknowledge, no double-resolve, no double-revoke, 30-day snooze cap).
 - Wired `MoneyIncidentCorrelator::correlate()` into `ReconciliationController::store()` so every trigger call also updates the incident state.
 - Public API: `GET /incidents`, `GET /incidents/{id}`, `POST /incidents/{id}/acknowledge|resolve|comments|snooze`, `POST /suppressions/{id}/revoke`.
-- `docs/implementation-step-36-checklist.md`.
+- `docs/implementation/implementation-step-36-checklist.md`.
 
 Verification:
 
@@ -310,7 +310,7 @@ Added:
 - Grace re-checks via `evidence.grace_deadline_at` and `GraceRecheckScheduler` (processor and API trigger).
 - `NightlyReconciliationSweep` / `reconciliation:nightly-sweep`: 90-day lookback, once per UTC day via `ScheduledWindowGuard`.
 - Laravel schedule in `routes/console.php` for outbox, dirty processing, notification delivery and nightly sweep; `scheduler` service in Docker Compose.
-- ADR 0002 marked accepted by the owner as-is; `docs/adr/0003-scheduler-and-dirty-reconciliation.md`; `docs/implementation-step-38-checklist.md`.
+- ADR 0002 marked accepted by the owner as-is; `docs/adr/0003-scheduler-and-dirty-reconciliation.md`; `docs/implementation/implementation-step-38-checklist.md`.
 
 Verification:
 
@@ -333,7 +333,7 @@ Added:
 - Allocation of non-independent capture/refund transactions is rejected (`allocation_source_not_independent`) — store-reported data can never stand in for a provider capture.
 - Ingest rejects `independent_provider` evidence from `store_reported` credentials (`source_authority_not_permitted`).
 - `StoreReconciliationRequeue` (shared with the nightly sweep); revoking a provider integration requeues the store's 90-day window.
-- `docs/implementation-step-48-checklist.md`; ADR 0006 updated.
+- `docs/implementation/implementation-step-48-checklist.md`; ADR 0006 updated.
 
 Verification:
 
@@ -352,7 +352,7 @@ Added:
 - Heartbeat stores the plugin self-report; `ConnectorFreshness` assesses `warming_up` / `fresh` / `stale` / `partial`, flips the integration `active` ↔ `degraded`, opens/resolves an `integration` incident; `integrations:check-freshness` every minute.
 - Money reconciliation and the unmatched-payment scan return unknown while store data is stale; recovery requeues the store window.
 - Shared `IncidentRecorder` (used by the payment-attempt monitor and connector freshness); notification texts (ru/en/de) saying data is missing, not that sales stopped.
-- `docs/adr/0009-connector-freshness.md`, `docs/implementation-step-50-checklist.md`.
+- `docs/adr/0009-connector-freshness.md`, `docs/implementation/implementation-step-50-checklist.md`.
 
 Verification:
 
