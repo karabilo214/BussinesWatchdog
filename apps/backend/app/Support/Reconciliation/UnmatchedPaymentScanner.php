@@ -33,6 +33,15 @@ class UnmatchedPaymentScanner
         private readonly ReconciliationResultRecorder $recorder,
     ) {}
 
+    /**
+     * A provider account keeps its history from before the store was connected, often with payments from other shops
+     * or channels; only captures since the store was connected can be «payments without order» (ADR 0072).
+     */
+    public static function since(Store $store): Carbon
+    {
+        return Carbon::parse($store->created_at);
+    }
+
     public function scan(Store $store, string $trigger = 'manual'): ReconciliationRun
     {
         return DB::transaction(function () use ($store, $trigger): ReconciliationRun {
@@ -70,6 +79,7 @@ class UnmatchedPaymentScanner
                 ->where('kind', 'capture')
                 ->where('status', 'succeeded')
                 ->where('occurred_at', '<=', $graceDeadline)
+                ->where('occurred_at', '>=', self::since($store))
                 ->whereNotIn('id', $allocatedCaptureIds)
                 ->orderBy('occurred_at')
                 ->limit(self::MAX_FINDINGS_PER_RUN)

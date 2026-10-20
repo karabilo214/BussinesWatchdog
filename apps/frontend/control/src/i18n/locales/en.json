@@ -1089,6 +1089,9 @@
     "unsaved_leave": "Unsaved changes will be lost. Leave the page?"
   },
   "store_data": {
+    "order_status": {"open": "Open", "in_progress": "In progress", "completed": "Completed", "cancelled": "Cancelled", "pending": "Pending payment", "processing": "Processing", "on-hold": "On hold", "refunded": "Refunded", "failed": "Failed", "checkout-draft": "Draft"},
+    "payment_state": {"open": "Open", "pending": "In progress", "authorized": "Authorized", "paid": "Paid", "partially_paid": "Partially paid", "refunded": "Refunded", "partially_refunded": "Partially refunded", "failed": "Failed", "cancelled": "Cancelled", "chargeback": "Chargeback"},
+    "payment_marked": "marked as paid",
     "open": "Store data",
     "back": "Customer stores",
     "tab": {
@@ -1107,7 +1110,8 @@
       "order": "Order",
       "difference": "Difference",
       "number": "Number",
-      "state": "Status in the store",
+      "state": "Order status",
+      "payment_state": "Payment status",
       "total": "Total",
       "gateway": "Payment method",
       "paid": "Marked paid",
@@ -1178,6 +1182,7 @@
         "MONEY_PAYMENT_WITHOUT_ORDER": "Payment without an order",
         "MONEY_PAYMENT_NOT_MATCHED": "Order payment at the provider",
         "MONEY_CANCELLED_PAID": "Cancelled paid order",
+        "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Failed payment, open order",
         "MONEY_UNSUPPORTED": "Reconciliation possible"
       },
       "finding_status": {
@@ -1200,6 +1205,7 @@
         "MONEY_PAYMENT_WITHOUT_ORDER": "Provider payment not matched to an order",
         "MONEY_PAYMENT_NOT_MATCHED": "Order marked paid, no provider payment found for its reference",
         "MONEY_CANCELLED_PAID": "Order cancelled, but the money was not refunded",
+        "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Payment failed, but the order is not cancelled",
         "CHECKOUT_PAYMENTS_FAILING": "Payments keep failing",
         "CHECKOUT_FLOW_FAILED": "The check did not reach the payment form",
         "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "The test product for checks is unavailable",

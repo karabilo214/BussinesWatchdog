@@ -1089,6 +1089,9 @@
     "unsaved_leave": "Несохранённые изменения пропадут. Уйти со страницы?"
   },
   "store_data": {
+    "order_status": {"open": "Открыт", "in_progress": "В работе", "completed": "Выполнен", "cancelled": "Отменён", "pending": "Ожидает оплаты", "processing": "В обработке", "on-hold": "На удержании", "refunded": "Возвращён", "failed": "Не оплачен", "checkout-draft": "Черновик"},
+    "payment_state": {"open": "Открыта", "pending": "В процессе", "authorized": "Авторизована", "paid": "Оплачен", "partially_paid": "Оплачен частично", "refunded": "Возвращена", "partially_refunded": "Возвращена частично", "failed": "Не прошла", "cancelled": "Отменена", "chargeback": "Чарджбэк"},
+    "payment_marked": "отмечен оплаченным",
     "open": "Данные магазина",
     "back": "Магазины клиента",
     "tab": {
@@ -1107,7 +1110,8 @@
       "order": "Заказ",
       "difference": "Расхождение",
       "number": "Номер",
-      "state": "Статус в магазине",
+      "state": "Статус заказа",
+      "payment_state": "Статус оплаты",
       "total": "Сумма",
       "gateway": "Способ оплаты",
       "paid": "Отмечен оплаченным",
@@ -1178,6 +1182,7 @@
         "MONEY_PAYMENT_WITHOUT_ORDER": "Платёж без заказа",
         "MONEY_PAYMENT_NOT_MATCHED": "Платёж заказа у провайдера",
         "MONEY_CANCELLED_PAID": "Отменённый оплаченный заказ",
+        "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Неудачная оплата и открытый заказ",
         "MONEY_UNSUPPORTED": "Возможность сверки"
       },
       "finding_status": {
@@ -1200,6 +1205,7 @@
         "MONEY_PAYMENT_WITHOUT_ORDER": "Платёж у провайдера не сопоставлен с заказом",
         "MONEY_PAYMENT_NOT_MATCHED": "Заказ отмечен оплаченным, платёж у провайдера не найден по ссылке заказа",
         "MONEY_CANCELLED_PAID": "Заказ отменён, но деньги не возвращены",
+        "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Оплата не прошла, а заказ в магазине не отменён",
         "CHECKOUT_PAYMENTS_FAILING": "Оплаты подряд не проходят",
         "CHECKOUT_FLOW_FAILED": "Проверка не дошла до формы оплаты",
         "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Тестовый товар для проверки недоступен",

@@ -44,6 +44,8 @@ class ReconciliationFinding extends Model
 
     public const RULE_CANCELLED_PAID = 'MONEY_CANCELLED_PAID';
 
+    public const RULE_PAYMENT_FAILED_ORDER_OPEN = 'MONEY_PAYMENT_FAILED_ORDER_OPEN';
+
     public $timestamps = false;
 
     protected $fillable = [

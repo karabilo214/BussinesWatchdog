@@ -11,6 +11,12 @@ class Order extends Model
 {
     use HasUuids;
 
+    /** The store's own payment status, normalized across platforms (ADR 0072). */
+    public const PAYMENT_STATES = ['open', 'pending', 'authorized', 'paid', 'partially_paid', 'refunded', 'partially_refunded', 'failed', 'cancelled', 'chargeback'];
+
+    /** Order statuses after which the store no longer waits for the payment. */
+    public const CLOSED_STATUSES = ['cancelled', 'failed', 'refunded', 'trash'];
+
     public $timestamps = false;
 
     protected $fillable = [

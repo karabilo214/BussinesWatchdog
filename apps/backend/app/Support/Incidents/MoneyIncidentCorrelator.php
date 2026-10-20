@@ -40,6 +40,7 @@ class MoneyIncidentCorrelator
         ReconciliationFinding::RULE_PAYMENT_WITHOUT_ORDER => 'payment_without_order',
         ReconciliationFinding::RULE_PAYMENT_NOT_MATCHED => 'capture',
         ReconciliationFinding::RULE_CANCELLED_PAID => 'cancelled_paid',
+        ReconciliationFinding::RULE_PAYMENT_FAILED_ORDER_OPEN => 'payment_failed_order_open',
     ];
 
     /**
@@ -351,6 +352,10 @@ class MoneyIncidentCorrelator
 
         if ($finding->rule_code === ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED) {
             return $finding->captured_minor;
+        }
+
+        if ($finding->rule_code === ReconciliationFinding::RULE_PAYMENT_FAILED_ORDER_OPEN) {
+            return $finding->gross_minor;
         }
 
         return $finding->difference_minor === null ? null : abs($finding->difference_minor);

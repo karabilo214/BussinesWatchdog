@@ -12,6 +12,7 @@ use App\Models\PaymentAllocation;
 use App\Models\Store;
 use App\Support\Api\UuidCursor;
 use App\Support\Billing\HistoryWindow;
+use App\Support\Reconciliation\UnmatchedPaymentScanner;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
@@ -43,6 +44,7 @@ class UnmatchedPaymentController extends Controller
             ->where('kind', 'capture')
             ->where('status', 'succeeded')
             ->whereNotIn('id', $allocatedCaptureIds)
+            ->where('occurred_at', '>=', UnmatchedPaymentScanner::since($store))
             ->when(app(HistoryWindow::class)->cutoff($tenantId), fn ($query, $cutoff) => $query->where('occurred_at', '>=', $cutoff));
 
         if (isset($validated['cursor'])) {

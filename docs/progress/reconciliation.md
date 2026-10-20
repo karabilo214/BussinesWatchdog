@@ -461,3 +461,17 @@ Found in the live Shopware run (Step 206): a partial refund of order 10003 made 
 - Tests: `PayPalIntegrationTest` (fails without the fix), `IncidentApiTest`, customer `incidents.test.ts`.
 
 Verification: backend SQLite 677 passed + 4 skipped, PostgreSQL 18 681/681; customer vitest 141/141, vue-tsc ok.
+
+### Step 210: Store Payment State, «Payment Failed, Order Open», Payments Without Order Since Connection (ADR 0072)
+
+Status: complete in main; ADR 0072 accepted by the owner on 2026-10-20
+
+Found in the live Shopware run (Step 206): order 10005 (PayPal refused, shop «open / in progress») raised nothing and was invisible to the customer; the owner panel showed only the order status; «payments without order» of a new store listed the PayPal account's older history.
+
+- `order.snapshot` optional `payment_state` (`contracts/event.schema.json` and the backend copy, `EventPayloadValidator`, `OrderSnapshotProjector` → `metadata.payment_state`, `Order::PAYMENT_STATES`); `ShopwareOrderMapper` maps the transaction state. `OrderDto` and `contracts/openapi.yaml` expose it.
+- `OrderReconciliationService`: MONEY_PAYMENT_FAILED_ORDER_OPEN (grace 120 minutes, expected = order total, found = 0); provider payments of an order are found by intent/charge reference, by a provider operation with the store's transaction reference, or by the provider order reference. `MoneyIncidentCorrelator`: component `payment_failed_order_open`, amount = order total.
+- `UnmatchedPaymentScanner::since()` and the unmatched-payments list: only captures since the store was created.
+- Customer cabinet: rule name, title, advice, the difference in words. Owner panel: «Order status» and «Payment status» columns and in the order details.
+- Tests: `OrderReconciliationServiceTest` (pending → mismatch → ok, store marked failed, another capture), `UnmatchedPaymentScannerTest`, `ShopwareIntegrationTest`, fixtures with backdated stores; customer `reconciliation.test.ts`, control `tenants.test.ts`.
+
+Verification: backend SQLite 680 passed + 4 skipped, PostgreSQL 18 684/684; customer vitest 142/142, control vitest 69/69, vue-tsc ok, Pint ok.

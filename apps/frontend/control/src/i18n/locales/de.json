@@ -1089,6 +1089,9 @@
     "unsaved_leave": "Ungespeicherte Änderungen gehen verloren. Seite verlassen?"
   },
   "store_data": {
+    "order_status": {"open": "Offen", "in_progress": "In Bearbeitung", "completed": "Abgeschlossen", "cancelled": "Storniert", "pending": "Zahlung ausstehend", "processing": "In Bearbeitung", "on-hold": "In Wartestellung", "refunded": "Erstattet", "failed": "Fehlgeschlagen", "checkout-draft": "Entwurf"},
+    "payment_state": {"open": "Offen", "pending": "In Bearbeitung", "authorized": "Autorisiert", "paid": "Bezahlt", "partially_paid": "Teilweise bezahlt", "refunded": "Erstattet", "partially_refunded": "Teilweise erstattet", "failed": "Fehlgeschlagen", "cancelled": "Storniert", "chargeback": "Rückbuchung"},
+    "payment_marked": "als bezahlt markiert",
     "open": "Shopdaten",
     "back": "Shops des Kunden",
     "tab": {
@@ -1107,7 +1110,8 @@
       "order": "Bestellung",
       "difference": "Differenz",
       "number": "Nummer",
-      "state": "Status im Shop",
+      "state": "Bestellstatus",
+      "payment_state": "Zahlungsstatus",
       "total": "Summe",
       "gateway": "Zahlungsart",
       "paid": "Als bezahlt markiert",
@@ -1178,6 +1182,7 @@
         "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung ohne Bestellung",
         "MONEY_PAYMENT_NOT_MATCHED": "Zahlung der Bestellung beim Anbieter",
         "MONEY_CANCELLED_PAID": "Stornierte bezahlte Bestellung",
+        "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Fehlgeschlagene Zahlung, offene Bestellung",
         "MONEY_UNSUPPORTED": "Abgleich möglich"
       },
       "finding_status": {
@@ -1200,6 +1205,7 @@
         "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung beim Anbieter keiner Bestellung zugeordnet",
         "MONEY_PAYMENT_NOT_MATCHED": "Bestellung als bezahlt markiert, keine Zahlung beim Anbieter zur Referenz gefunden",
         "MONEY_CANCELLED_PAID": "Bestellung storniert, aber das Geld wurde nicht erstattet",
+        "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Zahlung fehlgeschlagen, Bestellung nicht storniert",
         "CHECKOUT_PAYMENTS_FAILING": "Zahlungen schlagen wiederholt fehl",
         "CHECKOUT_FLOW_FAILED": "Die Prüfung hat das Zahlungsformular nicht erreicht",
         "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Das Testprodukt für Prüfungen ist nicht verfügbar",

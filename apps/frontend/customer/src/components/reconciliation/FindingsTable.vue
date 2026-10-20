@@ -14,6 +14,8 @@ const { t } = useI18n();
 /** Rules that compare facts, not sums: a missing amount there is "not applicable", not "unknown" (ADR 0071). */
 const NO_AMOUNT_RULES = ['MONEY_PAYMENT_NOT_MATCHED', 'MONEY_MULTIPLE_CAPTURES', 'MONEY_CURRENCY_MISMATCH', 'MONEY_CANCELLED_PAID', 'MONEY_CAPTURE_NOT_RECORDED'];
 const STORE_PAID_STATUSES = ['mismatch', 'pending', 'ok'];
+/** Rules whose difference is a store state, not a sum: the column says it in words. */
+const STATE_DIFFERENCES: Record<string, string> = { MONEY_CAPTURE_NOT_RECORDED: 'store_paid', MONEY_PAYMENT_FAILED_ORDER_OPEN: 'payment_failed' };
 
 function money(finding: Finding, minor: string | null): string {
   if (finding.money_amounts_hidden) {
@@ -32,8 +34,10 @@ function money(finding: Finding, minor: string | null): string {
 }
 
 function difference(finding: Finding): string {
-  if (!finding.money_amounts_hidden && finding.rule_code === 'MONEY_CAPTURE_NOT_RECORDED' && STORE_PAID_STATUSES.includes(finding.status)) {
-    return t(`incident.evidence.store_paid.${finding.status}`);
+  const words = STATE_DIFFERENCES[finding.rule_code];
+
+  if (!finding.money_amounts_hidden && words !== undefined && STORE_PAID_STATUSES.includes(finding.status)) {
+    return t(`incident.evidence.${words}.${finding.status}`);
   }
 
   return money(finding, finding.difference_minor);

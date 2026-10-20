@@ -104,6 +104,17 @@ describe('FindingsTable', () => {
     expect(cells[5]).toBe('не отмечен оплаченным');
     expect(other.slice(3)).toEqual(['—', '—', '—']);
   });
+
+  it('says in words that the provider refused the payment while the order stays open', () => {
+    const wrapper = mount(FindingsTable, {
+      props: { findings: [finding({ rule_code: 'MONEY_PAYMENT_FAILED_ORDER_OPEN', expected_minor: '49595', actual_minor: '0', difference_minor: null })] },
+      global,
+    });
+    const cells = wrapper.findAll('[data-finding-id="f-1"] td').map((cell) => cell.text());
+
+    expect(cells[0]).toContain('Неудачная оплата и открытый заказ');
+    expect(cells.slice(3)).toEqual(['495,95\u00a0€', '0,00\u00a0€', 'оплата не прошла, заказ открыт']);
+  });
 });
 
 describe('rule names', () => {

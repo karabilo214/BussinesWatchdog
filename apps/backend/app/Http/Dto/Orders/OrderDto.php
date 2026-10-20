@@ -26,6 +26,7 @@ class OrderDto
             'total_minor' => (string) $order->total_minor,
             'payment_expected' => $order->payment_expected,
             'paid_marked_at' => $order->paid_marked_at?->toJSON(),
+            'payment_state' => $order->metadata['payment_state'] ?? null,
             'transaction_ref' => $order->transaction_ref,
             'financial_support' => $order->financial_support,
             'is_synthetic' => $order->is_synthetic,

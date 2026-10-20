@@ -91,7 +91,24 @@ class ShopwareOrderMapper
                 'refunded_partially' => 'partial',
                 default => 'none',
             },
+            'payment_state' => match ($transactionState) {
+                'open' => 'open',
+                'in_progress', 'unconfirmed', 'reminded' => 'pending',
+                'authorized' => 'authorized',
+                'paid' => 'paid',
+                'paid_partially' => 'partially_paid',
+                'refunded' => 'refunded',
+                'refunded_partially' => 'partially_refunded',
+                'failed' => 'failed',
+                'cancelled' => 'cancelled',
+                'chargeback' => 'chargeback',
+                default => null,
+            },
         ];
+
+        if ($data['payment_state'] === null) {
+            unset($data['payment_state']);
+        }
 
         if ($data['display_number'] === null) {
             unset($data['display_number']);

@@ -658,6 +658,7 @@
       "MONEY_PAYMENT_WITHOUT_ORDER": "Provider payment not matched to an order",
       "MONEY_PAYMENT_NOT_MATCHED": "Order marked paid, no provider payment found for its reference",
       "MONEY_CANCELLED_PAID": "Order cancelled, but the money was not refunded",
+      "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Payment failed, but the order is not cancelled",
       "CHECKOUT_PAYMENTS_FAILING": "Payments keep failing",
       "CHECKOUT_FLOW_FAILED": "The check did not reach the payment form",
       "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "The test product for checks is unavailable",
@@ -684,6 +685,7 @@
       "MONEY_PAYMENT_WITHOUT_ORDER": "Find the payment in the provider dashboard and work out which order it belongs to. A match by amount and time is only a hint.",
       "MONEY_PAYMENT_NOT_MATCHED": "No provider payment was found for the order's reference — this does not prove the money is missing. Check how the order was paid and who marked it paid; if the payment exists under another reference, link it manually.",
       "MONEY_CANCELLED_PAID": "The cancelled status alone does not return money. Check whether the customer needs a refund and issue it through the payment provider.",
+      "MONEY_PAYMENT_FAILED_ORDER_OPEN": "The provider refused the payment and no money arrived, yet the store still waits for it. Do not ship the order: cancel it or ask the buyer to pay again.",
       "CHECKOUT_PAYMENTS_FAILING": "Try paying with this method yourself and check the payment plugin log and the provider dashboard.",
       "CHECKOUT_FLOW_FAILED": "Open the site and walk the path to payment: product, cart, checkout. Look at the check screenshot. This check does not verify that charging succeeds.",
       "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Make sure the test product is published, in stock and can be added to the cart.",
@@ -759,6 +761,7 @@
       "not_applicable": "—",
       "provider_operations": "Provider transaction: {ids}",
       "store_paid": {"mismatch": "not marked as paid", "pending": "waiting for the store", "ok": "marked as paid"},
+      "payment_failed": {"mismatch": "payment failed, order open", "pending": "waiting for the store to close the order", "ok": "order closed"},
       "none": "No details yet.",
       "show_screenshot": "Show check screenshot",
       "screenshot_note": "Input fields and addresses are masked in the screenshot.",
@@ -912,6 +915,7 @@
       "MONEY_PAYMENT_WITHOUT_ORDER": "Payment without an order",
       "MONEY_PAYMENT_NOT_MATCHED": "Order payment at the provider",
       "MONEY_CANCELLED_PAID": "Cancelled paid order",
+      "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Failed payment, open order",
       "MONEY_UNSUPPORTED": "Reconciliation possible"
     }
   },

@@ -16,6 +16,7 @@ use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Integrations\ProviderCoverage;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,11 @@ class OrderReconciliationService
     public const GRACE_CAPTURE_MINUTES = 30;
 
     public const GRACE_REFUND_MINUTES = 60;
+
+    /** WooCommerce cancels unpaid orders after the stock hold (60 minutes by default) on a cron of the same interval. */
+    public const GRACE_PAYMENT_FAILED_MINUTES = 120;
+
+    private const REFUSED_PAYMENT_STATUSES = ['failed', 'cancelled'];
 
     private const CAPTURE_OPERATION_RULES = [
         ReconciliationFinding::RULE_CAPTURE_AMOUNT,
@@ -122,6 +128,7 @@ class OrderReconciliationService
                     $this->evaluateCurrencyMismatch($run, $lockedOrder, $otherCurrencyPayment, $now),
                     $this->evaluateOrderChanged($run, $lockedOrder, $baselineTotalMinor, $now),
                     $this->evaluateCancelledPaid($run, $lockedOrder, $allocations, $now),
+                    $this->evaluatePaymentFailedOrderOpen($run, $lockedOrder, $allocations, $now),
                     $refundFindings,
                 );
                 $findings = $this->withCaptureOperations($findings, $allocations);
@@ -226,19 +233,7 @@ class OrderReconciliationService
     {
         $reference = (string) ($order->transaction_ref ?? '');
 
-        $payments = Payment::query()
-            ->where('tenant_id', $order->tenant_id)
-            ->where('store_id', $order->store_id)
-            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
-            ->where(function ($query) use ($order, $reference): void {
-                if ($reference !== '') {
-                    $query->orWhere('intent_ref', $reference)->orWhere('charge_ref', $reference);
-                }
-
-                $query->orWhere('metadata->provider_order_ref', $order->external_id);
-            });
-
-        if ($payments->exists()) {
+        if ($this->referencedProviderPayments($order)->exists()) {
             return true;
         }
 
@@ -248,6 +243,80 @@ class OrderReconciliationService
             ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
             ->where('external_operation_id', $reference)
             ->exists();
+    }
+
+    /**
+     * Provider payments the order points to: by the store's transaction reference or the provider's own order reference.
+     *
+     * @return Builder<Payment>
+     */
+    private function referencedProviderPayments(Order $order): Builder
+    {
+        $reference = (string) ($order->transaction_ref ?? '');
+
+        return Payment::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('store_id', $order->store_id)
+            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
+            ->where(function ($query) use ($order, $reference): void {
+                if ($reference !== '') {
+                    $query->orWhere('intent_ref', $reference)->orWhere('charge_ref', $reference)
+                        ->orWhereIn('id', FinancialTransaction::query()
+                            ->where('tenant_id', $order->tenant_id)
+                            ->where('store_id', $order->store_id)
+                            ->where('external_operation_id', $reference)
+                            ->whereNotNull('payment_id')
+                            ->select('payment_id'));
+                }
+
+                $query->orWhere('metadata->provider_order_ref', $order->external_id);
+            });
+    }
+
+    /**
+     * The provider finally refused the payment, the store still waits for it: the order may be shipped without money or
+     * hang open. After the grace (stores cancel unpaid orders themselves) it asks for a review; the order total is the
+     * amount at risk. Ok again once the store closes the order or marks the payment failed (ADR 0072).
+     *
+     * @param  Collection<int, PaymentAllocation>  $allocations
+     * @return list<array<string, mixed>>
+     */
+    private function evaluatePaymentFailedOrderOpen(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array
+    {
+        $flaggedBefore = ReconciliationFinding::query()->where('order_id', $order->id)->where('rule_code', ReconciliationFinding::RULE_PAYMENT_FAILED_ORDER_OPEN)->exists();
+        $payments = $order->paid_marked_at === null && $allocations->isEmpty() ? $this->referencedProviderPayments($order)->get(['id', 'status', 'source_updated_at']) : collect();
+        $refused = $payments->isNotEmpty() && $payments->every(fn (Payment $payment): bool => in_array($payment->status, self::REFUSED_PAYMENT_STATUSES, true));
+        $storeWaits = ! in_array($order->status, Order::CLOSED_STATUSES, true)
+            && ! in_array($order->metadata['payment_state'] ?? null, ['failed', 'cancelled'], true);
+
+        if (! ($refused && $storeWaits)) {
+            return $flaggedBefore ? [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_PAYMENT_FAILED_ORDER_OPEN, [
+                'status' => ReconciliationFinding::STATUS_OK,
+                'reason_code' => 'payment_failed_order_closed_or_paid',
+                'gross_minor' => $order->total_minor,
+                'expected_minor' => $order->total_minor,
+                'evidence' => array_filter(['payment_state' => $order->metadata['payment_state'] ?? null]),
+            ], $now)] : [];
+        }
+
+        $refusedAt = $payments->max(fn (Payment $payment): ?Carbon => $payment->source_updated_at) ?? $now;
+        $graceDeadline = Carbon::parse($refusedAt)->addMinutes(self::GRACE_PAYMENT_FAILED_MINUTES);
+        $pending = $now->lessThan($graceDeadline);
+
+        return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_PAYMENT_FAILED_ORDER_OPEN, [
+            'status' => $pending ? ReconciliationFinding::STATUS_PENDING : ReconciliationFinding::STATUS_MISMATCH,
+            'reason_code' => $pending ? 'payment_failed_order_open_within_grace' : 'payment_failed_order_open',
+            'payment_id' => $payments->sortByDesc('source_updated_at')->first()?->id,
+            'gross_minor' => $order->total_minor,
+            'captured_minor' => 0,
+            'expected_minor' => $order->total_minor,
+            'actual_minor' => 0,
+            'evidence' => array_filter([
+                'order_status' => $order->status,
+                'payment_state' => $order->metadata['payment_state'] ?? null,
+                'grace_deadline_at' => $pending ? $graceDeadline->toJSON() : null,
+            ]),
+        ], $now)];
     }
 
     /**

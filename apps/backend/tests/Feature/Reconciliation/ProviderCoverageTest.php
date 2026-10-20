@@ -81,6 +81,7 @@ class ProviderCoverageTest extends TestCase
     public function test_unmatched_payment_scan_needs_a_provider_and_ignores_store_reported_captures(): void
     {
         $context = $this->context();
+        $context['store']->forceFill(['created_at' => now()->subDays(30)])->save();
         $this->capture($context, Integration::SOURCE_STORE_REPORTED);
         $independent = $this->capture($context, Integration::SOURCE_INDEPENDENT_PROVIDER);
 
@@ -130,6 +131,7 @@ class ProviderCoverageTest extends TestCase
             'timezone' => 'Europe/Kyiv',
             'default_currency' => 'EUR',
         ]);
+        $store->forceFill(['created_at' => now()->subDays(30)])->save();
         $connector = Integration::query()->create([
             'tenant_id' => $tenant->id,
             'store_id' => $store->id,

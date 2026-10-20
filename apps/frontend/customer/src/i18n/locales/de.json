@@ -658,6 +658,7 @@
       "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung beim Anbieter keiner Bestellung zugeordnet",
       "MONEY_PAYMENT_NOT_MATCHED": "Bestellung als bezahlt markiert, keine Zahlung beim Anbieter zur Referenz gefunden",
       "MONEY_CANCELLED_PAID": "Bestellung storniert, aber das Geld wurde nicht erstattet",
+      "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Zahlung fehlgeschlagen, Bestellung nicht storniert",
       "CHECKOUT_PAYMENTS_FAILING": "Zahlungen schlagen wiederholt fehl",
       "CHECKOUT_FLOW_FAILED": "Die Prüfung hat das Zahlungsformular nicht erreicht",
       "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Das Testprodukt für Prüfungen ist nicht verfügbar",
@@ -684,6 +685,7 @@
       "MONEY_PAYMENT_WITHOUT_ORDER": "Suchen Sie die Zahlung im Anbieter-Dashboard und ermitteln Sie die zugehörige Bestellung. Eine Übereinstimmung nach Betrag und Zeit ist nur ein Hinweis.",
       "MONEY_PAYMENT_NOT_MATCHED": "Zur Referenz der Bestellung wurde keine Zahlung beim Anbieter gefunden – das beweist nicht, dass Geld fehlt. Prüfen Sie, wie die Bestellung bezahlt wurde und wer sie als bezahlt markiert hat; existiert die Zahlung unter einer anderen Referenz, ordnen Sie sie manuell zu.",
       "MONEY_CANCELLED_PAID": "Der Status „storniert“ erstattet allein kein Geld. Prüfen Sie, ob der Kunde eine Erstattung braucht, und veranlassen Sie sie über den Zahlungsanbieter.",
+      "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Der Anbieter hat die Zahlung abgelehnt, es ist kein Geld eingegangen, der Shop wartet aber noch darauf. Versenden Sie die Bestellung nicht: stornieren Sie sie oder bitten Sie den Käufer um eine neue Zahlung.",
       "CHECKOUT_PAYMENTS_FAILING": "Bezahlen Sie selbst mit dieser Zahlungsart und prüfen Sie das Log des Zahlungs-Plugins und das Anbieter-Dashboard.",
       "CHECKOUT_FLOW_FAILED": "Öffnen Sie die Website und gehen Sie den Weg zur Zahlung: Produkt, Warenkorb, Kasse. Sehen Sie sich den Screenshot der Prüfung an. Ob die Abbuchung gelingt, prüft diese Prüfung nicht.",
       "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Stellen Sie sicher, dass das Testprodukt veröffentlicht, vorrätig und in den Warenkorb legbar ist.",
@@ -759,6 +761,7 @@
       "not_applicable": "—",
       "provider_operations": "Transaktion beim Anbieter: {ids}",
       "store_paid": {"mismatch": "nicht als bezahlt markiert", "pending": "warten auf den Shop", "ok": "als bezahlt markiert"},
+      "payment_failed": {"mismatch": "Zahlung fehlgeschlagen, Bestellung offen", "pending": "warten, bis der Shop die Bestellung schließt", "ok": "Bestellung geschlossen"},
       "none": "Noch keine Details.",
       "show_screenshot": "Screenshot der Prüfung anzeigen",
       "screenshot_note": "Eingabefelder und Adressen sind im Screenshot geschwärzt.",
@@ -912,6 +915,7 @@
       "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung ohne Bestellung",
       "MONEY_PAYMENT_NOT_MATCHED": "Zahlung der Bestellung beim Anbieter",
       "MONEY_CANCELLED_PAID": "Stornierte bezahlte Bestellung",
+      "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Fehlgeschlagene Zahlung, offene Bestellung",
       "MONEY_UNSUPPORTED": "Abgleich möglich"
     }
   },

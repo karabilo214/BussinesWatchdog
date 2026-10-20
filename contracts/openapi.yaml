@@ -7014,6 +7014,7 @@ components:
         total_minor: {$ref: "#/components/schemas/MoneyMinor"}
         payment_expected: {type: boolean}
         paid_marked_at: {type: [string, "null"], format: date-time}
+        payment_state: {type: [string, "null"], enum: [open, pending, authorized, paid, partially_paid, refunded, partially_refunded, failed, cancelled, chargeback, null], description: "The store's own payment status, normalized (ADR 0072); null when the connector does not report it. Never capture evidence."}
         transaction_ref: {type: [string, "null"]}
         financial_support: {enum: [supported, unsupported, unknown]}
         is_synthetic: {type: boolean}

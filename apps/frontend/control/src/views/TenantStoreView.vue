@@ -86,6 +86,20 @@ async function confirmSupport(): Promise<void> {
 
 const tab = computed<Tab>(() => ((TABS as readonly string[]).includes(String(route.query.tab)) ? (route.query.tab as Tab) : 'findings'));
 
+/** Platform order statuses (Shopware, WooCommerce) in words; an unknown one stays as the store reports it. */
+function orderStatus(status: string): string {
+  return te(`store_data.order_status.${status}`) ? t(`store_data.order_status.${status}`) : status;
+}
+
+/** The store's payment status; a connector that does not report it shows only its paid marker. */
+function paymentState(order: { payment_state?: string | null; paid_marked_at: string | null }): string {
+  if (order.payment_state) {
+    return t(`store_data.payment_state.${order.payment_state}`);
+  }
+
+  return order.paid_marked_at ? t('store_data.payment_marked') : '—';
+}
+
 function money(minor: string | null, currency: string | null, exponent: number | null): string {
   if (minor === null || currency === null || exponent === null) return '—';
 
@@ -258,6 +272,7 @@ watch(tab, () => void loadTab());
                 <th class="px-4 py-3 font-medium">{{ $t('store_data.col.number') }}</th>
                 <th class="px-4 py-3 font-medium">{{ $t('store_data.col.time') }}</th>
                 <th class="px-4 py-3 font-medium">{{ $t('store_data.col.state') }}</th>
+                <th class="px-4 py-3 font-medium">{{ $t('store_data.col.payment_state') }}</th>
                 <th class="px-4 py-3 font-medium">{{ $t('store_data.col.total') }}</th>
                 <th class="px-4 py-3 font-medium">{{ $t('store_data.col.gateway') }}</th>
                 <th class="px-4 py-3 font-medium">{{ $t('store_data.col.paid') }}</th>
@@ -271,7 +286,8 @@ watch(tab, () => void loadTab());
                   <StatusBadge v-if="row.mode === 'test'" tone="warn" :label="$t('store_data.order.test')" class="ml-1" />
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">{{ dateTime(row.source_created_at) }}</td>
-                <td class="px-4 py-3">{{ row.status }}</td>
+                <td class="px-4 py-3">{{ orderStatus(row.status) }}</td>
+                <td class="px-4 py-3" :data-payment-state="row.payment_state ?? ''">{{ paymentState(row) }}</td>
                 <td class="px-4 py-3 tabular-nums">{{ money(row.total_minor, row.currency, row.currency_exponent) }}</td>
                 <td class="px-4 py-3">{{ row.gateway ?? '—' }}</td>
                 <td class="px-4 py-3 whitespace-nowrap">{{ dateTime(row.paid_marked_at) }}</td>
@@ -330,7 +346,8 @@ watch(tab, () => void loadTab());
           </div>
           <dl class="grid gap-3 sm:grid-cols-3">
             <div><dt class="text-text-muted">{{ $t('store_data.col.total') }}</dt><dd class="tabular-nums">{{ money(order.total_minor, order.currency, order.currency_exponent) }}</dd></div>
-            <div><dt class="text-text-muted">{{ $t('store_data.col.state') }}</dt><dd>{{ order.status }}</dd></div>
+            <div><dt class="text-text-muted">{{ $t('store_data.col.state') }}</dt><dd>{{ orderStatus(order.status) }}</dd></div>
+            <div><dt class="text-text-muted">{{ $t('store_data.col.payment_state') }}</dt><dd>{{ paymentState(order) }}</dd></div>
             <div><dt class="text-text-muted">{{ $t('store_data.col.paid') }}</dt><dd>{{ dateTime(order.paid_marked_at) }}</dd></div>
           </dl>
           <div class="flex flex-col gap-1">

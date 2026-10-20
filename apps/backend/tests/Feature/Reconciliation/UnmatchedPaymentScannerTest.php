@@ -36,6 +36,18 @@ class UnmatchedPaymentScannerTest extends TestCase
         $this->assertSame(18400, $finding->actual_minor);
     }
 
+    public function test_it_does_not_report_captures_from_before_the_store_was_connected(): void
+    {
+        $context = $this->context();
+        $context['store']->forceFill(['created_at' => now()->subHours(48)])->save();
+        $this->capture($context, 18400, now()->subHours(72));
+        $recent = $this->capture($context, 9900, now()->subHours(25));
+
+        $run = app(UnmatchedPaymentScanner::class)->scan($context['store']->refresh());
+
+        $this->assertSame([$recent->id], $run->findings()->get()->pluck('evidence.capture_transaction_id')->all());
+    }
+
     public function test_it_does_not_report_a_capture_within_the_orphan_grace_window(): void
     {
         $context = $this->context();
@@ -102,6 +114,7 @@ class UnmatchedPaymentScannerTest extends TestCase
             'timezone' => 'Europe/Kyiv',
             'default_currency' => 'EUR',
         ]);
+        $store->forceFill(['created_at' => now()->subDays(30)])->save();
         $integration = Integration::query()->create([
             'tenant_id' => $tenant->id,
             'store_id' => $store->id,

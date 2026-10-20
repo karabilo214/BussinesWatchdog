@@ -3,6 +3,7 @@
 namespace App\Support\Ingest;
 
 use App\Models\EventInbox;
+use App\Models\Order;
 use Illuminate\Support\Str;
 
 class EventPayloadValidator
@@ -96,7 +97,7 @@ class EventPayloadValidator
         return match ($event['type']) {
             EventInbox::EVENT_ORDER_SNAPSHOT => $event['aggregate_type'] === EventInbox::AGGREGATE_ORDER
                 && array_key_exists('aggregate_revision', $event)
-                && $this->hasOnlyKeys($data, ['status', 'display_number', 'currency', 'currency_exponent', 'total_minor', 'gateway', 'transaction_ref', 'payment_expected', 'paid_marked_at', 'source_created_at', 'source_updated_at', 'mode', 'financial_support', 'order_key_hash', 'refund_state'])
+                && $this->hasOnlyKeys($data, ['status', 'display_number', 'currency', 'currency_exponent', 'total_minor', 'gateway', 'transaction_ref', 'payment_expected', 'paid_marked_at', 'source_created_at', 'source_updated_at', 'mode', 'financial_support', 'order_key_hash', 'refund_state', 'payment_state'])
                 && $this->isRequiredString($data, 'status')
                 && $this->isOptionalString($data, 'display_number')
                 && $this->isCurrencyData($data)
@@ -110,7 +111,8 @@ class EventPayloadValidator
                 && $this->isOptionalEnum($data, 'mode', ['live', 'test'])
                 && $this->isOptionalEnum($data, 'financial_support', ['supported', 'unsupported', 'unknown'])
                 && $this->isOptionalSha256($data, 'order_key_hash')
-                && $this->isOptionalEnum($data, 'refund_state', ['none', 'partial', 'full']),
+                && $this->isOptionalEnum($data, 'refund_state', ['none', 'partial', 'full'])
+                && $this->isOptionalEnum($data, 'payment_state', Order::PAYMENT_STATES),
             EventInbox::EVENT_ORDER_DELETED => $event['aggregate_type'] === EventInbox::AGGREGATE_ORDER
                 && array_key_exists('aggregate_revision', $event)
                 && $this->hasOnlyKeys($data, ['reason_code'])

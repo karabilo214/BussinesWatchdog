@@ -527,6 +527,7 @@ export interface StoreOrder {
   currency_exponent: number;
   total_minor: string;
   paid_marked_at: string | null;
+  payment_state?: string | null;
   is_synthetic: boolean;
   source_created_at: string | null;
 }

@@ -259,6 +259,7 @@ class ReconciliationApiTest extends TestCase
             'timezone' => 'Europe/Kyiv',
             'default_currency' => 'EUR',
         ]);
+        $store->forceFill(['created_at' => now()->subDays(30)])->save();
         $integration ??= Integration::query()->create([
             'tenant_id' => $tenant->id,
             'store_id' => $store->id,

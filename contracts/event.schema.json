@@ -171,6 +171,21 @@
             "full"
           ],
           "description": "Sent only by stores that record refunds as a payment state without amounts (Shopware, ADR 0026). Money checks then compare it with the provider's refunds."
+        },
+        "payment_state": {
+          "enum": [
+            "open",
+            "pending",
+            "authorized",
+            "paid",
+            "partially_paid",
+            "refunded",
+            "partially_refunded",
+            "failed",
+            "cancelled",
+            "chargeback"
+          ],
+          "description": "The store's own payment status of the order, normalized (Shopware: the order transaction state, ADR 0072). Optional; a store-reported paid status is never capture evidence."
         }
       }
     },

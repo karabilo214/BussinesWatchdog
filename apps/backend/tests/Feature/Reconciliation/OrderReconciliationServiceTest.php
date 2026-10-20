@@ -14,9 +14,11 @@ use App\Models\Refund;
 use App\Models\RefundAllocation;
 use App\Models\Store;
 use App\Models\Tenant;
+use App\Support\Incidents\MoneyIncidentCorrelator;
 use App\Support\Payments\PaymentAllocationService;
 use App\Support\Reconciliation\OrderReconciliationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\Concerns\KnownProviderPayment;
 use Tests\TestCase;
 
@@ -111,6 +113,43 @@ class OrderReconciliationServiceTest extends TestCase
         $order->forceFill(['paid_marked_at' => now(), 'status' => 'processing'])->save();
         $recovered = app(OrderReconciliationService::class)->evaluate($order->fresh());
         $this->assertSame(ReconciliationFinding::STATUS_OK, $recovered->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED)->sole()->status);
+    }
+
+    public function test_a_payment_the_provider_refused_while_the_store_still_waits_is_reported_until_the_store_closes_the_order(): void
+    {
+        $order = $this->order(['paid_marked_at' => null, 'status' => 'open', 'transaction_ref' => 'CAP_REFUSED_1', 'metadata' => ['payment_state' => 'pending']]);
+        $payment = $this->refusedPayment($order, 'CAP_REFUSED_1', now()->subMinutes(30));
+        $rule = fn (ReconciliationRun $run): ?ReconciliationFinding => $run->findings()->where('rule_code', ReconciliationFinding::RULE_PAYMENT_FAILED_ORDER_OPEN)->first();
+
+        $pending = $rule(app(OrderReconciliationService::class)->evaluate($order));
+        $this->assertSame(ReconciliationFinding::STATUS_PENDING, $pending->status);
+        $this->assertSame($payment->id, $pending->payment_id);
+
+        $payment->forceFill(['source_updated_at' => now()->subMinutes(121)])->save();
+        $mismatchRun = app(OrderReconciliationService::class)->evaluate($order->fresh());
+        $mismatch = $rule($mismatchRun);
+        $this->assertSame(ReconciliationFinding::STATUS_MISMATCH, $mismatch->status);
+        $incident = app(MoneyIncidentCorrelator::class)->correlate($mismatchRun)[0];
+        $this->assertSame(['payment_failed_order_open', $order->total_minor], [$incident->component, $incident->verified_discrepancy_minor]);
+        $this->assertSame([$order->total_minor, 0], [$mismatch->expected_minor, $mismatch->actual_minor]);
+        $this->assertSame(['order_status' => 'open', 'payment_state' => 'pending'], $mismatch->evidence);
+
+        $order->forceFill(['status' => 'cancelled'])->save();
+        $this->assertSame(ReconciliationFinding::STATUS_OK, $rule(app(OrderReconciliationService::class)->evaluate($order->fresh()))->status);
+    }
+
+    public function test_a_refused_payment_is_not_reported_when_the_store_marked_it_failed_or_another_payment_succeeded(): void
+    {
+        $failedInStore = $this->order(['paid_marked_at' => null, 'status' => 'open', 'transaction_ref' => 'CAP_REFUSED_2', 'metadata' => ['payment_state' => 'failed']]);
+        $this->refusedPayment($failedInStore, 'CAP_REFUSED_2', now()->subHours(3));
+        $retried = $this->order(['paid_marked_at' => null, 'status' => 'open', 'transaction_ref' => 'CAP_REFUSED_3']);
+        $this->refusedPayment($retried, 'CAP_REFUSED_3', now()->subHours(3));
+        $this->allocateCapture($retried, $retried->total_minor, $retried->total_minor);
+
+        foreach ([$failedInStore, $retried] as $order) {
+            $run = app(OrderReconciliationService::class)->evaluate($order->fresh());
+            $this->assertSame(0, $run->findings()->where('rule_code', ReconciliationFinding::RULE_PAYMENT_FAILED_ORDER_OPEN)->count());
+        }
     }
 
     public function test_it_reports_unsupported_finding_and_skips_other_rules(): void
@@ -308,6 +347,47 @@ class OrderReconciliationServiceTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides
      */
+    private function refusedPayment(Order $order, string $captureRef, Carbon $at): Payment
+    {
+        $payment = Payment::query()->create([
+            'tenant_id' => $order->tenant_id,
+            'store_id' => $order->store_id,
+            'integration_id' => $order->integration_id,
+            'external_id' => fake()->uuid(),
+            'intent_ref' => 'ORD_'.$captureRef,
+            'charge_ref' => null,
+            'mode' => 'live',
+            'currency' => $order->currency,
+            'currency_exponent' => $order->currency_exponent,
+            'status' => 'failed',
+            'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+            'source_updated_at' => $at,
+            'current_payload_hash' => hash('sha256', fake()->uuid()),
+            'metadata' => [],
+            'created_at' => $at,
+            'updated_at' => $at,
+        ]);
+        FinancialTransaction::query()->create([
+            'tenant_id' => $order->tenant_id,
+            'store_id' => $order->store_id,
+            'integration_id' => $order->integration_id,
+            'payment_id' => $payment->id,
+            'external_operation_id' => $captureRef,
+            'kind' => 'capture',
+            'status' => 'failed',
+            'currency' => $order->currency,
+            'currency_exponent' => $order->currency_exponent,
+            'amount_minor' => $order->total_minor,
+            'occurred_at' => $at,
+            'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+            'operation_hash' => hash('sha256', fake()->uuid()),
+            'metadata' => [],
+            'created_at' => $at,
+        ]);
+
+        return $payment;
+    }
+
     private function order(array $overrides = []): Order
     {
         $tenant = Tenant::query()->create([

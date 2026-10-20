@@ -366,7 +366,7 @@ describe('tenants', () => {
   it('shows findings, orders with details, checks with screenshots and incidents of a customer store', async () => {
     mocked.fetchCustomerStore.mockResolvedValue({ id: 's-1', name: 'Shop', base_url: 'https://kaffee.example', platform: 'woocommerce', status: 'active', default_currency: 'EUR', timezone: 'Europe/Berlin' });
     mocked.fetchStoreFindings.mockResolvedValue({ data: [{ id: 'f-1', order_id: 'o-1', order_display_number: '#15238', rule_code: 'MONEY_CAPTURE_MISSING', status: 'mismatch', reason_code: 'x', currency: 'EUR', currency_exponent: 2, difference_minor: '18400', evaluated_at: '2026-10-20T10:00:00Z' }], next_cursor: 'c-2' });
-    mocked.fetchStoreOrders.mockResolvedValue({ data: [{ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: null, is_synthetic: false, source_created_at: '2026-10-20T07:00:00Z' }], next_cursor: null });
+    mocked.fetchStoreOrders.mockResolvedValue({ data: [{ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: '2026-10-20T07:01:00Z', payment_state: 'paid', is_synthetic: false, source_created_at: '2026-10-20T07:00:00Z' }], next_cursor: null });
     mocked.fetchCustomerOrder.mockResolvedValue({ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: null, is_synthetic: false, source_created_at: null, transaction_ref: null, financial_support: 'supported', findings: [], captures: [{ id: 'tx-1', kind: 'capture', status: 'succeeded', currency: 'EUR', currency_exponent: 2, amount_minor: '18400', occurred_at: null }], refunds: [], revisions: [{}, {}] });
     mocked.fetchStoreChecks.mockResolvedValue({ data: [{ id: 'r-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z' }], next_cursor: null });
     mocked.fetchCustomerCheck.mockResolvedValue({ id: 'r-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z', attempts: [{ id: 'a-1', attempt_number: 1, status: 'failed', error_code: 'site_failure', started_at: '2026-10-20T09:00:00Z', finished_at: null, artifacts: [{ id: 'art-1', kind: 'screenshot', content_type: 'image/jpeg', size_bytes: 2048, expires_at: '2026-11-19T00:00:00Z' }], steps: [{ index: 0, code: 'payment_form', status: 'failed', error_code: 'selector_changed' }] }] });
@@ -385,6 +385,8 @@ describe('tenants', () => {
 
     await router.replace({ query: { tab: 'orders' } });
     await flushPromises();
+    expect(wrapper.get('[data-order="o-1"]').text()).toContain('В обработке');
+    expect(wrapper.get('[data-order="o-1"] [data-payment-state="paid"]').text()).toBe('Оплачен');
     await wrapper.get('[data-order="o-1"] button').trigger('click');
     await flushPromises();
     expect(mocked.fetchCustomerOrder).toHaveBeenCalledWith('t-1', 'o-1');
