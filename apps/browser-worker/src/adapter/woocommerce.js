@@ -172,7 +172,9 @@ export function createWooCommerceAdapter() {
         }
         const before = page.url();
         await checkout.click({ timeout: Math.min(step.timeout_ms, 5000) }).catch(() => { throw SITE('cart_checkout_control_not_clickable'); });
-        const reached = await page.waitForURL((url) => url.href !== before, { timeout: Math.min(step.timeout_ms, 4000) }).then(() => true).catch(() => false);
+        // The button only has to start the way to the checkout; loading that page is the next step's job. Waiting for
+        // the full load here made slow checkout pages (several payment plugins) look like a broken button.
+        const reached = await page.waitForURL((url) => url.href !== before, { timeout: Math.min(step.timeout_ms, 10000), waitUntil: 'commit' }).then(() => true).catch(() => false);
         if (!reached) {
           throw SITE('cart_checkout_control_no_navigation');
         }
