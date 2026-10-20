@@ -3567,6 +3567,37 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "428": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/delete:
+    post:
+      tags: [Stores]
+      operationId: deleteStorePermanently
+      security:
+        - {UserSession: []}
+      description: Organization owner only. Password and MFA step-up; permanently deletes the store and its scoped history. A deletion journal entry and hashed trial-domain marker remain.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, current_password]
+              properties:
+                name: {type: string, description: Exact store name}
+                current_password: {type: string, format: password}
+                code: {type: string, description: Authenticator or recovery code when MFA is enabled}
+      responses:
+        "200": {description: Store deleted}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/stores/{store_id}/verify:
     post:
       tags: [Stores]

@@ -17,6 +17,12 @@ export async function updateStore(store: Store, changes: UpdateStoreInput): Prom
   return (await request<Store>('PATCH', `/api/v1/stores/${encodeURIComponent(store.id)}`, { body: changes, ifMatch: store.config_version })).data;
 }
 
+export async function deleteStore(storeId: string, name: string, currentPassword: string, code: string | null): Promise<void> {
+  await request('POST', `/api/v1/stores/${encodeURIComponent(storeId)}/delete`, {
+    body: { name, current_password: currentPassword, code },
+  });
+}
+
 /** Latest verification of the store, or null when none was ever started. */
 export async function getVerification(storeId: string): Promise<StoreVerification | null> {
   try {

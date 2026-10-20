@@ -7,7 +7,8 @@ import CoverageList from './CoverageList.vue';
 import PauseDeviationNotice from './PauseDeviationNotice.vue';
 import { storeHost } from './storeHost';
 
-const props = defineProps<{ store: Store }>();
+const props = defineProps<{ store: Store; canDelete?: boolean }>();
+const emit = defineEmits<{ delete: [store: Store] }>();
 const { dateTime } = useFormat();
 
 const host = computed(() => storeHost(props.store.base_url));
@@ -41,5 +42,8 @@ const host = computed(() => storeHost(props.store.base_url));
     <p class="border-t border-border pt-3 text-[13px] text-text-muted">
       {{ $t('overview.last_passed_check', { time: dateTime(store.last_successful_check_at) }) }}
     </p>
+    <button v-if="canDelete" type="button" class="self-start rounded-md border border-crit-border px-3 py-1.5 text-sm font-medium text-crit hover:bg-crit-soft" data-action="delete-store" @click="emit('delete', store)">
+      {{ $t('overview.delete_store.open') }}
+    </button>
   </article>
 </template>

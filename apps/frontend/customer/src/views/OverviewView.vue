@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { getOverview } from '@/api/overview';
-import { listStores } from '@/api/stores';
+import { deleteStore, listStores } from '@/api/stores';
 import type { Overview, Store } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import StoreCard from '@/components/StoreCard.vue';
@@ -10,12 +10,13 @@ import IncidentListItem from '@/components/incidents/IncidentListItem.vue';
 import { useIncidentText } from '@/components/incidents/useIncidentText';
 import { lastSuccessfulCheck, verdict, type Verdict } from '@/components/overview/verdict';
 import { useFormat } from '@/composables/useFormat';
+import { stepUpErrorKey } from '@/composables/errors';
 import { useRole } from '@/composables/useRole';
 import { useSession } from '@/composables/useSession';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { StatusBadge, type Tone } from '@bw/ui';
 
-const { canManageStores } = useRole();
+const { canManageStores, role } = useRole();
 const { session } = useSession();
 const { dateTime } = useFormat();
 const { amount } = useIncidentText();
@@ -33,6 +34,12 @@ const stores = ref<Store[]>([]);
 const overview = ref<Overview | null>(null);
 const loading = ref(true);
 const error = ref<unknown>(null);
+const deletingStore = ref<Store | null>(null);
+const deleteForm = reactive({ name: '', password: '', code: '' });
+const deleteError = ref<unknown>(null);
+const deleteBusy = ref(false);
+const deleteStepUpKey = computed(() => stepUpErrorKey(deleteError.value));
+const needsCode = computed(() => session.value?.user.mfa_enabled === true);
 
 const state = computed(() => verdict(stores.value, overview.value?.incidents.active ?? 0));
 const storeNames = computed(() => new Map(stores.value.map((store) => [store.id, store.name])));
@@ -54,6 +61,33 @@ async function load(): Promise<void> {
 
 function componentLabel(component: string): string {
   return `overview.component.${component}`;
+}
+
+function openDelete(store: Store): void {
+  deletingStore.value = store;
+  deleteForm.name = '';
+  deleteForm.password = '';
+  deleteForm.code = '';
+  deleteError.value = null;
+}
+
+async function confirmDelete(): Promise<void> {
+  const store = deletingStore.value;
+  if (!store || role.value !== 'owner') return;
+  deleteBusy.value = true;
+  deleteError.value = null;
+
+  try {
+    await deleteStore(store.id, deleteForm.name.trim(), deleteForm.password, needsCode.value ? deleteForm.code.trim() : null);
+    deletingStore.value = null;
+    await load();
+  } catch (caught) {
+    deleteError.value = caught;
+  } finally {
+    deleteForm.password = '';
+    deleteForm.code = '';
+    deleteBusy.value = false;
+  }
 }
 
 onMounted(load);
@@ -165,8 +199,30 @@ onMounted(load);
         <section class="flex flex-col gap-3" aria-labelledby="stores-title">
           <h2 id="stores-title" class="text-lg font-semibold">{{ $t('overview.stores') }}</h2>
           <div class="grid gap-4 lg:grid-cols-2">
-            <StoreCard v-for="store in stores" :key="store.id" :store="store" />
+            <StoreCard v-for="store in stores" :key="store.id" :store="store" :can-delete="role === 'owner'" @delete="openDelete" />
           </div>
+          <form v-if="deletingStore && role === 'owner'" class="flex flex-col gap-3 rounded-xl border border-crit-border bg-crit-soft p-5 text-sm" data-form="delete-store" @submit.prevent="confirmDelete">
+            <h3 class="text-lg font-semibold text-crit">{{ $t('overview.delete_store.title', { name: deletingStore.name }) }}</h3>
+            <p>{{ $t('overview.delete_store.warning') }}</p>
+            <label class="flex flex-col gap-1.5 font-medium">
+              {{ $t('overview.delete_store.type_name', { name: deletingStore.name }) }}
+              <input v-model="deleteForm.name" autocomplete="off" spellcheck="false" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base font-normal" data-field="store-name" />
+            </label>
+            <label class="flex flex-col gap-1.5 font-medium">
+              {{ $t('account.password.current') }}
+              <input v-model="deleteForm.password" type="password" autocomplete="current-password" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base font-normal" />
+            </label>
+            <label v-if="needsCode" class="flex flex-col gap-1.5 font-medium">
+              {{ $t('account.mfa.code_or_recovery') }}
+              <input v-model="deleteForm.code" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="32" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-base font-normal" />
+            </label>
+            <p v-if="deleteStepUpKey" role="alert" class="text-crit">{{ $t(deleteStepUpKey) }}</p>
+            <ErrorNotice v-else-if="deleteError" :error="deleteError" />
+            <div class="flex flex-wrap gap-2">
+              <button type="submit" class="rounded-md bg-crit-solid px-3 py-1.5 font-semibold text-white disabled:opacity-60" data-action="confirm-delete-store" :disabled="deleteBusy || deleteForm.name.trim() !== deletingStore.name.trim() || deleteForm.password === '' || (needsCode && deleteForm.code.trim().length < 6)">{{ $t('overview.delete_store.submit') }}</button>
+              <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-medium" @click="deletingStore = null">{{ $t('common.cancel') }}</button>
+            </div>
+          </form>
         </section>
       </template>
     </div>

@@ -81,6 +81,13 @@
     "last_passed_check": "Last passed check: {time}",
     "add_store": "Add store",
     "stores": "Stores",
+    "delete_store": {
+      "open": "Delete store",
+      "title": "Delete store “{name}”",
+      "warning": "The store and all its history — orders, findings, checks and screenshots — will be permanently deleted. Monitoring stops immediately. Uninstall the plugin or App in the store too. A deletion record remains in the security journal, and a domain hash remains to protect the trial period.",
+      "type_name": "Type the store name exactly: {name}",
+      "submit": "Delete store permanently"
+    },
     "verdict": {
       "problems": {
         "badge": "problems found",

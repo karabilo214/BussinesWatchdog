@@ -7,12 +7,15 @@ use App\Http\Dto\Stores\StoreDto;
 use App\Http\Requests\Stores\CreateStoreRequest;
 use App\Http\Requests\Stores\UpdateStoreRequest;
 use App\Models\Store;
+use App\Support\Account\StepUp;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
+use App\Support\Privacy\StoreDeletion;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class StoreController extends Controller
 {
@@ -123,6 +126,31 @@ class StoreController extends Controller
         }
 
         return response()->json($this->storeDto->toArray($updated))->setEtag((string) $updated->config_version);
+    }
+
+    public function destroy(Request $request, Store $store, TenantContext $tenantContext, StepUp $stepUp, StoreDeletion $deletion): JsonResponse
+    {
+        $tenantId = $tenantContext->requireTenantId('delete store');
+        abort_unless($store->tenant_id === $tenantId, 404);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'current_password' => ['required', 'string', 'max:128'],
+            'code' => ['nullable', 'string', 'max:32'],
+        ]);
+        $stepUp->require($request->user(), $validated['current_password'], $validated['code'] ?? null);
+
+        DB::transaction(function () use ($store, $tenantId, $validated, $deletion): void {
+            $locked = Store::query()->where('tenant_id', $tenantId)->whereKey($store->id)->lockForUpdate()->firstOrFail();
+
+            if (! hash_equals($locked->name, trim($validated['name']))) {
+                throw ValidationException::withMessages(['name' => 'store_name_mismatch']);
+            }
+
+            $deletion->delete($locked);
+        });
+
+        return response()->json(['status' => 'deleted']);
     }
 
     private function expectedVersion(Request $request): int

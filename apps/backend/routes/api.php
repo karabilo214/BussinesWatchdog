@@ -108,6 +108,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::patch('/stores/{store}', [StoreController::class, 'update'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+    Route::post('/stores/{store}/delete', [StoreController::class, 'destroy'])
+        ->middleware('tenant.role:'.TenantRoles::OWNER);
     Route::post('/stores/{store}/verify', [StoreVerificationController::class, 'store'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
     Route::get('/stores/{store}/verification', [StoreVerificationController::class, 'show'])

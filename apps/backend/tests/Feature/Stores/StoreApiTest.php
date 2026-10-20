@@ -7,12 +7,37 @@ use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class StoreApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_only_owner_can_permanently_delete_own_store_after_step_up(): void
+    {
+        [$owner, $tenant] = $this->userWithTenant();
+        [$admin, $otherTenant] = $this->userWithTenant('admin');
+        $store = Store::query()->create(['tenant_id' => $tenant->id, 'name' => 'Main Shop', 'base_url' => 'https://main.example.test', 'timezone' => 'Europe/Kyiv', 'default_currency' => 'EUR']);
+        $retained = Store::query()->create(['tenant_id' => $tenant->id, 'name' => 'Keep Shop', 'base_url' => 'https://keep.example.test', 'timezone' => 'Europe/Kyiv', 'default_currency' => 'EUR']);
+        $foreign = Store::query()->create(['tenant_id' => $otherTenant->id, 'name' => 'Foreign Shop', 'base_url' => 'https://foreign.example.test', 'timezone' => 'Europe/Kyiv', 'default_currency' => 'EUR']);
+        Membership::query()->create(['tenant_id' => $tenant->id, 'user_id' => $admin->id, 'role' => 'admin']);
+        $url = "/api/v1/stores/{$store->id}/delete";
+
+        $this->actingAs($admin)->withSession(['active_tenant_id' => $tenant->id])->postJson($url, ['name' => 'Main Shop', 'current_password' => 'very-secure-password'])->assertForbidden();
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenant->id])->postJson("/api/v1/stores/{$foreign->id}/delete", ['name' => 'Foreign Shop', 'current_password' => 'very-secure-password'])->assertNotFound();
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenant->id])->postJson($url, ['name' => 'Wrong Shop', 'current_password' => 'very-secure-password'])->assertStatus(422)->assertJsonValidationErrors('name');
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenant->id])->postJson($url, ['name' => 'Main Shop', 'current_password' => 'wrong-password'])->assertStatus(422)->assertJsonValidationErrors('current_password');
+        $this->assertDatabaseHas('stores', ['id' => $store->id]);
+
+        $this->actingAs($owner)->withSession(['active_tenant_id' => $tenant->id])->postJson($url, ['name' => 'Main Shop', 'current_password' => 'very-secure-password'])->assertOk()->assertJsonPath('status', 'deleted');
+        $this->assertDatabaseMissing('stores', ['id' => $store->id]);
+        $this->assertDatabaseHas('stores', ['id' => $retained->id]);
+        $this->assertDatabaseHas('stores', ['id' => $foreign->id]);
+        $this->assertDatabaseHas('store_deletion_journal', ['store_id' => $store->id, 'tenant_id' => $tenant->id]);
+        $this->assertSame(0, DB::table('stores')->where('id', $store->id)->count());
+    }
 
     public function test_user_can_create_store_in_active_tenant(): void
     {

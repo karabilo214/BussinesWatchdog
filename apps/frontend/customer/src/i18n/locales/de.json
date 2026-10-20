@@ -81,6 +81,13 @@
     "last_passed_check": "Letzte erfolgreiche Prüfung: {time}",
     "add_store": "Shop hinzufügen",
     "stores": "Shops",
+    "delete_store": {
+      "open": "Shop löschen",
+      "title": "Shop „{name}“ löschen",
+      "warning": "Der Shop und sein gesamter Verlauf – Bestellungen, Befunde, Prüfungen und Screenshots – werden dauerhaft gelöscht. Die Überwachung endet sofort. Deinstallieren Sie das Plugin oder die App auch im Shop. Ein Löschvermerk bleibt im Sicherheitsprotokoll und ein Domain-Hash zum Schutz der Testphase erhalten.",
+      "type_name": "Shopnamen genau eingeben: {name}",
+      "submit": "Shop dauerhaft löschen"
+    },
     "verdict": {
       "problems": {
         "badge": "Probleme gefunden",

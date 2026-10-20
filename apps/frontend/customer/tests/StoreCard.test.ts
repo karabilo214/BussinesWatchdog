@@ -32,6 +32,15 @@ function store(overrides: Partial<Store> = {}): Store {
 }
 
 describe('StoreCard', () => {
+  it('offers deletion only when the owner flag is set', async () => {
+    setLocale('ru');
+    const options = { global: { plugins: [localization], stubs: { RouterLink: RouterLinkStub } } };
+    const hidden = mount(StoreCard, { props: { store: store() }, ...options });
+    expect(hidden.find('[data-action="delete-store"]').exists()).toBe(false);
+    const owner = mount(StoreCard, { props: { store: store(), canDelete: true }, ...options });
+    await owner.get('[data-action="delete-store"]').trigger('click');
+    expect(owner.emitted('delete')?.[0]?.[0]).toMatchObject({ id: 's-1' });
+  });
   it('shows each coverage part with its own colour; missing money data is unknown, not fine', () => {
     setLocale('ru');
     const wrapper = mount(StoreCard, { props: { store: store() }, global: { plugins: [localization], stubs: { RouterLink: RouterLinkStub } } });
