@@ -449,9 +449,9 @@ Shopware App 1.3.1 has approved source fingerprint `b07b8839d92494e8217ff8d479c6
 
 Verification for the exact release branch: WooCommerce ZIP PHP 7.4 lint; backend `PluginDownloadTest|CheckoutObservationTest` 14/14 (109 assertions); Docker release checks from Step 202; production `PluginPackage::latest()` and SHA check after backend recreation. No contracts or migrations changed in this publication step. Remaining: first real Shopware store needs a copy-based approval before it can download the App.
 
-### Step 206: Live Test Stores on the Production Server — WooCommerce Run (in progress)
+### Step 206: Live Test Stores on the Production Server — WooCommerce and Shopware Runs
 
-Status: WooCommerce run done except PayPal and the browser check verdict; Shopware waits for the App installation by the owner
+Status: both runs done; the stores, the App and the data stay in place for the owner's own observation (App removal and WooCommerce PayPal with a sandbox buyer not done yet). Since 2026-10-20 17:20 UTC the server runs `main` (`9caa446`, then `cd73eea`)
 
 - Infrastructure (`docs/ops/test-shops.md`): `woo-test` and `shopware-test` subdomains routed by the production Caddy (noindex) to the `bw-test-shops` compose project; release branch `release/test-shops-2026-10-20` = deployed `bbc61b3` plus only test-store infrastructure and the worker/backend fixes below (the server still runs connector release code, not `main`). WooCommerce: WordPress 7.1.3 / PHP 8.3, WooCommerce 11.2.0 HPOS, Storefront, Stripe Gateway 11.0.1 (test), PayPal Payments 4.1.3 (sandbox), bank transfer, a WP-Cron sidecar. Shopware 6.7.15.1 (`prod`), SwagPayPal 10.8.5 (sandbox). The dockware Adminer, mailcatcher and log viewer were reachable for ~10 minutes; removed in the container and blocked in Caddy. The owner's organization «BW» has an override; the Shopware store was created with platform `woocommerce` and corrected in the database (audited) because the platform cannot be changed later.
 - Real shopper (`infra/test-shops/shopper.mjs`, run in the worker image): Stripe test card, declined card, bank transfer on the Blocks checkout.
@@ -467,5 +467,15 @@ Status: WooCommerce run done except PayPal and the browser check verdict; Shopwa
   - the worker blocked the plugin's own observation beacon `/business-watchdog/v1/observe` (every store with the plugin failed); now passed as quiet paths, also matched in `?rest_route=`;
   - the Blocks payment step counted radios before they render; now waits for them.
 - Open (owner decision): with gateway scripts blocked, the Blocks payment block never leaves its loading skeleton, so the check ends `selector_changed` on stores with Stripe/PayPal. Allowing the gateway origins in the check settings exposes a long tail (Apple Pay, Google Pay, Amazon Pay, hCaptcha, Stripe Link, PayPal API hosts), and the Amazon Pay script `cPSPcheckout.js` is mistaken for a store script by the worker's `blockedScripts` heuristic. Also: PayPal Payments rate-limits client tokens (429) for repeated checks from one IP; low-traffic stores without a system cron make the plugin go silent.
+
+
+Shopware run (2026-10-20, App 1.3.1 uploaded by the owner, store `01a1592f…`):
+  - App registered over HTTPS, store verified; orders arrive by webhook within seconds; prepayment → unsupported; the browser check passed fully (guest, delivery, 4 payment methods, observation script); observation windows recorded.
+  - `bin/console app:install` refused the App without a de-DE `label` → App 1.3.2 (`08971cb`); its fingerprint is not approved yet, so App downloads for new stores are closed after the `main` deploy.
+  - PayPal (`infra/test-shops/sw-shopper.mjs`, sandbox buyer): the USD sandbox merchant held EUR captures `PENDING` (`RECEIVING_PREFERENCE_MANDATES_MANUAL_ACTION`); SwagPayPal kept the orders `in_progress`. After the owner accepted them, MONEY_CAPTURE_NOT_RECORDED opened for 10001–10004 and resolved itself when Shopware marked them paid. 10005 was denied by the owner → PayPal DECLINED, Shopware later set the payment `failed` → nothing to report.
+  - Partial refund 120 € from the Shopware admin (10003): PayPal refunded, the service did not read it (Transaction Search lag, pointers only for unknown captures) → false «refund missing» ahead; fixed in Step 209; now `unknown` (Shopware reports no refund amount).
+  - Refund 5 € only at PayPal (10002, API with the shop's sandbox key): MONEY_REFUND_EXTRA pending, after the 60-minute grace an incident (17:00 UTC).
+  - Findings from the run became Steps 208 (amounts and PayPal ids, ADR 0071), 209 (PayPal refunds from the store, order number in titles) and 210 (store payment state, «payment failed, order open», payments without order since connection, ADR 0072).
+  - WooCommerce on rules v3: the Stripe-only refund of order 26 is MONEY_REFUND_EXTRA; a user's manual match of an old 10 € Stripe charge to order 26 raised capture amount and multiple captures (correct for that link). Scheduled checks pass with the payment step skipped (`gateway_scripts_not_loaded`, ADR 0070).
 
 Verification: worker unit tests 28/28 (new: PayPal lookups, quiet beacon incl. `rest_route`); backend `tests/Feature/Checkout` + `tests/Feature/Browser` 44/44; production deploys `6ce9cdf`, `d9466f2`, `8a38610`.
