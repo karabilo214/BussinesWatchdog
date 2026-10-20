@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Business Watchdog for WooCommerce
  * Description: Sends order and refund snapshots to Business Watchdog for payment reconciliation and checkout monitoring.
- * Version: 0.3.1
+ * Version: 0.3.2
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * WC requires at least: 6.0
@@ -16,7 +16,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('BW_PLUGIN_VERSION', '0.3.1');
+define('BW_PLUGIN_VERSION', '0.3.2');
 define('BW_PLUGIN_FILE', __FILE__);
 define('BW_PLUGIN_DIR', __DIR__);
 define('BW_MIN_PHP', '7.4');
@@ -42,12 +42,25 @@ if (defined('BUSINESS_WATCHDOG_DISABLED') && BUSINESS_WATCHDOG_DISABLED) {
     return;
 }
 
-require_once __DIR__ . '/src/Autoloader.php';
+try {
+    require_once __DIR__ . '/src/Autoloader.php';
 
-\BusinessWatchdog\WooCommerce\Autoloader::register(__DIR__ . '/src');
+    if (! class_exists('\BusinessWatchdog\WooCommerce\Autoloader')) {
+        return;
+    }
 
-register_activation_hook(__FILE__, ['\BusinessWatchdog\WooCommerce\Plugin', 'activate']);
-register_deactivation_hook(__FILE__, ['\BusinessWatchdog\WooCommerce\Plugin', 'deactivate']);
+    \BusinessWatchdog\WooCommerce\Autoloader::register(__DIR__ . '/src');
 
-add_action('before_woocommerce_init', ['\BusinessWatchdog\WooCommerce\Compat\FeatureDeclarations', 'declare']);
-add_action('plugins_loaded', ['\BusinessWatchdog\WooCommerce\Plugin', 'boot'], 20);
+    if (! class_exists('\BusinessWatchdog\WooCommerce\Safety\Guard')) {
+        return;
+    }
+
+    register_activation_hook(__FILE__, \BusinessWatchdog\WooCommerce\Safety\Guard::action(['\BusinessWatchdog\WooCommerce\Plugin', 'activate'], 'activate'));
+    register_deactivation_hook(__FILE__, \BusinessWatchdog\WooCommerce\Safety\Guard::action(['\BusinessWatchdog\WooCommerce\Plugin', 'deactivate'], 'deactivate'));
+
+    add_action('before_woocommerce_init', \BusinessWatchdog\WooCommerce\Safety\Guard::action(['\BusinessWatchdog\WooCommerce\Compat\FeatureDeclarations', 'declare'], 'feature_declarations'));
+    add_action('plugins_loaded', \BusinessWatchdog\WooCommerce\Safety\Guard::action(['\BusinessWatchdog\WooCommerce\Plugin', 'boot'], 'boot'), 20);
+} catch (\Throwable $exception) {
+    // A broken monitoring package must not prevent WordPress from loading the storefront.
+    error_log('business-watchdog: bootstrap_failed');
+}

@@ -19,6 +19,7 @@ use BusinessWatchdog\WooCommerce\Jobs\PaymentAttemptsJob;
 use BusinessWatchdog\WooCommerce\Jobs\RescanJob;
 use BusinessWatchdog\WooCommerce\Rest\RestController;
 use BusinessWatchdog\WooCommerce\Safety\MonitoringSwitch;
+use BusinessWatchdog\WooCommerce\Safety\Guard;
 use BusinessWatchdog\WooCommerce\Storage\Schema;
 use BusinessWatchdog\WooCommerce\Synthetic\SyntheticOrders;
 use BusinessWatchdog\WooCommerce\Storage\State;
@@ -57,10 +58,10 @@ final class Plugin
 
     public static function boot(): void
     {
-        add_filter('cron_schedules', [WpCronAdapter::class, 'registerSchedules']);
+        add_filter('cron_schedules', Guard::filter([WpCronAdapter::class, 'registerSchedules'], 'cron_schedules'));
 
         if (MonitoringSwitch::stopped()) {
-            add_action('admin_notices', [self::class, 'stoppedNotice']);
+            add_action('admin_notices', Guard::action([self::class, 'stoppedNotice'], 'stopped_notice'));
 
             if (is_admin()) {
                 SettingsPage::register();
@@ -72,13 +73,32 @@ final class Plugin
         }
 
         if (! Environment::wooCommerceSupported()) {
-            add_action('admin_notices', [self::class, 'unsupportedNotice']);
+            add_action('admin_notices', Guard::action([self::class, 'unsupportedNotice'], 'unsupported_notice'));
 
             return;
         }
 
         if (! Schema::isCurrent()) {
-            Schema::install();
+            // Never run dbDelta in a shopper's request, especially during checkout.
+            if (! is_admin()
+                || (function_exists('wp_doing_ajax') && wp_doing_ajax())
+                || (function_exists('wp_doing_cron') && wp_doing_cron())) {
+                return;
+            }
+
+            try {
+                Schema::install();
+            } catch (\Throwable $exception) {
+                add_action('admin_notices', Guard::action([self::class, 'schemaNotice'], 'schema_notice'));
+
+                return;
+            }
+
+            if (! Schema::isCurrent()) {
+                add_action('admin_notices', Guard::action([self::class, 'schemaNotice'], 'schema_notice'));
+
+                return;
+            }
         }
 
         OrderHooks::register();
@@ -86,17 +106,17 @@ final class Plugin
         CheckoutObservation::register();
         SyntheticOrders::register();
         OrderCapture::onRecorded([self::class, 'scheduleDelivery']);
-        add_action(HeartbeatJob::HOOK, [self::class, 'heartbeat']);
-        add_action(DeliveryJob::HOOK, [DeliveryJob::class, 'run']);
-        add_action(RescanJob::HOOK, [RescanJob::class, 'run']);
-        add_action(BackfillJob::HOOK, [BackfillJob::class, 'run']);
-        add_action(BackfillJob::AUDIT_HOOK, [BackfillJob::class, 'dailyAudit']);
-        add_action(PaymentAttemptsJob::HOOK, [self::class, 'reportPaymentAttempts']);
-        add_action(ObservationReportJob::HOOK, [self::class, 'reportCheckoutObservation']);
-        add_action(SyntheticOrders::CLEANUP_HOOK, [SyntheticOrders::class, 'cleanup'], 10, 0);
-        add_action('upgrader_process_complete', [self::class, 'afterUpgrade'], 20, 0);
-        add_action('rest_api_init', [RestController::class, 'register']);
-        add_action('init', [self::class, 'ensureSchedules']);
+        add_action(HeartbeatJob::HOOK, Guard::action([self::class, 'heartbeat'], 'heartbeat'));
+        add_action(DeliveryJob::HOOK, Guard::action([DeliveryJob::class, 'run'], 'delivery'));
+        add_action(RescanJob::HOOK, Guard::action([RescanJob::class, 'run'], 'rescan'));
+        add_action(BackfillJob::HOOK, Guard::action([BackfillJob::class, 'run'], 'backfill'));
+        add_action(BackfillJob::AUDIT_HOOK, Guard::action([BackfillJob::class, 'dailyAudit'], 'backfill_audit'));
+        add_action(PaymentAttemptsJob::HOOK, Guard::action([self::class, 'reportPaymentAttempts'], 'payment_attempt_report'));
+        add_action(ObservationReportJob::HOOK, Guard::action([self::class, 'reportCheckoutObservation'], 'observation_report'));
+        add_action(SyntheticOrders::CLEANUP_HOOK, Guard::action([SyntheticOrders::class, 'cleanup'], 'synthetic_cleanup'), 10, 0);
+        add_action('upgrader_process_complete', Guard::action([self::class, 'afterUpgrade'], 'after_upgrade'), 20, 0);
+        add_action('rest_api_init', Guard::action([RestController::class, 'register'], 'rest_register'));
+        add_action('init', Guard::action([self::class, 'ensureSchedules'], 'ensure_schedules'));
 
         if (is_admin()) {
             SettingsPage::register();
@@ -217,5 +237,10 @@ final class Plugin
             : sprintf(__('Business Watchdog requires WooCommerce %1$s or newer (found %2$s).', 'business-watchdog'), BW_MIN_WC, $version);
 
         echo '<div class="notice notice-error"><p>' . esc_html($message) . '</p></div>';
+    }
+
+    public static function schemaNotice(): void
+    {
+        echo '<div class="notice notice-error"><p>' . esc_html__('Business Watchdog could not prepare its own tables. Monitoring is inactive; orders and checkout remain available.', 'business-watchdog') . '</p></div>';
     }
 }

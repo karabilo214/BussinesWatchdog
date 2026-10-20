@@ -25,7 +25,7 @@ rm -f "$ZIP"
 (cd "$STAGE" && find business-watchdog -exec touch -t 202601010000 {} + && zip -qrX "$ZIP" business-watchdog)
 
 LIST=$(unzip -Z1 "$ZIP")
-for required in business-watchdog/business-watchdog.php business-watchdog/uninstall.php business-watchdog/src/Plugin.php; do
+for required in business-watchdog/business-watchdog.php business-watchdog/uninstall.php business-watchdog/src/Plugin.php business-watchdog/src/Safety/Guard.php business-watchdog/assets/checkout-observer.js; do
     echo "$LIST" | grep -qx "$required" || { echo "missing in package: $required"; exit 1; }
 done
 if echo "$LIST" | grep -E '(^|/)(tests|\.git|node_modules|dist)/|(^|/)\.[^/]+$'; then echo "unexpected files in package"; exit 1; fi

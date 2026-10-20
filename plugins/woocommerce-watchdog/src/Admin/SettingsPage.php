@@ -7,6 +7,7 @@ use BusinessWatchdog\WooCommerce\Connection\PairingClient;
 use BusinessWatchdog\WooCommerce\Jobs\HeartbeatJob;
 use BusinessWatchdog\WooCommerce\Rest\RestController;
 use BusinessWatchdog\WooCommerce\Safety\MonitoringSwitch;
+use BusinessWatchdog\WooCommerce\Safety\Guard;
 use BusinessWatchdog\WooCommerce\Storage\State;
 
 final class SettingsPage
@@ -15,16 +16,16 @@ final class SettingsPage
 
     public static function register(): void
     {
-        add_action('admin_menu', [self::class, 'menu']);
-        add_action('admin_post_bw_pair', [self::class, 'handlePair']);
-        add_action('admin_post_bw_disconnect', [self::class, 'handleDisconnect']);
-        add_action('admin_post_bw_stop', [self::class, 'handleStop']);
-        add_action('admin_post_bw_resume', [self::class, 'handleResume']);
+        add_action('admin_menu', Guard::action([self::class, 'menu'], 'admin_menu'));
+        add_action('admin_post_bw_pair', Guard::action([self::class, 'handlePair'], 'admin_pair'));
+        add_action('admin_post_bw_disconnect', Guard::action([self::class, 'handleDisconnect'], 'admin_disconnect'));
+        add_action('admin_post_bw_stop', Guard::action([self::class, 'handleStop'], 'admin_stop'));
+        add_action('admin_post_bw_resume', Guard::action([self::class, 'handleResume'], 'admin_resume'));
     }
 
     public static function menu(): void
     {
-        add_submenu_page('woocommerce', 'Business Watchdog', 'Business Watchdog', 'manage_woocommerce', self::SLUG, [self::class, 'render']);
+        add_submenu_page('woocommerce', 'Business Watchdog', 'Business Watchdog', 'manage_woocommerce', self::SLUG, Guard::action([self::class, 'render'], 'admin_render'));
     }
 
     public static function handlePair(): void

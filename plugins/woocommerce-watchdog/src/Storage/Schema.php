@@ -132,6 +132,14 @@ final class Schema
   KEY unreported (reported,window_start)
 ) ENGINE=InnoDB {$charsetCollate};");
 
+        foreach ([$outbox, $revisions, $state, $attempts, $observation] as $table) {
+            $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+
+            if ($found !== $table) {
+                throw new \RuntimeException('business_watchdog_schema_install_failed');
+            }
+        }
+
         update_option(self::OPTION, self::VERSION, false);
     }
 

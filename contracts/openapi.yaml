@@ -3890,7 +3890,7 @@ paths:
       operationId: downloadShopwareApp
       security:
         - {UserSession: []}
-      description: "Owner/admin (ADR 0027). Creates the store's pending Shopware app integration and returns the app archive (BusinessWatchdog.zip) to upload in Shopware (Extensions → My extensions → Upload). The manifest lists only read permissions, a registration URL for this integration and its own secret. A new archive replaces a still pending one. 409 order_source_already_connected / provider_already_connected while another order source is connected. X-Integration-Id names the pending integration."
+      description: "Owner/admin (ADR 0027). Creates the store's pending Shopware app integration and returns the app archive (BusinessWatchdog.zip) to upload in Shopware (Extensions → My extensions → Upload). The manifest has read permissions on store entities and write permissions only on the app's own checkout observation entities. A new archive replaces a still pending one. Production returns 409 shopware_app_release_not_approved before creating an integration unless the exact app source fingerprint and the store UUID are approved. 409 order_source_already_connected / provider_already_connected while another order source is connected. X-Integration-Id names the pending integration."
       parameters:
         - {name: store_id, in: path, required: true, schema: {type: string, format: uuid}}
         - {$ref: "#/components/parameters/CsrfToken"}
@@ -3919,7 +3919,7 @@ paths:
       operationId: downloadShopwareAppUpdate
       security:
         - {UserSession: []}
-      description: "Owner/admin (ADR 0061). The current app version built for the store's connected app integration (same integration, registration URL and manifest secret), to upload in Shopware as an update of the installed app. 404 shopware_app_not_connected without an app integration. X-App-Version names the version."
+      description: "Owner/admin (ADR 0061). The current app version built for the store's connected app integration (same integration, registration URL and manifest secret), to upload in Shopware as an update of the installed app. Production returns 409 shopware_app_release_not_approved unless the exact app source fingerprint and the store UUID are approved. 404 shopware_app_not_connected without an app integration. X-App-Version names the version."
       parameters:
         - {name: store_id, in: path, required: true, schema: {type: string, format: uuid}}
         - {$ref: "#/components/parameters/CsrfToken"}
@@ -5032,7 +5032,7 @@ paths:
     get:
       tags: [Integrations]
       operationId: getWooCommercePluginPackage
-      description: "Newest published WooCommerce plugin ZIP (the highest business-watchdog-X.Y.Z.zip in WATCHDOG_PLUGIN_DIR): available, version, file name, size and SHA-256; available false when no package is published."
+      description: "Newest available WooCommerce plugin ZIP (the highest approved business-watchdog-X.Y.Z.zip in WATCHDOG_PLUGIN_DIR): available, version, file name, size and SHA-256; available false when no package is approved or present. Production approval matches the exact ZIP SHA-256."
       security:
         - {UserSession: []}
       responses:
@@ -5055,7 +5055,7 @@ paths:
     get:
       tags: [Integrations]
       operationId: downloadWooCommercePlugin
-      description: "Downloads the newest plugin ZIP (application/zip, X-Content-SHA256); 404 plugin_not_available when none is published."
+      description: "Downloads the newest approved plugin ZIP (application/zip, X-Content-SHA256); 404 plugin_not_available when none is approved or present."
       security:
         - {UserSession: []}
       responses:
@@ -6635,8 +6635,9 @@ components:
         deletion_purge_after: {type: [string, "null"], format: date-time, description: When the irreversible purge starts; null without an open deletion request.}
     OrganizationDeletionState:
       type: object
-      required: [tenant_status, can_request, request]
+      required: [tenant_name, tenant_status, can_request, request]
       properties:
+        tenant_name: {type: string, description: What the owner types to confirm.}
         tenant_status: {enum: [active, suspended, deleting, deleted]}
         can_request: {type: boolean, description: The viewer is the owner and no deletion is open.}
         request:

@@ -50,7 +50,7 @@ print('  after pay:', after_pay.get('orders'), 'webhook', after_pay.get('last_we
 print('  after uninstall:', after_uninstall.get('status'), after_uninstall.get('active_credentials'), 'webhook', after_uninstall.get('last_webhook'))
 checks = {
     'archive accepted and app active in Shopware': installed.get('active') is True and installed.get('install') in (200, 204),
-    'app has only read privileges': bool(installed.get('privileges')) and all(p.endswith(':read') for p in installed.get('privileges', [])),
+    'app writes only its own observation entities': bool(installed.get('privileges')) and all(p.endswith(':read') or p.startswith('custom_entity_bw_checkout_report:') or p.startswith('custom_entity_bw_checkout_setting:') for p in installed.get('privileges', [])),
     'registration and confirmation made the app the order source': after_install.get('status') == 'active' and 'shopware_integration' in after_install.get('active_credentials', []),
     'store confirmed by the app': after_install.get('store_verified') is True and after_install.get('verification_method') == 'api_key',
     'order arrived through the webhook without polling': number in (after_order.get('orders') or {}) and after_order.get('last_sync') is None,

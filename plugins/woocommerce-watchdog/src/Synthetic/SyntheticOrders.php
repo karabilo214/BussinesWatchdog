@@ -3,6 +3,7 @@
 namespace BusinessWatchdog\WooCommerce\Synthetic;
 
 use BusinessWatchdog\WooCommerce\Storage\State;
+use BusinessWatchdog\WooCommerce\Safety\Guard;
 
 final class SyntheticOrders
 {
@@ -18,9 +19,9 @@ final class SyntheticOrders
 
     public static function register(): void
     {
-        add_action('init', [self::class, 'observe'], 1, 0);
-        add_action('woocommerce_new_order', [self::class, 'markIfSynthetic'], 5, 1);
-        add_action('woocommerce_update_order', [self::class, 'markIfSynthetic'], 5, 1);
+        add_action('init', Guard::action([self::class, 'observe'], 'synthetic_observe'), 1, 0);
+        add_action('woocommerce_new_order', Guard::action([self::class, 'markIfSynthetic'], 'synthetic_new_order'), 5, 1);
+        add_action('woocommerce_update_order', Guard::action([self::class, 'markIfSynthetic'], 'synthetic_update_order'), 5, 1);
     }
 
     public static function observe(): void

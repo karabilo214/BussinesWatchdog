@@ -263,7 +263,7 @@
         "button": "Download plugin",
         "meta": "WooCommerce plugin, version {version}, {size} KB",
         "install": "In WordPress: Plugins → Add New → Upload Plugin, choose this ZIP and activate it. Then enter the connection code below.",
-        "missing": "The plugin archive is not published yet. Write to us and we will send it."
+        "missing": "The plugin is not available for installation yet. The download will appear here after the release is tested and published."
       }
     },
     "verification": {

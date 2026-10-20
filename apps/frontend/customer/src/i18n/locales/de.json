@@ -263,7 +263,7 @@
         "button": "Plugin herunterladen",
         "meta": "WooCommerce-Plugin, Version {version}, {size} KB",
         "install": "In WordPress: Plugins → Installieren → Plugin hochladen, dieses ZIP wählen und aktivieren. Dann unten den Verbindungscode eingeben.",
-        "missing": "Das Plugin-Archiv ist noch nicht veröffentlicht. Schreiben Sie uns, wir senden es Ihnen."
+        "missing": "Das Plugin ist noch nicht zur Installation verfügbar. Der Download erscheint hier nach Prüfung und Veröffentlichung der Version."
       }
     },
     "verification": {

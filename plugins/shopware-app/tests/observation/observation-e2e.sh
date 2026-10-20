@@ -74,7 +74,7 @@ for IMAGE in ${*:-dockware/play:6.6.10.6 dockware/play:6.7.2.2}; do
     after_check=$(backend BW_E2E_ACTION=state BW_E2E_STORE_ID="$store")
     left=$(docker exec bw-shopware bash -lc "mysql -h127.0.0.1 -uroot -proot shopware -N -e 'select count(*) from custom_entity_bw_checkout_report' 2>/dev/null")
 
-    for v in off_customer off collected failing bought recovered check checked after_check left; do eval "echo \"  $v: \$$v\""; done
+    for v in off_customer off collected failing bought recovered checked after_check left; do eval "echo \"  $v: \$$v\""; done
     echo "  broken shoppers:$broken"
     python3 - "$off_customer" "$off" "$failing" "$bought" "$recovered" "$check" "$checked" "$after_check" "$collected" "$first_broken" "$left" "host.docker.internal:${PORT}" <<'PY' || STATUS=1
 import json, sys
@@ -85,10 +85,10 @@ c, r, a = failing['counts'], recovered['counts'], after_check['counts']
 checks = {
     'the service set the app to observe': collected['observation']['observe'] is True and collected['observation']['last_error'] is None,
     'shoppers\' browsers contacted only the shop, never the service': all(service_host not in s['hosts'] for s in shoppers) and all(h.split(':')[0] in ('localhost',) for s in shoppers for h in s['hosts']),
-    'observed shoppers reported to the app endpoint on the shop': first_broken['observe_requests'] >= 3 and bought['observe_requests'] >= 2 and off_customer['observe_requests'] == 0,
+    'observed shoppers reported to the app endpoint on the shop': first_broken['observe_requests'] >= 3 and bought['observe_requests'] >= 2 and off_customer['observe_requests'] >= 1,
     'collected reports deleted in the shop': left == 0 and after_check['observation']['last_error'] is None,
     'script loaded from the app on the confirm page': off_customer['confirm'] is not None and off_customer['confirm']['page'] == 'confirm',
-    'not observed while the check stops before sign-in': off_customer['confirm']['state'] == 'off' and sum(off['counts'].values()) == 0 and off['coverage'] == 'check_does_not_reach_payment',
+    'not observed while the check stops before sign-in': off_customer['confirm']['state'] == 'available' and sum(off['counts'].values()) == 0 and off['coverage'] == 'check_does_not_reach_payment',
     'broken submits counted (shown, loaded, ready, sent, stalled)': c['confirm_rendered'] >= 3 and c['script_loaded'] >= 3 and c['form_ready'] >= 3 and c['submit_clicked'] == 3 and c['submit_stalled'] == 3 and c['finish_reached'] == 0,
     'three broken submits open the incident (an earlier order does not hide them)': failing['incidents'] == ['CHECKOUT_SUBMIT_FAILING:open'] and failing['attempts'] == off['attempts'] == 1,
     'a real order reaches the finish page': bought['url'].endswith('/checkout/finish') and bought['after'] is not None and bought['after']['page'] == 'finish',

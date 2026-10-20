@@ -152,3 +152,5 @@ Latest releases (Step 94, self-built with `plugins/shopware-app/tests/build-imag
 |---|---|---|---|
 | 6.6.10.29 | PASS | PASS (SwagPayPal 9.x) | **fails in Shopware** (app registration TypeError, 6.6.10.25+) — use the key |
 | 6.7.15.1 | PASS | PASS (SwagPayPal 10.x) | PASS |
+
+Connector safety release 0.3.2 / App 1.3.1 (Step 202): WooCommerce matrix passed 58/58 on floor, 7 legacy, 7 HPOS, 8, 9 and latest; exact ZIP upgrade/rollback, offline checkout, stop switches and uninstall passed on latest. Shopware App 1.3.1 initial install/order/payment/uninstall passed on 6.6.10.6; update passed on 6.7.2.2 and 6.7.15.1; observation passed 14/14 on 6.7.2.2. Its checkout Twig overrides and page-loaded App Scripts were removed. Shopware 6.6.10.29 remains excluded for App installation; production App archives are restricted to explicitly approved store UUIDs after a copy of that store is checked.

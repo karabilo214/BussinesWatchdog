@@ -2,7 +2,7 @@
 # Updating the Shopware app of a connected store (ADR 0061) against a real Shopware: an older app (1.0.0, without the
 # checkout observation files) is installed and connected; the dashboard's update archive for the same integration is
 # uploaded as an update; the integration stays the same and active, the shop reports the new version (app.updated),
-# the storefront script and templates arrive, and orders keep coming through webhooks. Own database
+# the storefront script arrives without checkout template overrides, and orders keep coming through webhooks. Own database
 # (BW_E2E_DATABASE, migrated fresh). Usage: update-e2e.sh [image ...]
 set -eu
 cd "$(dirname "$0")"
@@ -62,8 +62,8 @@ checks = {
     'same integration, still active, still one': after['integration_id'] == before['integration_id'] and after['status'] == 'active' and after['integrations'] == 1,
     'the new version is known at once (app.updated)': after['app_update']['installed_version'] == expected and after['app_update']['available'] is False,
     'the API key still works: orders keep arriving through webhooks': order.get('number') in after_order['orders'] and after_order['status'] == 'active',
-    'storefront script and templates arrived with the update': files['script'] >= 1 and files['templates'] >= 2,
-    'observation endpoint, page scripts and entities arrived with the update (ADR 0062)': files['scripts'] >= 3 and files['entities'] == 2,
+    'storefront script arrived without checkout template overrides': files['script'] >= 1 and files['templates'] == 0,
+    'observation endpoint and entities arrived without page-loaded scripts': files['scripts'] == 1 and files['entities'] == 2,
 }
 print('  registrations before/after:', before['registrations'], after['registrations'], '| credentials:', after['active_credentials'])
 for name, ok in checks.items():

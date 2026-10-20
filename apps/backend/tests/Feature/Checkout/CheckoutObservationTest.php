@@ -204,7 +204,7 @@ class CheckoutObservationTest extends TestCase
         $this->assertSame('*/5 * * * *', $event->expression);
     }
 
-    public function test_the_app_archive_carries_the_script_and_templates_for_this_store(): void
+    public function test_the_app_archive_has_observation_without_checkout_render_hooks(): void
     {
         $response = $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
             ->postJson("/api/v1/stores/{$this->store->id}/integrations/shopware-app", ['state_change_risk_acknowledged' => true])->assertOk();
@@ -218,7 +218,6 @@ class CheckoutObservationTest extends TestCase
             $names[] = $zip->getNameIndex($i);
         }
 
-        $confirm = (string) $zip->getFromName('BusinessWatchdog/Resources/views/storefront/page/checkout/confirm/index.html.twig');
         $endpoint = (string) $zip->getFromName('BusinessWatchdog/Resources/scripts/storefront-bw-observe/observe.twig');
         $entities = (string) $zip->getFromName('BusinessWatchdog/Resources/entities.xml');
         $script = (string) $zip->getFromName('BusinessWatchdog/Resources/app/storefront/dist/storefront/js/business-watchdog/business-watchdog.js');
@@ -226,15 +225,13 @@ class CheckoutObservationTest extends TestCase
         $zip->close();
         @unlink($path);
 
-        foreach (['Resources/views/storefront/page/checkout/finish/index.html.twig', 'Resources/scripts/checkout-confirm-page-loaded/observe.twig', 'Resources/scripts/checkout-finish-page-loaded/observe.twig'] as $file) {
-            $this->assertContains('BusinessWatchdog/'.$file, $names);
-        }
+        $this->assertSame([], array_values(array_filter($names, fn (string $name): bool => str_contains($name, '/Resources/views/') || str_contains($name, 'page-loaded/'))));
         $this->assertStringContainsString('<version>'.ShopwareApp::APP_VERSION.'</version>', $manifest);
-        $this->assertStringContainsString("path('frontend.script_endpoint', {'hook': 'bw-observe'})", $confirm);
+        $this->assertStringContainsString("new URL('/storefront/script/bw-observe'", $script);
         $this->assertStringContainsString('custom_entity_bw_checkout_report', $entities);
         $this->assertStringContainsString("services.writer.upsert('custom_entity_bw_checkout_report'", $endpoint);
         $this->assertStringContainsString('response.cache.disable()', $endpoint);
-        foreach ([$confirm, $script, $endpoint] as $file) {
+        foreach ([$script, $endpoint] as $file) {
             $this->assertStringNotContainsString('/api/v1/', $file, 'the shopper\'s browser never contacts the service');
             $this->assertStringNotContainsString((string) parse_url((string) config('app.url'), PHP_URL_HOST), $file);
         }
@@ -242,6 +239,24 @@ class CheckoutObservationTest extends TestCase
         foreach (['localStorage', 'sessionStorage', 'document.cookie', '.value', 'fetch('] as $forbidden) {
             $this->assertStringNotContainsString($forbidden, $script, "the script must not use {$forbidden}");
         }
+    }
+
+    public function test_shopware_app_archive_is_not_issued_without_exact_release_approval(): void
+    {
+        config()->set('watchdog.connector_release_gate', true);
+        $request = fn () => $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
+            ->postJson("/api/v1/stores/{$this->store->id}/integrations/shopware-app", ['state_change_risk_acknowledged' => true]);
+
+        $request()->assertStatus(409)->assertJsonPath('code', 'shopware_app_release_not_approved');
+
+        $app = app(ShopwareApp::class);
+        config()->set('watchdog.shopware.app_approved_sha256', $app->releaseFingerprint());
+        $request()->assertStatus(409)->assertJsonPath('code', 'shopware_app_release_not_approved');
+        config()->set('watchdog.shopware.app_approved_store_ids', (string) $this->store->id);
+        $request()->assertOk();
+
+        config()->set('watchdog.shopware.app_approved_sha256', str_repeat('0', 64));
+        $request()->assertStatus(409)->assertJsonPath('code', 'shopware_app_release_not_approved');
     }
 
     public function test_coverage_and_the_browser_check_know_whether_the_script_is_expected(): void

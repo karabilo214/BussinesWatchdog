@@ -4,6 +4,8 @@ return [
     'release' => env('WATCHDOG_RELEASE', 'dev'),
 
     'plugin_dir' => env('WATCHDOG_PLUGIN_DIR', storage_path('app/plugins')),
+    'connector_release_gate' => (bool) env('WATCHDOG_CONNECTOR_RELEASE_GATE', env('APP_ENV') === 'production'),
+    'woo_approved_sha256' => (string) env('WATCHDOG_WOO_APPROVED_SHA256', ''),
 
     'rate_limits' => [
         'login_per_minute' => (int) env('WATCHDOG_RATE_LOGIN_PER_MINUTE', 5),
@@ -176,6 +178,8 @@ return [
     ],
 
     'shopware' => [
+        'app_approved_sha256' => (string) env('WATCHDOG_SHOPWARE_APP_APPROVED_SHA256', ''),
+        'app_approved_store_ids' => (string) env('WATCHDOG_SHOPWARE_APP_APPROVED_STORE_IDS', ''),
         'timeout_seconds' => 20,
         'page_size' => 100,
         'max_requests_per_run' => 60,

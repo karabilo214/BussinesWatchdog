@@ -4,6 +4,7 @@ namespace BusinessWatchdog\WooCommerce\Attempts;
 
 use BusinessWatchdog\WooCommerce\Capture\OrderCapture;
 use BusinessWatchdog\WooCommerce\Synthetic\SyntheticRequest;
+use BusinessWatchdog\WooCommerce\Safety\Guard;
 
 final class AttemptHooks
 {
@@ -17,15 +18,15 @@ final class AttemptHooks
 
     public static function register(): void
     {
-        add_action('woocommerce_checkout_process', [self::class, 'onClassicCheckout'], 1, 0);
-        add_filter('woocommerce_add_error', [self::class, 'onError'], 999, 1);
-        add_action('woocommerce_checkout_order_processed', [self::class, 'onClassicOrderProcessed'], 999, 3);
-        add_action('woocommerce_store_api_checkout_order_processed', [self::class, 'onBlocksOrderProcessed'], 999, 1);
-        add_action('woocommerce_blocks_checkout_order_processed', [self::class, 'onBlocksOrderProcessed'], 999, 1);
-        add_filter('rest_request_after_callbacks', [self::class, 'onRestResponse'], 999, 3);
-        add_action('woocommerce_payment_complete', [self::class, 'onPaymentComplete'], 999, 1);
-        add_action('woocommerce_order_status_changed', [self::class, 'onStatusChanged'], 999, 3);
-        add_action('shutdown', [self::class, 'finishRequest'], 5, 0);
+        add_action('woocommerce_checkout_process', Guard::action([self::class, 'onClassicCheckout'], 'classic_checkout'), 1, 0);
+        add_filter('woocommerce_add_error', Guard::filter([self::class, 'onError'], 'checkout_error'), 999, 1);
+        add_action('woocommerce_checkout_order_processed', Guard::action([self::class, 'onClassicOrderProcessed'], 'classic_order_processed'), 999, 3);
+        add_action('woocommerce_store_api_checkout_order_processed', Guard::action([self::class, 'onBlocksOrderProcessed'], 'store_order_processed'), 999, 1);
+        add_action('woocommerce_blocks_checkout_order_processed', Guard::action([self::class, 'onBlocksOrderProcessed'], 'blocks_order_processed'), 999, 1);
+        add_filter('rest_request_after_callbacks', Guard::filter([self::class, 'onRestResponse'], 'rest_checkout_response'), 999, 3);
+        add_action('woocommerce_payment_complete', Guard::action([self::class, 'onPaymentComplete'], 'attempt_payment_complete'), 999, 1);
+        add_action('woocommerce_order_status_changed', Guard::action([self::class, 'onStatusChanged'], 'attempt_status_changed'), 999, 3);
+        add_action('shutdown', Guard::action([self::class, 'finishRequest'], 'attempt_finish'), 5, 0);
     }
 
     public static function onClassicCheckout(): void

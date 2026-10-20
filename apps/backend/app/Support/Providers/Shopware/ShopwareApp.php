@@ -29,7 +29,7 @@ class ShopwareApp
 {
     public const APP_NAME = 'BusinessWatchdog';
 
-    public const APP_VERSION = '1.3.0';
+    public const APP_VERSION = '1.3.1';
 
     public const PERMISSIONS = ['order', 'order_transaction', 'order_transaction_capture', 'order_transaction_capture_refund', 'currency', 'payment_method', 'state_machine', 'state_machine_state'];
 
@@ -77,6 +77,8 @@ class ShopwareApp
      */
     public function package(Store $store, bool $riskAcknowledged, ?string $actorId): array
     {
+        $this->assertReleaseApproved($store);
+
         if (! $riskAcknowledged) {
             throw new AccountRejected('shopware_state_change_risk_not_acknowledged');
         }
@@ -291,6 +293,8 @@ class ShopwareApp
      */
     public function updatePackage(Store $store, ?string $actorId): array
     {
+        $this->assertReleaseApproved($store);
+
         /** @var Integration|null $integration */
         $integration = Integration::query()
             ->where('tenant_id', $store->tenant_id)
@@ -344,24 +348,49 @@ class ShopwareApp
 XML;
         $xml = sprintf($manifest, self::APP_NAME, $version, htmlspecialchars($base.'/register', ENT_XML1), $manifestSecret, self::permissionsXml(), $webhooks);
         $path = tempnam(sys_get_temp_dir(), 'bw-shopware-app');
-        $zip = new ZipArchive;
-        $zip->open($path, ZipArchive::OVERWRITE);
-        $zip->addFromString(self::APP_NAME.'/manifest.xml', $xml);
 
-        foreach ($withSources ? $this->sourceFiles() : [] as $relative => $contents) {
-            $zip->addFromString(self::APP_NAME.'/'.$relative, $contents);
+        if ($path === false) {
+            throw new \RuntimeException('shopware_app_archive_temp_failed');
         }
 
-        $zip->close();
-        $bytes = (string) file_get_contents($path);
-        @unlink($path);
+        try {
+            $zip = new ZipArchive;
 
-        return $bytes;
+            if ($zip->open($path, ZipArchive::OVERWRITE) !== true) {
+                throw new \RuntimeException('shopware_app_archive_open_failed');
+            }
+
+            try {
+                if (! $zip->addFromString(self::APP_NAME.'/manifest.xml', $xml)) {
+                    throw new \RuntimeException('shopware_app_manifest_write_failed');
+                }
+
+                foreach ($withSources ? $this->sourceFiles() : [] as $relative => $contents) {
+                    if (! $zip->addFromString(self::APP_NAME.'/'.$relative, $contents)) {
+                        throw new \RuntimeException('shopware_app_source_write_failed');
+                    }
+                }
+            } finally {
+                if (! $zip->close()) {
+                    throw new \RuntimeException('shopware_app_archive_close_failed');
+                }
+            }
+
+            $bytes = file_get_contents($path);
+
+            if ($bytes === false || $bytes === '') {
+                throw new \RuntimeException('shopware_app_archive_read_failed');
+            }
+
+            return $bytes;
+        } finally {
+            @unlink($path);
+        }
     }
 
     /**
      * The app's files (`resources/shopware-app`, linked as `plugins/shopware-app/src`): the checkout observation
-     * script, the templates that place it, the app's storefront endpoint and page scripts, and its entities (ADR 0062).
+     * script, its separate storefront endpoint and its entities. No app code runs during checkout page rendering.
      *
      * @return array<string, string>
      */
@@ -373,13 +402,54 @@ XML;
 
         foreach ($iterator as $file) {
             if ($file->isFile()) {
-                $files[str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1))] = (string) file_get_contents($file->getPathname());
+                $contents = file_get_contents($file->getPathname());
+
+                if ($contents === false) {
+                    throw new \RuntimeException('shopware_app_source_read_failed');
+                }
+
+                $files[str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1))] = $contents;
             }
         }
 
         ksort($files);
 
         return $files;
+    }
+
+    public function releaseFingerprint(): string
+    {
+        return hash('sha256', json_encode([
+            'version' => self::APP_VERSION,
+            'package_builder_sha256' => hash_file('sha256', __FILE__),
+            'permissions' => self::PERMISSIONS,
+            'events' => self::events(),
+            'sources' => $this->sourceFiles(),
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    public function releaseApproved(?string $storeId = null): bool
+    {
+        if (! (bool) config('watchdog.connector_release_gate')) {
+            return true;
+        }
+
+        $approved = strtolower((string) config('watchdog.shopware.app_approved_sha256'));
+
+        if (preg_match('/^[0-9a-f]{64}$/', $approved) !== 1 || ! hash_equals($approved, $this->releaseFingerprint())) {
+            return false;
+        }
+
+        $storeIds = array_filter(array_map('trim', explode(',', (string) config('watchdog.shopware.app_approved_store_ids'))));
+
+        return $storeId !== null && in_array($storeId, $storeIds, true);
+    }
+
+    private function assertReleaseApproved(Store $store): void
+    {
+        if (! $this->releaseApproved((string) $store->id)) {
+            throw new AccountRejected('shopware_app_release_not_approved', 409);
+        }
     }
 
     /**
