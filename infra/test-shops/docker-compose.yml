@@ -55,6 +55,17 @@ services:
       - default
       - shops
 
+  # The "system cron" WooCommerce stores are told to set up: WP-Cron only runs on visits, and a quiet store would
+  # otherwise stop sending the plugin's heartbeat and queued events.
+  woo-cron:
+    image: curlimages/curl:8.16.0
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      - woo
+    entrypoint: ["sh", "-c", "while true; do curl -s -o /dev/null -H 'X-Forwarded-Proto: https' -H 'Host: woo-test.${SITE_DOMAIN}' 'http://bw-test-woo/wp-cron.php?doing_wp_cron'; sleep 300; done"]
+    mem_limit: 32m
+
   shopware:
     image: bw-shopware:${SHOPWARE_VERSION}
     container_name: bw-test-shopware
