@@ -428,11 +428,11 @@ Status: complete; ADR 0068 accepted by the owner on 2026-10-20 ((b) for FIN-15 a
   - FIN-08: RP also counts the part of a succeeded provider refund that no store refund claims, on a payment allocated to this order alone.
   - FIN-17: a store refund with `external_required = null` makes the refund result `unknown` (`refund_external_unknown`).
 - `MoneyIncidentCorrelator`:
-  - `MONEY_PAYMENT_NOT_MATCHED` → component `capture`, severity warning; `MONEY_CANCELLED_PAID` → component `cancelled_paid`, severity info.
+  - `MONEY_PAYMENT_NOT_MATCHED` → component `capture`, severity warning; `MONEY_CANCELLED_PAID` → component `cancelled_paid`, severity warning (owner raised it from info, so default channels are notified).
   - No-amount rules (not matched, order changed, cancelled paid) never carry a verified discrepancy, also when they replace an amount in the same incident.
   - An `unknown` result with `order_changed_after_capture` / `currency_mismatch` withdraws an amount an earlier version published (incident stays open, no notification).
 - `php artisan reconciliation:recheck-open-incidents`: queues every order behind an open money incident once, after the release (`docs/ops/maintenance.md`).
 - Texts: notification facts and «what to check» ru/en/de; rule labels, incident titles and actions in the cabinet and the owner panel; the cabinet's rule filter lists both new codes.
-- Tests: `FinRegistryTest` has no deviations left (24/24). `MoneyIncidentCorrelatorTest` covers: the unmatched warning without an amount replacing an earlier amount; the cancelled-paid info review closed by a refund; order changed without an amount; amount withdrawal plus the recheck command. Test order helpers now give paid orders a known provider payment (`tests/Concerns/KnownProviderPayment`), since a paid order without one is now «not matched».
+- Tests: `FinRegistryTest` has no deviations left (24/24). `MoneyIncidentCorrelatorTest` covers: the unmatched warning without an amount replacing an earlier amount; the cancelled-paid review closed by a refund; order changed without an amount; amount withdrawal plus the recheck command. Test order helpers now give paid orders a known provider payment (`tests/Concerns/KnownProviderPayment`), since a paid order without one is now «not matched».
 
 Verification: backend SQLite 664 passed + 4 skipped, PostgreSQL 18 668/668, Pint ok; customer cabinet 134/134 and owner panel 67/67 with typecheck and builds. Stripe only through JSON-faked HTTP; no real provider in this step.

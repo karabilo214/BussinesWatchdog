@@ -35,7 +35,7 @@
 | FIN-16 | Authorization без capture | совпадает | авторизация не считается списанием, итог pending |
 | FIN-17 | Ручной возврат с неизвестной отправкой | совпадает | unknown (`refund_external_unknown`), разницы не публикуются |
 | FIN-18 | Повтор webhook не увеличивает capture | совпадает | повторная синхронизация не создаёт второй операции, capture 12500 |
-| FIN-19 | Cancelled paid не значит возвращён | совпадает | MONEY_CANCELLED_PAID: информационный инцидент без суммы «проверьте возврат»; разницы 0 |
+| FIN-19 | Cancelled paid не значит возвращён | совпадает | MONEY_CANCELLED_PAID: инцидент «внимание» без суммы «проверьте возврат»; разницы 0 |
 | FIN-20 | Total изменён после capture | совпадает | MONEY_ORDER_CHANGED без суммы; MONEY_CAPTURE_AMOUNT — unknown (`order_changed_after_capture`), capture −5000 как факт |
 | FIN-21 | Валюты различаются | совпадает | только MONEY_CURRENCY_MISMATCH; MONEY_CAPTURE_MISSING — unknown (`currency_mismatch`), без суммы |
 | FIN-22 | Две разные операции capture | совпадает | MONEY_MULTIPLE_CAPTURES, C = 20000 (дополнительно MONEY_CAPTURE_AMOUNT +10000) |

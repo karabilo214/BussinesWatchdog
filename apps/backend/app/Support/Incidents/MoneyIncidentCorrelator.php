@@ -55,10 +55,6 @@ class MoneyIncidentCorrelator
     /** Unknown results that withdraw an amount an earlier rule version published for the same component (ADR 0068). */
     private const AMOUNT_WITHDRAWN_REASONS = ['order_changed_after_capture', 'currency_mismatch'];
 
-    private const SEVERITY = [
-        ReconciliationFinding::RULE_CANCELLED_PAID => Incident::SEVERITY_INFO,
-    ];
-
     public function __construct(
         private readonly IncidentNotificationRequester $notifications,
     ) {}
@@ -136,7 +132,7 @@ class MoneyIncidentCorrelator
                     'component' => $component,
                     'fingerprint' => $fingerprint,
                     'state' => Incident::STATE_OPEN,
-                    'severity' => self::SEVERITY[$finding->rule_code] ?? Incident::SEVERITY_WARNING,
+                    'severity' => Incident::SEVERITY_WARNING,
                     'title_code' => $finding->rule_code,
                     'currency' => $finding->currency,
                     'mode' => $finding->mode,

@@ -74,7 +74,7 @@ class MoneyIncidentCorrelatorTest extends TestCase
         $this->assertSame([ReconciliationFinding::RULE_PAYMENT_NOT_MATCHED, null], [$fresh->title_code, $fresh->verified_discrepancy_minor]);
     }
 
-    public function test_a_cancelled_paid_order_without_a_refund_is_an_info_review_that_a_refund_resolves(): void
+    public function test_a_cancelled_paid_order_without_a_refund_is_a_review_without_an_amount_that_a_refund_resolves(): void
     {
         $context = $this->context();
         $order = $this->order($context, [
@@ -90,7 +90,7 @@ class MoneyIncidentCorrelatorTest extends TestCase
         $review = collect($incidents)->firstWhere('title_code', ReconciliationFinding::RULE_CANCELLED_PAID);
 
         $this->assertNotNull($review);
-        $this->assertSame(['cancelled_paid', Incident::SEVERITY_INFO, null], [$review->component, $review->severity, $review->verified_discrepancy_minor]);
+        $this->assertSame(['cancelled_paid', Incident::SEVERITY_WARNING, null], [$review->component, $review->severity, $review->verified_discrepancy_minor]);
         $this->assertCount(1, $incidents);
 
         Refund::query()->create([
