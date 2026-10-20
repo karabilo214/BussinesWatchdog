@@ -67,6 +67,9 @@ woo-test.{$SITE_DOMAIN} {
 
 shopware-test.{$SITE_DOMAIN} {
 	import test_shop
+	# Tools the dockware image ships for local development; never reachable from outside.
+	@dockware path /adminer* /mailcatcher* /messages* /assets/* /logs* /server-status* /phpmyadmin*
+	respond @dockware 404
 	reverse_proxy bw-test-shopware:80
 }
 
