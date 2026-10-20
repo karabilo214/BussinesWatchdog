@@ -948,3 +948,21 @@ Status: backend complete; the cabinet, owner panel and emails follow in Step 204
   - the tenant card carries `deletion`. OpenAPI updated.
 
 Verification: `tests/Feature/Privacy/OrganizationDeletionTest.php` (8 tests: table coverage guard; owner-only, step-up and name; stop at once and cancel within 30 days; full purge in more than three resumable runs keeping billing records, files gone, users anonymized or kept, other tenant untouched; journal replay after an "old backup"; platform owner only with code and cancel; Paddle cancelled first and a refusal changes nothing; a cancelled request is not purged). Backend SQLite 674 passed + 4 skipped, PostgreSQL 18 678/678 (the purge runs against real foreign keys), Pint ok; owner panel 67/67; customer cabinet 133/134 — the failing test is about a Shopware error code from the parallel Codex work on the App, not this step.
+
+### Step 204: Organization Deletion — Cabinet, Owner Panel, Emails (ADR 0069)
+
+Status: complete; not deployed
+
+- Cabinet: new settings tab «Организация» (`/settings/organization`, `OrganizationView`):
+  - it explains the three separate actions: pause a store's monitoring, cancel the subscription, delete the organization;
+  - the owner opens the deletion form, types the organization name exactly (the API returns `tenant_name`), the password and the MFA code when it is on; the button stays disabled until the name matches;
+  - other roles read «only the owner».
+- While the active organization is `deleting`, the router sends every page except the profile to this screen. It shows who requested the deletion and when, and the purge date. The owner can cancel with the password (and code), which returns to the overview; others are told to ask the owner; a running purge cannot be cancelled.
+- Owner panel, customer card (`TenantDeletion`):
+  - the platform owner (`tenants.delete`) gets «Удалить организацию по просьбе клиента…» with a reason and the authenticator code;
+  - every staff member sees a banner with the purge date and who requested it, plus a «Удаляется» badge;
+  - the platform owner can cancel within the 30 days; a failed purge says it needs help on the server. The capability has its label in the staff permissions.
+- Emails to every owner of the organization (ru/en/de, `lang/*/account.php`): deletion scheduled (date, who, link to cancel, «if you did not ask for this»), deletion cancelled (the subscription does not come back), deletion completed (sent once, before the members are anonymized; the owners are noted when the purge starts). A mail failure never stops the deletion.
+- Delivery log: error label `tenant_deleting`.
+
+Verification: backend `OrganizationDeletionTest` 8/8 with the emails (scheduled + completed to the owner, nothing to a non-owner member, scheduled + cancelled on cancel); SQLite 674 passed + 4 skipped, PostgreSQL 18 678/678; cabinet `organization.test.ts` 3/3 (owner-only, exact name + step-up + code error, cancel and redirect, non-owner during deletion), typecheck and build; owner panel 68/68 (`tenants.test.ts`: only with `tenants.delete`, reason + code, banner, cancel). The cabinet suite has one failing test unrelated to this step: Shopware connector error codes added in `d34576b` (Codex) have no translations yet.

@@ -203,7 +203,10 @@ class OrganizationPurger
                 $started = DataDeletionRequest::query()
                     ->whereKey($request->id)
                     ->where('status', DataDeletionRequest::STATUS_REQUESTED)
-                    ->update(['status' => DataDeletionRequest::STATUS_REVOKING, 'cursor' => json_encode(['members' => $this->memberIds($request->tenant_id)])]);
+                    ->update(['status' => DataDeletionRequest::STATUS_REVOKING, 'cursor' => json_encode([
+                        'members' => $this->memberIds($request->tenant_id),
+                        'owners' => app(OrganizationDeletion::class)->owners($request->tenant_id)->pluck('id')->all(),
+                    ])]);
 
                 if ($started !== 1) {
                     return (string) DataDeletionRequest::query()->whereKey($request->id)->value('status');
@@ -324,6 +327,18 @@ class OrganizationPurger
 
     private function finish(DataDeletionRequest $request): void
     {
+        if (! ($request->cursor['notified'] ?? false)) {
+            /** @var Tenant $tenant */
+            $tenant = Tenant::query()->whereKey($request->tenant_id)->firstOrFail();
+            app(OrganizationDeletion::class)->notify(
+                User::query()->whereIn('id', $request->cursor['owners'] ?? [])->where('email', 'not like', '%@deleted.invalid')->get(),
+                'organization_deletion_completed',
+                $tenant,
+                $request->requested_via,
+            );
+            $request = $this->advance($request, $request->status, ['notified' => true]);
+        }
+
         DB::transaction(function () use ($request): void {
             $now = Carbon::now();
 

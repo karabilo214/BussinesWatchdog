@@ -39,6 +39,8 @@ vi.mock('@/api', () => ({
   revokeTenantInvitation: vi.fn(),
   resetCustomerMfa: vi.fn(),
   fetchSubscriptions: vi.fn(),
+  requestTenantDeletion: vi.fn(),
+  cancelTenantDeletion: vi.fn(),
 }));
 
 const mocked = vi.mocked(api);
@@ -71,6 +73,7 @@ function card(overrides: Partial<TenantCard> = {}): TenantCard {
     trial_consumed_at: null,
     access: { state: 'active', reasons: ['paid_period'], enforced: true },
     capacity: { limit: 2, stores: 1, paused: 0, choice_required: false },
+    deletion: null,
     members: [{ user_id: 'u-1', role: 'owner', mfa_enabled: true, joined_at: '2026-10-01T10:00:00Z', name: 'Anna', email: 'anna@example.test', email_verified: true }],
     stores: [{ id: 's-1', name: 'Shop', host: 'kaffee.example', platform: 'woocommerce', status: 'active', verified: true, browser_enabled: true, capacity_paused_at: null, open_incidents: 1, orders_this_month: 640, orders_average: 1267, orders_over_since: '2026-10-20T04:10:00Z', created_at: null }], orders_limit: 1000,
     billing: {
@@ -109,6 +112,39 @@ beforeEach(() => {
 });
 
 describe('tenants', () => {
+  it('deletes an organization only with tenants.delete, a reason and a code, and can cancel it', async () => {
+    const scheduled = card({ status: 'deleting', deletion: { status: 'requested', requested_via: 'platform', requested_at: '2026-10-20T10:00:00Z', purge_after: '2026-11-19T10:00:00Z', can_cancel: true } });
+    mocked.requestTenantDeletion.mockResolvedValue(scheduled);
+    mocked.cancelTenantDeletion.mockResolvedValue(card());
+
+    const { wrapper: support } = await open('/owner/tenants/t-1');
+    expect(support.find('[data-action="open-delete-tenant"]').exists()).toBe(false);
+    support.unmount();
+    useStaff().forget();
+
+    const { wrapper } = await open('/owner/tenants/t-1', ['tenants.read', 'tenants.manage', 'tenants.delete']);
+    await wrapper.get('[data-action="open-delete-tenant"]').trigger('click');
+    expect(wrapper.get('[data-form="tenant-deletion"]').text()).toContain('Kaffee Lindner GmbH');
+    expect(wrapper.get('[data-action="confirm-tenant-deletion"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-form="tenant-deletion"] [data-field="reason"]').setValue('Customer asked by email');
+    await wrapper.get('[data-form="tenant-deletion"] [data-field="step-up"]').setValue('123456');
+    await wrapper.get('[data-form="tenant-deletion"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.requestTenantDeletion).toHaveBeenCalledWith('t-1', { reason: 'Customer asked by email', confirmation_code: '123456' });
+    expect(wrapper.get('[data-panel="tenant-deletion"]').text()).toContain('будет удалена');
+    expect(wrapper.find('[data-badge="deleting"]').exists()).toBe(true);
+
+    await wrapper.get('[data-action="open-cancel-deletion"]').trigger('click');
+    await wrapper.get('[data-form="tenant-deletion"] [data-field="reason"]').setValue('Customer changed their mind');
+    await wrapper.get('[data-form="tenant-deletion"] [data-field="step-up"]').setValue('654321');
+    await wrapper.get('[data-form="tenant-deletion"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.cancelTenantDeletion).toHaveBeenCalledWith('t-1', { reason: 'Customer changed their mind', confirmation_code: '654321' });
+    expect(wrapper.find('[data-panel="tenant-deletion"]').exists()).toBe(false);
+  });
+
   it('lets support reset a customer authenticator with a reason and code', async () => {
     mocked.fetchTenant.mockResolvedValueOnce(card()).mockResolvedValueOnce(card({ members: [{ user_id: 'u-1', role: 'owner', mfa_enabled: false, joined_at: null, name: 'Anna', email: 'anna@example.test', email_verified: true }] }));
     mocked.resetCustomerMfa.mockResolvedValue();

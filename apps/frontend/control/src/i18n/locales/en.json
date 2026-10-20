@@ -665,6 +665,20 @@
       "hint": "Every sent reminder: who, when, to whom and with which text.",
       "empty": "No reminders yet.",
       "unknown_sender": "staff member removed"
+    },
+    "deletion": {
+      "open": "Delete the organization at the customer's request…",
+      "warning": "The organization “{name}” stops being served at once, a paid Paddle subscription is cancelled without a refund, and after 30 days the data is deleted for good. Only on the customer's written request; the organization owners get an email.",
+      "submit": "Schedule the deletion",
+      "scheduled": "The organization will be deleted on {date}",
+      "by": {
+        "owner": "The organization owner requested the deletion on {date}.",
+        "platform": "The platform owner requested the deletion at the customer's request on {date}."
+      },
+      "cancel": "Cancel the deletion",
+      "cancel_hint": "Cancelling restores the service; the cancelled subscription does not come back. The organization owners get an email.",
+      "running": "The deletion is already running and cannot be cancelled.",
+      "failed": "The deletion stopped after several errors — it needs help on the server (docs/ops/maintenance.md, privacy:process-deletions)."
     }
   },
   "audit_action": {

@@ -665,6 +665,20 @@
       "hint": "Alle gesendeten Erinnerungen: wer, wann, an wen und mit welchem Text.",
       "empty": "Noch keine Erinnerungen.",
       "unknown_sender": "Mitarbeiter entfernt"
+    },
+    "deletion": {
+      "open": "Organisation auf Wunsch des Kunden löschen…",
+      "warning": "Die Organisation „{name}“ wird sofort nicht mehr bedient, ein kostenpflichtiges Paddle-Abonnement wird ohne Erstattung gekündigt, und nach 30 Tagen werden die Daten endgültig gelöscht. Nur auf schriftlichen Wunsch des Kunden; die Inhaber der Organisation erhalten eine E-Mail.",
+      "submit": "Löschung planen",
+      "scheduled": "Die Organisation wird am {date} gelöscht",
+      "by": {
+        "owner": "Der Inhaber der Organisation hat die Löschung am {date} beantragt.",
+        "platform": "Der Plattform-Inhaber hat die Löschung auf Wunsch des Kunden am {date} beantragt."
+      },
+      "cancel": "Löschung widerrufen",
+      "cancel_hint": "Der Widerruf stellt den Dienst wieder her; das gekündigte Abonnement kommt nicht zurück. Die Inhaber der Organisation erhalten eine E-Mail.",
+      "running": "Die Löschung läuft bereits und kann nicht widerrufen werden.",
+      "failed": "Die Löschung ist nach mehreren Fehlern angehalten — sie braucht Hilfe auf dem Server (docs/ops/maintenance.md, privacy:process-deletions)."
     }
   },
   "audit_action": {

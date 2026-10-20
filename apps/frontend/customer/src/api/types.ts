@@ -17,6 +17,22 @@ export interface Membership {
   tenant_id: string;
   role: 'owner' | 'admin' | 'operator' | 'viewer';
   created_at: string;
+  tenant_status?: 'active' | 'suspended' | 'deleting' | 'deleted' | null;
+  deletion_purge_after?: string | null;
+}
+
+export interface OrganizationDeletionState {
+  tenant_name: string;
+  tenant_status: 'active' | 'suspended' | 'deleting' | 'deleted';
+  can_request: boolean;
+  request: {
+    id: string;
+    status: 'requested' | 'revoking' | 'deleting_objects' | 'purging' | 'failed';
+    requested_via: 'owner' | 'platform';
+    requested_at: string;
+    purge_after: string;
+    can_cancel: boolean;
+  } | null;
 }
 
 export interface AuthSession {

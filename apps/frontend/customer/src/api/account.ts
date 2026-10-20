@@ -1,5 +1,5 @@
 import { request } from '@bw/api-client';
-import type { AuthSession, InvitationLookup, Locale, MfaSetup, MfaState, TeamInvitation, TeamMember, TeamRole } from './types';
+import type { AuthSession, InvitationLookup, Locale, MfaSetup, MfaState, OrganizationDeletionState, TeamInvitation, TeamMember, TeamRole } from './types';
 
 export async function requestPasswordReset(email: string): Promise<void> {
   await request('POST', '/api/v1/auth/password-reset/request', { body: { email } });
@@ -100,4 +100,16 @@ export async function transferOwnership(targetUserId: string, currentPassword: s
 
 export async function resetMemberMfa(userId: string, reason: string, currentPassword: string, code: string | null): Promise<void> {
   await request('POST', `/api/v1/memberships/${encodeURIComponent(userId)}/mfa/reset`, { body: { reason, current_password: currentPassword, code } });
+}
+
+export async function getOrganizationDeletion(): Promise<OrganizationDeletionState> {
+  return (await request<OrganizationDeletionState>('GET', '/api/v1/organization-deletion')).data;
+}
+
+export async function requestOrganizationDeletion(organizationName: string, currentPassword: string, code: string | null): Promise<OrganizationDeletionState> {
+  return (await request<OrganizationDeletionState>('POST', '/api/v1/organization-deletion', { body: { organization_name: organizationName, current_password: currentPassword, code } })).data;
+}
+
+export async function cancelOrganizationDeletion(currentPassword: string, code: string | null): Promise<OrganizationDeletionState> {
+  return (await request<OrganizationDeletionState>('POST', '/api/v1/organization-deletion/cancel', { body: { current_password: currentPassword, code } })).data;
 }

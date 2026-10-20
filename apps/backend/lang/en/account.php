@@ -86,4 +86,20 @@ return [
         'operator' => 'operator',
         'viewer' => 'viewer',
     ],
+    'organization_deletion_requested' => [
+        'subject' => 'Business Watchdog: the organization “:tenant” will be deleted on :date',
+        'body' => "Deletion of the organization “:tenant” has been requested (:by). Monitoring of its stores has stopped and a paid subscription, if any, is cancelled.\n\nOn :date all data of the organization will be deleted for good: stores, orders, reconciliation, incidents, checks, screenshots, notifications and the team. Only anonymized billing records that we must keep will remain.\n\nUntil then the owner can cancel the deletion in the dashboard:\n:link\n\nIf you did not request this, cancel it right away and change your password.",
+    ],
+    'organization_deletion_cancelled' => [
+        'subject' => 'Business Watchdog: deletion of the organization “:tenant” cancelled',
+        'body' => "Deletion of the organization “:tenant” has been cancelled (:by). Monitoring has resumed and the data of the paused period will catch up. The cancelled subscription does not come back: subscribe again under “Subscription” if needed.\n:link",
+    ],
+    'organization_deletion_completed' => [
+        'subject' => 'Business Watchdog: the organization “:tenant” has been deleted',
+        'body' => 'The data of the organization “:tenant” has been deleted. Only anonymized billing records that we must keep remain. If your account belongs to no other organization, it has been deleted too.',
+    ],
+    'organization_deletion_by' => [
+        'owner' => 'the organization owner',
+        'platform' => 'Business Watchdog support at your request',
+    ],
 ];

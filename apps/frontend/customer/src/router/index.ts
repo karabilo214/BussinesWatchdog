@@ -19,6 +19,7 @@ export function buildRouter(): Router {
       { path: '/settings/profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
       { path: '/settings/team', name: 'team', component: () => import('@/views/TeamView.vue') },
       { path: '/settings/billing', name: 'billing', component: () => import('@/views/BillingView.vue') },
+      { path: '/settings/organization', name: 'organization', component: () => import('@/views/OrganizationView.vue') },
       { path: '/overview', name: 'overview', component: () => import('@/views/OverviewView.vue') },
       { path: '/stores/new', name: 'store-create', component: () => import('@/views/StoreCreateView.vue') },
       { path: '/stores/:id', name: 'store', component: () => import('@/views/StoreView.vue'), props: true },
@@ -43,6 +44,12 @@ export function buildRouter(): Router {
 
     if (to.name === 'login' && session !== null) {
       return { name: 'overview' };
+    }
+
+    const active = session?.memberships.find((membership) => membership.tenant_id === session.active_tenant_id);
+
+    if (!to.meta.public && active?.tenant_status === 'deleting' && !['organization', 'profile'].includes(String(to.name))) {
+      return { name: 'organization' };
     }
 
     return true;

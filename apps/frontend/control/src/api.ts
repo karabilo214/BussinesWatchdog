@@ -326,6 +326,14 @@ export interface Override {
   active: boolean;
 }
 
+export interface TenantDeletion {
+  status: 'requested' | 'revoking' | 'deleting_objects' | 'purging' | 'failed';
+  requested_via: 'owner' | 'platform';
+  requested_at: string;
+  purge_after: string;
+  can_cancel: boolean;
+}
+
 export interface TenantCard {
   id: string;
   name: string;
@@ -336,6 +344,7 @@ export interface TenantCard {
   trial_consumed_at: string | null;
   access: TenantAccess;
   capacity: StoreCapacity;
+  deletion: TenantDeletion | null;
   members: (Contact & { user_id: string; role: string; mfa_enabled: boolean; joined_at: string | null })[];
   stores: { id: string; name: string; host: string; platform: string; status: string; verified: boolean; browser_enabled: boolean; capacity_paused_at: string | null; open_incidents: number; orders_this_month: number; orders_average: number | null; orders_over_since: string | null; created_at: string | null }[];
   orders_limit?: number | null;
@@ -384,6 +393,14 @@ export async function fetchTenants(filters: TenantFilters): Promise<{ data: Tena
 
 export async function fetchTenant(id: string): Promise<TenantCard> {
   return (await request<TenantCard>('GET', `/platform-api/v1/tenants/${encodeURIComponent(id)}`)).data;
+}
+
+export async function requestTenantDeletion(id: string, confirmation: Confirmation): Promise<TenantCard> {
+  return (await request<TenantCard>('POST', `/platform-api/v1/tenants/${encodeURIComponent(id)}/deletion`, { body: confirmation })).data;
+}
+
+export async function cancelTenantDeletion(id: string, confirmation: Confirmation): Promise<TenantCard> {
+  return (await request<TenantCard>('POST', `/platform-api/v1/tenants/${encodeURIComponent(id)}/deletion/cancel`, { body: confirmation })).data;
 }
 
 export async function previewTenantAction(id: string, action: TenantAction, input: TenantActionInput): Promise<ActionPreview> {

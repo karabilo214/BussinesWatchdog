@@ -583,7 +583,12 @@
     "sign_in_required": "Enter the test customer e-mail and password.",
     "sign_in_not_applicable": "A test customer account is only needed for the «Test customer» way.",
     "checkout_access_not_applicable": "This store platform does not need a way to payment.",
-    "shopware_app_not_connected": "No Shopware app is connected for this store — there is nothing to update."
+    "shopware_app_not_connected": "No Shopware app is connected for this store — there is nothing to update.",
+    "organization_name_mismatch": "The name does not match. Type it exactly as shown.",
+    "deletion_already_requested": "Deletion of this organization has already been requested.",
+    "subscription_cancel_failed": "The subscription could not be cancelled at Paddle, so the deletion has not started. Try again later.",
+    "deletion_not_requested": "No deletion has been requested.",
+    "deletion_in_progress": "The deletion is already running and cannot be cancelled."
   },
   "incidents": {
     "title": "Incidents",
@@ -1265,7 +1270,8 @@
     "tab": {
       "profile": "Profile",
       "team": "Team",
-      "billing": "Subscription"
+      "billing": "Subscription",
+      "organization": "Organization"
     }
   },
   "account": {
@@ -1704,5 +1710,31 @@
   "maintenance": {
     "planned": "Planned maintenance {from} — {to}.",
     "now": "Maintenance in progress until {to}."
+  },
+  "organization": {
+    "delete": {
+      "title": "Delete the organization",
+      "pause": "To stop watching a store for a while, pause monitoring in its settings — the data and the subscription stay.",
+      "cancel_subscription": "To stop paying, cancel the subscription under “Subscription” — the history stays and access lasts until the end of the paid period.",
+      "delete": "Deleting the organization removes its data for good after 30 days: stores, orders, reconciliation, incidents, checks, screenshots, notifications and the team. A paid subscription is cancelled at once, without a refund for the rest of the period.",
+      "owner_only": "Only the organization owner can delete it.",
+      "open": "Delete the organization…",
+      "warning": "Monitoring stops at once, and after 30 days the data is deleted for good. Until then the owner can cancel the deletion. Only anonymized billing records that we must keep will remain.",
+      "type_name": "Type the organization name “{name}” to confirm",
+      "submit": "Delete the organization"
+    },
+    "deleting": {
+      "title": "The organization “{name}” is being deleted",
+      "by": {
+        "owner": "The owner requested the deletion on {date}.",
+        "platform": "Business Watchdog support requested the deletion at your request on {date}."
+      },
+      "purge": "The data will be deleted for good on {date}.",
+      "stopped": "Monitoring, checks and notifications are stopped; the subscription is cancelled.",
+      "cancel_hint": "Until then the deletion can be cancelled: monitoring resumes and the data of the paused period catches up. The subscription does not come back — subscribe again if needed.",
+      "cancel": "Cancel the deletion",
+      "ask_owner": "The organization owner can cancel the deletion.",
+      "in_progress": "The deletion is already running and cannot be cancelled."
+    }
   }
 }

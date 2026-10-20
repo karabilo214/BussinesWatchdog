@@ -4,12 +4,17 @@ namespace App\Support\Privacy;
 
 use App\Models\AuditLog;
 use App\Models\DataDeletionRequest;
+use App\Models\Membership;
 use App\Models\Store;
 use App\Models\Tenant;
+use App\Models\User;
+use App\Support\Account\AccountMailer;
+use App\Support\Auth\TenantRoles;
 use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
 use App\Support\Stores\StoreCatchUp;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -26,7 +31,39 @@ class OrganizationDeletion
     public function __construct(
         private readonly PaddleSubscriptionActions $subscriptions,
         private readonly StoreCatchUp $catchUp,
+        private readonly AccountMailer $mailer,
     ) {}
+
+    /**
+     * Tells every owner of the organization (ADR 0069); a mail failure never undoes the deletion step.
+     *
+     * @param  iterable<User>  $owners
+     */
+    public function notify(iterable $owners, string $template, Tenant $tenant, string $via, ?Carbon $date = null): void
+    {
+        foreach ($owners as $owner) {
+            try {
+                $this->mailer->send($owner->email, $owner->locale, $template, [
+                    'tenant' => $tenant->name,
+                    'by' => trans('account.organization_deletion_by.'.$via, [], in_array($owner->locale, AccountMailer::LOCALES, true) ? $owner->locale : 'en'),
+                    'date' => $date?->copy()->setTimezone($tenant->timezone ?: 'UTC')->format('Y-m-d') ?? '',
+                    'link' => $this->mailer->link('/app/'),
+                ]);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function owners(string $tenantId): Collection
+    {
+        return User::query()
+            ->whereIn('id', Membership::query()->where('tenant_id', $tenantId)->where('role', TenantRoles::OWNER)->select('user_id'))
+            ->get();
+    }
 
     public function open(string $tenantId): ?DataDeletionRequest
     {
@@ -48,7 +85,7 @@ class OrganizationDeletion
             throw new DeletionRejected('subscription_cancel_failed', 503);
         }
 
-        return DB::transaction(function () use ($tenant, $actorUserId, $via, $reason): DataDeletionRequest {
+        $request = DB::transaction(function () use ($tenant, $actorUserId, $via, $reason): DataDeletionRequest {
             /** @var Tenant $locked */
             $locked = Tenant::query()->whereKey($tenant->id)->lockForUpdate()->firstOrFail();
 
@@ -78,11 +115,15 @@ class OrganizationDeletion
 
             return $request;
         });
+
+        $this->notify($this->owners($tenant->id), 'organization_deletion_requested', $tenant, $via, $request->purge_after);
+
+        return $request;
     }
 
     public function cancel(Tenant $tenant, string $actorUserId): DataDeletionRequest
     {
-        return DB::transaction(function () use ($tenant, $actorUserId): DataDeletionRequest {
+        $request = DB::transaction(function () use ($tenant, $actorUserId): DataDeletionRequest {
             /** @var DataDeletionRequest|null $request */
             $request = DataDeletionRequest::query()
                 ->where('tenant_id', $tenant->id)
@@ -113,6 +154,11 @@ class OrganizationDeletion
 
             return $request;
         });
+
+        $via = Membership::query()->where('tenant_id', $tenant->id)->where('user_id', $actorUserId)->exists() ? DataDeletionRequest::VIA_OWNER : DataDeletionRequest::VIA_PLATFORM;
+        $this->notify($this->owners($tenant->id), 'organization_deletion_cancelled', $tenant, $via);
+
+        return $request;
     }
 
     /**

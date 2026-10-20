@@ -583,7 +583,12 @@
     "sign_in_required": "Geben Sie E-Mail und Passwort des Testkunden ein.",
     "sign_in_not_applicable": "Ein Testkunden-Konto wird nur für den Weg «Testkunde» benötigt.",
     "checkout_access_not_applicable": "Für diese Shop-Plattform wird kein Weg zur Zahlung gewählt.",
-    "shopware_app_not_connected": "Für diesen Shop ist keine Shopware-App verbunden — es gibt nichts zu aktualisieren."
+    "shopware_app_not_connected": "Für diesen Shop ist keine Shopware-App verbunden — es gibt nichts zu aktualisieren.",
+    "organization_name_mismatch": "Der Name stimmt nicht überein. Geben Sie ihn genau wie angezeigt ein.",
+    "deletion_already_requested": "Die Löschung dieser Organisation wurde bereits beantragt.",
+    "subscription_cancel_failed": "Das Abonnement konnte bei Paddle nicht gekündigt werden, daher wurde die Löschung nicht gestartet. Versuchen Sie es später erneut.",
+    "deletion_not_requested": "Es wurde keine Löschung beantragt.",
+    "deletion_in_progress": "Die Löschung läuft bereits und kann nicht widerrufen werden."
   },
   "incidents": {
     "title": "Vorfälle",
@@ -1265,7 +1270,8 @@
     "tab": {
       "profile": "Profil",
       "team": "Team",
-      "billing": "Abonnement"
+      "billing": "Abonnement",
+      "organization": "Organisation"
     }
   },
   "account": {
@@ -1704,5 +1710,31 @@
   "maintenance": {
     "planned": "Geplante Wartung {from} — {to}.",
     "now": "Wartung läuft bis {to}."
+  },
+  "organization": {
+    "delete": {
+      "title": "Organisation löschen",
+      "pause": "Um einen Shop eine Zeit lang nicht zu überwachen, pausieren Sie die Überwachung in seinen Einstellungen – Daten und Abonnement bleiben erhalten.",
+      "cancel_subscription": "Um nicht mehr zu zahlen, kündigen Sie das Abonnement unter „Abonnement“ – die Historie bleibt, der Zugang bis zum Ende des bezahlten Zeitraums.",
+      "delete": "Das Löschen der Organisation entfernt ihre Daten nach 30 Tagen endgültig: Shops, Bestellungen, Abgleich, Vorfälle, Prüfungen, Screenshots, Benachrichtigungen und das Team. Ein kostenpflichtiges Abonnement wird sofort gekündigt, ohne Erstattung für den Rest des Zeitraums.",
+      "owner_only": "Nur der Inhaber kann die Organisation löschen.",
+      "open": "Organisation löschen…",
+      "warning": "Die Überwachung stoppt sofort, nach 30 Tagen werden die Daten endgültig gelöscht. Bis dahin kann der Inhaber die Löschung widerrufen. Es bleiben nur anonymisierte Abrechnungsdaten, die wir aufbewahren müssen.",
+      "type_name": "Geben Sie zur Bestätigung den Namen der Organisation „{name}“ ein",
+      "submit": "Organisation löschen"
+    },
+    "deleting": {
+      "title": "Die Organisation „{name}“ wird gelöscht",
+      "by": {
+        "owner": "Der Inhaber hat die Löschung am {date} beantragt.",
+        "platform": "Der Business-Watchdog-Support hat die Löschung auf Ihre Bitte am {date} beantragt."
+      },
+      "purge": "Die Daten werden am {date} endgültig gelöscht.",
+      "stopped": "Überwachung, Prüfungen und Benachrichtigungen sind gestoppt; das Abonnement ist gekündigt.",
+      "cancel_hint": "Bis dahin kann die Löschung widerrufen werden: Die Überwachung läuft wieder, die Daten des pausierten Zeitraums werden nachgeladen. Das Abonnement wird nicht wiederhergestellt – schließen Sie es bei Bedarf neu ab.",
+      "cancel": "Löschung widerrufen",
+      "ask_owner": "Der Inhaber der Organisation kann die Löschung widerrufen.",
+      "in_progress": "Die Löschung läuft bereits und kann nicht widerrufen werden."
+    }
   }
 }

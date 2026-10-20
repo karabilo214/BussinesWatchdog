@@ -2,6 +2,8 @@
 
 Status: decisions 1–4 by the owner on 2026-10-20; implemented in Steps 203 (backend) and 204 (cabinet, owner panel, emails).
 
+Open (owner): mention the kept billing records and trial-domain hashes in the Privacy Policy (Site → Pages).
+
 ## Context
 
 TZ §33 sets the order: the owner confirms in an authenticated UI → request record → processing suspended → credentials revoked → objects deleted → tenant domain data purged → users that belong to no other tenant deleted or anonymized → only a minimal lawful record kept; restoring a backup applies a deletion journal before data is shown again. CLIENT-PANELS §6: owner step-up, an admin gets 403; stopping monitoring, cancelling the subscription and deleting the organization are separate actions, and the paid contract must be cancelled before the purge. ACC-42 and EXT-26 were not done. The published Privacy Policy (ADR 0065) promises account data deleted within 30 days after closing or on request, and backups kept up to 12 months.

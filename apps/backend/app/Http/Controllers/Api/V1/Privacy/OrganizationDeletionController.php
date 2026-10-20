@@ -109,6 +109,7 @@ class OrganizationDeletionController extends Controller
         $open = $this->deletion->open($tenant->id);
 
         return [
+            'tenant_name' => $tenant->name,
             'tenant_status' => $tenant->status,
             'can_request' => $role === TenantRoles::OWNER && $open === null && ! in_array($tenant->status, OrganizationDeletion::DELETING_STATUSES, true),
             'request' => $open === null ? null : [

@@ -86,4 +86,20 @@ return [
         'operator' => 'Operator',
         'viewer' => 'Betrachter',
     ],
+    'organization_deletion_requested' => [
+        'subject' => 'Business Watchdog: die Organisation „:tenant“ wird am :date gelöscht',
+        'body' => "Die Löschung der Organisation „:tenant“ wurde beantragt (:by). Die Überwachung ihrer Shops ist gestoppt, ein kostenpflichtiges Abonnement ist, falls vorhanden, gekündigt.\n\nAm :date werden alle Daten der Organisation endgültig gelöscht: Shops, Bestellungen, Abgleich, Vorfälle, Prüfungen, Screenshots, Benachrichtigungen und das Team. Es bleiben nur anonymisierte Abrechnungsdaten, die wir aufbewahren müssen.\n\nBis dahin kann der Inhaber die Löschung im Dashboard widerrufen:\n:link\n\nWenn Sie das nicht beantragt haben, widerrufen Sie es sofort und ändern Sie Ihr Passwort.",
+    ],
+    'organization_deletion_cancelled' => [
+        'subject' => 'Business Watchdog: Löschung der Organisation „:tenant“ widerrufen',
+        'body' => "Die Löschung der Organisation „:tenant“ wurde widerrufen (:by). Die Überwachung läuft wieder, die Daten des pausierten Zeitraums werden nachgeladen. Das gekündigte Abonnement wird nicht wiederhergestellt: schließen Sie es bei Bedarf unter „Abonnement“ neu ab.\n:link",
+    ],
+    'organization_deletion_completed' => [
+        'subject' => 'Business Watchdog: die Organisation „:tenant“ wurde gelöscht',
+        'body' => 'Die Daten der Organisation „:tenant“ wurden gelöscht. Es bleiben nur anonymisierte Abrechnungsdaten, die wir aufbewahren müssen. Gehört Ihr Konto keiner anderen Organisation an, wurde es ebenfalls gelöscht.',
+    ],
+    'organization_deletion_by' => [
+        'owner' => 'Inhaber der Organisation',
+        'platform' => 'Business-Watchdog-Support auf Ihre Bitte',
+    ],
 ];

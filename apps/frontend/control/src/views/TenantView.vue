@@ -5,6 +5,7 @@ import { StatusBadge } from '@bw/ui';
 import { fetchTenant, type TenantCard } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import TenantAudit from '@/components/tenant/TenantAudit.vue';
+import TenantDeletion from '@/components/tenant/TenantDeletion.vue';
 import TenantMembers from '@/components/tenant/TenantMembers.vue';
 import TenantOverview from '@/components/tenant/TenantOverview.vue';
 import TenantReminders from '@/components/tenant/TenantReminders.vue';
@@ -29,6 +30,7 @@ const tab = computed<Tab>(() => (TABS as readonly string[]).includes(String(rout
 const tabs = computed(() => TABS.filter((item) => item !== 'subscription' || card.value?.billing !== null));
 const canManage = computed(() => me.value?.capabilities.includes('tenants.manage') === true);
 const canResetMfa = computed(() => me.value?.capabilities.includes('customers.mfa_reset') === true);
+const canDelete = computed(() => me.value?.capabilities.includes('tenants.delete') === true);
 
 async function load(): Promise<void> {
   try {
@@ -56,9 +58,11 @@ onMounted(load);
           <h1 class="text-2xl font-semibold">{{ card.name }}</h1>
           <StatusBadge :tone="ACCESS_TONES[card.access.state]" :label="$t(`access.${card.access.state}`)" data-badge="access" />
           <StatusBadge v-if="card.status === 'suspended'" tone="crit" solid :label="$t('tenant_status.suspended')" data-badge="suspended" />
+          <StatusBadge v-if="card.status === 'deleting'" tone="crit" solid :label="$t('tenant_status.deleting')" data-badge="deleting" />
           <StatusBadge v-if="card.billing?.subscription" :tone="SUBSCRIPTION_TONES[card.billing.subscription.status]" :label="$t(`subscription_status.${card.billing.subscription.status}`)" data-badge="subscription" />
         </div>
         <p class="font-mono text-[13px] text-text-muted">{{ card.id }}</p>
+        <TenantDeletion :card="card" :can-delete="canDelete" @updated="card = $event" />
 
         <nav :aria-label="card.name" class="flex flex-wrap gap-1 self-start rounded-lg border border-border bg-surface p-1">
           <button

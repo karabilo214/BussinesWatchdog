@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Privacy;
 
+use App\Mail\NotificationMessageMail;
 use App\Models\AuditLog;
 use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
@@ -29,6 +30,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -48,6 +50,7 @@ class OrganizationDeletionTest extends TestCase
         parent::setUp();
 
         Carbon::setTestNow(Carbon::parse('2026-10-20 10:00:00', 'UTC'));
+        Mail::fake();
         Storage::fake((string) config('watchdog.artifacts.disk'));
         Storage::fake((string) config('watchdog.exports.disk'));
     }
@@ -116,6 +119,10 @@ class OrganizationDeletionTest extends TestCase
         $this->assertFalse(StoreCapacity::paused($context['integration']));
         $this->asMember($context['user'], $tenant)->getJson('/api/v1/overview')->assertOk();
         $this->assertSame(DataDeletionRequest::STATUS_CANCELLED, DataDeletionRequest::query()->value('status'));
+        $subjects = $this->mailSubjects($context['user']->email);
+        $this->assertCount(2, $subjects);
+        $this->assertStringContainsString('2026-11-19', $subjects[0]);
+        $this->assertStringContainsString($tenant->name, $subjects[1]);
     }
 
     public function test_after_thirty_days_the_data_is_purged_in_resumable_stages_keeping_billing_records_and_other_tenants(): void
@@ -171,6 +178,19 @@ class OrganizationDeletionTest extends TestCase
         $this->assertSame($shared->email, $shared->fresh()->email);
 
         $this->assertSame($otherCounts, $this->counts($other['tenant']->id));
+        $this->assertCount(2, $this->mailSubjects($onlyHere->email));
+        $this->assertSame([], $this->mailSubjects($shared->email));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function mailSubjects(string $email): array
+    {
+        return Mail::sent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo($email))
+            ->map(fn (NotificationMessageMail $mail): string => $mail->envelope()->subject)
+            ->values()
+            ->all();
     }
 
     public function test_a_cancellation_that_wins_the_race_stops_the_purge(): void

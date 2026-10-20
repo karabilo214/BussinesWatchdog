@@ -141,7 +141,7 @@ PreferencesDTO: severities array info/warning/critical, quiet_hours {timezone,st
 
 `GET /billing/subscription`: SubscriptionDTO без provider secret: plan,status,period,entitlements,usage,grace_until. `POST /billing/checkout`: plan_code, return_path same-origin allowlist. Response session_url generated trusted billing provider, Idempotency-Key. `POST /billing/cancel`: at_period_end true; owner+reauth. Provider webhook в отдельном integration/module verify подпись/idempotency. Конкретные SDK/webhook event names выбираются только после owner decision; store Stripe key для оплаты подписки использовать нельзя.
 
-`POST /privacy/deletion-requests`: confirmation tenant name + reauth, Response202 deletion_request_id. `GET .../{id}` scoped state. completed journal должен сохраняться отдельно от purged tenant rows, чтобы восстанавливаемые backups не воскресили удалённые данные; production schema этого operational journal добавить в ops ADR. Domain table — tracking текущего workflow, не единственное хранилище deletion tombstone.
+`POST /privacy/deletion-requests`: confirmation tenant name + reauth, Response202 deletion_request_id. `GET .../{id}` scoped state. completed journal должен сохраняться отдельно от purged tenant rows, чтобы восстанавливаемые backups не воскресили удалённые данные; production schema этого operational journal добавить в ops ADR. Domain table — tracking текущего workflow, не единственное хранилище deletion tombstone. Implemented in Steps 203–204 (ADR 0069) as `GET/POST /api/v1/organization-deletion` and `POST /api/v1/organization-deletion/cancel` (owner, step-up, exact name; 30 days to cancel) plus `POST /platform-api/v1/tenants/{tenant}/deletion` and `…/cancel` for the platform owner; the journal is `data_deletion_journal`, exported next to every backup (`privacy:deletion-journal`) and replayed after a restore (`privacy:replay-deletions`).
 
 ## 9 WordPress REST surfaces
 
@@ -188,4 +188,4 @@ Step 165 (ADR 0021): TeamMember дополнен `mfa_enabled`. `POST /membershi
 
 Step 70 (ADR 0022): PayPal — `POST /stores/{id}/integrations/paypal` (environment, client_id, client_secret, webhook_id, обязательный `write_access_acknowledged`), `PUT /integrations/{id}/webhook-id`, `POST /webhooks/paypal/{id}`; `POST /integrations/{id}/sync` работает для Stripe и PayPal. Стратегия связи возвратов `unique_amount`.
 
-Ещё не реализовано из каталога: `POST /tenants` и переключатель команд в кабинете, billing/privacy exports, maintenance windows, rules, billing, privacy deletion, real Telegram bot webhook registration and live update delivery.
+Ещё не реализовано из каталога: `POST /tenants` и переключатель команд в кабинете, billing/privacy exports, maintenance windows, rules, billing, real Telegram bot webhook registration and live update delivery.
