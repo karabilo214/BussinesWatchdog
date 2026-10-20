@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Store;
 use App\Support\Privacy\OrganizationPurger;
 use App\Support\Privacy\StoreDeletion;
-use App\Models\Store;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
