@@ -99,7 +99,14 @@ class OrderReconciliationServiceTest extends TestCase
         $finding = $mismatch->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED)->sole();
         $this->assertSame(ReconciliationFinding::STATUS_MISMATCH, $finding->status);
         $this->assertSame('capture_not_recorded_grace_expired', $finding->reason_code);
-        $this->assertSame(ReconciliationFinding::STATUS_OK, $mismatch->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)->sole()->status);
+        $this->assertSame($order->total_minor, $finding->expected_minor);
+        $this->assertSame(18400, $finding->actual_minor);
+        $this->assertNull($finding->difference_minor);
+        $captureId = FinancialTransaction::query()->where('kind', 'capture')->value('external_operation_id');
+        $this->assertSame([$captureId], $finding->evidence['capture_operation_ids']);
+        $amount = $mismatch->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)->sole();
+        $this->assertSame(ReconciliationFinding::STATUS_OK, $amount->status);
+        $this->assertSame([$captureId], $amount->evidence['capture_operation_ids']);
 
         $order->forceFill(['paid_marked_at' => now(), 'status' => 'processing'])->save();
         $recovered = app(OrderReconciliationService::class)->evaluate($order->fresh());

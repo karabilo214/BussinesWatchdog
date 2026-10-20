@@ -32,6 +32,15 @@ class OrderReconciliationService
 
     public const GRACE_REFUND_MINUTES = 60;
 
+    private const CAPTURE_OPERATION_RULES = [
+        ReconciliationFinding::RULE_CAPTURE_AMOUNT,
+        ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED,
+        ReconciliationFinding::RULE_MULTIPLE_CAPTURES,
+        ReconciliationFinding::RULE_CANCELLED_PAID,
+        ReconciliationFinding::RULE_REFUND_MISSING,
+        ReconciliationFinding::RULE_REFUND_EXTRA,
+    ];
+
     public function __construct(
         private readonly ProviderCoverage $coverage,
         private readonly ConnectorFreshness $freshness,
@@ -115,6 +124,7 @@ class OrderReconciliationService
                     $this->evaluateCancelledPaid($run, $lockedOrder, $allocations, $now),
                     $refundFindings,
                 );
+                $findings = $this->withCaptureOperations($findings, $allocations);
             }
 
             return $this->recorder->record(ReconciliationResultRecorder::SUBJECT_ORDER, $lockedOrder->id, $runAttributes, $findings, ['entitled' => $entitled, 'store_data_stale' => $storeDataStale]);
@@ -299,8 +309,47 @@ class OrderReconciliationService
             'reason_code' => $recorded ? 'capture_recorded_by_store' : ($pastGrace ? 'capture_not_recorded_grace_expired' : 'capture_not_recorded_within_grace'),
             'gross_minor' => $order->total_minor,
             'captured_minor' => $capturedMinor,
+            'expected_minor' => $order->total_minor,
+            'actual_minor' => $capturedMinor,
             'evidence' => $recorded || $pastGrace ? [] : ['grace_deadline_at' => $graceDeadline->toJSON()],
         ], $now)];
+    }
+
+    /**
+     * Findings about the order's captures name the provider's own operation ids (the PayPal capture id, the Stripe
+     * charge), so the merchant can find the money in the provider dashboard (ADR 0071).
+     *
+     * @param  list<array<string, mixed>>  $findings
+     * @param  Collection<int, PaymentAllocation>  $allocations
+     * @return list<array<string, mixed>>
+     */
+    private function withCaptureOperations(array $findings, Collection $allocations): array
+    {
+        if ($allocations->isEmpty()) {
+            return $findings;
+        }
+
+        $operationIds = FinancialTransaction::query()
+            ->whereIn('id', $allocations->pluck('capture_transaction_id')->unique())
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->pluck('external_operation_id')
+            ->filter(fn (?string $id): bool => $id !== null && $id !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($operationIds === []) {
+            return $findings;
+        }
+
+        return array_map(function (array $finding) use ($operationIds): array {
+            if (in_array($finding['rule_code'], self::CAPTURE_OPERATION_RULES, true)) {
+                $finding['evidence'] = array_merge($finding['evidence'] ?? [], ['capture_operation_ids' => $operationIds]);
+            }
+
+            return $finding;
+        }, $findings);
     }
 
     /**
@@ -454,6 +503,8 @@ class OrderReconciliationService
             'reason_code' => ! $cancelled ? 'not_cancelled_or_refunded' : ($pending ? 'cancelled_paid_within_grace' : 'cancelled_paid_review'),
             'gross_minor' => $order->total_minor,
             'captured_minor' => $capturedMinor,
+            'expected_minor' => $order->total_minor,
+            'actual_minor' => $capturedMinor,
             'evidence' => $pending ? ['grace_deadline_at' => $graceDeadline->toJSON()] : [],
         ], $now)];
     }

@@ -436,3 +436,16 @@ Status: complete; ADR 0068 accepted by the owner on 2026-10-20 ((b) for FIN-15 a
 - Tests: `FinRegistryTest` has no deviations left (24/24). `MoneyIncidentCorrelatorTest` covers: the unmatched warning without an amount replacing an earlier amount; the cancelled-paid review closed by a refund; order changed without an amount; amount withdrawal plus the recheck command. Test order helpers now give paid orders a known provider payment (`tests/Concerns/KnownProviderPayment`), since a paid order without one is now «not matched».
 
 Verification: backend SQLite 664 passed + 4 skipped, PostgreSQL 18 668/668, Pint ok; customer cabinet 134/134 and owner panel 67/67 with typecheck and builds. Stripe only through JSON-faked HTTP; no real provider in this step.
+
+### Step 208: Amounts and Provider Transaction Ids for «Capture Not Recorded» (ADR 0071)
+
+Status: complete in main; ADR 0071 accepted by the owner on 2026-10-20; not deployed yet
+
+Found in the live Shopware run (Step 206): MONEY_CAPTURE_NOT_RECORDED findings and incidents showed «unknown» in every amount column and had no incident amount.
+
+- `OrderReconciliationService`: MONEY_CAPTURE_NOT_RECORDED and MONEY_CANCELLED_PAID fill `expected_minor` (order total) and `actual_minor` (captured at the provider); the difference stays empty. Capture-related findings (capture amount, capture not recorded, multiple captures, cancelled paid, refund missing/extra) keep `evidence.capture_operation_ids` — the provider's capture ids.
+- `MoneyIncidentCorrelator`: the incident amount of MONEY_CAPTURE_NOT_RECORDED is the captured amount, so it counts in the money at risk.
+- Customer cabinet `FindingsTable`: the provider transaction under the check name; for «capture not recorded» the difference column states the store state in words; «—» instead of «unknown» in rules without an amount by meaning (unknown/unsupported results still say «unknown»). The incident card now shows the status of each finding.
+- Tests: `OrderReconciliationServiceTest`, `MoneyIncidentCorrelatorTest`, `ShopwareIntegrationTest` (evidence compared order-independently for PostgreSQL), customer `reconciliation.test.ts`, `incidents.test.ts`.
+
+Verification: backend SQLite 676 passed + 4 skipped, PostgreSQL 18 680/680; customer vitest 140/140, vue-tsc ok.

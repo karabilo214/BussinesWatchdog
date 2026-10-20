@@ -225,7 +225,7 @@ class ShopwareIntegrationTest extends TestCase
         }
 
         $partial = ReconciliationFinding::query()->where('reason_code', 'refund_amount_not_reported')->sole();
-        $this->assertSame(['refund_state' => 'partial', 'captured_minor' => '4000', 'provider_refunded_minor' => '1500'], $partial->evidence, 'the provider refunded amount is shown for a partial refund');
+        $this->assertEquals(['refund_state' => 'partial', 'captured_minor' => '4000', 'provider_refunded_minor' => '1500', 'capture_operation_ids' => ['CAPTURE000000003X']], $partial->evidence, 'the provider refunded amount is shown for a partial refund');
     }
 
     public function test_float_amounts_are_converted_only_when_exact(): void

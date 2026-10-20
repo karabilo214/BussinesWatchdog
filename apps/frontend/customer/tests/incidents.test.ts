@@ -196,10 +196,11 @@ describe('IncidentEvidence', () => {
     const wrapper = mount(IncidentEvidence, { props: { incident: incident() }, global });
     const cells = wrapper.findAll('[data-finding-id="f-1"] td').map((cell) => cell.text());
 
-    expect(cells[1]).toBe('#15238');
-    expect(cells[2]).toBe('184,00 €');
-    expect(cells[3]).toBe('0,00 €');
-    expect(cells[4]).toBe('unbekannt');
+    expect(cells[1]).toBe('Abweichung');
+    expect(cells[2]).toBe('#15238');
+    expect(cells[3]).toBe('184,00 €');
+    expect(cells[4]).toBe('0,00 €');
+    expect(cells[5]).toBe('unbekannt');
   });
 
   it('explains payment attempt evidence in plain words', () => {

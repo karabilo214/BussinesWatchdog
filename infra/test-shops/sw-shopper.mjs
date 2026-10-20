@@ -16,6 +16,7 @@ if (!/^https:\/\/shopware-test\./.test(shop ?? '') || !labels[pay]) {
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ locale: 'en-GB' });
 const result = { pay, order_received: false, order: null, error: null };
+let paypalWindow = null;
 
 try {
   await page.goto(shop + product, { waitUntil: 'load', timeout: 45000 });
@@ -63,24 +64,49 @@ try {
   if (pay === 'paypal') {
     // SwagPayPal's Smart Payment Buttons: the PayPal button opens a PayPal window; the sandbox buyer signs in and
     // approves there, the window closes and the shop submits the order itself.
-    const button = page.frameLocator('iframe[title*="PayPal"], .paypal-buttons iframe').first().locator('[data-funding-source="paypal"], .paypal-button').first();
-    const [popup] = await Promise.all([page.waitForEvent('popup', { timeout: 60000 }), button.click({ timeout: 60000 })]);
+    let buttonFrame = null;
+    for (let i = 0; i < 30 && buttonFrame === null; i++) {
+      for (const frame of page.frames()) {
+        if (/paypal\.com\/smart\/buttons/.test(frame.url()) && await frame.locator('[data-funding-source="paypal"]').count().catch(() => 0) > 0) {
+          buttonFrame = frame;
+          break;
+        }
+      }
+      if (buttonFrame === null) await page.waitForTimeout(1000);
+    }
+    if (buttonFrame === null) {
+      result.frames = page.frames().map((frame) => frame.url().replace(/[?#].*$/, '')).filter((url) => url.includes('paypal'));
+      throw new Error('paypal_button_not_found');
+    }
+    const [popup] = await Promise.all([page.waitForEvent('popup', { timeout: 60000 }), buttonFrame.locator('[data-funding-source="paypal"]').first().click({ timeout: 30000, force: true })]);
+    paypalWindow = popup;
     await popup.waitForLoadState('domcontentloaded');
     const email = popup.locator('#email');
     await email.waitFor({ timeout: 90000 });
     await email.fill(process.env.BUYER_EMAIL);
     const password = popup.getByLabel('Password', { exact: true });
     const next = popup.getByRole('button', { name: 'Next', exact: true });
-    if (!(await password.isVisible()) && (await next.count()) > 0) await next.click();
+    if (!(await password.isVisible())) {
+      await email.press('Enter');
+      await password.waitFor({ state: 'visible', timeout: 15000 }).catch(async () => { if (await next.count()) await next.click({ force: true }); });
+    }
     await password.waitFor({ state: 'visible', timeout: 60000 });
     await popup.waitForTimeout(1500);
     await password.click();
     await password.pressSequentially(process.env.BUYER_PASSWORD, { delay: 30 });
-    await popup.getByRole('button', { name: /^Log ?In$/i }).first().click();
+    await password.press('Enter');
     const approve = popup.getByRole('button', { name: /^(Pay|Pay Now|Complete Purchase|Continue to Review Order|Continue|Agree & Continue|Save and Continue)$/ }).first();
     await approve.waitFor({ timeout: 90000 });
-    await popup.waitForTimeout(2000);
-    await approve.click();
+    // Sandbox may first show «Continue to Review Order» and then «Pay Now»: confirm until PayPal closes its window.
+    for (let i = 0; i < 4 && !popup.isClosed(); i++) {
+      await popup.waitForTimeout(2000);
+      if (popup.isClosed()) break;
+      const button = popup.getByRole('button', { name: /^(Pay|Pay Now|Complete Purchase|Continue to Review Order|Continue|Agree & Continue|Save and Continue)$/ }).first();
+      if (await button.count() === 0) break;
+      await button.click().catch(() => null);
+      await popup.waitForEvent('close', { timeout: 15000 }).catch(() => null);
+    }
+    result.paypal_window_closed = popup.isClosed();
   } else {
     await page.locator('#confirmFormSubmit').first().click();
   }
@@ -93,6 +119,10 @@ try {
   result.url = page.url().replace(/[?#].*$/, '');
   result.buttons = await page.locator('#confirmFormSubmit, [class*="paypal"] button, [id*="paypal"], [class*="swag-paypal"]').evaluateAll((els) => els.slice(0, 8).map((e) => `${e.tagName}#${e.id}.${String(e.className).slice(0, 60)} visible=${e.offsetParent !== null} disabled=${e.disabled === true}`)).catch(() => null);
   if (process.env.BW_SHOT) await page.screenshot({ path: process.env.BW_SHOT }).catch(() => null);
+  if (process.env.BW_SHOT && paypalWindow && !paypalWindow.isClosed()) {
+    result.paypal_url = paypalWindow.url().replace(/[?#].*$/, '');
+    await paypalWindow.screenshot({ path: process.env.BW_SHOT.replace('.png', '-paypal.png') }).catch(() => null);
+  }
 }
 
 console.log(JSON.stringify(result));

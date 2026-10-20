@@ -84,6 +84,26 @@ describe('FindingsTable', () => {
     expect(first[5]).toBe('4,00 €');
     expect(second[3]).toBe('неизвестно');
   });
+
+  it('shows the received money and the provider transaction when the store has not marked the order paid', () => {
+    const wrapper = mount(FindingsTable, {
+      props: {
+        findings: [
+          finding({ rule_code: 'MONEY_CAPTURE_NOT_RECORDED', expected_minor: '2000', actual_minor: '2000', difference_minor: null, evidence: { capture_operation_ids: ['07N95410377426817'] } }),
+          finding({ id: 'f-2', rule_code: 'MONEY_PAYMENT_NOT_MATCHED', expected_minor: null, actual_minor: null, difference_minor: null }),
+        ],
+      },
+      global,
+    });
+    const cells = wrapper.findAll('[data-finding-id="f-1"] td').map((cell) => cell.text());
+    const other = wrapper.findAll('[data-finding-id="f-2"] td').map((cell) => cell.text());
+
+    expect(wrapper.get('[data-finding-id="f-1"] [data-provider-operations]').text()).toBe('Транзакция у провайдера: 07N95410377426817');
+    expect(cells[3]).toBe('20,00 €');
+    expect(cells[4]).toBe('20,00 €');
+    expect(cells[5]).toBe('не отмечен оплаченным');
+    expect(other.slice(3)).toEqual(['—', '—', '—']);
+  });
 });
 
 describe('rule names', () => {

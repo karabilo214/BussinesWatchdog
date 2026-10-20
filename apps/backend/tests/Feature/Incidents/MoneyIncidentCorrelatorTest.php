@@ -277,6 +277,7 @@ class MoneyIncidentCorrelatorTest extends TestCase
         $this->assertSame('capture_not_recorded', $opened[0]->component);
         $this->assertSame(ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED, $opened[0]->title_code);
         $this->assertSame(Incident::STATE_OPEN, $opened[0]->state);
+        $this->assertSame(18400, $opened[0]->verified_discrepancy_minor);
 
         $order->forceFill(['paid_marked_at' => now(), 'status' => 'processing'])->save();
         $recovered = app(OrderReconciliationService::class)->evaluate($order->fresh());

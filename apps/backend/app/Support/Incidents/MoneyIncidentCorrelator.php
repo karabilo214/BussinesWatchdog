@@ -349,6 +349,10 @@ class MoneyIncidentCorrelator
             return null;
         }
 
+        if ($finding->rule_code === ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED) {
+            return $finding->captured_minor;
+        }
+
         return $finding->difference_minor === null ? null : abs($finding->difference_minor);
     }
 

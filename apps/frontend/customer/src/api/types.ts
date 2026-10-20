@@ -267,6 +267,7 @@ export interface Finding {
   captured_minor?: string | null;
   refund_expected_minor?: string | null;
   refund_actual_minor?: string | null;
+  evidence?: Record<string, unknown>;
   evaluated_at: string;
   order_display_number?: string | null;
 }

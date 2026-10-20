@@ -3,11 +3,47 @@ import type { Finding } from '@/api/types';
 import { useIncidentText } from '@/components/incidents/useIncidentText';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
+import { useI18n } from 'vue-i18n';
 import { FINDING_TONES } from './tones';
 
 withDefaults(defineProps<{ findings: Finding[]; showOrder?: boolean; showStatus?: boolean }>(), { showOrder: true, showStatus: true });
 const { dateTime } = useFormat();
 const { amount } = useIncidentText();
+const { t } = useI18n();
+
+/** Rules that compare facts, not sums: a missing amount there is "not applicable", not "unknown" (ADR 0071). */
+const NO_AMOUNT_RULES = ['MONEY_PAYMENT_NOT_MATCHED', 'MONEY_MULTIPLE_CAPTURES', 'MONEY_CURRENCY_MISMATCH', 'MONEY_CANCELLED_PAID', 'MONEY_CAPTURE_NOT_RECORDED'];
+const STORE_PAID_STATUSES = ['mismatch', 'pending', 'ok'];
+
+function money(finding: Finding, minor: string | null): string {
+  if (finding.money_amounts_hidden) {
+    return t('money_visibility.hidden_amount');
+  }
+
+  const formatted = amount(minor, finding.currency, finding.currency_exponent);
+
+  if (formatted !== null) {
+    return formatted;
+  }
+
+  return NO_AMOUNT_RULES.includes(finding.rule_code) && finding.status !== 'unknown' && finding.status !== 'unsupported'
+    ? t('incident.evidence.not_applicable')
+    : t('incident.evidence.unknown');
+}
+
+function difference(finding: Finding): string {
+  if (!finding.money_amounts_hidden && finding.rule_code === 'MONEY_CAPTURE_NOT_RECORDED' && STORE_PAID_STATUSES.includes(finding.status)) {
+    return t(`incident.evidence.store_paid.${finding.status}`);
+  }
+
+  return money(finding, finding.difference_minor);
+}
+
+function operations(finding: Finding): string | null {
+  const ids = finding.evidence?.capture_operation_ids;
+
+  return Array.isArray(ids) && ids.length > 0 ? t('incident.evidence.provider_operations', { ids: ids.join(', ') }) : null;
+}
 </script>
 
 <template>
@@ -28,7 +64,8 @@ const { amount } = useIncidentText();
         <tr v-for="finding in findings" :key="finding.id" class="border-b border-border align-top last:border-0" :data-finding-id="finding.id">
           <td class="py-2 pr-4">
             <span class="block">{{ $te(`reconciliation.rule.${finding.rule_code}`) ? $t(`reconciliation.rule.${finding.rule_code}`) : finding.rule_code }}</span>
-            <span class="text-[13px] text-text-muted">{{ dateTime(finding.evaluated_at) }}</span>
+            <span class="block text-[13px] text-text-muted">{{ dateTime(finding.evaluated_at) }}</span>
+            <span v-if="operations(finding)" class="block font-mono text-[13px] text-text-muted" data-provider-operations>{{ operations(finding) }}</span>
           </td>
           <td v-if="showStatus" class="py-2 pr-4">
             <StatusBadge :tone="FINDING_TONES[finding.status]" :label="$t(`reconciliation.status.${finding.status}`)" />
@@ -39,9 +76,9 @@ const { amount } = useIncidentText();
             </RouterLink>
             <span v-else class="text-text-muted">{{ $t('incident.evidence.no_order') }}</span>
           </td>
-          <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ finding.money_amounts_hidden ? $t('money_visibility.hidden_amount') : (amount(finding.expected_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown')) }}</td>
-          <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ finding.money_amounts_hidden ? $t('money_visibility.hidden_amount') : (amount(finding.actual_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown')) }}</td>
-          <td class="py-2 text-right font-mono whitespace-nowrap">{{ finding.money_amounts_hidden ? $t('money_visibility.hidden_amount') : (amount(finding.difference_minor, finding.currency, finding.currency_exponent) ?? $t('incident.evidence.unknown')) }}</td>
+          <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ money(finding, finding.expected_minor) }}</td>
+          <td class="py-2 pr-4 text-right font-mono whitespace-nowrap">{{ money(finding, finding.actual_minor) }}</td>
+          <td class="py-2 text-right font-mono whitespace-nowrap">{{ difference(finding) }}</td>
         </tr>
       </tbody>
     </table>

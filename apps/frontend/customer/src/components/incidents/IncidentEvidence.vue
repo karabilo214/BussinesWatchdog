@@ -102,7 +102,7 @@ async function showScreenshot(): Promise<void> {
   <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="evidence-title" data-panel="incident-evidence">
     <h2 id="evidence-title" class="text-lg font-semibold">{{ $t('incident.evidence.title') }}</h2>
 
-    <FindingsTable v-if="incident.findings.length > 0" :findings="incident.findings" :show-status="false" />
+    <FindingsTable v-if="incident.findings.length > 0" :findings="incident.findings" />
 
     <ul v-if="signals.length > 0" class="flex flex-col gap-3">
       <li v-for="signal in signals" :key="signal.id" class="flex flex-col gap-1 rounded-lg border border-border p-3 text-sm" :data-signal-type="signal.signal_type">
