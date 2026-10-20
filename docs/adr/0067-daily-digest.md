@@ -1,6 +1,6 @@
 # ADR 0067: Daily digest of notification channels
 
-Status: implemented in Step 198; the choices marked **[owner]** wait for the owner's review.
+Status: implemented in Step 198; accepted by the owner on 2026-10-20, including the choices marked **[owner]**.
 
 ## Context
 

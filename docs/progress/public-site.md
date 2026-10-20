@@ -275,3 +275,12 @@ Status: drafts ready; publishing waits for the owner (legal name and address, re
 - README «8а. Юридические страницы».
 
 Verification: `LegalDraftsTest` (4 pages, types and footer, 12 drafts in de/en/ru, no placeholders left, name HTML-escaped, Paddle wording and links per language, Impressum address lines, nothing public before publishing, a second run keeps the published version and updates the draft, refusals without provider/owner or with the type on another page leave nothing). Backend SQLite 626 passed + 4 skipped; PostgreSQL 18: 630/630. Not reviewed by a lawyer.
+
+### Step 199: BW Favicon
+
+Status: complete (visual asset; no dedicated acceptance ID)
+
+- White square, blue BW (`brand-700`, `#24549f`) and orange underline (`warning-400`, `#d59430`). SVG linked from the public Blade layout and both SPA entry pages; multi-size ICO replaces the empty backend placeholder. SPA public assets include the SVG for local Vite development.
+- No migrations or contracts changed. Visual identity change only; no financial, security or coverage semantics changed.
+
+Verification: inspected the 512 px SVG rendering and enlarged 16 px raster; ICO contains 16, 32, 48, 64, 128 and 256 px sizes. Customer and control production builds passed. No browser or production deployment check.

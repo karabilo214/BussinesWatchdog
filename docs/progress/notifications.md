@@ -200,7 +200,7 @@ Verification: `tests/notificationsPlan.test.ts` (2: locked without the feature; 
 
 ### Step 198: Daily Digest (ADR 0067)
 
-Status: complete; the choices marked [owner] in ADR 0067 wait for the owner's review
+Status: complete; ADR 0067 accepted by the owner on 2026-10-20; not deployed yet (owner's decision)
 
 - New channel preference `daily_digest_at` (`HH:MM` in the channel timezone, `null` = off, the default). Validated like the other preferences; returned in `preferences` / `effective_preferences`.
 - `DailyDigestPlanner` + `notifications:digest` (scheduler, every 15 minutes): at most one `daily_digest` delivery per channel and local day (dedupe `digest:{local date}`), on the first run after the channel's time; enabled + verified channels only, none when no store is in the channel's scope; quiet hours defer it (no critical bypass); paused while our maintenance window is active.
