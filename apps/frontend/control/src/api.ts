@@ -560,7 +560,7 @@ export interface StoreCheckDetail extends StoreCheck {
     started_at: string;
     finished_at: string | null;
     artifacts: { id: string; kind: string; content_type: string; size_bytes: number; expires_at: string }[];
-    steps: { index: number; code: string; status: string; error_code: string | null }[];
+    steps: { index: number; code: string; status: string; error_code: string | null; assertions?: { code: string; passed: boolean }[] }[];
   }[];
 }
 

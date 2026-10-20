@@ -510,6 +510,7 @@ export interface CheckStep {
   code: string;
   status: 'passed' | 'failed' | 'skipped' | 'inconclusive' | 'blocked';
   error_code: string | null;
+  assertions?: { code: string; passed: boolean; detail_code?: string }[];
   started_at: string;
   finished_at: string;
 }

@@ -975,6 +975,10 @@
     "mode_needs_plugin": "Test-/Live-Modus: Plugin nötig"
   },
   "checks": {
+    "skip_reason": {
+      "payment_methods_not_verified": "Zahlungsarten nicht geprüft: Die Prüfung lädt keine Skripte von Zahlungsanbietern (Stripe, PayPal u. a.), und das Zahlungsformular des Shops wartet auf sie. Der Weg bis zum Zahlungsformular ist bestätigt.",
+      "synthetic_location_not_configured": "Für die Prüfung ist keine Lieferadresse festgelegt — der Versand wurde nicht geprüft."
+    },
     "title": "Checkout-Prüfungen",
     "subtitle": "Der Dienst geht regelmäßig im Browser den Weg des Kunden bis zum Zahlungsformular: Produkt, Warenkorb, Kasse. Es wird keine Bestellung angelegt und kein Geld abgebucht.",
     "readiness": {

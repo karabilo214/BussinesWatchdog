@@ -1127,6 +1127,10 @@
       "test": "Testmodus"
     },
     "check": {
+      "skip_reason": {
+        "payment_methods_not_verified": "Zahlungsarten nicht geprüft: Die Prüfung lädt keine Skripte von Zahlungsanbietern (Stripe, PayPal u. a.), und das Zahlungsformular des Shops wartet auf sie. Der Weg bis zum Zahlungsformular ist bestätigt.",
+        "synthetic_location_not_configured": "Für die Prüfung ist keine Lieferadresse festgelegt — der Versand wurde nicht geprüft."
+      },
       "attempt": "Versuch {n}",
       "steps": "Schritte",
       "screenshots": "Screenshots (ohne personenbezogene Daten)",

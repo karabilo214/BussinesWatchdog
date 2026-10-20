@@ -361,7 +361,7 @@ watch(tab, () => void loadTab());
             <div>
               <h3 class="font-semibold">{{ $t('store_data.check.steps') }}</h3>
               <ol class="mt-1 list-decimal pl-5">
-                <li v-for="step in attempt.steps" :key="step.index">{{ step.code }} — {{ label('step_status', step.status) }}<span v-if="step.error_code"> ({{ step.error_code }})</span></li>
+                <li v-for="step in attempt.steps" :key="step.index">{{ step.code }} — {{ label('step_status', step.status) }}<span v-if="step.error_code"> ({{ step.error_code }})</span><template v-if="step.status === 'skipped'"><span v-for="assertion in (step.assertions ?? []).filter((item) => $te(`store_data.check.skip_reason.${item.code}`))" :key="assertion.code"> — {{ $t(`store_data.check.skip_reason.${assertion.code}`) }}</span></template></li>
               </ol>
             </div>
             <div class="flex flex-col gap-2">

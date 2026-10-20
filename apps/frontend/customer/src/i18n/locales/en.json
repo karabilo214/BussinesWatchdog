@@ -975,6 +975,10 @@
     "mode_needs_plugin": "test/live mode: plugin needed"
   },
   "checks": {
+    "skip_reason": {
+      "payment_methods_not_verified": "Payment methods not verified: the check does not load payment gateway scripts (Stripe, PayPal, etc.) and the store's payment form waits for them. The path up to the payment form is confirmed.",
+      "synthetic_location_not_configured": "No delivery address is set for the check — delivery was not checked."
+    },
     "title": "Checkout checks",
     "subtitle": "The service regularly walks the customer path to the payment form in a browser: product, cart, checkout. No order is created and no money is charged.",
     "readiness": {

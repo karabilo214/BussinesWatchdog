@@ -1127,6 +1127,10 @@
       "test": "test mode"
     },
     "check": {
+      "skip_reason": {
+        "payment_methods_not_verified": "Payment methods not verified: the check does not load payment gateway scripts (Stripe, PayPal, etc.) and the store's payment form waits for them. The path up to the payment form is confirmed.",
+        "synthetic_location_not_configured": "No delivery address is set for the check — delivery was not checked."
+      },
       "attempt": "Attempt {n}",
       "steps": "Steps",
       "screenshots": "Screenshots (no personal data)",

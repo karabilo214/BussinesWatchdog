@@ -147,7 +147,12 @@ onBeforeUnmount(() => {
 
           <ol v-if="attempt.steps.length > 0" class="flex flex-col divide-y divide-border rounded-lg border border-border">
             <li v-for="step in attempt.steps" :key="step.index" class="flex flex-wrap items-center justify-between gap-2 p-3 text-sm" :data-step="step.code">
-              <span>{{ step.index + 1 }}. {{ $te(`incident.facts.step.${step.code}`) ? $t(`incident.facts.step.${step.code}`) : step.code }}</span>
+              <span class="flex flex-col">
+                <span>{{ step.index + 1 }}. {{ $te(`incident.facts.step.${step.code}`) ? $t(`incident.facts.step.${step.code}`) : step.code }}</span>
+                <template v-for="assertion in step.status === 'skipped' ? (step.assertions ?? []) : []" :key="assertion.code">
+                  <span v-if="$te(`checks.skip_reason.${assertion.code}`)" class="text-[13px] text-text-muted" data-skip-reason>{{ $t(`checks.skip_reason.${assertion.code}`) }}</span>
+                </template>
+              </span>
               <span class="flex items-center gap-2">
                 <span v-if="step.error_code" class="text-[13px] text-text-muted">{{ $te(`checks.error.${step.error_code}`) ? $t(`checks.error.${step.error_code}`) : step.error_code }}</span>
                 <StatusBadge :tone="STEP_TONES[step.status]" :label="$t(`checks.step_status.${step.status}`)" />
