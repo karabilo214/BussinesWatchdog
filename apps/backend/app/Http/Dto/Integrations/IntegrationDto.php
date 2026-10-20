@@ -33,7 +33,8 @@ class IntegrationDto
             'app_update' => $integration->provider === 'shopware' && ($integration->capabilities['connection'] ?? null) === 'app' ? [
                 'installed_version' => is_string($integration->health['app_version'] ?? null) ? $integration->health['app_version'] : null,
                 'latest_version' => ShopwareApp::APP_VERSION,
-                'available' => ! is_string($integration->health['app_version'] ?? null) || version_compare($integration->health['app_version'], ShopwareApp::APP_VERSION, '<'),
+                'available' => app(ShopwareApp::class)->releaseApproved((string) $integration->store_id)
+                    && (! is_string($integration->health['app_version'] ?? null) || version_compare($integration->health['app_version'], ShopwareApp::APP_VERSION, '<')),
             ] : null,
             'webhook_url' => in_array($integration->provider, ['stripe', 'paypal'], true) ? url('/api/v1/webhooks/'.$integration->provider.'/'.$integration->id) : null,
             'credentials' => $integration->credentials

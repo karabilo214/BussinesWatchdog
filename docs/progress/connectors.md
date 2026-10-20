@@ -429,3 +429,14 @@ Status: complete (owner decision 2026-10-19)
 - Also fixed: the customer dashboard lacked texts for the team error codes `owner_role_protected` and `member_not_found` added in Step 177 (its translation test was red since then).
 
 Verification: backend SQLite 624 passed + 4 skipped (the 4 Stripe App OAuth tests removed); PostgreSQL 18: 628/628; customer dashboard typecheck, 133/133, build. OpenAPI parses (197 paths).
+
+### Step 202: Connector release safety (Spec §9, §18–20, §37–39; ACC-12, ACC-13, ACC-15–17)
+
+- WooCommerce plugin 0.3.2: own action/filter callbacks are checked for callability and catch `Throwable`; a failed filter returns its input. Bootstrap and uninstall are guarded. Schema upgrades run only in safe admin requests; an incomplete schema leaves monitoring inactive instead of running `dbDelta` during checkout. Checkout render emits only optional same-origin observation beacons; counter writes happen in separate requests. The release builder checks the guard and observer assets. Admin, order, payment, REST, cron and shutdown hooks are guarded.
+- Shopware App 1.3.1: removed checkout Twig overrides and page-loaded App Scripts. The separate storefront script observes confirm/finish pages through optional same-origin beacons and does not change checkout forms. The archive builder fails if a source read or ZIP operation fails. This loses no-JavaScript page-render coverage.
+- Production release gate: WooCommerce ZIP is served only when its exact SHA-256 is approved; Shopware App requires approval of the current package fingerprint plus the specific store UUID. An unapproved App returns 409 before changing the integration. Shopware 6.6.10.29 remains excluded because its own App registration fails; test a copy of each store before adding its UUID. Neither new release is deployed to production.
+- Verification: WooCommerce integration matrix 58/58 across six targets; WooCommerce observation E2E latest PASS; release ZIP install, upgrade, rollback, offline checkout, both stop switches, no WooCommerce and uninstall PASS. Shopware App 1.3.1 initial install/order/payment/uninstall on 6.6.10.6 PASS; update 1.0.0 → 1.3.1 on 6.7.2.2 and 6.7.15.1 PASS; observation 14/14 on 6.7.2.2. Backend targeted tests 14/14, 109 assertions; plugin PHP 7.4 lint and `git diff --check` PASS.
+
+Contracts: `contracts/openapi.yaml` documents the release gate. No migrations. Remaining: per-store production approval requires a copy of the real store and its checkout smoke; unsupported extensions and Shopware versions are not automatically certified by these matrix results.
+
+Live publication check (2026-10-20): the running backend's `/var/www/html/storage/app/plugins` is empty, so the customer dashboard correctly shows no WooCommerce download. The previous UI text promising to send an archive on request was replaced in ru/en/de with a release-dependent message. The tested 0.3.2 ZIP has not been published to production.

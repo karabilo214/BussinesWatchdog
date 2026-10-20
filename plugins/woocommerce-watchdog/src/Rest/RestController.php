@@ -13,6 +13,7 @@ use BusinessWatchdog\WooCommerce\Observation\ObservationToken;
 use BusinessWatchdog\WooCommerce\Synthetic\SyntheticRequest;
 use BusinessWatchdog\WooCommerce\Storage\OutboxStats;
 use BusinessWatchdog\WooCommerce\Storage\State;
+use BusinessWatchdog\WooCommerce\Safety\Guard;
 
 final class RestController
 {
@@ -62,8 +63,8 @@ final class RestController
             'permission_callback' => '__return_true',
         ]);
 
-        add_filter('rest_pre_serve_request', [self::class, 'servePlainChallenge'], 10, 4);
-        add_filter('rest_pre_serve_request', [self::class, 'serveBeaconImage'], 10, 4);
+        add_filter('rest_pre_serve_request', Guard::filter([self::class, 'servePlainChallenge'], 'rest_plain_challenge'), 10, 4);
+        add_filter('rest_pre_serve_request', Guard::filter([self::class, 'serveBeaconImage'], 'rest_beacon_image'), 10, 4);
     }
 
     public static function canManage(): bool
@@ -118,16 +119,20 @@ final class RestController
      */
     public static function observe(\WP_REST_Request $request)
     {
-        $body = json_decode(substr((string) $request->get_body(), 0, 2000), true);
-        $origin = (string) $request->get_header('origin');
+        try {
+            $body = json_decode(substr((string) $request->get_body(), 0, 2000), true);
+            $origin = (string) $request->get_header('origin');
 
-        if (is_array($body) && ($origin === '' || self::sameSite($origin))) {
-            CheckoutObservation::report(
-                ObservationToken::verify(is_string($body['token'] ?? null) ? $body['token'] : ''),
-                is_string($body['page'] ?? null) ? $body['page'] : '',
-                is_array($body['stages'] ?? null) ? array_values($body['stages']) : [],
-                is_int($body['js_errors'] ?? null) ? max(0, $body['js_errors']) : 0
-            );
+            if (is_array($body) && ($origin === '' || self::sameSite($origin))) {
+                CheckoutObservation::report(
+                    ObservationToken::verify(is_string($body['token'] ?? null) ? $body['token'] : ''),
+                    is_string($body['page'] ?? null) ? $body['page'] : '',
+                    is_array($body['stages'] ?? null) ? array_values($body['stages']) : [],
+                    is_int($body['js_errors'] ?? null) ? max(0, $body['js_errors']) : 0
+                );
+            }
+        } catch (\Throwable $exception) {
+            // This optional beacon must never affect the shop's Store API or checkout response.
         }
 
         return new \WP_REST_Response(null, 204);
@@ -135,8 +140,19 @@ final class RestController
 
     public static function observeNoscript(\WP_REST_Request $request)
     {
-        if (ObservationToken::verify((string) $request->get_param('t')) === 'checkout' && ObservationSettings::enabled() && SyntheticRequest::current() === null) {
-            ObservationLog::increment(['checkout_rendered_noscript' => 1]);
+        try {
+            $page = ObservationToken::verify((string) $request->get_param('t'));
+            $stage = (string) $request->get_param('s');
+
+            if ($page !== null && ObservationSettings::enabled() && SyntheticRequest::current() === null) {
+                if ($stage === 'rendered') {
+                    ObservationLog::increment([$page === 'finish' ? 'finish_rendered' : 'checkout_rendered' => 1]);
+                } elseif ($page === 'checkout' && $stage === 'rendered_noscript') {
+                    ObservationLog::increment(['checkout_rendered_noscript' => 1]);
+                }
+            }
+        } catch (\Throwable $exception) {
+            // The request is an optional one-pixel resource, never a purchase prerequisite.
         }
 
         return new \WP_REST_Response('beacon', 200);

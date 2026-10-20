@@ -2,6 +2,8 @@
 
 namespace BusinessWatchdog\WooCommerce\Capture;
 
+use BusinessWatchdog\WooCommerce\Safety\Guard;
+
 /**
  * Whether a payment of an order happened in the provider's test or live mode. For Stripe it is recorded once, when the
  * order is paid or authorized, because the gateway setting can be switched later and the daily re-scan must not
@@ -18,8 +20,8 @@ final class PaymentMode
 
     public static function register(): void
     {
-        add_action('woocommerce_payment_complete', [self::class, 'onPaymentComplete'], 5, 1);
-        add_action('woocommerce_order_status_changed', [self::class, 'onStatusChanged'], 5, 3);
+        add_action('woocommerce_payment_complete', Guard::action([self::class, 'onPaymentComplete'], 'payment_mode_complete'), 5, 1);
+        add_action('woocommerce_order_status_changed', Guard::action([self::class, 'onStatusChanged'], 'payment_mode_status'), 5, 3);
     }
 
     public static function onPaymentComplete($orderId): void

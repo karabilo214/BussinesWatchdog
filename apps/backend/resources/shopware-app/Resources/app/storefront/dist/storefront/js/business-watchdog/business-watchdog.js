@@ -8,6 +8,19 @@
 (function () {
     'use strict';
 
+    // Do not extend Shopware's checkout templates or execute an app script in page rendering.
+    // The app is observational: a failure here must leave the shop's own form untouched.
+    var page = null;
+
+    try {
+        var pathname = (window.location.pathname || '').replace(/\/+$/, '');
+        page = /\/checkout\/confirm$/.test(pathname) ? 'confirm' : (/\/checkout\/finish$/.test(pathname) ? 'finish' : null);
+    } catch (e) { return; }
+
+    if (page === null) {
+        return;
+    }
+
     var errors = 0;
 
     try {
@@ -17,16 +30,13 @@
 
     function start() {
         try {
-            var root = document.getElementById('bw-checkout-observer');
-            var page = root ? root.getAttribute('data-page') : null;
-            var observe = root !== null && root.getAttribute('data-observe') === '1';
-            window.BusinessWatchdogCheckout = { version: 2, page: page, state: observe ? 'observing' : 'off' };
+            window.BusinessWatchdogCheckout = { version: 3, page: page, state: 'available' };
 
-            if (!observe || !navigator.sendBeacon || typeof URLSearchParams !== 'function') {
+            if (!navigator.sendBeacon || typeof URLSearchParams !== 'function') {
                 return;
             }
 
-            var endpoint = root.getAttribute('data-endpoint');
+            var endpoint = new URL('/storefront/script/bw-observe', window.location.href).toString();
 
             var send = function (stages) {
                 try {
@@ -36,12 +46,12 @@
             };
 
             if (page === 'finish') {
-                send(['script_loaded', 'finish_reached']);
+                send(['rendered', 'script_loaded', 'finish_reached']);
 
                 return;
             }
 
-            var stages = ['script_loaded'];
+            var stages = ['rendered', 'script_loaded'];
             var form = document.getElementById('confirmOrderForm');
             var submit = document.getElementById('confirmFormSubmit');
             var methods = document.querySelectorAll('.payment-method-input').length;
@@ -58,22 +68,26 @@
 
             if (form) {
                 form.addEventListener('submit', function () {
-                    send(['submit_clicked']);
-                    var left = false;
-                    window.addEventListener('pagehide', function () { left = true; });
-                    setTimeout(function () {
-                        if (!left) {
-                            send(['submit_stalled']);
-                        }
-                    }, 20000);
+                    try {
+                        send(['submit_clicked']);
+                        var left = false;
+                        window.addEventListener('pagehide', function () { left = true; });
+                        setTimeout(function () {
+                            if (!left) {
+                                send(['submit_stalled']);
+                            }
+                        }, 20000);
+                    } catch (e) { /* never break the shop's submit */ }
                 });
             }
         } catch (e) { /* never break the page */ }
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', start);
-    } else {
-        start();
-    }
+    try {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', start);
+        } else {
+            start();
+        }
+    } catch (e) { /* never break the shop */ }
 })();

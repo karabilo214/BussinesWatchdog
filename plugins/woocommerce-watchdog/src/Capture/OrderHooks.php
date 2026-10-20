@@ -2,6 +2,8 @@
 
 namespace BusinessWatchdog\WooCommerce\Capture;
 
+use BusinessWatchdog\WooCommerce\Safety\Guard;
+
 final class OrderHooks
 {
     private const DIRTY_ORDER_HOOKS = [
@@ -26,25 +28,25 @@ final class OrderHooks
     public static function register(): void
     {
         foreach (self::DIRTY_ORDER_HOOKS as $hook => $argPosition) {
-            add_action($hook, static function (...$args) use ($argPosition): void {
+            add_action($hook, Guard::action(static function (...$args) use ($argPosition): void {
                 OrderCapture::markDirty($args[$argPosition - 1] ?? 0);
-            }, 20, $argPosition);
+            }, 'order_dirty'), 20, $argPosition);
         }
 
         foreach (self::BLOCKS_CHECKOUT_HOOKS as $hook) {
-            add_action($hook, [self::class, 'onBlocksCheckout'], 20, 1);
+            add_action($hook, Guard::action([self::class, 'onBlocksCheckout'], 'blocks_checkout'), 20, 1);
         }
 
         PaymentMode::register();
 
-        add_action('woocommerce_before_delete_order', [self::class, 'onBeforeDeleteOrder'], 10, 2);
-        add_filter('woocommerce_pre_delete_order_refund', [self::class, 'onPreDeleteRefund'], 10, 2);
-        add_action('woocommerce_delete_order', [self::class, 'onDeleteOrder'], 10, 1);
-        add_action('woocommerce_delete_order_refund', [self::class, 'onDeleteRefund'], 10, 1);
-        add_action('woocommerce_before_delete_order_refund', [self::class, 'onDeleteRefund'], 10, 1);
-        add_action('before_delete_post', [self::class, 'onLegacyDeletePost'], 10, 1);
-        add_action('wp_trash_post', [self::class, 'onLegacyTrashPost'], 10, 1);
-        add_action('untrashed_post', [self::class, 'onLegacyTrashPost'], 10, 1);
+        add_action('woocommerce_before_delete_order', Guard::action([self::class, 'onBeforeDeleteOrder'], 'before_delete_order'), 10, 2);
+        add_filter('woocommerce_pre_delete_order_refund', Guard::filter([self::class, 'onPreDeleteRefund'], 'pre_delete_refund'), 10, 2);
+        add_action('woocommerce_delete_order', Guard::action([self::class, 'onDeleteOrder'], 'delete_order'), 10, 1);
+        add_action('woocommerce_delete_order_refund', Guard::action([self::class, 'onDeleteRefund'], 'delete_refund'), 10, 1);
+        add_action('woocommerce_before_delete_order_refund', Guard::action([self::class, 'onDeleteRefund'], 'before_delete_refund'), 10, 1);
+        add_action('before_delete_post', Guard::action([self::class, 'onLegacyDeletePost'], 'legacy_delete'), 10, 1);
+        add_action('wp_trash_post', Guard::action([self::class, 'onLegacyTrashPost'], 'legacy_trash'), 10, 1);
+        add_action('untrashed_post', Guard::action([self::class, 'onLegacyTrashPost'], 'legacy_untrash'), 10, 1);
     }
 
     public static function onBlocksCheckout($order): void

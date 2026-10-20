@@ -3,6 +3,7 @@
 namespace BusinessWatchdog\WooCommerce\Observation;
 
 use BusinessWatchdog\WooCommerce\Synthetic\SyntheticRequest;
+use BusinessWatchdog\WooCommerce\Safety\Guard;
 
 /**
  * Checkout observation, layer 2 (spec §17.1, ADR 0059): while the service wants it, the checkout and order-received
@@ -28,19 +29,19 @@ final class CheckoutObservation
             return;
         }
 
-        add_action('wp_enqueue_scripts', [self::class, 'enqueue'], 1);
-        add_action('wp_footer', [self::class, 'rendered'], 1);
-        add_filter('script_loader_tag', [self::class, 'tag'], 10, 2);
+        add_action('wp_enqueue_scripts', Guard::action([self::class, 'enqueue'], 'observer_enqueue'), 1);
+        add_action('wp_footer', Guard::action([self::class, 'rendered'], 'observer_rendered'), 1);
+        add_filter('script_loader_tag', Guard::filter([self::class, 'tag'], 'observer_script_tag'), 10, 2);
 
         foreach (['rocket_exclude_js', 'rocket_exclude_defer_js', 'rocket_delay_js_exclusions', 'rocket_exclude_inline_js', 'litespeed_optimize_js_excludes', 'litespeed_optm_js_defer_exc', 'litespeed_optm_gm_js_exc'] as $filter) {
-            add_filter($filter, [self::class, 'excludePatterns']);
+            add_filter($filter, Guard::filter([self::class, 'excludePatterns'], 'observer_exclude_pattern'));
         }
 
         foreach (['sgo_javascript_combine_exclude', 'sgo_js_minify_exclude', 'sgo_js_async_exclude'] as $filter) {
-            add_filter($filter, [self::class, 'excludeHandle']);
+            add_filter($filter, Guard::filter([self::class, 'excludeHandle'], 'observer_exclude_handle'));
         }
 
-        add_filter('autoptimize_filter_js_exclude', [self::class, 'excludeAutoptimize']);
+        add_filter('autoptimize_filter_js_exclude', Guard::filter([self::class, 'excludeAutoptimize'], 'observer_exclude_autoptimize'));
     }
 
     /**
@@ -82,8 +83,8 @@ final class CheckoutObservation
     }
 
     /**
-     * Counts a page actually rendered (redirects such as an empty cart never reach the footer) and prints the beacon
-     * that counts browsers without JavaScript. Pages rendered for a verified browser check are not counted.
+     * Prints asynchronous image beacons after a page was rendered. No monitoring database write runs in the shopper's
+     * checkout response. Pages rendered for a verified browser check are not counted.
      */
     public static function rendered(): void
     {
@@ -93,11 +94,15 @@ final class CheckoutObservation
             return;
         }
 
-        ObservationLog::increment([$page . '_rendered' => 1]);
-        $token = $page === 'checkout' ? ObservationToken::issue($page) : null;
+        $token = ObservationToken::issue($page);
 
         if ($token !== null) {
-            echo '<noscript><img src="' . esc_url(add_query_arg('t', $token, rest_url('business-watchdog/v1/observe/noscript'))) . '" alt="" width="1" height="1" style="position:absolute;width:1px;height:1px" /></noscript>';
+            $url = rest_url('business-watchdog/v1/observe/noscript');
+            echo '<img src="' . esc_url(add_query_arg(['t' => $token, 's' => 'rendered'], $url)) . '" alt="" width="1" height="1" style="position:absolute;width:1px;height:1px" />';
+
+            if ($page === 'checkout') {
+                echo '<noscript><img src="' . esc_url(add_query_arg(['t' => $token, 's' => 'rendered_noscript'], $url)) . '" alt="" width="1" height="1" /></noscript>';
+            }
         }
     }
 

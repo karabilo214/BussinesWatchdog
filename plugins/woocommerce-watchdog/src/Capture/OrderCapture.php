@@ -6,6 +6,7 @@ use BusinessWatchdog\WooCommerce\Compat\OrderCacheBuster;
 use BusinessWatchdog\WooCommerce\Storage\Outbox;
 use BusinessWatchdog\WooCommerce\Storage\Revisions;
 use BusinessWatchdog\WooCommerce\Storage\State;
+use BusinessWatchdog\WooCommerce\Safety\Guard;
 
 final class OrderCapture
 {
@@ -52,7 +53,7 @@ final class OrderCapture
 
         if (! self::$shutdownRegistered) {
             self::$shutdownRegistered = true;
-            add_action('shutdown', [self::class, 'flush'], 5);
+            add_action('shutdown', Guard::action([self::class, 'flush'], 'capture_flush'), 5);
         }
     }
 
@@ -76,7 +77,11 @@ final class OrderCapture
         }
 
         if ($recorded > 0 && self::$afterFlush !== null) {
-            (self::$afterFlush)();
+            try {
+                (self::$afterFlush)();
+            } catch (\Throwable $exception) {
+                self::recordError(0, $exception);
+            }
         }
 
         return $recorded;
@@ -151,11 +156,15 @@ final class OrderCapture
     {
         $orderId = (int) $orderId;
 
-        if ($orderId <= 0 || ! self::capturing() || Revisions::find(self::orderKey($orderId)) === null) {
+        if ($orderId <= 0 || ! self::capturing()) {
             return 0;
         }
 
         try {
+            if (Revisions::find(self::orderKey($orderId)) === null) {
+                return 0;
+            }
+
             return self::recordDeletion('order.deleted', 'order', (string) $orderId, self::orderKey($orderId), null, ['reason_code' => $reasonCode]);
         } catch (\Throwable $exception) {
             self::recordError($orderId, $exception);

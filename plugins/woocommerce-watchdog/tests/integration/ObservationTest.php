@@ -96,13 +96,14 @@ bw_test('observation: reports count stages of an observed page only, never from 
     bw_assert((int) bw_observation_rows()[0]['submit_clicked'] === 1, 'nothing counted once the service says no');
 });
 
-bw_test('observation: rendered pages are counted by the plugin with a noscript beacon, browser checks excluded', function () {
+bw_test('observation: rendered pages are counted by separate beacons without checkout database writes', function () {
     bw_observation_reset();
     bw_observation_page('checkout');
     ob_start();
     CheckoutObservation::rendered();
     $html = (string) ob_get_clean();
-    bw_assert(strpos($html, '<noscript><img src="') === 0 && strpos(urldecode(html_entity_decode($html)), 'business-watchdog/v1/observe/noscript') !== false, 'noscript beacon printed: ' . $html);
+    bw_assert(strpos($html, '<img src="') === 0 && strpos($html, '<noscript><img src="') !== false, 'page and noscript beacons printed: ' . $html);
+    bw_assert(bw_observation_rows() === [], 'rendering the checkout wrote monitoring data synchronously');
     bw_with_synthetic(bw_synthetic_token(), function () {
         ob_start();
         CheckoutObservation::rendered();
@@ -111,12 +112,18 @@ bw_test('observation: rendered pages are counted by the plugin with a noscript b
     bw_observation_page('finish');
     ob_start();
     CheckoutObservation::rendered();
-    bw_assert((string) ob_get_clean() === '', 'no noscript beacon on the order-received page');
+    $finishHtml = (string) ob_get_clean();
+    bw_assert(strpos($finishHtml, '<img src="') === 0 && strpos($finishHtml, '<noscript>') === false, 'finish has one image beacon');
 
-    preg_match('/[?&]t=([^"&]+)/', html_entity_decode($html), $match);
-    $request = new WP_REST_Request('GET', '/business-watchdog/v1/observe/noscript');
-    $request->set_param('t', urldecode($match[1]));
-    rest_do_request($request);
+    preg_match_all('/<img src="([^"]+)"/', $html . $finishHtml, $matches);
+
+    foreach ($matches[1] as $src) {
+        parse_str((string) wp_parse_url(html_entity_decode($src), PHP_URL_QUERY), $params);
+        $request = new WP_REST_Request('GET', '/business-watchdog/v1/observe/noscript');
+        $request->set_param('t', $params['t'] ?? '');
+        $request->set_param('s', $params['s'] ?? '');
+        rest_do_request($request);
+    }
 
     $row = bw_observation_rows()[0];
     bw_assert([(int) $row['checkout_rendered'], (int) $row['finish_rendered'], (int) $row['checkout_rendered_noscript']] === [1, 1, 1], 'pages counted: ' . wp_json_encode($row));

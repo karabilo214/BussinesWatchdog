@@ -12,6 +12,8 @@ TARGET="${1:-latest}"
 PREVIOUS_REF="${BW_PREVIOUS_REF:-origin/main}"
 PLUGIN_DIR="$(cd ../.. && pwd)"
 REPO_DIR="$(cd ../../../.. && pwd)"
+PLUGIN_VERSION=$(sed -n 's/^ \* Version: //p' "$PLUGIN_DIR/business-watchdog.php" | head -1)
+EXPECTED_VERSION="\"${PLUGIN_VERSION}\""
 line=$(grep "^${TARGET}=" targets.env | cut -d= -f2-)
 [ -n "$line" ] || { echo "Unknown target: $TARGET"; exit 2; }
 export WP_IMAGE=$(echo "$line" | cut -d'|' -f1)
@@ -24,7 +26,7 @@ rm -rf "$RELEASE" && mkdir -p "$RELEASE/previous-src"
 
 NEW_ZIP=$("$PLUGIN_DIR/bin/build-release.sh" "$PLUGIN_DIR" "$RELEASE/new" | sed -n 's/^BW_RELEASE_ZIP=//p')
 git -C "$REPO_DIR" archive "$PREVIOUS_REF" plugins/woocommerce-watchdog | tar -x -C "$RELEASE/previous-src"
-OLD_ZIP=$("$PLUGIN_DIR/bin/build-release.sh" "$RELEASE/previous-src/plugins/woocommerce-watchdog" "$RELEASE/previous" | sed -n 's/^BW_RELEASE_ZIP=//p')
+OLD_ZIP=$("$RELEASE/previous-src/plugins/woocommerce-watchdog/bin/build-release.sh" "$RELEASE/previous-src/plugins/woocommerce-watchdog" "$RELEASE/previous" | sed -n 's/^BW_RELEASE_ZIP=//p')
 [ -n "$NEW_ZIP" ] && [ -n "$OLD_ZIP" ] || { echo "package build failed"; exit 1; }
 NEW="/bw-release/new/$(basename "$NEW_ZIP")"
 OLD="/bw-release/previous/$(basename "$OLD_ZIP")"
@@ -54,7 +56,7 @@ rows_before=$(field "$before" outbox_rows)
 
 wp plugin install "$NEW" --force >/dev/null 2>&1
 after=$(probe state)
-check "upgrade keeps the plugin active on the new version" "$(field "$after" version)" '"0.2.0"'
+check "upgrade keeps the plugin active on the new version" "$(field "$after" version)" "$EXPECTED_VERSION"
 check "upgrade keeps the queued events" "$(field "$after" outbox_rows)" "$rows_before"
 check "upgrade keeps the connection" "$(field "$after" connection)" "true"
 check "schema is current after upgrade" "$(field "$after" schema_current)" "true"
@@ -65,7 +67,7 @@ check "rollback to the previous package keeps working" "$(field "$back" order_sa
 check "rollback keeps the queued events" "$([ "$(field "$back" outbox_rows)" -ge "$rows_before" ] && echo yes)" "yes"
 wp plugin install "$NEW" --force >/dev/null 2>&1
 forward=$(probe state)
-check "upgrade again after rollback" "$(field "$forward" version)" '"0.2.0"'
+check "upgrade again after rollback" "$(field "$forward" version)" "$EXPECTED_VERSION"
 
 setup=$(wp eval-file /bw-matrix/checkout-setup.php | sed -n 's/^BW_SETUP=//p')
 product=$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['product_id'])" "$setup")

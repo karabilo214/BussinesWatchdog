@@ -56,4 +56,24 @@ class PluginDownloadTest extends TestCase
         $this->getJson('/api/v1/downloads/woocommerce-plugin')->assertUnauthorized();
         $this->getJson('/api/v1/downloads/woocommerce-plugin/file')->assertUnauthorized();
     }
+
+    public function test_only_the_exact_approved_archive_is_downloadable_when_the_release_gate_is_on(): void
+    {
+        $context = $this->context('viewer');
+        $member = fn () => $this->actingAs($context['user'])->withSession(['active_tenant_id' => $context['tenant']->id]);
+        file_put_contents($this->directory.'/business-watchdog-0.9.0.zip', 'approved-archive');
+        file_put_contents($this->directory.'/business-watchdog-0.10.2.zip', 'unreviewed-archive');
+        config()->set('watchdog.connector_release_gate', true);
+
+        $member()->getJson('/api/v1/downloads/woocommerce-plugin')->assertOk()->assertJsonPath('available', false);
+        $member()->get('/api/v1/downloads/woocommerce-plugin/file')->assertNotFound();
+
+        config()->set('watchdog.woo_approved_sha256', hash('sha256', 'approved-archive'));
+        $member()->getJson('/api/v1/downloads/woocommerce-plugin')->assertOk()
+            ->assertJsonPath('available', true)->assertJsonPath('version', '0.9.0');
+        $this->assertSame('approved-archive', $member()->get('/api/v1/downloads/woocommerce-plugin/file')->assertOk()->streamedContent());
+
+        file_put_contents($this->directory.'/business-watchdog-0.9.0.zip', 'changed-after-approval');
+        $member()->getJson('/api/v1/downloads/woocommerce-plugin')->assertOk()->assertJsonPath('available', false);
+    }
 }
