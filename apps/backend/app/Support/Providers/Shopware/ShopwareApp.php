@@ -29,7 +29,7 @@ class ShopwareApp
 {
     public const APP_NAME = 'BusinessWatchdog';
 
-    public const APP_VERSION = '1.3.1';
+    public const APP_VERSION = '1.3.2';
 
     public const PERMISSIONS = ['order', 'order_transaction', 'order_transaction_capture', 'order_transaction_capture_refund', 'currency', 'payment_method', 'state_machine', 'state_machine_state'];
 
@@ -326,6 +326,7 @@ class ShopwareApp
     <meta>
         <name>%s</name>
         <label>Business Watchdog</label>
+        <label lang="de-DE">Business Watchdog</label>
         <description>Reads orders and payment states to find payment discrepancies. Read-only; never changes orders.</description>
         <description lang="de-DE">Liest Bestellungen und Zahlungsstatus, um Zahlungsabweichungen zu finden. Nur lesend; ändert keine Bestellungen.</description>
         <author>Business Watchdog</author>

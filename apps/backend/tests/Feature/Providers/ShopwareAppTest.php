@@ -89,6 +89,7 @@ class ShopwareAppTest extends TestCase
         $this->assertSame(Integration::STATUS_PENDING, $integration->status);
         $this->assertSame('app', $integration->capabilities['connection']);
         $this->assertStringContainsString('<name>BusinessWatchdog</name>', $manifest);
+        $this->assertStringContainsString('<label lang="de-DE">Business Watchdog</label>', $manifest, 'bin/console app:install refuses an app without a de-DE label');
         $this->assertStringContainsString('/api/v1/shopware/app/'.$integration->id.'/register', $manifest);
         $this->assertStringContainsString('<read>order</read>', $manifest);
         $this->assertDoesNotMatchRegularExpression('/<(create|update|delete)>/', $manifest);
