@@ -109,6 +109,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     blockedUnknownMutation: false,
     blockedNavigation: false,
     blockedScripts: false,
+    blockedThirdPartyScripts: false,
     checkoutMode: null,
     lineItemId: null,
     signedIn: false,
@@ -168,6 +169,10 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       const { origin, path } = redactUrl(request.url());
       if (mainNavigation && decision.reason !== 'mutation') {
         state.blockedNavigation = true;
+      }
+
+      if (request.resourceType() === 'script' && decision.reason === 'origin_not_allowed' && policy.party(request.url()) !== 'first') {
+        state.blockedThirdPartyScripts = true;
       }
 
       if (decision.reason === 'mutation' && policy.isPaymentOperation(decision.operation)) {
