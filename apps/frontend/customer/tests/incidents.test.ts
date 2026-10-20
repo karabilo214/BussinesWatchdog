@@ -6,6 +6,7 @@ import * as api from '@/api/incidents';
 import type { IncidentDetail } from '@/api/types';
 import IncidentActions from '@/components/incidents/IncidentActions.vue';
 import IncidentEvidence from '@/components/incidents/IncidentEvidence.vue';
+import IncidentListItem from '@/components/incidents/IncidentListItem.vue';
 import IncidentTimeline from '@/components/incidents/IncidentTimeline.vue';
 import { formatMinor } from '@bw/ui';
 import en from '@/i18n/locales/en.json';
@@ -113,6 +114,16 @@ describe('incident title codes', () => {
       expect(titles[code], `title for ${code}`).toBeTruthy();
       expect(advice[code], `advice for ${code}`).toBeTruthy();
     }
+  });
+});
+
+describe('IncidentListItem', () => {
+  it('names the store order in the title of a money incident', () => {
+    const money = mount(IncidentListItem, { props: { incident: incident({ title_code: 'MONEY_CAPTURE_NOT_RECORDED', order_display_number: '10004' }), storeName: null }, global });
+    const checkout = mount(IncidentListItem, { props: { incident: incident({ family: 'checkout_payment', title_code: 'CHECKOUT_PAYMENTS_FAILING', order_display_number: '10004' }), storeName: null }, global });
+
+    expect(money.text()).toContain('Деньги списаны, но заказ не отмечен оплаченным — заказ 10004');
+    expect(checkout.text()).not.toContain('заказ 10004');
   });
 });
 

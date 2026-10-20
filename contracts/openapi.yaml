@@ -7198,6 +7198,8 @@ components:
         currency: {type: [string, "null"], pattern: "^[A-Z]{3}$"}
         mode: {type: [string, "null"], enum: [live, test, null], description: "Financial mode; null when unverified or not applicable."}
         currency_exponent: {type: [integer, "null"], minimum: 0, description: "Exponent of verified_discrepancy_minor, from the linked reconciliation finding; null when unknown."}
+        order_id: {type: [string, "null"], format: uuid, description: "Store order of a money incident, from the latest linked reconciliation finding."}
+        order_display_number: {type: [string, "null"], description: "The store's own order number of that order."}
         verified_discrepancy_minor:
           oneOf:
             - {$ref: "#/components/schemas/MoneyMinor"}

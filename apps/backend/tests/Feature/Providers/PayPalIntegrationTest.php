@@ -222,6 +222,37 @@ class PayPalIntegrationTest extends TestCase
         $this->assertSame(['GET /v2/payments/captures/1UNKNOWN0CAPTURE0'], $this->reads());
     }
 
+    public function test_a_known_capture_is_read_again_while_the_store_reports_a_refund_paypal_has_not_shown(): void
+    {
+        $order = $this->order('CAP0000000000006R', 1000, '56');
+        $this->paypalOrder('ORD0000000000006R', '56', [$this->capture('CAP0000000000006R', 'COMPLETED', '10.00')], []);
+        $integration = $this->connected();
+        app(PayPalSync::class)->syncOrder($integration, 'ORD0000000000006R');
+        $this->drain();
+        $this->storeRefund($order, 400);
+        $order->forceFill(['source_updated_at' => now()->subMinute()])->save();
+        app(OrderReconciliationService::class)->evaluate($order->refresh());
+        $missing = fn (): string => ReconciliationFinding::query()->where('order_id', $order->id)->where('rule_code', ReconciliationFinding::RULE_REFUND_MISSING)->latest('evaluated_at')->value('status');
+        $this->assertContains($missing(), [ReconciliationFinding::STATUS_PENDING, ReconciliationFinding::STATUS_MISMATCH]);
+
+        $this->paypalOrder('ORD0000000000006R', '56', [$this->capture('CAP0000000000006R', 'PARTIALLY_REFUNDED', '10.00')], [$this->refundObject('REF0000000000006R', 'COMPLETED', '4.00')]);
+        $this->requests = [];
+        $result = app(PayPalSync::class)->syncPointers($integration->refresh());
+        $this->drain();
+
+        $this->assertSame(1, $result['read']);
+        $this->assertContains('GET /v2/checkout/orders/ORD0000000000006R', $this->reads());
+        $this->assertSame(1, FinancialTransaction::query()->where('external_operation_id', 'REF0000000000006R')->count());
+
+        $this->travel(1)->seconds();
+        app(OrderReconciliationService::class)->evaluate($order->refresh());
+        $this->assertSame(ReconciliationFinding::STATUS_OK, $missing());
+
+        $this->travel(16)->minutes();
+        $this->requests = [];
+        $this->assertSame(0, app(PayPalSync::class)->syncPointers($integration->refresh())['read'], 'a refund PayPal has shown is not read again');
+    }
+
     public function test_a_store_refund_that_arrives_after_the_paypal_refund_is_linked_by_the_unique_amount(): void
     {
         $order = $this->order('CAP0000000000005R', 1000, '55');

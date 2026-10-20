@@ -17,7 +17,7 @@ import { StatusBadge } from '@bw/ui';
 const props = defineProps<{ id: string }>();
 const { canManageStores, canHandleIncidents } = useRole();
 const { dateTime } = useFormat();
-const { title, advice, discrepancy, resolution } = useIncidentText();
+const { incidentTitle, advice, discrepancy, resolution } = useIncidentText();
 
 const incident = ref<IncidentDetail | null>(null);
 const store = ref<Store | null>(null);
@@ -74,7 +74,7 @@ watch(
             <StatusBadge v-if="incident.family === 'money'" tone="note" :label="$t(`financial_mode.${incident.mode ?? 'unknown'}`)" />
             <span class="text-sm text-text-muted">{{ $t(`incident.family.${incident.family}`) }}</span>
           </div>
-          <h1 class="text-2xl font-semibold">{{ title(incident.title_code) }}</h1>
+          <h1 class="text-2xl font-semibold">{{ incidentTitle(incident) }}</h1>
           <p v-if="store" class="text-sm text-text-muted">
             <RouterLink :to="{ name: 'store', params: { id: store.id } }" class="hover:text-primary hover:underline">{{ store.name }}</RouterLink>
           </p>

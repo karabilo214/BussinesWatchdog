@@ -6,6 +6,7 @@ use App\Models\FinancialTransaction;
 use App\Models\Integration;
 use App\Models\Order;
 use App\Models\ReconciliationDirtySubject;
+use App\Models\ReconciliationFinding;
 use App\Support\Providers\ProviderEventEmitter;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use Illuminate\Support\Carbon;
@@ -20,7 +21,9 @@ use Illuminate\Support\Facades\DB;
  * minus an overlap; audit walks the retention window once a day and continues hourly when the request budget runs out.
  * Pointers close the search lag without a webhook: the capture id a store reports for a recent PayPal order (PayPal
  * Payments for WooCommerce, SwagPayPal for Shopware) is only
- * used to find that capture and its order at PayPal, so the money is still proven by PayPal (ADR 0022).
+ * used to find that capture and its order at PayPal, so the money is still proven by PayPal (ADR 0022). A known
+ * capture is read again while the store reports a refund that PayPal has not shown yet, so a refund made from the
+ * store is not reported missing only because Transaction Search lags.
  */
 class PayPalSync
 {
@@ -137,9 +140,15 @@ class PayPalSync
             ->whereNotNull('transaction_ref')
             ->whereNull('deleted_at')
             ->where('source_updated_at', '>=', Carbon::now()->subHours((int) config('watchdog.paypal.pointer_window_hours')))
-            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from((new FinancialTransaction)->getTable())
-                ->where('integration_id', $integration->id)
-                ->whereColumn('external_operation_id', 'orders.transaction_ref'))
+            ->where(fn ($query) => $query
+                ->whereNotExists(fn ($capture) => $capture->selectRaw('1')->from((new FinancialTransaction)->getTable())
+                    ->where('integration_id', $integration->id)
+                    ->whereColumn('external_operation_id', 'orders.transaction_ref'))
+                ->orWhereExists(fn ($finding) => $finding->selectRaw('1')->from('reconciliation_findings as missing')
+                    ->whereColumn('missing.order_id', 'orders.id')
+                    ->where('missing.rule_code', ReconciliationFinding::RULE_REFUND_MISSING)
+                    ->whereIn('missing.status', [ReconciliationFinding::STATUS_PENDING, ReconciliationFinding::STATUS_MISMATCH])
+                    ->whereRaw('missing.evaluated_at = (select max(latest.evaluated_at) from reconciliation_findings as latest where latest.order_id = orders.id and latest.rule_code = ?)', [ReconciliationFinding::RULE_REFUND_MISSING])))
             ->orderByDesc('source_updated_at')
             ->limit((int) config('watchdog.paypal.pointer_max_per_run'))
             ->pluck('transaction_ref')

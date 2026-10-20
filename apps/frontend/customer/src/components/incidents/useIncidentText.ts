@@ -10,6 +10,13 @@ export function useIncidentText() {
     return te(`incident.title.${code}`) ? t(`incident.title.${code}`) : t('incident.title.unknown', { code });
   }
 
+  /** A money incident names the store order it is about, so the list says which order to open. */
+  function incidentTitle(incident: Pick<Incident, 'title_code' | 'family' | 'order_display_number'>): string {
+    const base = title(incident.title_code);
+
+    return incident.family === 'money' && incident.order_display_number ? t('incident.title_with_order', { title: base, order: incident.order_display_number }) : base;
+  }
+
   function advice(code: string): string {
     return te(`incident.advice.${code}`) ? t(`incident.advice.${code}`) : t('incident.advice.unknown');
   }
@@ -35,5 +42,5 @@ export function useIncidentText() {
     return AUTO_RESOLUTIONS.includes(reason) ? t(`incident.resolution.${reason}`) : reason;
   }
 
-  return { title, advice, amount, discrepancy, resolution };
+  return { title, incidentTitle, advice, amount, discrepancy, resolution };
 }

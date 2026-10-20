@@ -644,6 +644,7 @@
       "checkout_payment": "Zahlungsversuche",
       "integration": "Shop-Plugin"
     },
+    "title_with_order": "{title} — Bestellung {order}",
     "title": {
       "MONEY_UNSUPPORTED": "Abgleich der Bestellung nicht möglich",
       "MONEY_CAPTURE_MISSING": "Bestellung als bezahlt markiert, keine Abbuchung beim Anbieter gefunden",

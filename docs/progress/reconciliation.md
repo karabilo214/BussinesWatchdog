@@ -449,3 +449,15 @@ Found in the live Shopware run (Step 206): MONEY_CAPTURE_NOT_RECORDED findings a
 - Tests: `OrderReconciliationServiceTest`, `MoneyIncidentCorrelatorTest`, `ShopwareIntegrationTest` (evidence compared order-independently for PostgreSQL), customer `reconciliation.test.ts`, `incidents.test.ts`.
 
 Verification: backend SQLite 676 passed + 4 skipped, PostgreSQL 18 680/680; customer vitest 140/140, vue-tsc ok.
+
+### Step 209: PayPal Refunds Made From the Store Are Read at Once; Order Number in Money Incident Titles
+
+Status: complete in main
+
+Found in the live Shopware run (Step 206): a partial refund of order 10003 made in the Shopware admin was completed at PayPal (refund 120.00 €), but the service did not see it — Transaction Search lags up to hours and the pointer path only read captures it did not know yet. After the refund grace the order would have got a false MONEY_REFUND_MISSING.
+
+- `PayPalSync::syncPointers`: an order with a known capture is read again while its latest MONEY_REFUND_MISSING is pending or mismatch (within the pointer window, with the same retry interval). A refund PayPal has shown stops the re-reads.
+- `IncidentDto`: money incidents carry `order_id` and `order_display_number` of the latest linked finding (`contracts/openapi.yaml`); the cabinet shows «<title> — заказ 10004» in the list and on the incident page.
+- Tests: `PayPalIntegrationTest` (fails without the fix), `IncidentApiTest`, customer `incidents.test.ts`.
+
+Verification: backend SQLite 677 passed + 4 skipped, PostgreSQL 18 681/681; customer vitest 141/141, vue-tsc ok.

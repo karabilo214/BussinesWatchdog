@@ -4,6 +4,7 @@ namespace App\Http\Dto\Incidents;
 
 use App\Models\Incident;
 use App\Models\IncidentSignal;
+use App\Models\Order;
 use App\Models\ReconciliationFinding;
 use App\Models\Signal;
 use Illuminate\Support\Collection;
@@ -13,9 +14,9 @@ class IncidentDto
     /**
      * @return array<string, mixed>
      */
-    public function toArray(Incident $incident, ?int $currencyExponent = null, bool $showMoneyAmounts = true): array
+    public function toArray(Incident $incident, ?array $facts = null, bool $showMoneyAmounts = true): array
     {
-        $currencyExponent ??= $this->currencyExponents(collect([$incident]))[$incident->id] ?? null;
+        $facts ??= $this->findingFacts(collect([$incident]))[$incident->id] ?? [];
 
         return [
             'id' => $incident->id,
@@ -27,7 +28,9 @@ class IncidentDto
             'title_code' => $incident->title_code,
             'currency' => $incident->currency,
             'mode' => $incident->mode,
-            'currency_exponent' => $currencyExponent,
+            'currency_exponent' => $facts['currency_exponent'] ?? null,
+            'order_id' => $facts['order_id'] ?? null,
+            'order_display_number' => $facts['order_display_number'] ?? null,
             'verified_discrepancy_minor' => ! $showMoneyAmounts || $incident->verified_discrepancy_minor === null
                 ? null
                 : (string) $incident->verified_discrepancy_minor,
@@ -52,24 +55,25 @@ class IncidentDto
      */
     public function collection(Collection $incidents, bool $showMoneyAmounts = true): array
     {
-        $exponents = $this->currencyExponents($incidents);
+        $facts = $this->findingFacts($incidents);
 
         return $incidents
-            ->map(fn (Incident $incident): array => $this->toArray($incident, $exponents[$incident->id] ?? null, $showMoneyAmounts))
+            ->map(fn (Incident $incident): array => $this->toArray($incident, $facts[$incident->id] ?? [], $showMoneyAmounts))
             ->values()
             ->all();
     }
 
     /**
-     * Exponent of the money amounts, taken from the latest reconciliation finding linked to each incident.
+     * The currency exponent of the money amounts and the store order of a money incident, taken from the latest
+     * reconciliation finding linked to each incident.
      *
      * @param  Collection<int, Incident>  $incidents
-     * @return array<string, int>
+     * @return array<string, array{currency_exponent?: int, order_id?: string, order_display_number?: ?string}>
      */
-    private function currencyExponents(Collection $incidents): array
+    private function findingFacts(Collection $incidents): array
     {
         $ids = $incidents
-            ->filter(fn (Incident $incident): bool => $incident->currency !== null)
+            ->filter(fn (Incident $incident): bool => $incident->family === 'money')
             ->pluck('id')
             ->all();
 
@@ -80,19 +84,28 @@ class IncidentDto
         $rows = IncidentSignal::query()
             ->join((new Signal)->getTable().' as s', 's.id', '=', 'incident_signals.signal_id')
             ->join((new ReconciliationFinding)->getTable().' as f', 'f.id', '=', 's.finding_id')
+            ->leftJoin((new Order)->getTable().' as o', function ($join): void {
+                $join->on('o.id', '=', 'f.order_id')->whereColumn('o.tenant_id', 'f.tenant_id');
+            })
             ->whereColumn('s.tenant_id', 'incident_signals.tenant_id')
             ->whereColumn('f.tenant_id', 'incident_signals.tenant_id')
             ->whereIn('incident_signals.incident_id', $ids)
-            ->whereNotNull('f.currency_exponent')
             ->orderBy('s.detected_at')
-            ->get(['incident_signals.incident_id', 'f.currency_exponent']);
+            ->get(['incident_signals.incident_id', 'f.currency_exponent', 'f.order_id', 'o.display_number']);
 
-        $exponents = [];
+        $facts = [];
 
         foreach ($rows as $row) {
-            $exponents[$row->incident_id] = (int) $row->currency_exponent;
+            if ($row->currency_exponent !== null) {
+                $facts[$row->incident_id]['currency_exponent'] = (int) $row->currency_exponent;
+            }
+
+            if ($row->order_id !== null) {
+                $facts[$row->incident_id]['order_id'] = $row->order_id;
+                $facts[$row->incident_id]['order_display_number'] = $row->display_number;
+            }
         }
 
-        return $exponents;
+        return $facts;
     }
 }

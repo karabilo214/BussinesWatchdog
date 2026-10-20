@@ -215,6 +215,8 @@ export interface Incident {
   state: IncidentState;
   severity: IncidentSeverity;
   title_code: string;
+  order_id?: string | null;
+  order_display_number?: string | null;
   currency: string | null;
   mode: 'live' | 'test' | null;
   currency_exponent: number | null;

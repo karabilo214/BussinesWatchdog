@@ -644,6 +644,7 @@
       "checkout_payment": "Попытки оплаты",
       "integration": "Плагин магазина"
     },
+    "title_with_order": "{title} — заказ {order}",
     "title": {
       "MONEY_UNSUPPORTED": "Сверка денег по заказу невозможна",
       "MONEY_CAPTURE_MISSING": "Заказ отмечен оплаченным, списание у провайдера не найдено",

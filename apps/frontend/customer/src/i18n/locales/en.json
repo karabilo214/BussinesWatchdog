@@ -644,6 +644,7 @@
       "checkout_payment": "Payment attempts",
       "integration": "Store plugin"
     },
+    "title_with_order": "{title} — order {order}",
     "title": {
       "MONEY_UNSUPPORTED": "The order cannot be reconciled",
       "MONEY_CAPTURE_MISSING": "Order marked as paid, no capture found at the provider",

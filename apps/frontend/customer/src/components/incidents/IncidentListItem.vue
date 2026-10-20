@@ -8,7 +8,7 @@ import { useIncidentText } from './useIncidentText';
 
 const props = defineProps<{ incident: Incident; storeName: string | null }>();
 const { dateTime } = useFormat();
-const { title, discrepancy } = useIncidentText();
+const { incidentTitle, discrepancy } = useIncidentText();
 
 const amount = computed(() => discrepancy(props.incident));
 </script>
@@ -22,7 +22,7 @@ const amount = computed(() => discrepancy(props.incident));
         <StatusBadge v-if="incident.family === 'money'" tone="note" :label="$t(`financial_mode.${incident.mode ?? 'unknown'}`)" />
       </div>
       <RouterLink :to="{ name: 'incident', params: { id: incident.id } }" class="font-medium hover:text-primary hover:underline">
-        {{ title(incident.title_code) }}
+        {{ incidentTitle(incident) }}
       </RouterLink>
       <p class="text-[13px] text-text-muted">
         <template v-if="storeName">{{ storeName }} · </template>{{ $t(`incident.family.${incident.family}`) }}

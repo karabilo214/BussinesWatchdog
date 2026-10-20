@@ -43,7 +43,8 @@ class IncidentApiTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.state', Incident::STATE_OPEN)
             ->assertJsonPath('data.0.family', 'money')
-            ->assertJsonPath('data.0.component', 'capture');
+            ->assertJsonPath('data.0.component', 'capture')
+            ->assertJsonPath('data.0.order_display_number', '#1001');
     }
 
     public function test_incident_detail_includes_signals_and_activity(): void
@@ -63,6 +64,7 @@ class IncidentApiTest extends TestCase
             ->assertJsonPath('activity.0.kind', 'created')
             ->assertJsonPath('currency', 'EUR')
             ->assertJsonPath('currency_exponent', 2)
+            ->assertJsonPath('order_display_number', '#1001')
             ->assertJsonPath('active_suppression', null)
             ->assertJsonCount(1, 'findings')
             ->assertJsonPath('findings.0.rule_code', 'MONEY_CAPTURE_MISSING')
