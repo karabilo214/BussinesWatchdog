@@ -17,10 +17,12 @@ use App\Models\Tenant;
 use App\Support\Payments\PaymentAllocationService;
 use App\Support\Reconciliation\OrderReconciliationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\KnownProviderPayment;
 use Tests\TestCase;
 
 class OrderReconciliationServiceTest extends TestCase
 {
+    use KnownProviderPayment;
     use RefreshDatabase;
 
     public function test_it_reports_capture_missing_as_pending_within_grace(): void
@@ -325,7 +327,7 @@ class OrderReconciliationServiceTest extends TestCase
             'health' => [],
         ]);
 
-        return Order::query()->create(array_merge([
+        $order = Order::query()->create(array_merge([
             'tenant_id' => $tenant->id,
             'store_id' => $store->id,
             'integration_id' => $integration->id,
@@ -347,6 +349,8 @@ class OrderReconciliationServiceTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ], $overrides));
+
+        return array_key_exists('transaction_ref', $overrides) ? $order : $this->withKnownProviderPayment($order);
     }
 
     private function allocateCapture(Order $order, int $captureAmount, int $allocateAmount): PaymentAllocation

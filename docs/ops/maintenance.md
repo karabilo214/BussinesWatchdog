@@ -20,6 +20,7 @@
 | `php artisan queue:failed` / `queue:retry all` | Посмотреть и повторить упавшие задания синхронизации |
 | `php artisan reconciliation:work --stop-when-empty` | Разобрать очередь сверки до конца и выйти (например, после восстановления) |
 | `php artisan reconciliation:process-dirty` / `reconciliation:nightly-sweep` | Внеочередной пересчёт сверки |
+| `php artisan reconciliation:recheck-open-incidents` | Поставить на пересчёт все заказы с открытыми денежными инцидентами по текущим правилам. **Один раз после выкладки, где менялись правила сверки** (Step 201, ADR 0068); пересчёт делают обработчики сверки |
 | `php artisan artifacts:purge` / `exports:purge` | Внеочередная очистка просроченных файлов |
 | `php artisan checkout:observation-evaluate` | Внеочередная проверка правил наблюдения за оформлением заказа Shopware и WooCommerce: скрипт молчит, отправки заказа без заказов (обычно делает планировщик) |
 | `php artisan checkout:payment-attempts-stuck` | Внеочередная отметка попыток оплаты Shopware и WooCommerce REST API без результата 30 минут (обычно делает планировщик) |

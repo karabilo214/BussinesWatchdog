@@ -635,6 +635,8 @@
       "MONEY_CURRENCY_MISMATCH": "Capture currency differs from the order currency",
       "MONEY_ORDER_CHANGED": "Order changed after the capture",
       "MONEY_PAYMENT_WITHOUT_ORDER": "Provider payment not matched to an order",
+      "MONEY_PAYMENT_NOT_MATCHED": "Order marked paid, no provider payment found for its reference",
+      "MONEY_CANCELLED_PAID": "Order cancelled, but the money was not refunded",
       "CHECKOUT_PAYMENTS_FAILING": "Payments keep failing",
       "CHECKOUT_FLOW_FAILED": "The check did not reach the payment form",
       "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "The test product for checks is unavailable",
@@ -659,6 +661,8 @@
       "MONEY_CURRENCY_MISMATCH": "Check the currency settings of the store and the payment gateway.",
       "MONEY_ORDER_CHANGED": "The order was edited after payment. Make sure the final total and the capture agree.",
       "MONEY_PAYMENT_WITHOUT_ORDER": "Find the payment in the provider dashboard and work out which order it belongs to. A match by amount and time is only a hint.",
+      "MONEY_PAYMENT_NOT_MATCHED": "No provider payment was found for the order's reference — this does not prove the money is missing. Check how the order was paid and who marked it paid; if the payment exists under another reference, link it manually.",
+      "MONEY_CANCELLED_PAID": "The cancelled status alone does not return money. Check whether the customer needs a refund and issue it through the payment provider.",
       "CHECKOUT_PAYMENTS_FAILING": "Try paying with this method yourself and check the payment plugin log and the provider dashboard.",
       "CHECKOUT_FLOW_FAILED": "Open the site and walk the path to payment: product, cart, checkout. Look at the check screenshot. This check does not verify that charging succeeds.",
       "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Make sure the test product is published, in stock and can be added to the cart.",
@@ -882,6 +886,8 @@
       "MONEY_REFUND_MISSING": "Store refunds at the provider",
       "MONEY_REFUND_EXTRA": "Provider refunds in the store",
       "MONEY_PAYMENT_WITHOUT_ORDER": "Payment without an order",
+      "MONEY_PAYMENT_NOT_MATCHED": "Order payment at the provider",
+      "MONEY_CANCELLED_PAID": "Cancelled paid order",
       "MONEY_UNSUPPORTED": "Reconciliation possible"
     }
   },

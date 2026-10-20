@@ -1149,6 +1149,8 @@
         "MONEY_REFUND_MISSING": "Возвраты магазина у провайдера",
         "MONEY_REFUND_EXTRA": "Возвраты провайдера в магазине",
         "MONEY_PAYMENT_WITHOUT_ORDER": "Платёж без заказа",
+        "MONEY_PAYMENT_NOT_MATCHED": "Платёж заказа у провайдера",
+        "MONEY_CANCELLED_PAID": "Отменённый оплаченный заказ",
         "MONEY_UNSUPPORTED": "Возможность сверки"
       },
       "finding_status": {
@@ -1169,6 +1171,8 @@
         "MONEY_CURRENCY_MISMATCH": "Валюта списания не совпадает с валютой заказа",
         "MONEY_ORDER_CHANGED": "Заказ изменён после списания",
         "MONEY_PAYMENT_WITHOUT_ORDER": "Платёж у провайдера не сопоставлен с заказом",
+        "MONEY_PAYMENT_NOT_MATCHED": "Заказ отмечен оплаченным, платёж у провайдера не найден по ссылке заказа",
+        "MONEY_CANCELLED_PAID": "Заказ отменён, но деньги не возвращены",
         "CHECKOUT_PAYMENTS_FAILING": "Оплаты подряд не проходят",
         "CHECKOUT_FLOW_FAILED": "Проверка не дошла до формы оплаты",
         "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Тестовый товар для проверки недоступен",

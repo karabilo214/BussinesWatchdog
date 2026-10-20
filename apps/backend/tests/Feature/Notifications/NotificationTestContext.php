@@ -11,9 +11,12 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
+use Tests\Concerns\KnownProviderPayment;
 
 trait NotificationTestContext
 {
+    use KnownProviderPayment;
+
     /**
      * @return array{user: User, tenant: Tenant, store: Store, integration: Integration}
      */
@@ -64,7 +67,7 @@ trait NotificationTestContext
      */
     private function order(array $context, array $overrides = []): Order
     {
-        return Order::query()->create(array_merge([
+        $order = Order::query()->create(array_merge([
             'tenant_id' => $context['tenant']->id,
             'store_id' => $context['store']->id,
             'integration_id' => $context['integration']->id,
@@ -86,6 +89,8 @@ trait NotificationTestContext
             'created_at' => now(),
             'updated_at' => now(),
         ], $overrides));
+
+        return array_key_exists('transaction_ref', $overrides) ? $order : $this->withKnownProviderPayment($order);
     }
 
     /**

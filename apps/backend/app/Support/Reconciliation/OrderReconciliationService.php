@@ -3,6 +3,7 @@
 namespace App\Support\Reconciliation;
 
 use App\Models\FinancialTransaction;
+use App\Models\Integration;
 use App\Models\Order;
 use App\Models\OrderRevision;
 use App\Models\Payment;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\DB;
 
 class OrderReconciliationService
 {
-    public const ALGORITHM_VERSION = 'v2';
+    public const ALGORITHM_VERSION = 'v3';
 
     public const CONFIG_VERSION = 1;
 
@@ -100,15 +101,19 @@ class OrderReconciliationService
                 ], $now);
             } else {
                 $allocations = $this->activeCaptureAllocations($lockedOrder);
+                $otherCurrencyPayment = $this->referencedPaymentInOtherCurrency($lockedOrder);
+                $baselineTotalMinor = $this->totalAtCapture($lockedOrder, $allocations);
+                $refundFindings = $this->evaluateRefundRules($run, $lockedOrder, $allocations, $now);
 
                 $findings = array_merge(
                     $findings,
-                    $this->evaluateCaptureRules($run, $lockedOrder, $allocations, $now),
+                    $this->evaluateCaptureRules($run, $lockedOrder, $allocations, $otherCurrencyPayment, $baselineTotalMinor, $now),
                     $this->evaluateCaptureRecordedByStore($run, $lockedOrder, $allocations, $now),
                     $this->evaluateMultipleCaptures($run, $lockedOrder, $allocations, $now),
-                    $this->evaluateCurrencyMismatch($run, $lockedOrder, $now),
-                    $this->evaluateOrderChanged($run, $lockedOrder, $allocations, $now),
-                    $this->evaluateRefundRules($run, $lockedOrder, $now),
+                    $this->evaluateCurrencyMismatch($run, $lockedOrder, $otherCurrencyPayment, $now),
+                    $this->evaluateOrderChanged($run, $lockedOrder, $baselineTotalMinor, $now),
+                    $this->evaluateCancelledPaid($run, $lockedOrder, $allocations, $now),
+                    $refundFindings,
                 );
             }
 
@@ -129,10 +134,15 @@ class OrderReconciliationService
     }
 
     /**
+     * MONEY_CAPTURE_MISSING needs an exact mapping (TZ §14): only when a provider payment for the order's reference is
+     * known does a missing capture become a discrepancy with an amount. A payment in another currency is reported by
+     * MONEY_CURRENCY_MISMATCH alone, and an order whose reference matches no provider payment is "not matched", without
+     * an amount (ADR 0068).
+     *
      * @param  Collection<int, PaymentAllocation>  $allocations
      * @return list<array<string, mixed>>
      */
-    private function evaluateCaptureRules(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array
+    private function evaluateCaptureRules(ReconciliationRun $run, Order $order, Collection $allocations, ?Payment $otherCurrencyPayment, ?int $baselineTotalMinor, Carbon $now): array
     {
         $gross = $order->total_minor;
         $capturedMinor = (int) $allocations->sum('amount_minor');
@@ -140,44 +150,108 @@ class OrderReconciliationService
         if ($order->paid_marked_at !== null && $gross > 0) {
             if ($capturedMinor === 0) {
                 $graceDeadline = $order->paid_marked_at->copy()->addMinutes(self::GRACE_CAPTURE_MINUTES);
-                $isPastGrace = $now->greaterThanOrEqualTo($graceDeadline);
+
+                if ($now->lessThan($graceDeadline)) {
+                    return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_CAPTURE_MISSING, [
+                        'status' => ReconciliationFinding::STATUS_PENDING,
+                        'reason_code' => 'capture_missing_within_grace',
+                        'gross_minor' => $gross,
+                        'captured_minor' => 0,
+                        'expected_minor' => $gross,
+                        'actual_minor' => 0,
+                        'difference_minor' => -$gross,
+                        'evidence' => ['paid_marked_at' => $order->paid_marked_at->toJSON(), 'grace_deadline_at' => $graceDeadline->toJSON()],
+                    ], $now)];
+                }
+
+                if ($otherCurrencyPayment !== null) {
+                    return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_CAPTURE_MISSING, [
+                        'status' => ReconciliationFinding::STATUS_UNKNOWN,
+                        'reason_code' => 'currency_mismatch',
+                        'gross_minor' => $gross,
+                        'payment_id' => $otherCurrencyPayment->id,
+                        'evidence' => ['paid_marked_at' => $order->paid_marked_at->toJSON(), 'payment_currency' => $otherCurrencyPayment->currency],
+                    ], $now)];
+                }
+
+                if (! $this->providerPaymentKnown($order)) {
+                    return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_PAYMENT_NOT_MATCHED, [
+                        'status' => ReconciliationFinding::STATUS_MISMATCH,
+                        'reason_code' => 'payment_not_matched',
+                        'gross_minor' => $gross,
+                        'evidence' => array_filter([
+                            'paid_marked_at' => $order->paid_marked_at->toJSON(),
+                            'transaction_ref_present' => ($order->transaction_ref ?? '') !== '',
+                        ], fn (mixed $value): bool => $value !== null),
+                    ], $now)];
+                }
 
                 return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_CAPTURE_MISSING, [
-                    'status' => $isPastGrace ? ReconciliationFinding::STATUS_MISMATCH : ReconciliationFinding::STATUS_PENDING,
-                    'reason_code' => $isPastGrace ? 'capture_missing_grace_expired' : 'capture_missing_within_grace',
+                    'status' => ReconciliationFinding::STATUS_MISMATCH,
+                    'reason_code' => 'capture_missing_grace_expired',
                     'gross_minor' => $gross,
                     'captured_minor' => 0,
                     'expected_minor' => $gross,
                     'actual_minor' => 0,
                     'difference_minor' => -$gross,
-                    'evidence' => array_merge(
-                        ['paid_marked_at' => $order->paid_marked_at->toJSON()],
-                        $isPastGrace ? [] : ['grace_deadline_at' => $graceDeadline->toJSON()],
-                    ),
+                    'evidence' => ['paid_marked_at' => $order->paid_marked_at->toJSON()],
                 ], $now)];
             }
 
-            return [$this->captureAmountFinding($run, $order, $gross, $capturedMinor, $now)];
+            return [$this->captureAmountFinding($run, $order, $gross, $capturedMinor, $baselineTotalMinor, $now)];
         }
 
         if ($capturedMinor > 0) {
-            return [$this->captureAmountFinding($run, $order, $gross, $capturedMinor, $now)];
+            return [$this->captureAmountFinding($run, $order, $gross, $capturedMinor, $baselineTotalMinor, $now)];
         }
 
         return [];
     }
 
     /**
+     * A provider payment the matcher could link to this order: the order's reference names its intent, charge or capture,
+     * or its metadata names the order. Only then is a missing capture a fact rather than a missing link.
+     */
+    private function providerPaymentKnown(Order $order): bool
+    {
+        $reference = (string) ($order->transaction_ref ?? '');
+
+        $payments = Payment::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('store_id', $order->store_id)
+            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
+            ->where(function ($query) use ($order, $reference): void {
+                if ($reference !== '') {
+                    $query->orWhere('intent_ref', $reference)->orWhere('charge_ref', $reference);
+                }
+
+                $query->orWhere('metadata->provider_order_ref', $order->external_id);
+            });
+
+        if ($payments->exists()) {
+            return true;
+        }
+
+        return $reference !== '' && FinancialTransaction::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('store_id', $order->store_id)
+            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
+            ->where('external_operation_id', $reference)
+            ->exists();
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function captureAmountFinding(ReconciliationRun $run, Order $order, int $gross, int $capturedMinor, Carbon $now): array
+    private function captureAmountFinding(ReconciliationRun $run, Order $order, int $gross, int $capturedMinor, ?int $baselineTotalMinor, Carbon $now): array
     {
         $difference = $capturedMinor - $gross;
         $isMismatch = abs($difference) > self::TOLERANCE_MINOR;
+        $changedAfterCapture = $isMismatch && $baselineTotalMinor !== null;
 
         return $this->findingAttributes($run, $order, ReconciliationFinding::RULE_CAPTURE_AMOUNT, [
-            'status' => $isMismatch ? ReconciliationFinding::STATUS_MISMATCH : ReconciliationFinding::STATUS_OK,
-            'reason_code' => $isMismatch ? 'capture_amount_mismatch' : 'capture_amount_ok',
+            'status' => $changedAfterCapture ? ReconciliationFinding::STATUS_UNKNOWN : ($isMismatch ? ReconciliationFinding::STATUS_MISMATCH : ReconciliationFinding::STATUS_OK),
+            'reason_code' => $changedAfterCapture ? 'order_changed_after_capture' : ($isMismatch ? 'capture_amount_mismatch' : 'capture_amount_ok'),
             'gross_minor' => $gross,
             'captured_minor' => $capturedMinor,
             'expected_minor' => $gross,
@@ -248,15 +322,13 @@ class OrderReconciliationService
         ], $now)];
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function evaluateCurrencyMismatch(ReconciliationRun $run, Order $order, Carbon $now): array
+    private function referencedPaymentInOtherCurrency(Order $order): ?Payment
     {
-        if ($order->transaction_ref === null) {
-            return [];
+        if ($order->transaction_ref === null || $order->transaction_ref === '') {
+            return null;
         }
 
+        /** @var Payment|null $candidate */
         $candidate = Payment::query()
             ->where('tenant_id', $order->tenant_id)
             ->where('store_id', $order->store_id)
@@ -266,7 +338,15 @@ class OrderReconciliationService
             })
             ->first();
 
-        if ($candidate === null || $candidate->currency === $order->currency) {
+        return $candidate !== null && $candidate->currency !== $order->currency ? $candidate : null;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function evaluateCurrencyMismatch(ReconciliationRun $run, Order $order, ?Payment $candidate, Carbon $now): array
+    {
+        if ($candidate === null) {
             return [];
         }
 
@@ -279,15 +359,17 @@ class OrderReconciliationService
     }
 
     /**
+     * The order total as the store reported it at the first allocated capture, when it differs from the current total;
+     * null when there is no capture, no revision from before it, or the total did not change.
+     *
      * @param  Collection<int, PaymentAllocation>  $allocations
-     * @return list<array<string, mixed>>
      */
-    private function evaluateOrderChanged(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array
+    private function totalAtCapture(Order $order, Collection $allocations): ?int
     {
         $captureTransactionIds = $allocations->pluck('capture_transaction_id')->unique();
 
         if ($captureTransactionIds->isEmpty()) {
-            return [];
+            return null;
         }
 
         $earliestCaptureAt = FinancialTransaction::query()
@@ -295,7 +377,7 @@ class OrderReconciliationService
             ->min('occurred_at');
 
         if ($earliestCaptureAt === null) {
-            return [];
+            return null;
         }
 
         /** @var OrderRevision|null $baselineRevision */
@@ -307,12 +389,23 @@ class OrderReconciliationService
             ->first();
 
         if ($baselineRevision === null) {
-            return [];
+            return null;
         }
 
         $baselineTotalMinor = (int) ($baselineRevision->snapshot['data']['total_minor'] ?? $order->total_minor);
 
-        if ($baselineTotalMinor === $order->total_minor) {
+        return $baselineTotalMinor === $order->total_minor ? null : $baselineTotalMinor;
+    }
+
+    /**
+     * A total changed after capture needs review; it is never read as an underpayment on its own (TZ §12), so the
+     * finding keeps both totals as facts but the incident carries no discrepancy amount (ADR 0068).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function evaluateOrderChanged(ReconciliationRun $run, Order $order, ?int $baselineTotalMinor, Carbon $now): array
+    {
+        if ($baselineTotalMinor === null) {
             return [];
         }
 
@@ -322,14 +415,58 @@ class OrderReconciliationService
             'expected_minor' => $baselineTotalMinor,
             'actual_minor' => $order->total_minor,
             'difference_minor' => $order->total_minor - $baselineTotalMinor,
-            'evidence' => ['capture_occurred_at' => (string) $earliestCaptureAt],
+            'evidence' => [],
         ], $now)];
     }
 
     /**
+     * A cancelled order the store marked paid, with a capture and no refund at all: the status alone does not return
+     * money (TZ §12), so after the refund grace it asks for a review, without a discrepancy amount (ADR 0068).
+     *
+     * @param  Collection<int, PaymentAllocation>  $allocations
      * @return list<array<string, mixed>>
      */
-    private function evaluateRefundRules(ReconciliationRun $run, Order $order, Carbon $now): array
+    private function evaluateCancelledPaid(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array
+    {
+        $capturedMinor = (int) $allocations->sum('amount_minor');
+
+        if ($order->paid_marked_at === null || $capturedMinor <= 0) {
+            return [];
+        }
+
+        $hasRefund = Refund::query()->where('order_id', $order->id)->whereIn('status', ['requested', 'recorded'])->exists()
+            || FinancialTransaction::query()
+                ->whereIn('payment_id', $allocations->pluck('payment_id')->unique())
+                ->where('kind', 'refund')
+                ->whereIn('status', ['pending', 'succeeded'])
+                ->exists();
+        $cancelled = $order->status === 'cancelled' && ! $hasRefund;
+
+        if (! $cancelled && ! ReconciliationFinding::query()->where('order_id', $order->id)->where('rule_code', ReconciliationFinding::RULE_CANCELLED_PAID)->exists()) {
+            return [];
+        }
+
+        $graceDeadline = ($order->source_updated_at ?? $now)->copy()->addMinutes(self::GRACE_REFUND_MINUTES);
+        $pending = $cancelled && $now->lessThan($graceDeadline);
+
+        return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_CANCELLED_PAID, [
+            'status' => ! $cancelled ? ReconciliationFinding::STATUS_OK : ($pending ? ReconciliationFinding::STATUS_PENDING : ReconciliationFinding::STATUS_MISMATCH),
+            'reason_code' => ! $cancelled ? 'not_cancelled_or_refunded' : ($pending ? 'cancelled_paid_within_grace' : 'cancelled_paid_review'),
+            'gross_minor' => $order->total_minor,
+            'captured_minor' => $capturedMinor,
+            'evidence' => $pending ? ['grace_deadline_at' => $graceDeadline->toJSON()] : [],
+        ], $now)];
+    }
+
+    /**
+     * RP also counts the part of a succeeded provider refund that no store refund claims, on a payment linked to this
+     * order alone: a refund made directly at the provider is a disagreement too (FIN-08, ADR 0068). A payment shared
+     * by several orders leaves such a refund for a person to link.
+     *
+     * @param  Collection<int, PaymentAllocation>  $allocations
+     * @return list<array<string, mixed>>
+     */
+    private function evaluateRefundRules(ReconciliationRun $run, Order $order, Collection $allocations, Carbon $now): array
     {
         $refundState = $order->metadata['refund_state'] ?? null;
 
@@ -353,8 +490,25 @@ class OrderReconciliationService
             ->lockForUpdate()
             ->get();
 
-        $refundActualMinor = (int) $activeRefundAllocations->sum('amount_minor');
-        $latestRefundAllocationCreatedAt = $activeRefundAllocations->max('created_at');
+        [$unclaimedMinor, $latestUnclaimedAt] = $this->unclaimedProviderRefunds($order, $allocations);
+        $refundActualMinor = (int) $activeRefundAllocations->sum('amount_minor') + $unclaimedMinor;
+        $latestRefundAllocationCreatedAt = collect([$activeRefundAllocations->max('created_at'), $latestUnclaimedAt])->filter()->max();
+
+        $unknownRefunds = Refund::query()
+            ->where('order_id', $order->id)
+            ->whereNull('external_required')
+            ->whereIn('status', ['requested', 'recorded'])
+            ->count();
+
+        if ($unknownRefunds > 0) {
+            return [$this->findingAttributes($run, $order, ReconciliationFinding::RULE_REFUND_MISSING, [
+                'status' => ReconciliationFinding::STATUS_UNKNOWN,
+                'reason_code' => 'refund_external_unknown',
+                'refund_expected_minor' => $refundExpectedMinor,
+                'refund_actual_minor' => $refundActualMinor,
+                'evidence' => ['refunds_with_unknown_sending' => $unknownRefunds],
+            ], $now)];
+        }
 
         if ($refundExpectedMinor === 0 && $refundActualMinor === 0) {
             return [];
@@ -408,6 +562,51 @@ class OrderReconciliationService
             'difference_minor' => $difference,
             'evidence' => $isPastGrace ? [] : ['grace_deadline_at' => $graceDeadline->toJSON()],
         ], $now)];
+    }
+
+    /**
+     * @param  Collection<int, PaymentAllocation>  $allocations
+     * @return array{int, ?Carbon}
+     */
+    private function unclaimedProviderRefunds(Order $order, Collection $allocations): array
+    {
+        $paymentIds = $allocations->pluck('payment_id')->unique()->values();
+        $exclusive = $paymentIds->filter(fn (string $paymentId): bool => ! PaymentAllocation::query()
+            ->where('payment_id', $paymentId)
+            ->whereNull('revoked_at')
+            ->where('order_id', '!=', $order->id)
+            ->exists());
+
+        if ($exclusive->isEmpty()) {
+            return [0, null];
+        }
+
+        $refunds = FinancialTransaction::query()
+            ->whereIn('payment_id', $exclusive)
+            ->where('kind', 'refund')
+            ->where('status', 'succeeded')
+            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
+            ->where('currency', $order->currency)
+            ->get(['id', 'amount_minor', 'occurred_at']);
+        $claimed = RefundAllocation::query()
+            ->whereIn('refund_transaction_id', $refunds->pluck('id'))
+            ->whereNull('revoked_at')
+            ->selectRaw('refund_transaction_id, SUM(amount_minor) AS claimed')
+            ->groupBy('refund_transaction_id')
+            ->pluck('claimed', 'refund_transaction_id');
+        $unclaimed = 0;
+        $latest = null;
+
+        foreach ($refunds as $refund) {
+            $rest = (int) $refund->amount_minor - (int) ($claimed[$refund->id] ?? 0);
+
+            if ($rest > 0) {
+                $unclaimed += $rest;
+                $latest = $latest === null || $refund->occurred_at->greaterThan($latest) ? $refund->occurred_at : $latest;
+            }
+        }
+
+        return [$unclaimed, $latest];
     }
 
     /**

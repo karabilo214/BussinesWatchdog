@@ -38,6 +38,25 @@ class MoneyIncidentCorrelator
         ReconciliationFinding::RULE_CURRENCY_MISMATCH => 'currency_mismatch',
         ReconciliationFinding::RULE_ORDER_CHANGED => 'order_changed',
         ReconciliationFinding::RULE_PAYMENT_WITHOUT_ORDER => 'payment_without_order',
+        ReconciliationFinding::RULE_PAYMENT_NOT_MATCHED => 'capture',
+        ReconciliationFinding::RULE_CANCELLED_PAID => 'cancelled_paid',
+    ];
+
+    /**
+     * Findings that ask for a review but prove no amount (ADR 0068): their incidents never carry a verified
+     * discrepancy, also when they replace an earlier finding of the same component that had one.
+     */
+    private const NO_AMOUNT_RULES = [
+        ReconciliationFinding::RULE_PAYMENT_NOT_MATCHED,
+        ReconciliationFinding::RULE_ORDER_CHANGED,
+        ReconciliationFinding::RULE_CANCELLED_PAID,
+    ];
+
+    /** Unknown results that withdraw an amount an earlier rule version published for the same component (ADR 0068). */
+    private const AMOUNT_WITHDRAWN_REASONS = ['order_changed_after_capture', 'currency_mismatch'];
+
+    private const SEVERITY = [
+        ReconciliationFinding::RULE_CANCELLED_PAID => Incident::SEVERITY_INFO,
     ];
 
     public function __construct(
@@ -60,6 +79,12 @@ class MoneyIncidentCorrelator
 
                 if ($resolved !== null) {
                     $affected[] = $resolved;
+                }
+            } elseif ($finding->status === ReconciliationFinding::STATUS_UNKNOWN && in_array($finding->reason_code, self::AMOUNT_WITHDRAWN_REASONS, true)) {
+                $withdrawn = $this->withdrawAmount($finding);
+
+                if ($withdrawn !== null) {
+                    $affected[] = $withdrawn;
                 }
             }
         }
@@ -111,7 +136,7 @@ class MoneyIncidentCorrelator
                     'component' => $component,
                     'fingerprint' => $fingerprint,
                     'state' => Incident::STATE_OPEN,
-                    'severity' => Incident::SEVERITY_WARNING,
+                    'severity' => self::SEVERITY[$finding->rule_code] ?? Incident::SEVERITY_WARNING,
                     'title_code' => $finding->rule_code,
                     'currency' => $finding->currency,
                     'mode' => $finding->mode,
@@ -130,7 +155,9 @@ class MoneyIncidentCorrelator
                 $incident->forceFill([
                     'last_seen_at' => $now,
                     'title_code' => $finding->rule_code,
-                    'verified_discrepancy_minor' => $this->verifiedDiscrepancy($finding) ?? $incident->verified_discrepancy_minor,
+                    'verified_discrepancy_minor' => in_array($finding->rule_code, self::NO_AMOUNT_RULES, true)
+                        ? null
+                        : ($this->verifiedDiscrepancy($finding) ?? $incident->verified_discrepancy_minor),
                     'revision' => $incident->revision + 1,
                     'updated_at' => $now,
                 ])->save();
@@ -189,6 +216,51 @@ class MoneyIncidentCorrelator
                 'reason' => 'auto_resolved_fresh_reconciliation_ok',
             ]);
             $this->notifications->request($incident, NotificationDelivery::KIND_INCIDENT_RECOVERED);
+
+            return $incident;
+        });
+    }
+
+    /**
+     * The incident stays open for review, but no longer carries an amount the current rules do not prove. It is not a
+     * new transition, so nothing is notified.
+     */
+    private function withdrawAmount(ReconciliationFinding $finding): ?Incident
+    {
+        $entityId = $finding->order_id ?? $finding->payment_id;
+
+        if ($entityId === null) {
+            return null;
+        }
+
+        $fingerprint = $this->fingerprint($this->component($finding->rule_code), $entityId, $finding->mode);
+
+        return DB::transaction(function () use ($finding, $fingerprint): ?Incident {
+            $incident = Incident::query()
+                ->where('tenant_id', $finding->tenant_id)
+                ->where('store_id', $finding->store_id)
+                ->where('fingerprint', $fingerprint)
+                ->whereIn('state', Incident::ACTIVE_STATES)
+                ->whereNotNull('verified_discrepancy_minor')
+                ->lockForUpdate()
+                ->first();
+
+            if ($incident === null) {
+                return null;
+            }
+
+            $now = $finding->evaluated_at ?? Carbon::now();
+            $signal = $this->createSignal($finding, $now);
+
+            $incident->forceFill([
+                'verified_discrepancy_minor' => null,
+                'last_seen_at' => $now,
+                'revision' => $incident->revision + 1,
+                'updated_at' => $now,
+            ])->save();
+
+            $this->linkSignal($incident, $signal, 'amount_no_longer_verified', $now);
+            $this->writeActivity($incident, IncidentActivity::KIND_SIGNAL_LINKED, null, ['reason' => $finding->reason_code]);
 
             return $incident;
         });
@@ -277,6 +349,10 @@ class MoneyIncidentCorrelator
 
     private function verifiedDiscrepancy(ReconciliationFinding $finding): ?int
     {
+        if (in_array($finding->rule_code, self::NO_AMOUNT_RULES, true)) {
+            return null;
+        }
+
         return $finding->difference_minor === null ? null : abs($finding->difference_minor);
     }
 

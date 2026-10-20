@@ -40,6 +40,10 @@ class ReconciliationFinding extends Model
 
     public const RULE_UNSUPPORTED = 'MONEY_UNSUPPORTED';
 
+    public const RULE_PAYMENT_NOT_MATCHED = 'MONEY_PAYMENT_NOT_MATCHED';
+
+    public const RULE_CANCELLED_PAID = 'MONEY_CANCELLED_PAID';
+
     public $timestamps = false;
 
     protected $fillable = [

@@ -1149,6 +1149,8 @@
         "MONEY_REFUND_MISSING": "Shop-Erstattungen beim Anbieter",
         "MONEY_REFUND_EXTRA": "Anbieter-Erstattungen im Shop",
         "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung ohne Bestellung",
+        "MONEY_PAYMENT_NOT_MATCHED": "Zahlung der Bestellung beim Anbieter",
+        "MONEY_CANCELLED_PAID": "Stornierte bezahlte Bestellung",
         "MONEY_UNSUPPORTED": "Abgleich möglich"
       },
       "finding_status": {
@@ -1169,6 +1171,8 @@
         "MONEY_CURRENCY_MISMATCH": "Währung der Abbuchung weicht von der Bestellwährung ab",
         "MONEY_ORDER_CHANGED": "Bestellung nach der Abbuchung geändert",
         "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung beim Anbieter keiner Bestellung zugeordnet",
+        "MONEY_PAYMENT_NOT_MATCHED": "Bestellung als bezahlt markiert, keine Zahlung beim Anbieter zur Referenz gefunden",
+        "MONEY_CANCELLED_PAID": "Bestellung storniert, aber das Geld wurde nicht erstattet",
         "CHECKOUT_PAYMENTS_FAILING": "Zahlungen schlagen wiederholt fehl",
         "CHECKOUT_FLOW_FAILED": "Die Prüfung hat das Zahlungsformular nicht erreicht",
         "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Das Testprodukt für Prüfungen ist nicht verfügbar",

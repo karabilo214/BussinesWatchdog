@@ -13,10 +13,12 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Tests\Concerns\KnownProviderPayment;
 use Tests\TestCase;
 
 class IncidentApiTest extends TestCase
 {
+    use KnownProviderPayment;
     use RefreshDatabase;
 
     public function test_triggering_reconciliation_creates_an_incident_visible_via_the_list(): void
@@ -424,7 +426,7 @@ class IncidentApiTest extends TestCase
      */
     private function order(array $context, array $overrides = []): Order
     {
-        return Order::query()->create(array_merge([
+        $order = Order::query()->create(array_merge([
             'tenant_id' => $context['tenant']->id,
             'store_id' => $context['store']->id,
             'integration_id' => $context['integration']->id,
@@ -446,5 +448,7 @@ class IncidentApiTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ], $overrides));
+
+        return array_key_exists('transaction_ref', $overrides) ? $order : $this->withKnownProviderPayment($order);
     }
 }

@@ -415,3 +415,24 @@ Status: complete as a registry; 6 deviations wait for the owner's decision (ADR 
 - The registry test skips itself when `spec/` is not mounted (container runs). The reconciliation code was not changed.
 
 Verification: `FinRegistryTest` 25/25 (24 examples + coverage check). Backend SQLite 660 passed + 4 skipped, PostgreSQL 18 664/664, Pint ok.
+
+### Step 201: Reconciliation Rules v3 — the FIN Registry Matches 24 of 24 (ADR 0068)
+
+Status: complete; ADR 0068 accepted by the owner on 2026-10-20 ((b) for FIN-15 and FIN-19); not deployed yet
+
+- `OrderReconciliationService` → `ALGORITHM_VERSION` v3:
+  - FIN-15: a paid order with C = 0 past the grace, whose reference/metadata matches no provider payment, is `MONEY_PAYMENT_NOT_MATCHED` (mismatch, no amount). MONEY_CAPTURE_MISSING with the amount stays for a known payment without a capture.
+  - FIN-21: with the referenced payment in another currency, MONEY_CAPTURE_MISSING is `unknown` (`currency_mismatch`); only MONEY_CURRENCY_MISMATCH remains.
+  - FIN-20: when the total changed after capture, MONEY_CAPTURE_AMOUNT is `unknown` (`order_changed_after_capture`), keeping the difference as a fact.
+  - FIN-19: new `MONEY_CANCELLED_PAID` — a cancelled order with a paid marker, a capture and no store or provider refund, after the 60-minute refund grace; an ok finding is written only once such a finding existed, so the incident can close.
+  - FIN-08: RP also counts the part of a succeeded provider refund that no store refund claims, on a payment allocated to this order alone.
+  - FIN-17: a store refund with `external_required = null` makes the refund result `unknown` (`refund_external_unknown`).
+- `MoneyIncidentCorrelator`:
+  - `MONEY_PAYMENT_NOT_MATCHED` → component `capture`, severity warning; `MONEY_CANCELLED_PAID` → component `cancelled_paid`, severity info.
+  - No-amount rules (not matched, order changed, cancelled paid) never carry a verified discrepancy, also when they replace an amount in the same incident.
+  - An `unknown` result with `order_changed_after_capture` / `currency_mismatch` withdraws an amount an earlier version published (incident stays open, no notification).
+- `php artisan reconciliation:recheck-open-incidents`: queues every order behind an open money incident once, after the release (`docs/ops/maintenance.md`).
+- Texts: notification facts and «what to check» ru/en/de; rule labels, incident titles and actions in the cabinet and the owner panel; the cabinet's rule filter lists both new codes.
+- Tests: `FinRegistryTest` has no deviations left (24/24). `MoneyIncidentCorrelatorTest` covers: the unmatched warning without an amount replacing an earlier amount; the cancelled-paid info review closed by a refund; order changed without an amount; amount withdrawal plus the recheck command. Test order helpers now give paid orders a known provider payment (`tests/Concerns/KnownProviderPayment`), since a paid order without one is now «not matched».
+
+Verification: backend SQLite 664 passed + 4 skipped, PostgreSQL 18 668/668, Pint ok; customer cabinet 134/134 and owner panel 67/67 with typecheck and builds. Stripe only through JSON-faked HTTP; no real provider in this step.

@@ -42,14 +42,7 @@ class FinRegistryTest extends TestCase
      * Control examples where the engine still differs from the TZ (docs/reconciliation-registry.md); each waits for the
      * owner's decision. The test fails as soon as one of them starts to match, so the list cannot go stale.
      */
-    private const DEVIATIONS = [
-        'FIN-08' => 'a provider refund without a store refund is not allocated, so RP stays 0 and no MONEY_REFUND_EXTRA',
-        'FIN-15' => 'an order whose reference matches no provider payment is MONEY_CAPTURE_MISSING with a published amount',
-        'FIN-17' => 'a store refund with unknown external_required is ignored instead of an unknown refund result',
-        'FIN-19' => 'a cancelled paid order without a refund is ok instead of a review result',
-        'FIN-20' => 'after a total change MONEY_CAPTURE_AMOUNT is published as a discrepancy and MONEY_ORDER_CHANGED carries an amount',
-        'FIN-21' => 'a currency mismatch also yields MONEY_CAPTURE_MISSING with a published amount',
-    ];
+    private const DEVIATIONS = [];
 
     /** @var array<string, list<array<string, mixed>>> */
     private array $stripe = ['payment_intents' => [], 'charges' => [], 'refunds' => []];
@@ -252,8 +245,10 @@ class FinRegistryTest extends TestCase
 
         $result = match (true) {
             in_array(ReconciliationFinding::STATUS_UNSUPPORTED, $statuses, true) => 'unsupported',
-            in_array(ReconciliationFinding::STATUS_UNKNOWN, $statuses, true) => 'unknown',
+            $mismatches === [ReconciliationFinding::RULE_PAYMENT_NOT_MATCHED] => 'unmatched',
             $mismatches !== [] => 'mismatch',
+            $findings->contains('reason_code', 'refund_external_unknown') => 'unknown_refund',
+            in_array(ReconciliationFinding::STATUS_UNKNOWN, $statuses, true) => 'unknown',
             in_array(ReconciliationFinding::STATUS_PENDING, $statuses, true) || ($findings->isEmpty() && $unpaid) => 'pending',
             default => 'ok',
         };
@@ -263,8 +258,7 @@ class FinRegistryTest extends TestCase
                 return null;
             }
 
-            $finding = $findings->first(fn (ReconciliationFinding $finding): bool => in_array($finding->rule_code, $rules, true)
-                && in_array($finding->status, [ReconciliationFinding::STATUS_OK, ReconciliationFinding::STATUS_MISMATCH], true));
+            $finding = $findings->first(fn (ReconciliationFinding $finding): bool => in_array($finding->rule_code, $rules, true) && $finding->difference_minor !== null);
 
             return $finding === null ? '0' : (string) $finding->difference_minor;
         };
@@ -283,6 +277,7 @@ class FinRegistryTest extends TestCase
         $expectedResult = $expected['result'];
         $resultMatches = match (true) {
             str_starts_with($expectedResult, 'MONEY_') => in_array($expectedResult, $mismatches, true),
+            $expectedResult === 'review_cancelled_paid' => in_array(ReconciliationFinding::RULE_CANCELLED_PAID, $mismatches, true),
             $expectedResult === 'two_mismatches' => count(array_intersect($mismatches, [
                 ReconciliationFinding::RULE_CAPTURE_AMOUNT, ReconciliationFinding::RULE_CAPTURE_MISSING,
                 ReconciliationFinding::RULE_REFUND_MISSING, ReconciliationFinding::RULE_REFUND_EXTRA,

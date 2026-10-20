@@ -1149,6 +1149,8 @@
         "MONEY_REFUND_MISSING": "Store refunds at the provider",
         "MONEY_REFUND_EXTRA": "Provider refunds in the store",
         "MONEY_PAYMENT_WITHOUT_ORDER": "Payment without an order",
+        "MONEY_PAYMENT_NOT_MATCHED": "Order payment at the provider",
+        "MONEY_CANCELLED_PAID": "Cancelled paid order",
         "MONEY_UNSUPPORTED": "Reconciliation possible"
       },
       "finding_status": {
@@ -1169,6 +1171,8 @@
         "MONEY_CURRENCY_MISMATCH": "Capture currency differs from the order currency",
         "MONEY_ORDER_CHANGED": "Order changed after the capture",
         "MONEY_PAYMENT_WITHOUT_ORDER": "Provider payment not matched to an order",
+        "MONEY_PAYMENT_NOT_MATCHED": "Order marked paid, no provider payment found for its reference",
+        "MONEY_CANCELLED_PAID": "Order cancelled, but the money was not refunded",
         "CHECKOUT_PAYMENTS_FAILING": "Payments keep failing",
         "CHECKOUT_FLOW_FAILED": "The check did not reach the payment form",
         "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "The test product for checks is unavailable",

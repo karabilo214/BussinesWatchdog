@@ -7,10 +7,13 @@ use App\Models\Incident;
 use App\Models\IncidentActivity;
 use App\Models\Integration;
 use App\Models\Order;
+use App\Models\OrderRevision;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
+use App\Models\ReconciliationDirtySubject;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationSubjectState;
+use App\Models\Refund;
 use App\Models\Signal;
 use App\Models\Store;
 use App\Models\Tenant;
@@ -18,10 +21,12 @@ use App\Support\Incidents\MoneyIncidentCorrelator;
 use App\Support\Payments\PaymentAllocationService;
 use App\Support\Reconciliation\OrderReconciliationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\KnownProviderPayment;
 use Tests\TestCase;
 
 class MoneyIncidentCorrelatorTest extends TestCase
 {
+    use KnownProviderPayment;
     use RefreshDatabase;
 
     public function test_a_confirmed_mismatch_opens_a_new_incident_with_a_signal(): void
@@ -44,6 +49,107 @@ class MoneyIncidentCorrelatorTest extends TestCase
             'incident_id' => $incident->id,
             'kind' => IncidentActivity::KIND_CREATED,
         ]);
+    }
+
+    public function test_a_paid_order_whose_payment_is_not_found_is_a_warning_without_an_amount_even_after_one(): void
+    {
+        $context = $this->context();
+        $order = $this->order($context, ['paid_marked_at' => now()->subMinutes(31)]);
+        $correlator = app(MoneyIncidentCorrelator::class);
+
+        [$incident] = $correlator->correlate(app(OrderReconciliationService::class)->evaluate($order));
+        $this->assertSame([ReconciliationFinding::RULE_CAPTURE_MISSING, 18400], [$incident->title_code, (int) $incident->verified_discrepancy_minor]);
+
+        $order->forceFill(['transaction_ref' => 'pi_not_at_the_provider'])->save();
+        ReconciliationSubjectState::query()->delete();
+        [$again] = $correlator->correlate(app(OrderReconciliationService::class)->evaluate($order->fresh()));
+
+        $this->assertSame($incident->id, $again->id);
+        $this->assertSame(ReconciliationFinding::RULE_PAYMENT_NOT_MATCHED, $again->title_code);
+        $this->assertSame(Incident::SEVERITY_WARNING, $again->severity);
+        $this->assertNull($again->verified_discrepancy_minor);
+
+        $unmatched = $this->order($context, ['paid_marked_at' => now()->subMinutes(31), 'transaction_ref' => null, 'external_id' => 'wc-without-payment']);
+        [$fresh] = $correlator->correlate(app(OrderReconciliationService::class)->evaluate($unmatched));
+        $this->assertSame([ReconciliationFinding::RULE_PAYMENT_NOT_MATCHED, null], [$fresh->title_code, $fresh->verified_discrepancy_minor]);
+    }
+
+    public function test_a_cancelled_paid_order_without_a_refund_is_an_info_review_that_a_refund_resolves(): void
+    {
+        $context = $this->context();
+        $order = $this->order($context, [
+            'status' => 'cancelled',
+            'paid_marked_at' => now()->subHours(3),
+            'source_updated_at' => now()->subMinutes(61),
+            'transaction_ref' => $context['payment']->intent_ref,
+        ]);
+        app(PaymentAllocationService::class)->allocateCapture($context['payment'], $context['capture'], $order, 18400, PaymentAllocation::STRATEGY_EXACT_REFERENCE, []);
+        $correlator = app(MoneyIncidentCorrelator::class);
+
+        $incidents = $correlator->correlate(app(OrderReconciliationService::class)->evaluate($order));
+        $review = collect($incidents)->firstWhere('title_code', ReconciliationFinding::RULE_CANCELLED_PAID);
+
+        $this->assertNotNull($review);
+        $this->assertSame(['cancelled_paid', Incident::SEVERITY_INFO, null], [$review->component, $review->severity, $review->verified_discrepancy_minor]);
+        $this->assertCount(1, $incidents);
+
+        Refund::query()->create([
+            'tenant_id' => $order->tenant_id, 'store_id' => $order->store_id, 'integration_id' => $order->integration_id, 'order_id' => $order->id,
+            'external_id' => 'refund-'.fake()->uuid(), 'source_revision' => 1, 'currency' => 'EUR', 'currency_exponent' => 2, 'amount_minor' => 18400,
+            'external_required' => true, 'provider_ref' => 're_cancelled', 'status' => 'recorded', 'occurred_at' => now(),
+            'current_payload_hash' => hash('sha256', 'refund'), 'updated_at' => now(),
+        ]);
+        ReconciliationSubjectState::query()->delete();
+        $correlator->correlate(app(OrderReconciliationService::class)->evaluate($order->fresh()));
+
+        $this->assertSame(Incident::STATE_RESOLVED, $review->fresh()->state);
+    }
+
+    public function test_a_total_changed_after_capture_opens_a_review_without_an_amount(): void
+    {
+        $context = $this->context();
+        $order = $this->order($context, ['paid_marked_at' => now()->subHours(3), 'total_minor' => 23400, 'transaction_ref' => $context['payment']->intent_ref]);
+        OrderRevision::query()->create([
+            'tenant_id' => $order->tenant_id, 'store_id' => $order->store_id, 'order_id' => $order->id, 'source_revision' => 1,
+            'snapshot' => ['data' => ['total_minor' => '18400']], 'payload_hash' => hash('sha256', 'rev1'), 'observed_at' => now()->subHours(3), 'created_at' => now(),
+        ]);
+        app(PaymentAllocationService::class)->allocateCapture($context['payment'], $context['capture'], $order, 18400, PaymentAllocation::STRATEGY_EXACT_REFERENCE, []);
+
+        $run = app(OrderReconciliationService::class)->evaluate($order);
+        $incidents = app(MoneyIncidentCorrelator::class)->correlate($run);
+
+        $this->assertSame([ReconciliationFinding::RULE_ORDER_CHANGED], collect($incidents)->pluck('title_code')->all());
+        $this->assertNull($incidents[0]->verified_discrepancy_minor);
+        $capture = $run->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)->sole();
+        $this->assertSame([ReconciliationFinding::STATUS_UNKNOWN, 'order_changed_after_capture', -5000], [$capture->status, $capture->reason_code, $capture->difference_minor]);
+    }
+
+    public function test_an_amount_published_before_a_rule_change_is_withdrawn_and_the_order_can_be_queued_again(): void
+    {
+        $context = $this->context();
+        $order = $this->order($context, ['paid_marked_at' => now()->subHours(3), 'total_minor' => 23400, 'transaction_ref' => $context['payment']->intent_ref]);
+        app(PaymentAllocationService::class)->allocateCapture($context['payment'], $context['capture'], $order, 18400, PaymentAllocation::STRATEGY_EXACT_REFERENCE, []);
+        $correlator = app(MoneyIncidentCorrelator::class);
+
+        [$capture] = $correlator->correlate(app(OrderReconciliationService::class)->evaluate($order));
+        $this->assertSame([ReconciliationFinding::RULE_CAPTURE_AMOUNT, 5000], [$capture->title_code, (int) $capture->verified_discrepancy_minor]);
+
+        ReconciliationDirtySubject::query()->delete();
+        $this->artisan('reconciliation:recheck-open-incidents')->assertSuccessful();
+        $this->assertDatabaseHas('reconciliation_dirty_subjects', ['subject_type' => 'order', 'subject_id' => $order->id, 'reason' => 'rule_change_recheck']);
+
+        OrderRevision::query()->create([
+            'tenant_id' => $order->tenant_id, 'store_id' => $order->store_id, 'order_id' => $order->id, 'source_revision' => 1,
+            'snapshot' => ['data' => ['total_minor' => '18400']], 'payload_hash' => hash('sha256', 'rev1'), 'observed_at' => now()->subHours(3), 'created_at' => now(),
+        ]);
+        ReconciliationSubjectState::query()->delete();
+        $correlator->correlate(app(OrderReconciliationService::class)->evaluate($order->fresh()));
+
+        $capture->refresh();
+        $this->assertSame(Incident::STATE_OPEN, $capture->state);
+        $this->assertNull($capture->verified_discrepancy_minor);
+        $this->assertSame(0, Incident::query()->whereNotNull('verified_discrepancy_minor')->count());
+        $this->assertTrue(Incident::query()->where('title_code', ReconciliationFinding::RULE_ORDER_CHANGED)->exists());
     }
 
     public function test_a_repeated_mismatch_for_the_same_order_and_rule_attaches_instead_of_duplicating(): void
@@ -305,7 +411,7 @@ class MoneyIncidentCorrelatorTest extends TestCase
      */
     private function order(array $context, array $overrides = []): Order
     {
-        return Order::query()->create(array_merge([
+        $order = Order::query()->create(array_merge([
             'tenant_id' => $context['tenant']->id,
             'store_id' => $context['store']->id,
             'integration_id' => $context['integration']->id,
@@ -327,5 +433,7 @@ class MoneyIncidentCorrelatorTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ], $overrides));
+
+        return array_key_exists('transaction_ref', $overrides) ? $order : $this->withKnownProviderPayment($order);
     }
 }

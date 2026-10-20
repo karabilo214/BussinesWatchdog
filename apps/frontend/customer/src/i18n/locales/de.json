@@ -635,6 +635,8 @@
       "MONEY_CURRENCY_MISMATCH": "Währung der Abbuchung weicht von der Bestellwährung ab",
       "MONEY_ORDER_CHANGED": "Bestellung nach der Abbuchung geändert",
       "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung beim Anbieter keiner Bestellung zugeordnet",
+      "MONEY_PAYMENT_NOT_MATCHED": "Bestellung als bezahlt markiert, keine Zahlung beim Anbieter zur Referenz gefunden",
+      "MONEY_CANCELLED_PAID": "Bestellung storniert, aber das Geld wurde nicht erstattet",
       "CHECKOUT_PAYMENTS_FAILING": "Zahlungen schlagen wiederholt fehl",
       "CHECKOUT_FLOW_FAILED": "Die Prüfung hat das Zahlungsformular nicht erreicht",
       "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Das Testprodukt für Prüfungen ist nicht verfügbar",
@@ -659,6 +661,8 @@
       "MONEY_CURRENCY_MISMATCH": "Prüfen Sie die Währungseinstellungen von Shop und Zahlungs-Gateway.",
       "MONEY_ORDER_CHANGED": "Die Bestellung wurde nach der Zahlung geändert. Stellen Sie sicher, dass Endbetrag und Abbuchung übereinstimmen.",
       "MONEY_PAYMENT_WITHOUT_ORDER": "Suchen Sie die Zahlung im Anbieter-Dashboard und ermitteln Sie die zugehörige Bestellung. Eine Übereinstimmung nach Betrag und Zeit ist nur ein Hinweis.",
+      "MONEY_PAYMENT_NOT_MATCHED": "Zur Referenz der Bestellung wurde keine Zahlung beim Anbieter gefunden – das beweist nicht, dass Geld fehlt. Prüfen Sie, wie die Bestellung bezahlt wurde und wer sie als bezahlt markiert hat; existiert die Zahlung unter einer anderen Referenz, ordnen Sie sie manuell zu.",
+      "MONEY_CANCELLED_PAID": "Der Status „storniert“ erstattet allein kein Geld. Prüfen Sie, ob der Kunde eine Erstattung braucht, und veranlassen Sie sie über den Zahlungsanbieter.",
       "CHECKOUT_PAYMENTS_FAILING": "Bezahlen Sie selbst mit dieser Zahlungsart und prüfen Sie das Log des Zahlungs-Plugins und das Anbieter-Dashboard.",
       "CHECKOUT_FLOW_FAILED": "Öffnen Sie die Website und gehen Sie den Weg zur Zahlung: Produkt, Warenkorb, Kasse. Sehen Sie sich den Screenshot der Prüfung an. Ob die Abbuchung gelingt, prüft diese Prüfung nicht.",
       "CHECKOUT_TEST_PRODUCT_UNAVAILABLE": "Stellen Sie sicher, dass das Testprodukt veröffentlicht, vorrätig und in den Warenkorb legbar ist.",
@@ -882,6 +886,8 @@
       "MONEY_REFUND_MISSING": "Shop-Erstattungen beim Anbieter",
       "MONEY_REFUND_EXTRA": "Anbieter-Erstattungen im Shop",
       "MONEY_PAYMENT_WITHOUT_ORDER": "Zahlung ohne Bestellung",
+      "MONEY_PAYMENT_NOT_MATCHED": "Zahlung der Bestellung beim Anbieter",
+      "MONEY_CANCELLED_PAID": "Stornierte bezahlte Bestellung",
       "MONEY_UNSUPPORTED": "Abgleich möglich"
     }
   },
