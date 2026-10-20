@@ -338,7 +338,9 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
         return { allow: true };
       }
 
-      if (`${parsed.protocol}//${parsed.host}`.toLowerCase() === store && quiet.some((path) => parsed.pathname.replace(/\/$/, '').endsWith(path))) {
+      const quietTarget = [parsed.pathname, restRoute(parsed) ?? ''].map((path) => path.replace(/\/$/, ''));
+
+      if (`${parsed.protocol}//${parsed.host}`.toLowerCase() === store && quiet.some((path) => quietTarget.some((target) => target.endsWith(path)))) {
         return { allow: false, reason: 'quiet' };
       }
 

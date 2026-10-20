@@ -27,6 +27,9 @@ class ScenarioDefinition
     /** The Shopware app's storefront endpoint for checkout observation reports (ADR 0062): the check never calls it. */
     public const SHOPWARE_OBSERVATION_PATH = '/storefront/script/bw-observe';
 
+    /** The WooCommerce plugin's observation beacons (ADR 0059), as REST routes; the worker also matches `?rest_route=`. */
+    public const WOOCOMMERCE_OBSERVATION_PATHS = ['/business-watchdog/v1/observe', '/business-watchdog/v1/observe/noscript'];
+
     /**
      * Actions that mutate an order or money. The worker adapter maps each to concrete
      * requests (Classic wc-ajax checkout, Store API checkout, order-pay, gateway capture)
@@ -159,7 +162,7 @@ class ScenarioDefinition
                 'version' => self::NETWORK_POLICY_VERSION,
                 'allowed_origins' => array_values(array_unique(array_merge([$origin], $definition['extra_allowed_origins'] ?? []))),
                 'blocked_operations' => $this->blockedOperations($store->platform),
-                'quiet_paths' => $shopware ? [self::SHOPWARE_OBSERVATION_PATH] : [],
+                'quiet_paths' => $shopware ? [self::SHOPWARE_OBSERVATION_PATH] : self::WOOCOMMERCE_OBSERVATION_PATHS,
             ],
         ];
     }
