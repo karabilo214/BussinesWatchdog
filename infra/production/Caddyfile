@@ -50,6 +50,26 @@ www.{$SITE_DOMAIN} {
 	import app
 }
 
+# Test stores for checking the WooCommerce plugin and the Shopware App against the live service (infra/test-shops).
+# Kept out of search engines; while they are not running these hosts answer 502.
+(test_shop) {
+	header {
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+	encode zstd gzip
+}
+
+woo-test.{$SITE_DOMAIN} {
+	import test_shop
+	reverse_proxy bw-test-woo:80
+}
+
+shopware-test.{$SITE_DOMAIN} {
+	import test_shop
+	reverse_proxy bw-test-shopware:80
+}
+
 # Plain HTTP for the browser worker on the internal Docker network only (never published).
 http://web:8080 {
 	import app

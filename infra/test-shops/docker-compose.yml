@@ -1,0 +1,75 @@
+# Test stores on the production server (woo-test / shopware-test subdomains) for checking the WooCommerce plugin and the
+# Shopware App against the live service. They join the `bw-test-shops` network that the production compose creates,
+# so the production Caddy (web) proxies the two subdomains to them. Nothing here is published on host ports.
+name: bw-test-shops
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  woo-db:
+    image: mariadb:10.6.21
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      MARIADB_ROOT_PASSWORD: ${WOO_DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: ${WOO_DB_PASSWORD}
+    volumes:
+      - woo-db:/var/lib/mysql
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  woo:
+    image: wordpress:7.1.3-php8.3-apache
+    container_name: bw-test-woo
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      woo-db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: woo-db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: ${WOO_DB_PASSWORD}
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_CONFIG_EXTRA: |
+        if (($$_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') { $$_SERVER['HTTPS'] = 'on'; }
+        define('WP_HOME', 'https://woo-test.${SITE_DOMAIN}');
+        define('WP_SITEURL', 'https://woo-test.${SITE_DOMAIN}');
+        define('WP_ENVIRONMENT_TYPE', 'staging');
+        define('DISALLOW_FILE_EDIT', true);
+    volumes:
+      - woo-html:/var/www/html
+    mem_limit: 1g
+    cpus: 1.5
+    networks:
+      - default
+      - shops
+
+  shopware:
+    image: bw-shopware:${SHOPWARE_VERSION}
+    container_name: bw-test-shopware
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 3g
+    cpus: 2
+    networks:
+      - shops
+
+volumes:
+  woo-db:
+  woo-html:
+
+networks:
+  shops:
+    name: bw-test-shops
+    external: true
