@@ -448,3 +448,24 @@ The owner requested release through the production deploy script. To keep pendin
 Shopware App 1.3.1 has approved source fingerprint `b07b8839d92494e8217ff8d479c62c3f45aab836d24bb3a207293794529433d0` on the server. There are currently no Shopware stores on the production server. Per owner decision, its store allowlist remains empty: a store-specific archive is created for download only after that store's copy passes the installation and checkout checks and its UUID is approved. No generic App ZIP has been released to customers.
 
 Verification for the exact release branch: WooCommerce ZIP PHP 7.4 lint; backend `PluginDownloadTest|CheckoutObservationTest` 14/14 (109 assertions); Docker release checks from Step 202; production `PluginPackage::latest()` and SHA check after backend recreation. No contracts or migrations changed in this publication step. Remaining: first real Shopware store needs a copy-based approval before it can download the App.
+
+### Step 206: Live Test Stores on the Production Server — WooCommerce Run (in progress)
+
+Status: WooCommerce run done except PayPal and the browser check verdict; Shopware waits for the App installation by the owner
+
+- Infrastructure (`docs/ops/test-shops.md`): `woo-test` and `shopware-test` subdomains routed by the production Caddy (noindex) to the `bw-test-shops` compose project; release branch `release/test-shops-2026-10-20` = deployed `bbc61b3` plus only test-store infrastructure and the worker/backend fixes below (the server still runs connector release code, not `main`). WooCommerce: WordPress 7.1.3 / PHP 8.3, WooCommerce 11.2.0 HPOS, Storefront, Stripe Gateway 11.0.1 (test), PayPal Payments 4.1.3 (sandbox), bank transfer, a WP-Cron sidecar. Shopware 6.7.15.1 (`prod`), SwagPayPal 10.8.5 (sandbox). The dockware Adminer, mailcatcher and log viewer were reachable for ~10 minutes; removed in the container and blocked in Caddy. The owner's organization «BW» has an override; the Shopware store was created with platform `woocommerce` and corrected in the database (audited) because the platform cannot be changed later.
+- Real shopper (`infra/test-shops/shopper.mjs`, run in the worker image): Stripe test card, declined card, bank transfer on the Blocks checkout.
+- Results on the live service:
+  - order 20 (Stripe, 17.80 €): plugin delivered the order in ~3 minutes (WP-Cron cadence), the Stripe charge linked by exact reference, capture ok and recorded by the store;
+  - three declined cards → failed orders 21–23 → `CHECKOUT_PAYMENTS_FAILING` opened; the next paid order resolved it;
+  - bank transfer (order 24) → unsupported, not "unpaid";
+  - partial refund 3 € from WooCommerce through Stripe (order 20) → refund ok;
+  - refund 4 € only in Stripe (order 26) → not detected: the server runs reconciliation rules v2; the fix (FIN-08, rules v3, ADR 0068) is in `main`, not deployed;
+  - 41 old Stripe test payments of the test account were imported (they will become payment-without-order findings after the 24-hour orphan grace).
+- Found and fixed (worker and backend, deployed as `8a38610`):
+  - the worker blocked PayPal Payments 4.x button lookups `ppc-sdk-v6-client-token` / `ppc-sdk-v6-simulate-cart` as unknown mutations (every store with official PayPal failed the check); now allowed, PayPal order creation/approval and cart changes stay blocked;
+  - the worker blocked the plugin's own observation beacon `/business-watchdog/v1/observe` (every store with the plugin failed); now passed as quiet paths, also matched in `?rest_route=`;
+  - the Blocks payment step counted radios before they render; now waits for them.
+- Open (owner decision): with gateway scripts blocked, the Blocks payment block never leaves its loading skeleton, so the check ends `selector_changed` on stores with Stripe/PayPal. Allowing the gateway origins in the check settings exposes a long tail (Apple Pay, Google Pay, Amazon Pay, hCaptcha, Stripe Link, PayPal API hosts), and the Amazon Pay script `cPSPcheckout.js` is mistaken for a store script by the worker's `blockedScripts` heuristic. Also: PayPal Payments rate-limits client tokens (429) for repeated checks from one IP; low-traffic stores without a system cron make the plugin go silent.
+
+Verification: worker unit tests 28/28 (new: PayPal lookups, quiet beacon incl. `rest_route`); backend `tests/Feature/Checkout` + `tests/Feature/Browser` 44/44; production deploys `6ce9cdf`, `d9466f2`, `8a38610`.
