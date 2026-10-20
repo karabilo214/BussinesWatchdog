@@ -2,6 +2,7 @@
 
 namespace App\Http\Dto\Auth;
 
+use App\Models\DataDeletionRequest;
 use App\Models\User;
 
 class AuthSessionDto
@@ -34,18 +35,26 @@ class AuthSessionDto
     }
 
     /**
-     * @return array<int, array{tenant_id: string, role: string, created_at: string|null}>
+     * @return array<int, array{tenant_id: string, role: string, created_at: string|null, tenant_status: string|null, deletion_purge_after: string|null}>
      */
     private function memberships(User $user): array
     {
-        return $user->memberships()
-            ->orderBy('created_at')
-            ->get(['tenant_id', 'role', 'created_at'])
+        $memberships = $user->memberships()->with('tenant:id,status')->orderBy('created_at')->get(['tenant_id', 'role', 'created_at']);
+        $deletions = DataDeletionRequest::query()
+            ->whereIn('tenant_id', $memberships->pluck('tenant_id'))
+            ->whereIn('status', DataDeletionRequest::OPEN_STATUSES)
+            ->get(['tenant_id', 'purge_after'])
+            ->keyBy('tenant_id');
+
+        return $memberships
             ->map(fn ($membership): array => [
                 'tenant_id' => $membership->tenant_id,
                 'role' => $membership->role,
                 'created_at' => $membership->created_at?->toJSON(),
+                'tenant_status' => $membership->tenant?->status,
+                'deletion_purge_after' => $deletions->get($membership->tenant_id)?->purge_after?->toJSON(),
             ])
+            ->values()
             ->all();
     }
 }

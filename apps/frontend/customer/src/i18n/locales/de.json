@@ -1253,6 +1253,7 @@
         "channel_kind_unsupported": "Dieser Kanaltyp wird noch nicht unterstützt.",
         "destination_unreadable": "Die Empfängeradresse konnte nicht gelesen werden.",
         "worker_lost_during_send": "Der Versand wurde auf unserer Seite unterbrochen.",
+        "tenant_deleting": "Die Organisation wird gelöscht – Benachrichtigungen werden nicht gesendet.",
         "retry_window_exhausted": "Wiederholungen über einen Tag waren erfolglos.",
         "notification_incident_not_found": "Der Vorfall wurde nicht gefunden.",
         "notification_kind_invalid": "Unbekannter Benachrichtigungstyp."

@@ -8,6 +8,7 @@ use App\Models\NotificationDelivery;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Support\Platform\MaintenanceWindow;
+use App\Support\Privacy\OrganizationDeletion;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +40,7 @@ class DailyDigestPlanner
                 foreach ($channels as $channel) {
                     $tenant = $tenants[$channel->tenant_id] ??= Tenant::query()->whereKey($channel->tenant_id)->first();
 
-                    if ($tenant !== null && $this->planForChannel($tenant, $channel, $now)) {
+                    if ($tenant !== null && ! in_array($tenant->status, OrganizationDeletion::DELETING_STATUSES, true) && $this->planForChannel($tenant, $channel, $now)) {
                         $planned++;
                     }
                 }

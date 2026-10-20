@@ -1524,6 +1524,10 @@
       "label": "Customers: support actions",
       "hint": "Rerun a check, acknowledge and resolve an incident for the customer — with a reason, without using their limits."
     },
+    "tenants_delete": {
+      "label": "Customers: delete an organization",
+      "hint": "Delete an organization on the customer's written request, or cancel that within 30 days."
+    },
     "billing_read": {
       "label": "Billing: view",
       "hint": "Overview, subscriptions, payments, invoices and refunds."

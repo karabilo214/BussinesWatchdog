@@ -22,6 +22,8 @@ final class PlatformCapabilities
 
     public const TENANTS_SUPPORT = 'tenants.support';
 
+    public const TENANTS_DELETE = 'tenants.delete';
+
     public const BILLING_READ = 'billing.read';
 
     public const CONTENT_MANAGE = 'content.manage';
@@ -40,7 +42,7 @@ final class PlatformCapabilities
 
     /** Every capability of the owner panel, in the order the panel lists them. */
     public const ALL = [
-        self::TENANTS_READ, self::TENANTS_MANAGE, self::CUSTOMER_MFA_RESET, self::TENANTS_SUPPORT,
+        self::TENANTS_READ, self::TENANTS_MANAGE, self::CUSTOMER_MFA_RESET, self::TENANTS_SUPPORT, self::TENANTS_DELETE,
         self::BILLING_READ, self::REFUNDS_REQUEST, self::REFUNDS_APPROVE,
         self::PLANS_READ, self::PLANS_MANAGE,
         self::CONTENT_MANAGE, self::CONTACTS_READ, self::CONTACTS_MANAGE,
@@ -48,10 +50,10 @@ final class PlatformCapabilities
     ];
 
     /**
-     * Only platform owners have these (ADR 0064): managing staff (ADR 0052) and approving refunds (ADR 0044: staff
-     * request, the platform owner approves).
+     * Only platform owners have these (ADR 0064): managing staff (ADR 0052), approving refunds (ADR 0044: staff
+     * request, the platform owner approves) and deleting an organization on its request (ADR 0069).
      */
-    public const OWNER_ONLY = [self::STAFF_MANAGE, self::REFUNDS_APPROVE];
+    public const OWNER_ONLY = [self::STAFF_MANAGE, self::REFUNDS_APPROVE, self::TENANTS_DELETE];
 
     /** A capability that is useless without another one brings it along. */
     public const IMPLIES = [

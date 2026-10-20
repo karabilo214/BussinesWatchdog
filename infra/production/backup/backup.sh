@@ -3,6 +3,8 @@
 # Dumps the database, proves the dump restores into a throwaway PostgreSQL, archives the mailboxes and checks the
 # archive reads back, prunes old backups (prune.py), and when off-site storage is configured in .env encrypts both with
 # age (public key only on the server) and uploads them to S3-compatible storage, pruning the off-site copies by the same rule.
+# It also writes the organization deletion journal (ADR 0069) next to the dumps: after restoring any dump,
+# `php artisan privacy:replay-deletions` with the newest journal deletes again what the dump brings back.
 set -eu
 
 ROOT=/opt/business-watchdog
@@ -42,6 +44,12 @@ MIGRATIONS="$(docker exec "$CHECK" psql -U postgres -d restored -tAc "select cou
 echo "$STAMP $(du -h "$FILE" | cut -f1) tables=$TABLES migrations=$MIGRATIONS" > "$DIR/last-success"
 echo "backup ok: $FILE ($(du -h "$FILE" | cut -f1), $TABLES tables restored)"
 
+JOURNAL="$DIR/deletion-journal.jsonl"
+docker compose exec -T -u www-data app php artisan privacy:deletion-journal > "$JOURNAL.partial"
+mv "$JOURNAL.partial" "$JOURNAL"
+chmod 600 "$JOURNAL"
+echo "deletion journal ok: $(wc -l < "$JOURNAL" | tr -d ' ') entries"
+
 MAIL="$DIR/mail-$STAMP.tar.gz"
 docker compose exec -T mail tar czf - -C /var/mail config vhosts > "$MAIL.partial"
 tar tzf "$MAIL.partial" config/users >/dev/null || { echo "mailbox archive does not read back" >&2; exit 1; }
@@ -66,7 +74,7 @@ rclone() {
         -e RCLONE_CONFIG_OFFSITE_ACL=private \
         rclone/rclone:1.71.2 "$@"
 }
-for local in "$FILE" "$MAIL"; do
+for local in "$FILE" "$MAIL" "$JOURNAL"; do
     age -r "$RECIPIENT" -o "$local.age" "$local"
     rclone copyto "/backups/$(basename "$local").age" "offsite:$BUCKET/$(basename "$local").age"
     rm -f "$local.age"

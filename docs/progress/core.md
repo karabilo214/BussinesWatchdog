@@ -918,3 +918,33 @@ Status: complete
 - Production: plan entitlements enforced (`WATCHDOG_BILLING_ENFORCEMENT=enforce`, owner's decision; also in `env.example`); applying `.env` changes documented.
 
 Verification: the first CI run on `d074813` — all five jobs green (run 39263726906). Locally before that: backend from a clean export with `.env.example` (628 passed, 6 skipped), PostgreSQL 18 634/634, frontends 133 + 67 tests and builds, worker 27/27, PHP 7.4 lint ok.
+
+### Step 203: Organization Deletion — Backend (ADR 0069)
+
+Status: backend complete; the cabinet, owner panel and emails follow in Step 204; not deployed
+
+- Owner's decisions (2026-10-20): purge 30 days after the request (cancellable until then); a paid Paddle subscription is cancelled immediately; billing records without people, trial-domain hashes and the deletion journal are kept; the organization owner (cabinet) or the platform owner (owner panel, on written request) can start it.
+- `data_deletion_requests` (TZ schema plus via/reason/previous status/purge_after/cancel/lease/attempts; one open request per tenant, partial unique index on PostgreSQL) and `data_deletion_journal` (no foreign key, survives the purge).
+- `OrganizationDeletion`:
+  - request: cancels a live Paddle contract with `effective_from: immediately` (`PaddleSubscriptionActions::cancelImmediately`; a Paddle refusal → 503 `subscription_cancel_failed`, nothing changes), then sets the tenant `deleting` and writes the audit;
+  - cancel: within the 30 days, restores the previous status and asks the connectors for catch-up from the request time (`StoreCatchUp`).
+- While `deleting`:
+  - `StoreCapacity::paused()` / `pausedStoreIds()` treat its stores like a full store pause, so ingestion answers skipped and webhooks, syncs, reconciliation, observation and freshness skip them;
+  - entitlements give no service, so there are no browser checks;
+  - the notification worker suppresses deliveries (`tenant_deleting`); the digest and reminder planners skip the tenant;
+  - the cabinet sets no tenant context (every tenant endpoint → 403 `tenant_forbidden`); `/auth/me` memberships carry `tenant_status` and `deletion_purge_after`.
+- `OrganizationPurger` + `privacy:process-deletions` (scheduler, 5 min) run resumable stages:
+  - start: atomic `requested → revoking`, so a cancellation that wins the race stops the purge; the member IDs are noted;
+  - revoke: integrations `revoked`, credentials and pairing codes deleted, channels disabled;
+  - delete objects: screenshots and exports on their disks;
+  - purge: 54 tenant tables in foreign-key order, 500 rows per chunk, cursor per table;
+  - finish: members in no other organization and not platform staff are anonymized (email `deleted-<id>@deleted.invalid`, password, MFA, sessions, tokens); trial hosts become HMAC hashes (`TrialStoreHosts::hashed`, still blocking a second trial); the tenant row becomes the tombstone «Deleted organization»; the journal entry is written.
+  - Five failed attempts → `failed`, with `failed_stage` in the cursor.
+- Kept: `billing_customers`, `billing_subscription_contracts`, `billing_transactions`, `billing_refunds`, `policy_acceptances`, `trial_store_hosts` (hashed), the request and journal; the platform audit (2 years). A test fails when a new table with `tenant_id` is in neither list.
+- Backups: `privacy:deletion-journal` (JSON lines). The nightly backup writes `deletion-journal.jsonl` and uploads it encrypted. After restoring any dump, `privacy:replay-deletions <file|->` deletes again what the dump brought back (`docs/ops/backups.md`).
+- API:
+  - cabinet: `GET/POST /api/v1/organization-deletion`, `POST …/cancel` — owner only, step-up, exact organization name;
+  - owner panel: `POST /platform-api/v1/tenants/{tenant}/deletion` and `…/cancel` with the new owner-only capability `tenants.delete`, reason and code;
+  - the tenant card carries `deletion`. OpenAPI updated.
+
+Verification: `tests/Feature/Privacy/OrganizationDeletionTest.php` (8 tests: table coverage guard; owner-only, step-up and name; stop at once and cancel within 30 days; full purge in more than three resumable runs keeping billing records, files gone, users anonymized or kept, other tenant untouched; journal replay after an "old backup"; platform owner only with code and cancel; Paddle cancelled first and a refusal changes nothing; a cancelled request is not purged). Backend SQLite 674 passed + 4 skipped, PostgreSQL 18 678/678 (the purge runs against real foreign keys), Pint ok; owner panel 67/67; customer cabinet 133/134 — the failing test is about a Shopware error code from the parallel Codex work on the App, not this step.

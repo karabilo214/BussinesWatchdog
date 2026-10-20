@@ -1524,6 +1524,10 @@
       "label": "Kunden: Support-Aktionen",
       "hint": "Prüfung neu starten, Vorfall für den Kunden annehmen und schließen – mit Grund, ohne seine Kontingente zu verbrauchen."
     },
+    "tenants_delete": {
+      "label": "Kunden: Organisation löschen",
+      "hint": "Eine Organisation auf schriftlichen Wunsch des Kunden löschen oder dies innerhalb von 30 Tagen widerrufen."
+    },
     "billing_read": {
       "label": "Zahlungen: ansehen",
       "hint": "Übersicht, Abonnements, Zahlungen, Rechnungen und Erstattungen."

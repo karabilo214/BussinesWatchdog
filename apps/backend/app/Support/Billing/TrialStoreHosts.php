@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\DB;
 
 class TrialStoreHosts
 {
+    public const HASH_PREFIX = 'hmac:';
+
+    /** A deleted organization keeps only this keyed hash of its trial hosts (ADR 0069), still blocking a second trial. */
+    public static function hashed(string $host): string
+    {
+        return self::HASH_PREFIX.hash_hmac('sha256', $host, (string) config('app.key'));
+    }
+
     public static function host(string $baseUrl): ?string
     {
         $host = strtolower(rtrim((string) parse_url(trim($baseUrl), PHP_URL_HOST), '.'));
@@ -36,7 +44,7 @@ class TrialStoreHosts
     public function claimedByOther(string $tenantId, array $hosts): bool
     {
         return $hosts !== [] && DB::table('trial_store_hosts')
-            ->whereIn('host', $hosts)
+            ->whereIn('host', [...$hosts, ...array_map(self::hashed(...), $hosts)])
             ->where('tenant_id', '!=', $tenantId)
             ->exists();
     }

@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\V1\Payments\PaymentAllocationController;
 use App\Http\Controllers\Api\V1\Payments\PaymentController;
 use App\Http\Controllers\Api\V1\Payments\RefundAllocationController;
 use App\Http\Controllers\Api\V1\Payments\UnmatchedPaymentController;
+use App\Http\Controllers\Api\V1\Privacy\OrganizationDeletionController;
 use App\Http\Controllers\Api\V1\Reconciliation\ReconciliationController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
 use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
@@ -240,6 +241,9 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware(['tenant.role:'.TenantRoles::OWNER, 'throttle:auth-step-up']);
     Route::post('/memberships/{user}/mfa/reset', [TeamController::class, 'resetMemberMfa'])
         ->whereUuid('user')->middleware(['tenant.role:'.TenantRoles::OWNER, 'throttle:auth-step-up']);
+    Route::get('/organization-deletion', [OrganizationDeletionController::class, 'show']);
+    Route::post('/organization-deletion', [OrganizationDeletionController::class, 'store'])->middleware('throttle:auth-step-up');
+    Route::post('/organization-deletion/cancel', [OrganizationDeletionController::class, 'cancel'])->middleware('throttle:auth-step-up');
     Route::post('/invitations/{invitation}/revoke', [TeamController::class, 'revoke'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::teamManage()));
     Route::get('/overview', [OverviewController::class, 'show'])

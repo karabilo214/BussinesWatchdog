@@ -746,6 +746,63 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/deletion:
+    post:
+      tags: [Platform]
+      operationId: platformRequestTenantDeletion
+      description: "Capability tenants.delete (platform owner only). On the customer's written request: reason and a fresh authenticator code; same flow as the owner's request (ADR 0069). Audited as tenant.deletion_requested. Returns the tenant card with `deletion`."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, confirmation_code]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+                confirmation_code: {type: string}
+      responses:
+        "200": {description: Tenant card}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+        "503": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/deletion/cancel:
+    post:
+      tags: [Platform]
+      operationId: platformCancelTenantDeletion
+      description: "Capability tenants.delete. Within the 30 days; reason and a fresh authenticator code. Audited as tenant.deletion_cancelled."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, confirmation_code]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+                confirmation_code: {type: string}
+      responses:
+        "200": {description: Tenant card}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/stores:
     post:
       tags: [Platform]
@@ -3142,6 +3199,78 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/organization-deletion:
+    get:
+      tags: [Team]
+      operationId: getOrganizationDeletion
+      security:
+        - {UserSession: []}
+      description: Any member of the active organization, also while it is being deleted (ADR 0069). 403 tenant_forbidden without membership.
+      responses:
+        "200":
+          description: Deletion state
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OrganizationDeletionState"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Team]
+      operationId: requestOrganizationDeletion
+      security:
+        - {UserSession: []}
+      description: "Owner only. Step-up and the exact organization name. Stops the service at once, cancels a paid Paddle subscription immediately (503 subscription_cancel_failed changes nothing), purges after 30 days (ADR 0069). organization_name_mismatch (422), deletion_already_requested (409)."
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - {$ref: "#/components/schemas/StepUp"}
+                - type: object
+                  required: [organization_name]
+                  properties:
+                    organization_name: {type: string, maxLength: 255}
+      responses:
+        "202":
+          description: Deletion scheduled
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OrganizationDeletionState"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+        "503": {$ref: "#/components/responses/Problem"}
+  /api/v1/organization-deletion/cancel:
+    post:
+      tags: [Team]
+      operationId: cancelOrganizationDeletion
+      security:
+        - {UserSession: []}
+      description: "Owner only, step-up, within the 30 days. Restores the previous status; the cancelled subscription does not come back. deletion_not_requested (404), deletion_in_progress (409)."
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/StepUp"}
+      responses:
+        "200":
+          description: Deletion cancelled
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OrganizationDeletionState"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /api/v1/memberships/{user_id}/mfa/reset:
     post:
       tags: [Team]
@@ -6502,6 +6631,26 @@ components:
         tenant_id: {type: string, format: uuid}
         role: {enum: [owner, admin, operator, viewer]}
         created_at: {type: string, format: date-time}
+        tenant_status: {enum: [active, suspended, deleting, deleted], description: "deleting: the organization is being deleted (ADR 0069); only the deletion notice and, for the owner, cancelling remain."}
+        deletion_purge_after: {type: [string, "null"], format: date-time, description: When the irreversible purge starts; null without an open deletion request.}
+    OrganizationDeletionState:
+      type: object
+      required: [tenant_status, can_request, request]
+      properties:
+        tenant_status: {enum: [active, suspended, deleting, deleted]}
+        can_request: {type: boolean, description: The viewer is the owner and no deletion is open.}
+        request:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [id, status, requested_via, requested_at, purge_after, can_cancel]
+              properties:
+                id: {type: string, format: uuid}
+                status: {enum: [requested, revoking, deleting_objects, purging, failed]}
+                requested_via: {enum: [owner, platform]}
+                requested_at: {type: string, format: date-time}
+                purge_after: {type: string, format: date-time}
+                can_cancel: {type: boolean, description: "Owner only, while status is requested (the 30 days)."}
     MfaRequired:
       type: object
       required: [mfa_required]

@@ -17,6 +17,7 @@ use App\Http\Controllers\Platform\SiteMediaController;
 use App\Http\Controllers\Platform\StaffController;
 use App\Http\Controllers\Platform\StaffInvitationController;
 use App\Http\Controllers\Platform\TenantController;
+use App\Http\Controllers\Platform\TenantDeletionController;
 use App\Http\Controllers\Platform\TenantStoreController;
 use App\Http\Controllers\Platform\TenantTeamController;
 use App\Support\Platform\PlatformCapabilities;
@@ -73,6 +74,10 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/tenants/{tenant}/incidents/{incident}/resolve', [TenantStoreController::class, 'resolveIncident'])->whereUuid(['tenant', 'incident']);
     });
     Route::middleware('platform.staff:'.PlatformCapabilities::REFUNDS_REQUEST)->post('/payments/{payment}/refunds', [RefundController::class, 'store'])->whereUuid('payment');
+    Route::middleware(['platform.staff:'.PlatformCapabilities::TENANTS_DELETE, 'throttle:platform-step-up'])->group(function (): void {
+        Route::post('/tenants/{tenant}/deletion', [TenantDeletionController::class, 'store'])->whereUuid('tenant');
+        Route::post('/tenants/{tenant}/deletion/cancel', [TenantDeletionController::class, 'cancel'])->whereUuid('tenant');
+    });
     Route::middleware('platform.staff:'.PlatformCapabilities::REFUNDS_APPROVE)->group(function (): void {
         Route::post('/refunds/{refund}/approve', [RefundController::class, 'approve'])->whereUuid('refund')->middleware('throttle:platform-step-up');
         Route::post('/refunds/{refund}/reject', [RefundController::class, 'reject'])->whereUuid('refund');

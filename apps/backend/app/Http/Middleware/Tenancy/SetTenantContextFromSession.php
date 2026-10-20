@@ -3,6 +3,7 @@
 namespace App\Http\Middleware\Tenancy;
 
 use App\Models\User;
+use App\Support\Privacy\OrganizationDeletion;
 use App\Support\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -39,6 +40,7 @@ class SetTenantContextFromSession
 
         return $user->memberships()
             ->where('tenant_id', $tenantId)
+            ->whereHas('tenant', fn ($query) => $query->whereNotIn('status', OrganizationDeletion::DELETING_STATUSES))
             ->exists();
     }
 }

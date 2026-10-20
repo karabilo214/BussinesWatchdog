@@ -20,6 +20,9 @@
 | `php artisan queue:failed` / `queue:retry all` | Посмотреть и повторить упавшие задания синхронизации |
 | `php artisan reconciliation:work --stop-when-empty` | Разобрать очередь сверки до конца и выйти (например, после восстановления) |
 | `php artisan reconciliation:process-dirty` / `reconciliation:nightly-sweep` | Внеочередной пересчёт сверки |
+| `php artisan privacy:process-deletions` | Внеочередной шаг удаления организаций, у которых прошли 30 дней (ADR 0069; обычно делает планировщик каждые 5 минут). Каждый запуск продолжает с места остановки. Заявка в статусе `failed` (5 неудачных попыток) — посмотреть `error_code` в `data_deletion_requests` и лог `privacy.deletion_failed`, исправить причину, вернуть `status` на этап из `cursor->failed_stage` и `attempts = 0` |
+| `php artisan privacy:deletion-journal` | Вывести журнал удалённых организаций (JSON lines); его же пишет ночной бэкап |
+| `php artisan privacy:replay-deletions <файл>` / `-` | После восстановления дампа заново удалить организации из самого свежего журнала (`docs/ops/backups.md`) |
 | `php artisan reconciliation:recheck-open-incidents` | Поставить на пересчёт все заказы с открытыми денежными инцидентами по текущим правилам. **Один раз после выкладки, где менялись правила сверки** (Step 201, ADR 0068); пересчёт делают обработчики сверки |
 | `php artisan artifacts:purge` / `exports:purge` | Внеочередная очистка просроченных файлов |
 | `php artisan checkout:observation-evaluate` | Внеочередная проверка правил наблюдения за оформлением заказа Shopware и WooCommerce: скрипт молчит, отправки заказа без заказов (обычно делает планировщик) |

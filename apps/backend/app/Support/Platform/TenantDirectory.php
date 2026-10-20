@@ -5,6 +5,7 @@ namespace App\Support\Platform;
 use App\Models\BillingPlanChange;
 use App\Models\BillingSubscriptionContract;
 use App\Models\BillingTransaction;
+use App\Models\DataDeletionRequest;
 use App\Models\EntitlementOverride;
 use App\Models\Incident;
 use App\Models\Membership;
@@ -116,6 +117,22 @@ class TenantDirectory
     /**
      * @return array<string, mixed>|null
      */
+    /**
+     * @return array{status: string, requested_via: string, requested_at: string, purge_after: string, can_cancel: bool}|null
+     */
+    public function deletion(string $tenantId): ?array
+    {
+        $open = DataDeletionRequest::query()->where('tenant_id', $tenantId)->whereIn('status', DataDeletionRequest::OPEN_STATUSES)->first();
+
+        return $open === null ? null : [
+            'status' => $open->status,
+            'requested_via' => $open->requested_via,
+            'requested_at' => $open->requested_at->toJSON(),
+            'purge_after' => $open->purge_after->toJSON(),
+            'can_cancel' => $open->status === DataDeletionRequest::STATUS_REQUESTED,
+        ];
+    }
+
     public function tenant(string $tenantId, bool $billing, bool $fullContacts): ?array
     {
         /** @var Tenant|null $tenant */
@@ -139,6 +156,7 @@ class TenantDirectory
             'trial_consumed_at' => $tenant->trial_consumed_at?->toJSON(),
             'access' => $this->access($tenant->id),
             'capacity' => $this->capacity->state($tenant->id),
+            'deletion' => $this->deletion($tenant->id),
             'members' => $members->map(fn (Membership $member): array => [
                 'user_id' => $member->user_id,
                 'role' => $member->role,

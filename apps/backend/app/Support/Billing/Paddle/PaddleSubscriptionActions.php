@@ -303,6 +303,28 @@ class PaddleSubscriptionActions
         $this->syncQuietly((string) $contract->provider_subscription_ref);
     }
 
+    /**
+     * Ends a paid subscription at once because the organization is being deleted (ADR 0069): no refund for the rest
+     * of the period, and nothing to do when there is no live paid contract.
+     */
+    public function cancelImmediately(string $tenantId, ?string $userId): void
+    {
+        $contract = $this->liveContract($tenantId);
+
+        if ($contract === null || $contract->provider_subscription_ref === null) {
+            return;
+        }
+
+        try {
+            $this->client->post('/subscriptions/'.rawurlencode($contract->provider_subscription_ref).'/cancel', ['effective_from' => 'immediately']);
+        } catch (PaddleRequestFailed $exception) {
+            throw new BillingCheckoutRejected($exception->outcomeUnknown() ? 'provider_outcome_unknown' : 'provider_unavailable');
+        }
+
+        $this->audit($tenantId, $userId, 'billing.subscription_cancelled_for_deletion', $contract->id, ['period_end' => $contract->period_end?->toJSON()] + ($userId === null ? ['by' => 'platform'] : []));
+        $this->syncQuietly($contract->provider_subscription_ref);
+    }
+
     public function resume(string $tenantId, string $userId, ?int $expectedVersion): void
     {
         $contract = $this->activeContract($tenantId);

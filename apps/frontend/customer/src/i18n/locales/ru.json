@@ -1253,6 +1253,7 @@
         "channel_kind_unsupported": "Этот тип канала пока не поддерживается.",
         "destination_unreadable": "Не удалось прочитать адрес получателя.",
         "worker_lost_during_send": "Отправка прервалась на нашей стороне.",
+        "tenant_deleting": "Организация удаляется — уведомления не отправляются.",
         "retry_window_exhausted": "Повторные попытки в течение суток не помогли.",
         "notification_incident_not_found": "Инцидент не найден.",
         "notification_kind_invalid": "Неизвестный тип уведомления."

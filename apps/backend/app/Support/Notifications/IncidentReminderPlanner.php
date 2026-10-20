@@ -8,6 +8,7 @@ use App\Models\NotificationDelivery;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Support\Platform\MaintenanceWindow;
+use App\Support\Privacy\OrganizationDeletion;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -27,6 +28,7 @@ class IncidentReminderPlanner
 
         $incidents = Incident::query()
             ->whereIn('state', Incident::ACTIVE_STATES)
+            ->whereNotIn('tenant_id', Tenant::query()->whereIn('status', OrganizationDeletion::DELETING_STATUSES)->select('id'))
             ->orderBy('last_seen_at')
             ->orderBy('id')
             ->limit(max(1, min($limit, 500)))

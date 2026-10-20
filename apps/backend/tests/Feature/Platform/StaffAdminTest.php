@@ -166,7 +166,7 @@ class StaffAdminTest extends TestCase
         $this->signIn('owner@platform.test');
         $catalog = $this->getJson('/platform-api/v1/staff')->assertOk()->json();
         $this->assertSame(PlatformCapabilities::ALL, array_column($catalog['capability_catalog'], 'code'));
-        $this->assertSame(['refunds.approve', 'staff.manage'], array_values(array_column(array_filter($catalog['capability_catalog'], fn (array $item): bool => $item['owner_only']), 'code')));
+        $this->assertSame(['tenants.delete', 'refunds.approve', 'staff.manage'], array_values(array_column(array_filter($catalog['capability_catalog'], fn (array $item): bool => $item['owner_only']), 'code')));
         $this->assertArrayHasKey('platform_billing', $catalog['presets']);
         $this->patchJson("/platform-api/v1/staff/{$member->id}", ['capabilities' => ['content.manage'], 'reason' => 'Writes the site now', 'confirmation_code' => $this->code('owner@platform.test')])->assertOk();
         $this->patchJson("/platform-api/v1/staff/{$member->id}", ['capabilities' => [], 'reason' => 'Nothing', 'confirmation_code' => $this->code('owner@platform.test')])->assertStatus(422)->assertJsonPath('code', 'capabilities_invalid');

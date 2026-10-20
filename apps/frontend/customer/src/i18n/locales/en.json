@@ -1253,6 +1253,7 @@
         "channel_kind_unsupported": "This channel type is not supported yet.",
         "destination_unreadable": "The recipient address could not be read.",
         "worker_lost_during_send": "Sending was interrupted on our side.",
+        "tenant_deleting": "The organization is being deleted — notifications are not sent.",
         "retry_window_exhausted": "Retries over a day did not succeed.",
         "notification_incident_not_found": "The incident was not found.",
         "notification_kind_invalid": "Unknown notification type."

@@ -17,5 +17,9 @@ scp bw-prod:/opt/business-watchdog/backups/db-<время>.dump .               
 # восстановление в работающую базу (остановить приложение, затем):
 ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose stop app scheduler sync-worker reconciliation-worker web \
   && docker compose exec -T postgres pg_restore -U bw_app -d business_watchdog --clean --if-exists --no-owner < /opt/business-watchdog/backups/db-<время>.dump \
+  && docker compose up -d app \
+  && docker compose exec -T -u www-data app php artisan privacy:replay-deletions - < /opt/business-watchdog/backups/deletion-journal.jsonl \
   && docker compose up -d'
 ```
+
+**Журнал удаления организаций (ADR 0069).** Каждый бэкап записывает рядом `deletion-journal.jsonl` — все завершённые удаления организаций (только ID и даты), и отправляет его во внешнее хранилище (`deletion-journal.jsonl.age`, перезаписывается каждую ночь). После восстановления **любого** дампа, до открытия сервиса, нужно применить **самый свежий** журнал (`privacy:replay-deletions`, как выше): он заново удаляет организации, которые старый дамп вернул. Если сервер потерян, взять журнал из внешнего хранилища (`age -d … deletion-journal.jsonl.age`). Удаление, завершённое после последнего бэкапа, в журнал ещё не попало: такая организация вернётся с дампом — удалить её ещё раз из админки (`/owner`, карточка клиента).

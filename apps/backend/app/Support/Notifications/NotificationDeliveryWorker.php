@@ -4,9 +4,11 @@ namespace App\Support\Notifications;
 
 use App\Models\NotificationChannel;
 use App\Models\NotificationDelivery;
+use App\Models\Tenant;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
 use App\Support\Notifications\Channels\SendResult;
 use App\Support\Platform\MaintenanceWindow;
+use App\Support\Privacy\OrganizationDeletion;
 use App\Support\Security\Keyring;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Carbon;
@@ -28,6 +30,8 @@ class NotificationDeliveryWorker
     public const ERROR_WORKER_LOST_DURING_SEND = 'worker_lost_during_send';
 
     public const ERROR_RETRY_WINDOW_EXHAUSTED = 'retry_window_exhausted';
+
+    public const ERROR_TENANT_DELETING = 'tenant_deleting';
 
     public function __construct(
         private readonly NotificationSenderRegistry $senders,
@@ -119,6 +123,10 @@ class NotificationDeliveryWorker
 
         if ($channel === null || ! $channel->isDeliverable()) {
             return $this->finish($delivery, NotificationDelivery::STATUS_SUPPRESSED, self::ERROR_CHANNEL_UNAVAILABLE);
+        }
+
+        if (Tenant::query()->whereKey($delivery->tenant_id)->whereIn('status', OrganizationDeletion::DELETING_STATUSES)->exists()) {
+            return $this->finish($delivery, NotificationDelivery::STATUS_SUPPRESSED, self::ERROR_TENANT_DELETING);
         }
 
         $sender = $this->senders->for($channel->kind);

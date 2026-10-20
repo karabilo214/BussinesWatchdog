@@ -32,6 +32,11 @@ Schedule::command('notifications:remind')
     ->withoutOverlapping(10)
     ->onOneServer();
 
+Schedule::command('privacy:process-deletions')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(30)
+    ->onOneServer();
+
 Schedule::command('notifications:digest')
     ->everyFifteenMinutes()
     ->withoutOverlapping(10)

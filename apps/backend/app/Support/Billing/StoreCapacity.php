@@ -4,6 +4,8 @@ namespace App\Support\Billing;
 
 use App\Models\Integration;
 use App\Models\Store;
+use App\Models\Tenant;
+use App\Support\Privacy\OrganizationDeletion;
 use App\Support\Stores\StoreCatchUp;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -27,12 +29,13 @@ class StoreCapacity
         private readonly StoreCatchUp $catchUp,
     ) {}
 
+    /** Paused above the plan limit (ADR 0037), or its organization is being deleted (ADR 0069): the same full stop. */
     public static function paused(Integration $integration): bool
     {
         return Store::query()
             ->where('tenant_id', $integration->tenant_id)
             ->whereKey($integration->store_id)
-            ->whereNotNull('capacity_paused_at')
+            ->where(fn ($query) => $query->whereNotNull('capacity_paused_at')->orWhereIn('tenant_id', self::deletingTenantIds()))
             ->exists();
     }
 
@@ -41,7 +44,17 @@ class StoreCapacity
      */
     public static function pausedStoreIds(): Builder
     {
-        return Store::query()->whereNotNull('capacity_paused_at')->select('id');
+        return Store::query()
+            ->where(fn ($query) => $query->whereNotNull('capacity_paused_at')->orWhereIn('tenant_id', self::deletingTenantIds()))
+            ->select('id');
+    }
+
+    /**
+     * @return Builder<Tenant>
+     */
+    private static function deletingTenantIds(): Builder
+    {
+        return Tenant::query()->whereIn('status', OrganizationDeletion::DELETING_STATUSES)->select('id');
     }
 
     /**
