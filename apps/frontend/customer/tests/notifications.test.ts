@@ -30,6 +30,7 @@ const preferences: NotificationPreferences = {
   critical_bypasses_quiet_hours: false,
   notify_recovery: true,
   reminder_hours: null,
+  daily_digest_at: null,
   store_ids: null,
 };
 
@@ -172,5 +173,18 @@ describe('PreferencesForm', () => {
     const reminder = wrapper.findAll('input[type="checkbox"]').find((input) => (input.element.parentElement?.textContent ?? '').includes('открытых инцидентах'))!;
     await reminder.setValue(false);
     expect(wrapper.vm.value()).toMatchObject({ reminder_hours: null });
+  });
+
+  it('sends the digest time only when the daily summary is enabled', async () => {
+    const wrapper = mount(PreferencesForm, { props: { idPrefix: 'd', preferences, stores: [], isOwner: false }, global });
+
+    expect(wrapper.vm.value()).toMatchObject({ daily_digest_at: null });
+
+    const digest = wrapper.findAll('input[type="checkbox"]').find((input) => (input.element.parentElement?.textContent ?? '').includes('сводку раз в день'))!;
+    await digest.setValue(true);
+    expect(wrapper.vm.value()).toMatchObject({ daily_digest_at: '08:00' });
+
+    await wrapper.findAll('input[type="time"]').at(-1)!.setValue('07:15');
+    expect(wrapper.vm.value()).toMatchObject({ daily_digest_at: '07:15' });
   });
 });

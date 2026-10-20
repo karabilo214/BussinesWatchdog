@@ -40,6 +40,7 @@ const defaults = computed<NotificationPreferences>(() => ({
   critical_bypasses_quiet_hours: false,
   notify_recovery: true,
   reminder_hours: null,
+  daily_digest_at: null,
   store_ids: null,
 }));
 const formValid = computed(() => form.label.trim() !== '' && (form.kind === 'telegram' ? telegramAllowed.value : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())));

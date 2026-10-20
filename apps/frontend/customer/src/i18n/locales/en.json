@@ -1166,6 +1166,10 @@
       "reminder_enable": "Remind me about open incidents",
       "reminder_every": "Repeat after, hours",
       "reminder_note": "Minimum 24 hours. Quiet hours apply to reminders too.",
+      "digest_title": "Daily summary",
+      "digest_enable": "Send a short summary once a day",
+      "digest_at": "Send at",
+      "digest_note": "Active incidents, changes in the last day and what the service cannot see right now, for the stores selected below. The time is in the channel timezone; quiet hours postpone the summary.",
       "stores": "Stores",
       "all_stores": "all stores",
       "pick_store": "Choose at least one store."
@@ -1180,6 +1184,7 @@
       "summary": "Sends: {severity}",
       "quiet": "quiet hours {start}–{end} ({zone})",
       "reminder": "reminder after {hours} h",
+      "digest": "summary at {time}",
       "failing": "Notifications to this channel cannot be delivered (last failure {time}). Check the destination or send a test notification.",
       "last_success": "Last delivered notification: {time}",
       "code_label": "Code from the email",
@@ -1215,6 +1220,8 @@
         "incident_opened": "New incident",
         "incident_reopened": "Incident reopened",
         "incident_recovered": "Problem fixed",
+        "incident_reminder": "Incident reminder",
+        "daily_digest": "Daily summary",
         "test": "Test notification"
       },
       "state": {

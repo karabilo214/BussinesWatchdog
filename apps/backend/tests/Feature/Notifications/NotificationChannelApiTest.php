@@ -343,12 +343,25 @@ class NotificationChannelApiTest extends TestCase
         ])->assertStatus(422);
 
         $this->asMember($context)->patchJson("/api/v1/notification-channels/{$channel->id}", [
+            'preferences' => ['daily_digest_at' => '25:00'],
+        ])->assertStatus(422);
+
+        $this->asMember($context)->patchJson("/api/v1/notification-channels/{$channel->id}", [
             'preferences' => ['quiet_hours' => ['start' => '22:00', 'end' => '08:00'], 'min_severity' => 'critical', 'reminder_hours' => 48],
         ])
             ->assertOk()
             ->assertJsonPath('effective_preferences.locale', 'de')
             ->assertJsonPath('effective_preferences.min_severity', 'critical')
             ->assertJsonPath('effective_preferences.quiet_hours.start', '22:00')
+            ->assertJsonPath('effective_preferences.reminder_hours', 48)
+            ->assertJsonPath('effective_preferences.daily_digest_at', null);
+
+        $this->asMember($context)->patchJson("/api/v1/notification-channels/{$channel->id}", [
+            'preferences' => ['daily_digest_at' => '07:30'],
+        ])
+            ->assertOk()
+            ->assertJsonPath('preferences.daily_digest_at', '07:30')
+            ->assertJsonPath('effective_preferences.daily_digest_at', '07:30')
             ->assertJsonPath('effective_preferences.reminder_hours', 48);
     }
 

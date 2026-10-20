@@ -23,6 +23,7 @@ final class NotificationPreferenceRules
             'preferences.critical_bypasses_quiet_hours' => ['sometimes', 'boolean'],
             'preferences.notify_recovery' => ['sometimes', 'boolean'],
             'preferences.reminder_hours' => ['sometimes', 'nullable', 'integer', 'min:24', 'max:720'],
+            'preferences.daily_digest_at' => ['sometimes', 'nullable', 'date_format:H:i'],
             'preferences.store_ids' => ['sometimes', 'nullable', 'array', 'max:100'],
             'preferences.store_ids.*' => ['uuid'],
         ];

@@ -18,6 +18,8 @@ const form = reactive({
   notify_recovery: props.preferences.notify_recovery,
   reminder: props.preferences.reminder_hours !== null,
   reminder_hours: props.preferences.reminder_hours ?? 24,
+  digest: props.preferences.daily_digest_at !== null,
+  digest_at: props.preferences.daily_digest_at ?? '08:00',
   all_stores: props.preferences.store_ids === null,
   store_ids: [...(props.preferences.store_ids ?? [])],
 });
@@ -32,6 +34,7 @@ function value(): Partial<NotificationPreferences> {
     quiet_hours: form.quiet ? { start: form.quiet_start, end: form.quiet_end } : null,
     notify_recovery: form.notify_recovery,
     reminder_hours: form.reminder ? form.reminder_hours : null,
+    daily_digest_at: form.digest ? form.digest_at : null,
     store_ids: form.all_stores ? null : form.store_ids,
   };
 
@@ -110,6 +113,19 @@ defineExpose({ value, valid: () => form.all_stores || form.store_ids.length > 0 
         <input v-model.number="form.reminder_hours" type="number" min="24" max="720" step="1" class="rounded-md border border-border-strong bg-surface px-3 py-1.5" />
       </label>
       <p class="text-[13px] text-text-muted">{{ $t('notifications.prefs.reminder_note') }}</p>
+    </fieldset>
+
+    <fieldset class="flex flex-col gap-2 rounded-lg border border-border p-3">
+      <legend class="px-1 text-sm font-medium">{{ $t('notifications.prefs.digest_title') }}</legend>
+      <label class="flex items-center gap-2 text-sm">
+        <input v-model="form.digest" type="checkbox" class="size-4 accent-primary" />
+        {{ $t('notifications.prefs.digest_enable') }}
+      </label>
+      <label v-if="form.digest" class="flex max-w-60 flex-col gap-1 text-sm">
+        {{ $t('notifications.prefs.digest_at') }}
+        <input v-model="form.digest_at" type="time" class="rounded-md border border-border-strong bg-surface px-3 py-1.5" />
+      </label>
+      <p class="text-[13px] text-text-muted">{{ $t('notifications.prefs.digest_note') }}</p>
     </fieldset>
 
     <fieldset class="flex flex-col gap-2 rounded-lg border border-border p-3">

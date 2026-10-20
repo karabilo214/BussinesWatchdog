@@ -1166,6 +1166,10 @@
       "reminder_enable": "An offene Vorfälle erinnern",
       "reminder_every": "Wiederholen nach, Stunden",
       "reminder_note": "Mindestens 24 Stunden. Ruhezeiten gelten auch für Erinnerungen.",
+      "digest_title": "Tägliche Übersicht",
+      "digest_enable": "Einmal täglich eine kurze Übersicht senden",
+      "digest_at": "Uhrzeit",
+      "digest_note": "Aktive Vorfälle, Änderungen des letzten Tages und was der Dienst gerade nicht sieht – für die unten gewählten Shops. Die Uhrzeit gilt in der Zeitzone des Kanals; Ruhezeiten verschieben die Übersicht.",
       "stores": "Shops",
       "all_stores": "alle Shops",
       "pick_store": "Wählen Sie mindestens einen Shop."
@@ -1180,6 +1184,7 @@
       "summary": "Sendet: {severity}",
       "quiet": "Ruhezeiten {start}–{end} ({zone})",
       "reminder": "Erinnerung nach {hours} Std.",
+      "digest": "Übersicht um {time}",
       "failing": "Benachrichtigungen an diesen Kanal können nicht zugestellt werden (letzter Fehlschlag {time}). Prüfen Sie das Ziel oder senden Sie eine Testbenachrichtigung.",
       "last_success": "Zuletzt zugestellte Benachrichtigung: {time}",
       "code_label": "Code aus der E-Mail",
@@ -1215,6 +1220,8 @@
         "incident_opened": "Neuer Vorfall",
         "incident_reopened": "Vorfall wieder geöffnet",
         "incident_recovered": "Problem behoben",
+        "incident_reminder": "Erinnerung an einen Vorfall",
+        "daily_digest": "Tägliche Übersicht",
         "test": "Testbenachrichtigung"
       },
       "state": {

@@ -23,6 +23,10 @@ class NotificationRenderer
             );
         }
 
+        if (($content['kind'] ?? null) === NotificationDelivery::KIND_DAILY_DIGEST) {
+            return $this->renderDigest($content, $locale);
+        }
+
         return $content['kind'] === NotificationDelivery::KIND_INCIDENT_RECOVERED
             ? $this->renderRecovery($content, $locale)
             : $this->renderIncident($content, $locale);
@@ -107,6 +111,101 @@ class NotificationRenderer
 
         return new RenderedNotification(
             $this->familyText($content, 'subject.recovered', ['store' => $content['store_name']], $locale),
+            implode("\n", $lines),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $content
+     */
+    private function renderDigest(array $content, string $locale): RenderedNotification
+    {
+        $timezone = (string) $content['timezone'];
+        $lines = [
+            $this->t('digest.period', [
+                'from' => $this->time($content['period_from'], $timezone),
+                'to' => $this->time($content['period_to'], $timezone),
+            ], $locale),
+            $this->t('digest.verdict.'.$content['verdict'], [], $locale),
+        ];
+
+        if ($content['incidents'] !== []) {
+            $lines[] = '';
+            $lines[] = $this->t('digest.incidents', [], $locale);
+
+            foreach ($content['incidents'] as $incident) {
+                $title = $this->familyText($incident, 'subject.opened', [
+                    'store' => $incident['store_name'],
+                    'severity' => $this->t('severity.'.$incident['severity'], [], $locale),
+                ], $locale);
+                $lines[] = '• '.$this->t('digest.incident', ['title' => $title, 'since' => $this->time($incident['first_seen_at'], $timezone)], $locale);
+                $lines[] = '  '.$incident['link'];
+            }
+
+            if ($content['more_incidents'] > 0) {
+                $lines[] = $this->t('digest.more_incidents', ['n' => $content['more_incidents']], $locale);
+            }
+        }
+
+        if ($content['discrepancies'] !== [] || $content['unknown_amount_incidents'] > 0) {
+            $lines[] = '';
+            $lines[] = $this->t('digest.discrepancies', [], $locale);
+
+            foreach ($content['discrepancies'] as $row) {
+                $amount = $row['currency_exponent'] !== null
+                    ? MinorUnits::format((string) $row['total_minor'], (int) $row['currency_exponent']).' '.$row['currency']
+                    : $this->t('digest.minor_units', ['amount' => $row['total_minor'], 'currency' => $row['currency']], $locale);
+                $lines[] = '• '.$this->t('digest.discrepancy', [
+                    'mode' => $this->t('digest.mode.'.($row['mode'] ?? 'unconfirmed'), [], $locale, 'digest.mode.unconfirmed'),
+                    'component' => $this->t('digest.component.'.$row['component'], [], $locale, 'digest.component.default'),
+                    'amount' => $amount,
+                    'n' => $row['incident_count'],
+                ], $locale);
+            }
+
+            if ($content['unknown_amount_incidents'] > 0) {
+                $lines[] = $this->t('digest.unknown_amounts', ['n' => $content['unknown_amount_incidents']], $locale);
+            }
+        }
+
+        foreach ($content['stores'] as $store) {
+            $lines[] = '';
+            $lines[] = $store['name'];
+
+            if ($store['paused']) {
+                $lines[] = $this->t('digest.gap.paused', [], $locale);
+
+                continue;
+            }
+
+            $active = array_filter($store['active']);
+            $lines[] = $active === []
+                ? $this->t('digest.store.no_active', [], $locale)
+                : $this->t('digest.store.active', ['list' => implode(', ', array_map(
+                    fn (string $severity, int $count): string => $this->t('severity.'.$severity, [], $locale).': '.$count,
+                    array_keys($active),
+                    $active,
+                ))], $locale);
+            $lines[] = $this->t('digest.store.changes', [
+                'opened' => $store['opened'],
+                'resolved' => $store['resolved'],
+            ], $locale);
+            $lines[] = $this->t('digest.store.checks', $store['checks'], $locale);
+            $lines[] = $store['last_successful_check_at'] !== null
+                ? $this->t('digest.store.last_check', ['time' => $this->time($store['last_successful_check_at'], $timezone)], $locale)
+                : $this->t('digest.store.no_successful_check', [], $locale);
+
+            foreach ($store['gaps'] as $gap) {
+                $lines[] = '  – '.$this->t('digest.gap.'.$gap, [], $locale, 'digest.gap.default');
+            }
+        }
+
+        $lines[] = '';
+        $lines[] = $this->t('digest.note', [], $locale);
+        $lines[] = $this->t('digest.link', ['link' => $content['link']], $locale);
+
+        return new RenderedNotification(
+            $this->t('digest.subject.'.$content['verdict'], [], $locale),
             implode("\n", $lines),
         );
     }
