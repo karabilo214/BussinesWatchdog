@@ -294,6 +294,9 @@ export function createWooCommerceAdapter() {
 
       if (outcome === 'methods' && !(await present(page, none))) {
         const inputs = page.locator(blocks ? '.wc-block-checkout__payment-method input[type="radio"]' : '#payment input[name="payment_method"]');
+        // The Blocks payment step renders its radios only after every registered gateway answered (or failed) its
+        // availability check, which takes a moment longer when gateway scripts are not allowed to load.
+        await inputs.first().waitFor({ state: 'attached', timeout: step.timeout_ms }).catch(() => null);
         if (await inputs.count() === 0) throw new StepOutcome('inconclusive', 'selector_changed', 'payment_method_input_not_found');
         const selectable = await selectableInput(inputs, step.timeout_ms);
         if (context.forbiddenOperation) throw new StepOutcome('blocked', 'forbidden_mutation', context.forbiddenOperation);
