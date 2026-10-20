@@ -397,3 +397,21 @@ The Stripe test-mode chain showed that an independently confirmed capture with n
 ### Step 162: Financial Mode Isolation (ADR 0018; Spec §24; ACC-29, ACC-35)
 
 Findings and money incidents now record the reported provider mode (`live`, `test`, or null when unverified). The reconciliation result hash includes mode, and the incident fingerprint includes mode, so repeated findings and resolution cannot cross modes. The overview groups active verified discrepancy amounts by mode, currency and component; the customer overview and incident screens label the mode explicitly. Existing linked findings and incidents are backfilled from order/payment mode during migration; an order whose connector marked `mode_reported=false` stays unverified, as do historical incidents with mixed evidence. The API and schema contract expose mode. SQLite and PostgreSQL tests cover separation and unreported mode.
+
+### Step 200: FIN-01…24 Registry Through the Real Path (ADR 0068 proposed)
+
+Status: complete as a registry; 6 deviations wait for the owner's decision (ADR 0068)
+
+- `tests/Feature/Reconciliation/FinRegistryTest.php` reads `spec/examples/reconciliation-cases.json` and runs each of the 24 control examples of TZ §35.1 end to end. The store order/refund snapshots go through `EventIngestor` from a store connector; the Stripe objects go through `StripeSync` with HTTP faked by JSON fixtures (no real Stripe); then the outbox/projections, `ExactReferenceMatcher`, `OrderReconciliationService` and `MoneyIncidentCorrelator`. From the findings the test derives the fixture's terms: the result, the capture/refund/net differences of §12 (final findings only) and whether a money incident with an amount was published.
+- Result: 18 of 24 match. Deviations (kept in the test's `DEVIATIONS` list, which fails as soon as one starts to match):
+  - FIN-08: a provider refund without a store refund is never allocated, so it is invisible (no MONEY_REFUND_EXTRA);
+  - FIN-15: an unmatched reference is published as MONEY_CAPTURE_MISSING with an amount;
+  - FIN-17: a store refund with unknown `external_required` is ignored;
+  - FIN-19: a cancelled paid order without a refund is ok, with no review result;
+  - FIN-20: after a total change MONEY_CAPTURE_AMOUNT is published, and ORDER_CHANGED carries an amount;
+  - FIN-21: a currency mismatch also publishes MONEY_CAPTURE_MISSING with an amount.
+  The older unit tests did not show these because they create allocations by hand.
+- `docs/reconciliation-registry.md`: the table per example. ADR 0068 (proposed): a fix for each deviation, with choices for the owner on FIN-15 and FIN-19. `spec/ACCEPTANCE.md` ACC-29 evidence updated (still partial), `docs/readiness.md`.
+- The registry test skips itself when `spec/` is not mounted (container runs). The reconciliation code was not changed.
+
+Verification: `FinRegistryTest` 25/25 (24 examples + coverage check). Backend SQLite 660 passed + 4 skipped, PostgreSQL 18 664/664, Pint ok.
