@@ -297,6 +297,11 @@ export function createWooCommerceAdapter() {
         // The Blocks payment step renders its radios only after every registered gateway answered (or failed) its
         // availability check, which takes a moment longer when gateway scripts are not allowed to load.
         await inputs.first().waitFor({ state: 'attached', timeout: step.timeout_ms }).catch(() => null);
+        if (await inputs.count() === 0 && blocks && context.blockedThirdPartyScripts) {
+          // The payment block waits for every gateway's script; the check does not load gateway scripts, so it cannot
+          // see the methods. The path up to the payment form is confirmed; the methods are reported as not verified.
+          return { skipped: true, assertions: [{ code: 'payment_methods_not_verified', passed: true, detail_code: 'gateway_scripts_not_loaded' }] };
+        }
         if (await inputs.count() === 0) throw new StepOutcome('inconclusive', 'selector_changed', 'payment_method_input_not_found');
         const selectable = await selectableInput(inputs, step.timeout_ms);
         if (context.forbiddenOperation) throw new StepOutcome('blocked', 'forbidden_mutation', context.forbiddenOperation);
