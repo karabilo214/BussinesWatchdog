@@ -22,6 +22,7 @@ vi.mock('@/api', () => ({
   fetchTenantReminders: vi.fn(),
   saveReminderTemplate: vi.fn(),
   createCustomerStore: vi.fn(),
+  deleteCustomerStore: vi.fn(),
   fetchCustomerStore: vi.fn(),
   fetchStoreFindings: vi.fn(),
   fetchStoreOrders: vi.fn(),
@@ -45,8 +46,8 @@ vi.mock('@/api', () => ({
 
 const mocked = vi.mocked(api);
 
-function staff(capabilities: string[]): StaffMe {
-  return { staff_id: 's-1', name: 'Founder', email: 'f@example.test', locale: 'ru', role: 'platform_owner', mfa_enabled: true, capabilities, billing_mode: 'test', session: { idle_minutes: 30, absolute_hours: 8 } };
+function staff(capabilities: string[], role: StaffMe['role'] = 'platform_owner'): StaffMe {
+  return { staff_id: 's-1', name: 'Founder', email: 'f@example.test', locale: 'ru', role, mfa_enabled: true, capabilities, billing_mode: 'test', session: { idle_minutes: 30, absolute_hours: 8 } };
 }
 
 const ROW: TenantRow = {
@@ -88,8 +89,8 @@ function card(overrides: Partial<TenantCard> = {}): TenantCard {
   };
 }
 
-async function open(path: string, capabilities = ['tenants.read', 'tenants.manage', 'billing.read', 'plans.read']) {
-  mocked.fetchMe.mockResolvedValue(staff(capabilities));
+async function open(path: string, capabilities = ['tenants.read', 'tenants.manage', 'billing.read', 'plans.read'], role: StaffMe['role'] = 'platform_owner') {
+  mocked.fetchMe.mockResolvedValue(staff(capabilities, role));
   await useStaff().load(true);
   const router = buildRouter();
   await router.push(path);
@@ -340,6 +341,26 @@ describe('tenants', () => {
     expect(mocked.createCustomerStore).toHaveBeenCalledWith('t-1', { reason: 'Kunde hat angerufen', name: 'Zweiter Shop', base_url: 'https://zweiter.example', timezone: 'Europe/Berlin', default_currency: 'EUR', locale: 'de', platform: 'shopware' });
     expect(wrapper.get('[data-done="store"]').text()).toBe('Магазин добавлен.');
     expect(mocked.fetchTenant).toHaveBeenCalledTimes(2);
+  });
+
+  it('deletes a customer store only for tenants.delete with exact name, reason and code', async () => {
+    const { wrapper: manager } = await open('/owner/tenants/t-1?tab=stores', ['tenants.read', 'tenants.manage'], 'platform_member');
+    expect(manager.find('[data-delete-store]').exists()).toBe(false);
+    manager.unmount();
+    useStaff().forget();
+
+    mocked.fetchTenant.mockResolvedValueOnce(card()).mockResolvedValueOnce(card({ stores: [] }));
+    const { wrapper } = await open('/owner/tenants/t-1?tab=stores');
+    await wrapper.get('[data-delete-store="s-1"]').trigger('click');
+    expect(wrapper.get('[data-action="confirm-store-deletion"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-form="delete-store"] [data-field="store-name-confirm"]').setValue('Shop');
+    await wrapper.get('[data-form="delete-store"] [data-field="reason"]').setValue('Customer request');
+    await wrapper.get('[data-form="delete-store"] [data-field="step-up"]').setValue('123456');
+    await wrapper.get('[data-form="delete-store"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.deleteCustomerStore).toHaveBeenCalledWith('t-1', 's-1', { name: 'Shop', reason: 'Customer request', confirmation_code: '123456' });
+    expect(wrapper.find('[data-delete-store="s-1"]').exists()).toBe(false);
   });
 
   it('shows findings, orders with details, checks with screenshots and incidents of a customer store', async () => {

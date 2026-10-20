@@ -856,6 +856,40 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/stores/{store}/delete:
+    post:
+      tags: [Platform]
+      operationId: platformDeleteTenantStore
+      description: "Capability tenants.manage and platform-owner role. Permanently removes one store and all store-scoped history and artifact/export files. Requires exact store name, reason and MFA code. Platform audit and a keyed trial-domain hash remain. A store belonging to another organisation returns 404. The deletion journal replays this action after restoring an older backup."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, reason, confirmation_code]
+              properties:
+                name: {type: string, maxLength: 100}
+                reason: {type: string, minLength: 3, maxLength: 500}
+                confirmation_code: {type: string}
+      responses:
+        "200":
+          description: Store and its history were removed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, enum: [deleted]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/stores/{store}/findings:
     get:
       tags: [Platform]

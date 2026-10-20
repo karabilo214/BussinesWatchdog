@@ -89,6 +89,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/tenants/{tenant}/reminders', [TenantController::class, 'remind']);
         Route::put('/reminder-templates/{topic}/{locale}', [TenantController::class, 'saveReminderTemplate'])->where(['topic' => 'subscription|payment|other', 'locale' => 'ru|en|de']);
         Route::post('/tenants/{tenant}/stores', [TenantStoreController::class, 'create']);
+        Route::post('/tenants/{tenant}/stores/{store}/delete', [TenantStoreController::class, 'delete'])->whereUuid(['tenant', 'store'])->middleware('throttle:platform-step-up');
         Route::get('/tenants/{tenant}/invitations', [TenantTeamController::class, 'invitations']);
         Route::post('/tenants/{tenant}/invitations', [TenantTeamController::class, 'invite'])->middleware('throttle:invitations');
         Route::post('/tenants/{tenant}/invitations/{invitation}/revoke', [TenantTeamController::class, 'revoke']);

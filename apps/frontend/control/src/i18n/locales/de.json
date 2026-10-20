@@ -104,6 +104,7 @@
     "request_id": "Anfrage-ID: {id}",
     "platform_forbidden": "Ihre Rolle darf das nicht.",
     "step_up_failed": "Der Bestätigungscode hat nicht funktioniert.",
+    "store_name_mismatch": "Der Shopname stimmt nicht überein.",
     "plan_code_invalid": "Tarifcode: lateinische Kleinbuchstaben, Ziffern, „-“ und „_“, 2 bis 32 Zeichen.",
     "plan_code_taken": "Ein Tarif mit diesem Code existiert bereits.",
     "plan_text_too_long": "Der Text ist zu lang.",
@@ -1151,6 +1152,14 @@
       "reason": "Grund (für das Audit)",
       "submit": "Shop hinzufügen",
       "done": "Shop hinzugefügt."
+    },
+    "remove": {
+      "action": "Löschen",
+      "warning": "Shop „{name}“ mit Bestellungen, Zahlungen, Befunden, Prüfungen und Screenshots endgültig löschen? Dies kann nicht rückgängig gemacht werden. Plattform-Audit und der Hash der Testdomain bleiben erhalten. Plugin oder App im Shop separat entfernen.",
+      "name": "Genauen Shopnamen eingeben",
+      "reason": "Grund für die Löschung (Audit)",
+      "code": "Bestätigungscode",
+      "submit": "Shop und Verlauf löschen"
     },
     "labels": {
       "rule": {

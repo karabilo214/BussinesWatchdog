@@ -31,6 +31,7 @@ const tabs = computed(() => TABS.filter((item) => item !== 'subscription' || car
 const canManage = computed(() => me.value?.capabilities.includes('tenants.manage') === true);
 const canResetMfa = computed(() => me.value?.capabilities.includes('customers.mfa_reset') === true);
 const canDelete = computed(() => me.value?.capabilities.includes('tenants.delete') === true);
+const canDeleteStore = computed(() => me.value?.role === 'platform_owner' && canManage.value);
 
 async function load(): Promise<void> {
   try {
@@ -79,7 +80,7 @@ onMounted(load);
         </nav>
 
         <TenantOverview v-if="tab === 'overview'" :card="card" :can-manage="canManage" @updated="card = $event" />
-        <TenantStores v-else-if="tab === 'stores'" :card="card" :can-manage="canManage" @updated="card = $event" />
+        <TenantStores v-else-if="tab === 'stores'" :card="card" :can-manage="canManage" :can-delete="canDeleteStore" @updated="card = $event" />
         <TenantSubscription v-else-if="tab === 'subscription' && card.billing" :billing="card.billing" />
         <TenantMembers v-else-if="tab === 'members'" :card="card" :can-manage="canManage" :can-reset-mfa="canResetMfa" @updated="card = $event" />
         <TenantReminders v-else-if="tab === 'reminders'" :tenant-id="card.id" />

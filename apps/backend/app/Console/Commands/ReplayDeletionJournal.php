@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Support\Privacy\OrganizationPurger;
+use App\Support\Privacy\StoreDeletion;
+use App\Models\Store;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -10,9 +12,9 @@ class ReplayDeletionJournal extends Command
 {
     protected $signature = 'privacy:replay-deletions {journal : JSON lines written by privacy:deletion-journal; - reads them from stdin}';
 
-    protected $description = 'After restoring a backup, delete again every organization of the newest deletion journal before the service is opened.';
+    protected $description = 'After restoring a backup, apply all organization and store deletions in the newest journal before opening the service.';
 
-    public function handle(OrganizationPurger $purger): int
+    public function handle(OrganizationPurger $purger, StoreDeletion $storeDeletion): int
     {
         $path = (string) $this->argument('journal');
 
@@ -23,23 +25,33 @@ class ReplayDeletionJournal extends Command
         }
 
         $lines = array_values(array_filter(array_map('trim', explode("\n", (string) file_get_contents($path === '-' ? 'php://stdin' : $path))), fn (string $line): bool => $line !== ''));
-        $entries = [];
+        $organizations = [];
+        $stores = [];
 
         foreach ($lines as $number => $line) {
             $entry = json_decode($line, true);
 
-            if (! is_array($entry) || ! is_string($entry['tenant_id'] ?? null) || ! is_string($entry['request_id'] ?? null)) {
+            $kind = is_array($entry) ? ($entry['kind'] ?? 'organization') : null;
+
+            if (! is_array($entry) || ! is_string($entry['tenant_id'] ?? null)
+                || ($kind === 'organization' && ! is_string($entry['request_id'] ?? null))
+                || ($kind === 'store' && ! is_string($entry['store_id'] ?? null))
+                || ! in_array($kind, ['organization', 'store'], true)) {
                 $this->components->error(sprintf('Line %d is not a journal entry.', $number + 1));
 
                 return self::FAILURE;
             }
 
-            $entries[] = $entry;
+            if ($kind === 'store') {
+                $stores[] = $entry;
+            } else {
+                $organizations[] = $entry;
+            }
         }
 
-        $replayed = $purger->replay($entries);
+        $replayed = $purger->replay($organizations);
 
-        foreach ($entries as $entry) {
+        foreach ($organizations as $entry) {
             DB::table('data_deletion_journal')->insertOrIgnore([
                 'request_id' => $entry['request_id'],
                 'tenant_id' => $entry['tenant_id'],
@@ -49,7 +61,24 @@ class ReplayDeletionJournal extends Command
             ]);
         }
 
-        $this->components->info(sprintf('Journal entries: %d, organizations deleted again: %d.', count($entries), $replayed));
+        $storesReplayed = 0;
+
+        foreach ($stores as $entry) {
+            DB::transaction(function () use ($entry, $storeDeletion, &$storesReplayed): void {
+                $store = Store::query()->where('tenant_id', $entry['tenant_id'])->whereKey($entry['store_id'])->lockForUpdate()->first();
+
+                if ($store !== null) {
+                    $storeDeletion->delete($store);
+                    $storesReplayed++;
+                }
+
+                DB::table('store_deletion_journal')->insertOrIgnore([
+                    'store_id' => $entry['store_id'], 'tenant_id' => $entry['tenant_id'], 'deleted_at' => $entry['deleted_at'] ?? now(),
+                ]);
+            });
+        }
+
+        $this->components->info(sprintf('Journal entries: %d, organizations deleted again: %d, stores deleted again: %d.', count($organizations) + count($stores), $replayed, $storesReplayed));
 
         return self::SUCCESS;
     }

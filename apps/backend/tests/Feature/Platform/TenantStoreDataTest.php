@@ -8,17 +8,21 @@ use App\Models\PlatformStaff;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Subscription;
+use App\Models\Store;
 use App\Models\User;
 use App\Support\Account\MfaService;
 use App\Support\Account\Totp;
 use App\Support\Billing\FeatureCatalog;
+use App\Support\Billing\TrialStoreHosts;
 use App\Support\Browser\ScenarioDefinition;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Tests\Feature\Notifications\NotificationTestContext;
 use Tests\TestCase;
 
@@ -117,6 +121,67 @@ class TenantStoreDataTest extends TestCase
         $this->assertSame(1, DB::table('platform_audit_log')->where('action', 'tenant.store_created')->count());
     }
 
+    public function test_only_platform_owner_can_delete_one_store_with_its_history_and_files(): void
+    {
+        Storage::fake('artifacts');
+        Storage::fake('exports');
+        config()->set('watchdog.exports.disk', 'exports');
+        $context = $this->context();
+        $other = $this->context();
+        $data = $this->storeData($context);
+        $foreign = $this->storeData($other);
+        $tenant = $context['tenant']->id;
+        $store = $context['store']->id;
+        $path = "tenants/{$tenant}/stores/{$store}/checks/{$data['artifact']}.jpg";
+        Storage::disk('artifacts')->put($path, 'screenshot');
+        $exportPath = "tenants/{$tenant}/stores/{$store}/exports/test.csv";
+        Storage::disk('exports')->put($exportPath, "id\n1\n");
+        DB::table('exports')->insert([
+            'id' => (string) Str::uuid(), 'tenant_id' => $tenant, 'store_id' => $store, 'kind' => 'findings', 'format' => 'csv',
+            'filters' => '{}', 'state' => 'ready', 'object_key' => $exportPath, 'created_at' => now(),
+        ]);
+        DB::table('domain_outbox')->insert([
+            'id' => (string) Str::uuid(), 'tenant_id' => $tenant, 'topic' => 'event_inbox.received', 'dedupe_key' => (string) Str::uuid(),
+            'payload' => json_encode(['store_id' => $store, 'event_inbox_id' => (string) Str::uuid()]), 'status' => 'pending', 'attempts' => 0, 'next_attempt_at' => now(), 'created_at' => now(),
+        ]);
+        DB::table('trial_store_hosts')->insert(['host' => 'shop.example', 'tenant_id' => $tenant, 'store_id' => $store, 'claimed_at' => now()]);
+        $url = "/platform-api/v1/tenants/{$tenant}/stores/{$store}/delete";
+        $this->signIn();
+
+        $this->postJson($url, ['name' => 'Main Shop', 'reason' => 'Customer request'])->assertStatus(422)->assertJsonValidationErrors('confirmation_code');
+        $this->postJson($url, ['name' => 'Wrong Shop', 'reason' => 'Customer request', 'confirmation_code' => $this->code()])->assertStatus(422)->assertJsonPath('code', 'store_name_mismatch');
+        $this->postJson($url, ['name' => 'Main Shop', 'reason' => 'Customer request', 'confirmation_code' => '000000'])->assertForbidden()->assertJsonPath('code', 'step_up_failed');
+        $this->assertDatabaseHas('stores', ['id' => $store]);
+        $this->postJson("/platform-api/v1/tenants/{$tenant}/stores/{$other['store']->id}/delete", ['name' => $other['store']->name, 'reason' => 'Wrong company', 'confirmation_code' => $this->code()])->assertNotFound();
+        $this->postJson($url, ['name' => 'Main Shop', 'reason' => 'Customer request', 'confirmation_code' => $this->code()])->assertOk()->assertJsonPath('status', 'deleted');
+
+        Storage::disk('artifacts')->assertMissing($path);
+        Storage::disk('exports')->assertMissing($exportPath);
+        $this->assertDatabaseMissing('stores', ['id' => $store]);
+        $this->assertSame(0, DB::table('domain_outbox')->where('tenant_id', $tenant)->where('payload->store_id', $store)->count());
+        $this->assertDatabaseMissing('trial_store_hosts', ['host' => 'shop.example']);
+        $this->assertDatabaseHas('trial_store_hosts', ['host' => TrialStoreHosts::hashed('shop.example'), 'tenant_id' => $tenant]);
+        foreach (['orders', 'reconciliation_findings', 'incidents', 'check_runs', 'artifacts', 'integrations', 'audit_log'] as $table) {
+            $this->assertSame(0, DB::table($table)->where('tenant_id', $tenant)->where('store_id', $store)->count(), $table);
+        }
+        $this->assertDatabaseHas('orders', ['id' => $foreign['order'], 'store_id' => $other['store']->id]);
+        $this->assertSame('Customer request', DB::table('platform_audit_log')->where('action', 'tenant.store_deleted')->where('target_id', $store)->where('result', 'succeeded')->value('reason'));
+        $this->assertDatabaseHas('store_deletion_journal', ['tenant_id' => $tenant, 'store_id' => $store]);
+
+        $output = new BufferedOutput;
+        Artisan::call('privacy:deletion-journal', [], $output);
+        $journal = tempnam(sys_get_temp_dir(), 'bw-store-journal-');
+        file_put_contents($journal, $output->fetch());
+        $this->assertStringContainsString('"kind":"store"', (string) file_get_contents($journal));
+        (new Store)->forceFill([
+            'id' => $store, 'tenant_id' => $tenant, 'name' => 'Main Shop', 'base_url' => 'https://restored.example',
+            'platform' => 'woocommerce', 'timezone' => 'Europe/Berlin', 'locale' => 'de', 'default_currency' => 'EUR',
+        ])->save();
+        Artisan::call('privacy:replay-deletions', ['journal' => $journal]);
+        unlink($journal);
+        $this->assertDatabaseMissing('stores', ['id' => $store]);
+    }
+
     public function test_only_staff_who_manage_customers_see_store_data(): void
     {
         $context = $this->context();
@@ -124,6 +189,11 @@ class TenantStoreDataTest extends TestCase
         $this->getJson("/platform-api/v1/tenants/{$context['tenant']->id}/stores/{$context['store']->id}")->assertForbidden();
         $this->getJson("/platform-api/v1/tenants/{$context['tenant']->id}/stores/{$context['store']->id}/orders")->assertForbidden();
         $this->postJson("/platform-api/v1/tenants/{$context['tenant']->id}/stores", ['reason' => 'x'])->assertForbidden();
+        $this->postJson("/platform-api/v1/tenants/{$context['tenant']->id}/stores/{$context['store']->id}/delete", ['name' => 'Main Shop', 'reason' => 'Try', 'confirmation_code' => '000000'])->assertForbidden();
+
+        PlatformStaff::query()->where('role', PlatformStaff::ROLE_MEMBER)->firstOrFail()->forceFill(['capabilities' => ['tenants.read', 'tenants.manage']])->save();
+        $this->postJson("/platform-api/v1/tenants/{$context['tenant']->id}/stores/{$context['store']->id}/delete", ['name' => 'Main Shop', 'reason' => 'Try', 'confirmation_code' => $this->code()])->assertForbidden();
+        $this->assertDatabaseHas('stores', ['id' => $context['store']->id]);
     }
 
     public function test_support_reruns_a_check_and_handles_an_incident_for_the_customer_without_using_their_allowance(): void

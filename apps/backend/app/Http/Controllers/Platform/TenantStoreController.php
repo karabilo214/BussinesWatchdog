@@ -22,16 +22,19 @@ use App\Models\PlatformStaff;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Support\Api\UuidCursor;
+use App\Support\Account\MfaService;
 use App\Support\Billing\HistoryWindow;
 use App\Support\Browser\CheckScheduler;
 use App\Support\Incidents\IncidentLifecycleService;
 use App\Support\Platform\PlatformAudit;
+use App\Support\Privacy\StoreDeletion;
 use App\Support\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class TenantStoreController extends Controller
@@ -55,6 +58,42 @@ class TenantStoreController extends Controller
             }
 
             return $response;
+        });
+    }
+
+    /** Permanently remove one customer's store and all of its store-scoped history. */
+    public function delete(Request $request, string $tenant, string $store, MfaService $mfa, StoreDeletion $deletion): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
+            'confirmation_code' => ['required', 'string', 'max:32'],
+        ]);
+
+        return $this->as($tenant, function (Tenant $model) use ($request, $store, $validated, $mfa, $deletion): JsonResponse {
+            $found = $this->find(Store::class, $model, $store);
+            /** @var PlatformStaff $staff */
+            $staff = $this->staff($request);
+            abort_unless($staff->role === PlatformStaff::ROLE_OWNER, 403);
+
+            if (! hash_equals($found->name, trim($validated['name']))) {
+                return response()->json(['code' => 'store_name_mismatch', 'message' => 'The store name does not match.'], 422);
+            }
+
+            if (! $mfa->verify($staff->user, $validated['confirmation_code'])) {
+                $this->audit->record($staff->id, 'tenant.store_deleted', 'store', $found->id, PlatformAudit::RESULT_DENIED, ['stage' => 'step_up'], null, $model->id);
+
+                return response()->json(['code' => 'step_up_failed', 'message' => 'The confirmation code is not valid.'], 403);
+            }
+
+            DB::transaction(function () use ($found, $staff, $model, $validated, $deletion): void {
+                /** @var Store $locked */
+                $locked = Store::query()->where('tenant_id', $model->id)->whereKey($found->id)->lockForUpdate()->firstOrFail();
+                $this->audit->record($staff->id, 'tenant.store_deleted', 'store', $locked->id, PlatformAudit::RESULT_SUCCEEDED, ['name' => $locked->name, 'host' => parse_url($locked->base_url, PHP_URL_HOST)], trim($validated['reason']), $model->id);
+                $deletion->delete($locked);
+            });
+
+            return response()->json(['status' => 'deleted']);
         });
     }
 

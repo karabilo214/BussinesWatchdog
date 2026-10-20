@@ -600,6 +600,10 @@ export async function createCustomerStore(tenantId: string, input: NewCustomerSt
   return (await request<CustomerStore>('POST', tenantPath(tenantId, 'stores'), { body: input })).data;
 }
 
+export async function deleteCustomerStore(tenantId: string, storeId: string, input: { name: string; reason: string; confirmation_code: string }): Promise<void> {
+  await request<{ status: 'deleted' }>('POST', tenantPath(tenantId, `stores/${encodeURIComponent(storeId)}/delete`), { body: input });
+}
+
 export async function fetchCustomerStore(tenantId: string, storeId: string): Promise<CustomerStore> {
   return (await request<CustomerStore>('GET', tenantPath(tenantId, `stores/${encodeURIComponent(storeId)}`))).data;
 }

@@ -98,6 +98,7 @@ class OrganizationPurger
         'trial_store_hosts',
         'data_deletion_requests',
         'data_deletion_journal',
+        'store_deletion_journal',
     ];
 
     private const STAGES = [

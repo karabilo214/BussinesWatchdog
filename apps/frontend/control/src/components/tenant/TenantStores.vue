@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { StatusBadge } from '@bw/ui';
-import { createCustomerStore, fetchTenant, type NewCustomerStore, type TenantCard } from '@/api';
+import { createCustomerStore, deleteCustomerStore, fetchTenant, type NewCustomerStore, type TenantCard } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 
-const props = defineProps<{ card: TenantCard; canManage?: boolean }>();
+const props = defineProps<{ card: TenantCard; canManage?: boolean; canDelete?: boolean }>();
 const emit = defineEmits<{ updated: [card: TenantCard] }>();
 const { dateTime } = useFormat();
 
@@ -13,6 +13,9 @@ const adding = ref(false);
 const busy = ref(false);
 const error = ref<unknown>(null);
 const added = ref(false);
+const deleting = ref<TenantCard['stores'][number] | null>(null);
+const deleteForm = reactive({ name: '', reason: '', code: '' });
+const deleteReady = computed(() => deleting.value !== null && deleteForm.name.trim() === deleting.value.name && deleteForm.reason.trim().length >= 3 && deleteForm.code.trim().length >= 6);
 const form = reactive<NewCustomerStore>({ reason: '', name: '', base_url: 'https://', timezone: 'Europe/Berlin', default_currency: 'EUR', locale: 'de', platform: 'woocommerce' });
 const ready = computed(() => form.name.trim() !== '' && /^https:\/\/[^/\s]+/.test(form.base_url.trim()) && /^[A-Z]{3}$/.test(form.default_currency) && form.timezone.trim() !== '' && form.reason.trim().length >= 3);
 
@@ -30,6 +33,29 @@ async function add(): Promise<void> {
   } catch (caught) {
     error.value = caught;
   } finally {
+    busy.value = false;
+  }
+}
+
+function openDelete(store: TenantCard['stores'][number]): void {
+  deleting.value = store;
+  Object.assign(deleteForm, { name: '', reason: '', code: '' });
+  error.value = null;
+}
+
+async function remove(): Promise<void> {
+  if (!deleteReady.value || busy.value || deleting.value === null) return;
+  busy.value = true;
+  error.value = null;
+
+  try {
+    await deleteCustomerStore(props.card.id, deleting.value.id, { name: deleteForm.name.trim(), reason: deleteForm.reason.trim(), confirmation_code: deleteForm.code.trim() });
+    deleting.value = null;
+    emit('updated', await fetchTenant(props.card.id));
+  } catch (caught) {
+    error.value = caught;
+  } finally {
+    deleteForm.code = '';
     busy.value = false;
   }
 }
@@ -99,6 +125,7 @@ async function add(): Promise<void> {
             <th class="px-4 py-3 font-medium">{{ $t('tenant.store.state') }}</th>
             <th class="px-4 py-3 font-medium">{{ $t('tenant.store.orders') }}</th>
             <th class="px-4 py-3 font-medium">{{ $t('tenants.col.incidents') }}</th>
+            <th v-if="canDelete" class="px-4 py-3 font-medium">{{ $t('store_data.remove.action') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
@@ -120,9 +147,18 @@ async function add(): Promise<void> {
               <StatusBadge v-if="store.orders_over_since" tone="warn" :label="$t('tenant.store.orders_over', { date: dateTime(store.orders_over_since) })" />
             </td>
             <td class="px-4 py-3 tabular-nums" :class="store.open_incidents > 0 ? 'text-crit' : 'text-text-muted'">{{ store.open_incidents }}</td>
+            <td v-if="canDelete" class="px-4 py-3"><button type="button" class="text-sm font-medium text-crit hover:underline" :data-delete-store="store.id" @click="openDelete(store)">{{ $t('store_data.remove.action') }}</button></td>
           </tr>
         </tbody>
       </table>
     </div>
+    <form v-if="deleting" class="flex flex-col gap-3 rounded-xl border border-crit-border bg-crit-soft p-5 text-sm" data-form="delete-store" @submit.prevent="remove">
+      <p class="font-semibold text-crit">{{ $t('store_data.remove.warning', { name: deleting.name }) }}</p>
+      <label class="flex flex-col gap-1.5"><span>{{ $t('store_data.remove.name') }}</span><input v-model="deleteForm.name" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="store-name-confirm" /></label>
+      <label class="flex flex-col gap-1.5"><span>{{ $t('store_data.remove.reason') }}</span><textarea v-model="deleteForm.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="reason" /></label>
+      <label class="flex flex-col gap-1.5"><span>{{ $t('store_data.remove.code') }}</span><input v-model="deleteForm.code" maxlength="32" autocomplete="one-time-code" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="step-up" /></label>
+      <ErrorNotice v-if="error" :error="error" />
+      <div class="flex gap-2"><button type="submit" class="rounded-md bg-crit-solid px-4 py-2 font-semibold text-white disabled:opacity-60" :disabled="busy || !deleteReady" data-action="confirm-store-deletion">{{ $t('store_data.remove.submit') }}</button><button type="button" class="rounded-md border border-border-strong bg-surface px-4 py-2" @click="deleting = null">{{ $t('common.cancel') }}</button></div>
+    </form>
   </section>
 </template>

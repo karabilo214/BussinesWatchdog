@@ -104,6 +104,7 @@
     "request_id": "Request ID: {id}",
     "platform_forbidden": "Your role cannot do this.",
     "step_up_failed": "The confirmation code did not work.",
+    "store_name_mismatch": "The store name does not match.",
     "plan_code_invalid": "Plan code: lowercase Latin letters, digits, “-” and “_”, 2 to 32 characters.",
     "plan_code_taken": "A plan with this code exists.",
     "plan_text_too_long": "The text is too long.",
@@ -1151,6 +1152,14 @@
       "reason": "Reason (for the audit)",
       "submit": "Add store",
       "done": "Store added."
+    },
+    "remove": {
+      "action": "Delete",
+      "warning": "Permanently delete “{name}” and its orders, payments, findings, checks and screenshots? This cannot be undone. Platform audit and the trial-domain hash remain. Remove the plugin or App from the shop separately.",
+      "name": "Enter the exact store name",
+      "reason": "Deletion reason (audit)",
+      "code": "Confirmation code",
+      "submit": "Delete store and history"
     },
     "labels": {
       "rule": {
