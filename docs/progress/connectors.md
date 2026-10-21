@@ -555,7 +555,7 @@ Verification: `ShopwareAppUniversalTest` (same archive for everyone; registratio
 - No migrations or API contracts changed. Customer `orderSource.test.ts` covers both dialogs and the URL/code fields; `npm run check -w @bw/customer` passed (150 tests, typecheck, production build). Traceability: main spec §8–9, `spec/panels/CLIENT-PANELS.md` §2, ACC-04 and EXT-29.
 - Deployed on 2026-10-21 as `f69c660`; all production containers started and `/app/` returned HTTP 200.
 
-### Step 220: Connections Without Installing Anything Come First; WooCommerce Webhooks Without a Plugin (ADR 0077)
+### Step 221: Connections Without Installing Anything Come First; WooCommerce Webhooks Without a Plugin (ADR 0077)
 
 Status: complete in main
 
