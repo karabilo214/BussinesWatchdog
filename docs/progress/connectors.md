@@ -482,7 +482,7 @@ Verification: worker unit tests 28/28 (new: PayPal lookups, quiet beacon incl. `
 
 ### Step 214: Privacy Paragraph and LIA Template for Stores in the Cabinet (ADR 0062)
 
-Status: complete in main
+Status: complete; deployed 2026-10-21 (`7cad5ef`), provider set in the production `.env`
 
 - After the lawyer's answer (ADR 0062): the store, not the shopper, is informed; a paragraph in the store's privacy policy satisfies Art. 13, and a ready legitimate interest assessment helps the store's data protection officer.
 - `resources/merchant-texts/{de,en}-privacy.txt` — the paragraphs of the legal package (Step 160) with the lawyer's addition «auf Servern in Deutschland / on servers in Germany»; `{de,en}-lia.txt` — a LIA template (processing, interest, necessity, balancing, result incl. § 25 TDDDG, review) with placeholders for the shop; both say they are samples, not legal advice.
