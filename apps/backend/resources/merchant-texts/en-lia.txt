@@ -1,0 +1,42 @@
+Legitimate interest assessment under Art. 6(1)(f) GDPR
+Checkout monitoring with Business Watchdog
+
+Sample for your records (Art. 5(2) GDPR). Please review it and adapt it to your shop; this sample is not legal advice.
+
+Controller: [name and address of the shop operator]
+Shop: [shop address]
+Prepared on: [date]          Reviewed by: [name, data protection officer if any]
+
+1. The processing
+
+A script of the Business Watchdog service (provider: :provider) runs on the checkout and order confirmation pages. It records whether the page was shown, whether payment methods are offered and the button to place the order can be used, whether the order was sent, came back with an error or stalled, whether the confirmation page was reached, and it counts technical script errors on the page.
+
+The script sends this information only to the shop's own server. It sets no cookies, stores nothing on the device, reads no form fields (name, address, e-mail address, payment details) and assigns no identifiers; page views of one visitor are not linked.
+
+Only technical information arises in the shop: in WooCommerce counts per five-minute window, in Shopware single reports (page, stages reached, number of script errors, time, a random technical ID) that Business Watchdog usually retrieves and deletes in the shop within five minutes. Business Watchdog receives no IP addresses or browser details and processes the data as a processor (Art. 28 GDPR) on servers in Germany. The shop's web server logs requests like any other page view, according to its own settings.
+
+2. Legitimate interest
+
+The shop has an interest in customers being able to complete and pay for their orders, and in detecting and fixing checkout faults quickly (for example payment methods not shown, a button that cannot be used, errors after sending the order). This is a business interest and also an interest in the security and proper functioning of its own IT (see Recital 49 GDPR). It is in the interest of customers too, whose orders would otherwise fail.
+
+3. Necessity
+
+Faults that only occur in real customers' browsers (payment methods that appear only after third-party scripts load, errors of particular themes or extensions) cannot be fully detected by checks from outside alone. There is no less intrusive means that is equally effective: the script collects only the stages and error counts needed for detection, no content and no identifiers, and the information is immediately combined into counts per time window.
+
+4. Balancing
+
+Kind of data: technical information about the page state only; no content, contact details, payment details or special categories (Art. 9 GDPR).
+
+Link to persons: for Business Watchdog the information is not personal data. In the shop, a link is only indirect and short-lived (web server log, time of an order).
+
+Reasonable expectations: customers expect a shop to monitor its checkout so that it works. There is no tracking, profiling, advertising, behavioural analysis or disclosure to third parties.
+
+Impact: customers suffer no recognisable disadvantage; the monitoring serves the success of their order.
+
+Safeguards: nothing stored on the device, no identifiers, no form contents; transmission only to the shop's own server; aggregation into counts; short retention in the shop; data processing agreement with Business Watchdog; processing in Germany; information of customers in the privacy policy (Art. 13 GDPR).
+
+5. Result
+
+The shop's legitimate interest in a working checkout prevails; the interests, fundamental rights and freedoms of customers do not override it. The processing is based on Art. 6(1)(f) GDPR. Consent is not required: the script does not store or access information on the device within the meaning of § 25(1) TDDDG, and in any case it is strictly necessary for the checkout the customer asked for (§ 25(2) no. 2 TDDDG).
+
+Review: after material changes to the service or the shop, at the latest after [12] months.

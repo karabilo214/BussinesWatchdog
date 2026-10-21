@@ -5137,6 +5137,31 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/downloads/observation-texts:
+    get:
+      tags: [Integrations]
+      operationId: getObservationTexts
+      description: "Sample texts about checkout observation for the customer's store, in German and English: the paragraph for the store's privacy policy and a legitimate interest assessment (Art. 6(1)(f) GDPR). The provider comes from WATCHDOG_PROVIDER_NAME / WATCHDOG_PROVIDER_ADDRESS; provider_set is false and the texts carry a placeholder when it is not configured."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Texts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [provider_set, texts]
+                properties:
+                  provider_set: {type: boolean}
+                  texts:
+                    type: object
+                    required: [de, en]
+                    properties:
+                      de: {$ref: "#/components/schemas/ObservationTextSet"}
+                      en: {$ref: "#/components/schemas/ObservationTextSet"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
   /api/v1/maintenance:
     get:
       tags: [Incidents]
@@ -6311,6 +6336,12 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    ObservationTextSet:
+      type: object
+      required: [privacy, lia]
+      properties:
+        privacy: {type: string, description: "Paragraph for the store's privacy policy, plain text, paragraphs separated by blank lines; the first line is its heading"}
+        lia: {type: string, description: "Legitimate interest assessment template, plain text with [placeholders] for the shop"}
     PlatformConfirmation:
       type: object
       additionalProperties: false

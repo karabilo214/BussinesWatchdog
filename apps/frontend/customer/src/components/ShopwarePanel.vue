@@ -6,6 +6,7 @@ import type { Integration } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
 import ErrorNotice from './ErrorNotice.vue';
+import ObservationTexts from './ObservationTexts.vue';
 import { INTEGRATION_TONES } from './integrationTones';
 
 const POLL_MS = 15_000;
@@ -194,6 +195,8 @@ void load();
         <li>{{ $t('store.shopware.stripe_note') }}</li>
       </ul>
 
+      <ObservationTexts v-if="viaApp" />
+
       <div v-if="canManage && viaApp && integration.app_update?.available" class="flex flex-col gap-2 rounded-md border border-border p-3 text-sm" data-app-update>
         <p class="font-medium">{{ $t('store.shopware.app_update_title', { version: integration.app_update.latest_version }) }}</p>
         <ol class="list-decimal space-y-1 pl-5 text-[13px]">
@@ -253,6 +256,7 @@ void load();
           </ol>
           <p class="text-[13px] text-text-muted">{{ $t('store.shopware.app_permissions') }}</p>
           <p class="text-[13px] text-text-muted" data-note="checkout-script">{{ $t('store.shopware.app_script_note') }}</p>
+          <ObservationTexts />
           <p class="text-[13px] text-warn" data-app-version-note>{{ $t('store.shopware.app_version_note') }}</p>
           <div>
             <button type="button" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !form.acknowledged" data-download-app @click="download">{{ $t('store.shopware.app_download') }}</button>

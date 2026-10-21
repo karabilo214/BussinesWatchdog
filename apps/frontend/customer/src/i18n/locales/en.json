@@ -1764,5 +1764,15 @@
       "ask_owner": "The organization owner can cancel the deletion.",
       "in_progress": "The deletion is already running and cannot be cancelled."
     }
+  },
+  "observation_texts": {
+    "title": "Texts for your store's privacy policy",
+    "intro": "The observation script needs no consent from shoppers and no entry in a cookie banner, but the store has to mention it in its privacy policy (Art. 13 GDPR). Below are a ready paragraph and a legitimate interest assessment (LIA) template in German and English. They are samples, not legal advice: check them and adapt them if needed.",
+    "language": "Text language",
+    "privacy": "Paragraph for the privacy policy",
+    "lia_download": "Download the LIA template (.txt)",
+    "lia_hint": "Fill in the LIA template with your store's details and keep it with your data protection records — data protection officers often ask for it.",
+    "provider_missing": "The service provider's details are not set yet — the text shows a placeholder in square brackets.",
+    "failed": "The texts could not be loaded. Please try again later."
   }
 }

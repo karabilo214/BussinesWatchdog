@@ -154,6 +154,11 @@ return [
         'media_png_compression' => (int) env('WATCHDOG_SITE_MEDIA_PNG_COMPRESSION', 9),
     ],
 
+    'provider' => [
+        'name' => env('WATCHDOG_PROVIDER_NAME', ''),
+        'address' => env('WATCHDOG_PROVIDER_ADDRESS', ''),
+    ],
+
     'service_alerts' => [
         'email' => env('WATCHDOG_SERVICE_ALERT_EMAIL', ''),
         'locale' => env('WATCHDOG_SERVICE_ALERT_LOCALE', 'ru'),

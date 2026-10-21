@@ -1,0 +1,9 @@
+Funktionsüberwachung des Bestellvorgangs (Business Watchdog)
+
+Um sicherzustellen, dass Bestellungen und Zahlungen in unserem Shop technisch funktionieren, setzen wir auf den Seiten des Bestellabschlusses den Dienst Business Watchdog von :provider ein. Ein kleines Skript stellt fest, ob Zahlungsarten angezeigt werden, ob die Schaltfläche zum Absenden der Bestellung bedienbar ist, ob das Absenden zu einer Fehlermeldung führt oder hängen bleibt, ob die Bestätigungsseite erreicht wird und wie viele technische Skriptfehler auf der Seite auftreten.
+
+Das Skript übermittelt diese Angaben ausschließlich an unseren eigenen Server; Ihr Browser stellt dabei keine Verbindung zu Business Watchdog oder anderen Dritten her. Es werden keine Cookies oder vergleichbaren Techniken gesetzt, keine Informationen auf Ihrem Endgerät gespeichert, keine Eingaben in Formularfelder (z. B. Name, Anschrift, E-Mail-Adresse, Zahlungsdaten) gelesen und keine Kennungen vergeben, mit denen Sie wiedererkannt oder Seitenaufrufe miteinander verknüpft werden könnten.
+
+Business Watchdog ruft von unserem Server nur zusammengefasste bzw. nicht personenbezogene Zählwerte ab (ohne IP-Adresse und ohne Browserangaben) und wertet sie je Shop in Zeitfenstern von fünf Minuten aus.
+
+Rechtsgrundlage ist unser berechtigtes Interesse an einem funktionsfähigen Bestellvorgang und an der schnellen Erkennung von Störungen (Art. 6 Abs. 1 lit. f DSGVO). Business Watchdog verarbeitet die Daten in unserem Auftrag auf Grundlage eines Vertrags zur Auftragsverarbeitung (Art. 28 DSGVO) auf Servern in Deutschland; eine Weitergabe an Dritte oder eine Nutzung zu Werbe- oder Analysezwecken findet nicht statt.

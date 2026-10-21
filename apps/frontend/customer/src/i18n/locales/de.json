@@ -1764,5 +1764,15 @@
       "ask_owner": "Der Inhaber der Organisation kann die Löschung widerrufen.",
       "in_progress": "Die Löschung läuft bereits und kann nicht widerrufen werden."
     }
+  },
+  "observation_texts": {
+    "title": "Texte für die Datenschutzerklärung Ihres Shops",
+    "intro": "Das Beobachtungsskript braucht keine Einwilligung der Kunden und keinen Eintrag im Cookie-Banner, der Shop muss es aber in seiner Datenschutzerklärung erwähnen (Art. 13 DSGVO). Unten finden Sie einen fertigen Absatz und eine Vorlage für die Interessenabwägung (LIA) auf Deutsch und Englisch. Es sind Muster, keine Rechtsberatung: Prüfen Sie sie und passen Sie sie bei Bedarf an.",
+    "language": "Sprache des Textes",
+    "privacy": "Absatz für die Datenschutzerklärung",
+    "lia_download": "LIA-Vorlage herunterladen (.txt)",
+    "lia_hint": "Ergänzen Sie die LIA-Vorlage mit den Angaben Ihres Shops und legen Sie sie zu Ihren Datenschutzunterlagen – Datenschutzbeauftragte fragen häufig danach.",
+    "provider_missing": "Die Angaben des Anbieters sind noch nicht hinterlegt – im Text steht ein Platzhalter in eckigen Klammern.",
+    "failed": "Die Texte konnten nicht geladen werden. Bitte versuchen Sie es später erneut."
   }
 }

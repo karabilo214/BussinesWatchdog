@@ -479,3 +479,14 @@ Shopware run (2026-10-20, App 1.3.1 uploaded by the owner, store `01a1592f…`):
   - WooCommerce on rules v3: the Stripe-only refund of order 26 is MONEY_REFUND_EXTRA; a user's manual match of an old 10 € Stripe charge to order 26 raised capture amount and multiple captures (correct for that link). Scheduled checks pass with the payment step skipped (`gateway_scripts_not_loaded`, ADR 0070).
 
 Verification: worker unit tests 28/28 (new: PayPal lookups, quiet beacon incl. `rest_route`); backend `tests/Feature/Checkout` + `tests/Feature/Browser` 44/44; production deploys `6ce9cdf`, `d9466f2`, `8a38610`.
+
+### Step 214: Privacy Paragraph and LIA Template for Stores in the Cabinet (ADR 0062)
+
+Status: complete in main
+
+- After the lawyer's answer (ADR 0062): the store, not the shopper, is informed; a paragraph in the store's privacy policy satisfies Art. 13, and a ready legitimate interest assessment helps the store's data protection officer.
+- `resources/merchant-texts/{de,en}-privacy.txt` — the paragraphs of the legal package (Step 160) with the lawyer's addition «auf Servern in Deutschland / on servers in Germany»; `{de,en}-lia.txt` — a LIA template (processing, interest, necessity, balancing, result incl. § 25 TDDDG, review) with placeholders for the shop; both say they are samples, not legal advice.
+- `GET /api/v1/downloads/observation-texts` (members with integration read): `provider_set` and the texts with the provider from `WATCHDOG_PROVIDER_NAME` / `WATCHDOG_PROVIDER_ADDRESS` (`docs/ops/integrations.md`), a bracketed placeholder without it. `contracts/openapi.yaml` (`ObservationTextSet`).
+- Cabinet `ObservationTexts.vue`: a collapsed block «Texts for your store's privacy policy» (ru/en/de UI, texts in German/English) with copy for the paragraph and a `.txt` download of the LIA; loaded only when opened. Shown with the WooCommerce plugin download, in the Shopware app connection steps and for stores connected through the app.
+
+Verification: `ObservationTextsTest` (provider filled, «servers in Germany», both languages, placeholder and warning without a provider, guests refused), OpenAPI route guard; customer `observationTexts.test.ts` (loaded on open, language switch, provider warning, failed request). Backend SQLite 687 passed + 4 skipped; customer 145/145, vue-tsc, build.

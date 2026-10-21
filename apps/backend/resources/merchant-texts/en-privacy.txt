@@ -1,0 +1,9 @@
+Monitoring of the checkout process (Business Watchdog)
+
+To make sure that orders and payments in our shop work, we use the Business Watchdog service provided by :provider on the checkout and order confirmation pages. A small script checks whether payment methods are shown, whether the button to place the order can be used, whether placing the order returns an error or stalls, whether the confirmation page is reached, and how many technical script errors occur on the page.
+
+The script sends this information only to our own server; your browser does not connect to Business Watchdog or any other third party. It sets no cookies or similar technologies, stores nothing on your device, does not read anything you enter in form fields (such as your name, address, e-mail address or payment details) and assigns no identifier that could recognise you or link your page views.
+
+Business Watchdog retrieves from our server only aggregated or non-personal counts (without IP addresses or browser details) and evaluates them per shop in five-minute windows.
+
+The legal basis is our legitimate interest in a working checkout and in detecting faults quickly (Art. 6(1)(f) GDPR). Business Watchdog processes this data on our behalf under a data processing agreement (Art. 28 GDPR) on servers in Germany; it is not shared with third parties or used for advertising or analytics.

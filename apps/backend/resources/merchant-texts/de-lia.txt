@@ -1,0 +1,42 @@
+Interessenabwägung nach Art. 6 Abs. 1 lit. f DSGVO
+Funktionsüberwachung des Bestellvorgangs mit Business Watchdog
+
+Muster zur Dokumentation (Art. 5 Abs. 2 DSGVO). Bitte prüfen und an Ihren Shop anpassen; dieses Muster ist keine Rechtsberatung.
+
+Verantwortlicher: [Name und Anschrift des Shopbetreibers]
+Shop: [Adresse des Shops]
+Erstellt am: [Datum]          Geprüft von: [Name, ggf. Datenschutzbeauftragter]
+
+1. Beschreibung der Verarbeitung
+
+Auf der Seite des Bestellabschlusses und der Bestellbestätigung läuft ein Skript des Dienstes Business Watchdog (Anbieter: :provider). Es stellt fest, ob die Seite angezeigt wurde, ob Zahlungsarten angeboten werden und die Schaltfläche zum Absenden bedienbar ist, ob das Absenden gesendet wurde, mit einem Fehler zurückkam oder hängen blieb, ob die Bestätigungsseite erreicht wurde, und zählt technische Skriptfehler der Seite.
+
+Das Skript sendet diese Angaben nur an den Server des Shops. Es setzt keine Cookies, speichert nichts auf dem Endgerät, liest keine Formularfelder (Name, Anschrift, E-Mail-Adresse, Zahlungsdaten) und vergibt keine Kennungen; Seitenaufrufe eines Besuchers werden nicht verknüpft.
+
+Im Shop entstehen nur technische Angaben: in WooCommerce Zählwerte je Zeitfenster von fünf Minuten, in Shopware einzelne Berichte (Seite, erreichte Schritte, Anzahl der Skriptfehler, Zeitpunkt, zufällige technische ID), die Business Watchdog in der Regel innerhalb von fünf Minuten abruft und im Shop löscht. Business Watchdog erhält keine IP-Adressen und keine Browserangaben und verarbeitet die Daten als Auftragsverarbeiter (Art. 28 DSGVO) auf Servern in Deutschland. Der Webserver des Shops protokolliert Anfragen wie bei jedem anderen Seitenaufruf nach seinen eigenen Einstellungen.
+
+2. Berechtigtes Interesse
+
+Der Shop hat ein Interesse daran, dass Kunden ihre Bestellung abschließen und bezahlen können, und daran, Störungen des Bestellvorgangs (z. B. nicht angezeigte Zahlungsarten, nicht bedienbare Schaltfläche, Fehler nach dem Absenden) schnell zu erkennen und zu beheben. Das ist ein wirtschaftliches Interesse und zugleich ein Interesse an der Sicherheit und Funktionsfähigkeit der eigenen IT (vgl. Erwägungsgrund 49 DSGVO). Es liegt auch im Interesse der Kunden, deren Bestellung sonst scheitert.
+
+3. Erforderlichkeit
+
+Störungen, die nur im Browser echter Kunden auftreten (Zahlungsarten, die erst nach dem Laden fremder Skripte erscheinen, Fehler einzelner Themes oder Erweiterungen), sind mit Prüfungen von außen allein nicht vollständig zu erkennen. Ein milderes, gleich wirksames Mittel ist nicht ersichtlich: Das Skript erhebt nur die für die Erkennung nötigen Schritte und Fehlerzahlen, keine Inhalte und keine Kennungen, und die Angaben werden sofort zu Zählwerten je Zeitfenster zusammengeführt.
+
+4. Abwägung
+
+Art der Daten: ausschließlich technische Angaben zum Seitenzustand, keine Inhalte, keine Kontaktdaten, keine Zahlungsdaten, keine besonderen Kategorien (Art. 9 DSGVO).
+
+Personenbezug: Für Business Watchdog sind die Angaben nicht personenbezogen. Im Shop ist ein Bezug nur mittelbar und kurzzeitig denkbar (Webserver-Protokoll, Zeitpunkt einer Bestellung).
+
+Vernünftige Erwartungen: Kunden erwarten, dass ein Shop den Bestellvorgang technisch überwacht, damit er funktioniert. Es findet kein Tracking, keine Profilbildung, keine Werbung, keine Analyse des Verhaltens und keine Weitergabe an Dritte statt.
+
+Auswirkungen: Für die Kunden entstehen keine erkennbaren Nachteile; die Überwachung dient gerade dem Gelingen ihrer Bestellung.
+
+Schutzmaßnahmen: keine Speicherung auf dem Endgerät, keine Kennungen, keine Formularinhalte; Übermittlung nur an den eigenen Server; Zusammenfassung zu Zählwerten; kurze Speicherdauer im Shop; Auftragsverarbeitungsvertrag mit Business Watchdog; Verarbeitung in Deutschland; Information der Kunden in der Datenschutzerklärung (Art. 13 DSGVO).
+
+5. Ergebnis
+
+Das berechtigte Interesse des Shops an einem funktionsfähigen Bestellvorgang überwiegt; Interessen, Grundrechte und Grundfreiheiten der Kunden stehen nicht entgegen. Die Verarbeitung stützt sich auf Art. 6 Abs. 1 lit. f DSGVO. Eine Einwilligung ist nicht erforderlich; das Skript liest und speichert keine Informationen auf dem Endgerät im Sinne von § 25 Abs. 1 TDDDG, jedenfalls ist es für den vom Kunden gewünschten Bestellvorgang unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG).
+
+Überprüfung: bei wesentlichen Änderungen des Dienstes oder des Shops, spätestens nach [12] Monaten.
