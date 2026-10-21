@@ -493,7 +493,7 @@ Verification: `ObservationTextsTest` (provider filled, «servers in Germany», b
 
 ### Step 215: One Approved Shopware App Version for Every Store (ADR 0074)
 
-Status: complete in main
+Status: complete; deployed 2026-10-21 (`c10dd1f`), the store list removed from the production `.env`; App 1.3.2 is not approved yet (fingerprint `5f49a82d…41e6a8f7` on production)
 
 - Owner's decision: no check on a copy of the store and no per-store approval; the owner approves an App version, and every customer downloads it in the cabinet.
 - `ShopwareApp::releaseApproved()` checks only the version fingerprint; `WATCHDOG_SHOPWARE_APP_APPROVED_STORE_IDS` and `watchdog.shopware.app_approved_store_ids` are removed (`infra/production/env.example`); the integration DTO's update availability no longer depends on the store.
