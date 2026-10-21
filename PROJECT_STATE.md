@@ -39,7 +39,7 @@ https://business-watchdog.com (Contabo, Docker Compose, Caddy), выкладка
 - 2026-10-21: Telegram-бот @BusinessWatchbotBot настроен на сервере (`TELEGRAM_*` в `.env`, не в git), webhook зарегистрирован на `/api/v1/webhooks/telegram/updates`.
 - 2026-10-21: на сервере `9f0c0b0`; Shopware App **1.5.0** (универсальная) одобрена (`WATCHDOG_SHOPWARE_APP_APPROVED_SHA256`) — её скачивают все клиенты. Тестовый магазин Shopware-Test пока на 1.3.1, архив обновления передан владельцу.
 - 2026-10-21: на сервере `f69c660` (Step 220); диалоги установки WooCommerce и Shopware App опубликованы, миграций нет.
-- 2026-10-21: на сервере `b92b8f2` (изолированный Step 222 поверх Step 220). После повторной сверки 4 ложных инцидента Shopware 10001–10004 автоматически закрыты. Step 221 ожидает общей выкладки.
+- 2026-10-21: сначала выложен `b92b8f2` (изолированный Step 222 поверх Step 220). После повторной сверки 4 ложных инцидента Shopware 10001–10004 автоматически закрыты.
 - 2026-10-21: сервер обновлён до `262ea67` (Steps 221–222 вместе), миграция WooCommerce webhook credential применена; `/app/` отвечает HTTP 200. Открытых capture-инцидентов по Shopware 10001–10004 нет; для 10002 остался реальный refund-инцидент.
 - После выкладки правил сверки v3 (Step 201) нужен один раз `php artisan reconciliation:recheck-open-incidents` — факт запуска не записан.
 
