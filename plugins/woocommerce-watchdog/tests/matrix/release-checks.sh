@@ -53,21 +53,25 @@ probe connect "https://bw-unreachable.invalid" >/dev/null
 before=$(probe order)
 check "previous package installs and records orders" "$(field "$before" loaded)" "true"
 rows_before=$(field "$before" outbox_rows)
+integration_before=$(field "$before" integration_id)
 
 wp plugin install "$NEW" --force >/dev/null 2>&1
 after=$(probe state)
 check "upgrade keeps the plugin active on the new version" "$(field "$after" version)" "$EXPECTED_VERSION"
 check "upgrade keeps the queued events" "$(field "$after" outbox_rows)" "$rows_before"
 check "upgrade keeps the connection" "$(field "$after" connection)" "true"
+check "upgrade keeps the same integration ID" "$(field "$after" integration_id)" "$integration_before"
 check "schema is current after upgrade" "$(field "$after" schema_current)" "true"
 
 wp plugin install "$OLD" --force >/dev/null 2>&1
 back=$(probe order)
 check "rollback to the previous package keeps working" "$(field "$back" order_saved)" "true"
 check "rollback keeps the queued events" "$([ "$(field "$back" outbox_rows)" -ge "$rows_before" ] && echo yes)" "yes"
+check "rollback keeps the same integration ID" "$(field "$back" integration_id)" "$integration_before"
 wp plugin install "$NEW" --force >/dev/null 2>&1
 forward=$(probe state)
 check "upgrade again after rollback" "$(field "$forward" version)" "$EXPECTED_VERSION"
+check "second upgrade keeps the same integration ID" "$(field "$forward" integration_id)" "$integration_before"
 
 setup=$(wp eval-file /bw-matrix/checkout-setup.php | sed -n 's/^BW_SETUP=//p')
 product=$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['product_id'])" "$setup")

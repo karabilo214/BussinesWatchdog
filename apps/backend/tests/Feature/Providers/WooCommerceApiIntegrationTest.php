@@ -209,6 +209,29 @@ class WooCommerceApiIntegrationTest extends TestCase
         $this->assertSame('deleted', Refund::query()->where('external_id', '51')->value('status'));
     }
 
+    public function test_reconnecting_the_same_woocommerce_api_keeps_order_identity_and_avoids_reimport(): void
+    {
+        $this->wcOrder(41, ['payment_method' => 'stripe', 'transaction_id' => 'ch_3Abc', 'total' => '184.000000']);
+        $this->wcRefund(41, 51, '30.000000', ['_stripe_refund_id' => 're_3Abc'], true);
+        $old = $this->connected();
+        app(WooCommerceApiSync::class)->run($old);
+        $this->drain();
+        $order = Order::query()->where('external_id', '41')->sole();
+        $refund = Refund::query()->where('external_id', '51')->sole();
+        $old->forceFill(['status' => Integration::STATUS_REVOKED])->save();
+
+        $current = $this->connected();
+        $this->assertSame($order->id, Order::query()->where('integration_id', $current->id)->where('external_id', '41')->sole()->id);
+        $this->assertSame(1, Order::query()->where('store_id', $this->store->id)->count());
+        $this->assertSame($refund->id, Refund::query()->where('integration_id', $current->id)->where('external_id', '51')->sole()->id);
+
+        $result = app(WooCommerceApiSync::class)->run($current);
+        $this->drain();
+        $this->assertSame(0, $result['emitted']);
+        $this->assertSame(1, Order::query()->where('store_id', $this->store->id)->count());
+        $this->assertSame(1, Refund::query()->where('store_id', $this->store->id)->count());
+    }
+
     public function test_the_audit_finds_deleted_orders_and_keeps_trashed_ones(): void
     {
         $this->wcOrder(41, ['payment_method' => 'stripe', 'transaction_id' => 'ch_3Abc', 'total' => '184.000000']);

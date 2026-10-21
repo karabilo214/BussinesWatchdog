@@ -4,6 +4,7 @@ namespace Tests\Feature\Providers;
 
 use App\Models\Integration;
 use App\Models\Membership;
+use App\Models\Order;
 use App\Models\PairingCode;
 use App\Models\ShopwareAppInstallation;
 use App\Models\Store;
@@ -14,6 +15,7 @@ use App\Support\Providers\Shopware\ShopwareApp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
@@ -127,6 +129,39 @@ class ShopwareAppUniversalTest extends TestCase
         Carbon::setTestNow(now()->addDays(8));
         $this->artisan('shopware:app-installations-purge')->assertSuccessful();
         $this->assertSame(0, ShopwareAppInstallation::query()->count());
+    }
+
+    public function test_reinstall_of_the_same_shop_preserves_order_identity_and_sync_revision(): void
+    {
+        $old = Integration::query()->create([
+            'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'provider' => 'shopware',
+            'external_account_id' => self::SHOP_ID, 'mode' => 'live', 'source_authority' => Integration::SOURCE_STORE_REPORTED,
+            'status' => Integration::STATUS_REVOKED, 'capabilities' => ['connection' => 'app'],
+            'connector_version' => 'shopware-app-1.4.0', 'health' => [],
+        ]);
+        $externalId = 'aabbccddeeff00112233445566778899';
+        $order = Order::query()->create([
+            'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'integration_id' => $old->id,
+            'external_id' => $externalId, 'display_number' => '10001', 'source_revision' => 3,
+            'status' => 'open', 'mode' => 'test', 'currency' => 'EUR', 'currency_exponent' => 2,
+            'total_minor' => 1999, 'payment_expected' => true, 'financial_support' => 'supported',
+            'is_synthetic' => false, 'source_created_at' => now()->subDay(), 'source_updated_at' => now()->subDay(),
+            'current_payload_hash' => str_repeat('a', 64), 'metadata' => [], 'created_at' => now()->subDay(), 'updated_at' => now()->subDay(),
+        ]);
+        DB::table('provider_object_states')->insert([
+            'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'integration_id' => $old->id,
+            'object_type' => 'order', 'object_id' => $externalId, 'content_hash' => str_repeat('b', 64),
+            'revision' => 3, 'observed_at' => now()->subDay(),
+        ]);
+
+        $secret = $this->register(ShopwareApp::appSecret())->json('secret');
+        $this->confirm($secret)->assertOk();
+        $this->connect($secret, $this->code($this->store))->assertSee('Verbunden mit dem Shop');
+
+        $current = Integration::query()->where('status', Integration::STATUS_ACTIVE)->where('provider', 'shopware')->sole();
+        $this->assertSame($order->id, Order::query()->where('integration_id', $current->id)->where('external_id', $externalId)->sole()->id);
+        $this->assertSame(1, Order::query()->where('store_id', $this->store->id)->count());
+        $this->assertSame(3, DB::table('provider_object_states')->where('integration_id', $current->id)->where('object_id', $externalId)->value('revision'));
     }
 
     private function download(): string

@@ -10,6 +10,7 @@ use App\Models\Store;
 use App\Support\Account\AccountRejected;
 use App\Support\Billing\StoreCapacity;
 use App\Support\Integrations\OrderSources;
+use App\Support\Integrations\OrderSourceContinuity;
 use App\Support\Network\PublicDestinationPolicy;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use App\Support\Stores\StoreVerificationService;
@@ -290,6 +291,22 @@ class ShopwareApp
 
             if ($other) {
                 return false;
+            }
+
+            // An App reinstall changes its credentials, not the identity of the Shopware orders.
+            // Keep their allocations, revisions and reconciliation history attached to the same rows.
+            $previous = Integration::query()
+                ->where('tenant_id', $store->tenant_id)
+                ->where('store_id', $store->id)
+                ->where('provider', ShopwareConnector::PROVIDER)
+                ->where('external_account_id', $integration->external_account_id)
+                ->where('status', Integration::STATUS_REVOKED)
+                ->whereKeyNot($integration->id)
+                ->orderByDesc('created_at')
+                ->first();
+
+            if ($previous !== null) {
+                app(OrderSourceContinuity::class)->carryForward($previous, $integration);
             }
 
             $health = $integration->health ?? [];

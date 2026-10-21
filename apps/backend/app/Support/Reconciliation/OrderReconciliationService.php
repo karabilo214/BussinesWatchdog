@@ -143,8 +143,42 @@ class OrderReconciliationService
      */
     private function activeCaptureAllocations(Order $order): Collection
     {
-        return PaymentAllocation::query()
+        $allocations = PaymentAllocation::query()
             ->where('order_id', $order->id)
+            ->whereNull('revoked_at')
+            ->lockForUpdate()
+            ->get();
+
+        if ($allocations->isNotEmpty() || $order->transaction_ref === null || $order->transaction_ref === '') {
+            return $allocations;
+        }
+
+        // A connector replacement may have imported the same store order under a new integration before
+        // its identity was carried forward. Reuse only an allocation of that exact order and payment reference.
+        $previousIds = Order::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('store_id', $order->store_id)
+            ->where('external_id', $order->external_id)
+            ->where('mode', $order->mode)
+            ->where('currency', $order->currency)
+            ->where('gateway', $order->gateway)
+            ->where('transaction_ref', $order->transaction_ref)
+            ->whereKeyNot($order->id)
+            ->whereHas('integration', fn (Builder $query) => $query
+                ->where('provider', $order->integration->provider)
+                ->where('external_account_id', $order->integration->external_account_id)
+                ->where('status', Integration::STATUS_REVOKED))
+            ->limit(2)
+            ->pluck('id');
+
+        if ($previousIds->count() !== 1) {
+            return $allocations;
+        }
+
+        return PaymentAllocation::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('store_id', $order->store_id)
+            ->where('order_id', $previousIds->first())
             ->whereNull('revoked_at')
             ->lockForUpdate()
             ->get();
@@ -595,7 +629,7 @@ class OrderReconciliationService
         $refundState = $order->metadata['refund_state'] ?? null;
 
         if (in_array($refundState, ['none', 'partial', 'full'], true)) {
-            return $this->evaluateStateRefunds($run, $order, $refundState, $now);
+            return $this->evaluateStateRefunds($run, $order, $refundState, $allocations, $now);
         }
 
         $outstandingRefunds = Refund::query()
@@ -740,13 +774,9 @@ class OrderReconciliationService
      *
      * @return list<array<string, mixed>>
      */
-    private function evaluateStateRefunds(ReconciliationRun $run, Order $order, string $refundState, Carbon $now): array
+    private function evaluateStateRefunds(ReconciliationRun $run, Order $order, string $refundState, Collection $allocations, Carbon $now): array
     {
-        $captureIds = PaymentAllocation::query()
-            ->where('order_id', $order->id)
-            ->whereNull('revoked_at')
-            ->lockForUpdate()
-            ->get(['capture_transaction_id', 'amount_minor']);
+        $captureIds = $allocations;
         $captured = (int) $captureIds->sum('amount_minor');
         $paymentIds = FinancialTransaction::query()->whereIn('id', $captureIds->pluck('capture_transaction_id'))->pluck('payment_id')->filter()->unique()->values();
         $refunds = $paymentIds->isEmpty() ? collect() : FinancialTransaction::query()

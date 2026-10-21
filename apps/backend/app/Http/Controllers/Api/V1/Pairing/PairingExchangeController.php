@@ -9,6 +9,7 @@ use App\Models\Integration;
 use App\Models\PairingCode;
 use App\Support\Integrations\IntegrationCredentialService;
 use App\Support\Integrations\OrderSources;
+use App\Support\Integrations\OrderSourceContinuity;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -81,6 +82,15 @@ class PairingExchangeController extends Controller
                 'connector_version' => $validated['plugin_version'],
                 'health' => [],
             ]);
+
+            $previous = Integration::query()->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)
+                ->where('provider', $validated['connector_code'])->where('install_id', $validated['install_id'])
+                ->where('status', Integration::STATUS_REVOKED)->whereKeyNot($integration->id)
+                ->orderByDesc('created_at')->first();
+
+            if ($previous !== null) {
+                app(OrderSourceContinuity::class)->carryForward($previous, $integration);
+            }
 
             ['credential' => $credential, 'secret' => $secretBase64] = $this->credentials->issuePluginCredential($integration);
 
