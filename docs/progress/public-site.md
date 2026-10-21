@@ -300,7 +300,7 @@ Production after deploy: /ru, /en, /de and their /pricing answer with the new ti
 
 ### Step 213: Terms After the Lawyer's Answer on Checkout Observation (ADR 0062)
 
-Status: complete in main; the new terms wait for the owner to publish them in the panel
+Status: complete; deployed 2026-10-21 (`1f99a88`), terms version 2 published in ru/en/de at the owner's request (no customers yet)
 
 - The lawyer's answer (2026-10-21, summarised in ADR 0062 «Lawyer's answer»; ADR 0057 and 0059 point to it): no consent or cookie-banner entry for the checkout observation script; the shop's legal basis is Art. 6 (1) (f); the service is a processor.
 - `database/data/legal/terms.php` (ru/en/de): Section 6 — the customer is the sole controller for the store's visitors and alone informs them under Art. 13 GDPR; our sample texts (privacy paragraphs, LIA) are not legal advice. Section 10 — indemnity also for third-party claims and supervisory fines caused by a missing or wrong privacy policy. Section 15 — checkout observation data (page type, stages, script errors, time, random report ID; no IP, form data or identifiers), its retention (Shopware store until collected, report IDs 7 days, aggregated counts until the store is removed or the contract ends) and the Shopware app's write boundary; Contabo servers and backups «in Germany».
@@ -308,3 +308,4 @@ Status: complete in main; the new terms wait for the owner to publish them in th
 - Open: the store privacy paragraphs (DE/EN, Step 160, plus «on servers in Germany») and a LIA template are not in the cabinet yet; the observation counters have no retention of their own; the question about remote administration from Ukraine (Art. 44 ff.) goes back to the lawyer.
 
 Verification: `LegalDraftsTest` (new: only the terms get drafts with the new clauses; an unknown slug is refused). Backend SQLite 685 passed + 4 skipped.
+Production: `site:legal-drafts --only=terms` with the provider of the published Impressum; the drafts differed from version 1 only by the new clauses and the effective date; published through `PageAdmin::publish` with an audit record; /en, /de, /ru terms show the clauses and «in Germany».
