@@ -21,6 +21,7 @@ const loading = ref(true);
 const loadError = ref<unknown>(null);
 const pairing = ref<PairingCode | null>(null);
 const pairingBusy = ref(false);
+const installOpen = ref(false);
 const actionError = ref<unknown>(null);
 const confirmingRevoke = ref<string | null>(null);
 const revoking = ref(false);
@@ -37,6 +38,7 @@ async function load(): Promise<void> {
 
     if (pairing.value !== null && liveConnectors.value.length > before) {
       pairing.value = null;
+      installOpen.value = false;
       emit('changed');
     }
   } catch (error) {
@@ -47,6 +49,7 @@ async function load(): Promise<void> {
 }
 
 async function issueCode(): Promise<void> {
+  installOpen.value = true;
   pairingBusy.value = true;
   actionError.value = null;
 
@@ -57,6 +60,11 @@ async function issueCode(): Promise<void> {
   } finally {
     pairingBusy.value = false;
   }
+}
+
+function beginInstall(): void {
+  installOpen.value = true;
+  if (props.canManage && !props.apiActive) void issueCode();
 }
 
 async function revoke(integration: Integration): Promise<void> {
@@ -96,7 +104,7 @@ void load();
 <template>
   <div class="flex flex-col gap-4" data-connector="plugin">
     <p class="max-w-3xl text-sm text-text-muted">{{ $t('store.connector.subtitle') }}</p>
-    <PluginDownload />
+    <PluginDownload @downloaded="beginInstall" />
     <ObservationTexts />
 
     <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
@@ -150,18 +158,6 @@ void load();
 
     <ErrorNotice v-if="actionError" :error="actionError" />
 
-    <div v-if="pairing" class="flex flex-col gap-4 rounded-lg border border-note-border bg-note-soft p-4" data-pairing-code>
-      <ol class="list-decimal space-y-1 pl-5 text-sm">
-        <li>{{ $t('store.connector.step_install') }}</li>
-        <li>{{ $t('store.connector.step_open') }}</li>
-        <li>{{ $t('store.connector.step_paste') }}</li>
-      </ol>
-      <CopyField id="pairing-service-url" :label="$t('store.connector.service_url')" :value="pairing.service_url" />
-      <CopyField id="pairing-code" :label="$t('store.connector.pairing_code')" :value="pairing.pairing_code" />
-      <p class="text-[13px] text-text-muted">{{ $t('store.connector.code_expires', { time: dateTime(pairing.expires_at) }) }}</p>
-      <p class="text-[13px] text-text-muted" role="status">{{ $t('store.connector.waiting') }}</p>
-    </div>
-
     <div v-if="canManage && !apiActive" class="flex flex-wrap items-center gap-3">
       <button
         type="button"
@@ -172,6 +168,33 @@ void load();
         {{ pairing ? $t('store.connector.new_code') : liveConnectors.length > 0 ? $t('store.connector.reconnect') : $t('store.connector.get_code') }}
       </button>
       <span class="text-[13px] text-text-muted">{{ $t('store.connector.code_once') }}</span>
+    </div>
+
+    <div v-if="installOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @keydown.esc="installOpen = false">
+      <div role="dialog" aria-modal="true" aria-labelledby="woo-install-title" class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-surface p-5 shadow-xl" data-install-dialog>
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <h2 id="woo-install-title" class="text-lg font-semibold">{{ $t('store.connector.install_title') }}</h2>
+          <button type="button" class="rounded-md border border-border px-3 py-1 text-sm" @click="installOpen = false">{{ $t('store.connector.close_guide') }}</button>
+        </div>
+        <ol class="list-decimal space-y-2 pl-5 text-sm">
+          <li>{{ $t('store.connector.step_download') }}</li>
+          <li>{{ $t('store.connector.step_upload') }}</li>
+          <li>{{ $t('store.connector.step_install') }}</li>
+          <li>{{ $t('store.connector.step_open') }}</li>
+          <li>{{ $t('store.connector.step_paste') }}</li>
+        </ol>
+        <div v-if="pairing" class="mt-4 flex flex-col gap-3 rounded-lg border border-note-border bg-note-soft p-4" data-pairing-code>
+          <CopyField id="pairing-service-url" :label="$t('store.connector.service_url')" :value="pairing.service_url" />
+          <CopyField id="pairing-code" :label="$t('store.connector.pairing_code')" :value="pairing.pairing_code" />
+          <p class="text-[13px] text-text-muted">{{ $t('store.connector.code_expires', { time: dateTime(pairing.expires_at) }) }}</p>
+          <p class="text-[13px] text-text-muted" role="status">{{ $t('store.connector.waiting') }}</p>
+          <button v-if="canManage && !apiActive" type="button" class="self-start rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm" :disabled="pairingBusy" @click="issueCode">{{ $t('store.connector.new_code') }}</button>
+        </div>
+        <p v-else-if="pairingBusy" class="mt-4 text-sm" role="status">{{ $t('store.connector.creating_code') }}</p>
+        <p v-else-if="apiActive" class="mt-4 text-sm text-warn">{{ $t('store.connector.api_active') }}</p>
+        <button v-else-if="canManage" type="button" class="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-text-inverse" @click="issueCode">{{ $t('store.connector.new_code') }}</button>
+        <ErrorNotice v-if="actionError" :error="actionError" />
+      </div>
     </div>
   </div>
 </template>

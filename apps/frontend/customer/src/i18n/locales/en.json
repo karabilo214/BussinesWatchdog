@@ -3,7 +3,11 @@
     "name": "Business Watchdog",
     "tagline": "Monitoring for store sales and payments"
   },
-  "financial_mode": {"live": "Live mode", "test": "Test mode", "unknown": "Mode unverified"},
+  "financial_mode": {
+    "live": "Live mode",
+    "test": "Test mode",
+    "unknown": "Mode unverified"
+  },
   "nav": {
     "main": "Main navigation",
     "overview": "Overview",
@@ -259,9 +263,9 @@
       "new_code": "Issue a new code",
       "reconnect": "Code to reconnect",
       "code_once": "The code is shown once and is valid for 15 minutes.",
-      "step_install": "Install and activate the Business Watchdog plugin in WordPress.",
+      "step_install": "After installation, click Activate Plugin.",
       "step_open": "Open WooCommerce → Business Watchdog.",
-      "step_paste": "Paste the service URL and the connection code, then click “Connect”.",
+      "step_paste": "Copy Service URL into the Service URL field and Connection code into Pairing code, then click Connect. Return here and wait for Connected status.",
       "service_url": "Service URL",
       "pairing_code": "Connection code",
       "code_expires": "Valid until {time}.",
@@ -270,9 +274,16 @@
       "download": {
         "button": "Download plugin",
         "meta": "WooCommerce plugin, version {version}, {size} KB",
-        "install": "In WordPress: Plugins → Add New → Upload Plugin, choose this ZIP and activate it. Then enter the connection code below.",
-        "missing": "The plugin is not available for installation yet. The download will appear here after the release is tested and published."
-      }
+        "install": "After download, a guide with the service URL and connection code opens.",
+        "missing": "The plugin is not available for installation yet. The download will appear here after the release is tested and published.",
+        "checksum": "File checksum SHA-256:",
+        "checksum_hint": "Use this only to verify the ZIP file integrity. This is not the connection code."
+      },
+      "install_title": "Install and connect WooCommerce",
+      "close_guide": "Close",
+      "creating_code": "Creating a connection code…",
+      "step_download": "Save the downloaded plugin ZIP. Do not unpack it.",
+      "step_upload": "In WordPress, open Plugins → Add New → Upload Plugin, select the ZIP and click Install Now."
     },
     "verification": {
       "title": "Domain confirmation",
@@ -395,13 +406,13 @@
       "method_app_hint": "Upload the app file in Shopware — Shopware shows the read-only permissions at install, no keys to copy, changes arrive right away.",
       "method_key": "Integration key",
       "method_key_hint": "Create a role and an integration by hand and paste the key; changes are read every 5 minutes.",
-      "app_step_download": "Download the app (button below) — the same app for every store.",
+      "app_step_download": "Save the downloaded BusinessWatchdog.zip. Do not unpack it.",
       "app_step_upload": "In the Shopware admin open Extensions → My extensions → Upload extension and choose BusinessWatchdog.zip.",
-      "app_step_install": "Click Install, then Activate and confirm the permissions — the connection completes by itself.",
+      "app_step_install": "Find Business Watchdog in the extension list, click Install, then Activate and approve the permissions.",
       "app_permissions": "The app asks only to read orders, payments, currencies and payment methods. Nothing is read until you confirm the store with a code.",
       "app_download": "Download app",
       "app_step_open": "In Shopware open Extensions → My extensions → Business Watchdog → «Open app».",
-      "app_step_code": "Create a code here and paste it on the app page. The shop address in Shopware must match the store address in your account.",
+      "app_step_code": "Copy the code below, paste it on the app page and confirm. The shop address must match this store’s address in your account.",
       "app_create_code": "Create connection code",
       "app_code": "Connection code",
       "app_code_hint": "The code is valid until {time} and only for this store.",
@@ -432,7 +443,9 @@
       "app_update_step_download": "Download the update file (button below) — it is made for this same connection, nothing has to be connected again.",
       "app_update_step_confirm": "Shopware sees the app is installed — click «Update».",
       "app_update_download": "Download app update",
-      "app_update_downloaded": "Update file downloaded. Upload it in Shopware."
+      "app_update_downloaded": "Update file downloaded. Upload it in Shopware.",
+      "install_title": "Install and connect Shopware App",
+      "service_url_hint": "The service URL is for reference and is already built into the app. Enter only the connection code in Shopware."
     }
   },
   "errors": {
@@ -774,8 +787,16 @@
       "order_unknown_number": "number unknown",
       "not_applicable": "—",
       "provider_operations": "Provider transaction: {ids}",
-      "store_paid": {"mismatch": "not marked as paid", "pending": "waiting for the store", "ok": "marked as paid"},
-      "payment_failed": {"mismatch": "payment failed, order open", "pending": "waiting for the store to close the order", "ok": "order closed"},
+      "store_paid": {
+        "mismatch": "not marked as paid",
+        "pending": "waiting for the store",
+        "ok": "marked as paid"
+      },
+      "payment_failed": {
+        "mismatch": "payment failed, order open",
+        "pending": "waiting for the store to close the order",
+        "ok": "order closed"
+      },
       "none": "No details yet.",
       "show_screenshot": "Show check screenshot",
       "screenshot_note": "Input fields and addresses are masked in the screenshot.",
@@ -916,7 +937,16 @@
       "link_warning": "The whole capture will count towards this order. The action is logged and can be revoked on the order page.",
       "link_confirm": "Match to order",
       "linked": "Payment matched. The order is reconciled again automatically.",
-      "other_stores": {"title": "Payments of other stores on this account", "subtitle": "The payment account also serves other stores. These payments carry another store's marker, so they are not discrepancies here.", "empty": "No payments of other stores.", "reason": {"other_store_transaction": "another Shopware store's transaction", "other_site": "paid on another site", "other_invoice_prefix": "another WooCommerce invoice prefix"}}
+      "other_stores": {
+        "title": "Payments of other stores on this account",
+        "subtitle": "The payment account also serves other stores. These payments carry another store's marker, so they are not discrepancies here.",
+        "empty": "No payments of other stores.",
+        "reason": {
+          "other_store_transaction": "another Shopware store's transaction",
+          "other_site": "paid on another site",
+          "other_invoice_prefix": "another WooCommerce invoice prefix"
+        }
+      }
     },
     "rule": {
       "MONEY_CAPTURE_MISSING": "Capture for a paid order",

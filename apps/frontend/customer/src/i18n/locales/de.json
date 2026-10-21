@@ -3,7 +3,11 @@
     "name": "Business Watchdog",
     "tagline": "Überwachung von Verkäufen und Zahlungen"
   },
-  "financial_mode": {"live": "Live-Modus", "test": "Testmodus", "unknown": "Modus nicht bestätigt"},
+  "financial_mode": {
+    "live": "Live-Modus",
+    "test": "Testmodus",
+    "unknown": "Modus nicht bestätigt"
+  },
   "nav": {
     "main": "Hauptnavigation",
     "overview": "Übersicht",
@@ -259,9 +263,9 @@
       "new_code": "Neuen Code ausstellen",
       "reconnect": "Code für erneute Verbindung",
       "code_once": "Der Code wird nur einmal angezeigt und gilt 15 Minuten.",
-      "step_install": "Installieren und aktivieren Sie das Plugin Business Watchdog in WordPress.",
+      "step_install": "Klicken Sie nach der Installation auf Plugin aktivieren.",
       "step_open": "Öffnen Sie WooCommerce → Business Watchdog.",
-      "step_paste": "Fügen Sie Dienst-URL und Verbindungscode ein und klicken Sie auf „Connect“.",
+      "step_paste": "Kopieren Sie die Dienst-URL in Service URL und den Verbindungscode in Pairing code. Klicken Sie auf Connect und warten Sie hier auf den Status Verbunden.",
       "service_url": "Dienst-URL",
       "pairing_code": "Verbindungscode",
       "code_expires": "Gültig bis {time}.",
@@ -270,9 +274,16 @@
       "download": {
         "button": "Plugin herunterladen",
         "meta": "WooCommerce-Plugin, Version {version}, {size} KB",
-        "install": "In WordPress: Plugins → Installieren → Plugin hochladen, dieses ZIP wählen und aktivieren. Dann unten den Verbindungscode eingeben.",
-        "missing": "Das Plugin ist noch nicht zur Installation verfügbar. Der Download erscheint hier nach Prüfung und Veröffentlichung der Version."
-      }
+        "install": "Nach dem Download öffnet sich die Anleitung mit Dienst-URL und Verbindungscode.",
+        "missing": "Das Plugin ist noch nicht zur Installation verfügbar. Der Download erscheint hier nach Prüfung und Veröffentlichung der Version.",
+        "checksum": "Dateiprüfsumme SHA-256:",
+        "checksum_hint": "Nur zur Prüfung der ZIP-Datei. Dies ist nicht der Verbindungscode."
+      },
+      "install_title": "WooCommerce installieren und verbinden",
+      "close_guide": "Schließen",
+      "creating_code": "Verbindungscode wird erstellt…",
+      "step_download": "Speichern Sie die heruntergeladene Plugin-ZIP-Datei. Entpacken Sie sie nicht.",
+      "step_upload": "Öffnen Sie in WordPress Plugins → Installieren → Plugin hochladen, wählen Sie die ZIP-Datei und klicken Sie auf Jetzt installieren."
     },
     "verification": {
       "title": "Domain-Bestätigung",
@@ -395,13 +406,13 @@
       "method_app_hint": "Laden Sie die App-Datei in Shopware hoch — Shopware zeigt die Nur-Lese-Rechte bei der Installation, keine Schlüssel zu kopieren, Änderungen kommen sofort.",
       "method_key": "Integrationsschlüssel",
       "method_key_hint": "Rolle und Integration von Hand anlegen und den Schlüssel einfügen; Änderungen werden alle 5 Minuten gelesen.",
-      "app_step_download": "Laden Sie die App herunter (Schaltfläche unten) – dieselbe App für alle Shops.",
+      "app_step_download": "Speichern Sie die heruntergeladene BusinessWatchdog.zip. Entpacken Sie sie nicht.",
       "app_step_upload": "Öffnen Sie im Shopware-Admin Erweiterungen → Meine Erweiterungen → Erweiterung hochladen und wählen Sie BusinessWatchdog.zip.",
-      "app_step_install": "Klicken Sie auf Installieren, dann Aktivieren und bestätigen Sie die Rechte — die Verbindung wird automatisch abgeschlossen.",
+      "app_step_install": "Suchen Sie Business Watchdog in der Erweiterungsliste, klicken Sie auf Installieren, dann auf Aktivieren und bestätigen Sie die Berechtigungen.",
       "app_permissions": "Die App fragt nur Lesezugriff auf Bestellungen, Zahlungen, Währungen und Zahlungsarten an. Es wird nichts gelesen, bis Sie den Shop mit einem Code bestätigen.",
       "app_download": "App herunterladen",
       "app_step_open": "Öffnen Sie in Shopware Erweiterungen → Meine Erweiterungen → Business Watchdog → „App öffnen“.",
-      "app_step_code": "Erstellen Sie hier einen Code und fügen Sie ihn auf der App-Seite ein. Die Shop-Adresse in Shopware muss mit der Shop-Adresse in Ihrem Konto übereinstimmen.",
+      "app_step_code": "Kopieren Sie den Code unten, fügen Sie ihn auf der App-Seite ein und bestätigen Sie. Die Shop-Adresse muss mit der Adresse dieses Shops im Kundenkonto übereinstimmen.",
       "app_create_code": "Verbindungscode erstellen",
       "app_code": "Verbindungscode",
       "app_code_hint": "Der Code gilt bis {time} und nur für diesen Shop.",
@@ -432,7 +443,9 @@
       "app_update_step_download": "Laden Sie die Update-Datei herunter (Schaltfläche unten) — sie ist für dieselbe Anbindung erstellt, es muss nichts neu verbunden werden.",
       "app_update_step_confirm": "Shopware erkennt die installierte App — klicken Sie auf «Update» (Aktualisieren).",
       "app_update_download": "App-Update herunterladen",
-      "app_update_downloaded": "Update-Datei heruntergeladen. Laden Sie sie in Shopware hoch."
+      "app_update_downloaded": "Update-Datei heruntergeladen. Laden Sie sie in Shopware hoch.",
+      "install_title": "Shopware App installieren und verbinden",
+      "service_url_hint": "Die Dienst-URL dient nur zur Information und ist bereits in der App hinterlegt. Geben Sie in Shopware nur den Verbindungscode ein."
     }
   },
   "errors": {
@@ -774,8 +787,16 @@
       "order_unknown_number": "Nummer unbekannt",
       "not_applicable": "—",
       "provider_operations": "Transaktion beim Anbieter: {ids}",
-      "store_paid": {"mismatch": "nicht als bezahlt markiert", "pending": "warten auf den Shop", "ok": "als bezahlt markiert"},
-      "payment_failed": {"mismatch": "Zahlung fehlgeschlagen, Bestellung offen", "pending": "warten, bis der Shop die Bestellung schließt", "ok": "Bestellung geschlossen"},
+      "store_paid": {
+        "mismatch": "nicht als bezahlt markiert",
+        "pending": "warten auf den Shop",
+        "ok": "als bezahlt markiert"
+      },
+      "payment_failed": {
+        "mismatch": "Zahlung fehlgeschlagen, Bestellung offen",
+        "pending": "warten, bis der Shop die Bestellung schließt",
+        "ok": "Bestellung geschlossen"
+      },
       "none": "Noch keine Details.",
       "show_screenshot": "Screenshot der Prüfung anzeigen",
       "screenshot_note": "Eingabefelder und Adressen sind im Screenshot geschwärzt.",
@@ -916,7 +937,16 @@
       "link_warning": "Die gesamte Abbuchung wird dieser Bestellung angerechnet. Die Aktion wird protokolliert und kann auf der Bestellseite aufgehoben werden.",
       "link_confirm": "Der Bestellung zuordnen",
       "linked": "Zahlung zugeordnet. Die Bestellung wird automatisch neu abgeglichen.",
-      "other_stores": {"title": "Zahlungen anderer Shops dieses Kontos", "subtitle": "Das Zahlungskonto wird auch von anderen Shops genutzt. Diese Zahlungen tragen das Merkmal eines anderen Shops und gelten hier nicht als Abweichung.", "empty": "Keine Zahlungen anderer Shops.", "reason": {"other_store_transaction": "Transaktion eines anderen Shopware-Shops", "other_site": "auf einer anderen Website bezahlt", "other_invoice_prefix": "anderes WooCommerce-Rechnungspräfix"}}
+      "other_stores": {
+        "title": "Zahlungen anderer Shops dieses Kontos",
+        "subtitle": "Das Zahlungskonto wird auch von anderen Shops genutzt. Diese Zahlungen tragen das Merkmal eines anderen Shops und gelten hier nicht als Abweichung.",
+        "empty": "Keine Zahlungen anderer Shops.",
+        "reason": {
+          "other_store_transaction": "Transaktion eines anderen Shopware-Shops",
+          "other_site": "auf einer anderen Website bezahlt",
+          "other_invoice_prefix": "anderes WooCommerce-Rechnungspräfix"
+        }
+      }
     },
     "rule": {
       "MONEY_CAPTURE_MISSING": "Abbuchung für bezahlte Bestellung",

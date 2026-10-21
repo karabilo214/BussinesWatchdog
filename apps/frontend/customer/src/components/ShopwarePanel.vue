@@ -28,6 +28,7 @@ const error = ref<unknown>(null);
 const notice = ref<string | null>(null);
 const confirmingRevoke = ref(false);
 const code = ref<PairingCode | null>(null);
+const installOpen = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 let codeTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -48,6 +49,7 @@ async function load(): Promise<void> {
     if ((before === 'pending' || code.value !== null) && integration.value?.status === 'active') {
       notice.value = 'store.shopware.app_connected';
       code.value = null;
+      installOpen.value = false;
       emit('changed');
     }
   } catch (caught) {
@@ -87,11 +89,14 @@ function save(file: { blob: Blob; filename: string | null }): void {
 function download(): Promise<void> {
   return act(async () => {
     save(await downloadShopwareApp(props.storeId));
+    installOpen.value = true;
+    code.value = await createPairingCode(props.storeId);
     await load();
   }, 'store.shopware.app_downloaded');
 }
 
 function createCode(): Promise<void> {
+  installOpen.value = true;
   return act(async () => {
     code.value = await createPairingCode(props.storeId);
   });
@@ -291,14 +296,9 @@ void load();
           <ObservationTexts />
           <p class="text-[13px] text-warn" data-app-version-note>{{ $t('store.shopware.app_version_note') }}</p>
           <div class="flex flex-wrap gap-2">
-            <a v-if="form.acknowledged" :href="APP_DOWNLOAD_URL" download="BusinessWatchdog.zip" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover" data-download-app>{{ $t('store.shopware.app_download') }}</a>
+            <a v-if="form.acknowledged" :href="APP_DOWNLOAD_URL" download="BusinessWatchdog.zip" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover" data-download-app @click="createCode">{{ $t('store.shopware.app_download') }}</a>
             <span v-else class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse opacity-60" aria-disabled="true" data-download-app>{{ $t('store.shopware.app_download') }}</span>
             <button type="button" class="rounded-md border border-border-strong bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy || !form.acknowledged" data-create-app-code @click="createCode">{{ $t('store.shopware.app_create_code') }}</button>
-          </div>
-          <div v-if="code" class="flex flex-col gap-2 rounded-md border border-note-border bg-note-soft p-3" data-app-code>
-            <CopyField id="shopware-app-code" :label="$t('store.shopware.app_code')" :value="code.pairing_code" />
-            <p class="text-[13px] text-text-muted">{{ $t('store.shopware.app_code_hint', { time: dateTime(code.expires_at) }) }}</p>
-            <p class="text-[13px] text-text-muted" role="status">{{ $t('store.shopware.app_code_waiting') }}</p>
           </div>
         </div>
 
@@ -344,5 +344,33 @@ void load();
 
     <p v-if="notice" class="text-sm text-ok" role="status">{{ $t(notice) }}</p>
     <ErrorNotice v-if="error" :error="error" />
+
+    <div v-if="installOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @keydown.esc="installOpen = false">
+      <div role="dialog" aria-modal="true" aria-labelledby="shopware-install-title" class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-surface p-5 shadow-xl" data-app-install-dialog>
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <h2 id="shopware-install-title" class="text-lg font-semibold">{{ $t('store.shopware.install_title') }}</h2>
+          <button type="button" class="rounded-md border border-border px-3 py-1 text-sm" @click="installOpen = false">{{ $t('store.connector.close_guide') }}</button>
+        </div>
+        <ol class="list-decimal space-y-2 pl-5 text-sm">
+          <li>{{ $t('store.shopware.app_step_download') }}</li>
+          <li>{{ $t('store.shopware.app_step_upload') }}</li>
+          <li>{{ $t('store.shopware.app_step_install') }}</li>
+          <li>{{ $t('store.shopware.app_step_open') }}</li>
+          <li>{{ $t('store.shopware.app_step_code') }}</li>
+          <li>{{ $t('store.shopware.app_step_cache') }}</li>
+        </ol>
+        <div v-if="code" class="mt-4 flex flex-col gap-3 rounded-md border border-note-border bg-note-soft p-4" data-app-code>
+          <CopyField id="shopware-service-url" :label="$t('store.connector.service_url')" :value="code.service_url" />
+          <p class="text-[13px] text-text-muted">{{ $t('store.shopware.service_url_hint') }}</p>
+          <CopyField id="shopware-app-code" :label="$t('store.shopware.app_code')" :value="code.pairing_code" />
+          <p class="text-[13px] text-text-muted">{{ $t('store.shopware.app_code_hint', { time: dateTime(code.expires_at) }) }}</p>
+          <p class="text-[13px] text-text-muted" role="status">{{ $t('store.shopware.app_code_waiting') }}</p>
+          <button type="button" class="self-start rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm" :disabled="busy" @click="createCode">{{ $t('store.connector.new_code') }}</button>
+        </div>
+        <p v-else-if="busy" class="mt-4 text-sm" role="status">{{ $t('store.connector.creating_code') }}</p>
+        <button v-else type="button" class="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-text-inverse" @click="createCode">{{ $t('store.shopware.app_create_code') }}</button>
+        <ErrorNotice v-if="error" :error="error" />
+      </div>
+    </div>
   </div>
 </template>

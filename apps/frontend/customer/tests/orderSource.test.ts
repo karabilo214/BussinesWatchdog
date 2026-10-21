@@ -4,9 +4,11 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@bw/api-client';
 import * as providers from '@/api/providers';
+import * as plugin from '@/api/plugin';
 import * as stores from '@/api/stores';
 import type { Integration } from '@/api/types';
 import OrderSource from '@/components/OrderSource.vue';
+import ConnectorPanel from '@/components/ConnectorPanel.vue';
 import ShopwarePanel from '@/components/ShopwarePanel.vue';
 import VerificationPanel from '@/components/VerificationPanel.vue';
 import WooCommerceApiPanel from '@/components/WooCommerceApiPanel.vue';
@@ -17,6 +19,7 @@ import { localization, setLocale } from '@/i18n';
 import { makeStore } from './fixtures';
 
 vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), downloadShopwareApp: vi.fn(), downloadShopwareAppUpdate: vi.fn(), syncProvider: vi.fn() }));
+vi.mock('@/api/plugin', () => ({ PLUGIN_DOWNLOAD_URL: '/api/v1/downloads/woocommerce-plugin/file', getPluginPackage: vi.fn() }));
 vi.mock('@/api/stores', () => ({
   listStoreIntegrations: vi.fn(),
   revokeIntegration: vi.fn(),
@@ -42,6 +45,27 @@ function integration(provider: string, overrides: Partial<Integration> = {}): In
 beforeEach(() => {
   vi.clearAllMocks();
   setLocale('ru');
+  vi.mocked(plugin.getPluginPackage).mockResolvedValue({ available: true, file: 'business-watchdog.zip', version: '0.3.2', size_bytes: 1024, sha256: 'a'.repeat(64) });
+});
+
+describe('Connector installation', () => {
+  it('opens WooCommerce installation instructions and a new pairing code on download', async () => {
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([]);
+    vi.mocked(stores.createPairingCode).mockResolvedValue({ id: 'p-1', store_id: 's-1', pairing_code: 'bwpc_woo', expires_at: '2026-10-21T12:15:00Z', saas_endpoint: '', service_url: 'https://business-watchdog.com' });
+    const wrapper = mount(ConnectorPanel, { props: { storeId: 's-1', canManage: true }, global });
+    await flushPromises();
+
+    expect(wrapper.get('[data-plugin-download]').text()).toContain('Контрольная сумма файла SHA-256');
+    expect(wrapper.get('[data-plugin-download]').text()).toContain('Это не код подключения');
+    await wrapper.get('[data-action="download-plugin"]').trigger('click');
+    await flushPromises();
+    expect(stores.createPairingCode).toHaveBeenCalledWith('s-1');
+    expect(wrapper.get('[data-install-dialog]').text()).toContain('Плагины');
+    expect(wrapper.get('[data-install-dialog]').text()).toContain('WooCommerce → Business Watchdog');
+    expect((wrapper.get('#pairing-service-url').element as HTMLInputElement).value).toBe('https://business-watchdog.com');
+    expect((wrapper.get('#pairing-code').element as HTMLInputElement).value).toBe('bwpc_woo');
+    wrapper.unmount();
+  });
 });
 
 describe('OrderSource', () => {
@@ -194,7 +218,7 @@ describe('Shopware order source', () => {
   it('offers the one app for every store after the acknowledgement, then a code, and notices the binding', async () => {
     vi.useFakeTimers();
     vi.mocked(stores.listStoreIntegrations).mockResolvedValue([]);
-    vi.mocked(stores.createPairingCode).mockResolvedValue({ id: 'p-1', store_id: 's-1', pairing_code: 'bwpc_abc', expires_at: '2026-10-21T12:15:00Z', saas_endpoint: '', service_url: '' });
+    vi.mocked(stores.createPairingCode).mockResolvedValue({ id: 'p-1', store_id: 's-1', pairing_code: 'bwpc_abc', expires_at: '2026-10-21T12:15:00Z', saas_endpoint: '', service_url: 'https://business-watchdog.com' });
     const wrapper = mount(ShopwarePanel, { props: { storeId: 's-1', canManage: true }, global });
     await flushPromises();
 
@@ -204,9 +228,12 @@ describe('Shopware order source', () => {
     expect(wrapper.get('[data-download-app]').attributes('href')).toBe('/api/v1/downloads/shopware-app');
     expect(wrapper.text()).toContain('Open app');
 
-    await wrapper.get('[data-create-app-code]').trigger('click');
+    await wrapper.get('[data-download-app]').trigger('click');
     await flushPromises();
-    expect((wrapper.get('[data-app-code] input').element as HTMLInputElement).value).toBe('bwpc_abc');
+    expect(stores.createPairingCode).toHaveBeenCalledWith('s-1');
+    expect(wrapper.get('[data-app-install-dialog]').text()).toContain('Upload extension');
+    expect((wrapper.get('#shopware-service-url').element as HTMLInputElement).value).toBe('https://business-watchdog.com');
+    expect((wrapper.get('#shopware-app-code').element as HTMLInputElement).value).toBe('bwpc_abc');
 
     vi.mocked(stores.listStoreIntegrations).mockResolvedValue([integration('shopware', { status: 'active', capabilities: { connection: 'app' }, health: { key_last4: 'ZXCV' } })]);
     await vi.advanceTimersByTimeAsync(5_000);
