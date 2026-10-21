@@ -287,7 +287,7 @@ Verification: inspected the 512 px SVG rendering and enlarged 16 px raster; ICO 
 
 ### Step 212: New Home and Pricing Pages (ru/en/de)
 
-Status: complete in main; the home page goes into the database with `site:home-drafts` on the server
+Status: complete; deployed 2026-10-21 (`fc5d72d`), home published on the server with `site:home-drafts --publish` in ru/en/de
 
 - Source: the owner's package `business-watchdog-pages` (2026-10-21, prepared against `92f717e`). Home fragments without scripts, styles or forms; pricing as Blade fragments that read the existing `$pricing` (published plans, currencies, periods, test mode, tax line, yearly saving, extra stores and capped total, faster checks, trial, empty catalogue, individual plans).
 - Styles: `apps/frontend/public/src/marketing-pages.css` (the package's Tailwind source without its own imports, scoped to `.bw-page`, no preflight) imported in `site.css`; the palette is the project one, so the site bundle compiles the `bw-*` classes and the owner-panel preview gets them through `SiteAssets::inline()`.
@@ -296,3 +296,4 @@ Status: complete in main; the home page goes into the database with `site:home-d
 - Wording of both pages comes from the package; claims checked against the current state (no guaranteed payments, coverage depends on the integration, public check may add to cart, Shopware App availability assessed per store). Not proofread by native speakers.
 
 Verification: `HomeDraftsTest` (drafts only without `--publish`, nothing public; with it three published versions, audit with the reason, titles and `bw-page` markup on /en, /de, /ru; refusal without an owner), `PublicSiteTest` (pricing title, description and markup; all existing price, period, currency and extra-store assertions pass on the new template). Backend SQLite 684 passed + 4 skipped; `@bw/public` check build. No browser render of the pages in the project; the package's own QA ran 36 Chromium layouts and axe on the fragments.
+Production after deploy: /ru, /en, /de and their /pricing answer with the new titles, one H1 and `bw-page` markup; the site stylesheet contains the `bw-*` rules; pricing lists start, business, growth, enterprise (€19, €39, €79 and individual).
