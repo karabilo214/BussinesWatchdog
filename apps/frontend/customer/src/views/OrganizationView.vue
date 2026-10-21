@@ -79,10 +79,9 @@ async function cancel(): Promise<void> {
 <template>
   <AppLayout>
     <div class="flex flex-col gap-6">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-2xl font-semibold">{{ $t('settings.title') }}</h1>
-        <SettingsTabs v-if="!deleting" />
-      </div>
+      <h1 class="text-2xl font-semibold">{{ $t('settings.title') }}</h1>
+      <SettingsTabs v-if="!deleting" />
+
 
       <ErrorNotice v-if="loadError" :error="loadError" />
 
