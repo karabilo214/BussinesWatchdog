@@ -66,7 +66,7 @@ systemctl enable --now bw-backup.timer >/dev/null
 if [ -f /etc/apparmor.d/bw-browser-worker ]; then apparmor_parser -R /etc/apparmor.d/bw-browser-worker 2>/dev/null || true; rm -f /etc/apparmor.d/bw-browser-worker; fi
 install -m 644 fail2ban/filter.d/bw-mail.conf /etc/fail2ban/filter.d/
 install -m 644 fail2ban/jail.d/bw-mail.conf /etc/fail2ban/jail.d/
-docker compose build
+docker compose build --pull
 docker compose up -d --wait postgres redis
 docker compose run --rm --no-deps -u www-data app php artisan migrate --force
 docker compose up -d --remove-orphans

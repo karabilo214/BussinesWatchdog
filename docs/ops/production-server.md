@@ -11,6 +11,8 @@ infra/production/deploy.sh <commit>     # конкретный коммит (о�
 infra/production/deploy.sh init         # первый запуск на новом сервере: клон репозитория и .env с новыми секретами
 ```
 
+Версия PHP в образе бэкенда закреплена точным тегом (`FROM php:8.4.27-cli` / `php:8.4.27-fpm` в `infra/docker/backend/Dockerfile`), а `deploy.sh` собирает с `docker compose build --pull` — иначе Docker берёт закэшированный на сервере старый базовый образ. При выходе патча PHP (особенно security): поменять версию в обеих строках `FROM`, проверить, что тег уже есть на Docker Hub (`curl -s -o /dev/null -w '%{http_code}' https://hub.docker.com/v2/namespaces/library/repositories/php/tags/<версия>-fpm` → 200), выложить и проверить `docker compose exec app php -v`.
+
 Расширение PHP `redis` собирается из релиза phpredis на GitHub, а не через PECL: падение pecl.php.net 2026-10-21 остановило выкладку. Версия и SHA-256 архива — `PHPREDIS_VERSION` и `PHPREDIS_SHA256` в `infra/docker/backend/Dockerfile` (в обеих стадиях). Для обновления: `curl -fsSL https://github.com/phpredis/phpredis/archive/refs/tags/<версия>.tar.gz | shasum -a 256`, вписать версию и хеш, выложить.
 
 **После правки `.env`** изменения не применяются сами: контейнеры читают `.env` только при создании. Пересоздать их (несколько секунд, данные и очереди сохраняются; `deploy.sh` делает это тоже):

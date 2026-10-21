@@ -1,4 +1,4 @@
-FROM php:8.4-cli AS cli
+FROM php:8.4.27-cli AS cli
 
 ARG PHPREDIS_VERSION=6.3.0
 ARG PHPREDIS_SHA256=cb8f81df1a275599e4f8ddcfec7e1f65ed1953e6f5673649149fd680ebff4cad
@@ -38,7 +38,7 @@ COPY infra/docker/backend/php-uploads.ini /usr/local/etc/php/conf.d/zz-watchdog-
 ENV COMPOSER_HOME=/tmp/composer-cache
 WORKDIR /workspace/apps/backend
 
-FROM php:8.4-fpm AS fpm
+FROM php:8.4.27-fpm AS fpm
 
 ARG PHPREDIS_VERSION=6.3.0
 ARG PHPREDIS_SHA256=cb8f81df1a275599e4f8ddcfec7e1f65ed1953e6f5673649149fd680ebff4cad
