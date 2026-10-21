@@ -1,6 +1,6 @@
 # ADR 0057: Checkout observation script for Shopware stores (layer 2)
 
-Status: accepted (owner decisions 2026-10-14: the script works without a consent banner; the service decides whether a store is observed). Details below confirmed by the owner on 2026-10-14 as they are. **Transport superseded by ADR 0062 (2026-10-16):** the browser now reports only to the app's endpoint in the shop; points 1, 3 and 4 below describe the earlier direct path to the service, which is removed.
+Status: accepted (owner decisions 2026-10-14: the script works without a consent banner; the service decides whether a store is observed). Legal review answered on 2026-10-21 — no consent needed (see ADR 0062, «Lawyer's answer»). Details below confirmed by the owner on 2026-10-14 as they are. **Transport superseded by ADR 0062 (2026-10-16):** the browser now reports only to the app's endpoint in the shop; points 1, 3 and 4 below describe the earlier direct path to the service, which is removed.
 
 ## Context
 

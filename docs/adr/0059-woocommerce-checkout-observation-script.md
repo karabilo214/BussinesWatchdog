@@ -1,6 +1,6 @@
 # ADR 0059: Checkout observation script in the WooCommerce plugin (layer 2)
 
-Status: accepted for now (owner's task 2026-10-14: layer 2 in the WooCommerce plugin following the Shopware app, ADR 0057). Details below confirmed by the owner on 2026-10-14 as they are.
+Status: accepted for now (owner's task 2026-10-14: layer 2 in the WooCommerce plugin following the Shopware app, ADR 0057). Details below confirmed by the owner on 2026-10-14 as they are. Legal review answered on 2026-10-21 — no consent needed (see ADR 0062, «Lawyer's answer»).
 
 ## Context
 

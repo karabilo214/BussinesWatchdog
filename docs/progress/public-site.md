@@ -297,3 +297,14 @@ Status: complete; deployed 2026-10-21 (`fc5d72d`), home published on the server 
 
 Verification: `HomeDraftsTest` (drafts only without `--publish`, nothing public; with it three published versions, audit with the reason, titles and `bw-page` markup on /en, /de, /ru; refusal without an owner), `PublicSiteTest` (pricing title, description and markup; all existing price, period, currency and extra-store assertions pass on the new template). Backend SQLite 684 passed + 4 skipped; `@bw/public` check build. No browser render of the pages in the project; the package's own QA ran 36 Chromium layouts and axe on the fragments.
 Production after deploy: /ru, /en, /de and their /pricing answer with the new titles, one H1 and `bw-page` markup; the site stylesheet contains the `bw-*` rules; pricing lists start, business, growth, enterprise (€19, €39, €79 and individual).
+
+### Step 213: Terms After the Lawyer's Answer on Checkout Observation (ADR 0062)
+
+Status: complete in main; the new terms wait for the owner to publish them in the panel
+
+- The lawyer's answer (2026-10-21, summarised in ADR 0062 «Lawyer's answer»; ADR 0057 and 0059 point to it): no consent or cookie-banner entry for the checkout observation script; the shop's legal basis is Art. 6 (1) (f); the service is a processor.
+- `database/data/legal/terms.php` (ru/en/de): Section 6 — the customer is the sole controller for the store's visitors and alone informs them under Art. 13 GDPR; our sample texts (privacy paragraphs, LIA) are not legal advice. Section 10 — indemnity also for third-party claims and supervisory fines caused by a missing or wrong privacy policy. Section 15 — checkout observation data (page type, stages, script errors, time, random report ID; no IP, form data or identifiers), its retention (Shopware store until collected, report IDs 7 days, aggregated counts until the store is removed or the contract ends) and the Shopware app's write boundary; Contabo servers and backups «in Germany».
+- `site:legal-drafts --only=<slug>` saves drafts of the named pages only (`docs/ops/site.md`).
+- Open: the store privacy paragraphs (DE/EN, Step 160, plus «on servers in Germany») and a LIA template are not in the cabinet yet; the observation counters have no retention of their own; the question about remote administration from Ukraine (Art. 44 ff.) goes back to the lawyer.
+
+Verification: `LegalDraftsTest` (new: only the terms get drafts with the new clauses; an unknown slug is refused). Backend SQLite 685 passed + 4 skipped.

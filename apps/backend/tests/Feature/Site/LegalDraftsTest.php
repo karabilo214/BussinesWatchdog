@@ -78,6 +78,22 @@ class LegalDraftsTest extends TestCase
         $this->assertSame(0, PublicPageVersion::query()->count());
     }
 
+    public function test_only_the_named_pages_get_drafts(): void
+    {
+        $this->owner();
+
+        $this->artisan('site:legal-drafts', ['staff' => 'owner@platform.test', '--name' => 'Ivan Petrenko', '--address' => 'Kyiv, Ukraine', '--only' => ['terms']])->assertSuccessful();
+
+        $this->assertSame(['terms'], PublicPage::query()->where('kind', PublicPage::KIND_PAGE)->pluck('path')->all());
+        $this->assertSame(3, PublicPageVersion::query()->count());
+        $terms = PublicPageVersion::query()->where('locale', 'de')->firstOrFail();
+        $this->assertStringContainsString('Sie allein Verantwortlicher', $terms->body);
+        $this->assertStringContainsString('Bußgelder von Aufsichtsbehörden', $terms->body);
+        $this->assertStringContainsString('Server und Sicherungsspeicher in Deutschland', $terms->body);
+
+        $this->artisan('site:legal-drafts', ['staff' => 'owner@platform.test', '--name' => 'Ivan Petrenko', '--address' => 'Kyiv, Ukraine', '--only' => ['agb']])->assertFailed();
+    }
+
     private function owner(): PlatformStaff
     {
         $user = User::query()->create(['name' => 'Owner', 'email' => 'owner@platform.test', 'password_hash' => 'x', 'locale' => 'en']);

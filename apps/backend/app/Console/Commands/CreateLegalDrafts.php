@@ -21,7 +21,8 @@ class CreateLegalDrafts extends Command
         {staff : Email of the platform owner the drafts are saved as}
         {--name= : Legal name of the provider, as in the identity documents}
         {--address= : Postal address of the provider, parts separated by commas}
-        {--email=hello@business-watchdog.com : Contact email shown in the documents}';
+        {--email=hello@business-watchdog.com : Contact email shown in the documents}
+        {--only=* : Only the pages with these slugs (terms, privacy, refund-policy, imprint)}';
 
     protected $description = 'Save the legal pages of the site as drafts in the owner panel';
 
@@ -47,6 +48,18 @@ class CreateLegalDrafts extends Command
         }
 
         $documents = require database_path('data/legal_pages.php');
+        $only = array_values(array_filter(array_map('trim', (array) $this->option('only'))));
+        $unknown = array_diff($only, array_column($documents, 'slug'));
+
+        if ($unknown !== []) {
+            $this->error('Unknown pages: '.implode(', ', $unknown).'.');
+
+            return self::FAILURE;
+        }
+
+        if ($only !== []) {
+            $documents = array_values(array_filter($documents, fn (array $document): bool => in_array($document['slug'], $only, true)));
+        }
 
         foreach ($documents as $document) {
             $taken = $document['policy_type'] === null ? null : PublicPage::query()->where('policy_type', $document['policy_type'])->whereNull('archived_at')->where('path', '!=', $document['slug'])->value('path');

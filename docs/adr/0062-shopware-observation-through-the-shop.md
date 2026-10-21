@@ -30,3 +30,17 @@ Spike on Shopware 6.6.10.6 and 6.7.2.2 (`plugins/shopware-app/tests/spike/observ
 ## Verification
 
 `tests/Feature/Checkout/CheckoutObservationTest.php` (collection, repeated delete, not observed, write boundary, archive contents); browser-worker unit tests; `plugins/shopware-app/tests/observation/observation-e2e.sh` on Shopware 6.6.10.6 and 6.7.2.2 with real shoppers' browsers, which also checks that the browsers contacted only the shop and that collected reports are deleted in the shop.
+
+## Lawyer's answer (2026-10-21)
+
+The answer to the second legal package (file `docs/WD-Jura-2026.pdf`, kept by the owner, not in git) closes the open legal question of ADR 0057 and this ADR for both platforms:
+
+- **§ 25 TDDDG:** checking the state of the shop's own page and counting its script errors is usually not access to the terminal device; even under the strictest reading the exception of § 25 (2) no. 2 applies (strictly necessary for the purchase the shopper asked for). **No consent and no cookie-banner entry are needed.**
+- **GDPR:** for the service the counters and the Shopware report rows are effectively anonymous; the shop briefly links them to personal data (its web server log, order times). The shop's legal basis is Art. 6 (1) (f); a paragraph in the shop's privacy policy satisfies Art. 13. A ready legitimate interest assessment (LIA, 1–2 pages) for customers is recommended as a sales argument.
+- **Roles:** the service is a processor (Art. 28) for the shop; collecting and deleting the reports in Shopware does not change that.
+- **Store privacy texts (DE/EN, Step 160):** accepted as they are; add «on servers in Germany» to the last paragraph.
+- **Our terms:** add that the customer is the sole controller for the store's visitors and responsible for Art. 13, that our sample texts are not legal advice, and an indemnity for claims and fines caused by a missing or wrong privacy policy; describe checkout observation (data, retention, measures) in the Art. 28 section.
+
+Done in Step 213: the terms (ru/en/de) carry these points; the Art. 28 section names the observation data, its retention (Shopware store until collected, report IDs 7 days, aggregated counts until the store is removed or the contract ends — the counters have no shorter retention) and the app's write boundary; sub-processor servers and backups «in Germany» (Contabo, RIPE country DE). Publishing the new terms is the owner's step in the panel.
+
+Not answered and worth one more question: the service is operated from Ukraine (privacy policy); remote administration from a country without an adequacy decision may count as a transfer under Art. 44 ff. GDPR regardless of the server location.
