@@ -1,5 +1,8 @@
 FROM php:8.4-cli AS cli
 
+ARG PHPREDIS_VERSION=6.3.0
+ARG PHPREDIS_SHA256=cb8f81df1a275599e4f8ddcfec7e1f65ed1953e6f5673649149fd680ebff4cad
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \
@@ -20,9 +23,14 @@ RUN apt-get update \
         pcntl \
         pdo_pgsql \
         zip \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && rm -rf /var/lib/apt/lists/*
+    && docker-php-source extract \
+    && curl -fsSL --retry 5 -o /tmp/phpredis.tar.gz "https://github.com/phpredis/phpredis/archive/refs/tags/${PHPREDIS_VERSION}.tar.gz" \
+    && echo "${PHPREDIS_SHA256}  /tmp/phpredis.tar.gz" | sha256sum -c - \
+    && mkdir -p /usr/src/php/ext/redis \
+    && tar -xzf /tmp/phpredis.tar.gz -C /usr/src/php/ext/redis --strip-components=1 \
+    && docker-php-ext-install redis \
+    && docker-php-source delete \
+    && rm -rf /tmp/phpredis.tar.gz /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY infra/docker/backend/php-uploads.ini /usr/local/etc/php/conf.d/zz-watchdog-uploads.ini
@@ -31,6 +39,9 @@ ENV COMPOSER_HOME=/tmp/composer-cache
 WORKDIR /workspace/apps/backend
 
 FROM php:8.4-fpm AS fpm
+
+ARG PHPREDIS_VERSION=6.3.0
+ARG PHPREDIS_SHA256=cb8f81df1a275599e4f8ddcfec7e1f65ed1953e6f5673649149fd680ebff4cad
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -50,9 +61,14 @@ RUN apt-get update \
         pcntl \
         pdo_pgsql \
         zip \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && rm -rf /var/lib/apt/lists/*
+    && docker-php-source extract \
+    && curl -fsSL --retry 5 -o /tmp/phpredis.tar.gz "https://github.com/phpredis/phpredis/archive/refs/tags/${PHPREDIS_VERSION}.tar.gz" \
+    && echo "${PHPREDIS_SHA256}  /tmp/phpredis.tar.gz" | sha256sum -c - \
+    && mkdir -p /usr/src/php/ext/redis \
+    && tar -xzf /tmp/phpredis.tar.gz -C /usr/src/php/ext/redis --strip-components=1 \
+    && docker-php-ext-install redis \
+    && docker-php-source delete \
+    && rm -rf /tmp/phpredis.tar.gz /var/lib/apt/lists/*
 
 COPY infra/docker/backend/php-uploads.ini /usr/local/etc/php/conf.d/zz-watchdog-uploads.ini
 
