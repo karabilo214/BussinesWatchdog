@@ -309,3 +309,13 @@ Status: complete; deployed 2026-10-21 (`1f99a88`), terms version 2 published in 
 
 Verification: `LegalDraftsTest` (new: only the terms get drafts with the new clauses; an unknown slug is refused). Backend SQLite 685 passed + 4 skipped.
 Production: `site:legal-drafts --only=terms` with the provider of the published Impressum; the drafts differed from version 1 only by the new clauses and the effective date; published through `PageAdmin::publish` with an audit record; /en, /de, /ru terms show the clauses and «in Germany».
+
+### Step 217: Published Pricing and Selection Through Sign-Up to Checkout
+
+Status: complete; deployed 2026-10-21 (`4f68110`)
+
+- The pricing cards already came from `BillingCatalog::plans()` and use only the current published plan versions and active prices for the Paddle mode/account. The four-column layout was changed to three columns on wide screens. The extra-store calculator still uses a server-side GET; its calculated total is now the main price on the card, and minor-unit multiplication/addition use decimal string arithmetic.
+- Each card links to sign-up with its plan code, exact published base price ID (which identifies interval and currency), and selected extra-store count capped for that plan. The public sign-up form and the existing-account link preserve these values. After registration or login, the billing screen selects the matching current catalog price and quantity and highlights the chosen plan. A retired price shows a warning and requires review of the current offer; checkout still validates the price on the server. No automatic purchase is made.
+- No migration or API contract changed. Traceability: `PUBLIC-SUBSCRIPTION-FRONTEND` §§3–5 and PAY-01, PAY-03, PAY-04, PAY-11.
+
+Verification: `PublicSiteTest` and `PolicyAcceptanceTest` (22 passed, 448 assertions; published/draft prices, calculator, large minor units, signup and existing-account path); customer `billing.test.ts` (20 passed, including exact price and quantity sent to checkout); customer production build with typecheck, public stylesheet check, Pint. Production GET `/en/pricing?stores=2` showed €37/€55/€93 as main prices and selection links with price IDs; `/en/signup` kept the three fields and the existing-account target. A real Paddle payment remains unavailable until Paddle enables live checkout on the account.
