@@ -36,6 +36,7 @@ https://business-watchdog.com (Contabo, Docker Compose, Caddy), выкладка
 - Paddle live checkout включён (подтверждено владельцем 2026-10-21); ошибка `transaction_checkout_not_enabled` от 2026-10-19 больше не является текущим блокером. В Step 217 реальную покупку не проводили.
 - 2026-10-21: Telegram-бот @BusinessWatchbotBot настроен на сервере (`TELEGRAM_*` в `.env`, не в git), webhook зарегистрирован на `/api/v1/webhooks/telegram/updates`.
 - 2026-10-21: на сервере `9f0c0b0`; Shopware App **1.5.0** (универсальная) одобрена (`WATCHDOG_SHOPWARE_APP_APPROVED_SHA256`) — её скачивают все клиенты. Тестовый магазин Shopware-Test пока на 1.3.1, архив обновления передан владельцу.
+- 2026-10-21: на сервере `f69c660` (Step 220); диалоги установки WooCommerce и Shopware App опубликованы, миграций нет.
 - После выкладки правил сверки v3 (Step 201) нужен один раз `php artisan reconciliation:recheck-open-incidents` — факт запуска не записан.
 
 ## Что это за проект
