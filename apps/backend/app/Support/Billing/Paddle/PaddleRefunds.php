@@ -264,18 +264,26 @@ class PaddleRefunds
                 return null;
             }
 
-            $refund = BillingRefund::query()->create([
-                'tenant_id' => $transaction->tenant_id,
-                'transaction_id' => $transaction->id,
-                'mode' => $transaction->mode,
-                'kind' => ($payload['type'] ?? null) === 'full' ? 'full' : 'partial',
-                'amount_minor' => (int) $total,
-                'currency' => $transaction->currency,
-                'currency_exponent' => $transaction->currency_exponent,
-                'reason' => is_string($payload['reason'] ?? null) ? $payload['reason'] : 'Paddle',
-                'status' => BillingRefund::STATUS_PENDING,
-                'provider_adjustment_ref' => $ref,
-            ]);
+            $reason = is_string($payload['reason'] ?? null) ? $payload['reason'] : 'Paddle';
+            $refund = BillingRefund::query()->where('transaction_id', $transaction->id)
+                ->whereIn('status', [BillingRefund::STATUS_SUBMITTING, BillingRefund::STATUS_UNKNOWN])
+                ->where('amount_minor', (int) $total)->where('reason', $reason)
+                ->orderBy('created_at')->first();
+
+            if ($refund === null) {
+                $refund = BillingRefund::query()->create([
+                    'tenant_id' => $transaction->tenant_id,
+                    'transaction_id' => $transaction->id,
+                    'mode' => $transaction->mode,
+                    'kind' => ($payload['type'] ?? null) === 'full' ? 'full' : 'partial',
+                    'amount_minor' => (int) $total,
+                    'currency' => $transaction->currency,
+                    'currency_exponent' => $transaction->currency_exponent,
+                    'reason' => $reason,
+                    'status' => BillingRefund::STATUS_PENDING,
+                    'provider_adjustment_ref' => $ref,
+                ]);
+            }
         }
 
         $this->apply($refund, $payload);

@@ -169,6 +169,24 @@ class RefundTest extends TestCase
         ], $this->sent[0]['items']);
     }
 
+    public function test_adjustment_webhook_can_arrive_before_the_refund_post_response(): void
+    {
+        $payment = $this->payment();
+        $owner = $this->signIn('owner@platform.test', PlatformStaff::ROLE_OWNER);
+        $refund = app(PaddleRefunds::class)->request($owner->id, $payment->id, '1000', 'Timing race', false);
+        $refund->forceFill(['status' => BillingRefund::STATUS_SUBMITTING])->save();
+
+        app(PaddleRefunds::class)->project([
+            'id' => 'adj_early', 'action' => 'refund', 'type' => 'partial', 'status' => 'pending_approval',
+            'transaction_id' => 'txn_1', 'reason' => 'Timing race', 'totals' => ['total' => '1000'],
+            'updated_at' => '2026-10-20T12:00:01Z',
+        ]);
+
+        $this->assertSame(1, BillingRefund::query()->count());
+        $this->assertSame('adj_early', $refund->fresh()->provider_adjustment_ref);
+        $this->assertSame(BillingRefund::STATUS_PENDING, $refund->fresh()->status);
+    }
+
     public function test_a_rejected_request_frees_the_amount_and_a_confirmed_refund_cancels_immediately(): void
     {
         $payment = $this->payment();

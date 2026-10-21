@@ -7,7 +7,8 @@ Plans and entitlements, Paddle adapter, trials, usage, subscription page, platfo
 - ADR 0076. A customer cancelling within 14 days of Paddle `started_at` requests a full refund of completed subscription payments. Access remains until Paddle approves every refund, then ends immediately with the subscription. Rejected refunds may be retried even after day 14. Later cancellation schedules the subscription and access to end at the paid period boundary; the customer may resume before then. The separate platform cancel action is immediate without refund and retains verified access until `paid_until`.
 - An approved full Paddle refund, including one made in the Paddle dashboard, records `access_revoked_at`, stops access immediately and cancels the linked live subscription. Partial, pending and rejected refunds leave the subscription and plan intact. Migrations `2026_10_21_210000_add_refund_access_revocation_to_billing_contracts` and `2026_10_21_220000_add_started_at_to_billing_contracts`; reference billing schema updated.
 - The platform payments panel has separate full amount «Cancel and refund» and amount-entry «Partial refund» actions; the tenant card links to the relevant payments. The owner enters MFA in the dialog and sends the refund request to Paddle in one step; billing staff still need owner approval. Once Paddle approves a full refund, cancellation and access revocation follow.
-- Verification: backend SQLite 696 passed, 4 skipped; customer billing 21, platform payments 4; both frontend typechecks and PHP Pint. Live cancellation/refund was not performed.
+- An adjustment webhook arriving before the POST response attaches to the existing submitting refund, avoiding a duplicate financial record and a stuck pending withdrawal.
+- Verification: backend SQLite 697 passed, 4 skipped; customer billing 21, platform payments 4; both frontend typechecks and PHP Pint. Live cancellation/refund was not performed.
 
 ### Step 97: Plans and Entitlements
 
