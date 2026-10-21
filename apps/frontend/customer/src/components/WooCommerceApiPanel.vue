@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
-import { connectWooCommerceApi, syncProvider } from '@/api/providers';
+import { connectWooCommerceApi, setUpWooCommerceWebhook, syncProvider, type WooCommerceWebhookSetup } from '@/api/providers';
 import { listStoreIntegrations, revokeIntegration } from '@/api/stores';
 import type { Integration } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
+import CopyField from './CopyField.vue';
 import ErrorNotice from './ErrorNotice.vue';
 import { INTEGRATION_TONES } from './integrationTones';
 
@@ -20,11 +21,13 @@ const busy = ref(false);
 const error = ref<unknown>(null);
 const notice = ref<string | null>(null);
 const confirmingRevoke = ref(false);
+const webhookSetup = ref<WooCommerceWebhookSetup | null>(null);
 
 const keyValid = computed(() => /^ck_[a-f0-9]{40}$/.test(form.key.trim()));
 const secretValid = computed(() => /^cs_[a-f0-9]{40}$/.test(form.secret.trim()));
 const keyRejected = computed(() => integration.value?.health?.key_rejected_at !== undefined);
 const sync = computed(() => integration.value?.health?.sync ?? null);
+const webhook = computed(() => integration.value?.health?.webhook ?? null);
 
 async function load(): Promise<void> {
   try {
@@ -69,6 +72,12 @@ function runSync(): Promise<void> {
   });
 }
 
+function setUpWebhook(): Promise<void> {
+  return act(async () => {
+    webhookSetup.value = await setUpWooCommerceWebhook(integration.value!.id);
+  });
+}
+
 function revoke(): Promise<void> {
   return act(async () => {
     await revokeIntegration(integration.value!.id);
@@ -105,8 +114,27 @@ void load();
       <p v-if="integration.health?.last_error && !keyRejected" class="text-sm text-warn" data-last-error>
         {{ $t('provider.last_error', { time: dateTime(integration.health.last_error.at) }) }} {{ $te(`errors.${integration.health.last_error.code}`) ? $t(`errors.${integration.health.last_error.code}`) : integration.health.last_error.code }}
       </p>
+      <div class="flex flex-col gap-2 rounded-md border border-border p-3 text-sm" data-api-webhook>
+        <p class="font-medium">{{ $t('store.api.webhook_title') }}</p>
+        <p class="text-[13px] text-text-muted">{{ $t('store.api.webhook_intro') }}</p>
+        <p class="text-[13px]" data-webhook-state>{{ webhook?.last_received_at ? $t('store.api.webhook_last', { time: dateTime(webhook.last_received_at) }) : integration.health?.webhook_set_up_at ? $t('store.api.webhook_waiting') : $t('store.api.webhook_none') }}</p>
+        <template v-if="webhookSetup">
+          <ol class="list-decimal space-y-1 pl-5 text-[13px]">
+            <li>{{ $t('store.api.webhook_step_open') }}</li>
+            <li>{{ $t('store.api.webhook_step_fields', { topics: webhookSetup.topics.join(', ') }) }}</li>
+            <li>{{ $t('store.api.webhook_step_save') }}</li>
+          </ol>
+          <CopyField id="woo-webhook-url" :label="$t('store.api.webhook_url')" :value="webhookSetup.delivery_url" />
+          <CopyField id="woo-webhook-secret" :label="$t('store.api.webhook_secret')" :value="webhookSetup.secret" />
+          <p class="text-[13px] text-warn">{{ $t('store.api.webhook_secret_once') }}</p>
+        </template>
+        <div v-if="canManage && integration.status !== 'pending'">
+          <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="set-up-webhook" @click="setUpWebhook">{{ integration.health?.webhook_set_up_at ? $t('store.api.webhook_renew') : $t('store.api.webhook_set_up') }}</button>
+        </div>
+      </div>
+
       <ul class="flex flex-col gap-1 text-[13px] text-text-muted" data-api-limits>
-        <li>{{ $t('store.api.polling_note') }}</li>
+        <li>{{ webhook?.last_received_at ? $t('store.api.polling_note_with_webhook') : $t('store.api.polling_note') }}</li>
         <li>{{ $t('store.api.late_refunds_warning') }}</li>
         <li>{{ $t('store.api.mode_warning') }}</li>
       </ul>

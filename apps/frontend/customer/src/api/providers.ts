@@ -37,6 +37,16 @@ export async function downloadShopwareAppUpdate(storeId: string): Promise<{ blob
   return requestFile(`/api/v1/stores/${encodeURIComponent(storeId)}/integrations/shopware-app/update`, {});
 }
 
+export interface WooCommerceWebhookSetup {
+  delivery_url: string;
+  secret: string;
+  topics: string[];
+}
+
+export async function setUpWooCommerceWebhook(integrationId: string): Promise<WooCommerceWebhookSetup> {
+  return (await request<WooCommerceWebhookSetup>('POST', `/api/v1/integrations/${encodeURIComponent(integrationId)}/woocommerce-webhook`)).data;
+}
+
 export function webhookUrl(integrationId: string, provider: 'stripe' | 'paypal' = 'stripe'): string {
   return `${window.location.origin}/api/v1/webhooks/${provider}/${integrationId}`;
 }

@@ -118,7 +118,7 @@ CREATE TABLE integration_credentials (
  tenant_id uuid NOT NULL,
  store_id uuid NOT NULL,
  integration_id uuid NOT NULL,
- kind text NOT NULL CHECK (kind IN ('plugin_hmac','stripe_api','stripe_webhook')),
+ kind text NOT NULL CHECK (kind IN ('plugin_hmac','stripe_api','stripe_webhook','paypal_client','paypal_webhook','woocommerce_api','woocommerce_webhook','shopware_integration','shopware_app')),
  key_id text NOT NULL UNIQUE,
  ciphertext text NOT NULL,
  key_version integer NOT NULL CHECK (key_version > 0),

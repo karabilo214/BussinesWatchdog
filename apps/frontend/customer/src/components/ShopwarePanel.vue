@@ -21,7 +21,7 @@ const { dateTime } = useFormat();
 const integration = ref<Integration | null>(null);
 const loading = ref(true);
 const loadError = ref<unknown>(null);
-const method = ref<'app' | 'key'>('app');
+const method = ref<'app' | 'key'>('key');
 const form = reactive({ key: '', secret: '', acknowledged: false });
 const busy = ref(false);
 const error = ref<unknown>(null);
@@ -265,12 +265,12 @@ void load();
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-1 text-sm font-medium">{{ $t('store.shopware.method') }}</legend>
           <label class="flex items-start gap-2 text-sm">
-            <input v-model="method" type="radio" value="app" class="mt-0.5 size-4 accent-primary" data-method="app" />
-            <span><span class="font-medium">{{ $t('store.shopware.method_app') }}</span> <StatusBadge tone="note" :label="$t('store.order_source.recommended')" /><span class="block text-[13px] text-text-muted">{{ $t('store.shopware.method_app_hint') }}</span></span>
+            <input v-model="method" type="radio" value="key" class="mt-0.5 size-4 accent-primary" data-method="key" />
+            <span><span class="font-medium">{{ $t('store.shopware.method_key') }}</span> <StatusBadge tone="note" :label="$t('store.order_source.recommended')" /><span class="block text-[13px] text-text-muted">{{ $t('store.shopware.method_key_hint') }}</span></span>
           </label>
           <label class="flex items-start gap-2 text-sm">
-            <input v-model="method" type="radio" value="key" class="mt-0.5 size-4 accent-primary" data-method="key" />
-            <span><span class="font-medium">{{ $t('store.shopware.method_key') }}</span><span class="block text-[13px] text-text-muted">{{ $t('store.shopware.method_key_hint') }}</span></span>
+            <input v-model="method" type="radio" value="app" class="mt-0.5 size-4 accent-primary" data-method="app" />
+            <span><span class="font-medium">{{ $t('store.shopware.method_app') }}</span><span class="block text-[13px] text-text-muted">{{ $t('store.shopware.method_app_hint') }}</span></span>
           </label>
         </fieldset>
 

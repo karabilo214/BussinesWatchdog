@@ -18,7 +18,7 @@ import ru from '@/i18n/locales/ru.json';
 import { localization, setLocale } from '@/i18n';
 import { makeStore } from './fixtures';
 
-vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), downloadShopwareApp: vi.fn(), downloadShopwareAppUpdate: vi.fn(), syncProvider: vi.fn() }));
+vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), downloadShopwareApp: vi.fn(), downloadShopwareAppUpdate: vi.fn(), setUpWooCommerceWebhook: vi.fn(), syncProvider: vi.fn() }));
 vi.mock('@/api/plugin', () => ({ PLUGIN_DOWNLOAD_URL: '/api/v1/downloads/woocommerce-plugin/file', getPluginPackage: vi.fn() }));
 vi.mock('@/api/stores', () => ({
   listStoreIntegrations: vi.fn(),
@@ -148,6 +148,27 @@ describe('WooCommerceApiPanel', () => {
     expect(wrapper.findAll('button').some((button) => button.text() === 'Синхронизировать сейчас')).toBe(false);
   });
 
+  it('sets up WooCommerce webhooks without a plugin and shows when the last one arrived', async () => {
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([integration('woocommerce_api', { health: { key_last7: '1234567' } })]);
+    vi.mocked(providers.setUpWooCommerceWebhook).mockResolvedValue({ delivery_url: 'https://business-watchdog.com/api/v1/webhooks/woocommerce/i-1', secret: 'webhook-secret', topics: ['order.created', 'order.updated', 'order.deleted', 'order.restored'] });
+    const wrapper = mount(WooCommerceApiPanel, { props: { storeId: 's-1', canManage: true, pluginActive: false }, global });
+    await flushPromises();
+
+    expect(wrapper.get('[data-webhook-state]').text()).toContain('каждые 5 минут');
+    await wrapper.get('[data-action="set-up-webhook"]').trigger('click');
+    await flushPromises();
+    expect((wrapper.get('#woo-webhook-url').element as HTMLInputElement).value).toBe('https://business-watchdog.com/api/v1/webhooks/woocommerce/i-1');
+    expect((wrapper.get('#woo-webhook-secret').element as HTMLInputElement).value).toBe('webhook-secret');
+    expect(wrapper.text()).toContain('order.created, order.updated, order.deleted, order.restored');
+    wrapper.unmount();
+
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([integration('woocommerce_api', { health: { key_last7: '1234567', webhook_set_up_at: '2026-10-22T09:00:00Z', webhook: { last_received_at: '2026-10-22T09:05:00Z', last_type: 'order.updated' } } })]);
+    const live = mount(WooCommerceApiPanel, { props: { storeId: 's-1', canManage: true, pluginActive: false }, global });
+    await flushPromises();
+    expect(live.get('[data-webhook-state]').text()).toContain('Последнее сообщение от WooCommerce');
+    expect(live.get('[data-api-limits]').text()).toContain('приходят сразу');
+  });
+
   it('every REST API connector error code is explained in every language', () => {
     const dir = resolve(__dirname, '../../../backend/app/Support/Providers/WooCommerce');
     const source = readdirSync(dir).map((name) => readFileSync(resolve(dir, name), 'utf8')).join('\n');
@@ -184,6 +205,9 @@ describe('Shopware order source', () => {
 
     expect(wrapper.find('[role="tablist"]').exists()).toBe(false);
     expect(wrapper.find('[data-connector="shopware"]').exists()).toBe(true);
+    expect(wrapper.find('[data-app-steps]').exists()).toBe(false);
+    expect((wrapper.get('[data-method="key"]').element as HTMLInputElement).checked).toBe(true);
+    await wrapper.get('[data-method="app"]').setValue(true);
     expect(wrapper.find('[data-app-steps]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Extensions → My extensions → Upload extension');
     expect(wrapper.get('[data-download-app]').attributes('aria-disabled')).toBe('true');
@@ -221,6 +245,7 @@ describe('Shopware order source', () => {
     vi.mocked(stores.createPairingCode).mockResolvedValue({ id: 'p-1', store_id: 's-1', pairing_code: 'bwpc_abc', expires_at: '2026-10-21T12:15:00Z', saas_endpoint: '', service_url: 'https://business-watchdog.com' });
     const wrapper = mount(ShopwarePanel, { props: { storeId: 's-1', canManage: true }, global });
     await flushPromises();
+    await wrapper.get('[data-method="app"]').setValue(true);
 
     expect(wrapper.get('[data-download-app]').attributes('aria-disabled')).toBe('true');
     expect(wrapper.get('[data-create-app-code]').attributes('disabled')).toBeDefined();

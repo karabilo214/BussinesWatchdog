@@ -4109,6 +4109,46 @@ paths:
       responses:
         "200": {description: HTML page with the result, content: {text/html: {schema: {type: string}}}}
         "401": {description: HTML page explaining the page must be opened from Shopware, content: {text/html: {schema: {type: string}}}}
+  /api/v1/integrations/{integration_id}/woocommerce-webhook:
+    post:
+      tags: [Integrations]
+      operationId: setUpWooCommerceWebhook
+      security:
+        - {UserSession: []}
+      description: "WooCommerce REST API connection only (ADR 0077): creates a new webhook secret (an older one stops working) and returns what the merchant enters in WooCommerce → Settings → Advanced → Webhooks. The secret is returned only here."
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: Webhook setup
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [delivery_url, secret, topics]
+                properties:
+                  delivery_url: {type: string, format: uri}
+                  secret: {type: string}
+                  topics: {type: array, items: {enum: [order.created, order.updated, order.deleted, order.restored]}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/webhooks/woocommerce/{integration_id}:
+    post:
+      tags: [Integrations]
+      operationId: receiveWooCommerceWebhook
+      security: []
+      description: "WooCommerce's own webhook for a REST API connection (ADR 0077). Signature X-WC-Webhook-Signature = base64 HMAC-SHA256 of the raw body with the secret; X-WC-Webhook-Source must be the store's host. An order topic only queues the connection's delta sync (the body is not used). WooCommerce's unsigned ping (webhook_id=N) is answered 200. 409 webhook_not_configured, 401 signature_invalid, 422 source_mismatch."
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Received (result sync_requested, ping, topic_not_used or ignored)}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/shopware/app/{integration_id}/register:
     get:
       tags: [Integrations]
@@ -7066,7 +7106,7 @@ components:
         connector_version: {type: [string, "null"]}
         last_heartbeat_at: {type: [string, "null"], format: date-time}
         last_successful_sync_at: {type: [string, "null"], format: date-time}
-        webhook_url: {type: [string, "null"], format: uri, description: "Where to point the provider webhook (Stripe, PayPal); null for other connectors."}
+        webhook_url: {type: [string, "null"], format: uri, description: "Where to point the provider webhook (Stripe, PayPal) or WooCommerce's own order webhooks of a REST API connection (ADR 0077); null for other connectors."}
         app_update:
           type: [object, "null"]
           description: Shopware app only (ADR 0061); null for other connectors.

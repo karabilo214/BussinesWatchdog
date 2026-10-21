@@ -4,6 +4,8 @@ namespace App\Http\Dto\Integrations;
 
 use App\Models\Integration;
 use App\Support\Providers\Shopware\ShopwareApp;
+use App\Support\Providers\WooCommerce\WooCommerceApiConnector;
+use App\Support\Providers\WooCommerce\WooCommerceApiWebhooks;
 use Illuminate\Support\Collection;
 
 class IntegrationDto
@@ -37,7 +39,7 @@ class IntegrationDto
                     && (! is_string($integration->health['app_version'] ?? null) || version_compare($integration->health['app_version'], ShopwareApp::APP_VERSION, '<')),
                 'test_download' => ! (bool) config('watchdog.connector_release_gate'),
             ] : null,
-            'webhook_url' => in_array($integration->provider, ['stripe', 'paypal'], true) ? url('/api/v1/webhooks/'.$integration->provider.'/'.$integration->id) : null,
+            'webhook_url' => in_array($integration->provider, ['stripe', 'paypal'], true) ? url('/api/v1/webhooks/'.$integration->provider.'/'.$integration->id) : ($integration->provider === WooCommerceApiConnector::PROVIDER ? WooCommerceApiWebhooks::deliveryUrl($integration) : null),
             'credentials' => $integration->credentials
                 ->map(fn ($credential): array => [
                     'id' => $credential->id,

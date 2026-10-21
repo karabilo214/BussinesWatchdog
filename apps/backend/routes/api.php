@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\Integrations\ShopwareIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\StripeIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\StripeWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\WooCommerceApiIntegrationController;
+use App\Http\Controllers\Api\V1\Integrations\WooCommerceWebhookController;
 use App\Http\Controllers\Api\V1\Notifications\NotificationChannelController;
 use App\Http\Controllers\Api\V1\Notifications\NotificationDeliveryController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
@@ -75,6 +76,8 @@ Route::middleware('stateful.session')->prefix('/v1/auth')->group(function (): vo
 Route::post('/v1/webhooks/stripe/{integration}', [StripeWebhookController::class, 'store'])
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/paypal/{integration}', [PayPalWebhookController::class, 'store'])
+    ->middleware('throttle:provider-webhook');
+Route::post('/v1/webhooks/woocommerce/{integration}', [WooCommerceWebhookController::class, 'store'])
     ->middleware('throttle:provider-webhook');
 Route::get('/v1/shopware/app/register', [ShopwareAppInstallationController::class, 'register'])
     ->middleware('throttle:provider-webhook');
@@ -136,6 +139,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::post('/stores/{store}/integrations/stripe', [StripeIntegrationController::class, 'connect'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::put('/integrations/{integration}/webhook-secret', [StripeIntegrationController::class, 'webhookSecret'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+    Route::post('/integrations/{integration}/woocommerce-webhook', [WooCommerceWebhookController::class, 'setUp'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
     Route::post('/stores/{store}/integrations/paypal', [PayPalIntegrationController::class, 'connect'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));

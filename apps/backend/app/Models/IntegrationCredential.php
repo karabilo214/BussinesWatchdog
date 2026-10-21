@@ -22,6 +22,8 @@ class IntegrationCredential extends Model
 
     public const KIND_WOOCOMMERCE_API = 'woocommerce_api';
 
+    public const KIND_WOOCOMMERCE_WEBHOOK = 'woocommerce_webhook';
+
     public const KIND_SHOPWARE_INTEGRATION = 'shopware_integration';
 
     public const KIND_SHOPWARE_APP = 'shopware_app';
