@@ -8,14 +8,14 @@ final class OutboxStats
     {
         global $wpdb;
 
-        return (int) $wpdb->get_var("SELECT COUNT(*) FROM " . Schema::outboxTable() . " WHERE state = 'pending'");
+        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}bw_outbox WHERE state = 'pending'");
     }
 
     public static function totalCount(): int
     {
         global $wpdb;
 
-        return (int) $wpdb->get_var("SELECT COUNT(*) FROM " . Schema::outboxTable());
+        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}bw_outbox");
     }
 
     public static function backlogOlderThanDays(int $days): bool
@@ -29,7 +29,7 @@ final class OutboxStats
     {
         global $wpdb;
 
-        $value = $wpdb->get_var("SELECT MIN(created_at) FROM " . Schema::outboxTable() . " WHERE state = 'pending'");
+        $value = $wpdb->get_var("SELECT MIN(created_at) FROM {$wpdb->prefix}bw_outbox WHERE state = 'pending'");
 
         return $value ? gmdate('Y-m-d\TH:i:s\Z', strtotime($value . ' UTC')) : null;
     }
@@ -38,6 +38,6 @@ final class OutboxStats
     {
         global $wpdb;
 
-        return (int) $wpdb->get_var("SELECT COUNT(*) FROM " . Schema::outboxTable() . " WHERE state = 'dead_letter'");
+        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}bw_outbox WHERE state = 'dead_letter'");
     }
 }

@@ -31,11 +31,13 @@ final class AttemptHooks
 
     public static function onClassicCheckout(): void
     {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- runs inside WooCommerce's checkout, which verifies its own nonce; only the chosen gateway id is read.
         if (! OrderCapture::capturing() || SyntheticRequest::current() !== null || ! empty($_POST['woocommerce_checkout_update_totals'])) {
             return;
         }
 
-        self::$classicMethod = AttemptLog::method(wp_unslash($_POST['payment_method'] ?? ''));
+        self::$classicMethod = AttemptLog::method(sanitize_key(wp_unslash($_POST['payment_method'] ?? '')));
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
     }
 
     public static function onError($message)

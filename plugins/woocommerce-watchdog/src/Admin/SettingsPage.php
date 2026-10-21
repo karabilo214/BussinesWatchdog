@@ -32,8 +32,10 @@ final class SettingsPage
     {
         self::guard('bw_pair');
 
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() ran check_admin_referer('bw_pair') above.
         $endpoint = isset($_POST['bw_endpoint']) ? esc_url_raw(wp_unslash((string) $_POST['bw_endpoint'])) : '';
         $code = isset($_POST['bw_pairing_code']) ? sanitize_text_field(wp_unslash((string) $_POST['bw_pairing_code'])) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $result = PairingClient::pair($endpoint, $code);
 
         if ($result['ok']) {
@@ -73,7 +75,7 @@ final class SettingsPage
 
         $diagnostics = RestController::diagnosticsPayload();
         $connection = $diagnostics['connection'];
-        $notice = isset($_GET['bw_notice']) ? sanitize_key((string) $_GET['bw_notice']) : '';
+        $notice = isset($_GET['bw_notice']) ? sanitize_key((string) $_GET['bw_notice']) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only selects which notice to show after a redirect.
 
         echo '<div class="wrap"><h1>Business Watchdog</h1>';
 
@@ -82,6 +84,7 @@ final class SettingsPage
         }
 
         if (is_array($diagnostics['outbox']['full'] ?? null)) {
+            /* translators: %d: maximum number of events in the local queue. */
             echo '<div class="notice notice-error"><p>' . esc_html(sprintf(__('The local queue reached %d events. New order changes are not queued until it drains; they are recovered from the orders afterwards. Orders keep working.', 'business-watchdog'), $diagnostics['outbox']['limit'])) . '</p></div>';
         } elseif (! empty($diagnostics['outbox']['backlog_over_7_days'])) {
             echo '<div class="notice notice-warning"><p>' . esc_html__('Some events have waited for delivery for more than 7 days. Monitoring data is incomplete; check the connection to Business Watchdog.', 'business-watchdog') . '</p></div>';
@@ -114,6 +117,7 @@ final class SettingsPage
             submit_button(__('Connect', 'business-watchdog'));
             echo '</form>';
         } else {
+            /* translators: %s: connection status. */
             echo '<p>' . esc_html(sprintf(__('Status: %s', 'business-watchdog'), $connection['status'])) . '</p>';
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
             wp_nonce_field('bw_disconnect');

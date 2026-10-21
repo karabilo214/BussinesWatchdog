@@ -8,7 +8,7 @@ final class State
     {
         global $wpdb;
 
-        $value = $wpdb->get_var($wpdb->prepare('SELECT value FROM ' . Schema::stateTable() . ' WHERE name = %s', $name));
+        $value = $wpdb->get_var($wpdb->prepare("SELECT value FROM {$wpdb->prefix}bw_state WHERE name = %s", $name));
 
         if ($value === null) {
             return $default;
@@ -24,7 +24,7 @@ final class State
         global $wpdb;
 
         $wpdb->query($wpdb->prepare(
-            'INSERT INTO ' . Schema::stateTable() . ' (name, value, updated_at) VALUES (%s, %s, %s)'
+            "INSERT INTO {$wpdb->prefix}bw_state (name, value, updated_at) VALUES (%s, %s, %s)"
             . ' ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)',
             $name,
             wp_json_encode($value),
@@ -57,11 +57,10 @@ final class State
     {
         global $wpdb;
 
-        $table = Schema::stateTable();
         $now = time();
         $key = 'lock:' . $name;
         $inserted = $wpdb->query($wpdb->prepare(
-            "INSERT IGNORE INTO {$table} (name, value, updated_at) VALUES (%s, %s, %s)",
+            "INSERT IGNORE INTO {$wpdb->prefix}bw_state (name, value, updated_at) VALUES (%s, %s, %s)",
             $key,
             (string) ($now + $ttlSeconds),
             gmdate('Y-m-d H:i:s')
@@ -72,7 +71,7 @@ final class State
         }
 
         $takenOver = $wpdb->query($wpdb->prepare(
-            "UPDATE {$table} SET value = %s, updated_at = %s WHERE name = %s AND CAST(value AS UNSIGNED) <= %d",
+            "UPDATE {$wpdb->prefix}bw_state SET value = %s, updated_at = %s WHERE name = %s AND CAST(value AS UNSIGNED) <= %d",
             (string) ($now + $ttlSeconds),
             gmdate('Y-m-d H:i:s'),
             $key,

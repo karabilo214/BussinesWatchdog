@@ -91,7 +91,7 @@ final class Outbox
         global $wpdb;
 
         return (array) $wpdb->get_results($wpdb->prepare(
-            'SELECT * FROM ' . Schema::outboxTable() . ' WHERE aggregate_key = %s ORDER BY id',
+            "SELECT * FROM {$wpdb->prefix}bw_outbox WHERE aggregate_key = %s ORDER BY id",
             $aggregateKey
         ), ARRAY_A);
     }
@@ -101,7 +101,7 @@ final class Outbox
         global $wpdb;
 
         $rows = (array) $wpdb->get_results($wpdb->prepare(
-            'SELECT id, event_id, payload, attempts FROM ' . Schema::outboxTable() . ' WHERE state = %s AND next_attempt_at <= %s ORDER BY id LIMIT %d',
+            "SELECT id, event_id, payload, attempts FROM {$wpdb->prefix}bw_outbox WHERE state = %s AND next_attempt_at <= %s ORDER BY id LIMIT %d",
             self::STATE_PENDING,
             gmdate('Y-m-d H:i:s'),
             $limit
@@ -170,16 +170,15 @@ final class Outbox
         }
 
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        $table = Schema::outboxTable();
 
         if ($values === null) {
-            $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE id IN ({$placeholders})", $ids));
+            $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}bw_outbox WHERE id IN ({$placeholders})", $ids));
 
             return;
         }
 
         $wpdb->query($wpdb->prepare(
-            "UPDATE {$table} SET state = %s, last_error = %s, updated_at = %s WHERE id IN ({$placeholders})",
+            "UPDATE {$wpdb->prefix}bw_outbox SET state = %s, last_error = %s, updated_at = %s WHERE id IN ({$placeholders})",
             array_merge([$values['state'], $values['last_error'], gmdate('Y-m-d H:i:s')], $ids)
         ));
     }

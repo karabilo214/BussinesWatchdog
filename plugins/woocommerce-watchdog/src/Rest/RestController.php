@@ -166,7 +166,7 @@ final class RestController
 
         header('Content-Type: image/gif');
         header('Cache-Control: no-store');
-        echo base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+        echo base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- a fixed 1x1 GIF image, not HTML.
 
         return true;
     }
@@ -189,7 +189,7 @@ final class RestController
         }
 
         header('Content-Type: text/plain; charset=utf-8');
-        echo (string) $result->get_data();
+        echo esc_html((string) $result->get_data());
 
         return true;
     }

@@ -234,7 +234,12 @@ final class Plugin
         $version = Environment::wooCommerceVersion();
         $message = $version === null
             ? __('Business Watchdog requires WooCommerce to be installed and active.', 'business-watchdog')
-            : sprintf(__('Business Watchdog requires WooCommerce %1$s or newer (found %2$s).', 'business-watchdog'), BW_MIN_WC, $version);
+            : sprintf(
+                /* translators: 1: minimum supported WooCommerce version, 2: installed WooCommerce version. */
+                __('Business Watchdog requires WooCommerce %1$s or newer (found %2$s).', 'business-watchdog'),
+                BW_MIN_WC,
+                $version
+            );
 
         echo '<div class="notice notice-error"><p>' . esc_html($message) . '</p></div>';
     }

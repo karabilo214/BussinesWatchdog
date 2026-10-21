@@ -25,7 +25,7 @@ final class SyntheticRequest
     {
         if (! self::$resolved) {
             self::$resolved = true;
-            self::$current = self::verify(isset($_SERVER[self::HEADER]) ? (string) $_SERVER[self::HEADER] : '');
+            self::$current = self::verify(isset($_SERVER[self::HEADER]) ? sanitize_text_field(wp_unslash((string) $_SERVER[self::HEADER])) : '');
         }
 
         return self::$current;
