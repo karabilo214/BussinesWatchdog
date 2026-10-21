@@ -40,7 +40,10 @@
 @endif
 <header class="site-header">
     <div class="site-wrap site-header-row">
-        <a class="site-brand" href="{{ \App\Support\Site\SiteContent::url($locale) }}">{{ __('site.brand') }}</a>
+        <a class="site-brand" href="{{ \App\Support\Site\SiteContent::url($locale) }}">
+            <img class="site-brand-mark" src="{{ config('watchdog.site.brand_media_url') ?: '/brand-mark.svg' }}" alt="" width="36" height="36" decoding="async">
+            <span>{{ __('site.brand') }}</span>
+        </a>
         <nav aria-label="{{ __('site.nav.main') }}" class="site-nav site-nav-wide">
             @include('site.menu')
         </nav>
