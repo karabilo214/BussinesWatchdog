@@ -26,7 +26,7 @@ watch(() => route.fullPath, () => {
   <div class="flex min-h-screen flex-col">
     <header class="border-b border-border bg-brand-950 text-text-inverse">
       <div class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
-        <RouterLink :to="{ name: 'owner-overview' }" class="font-semibold">{{ $t('app.name') }}</RouterLink>
+        <RouterLink :to="{ name: 'owner-overview' }" class="flex items-center gap-2 font-semibold"><img src="/favicon.png" alt="" width="28" height="28" />{{ $t('app.name') }}</RouterLink>
         <StatusBadge v-if="me" :tone="me.billing_mode === 'live' ? 'crit' : 'warn'" solid :label="$t(`mode.${me.billing_mode}`)" data-mode />
         <button
           type="button"

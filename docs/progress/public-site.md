@@ -319,3 +319,9 @@ Status: complete; deployed 2026-10-21 (`4f68110`)
 - No migration or API contract changed. Traceability: `PUBLIC-SUBSCRIPTION-FRONTEND` §§3–5 and PAY-01, PAY-03, PAY-04, PAY-11.
 
 Verification: `PublicSiteTest` and `PolicyAcceptanceTest` (22 passed, 448 assertions; published/draft prices, calculator, large minor units, signup and existing-account path); customer `billing.test.ts` (20 passed, including exact price and quantity sent to checkout); customer production build with typecheck, public stylesheet check, Pint. Production GET `/en/pricing?stores=2` showed €37/€55/€93 as main prices and selection links with price IDs; `/en/signup` kept the three fields and the existing-account target. Live checkout is enabled according to the owner; Step 217 did not perform a real Paddle payment.
+
+### Step 224: Eye Mark Across the Site and Cabinets
+
+- Replaced the earlier BW monogram with the owner's approved radar-eye illustration from the WordPress.org plugin artwork. The public header uses the 512 px mark; the public site, customer cabinet and owner cabinet use the matching 64 px favicon. The cabinets also show the eye beside their names. The older SVG URLs contain the same eye for compatibility; the ICO has 16, 32, 48 and 64 px images.
+- Production's `WATCHDOG_SITE_BRAND_MEDIA_URL` points to an older uploaded logo and must be updated to the new uploaded eye after deployment; the public header's built-in fallback is now `/brand-mark.png`.
+- No migrations or API contracts. Verification: image dimensions and ICO sizes checked; SVGs parsed; `PublicSiteTest` 14/14 (352 assertions); customer check 151/151 and control check (typecheck, tests, builds) passed. Traceability: site branding in Step 199, spec §8–9, customer and owner panel navigation.

@@ -84,7 +84,7 @@ function back(): void {
     </div>
     <main class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-8 py-10">
       <div class="flex flex-col gap-1">
-        <span class="text-lg font-semibold text-brand-800">{{ $t('app.name') }}</span>
+        <span class="flex items-center gap-2 text-lg font-semibold text-brand-800"><img src="/favicon.png" alt="" width="32" height="32" />{{ $t('app.name') }}</span>
         <span class="text-sm text-text-muted">{{ $t('auth.tagline') }}</span>
       </div>
 

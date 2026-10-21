@@ -72,6 +72,13 @@ The observation script stores nothing on the device, sets no cookies or identifi
 
 Uninstalling removes the plugin's options, schedules and connection. Its own tables are removed only if you choose so on the settings page.
 
+== Screenshots ==
+
+1. An incident: the store marked an order as paid, but the payment provider has no capture for it — with the amounts and what to check.
+2. Open incidents across your stores.
+3. What the service sees for a store: the order source, money reconciliation, payment attempts, checkout observation and checks.
+4. The plugin in WooCommerce: connection status and the emergency stop.
+
 == Changelog ==
 
 = 0.3.3 =

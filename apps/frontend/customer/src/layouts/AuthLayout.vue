@@ -9,7 +9,7 @@ import { LocaleSwitch } from '@bw/i18n';
     </div>
     <main class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-8 py-10">
       <div class="flex flex-col gap-1">
-        <a :href="`/${$i18n.locale}`" class="text-lg font-semibold text-brand-800" data-logo>{{ $t('app.name') }}</a>
+        <a :href="`/${$i18n.locale}`" class="flex items-center gap-2 text-lg font-semibold text-brand-800" data-logo><img src="/favicon.png" alt="" width="32" height="32" />{{ $t('app.name') }}</a>
         <span class="text-sm text-text-muted">{{ $t('app.tagline') }}</span>
       </div>
       <slot />

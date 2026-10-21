@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
     <title>{{ $title }}{{ $title === trans('site.brand') || str_contains($title, trans('site.brand')) ? '' : ' — '.trans('site.brand') }}</title>
     @if ($description)
         <meta name="description" content="{{ $description }}">
@@ -41,7 +41,7 @@
 <header class="site-header">
     <div class="site-wrap site-header-row">
         <a class="site-brand" href="{{ \App\Support\Site\SiteContent::url($locale) }}">
-            <img class="site-brand-mark" src="{{ config('watchdog.site.brand_media_url') ?: '/brand-mark.svg' }}" alt="" width="36" height="36" decoding="async">
+            <img class="site-brand-mark" src="{{ config('watchdog.site.brand_media_url') ?: '/brand-mark.png' }}" alt="" width="36" height="36" decoding="async">
             <span>{{ __('site.brand') }}</span>
         </a>
         <nav aria-label="{{ __('site.nav.main') }}" class="site-nav site-nav-wide">

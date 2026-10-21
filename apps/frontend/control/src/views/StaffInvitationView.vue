@@ -75,7 +75,7 @@ async function confirm(): Promise<void> {
       <LocaleSwitch />
     </div>
     <main class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6 py-10">
-      <span class="text-lg font-semibold text-brand-800">{{ $t('app.name') }}</span>
+      <span class="flex items-center gap-2 text-lg font-semibold text-brand-800"><img src="/favicon.png" alt="" width="32" height="32" />{{ $t('app.name') }}</span>
       <p v-if="step === 'loading'" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
 
       <section v-else-if="step === 'invalid'" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-6" data-step="invalid">
