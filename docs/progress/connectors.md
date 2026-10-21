@@ -536,7 +536,7 @@ Verification: `CheckoutObservationTest` (layout reaches the app setting and is r
 
 ### Step 219: One Shopware App for Every Store, Bound by a Pairing Code and the Shop's Domain (ADR 0076)
 
-Status: complete in main; app 1.5.0 needs a new approval of its fingerprint before production stores can download it
+Status: complete; deployed 2026-10-21 (`9f0c0b0`, migration applied), app 1.5.0 approved on production (fingerprint `7970c842…57426aac8`); the universal archive was handed to the owner to replace the per-store app on Shopware-Test
 
 - Owner's decision: the app is universal; the store is confirmed by a code from the cabinet plus the domain the app connects from; the Shopware Store comes later.
 - `ShopwareApp::universalPackage()` — one archive: registration `/api/v1/shopware/app/register`, webhooks `/api/v1/shopware/app/webhook`, the app secret derived from `APP_KEY` (HMAC), and a main module `/api/v1/shopware/app/connect`. Download `GET /api/v1/downloads/shopware-app`. App version 1.5.0.
