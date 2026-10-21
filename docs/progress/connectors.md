@@ -524,7 +524,7 @@ Verification: `StoreCheckoutLayoutTest` (save, trim, defaults, audit, check URL,
 
 ### Step 218: Shopware App 1.4.0 Reads the Store's Checkout Layout; Worker and Coverage Use It (ADR 0075, parts B–D)
 
-Status: complete in main; app 1.4.0 needs the owner's approval of its fingerprint before production stores can download it (ADR 0074)
+Status: complete; deployed 2026-10-21 (`d53806e`), app 1.4.0 approved on production at the owner's request (fingerprint `02315e2c…79ee718e4`), so every store can download it; an update archive was built for the Shopware-Test store (1.3.1 → 1.4.0) for the owner to install
 
 - App 1.4.0: `custom_entity_bw_checkout_setting.layout` (text); the storefront endpoint answers `GET /storefront/script/bw-observe?config=1` with `{observe, layout}` (`cache.maxAge(300)` for Shopware's HTTP cache; browsers get `no-cache, private`) and keeps accepting reports by POST. The script reads the setting without cookies on every storefront page, recognises the confirm and finish pages by the layout's paths, finds the form, submit button and payment methods with the layout's selectors (inside `try/catch`), sends no reports when the store is not observed, and exposes `layout`, `config` and `found` in `window.BusinessWatchdogCheckout` (version 4).
 - Service: `ShopwareCheckoutReports` writes the store's layout with the observe flag (`layout_hash` in `health.observation`; rewritten when it changes or hourly).
