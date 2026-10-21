@@ -2,6 +2,7 @@
 @import "@bw/design/palette.css";
 @import "@bw/design/base.css";
 @import "@bw/design/content.css";
+@import "./marketing-pages.css";
 
 @layer components {
   body.site {

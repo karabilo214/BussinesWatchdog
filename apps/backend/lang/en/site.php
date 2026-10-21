@@ -43,6 +43,8 @@ return [
     ],
     'pricing' => [
         'title' => 'Pricing',
+        'meta_title' => 'Store Monitoring Plans & Pricing | Business Watchdog',
+        'meta_description' => 'Business Watchdog plans from €19 a month: WooCommerce and Shopware checks, payment reconciliation and alerts. Try a standard plan for 14 days without a card.',
         'lead' => 'Price per subscription period. The subscription renews automatically; you can stop the renewal in your account at any time and keep access until the end of the paid period.',
         'period_label' => 'Billing period',
         'currency_label' => 'Currency',

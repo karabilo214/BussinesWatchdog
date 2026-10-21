@@ -217,6 +217,7 @@ class PublicSiteTest extends TestCase
         $yearly = $this->get('/ru/pricing?period=year:1')->assertOk();
         $yearly->assertSee('190,00')->assertSee('в год')->assertSee('примерно 15,83')->assertSee('Выгоднее на 16 %');
         $this->get('/en/pricing?period=year:1')->assertSee('€190.00')->assertSee('about €15.83 per month');
+        $this->get('/en/pricing')->assertSee('<title>Store Monitoring Plans &amp; Pricing | Business Watchdog</title>', false)->assertSee('class="bw-page"', false)->assertSee('Business Watchdog plans from €19 a month', false);
         $this->get('/de/pricing?period=week:9&currency=XXX')->assertSee('19,00');
         $this->assertNotNull($start);
 

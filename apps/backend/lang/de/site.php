@@ -43,6 +43,8 @@ return [
     ],
     'pricing' => [
         'title' => 'Preise',
+        'meta_title' => 'Tarife für Shop- und Zahlungsmonitoring | Business Watchdog',
+        'meta_description' => 'Business Watchdog ab 19 € im Monat: WooCommerce- und Shopware-Prüfungen, Zahlungsabgleich und Hinweise. Standardtarife 14 Tage ohne Karte testen.',
         'lead' => 'Preis pro Abrechnungszeitraum. Das Abonnement verlängert sich automatisch; Sie können die Verlängerung jederzeit im Konto beenden und behalten den Zugang bis zum Ende des bezahlten Zeitraums.',
         'period_label' => 'Abrechnungszeitraum',
         'currency_label' => 'Währung',

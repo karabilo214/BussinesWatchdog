@@ -1,0 +1,104 @@
+.bw-page { @apply text-ink-950; font-family: inherit; line-height: 1.65; overflow-wrap: anywhere; }
+.bw-page *, .bw-page *::before, .bw-page *::after { box-sizing: border-box; }
+.bw-page p, .bw-page ul, .bw-page ol, .bw-page figure, .bw-page dl { margin: 0; max-width: none; }
+.bw-page h1, .bw-page h2, .bw-page h3, .bw-page h4 { margin: 0; color: inherit; font-weight: 650; }
+.bw-page h1 { font-size: clamp(2.15rem, 4.2vw, 3.4rem); line-height: 1.08; letter-spacing: -0.045em; text-wrap: balance; }
+.bw-page h2 { font-size: clamp(1.65rem, 3vw, 2.55rem); line-height: 1.18; letter-spacing: -0.03em; text-wrap: balance; }
+.bw-page h3 { @apply text-xl; line-height: 1.35; letter-spacing: -0.015em; }
+.bw-page .bw-accent { @apply text-brand-700; }
+.bw-page .bw-eyebrow { @apply text-xs font-bold uppercase tracking-widest text-brand-700; margin-bottom: 1.15rem; }
+.bw-page .bw-section { padding-block: clamp(2.5rem, 6vw, 4.5rem); }
+.bw-page .bw-hero { @apply grid items-center gap-10 lg:grid-cols-2; padding-block: clamp(2.5rem, 6vw, 5rem); }
+.bw-page .bw-lead { @apply text-lg text-ink-700; margin-top: 1.4rem; max-width: 40rem; line-height: 1.75; }
+.bw-page .bw-copy { @apply text-ink-700; margin-top: 1rem; max-width: 46rem; }
+.bw-page .bw-small { @apply text-sm text-ink-700; }
+.bw-page .bw-actions { @apply flex flex-wrap items-center gap-3; margin-top: 1.75rem; }
+.bw-page a.bw-btn { @apply inline-flex min-h-12 items-center justify-center rounded-xl border border-brand-700 bg-brand-700 px-5 py-3 text-base font-semibold text-white; text-decoration: none; line-height: 1.35; text-align: center; }
+.bw-page a.bw-btn:hover { @apply bg-brand-800 border-brand-800; text-decoration: none; }
+.bw-page a.bw-btn-outline { @apply bg-white border-ink-300 text-brand-800; }
+.bw-page a.bw-btn-outline:hover { @apply bg-brand-50 border-brand-400; }
+.bw-page a.bw-textlink { @apply text-brand-800 font-semibold underline underline-offset-4; }
+.bw-page a:focus-visible, .bw-page button:focus-visible, .bw-page input:focus-visible { outline: 3px solid #4885df; outline-offset: 4px; }
+.bw-page .bw-meta { @apply flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink-700; margin-top: 1.1rem; }
+.bw-page .bw-pill { @apply inline-block rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-800; }
+.bw-page .bw-panel { @apply rounded-3xl border border-ink-200 bg-white; overflow: hidden; box-shadow: 0 20px 55px -35px #14316166; }
+.bw-page .bw-panel-top { @apply flex flex-wrap items-center justify-between gap-2 border-b border-ink-200 px-6 py-4; }
+.bw-page .bw-panel-body { @apply p-6 sm:p-7; }
+.bw-page .bw-demo-title { @apply text-sm font-semibold text-ink-900; }
+.bw-page .bw-demo-label { @apply text-xs text-ink-700; }
+.bw-page .bw-alert { @apply rounded-2xl border border-warning-200 bg-warning-50 p-5; }
+.bw-page .bw-alert .bw-alert-title { @apply text-lg text-warning-900; }
+.bw-page .bw-alert p { @apply text-sm text-warning-900; margin-top: 0.6rem; }
+.bw-page .bw-demo-row { @apply flex flex-wrap items-center justify-between gap-2 border-b border-ink-100 py-3 text-sm; }
+.bw-page .bw-demo-row dt { @apply text-ink-700; }
+.bw-page .bw-demo-row dd { @apply font-semibold text-ink-950; margin: 0; }
+.bw-page .bw-demo-foot { @apply text-xs text-ink-700; margin-top: 1rem; }
+.bw-page .bw-stepbar { @apply grid gap-4 border-y border-ink-200 py-6 md:grid-cols-3; }
+.bw-page .bw-stepbar strong { @apply block text-base text-ink-950; }
+.bw-page .bw-stepbar span { @apply text-sm text-ink-700; }
+.bw-page .bw-number { @apply text-brand-700 font-semibold text-xs; display: block; margin-bottom: 0.4rem; letter-spacing: 0.12em; }
+.bw-page .bw-section-head { @apply flex flex-wrap items-end justify-between gap-5; margin-bottom: 2rem; }
+.bw-page .bw-section-head h2 { max-width: 42rem; }
+.bw-page .bw-grid-3 { @apply grid gap-5 md:grid-cols-3; }
+.bw-page .bw-grid-2 { @apply grid gap-5 md:grid-cols-2; }
+.bw-page .bw-card { @apply rounded-2xl border border-ink-200 bg-white p-6 sm:p-7; }
+.bw-page .bw-card p { @apply text-ink-700; margin-top: 0.85rem; }
+.bw-page .bw-card .bw-number { margin-bottom: 1.5rem; }
+.bw-page .bw-card .bw-outcome { @apply border-t border-ink-200 pt-4 text-sm text-ink-900; margin-top: 1.5rem; }
+.bw-page .bw-band { @apply rounded-3xl border border-brand-200 bg-brand-50 p-6 sm:p-10; }
+.bw-page .bw-band .bw-grid-2 { margin-top: 2rem; }
+.bw-page .bw-list { @apply list-disc space-y-3 pl-5 text-ink-700; margin-top: 1.2rem; }
+.bw-page .bw-list li + li { margin-top: 0.65rem; }
+.bw-page .bw-subnote { @apply rounded-xl border border-ink-200 bg-ink-50 p-4 text-sm text-ink-700; margin-top: 1.25rem; }
+.bw-page .bw-platforms { @apply grid gap-4 md:grid-cols-2; margin-top: 2rem; }
+.bw-page .bw-platforms h3 { @apply text-2xl; }
+.bw-page .bw-tags { @apply flex flex-wrap gap-2; margin-top: 1.25rem; }
+.bw-page .bw-tag { @apply rounded-lg border border-ink-200 bg-ink-50 px-3 py-1 text-xs text-ink-700; }
+.bw-page .bw-trust { @apply grid gap-8 lg:grid-cols-2; }
+.bw-page .bw-trust-intro { @apply rounded-3xl bg-brand-900 p-7 sm:p-9 text-white; }
+.bw-page .bw-trust-intro h2 { color: white; }
+.bw-page .bw-trust-intro p { @apply text-brand-100; margin-top: 1.25rem; }
+.bw-page .bw-trust-intro .bw-eyebrow { @apply text-brand-200; }
+.bw-page .bw-trust-intro a { color: white; }
+.bw-page .bw-trust-item { @apply border-b border-ink-200 py-5; }
+.bw-page .bw-trust-item:first-child { padding-top: 0; }
+.bw-page .bw-trust-item h3 { @apply text-lg; }
+.bw-page .bw-trust-item p { @apply text-ink-700 text-sm; margin-top: 0.5rem; }
+.bw-page .bw-faq { @apply grid gap-x-10 md:grid-cols-2; }
+.bw-page .bw-faq article { @apply border-t border-ink-200 py-6; }
+.bw-page .bw-faq h3 { @apply text-lg; }
+.bw-page .bw-faq p { @apply text-ink-700; margin-top: 0.75rem; }
+.bw-page .bw-cta { @apply rounded-3xl border border-brand-200 bg-white p-7 sm:p-10; border-top: 4px solid #d59430; }
+.bw-page .bw-pricing-hero { padding-block: 3.5rem 2.5rem; max-width: 50rem; }
+.bw-page .bw-plans { @apply grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-4; }
+.bw-page .bw-plan { @apply flex flex-col rounded-2xl border border-ink-200 bg-white p-6; min-width: 0; }
+.bw-page .bw-plan-featured { @apply border-2 border-brand-700; box-shadow: 0 14px 35px -28px #14316199; }
+.bw-page .bw-plan h2 { @apply text-2xl; }
+.bw-page .bw-plan-intro { @apply text-sm text-ink-700; margin-top: 0.75rem; min-height: 4.5rem; }
+.bw-page .bw-plan-label { @apply text-xs font-semibold text-brand-800; min-height: 2rem; }
+.bw-page .bw-price { @apply text-4xl font-semibold text-ink-950; margin-top: 1.5rem; line-height: 1.2; letter-spacing: -0.035em; }
+.bw-page .bw-price span { @apply block text-sm font-normal text-ink-700; margin-top: 0.5rem; letter-spacing: normal; }
+.bw-page .bw-price-custom { @apply text-2xl; }
+.bw-page .bw-tax { @apply text-xs text-ink-700; margin-top: 0.75rem; min-height: 2.8rem; }
+.bw-page .bw-plan dl { margin-top: 1.5rem; }
+.bw-page .bw-plan dl > div { @apply border-t border-ink-200 py-3; }
+.bw-page .bw-plan dt { @apply text-xs text-ink-700; }
+.bw-page .bw-plan dd { @apply text-base font-semibold; margin: 0.25rem 0 0; }
+.bw-page .bw-plan ul { @apply list-disc pl-5 text-sm text-ink-700; margin-block: 1.25rem; }
+.bw-page .bw-plan li + li { margin-top: 0.6rem; }
+.bw-page .bw-plan .bw-plan-cta { margin-top: auto; padding-top: 1rem; }
+.bw-page .bw-plan .bw-btn { width: 100%; }
+.bw-page .bw-plan .bw-trial { @apply text-xs text-ink-700; margin-top: 0.75rem; }
+.bw-page .bw-inline-note { @apply text-sm text-ink-700; margin-top: 1.25rem; }
+.bw-page .bw-calculator { @apply flex flex-wrap items-end gap-4 rounded-2xl border border-ink-200 bg-white p-5; margin-bottom: 1.5rem; }
+.bw-page .bw-calculator label { @apply block text-sm font-semibold; margin-bottom: 0.4rem; }
+.bw-page .bw-calculator input { @apply rounded-lg border border-ink-300 bg-white p-3 text-base text-ink-950; width: 7rem; font: inherit; }
+.bw-page .bw-calculator button { @apply rounded-xl border border-brand-700 bg-brand-700 px-5 py-3 font-semibold text-white; cursor: pointer; font: inherit; }
+.bw-page .bw-switches { @apply flex flex-wrap gap-3; margin-bottom: 1.5rem; }
+.bw-page .bw-switches nav { @apply flex flex-wrap gap-2; }
+.bw-page .bw-switches a { @apply rounded-lg border border-ink-300 bg-white px-4 py-2 text-sm text-brand-800; text-decoration: none; }
+.bw-page .bw-switches a[aria-current="true"] { @apply border-brand-700 bg-brand-700 text-white; }
+.bw-page .bw-total { @apply rounded-xl border border-brand-200 bg-brand-50 p-3 text-sm text-brand-900; margin-top: 1rem; }
+.bw-page .bw-empty { @apply rounded-xl border border-warning-200 bg-warning-50 p-5; }
+@media (prefers-reduced-motion: reduce) { .bw-page *, .bw-page *::before, .bw-page *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+@media (max-width: 767px) { .bw-page .bw-plan-intro, .bw-page .bw-tax { min-height: 0; } }

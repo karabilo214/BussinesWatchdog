@@ -60,7 +60,8 @@ class SiteController extends Controller
         $stores = $request->query('stores');
 
         return $this->render('site.pricing', $locale, $page, $version, [
-            'title' => $version?->title ?? trans('site.pricing.title', [], $locale),
+            'title' => $version?->title ?? trans('site.pricing.meta_title', [], $locale),
+            'description' => $version?->description ?? trans('site.pricing.meta_description', [], $locale),
             'pricing' => $pricing->build($locale, is_string($period) ? $period : null, is_string($currency) ? $currency : null, is_string($stores) && ctype_digit($stores) && strlen($stores) <= 3 ? (int) $stores : 0),
         ]);
     }

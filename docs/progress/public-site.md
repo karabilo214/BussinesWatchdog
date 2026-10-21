@@ -284,3 +284,15 @@ Status: complete (visual asset; no dedicated acceptance ID)
 - No migrations or contracts changed. Visual identity change only; no financial, security or coverage semantics changed.
 
 Verification: inspected the 512 px SVG rendering and enlarged 16 px raster; ICO contains 16, 32, 48, 64, 128 and 256 px sizes. Customer and control production builds passed. No browser or production deployment check.
+
+### Step 212: New Home and Pricing Pages (ru/en/de)
+
+Status: complete in main; the home page goes into the database with `site:home-drafts` on the server
+
+- Source: the owner's package `business-watchdog-pages` (2026-10-21, prepared against `92f717e`). Home fragments without scripts, styles or forms; pricing as Blade fragments that read the existing `$pricing` (published plans, currencies, periods, test mode, tax line, yearly saving, extra stores and capped total, faster checks, trial, empty catalogue, individual plans).
+- Styles: `apps/frontend/public/src/marketing-pages.css` (the package's Tailwind source without its own imports, scoped to `.bw-page`, no preflight) imported in `site.css`; the palette is the project one, so the site bundle compiles the `bw-*` classes and the owner-panel preview gets them through `SiteAssets::inline()`.
+- Pricing: `site/pricing.blade.php` includes `site/marketing/pricing/<locale>.blade.php`; `site.pricing.meta_title` / `meta_description` give the page its own title and description (the pricing page is not editable in the panel). The calculator says the choice of extra stores, period and currency has to be repeated in the cabinet: signup carries only the plan.
+- Home: `database/data/home_page.php` + `home_page/<locale>.html`; `php artisan site:home-drafts <owner email> [--publish=<reason>]` saves drafts through `PageAdmin` (sanitized, versioned) and, with `--publish`, publishes each language with an audit record. `docs/ops/site.md`.
+- Wording of both pages comes from the package; claims checked against the current state (no guaranteed payments, coverage depends on the integration, public check may add to cart, Shopware App availability assessed per store). Not proofread by native speakers.
+
+Verification: `HomeDraftsTest` (drafts only without `--publish`, nothing public; with it three published versions, audit with the reason, titles and `bw-page` markup on /en, /de, /ru; refusal without an owner), `PublicSiteTest` (pricing title, description and markup; all existing price, period, currency and extra-store assertions pass on the new template). Backend SQLite 684 passed + 4 skipped; `@bw/public` check build. No browser render of the pages in the project; the package's own QA ran 36 Chromium layouts and axe on the fragments.
