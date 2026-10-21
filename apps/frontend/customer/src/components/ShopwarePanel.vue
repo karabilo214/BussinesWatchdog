@@ -210,6 +210,11 @@ void load();
         </div>
       </div>
 
+      <div v-if="canManage && viaApp && integration.app_update?.test_download && !integration.app_update.available" class="flex flex-wrap items-center gap-3 rounded-md border border-dashed border-border-strong p-3 text-sm" data-app-test-download>
+        <span class="text-text-muted">{{ $t('store.shopware.app_test_download_note', { version: integration.app_update.latest_version }) }}</span>
+        <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" @click="downloadUpdate">{{ $t('store.shopware.app_test_download', { version: integration.app_update.latest_version }) }}</button>
+      </div>
+
       <div v-if="canManage" class="flex flex-wrap gap-2">
         <button v-if="integration.status === 'active'" type="button" class="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy" @click="runSync">{{ $t('provider.sync_now') }}</button>
         <button v-if="!confirmingRevoke" type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-crit hover:bg-crit-soft" @click="confirmingRevoke = true">{{ $t('store.connector.revoke') }}</button>

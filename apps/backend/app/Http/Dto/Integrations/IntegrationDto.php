@@ -35,6 +35,7 @@ class IntegrationDto
                 'latest_version' => ShopwareApp::APP_VERSION,
                 'available' => app(ShopwareApp::class)->releaseApproved()
                     && (! is_string($integration->health['app_version'] ?? null) || version_compare($integration->health['app_version'], ShopwareApp::APP_VERSION, '<')),
+                'test_download' => ! (bool) config('watchdog.connector_release_gate'),
             ] : null,
             'webhook_url' => in_array($integration->provider, ['stripe', 'paypal'], true) ? url('/api/v1/webhooks/'.$integration->provider.'/'.$integration->id) : null,
             'credentials' => $integration->credentials

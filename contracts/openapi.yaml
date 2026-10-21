@@ -6944,6 +6944,7 @@ components:
             installed_version: {type: [string, "null"], description: From the shop's webhooks; null until the first one.}
             latest_version: {type: string}
             available: {type: boolean}
+            test_download: {type: boolean, description: "True only where the release gate is off (local and test environments): the current app version can be downloaded again at any time to try it on a Shopware shop."}
         health:
           type: object
           description: "Freshness (state, reason, since), last heartbeat self-report, rotation flags. No secrets."

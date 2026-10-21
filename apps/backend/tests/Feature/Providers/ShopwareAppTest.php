@@ -202,6 +202,9 @@ class ShopwareAppTest extends TestCase
 
         $this->webhook($integration, $shopSecret, 'app.updated', [], ShopwareApp::APP_VERSION)->assertOk()->assertJsonPath('result', 'updated');
         $this->assertSame([ShopwareApp::APP_VERSION, false], [$this->appUpdate($integration)['installed_version'], $this->appUpdate($integration)['available']]);
+        $this->assertTrue($this->appUpdate($integration)['test_download']);
+        config()->set('watchdog.connector_release_gate', true);
+        $this->assertFalse($this->appUpdate($integration)['test_download']);
         $this->assertSame('shopware-app-'.ShopwareApp::APP_VERSION, $integration->refresh()->connector_version);
     }
 

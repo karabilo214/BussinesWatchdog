@@ -500,3 +500,12 @@ Status: complete; deployed 2026-10-21 (`c10dd1f`), the store list removed from t
 - `docs/ops/integrations.md` (how to approve a version), backlog item on third-party themes rewritten without the copy of the store.
 
 Verification: `CheckoutObservationTest` (archive refused without approval, issued with the exact fingerprint, refused with another); backend SQLite 687 passed + 4 skipped.
+
+### Step 216: Download the Current Shopware App Locally at Any Time
+
+Status: complete in main
+
+- Owner's request: on the local server the newest app must always be downloadable to try it on a Shopware shop. The release gate is already off outside production; for a store connected through the app the cabinet offered a download only when a newer version existed.
+- `app_update.test_download` (integration DTO, `contracts/openapi.yaml`) is true only while `watchdog.connector_release_gate` is off. The Shopware panel then shows «Local environment: download app X.Y.Z» for a connected app with no pending update; it uses the existing update archive (same integration and secret). Never shown in production.
+
+Verification: `ShopwareAppTest` (flag true without the gate, false with it); customer `orderSource.test.ts` (no button without the flag, button with the version and download with it). Backend SQLite 689 passed + 4 skipped; customer 146/146, vue-tsc.

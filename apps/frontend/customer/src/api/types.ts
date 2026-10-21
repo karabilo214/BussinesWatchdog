@@ -199,7 +199,7 @@ export interface Integration {
   };
   credentials?: IntegrationCredentialInfo[];
   webhook_url?: string;
-  app_update?: { installed_version: string | null; latest_version: string; available: boolean } | null;
+  app_update?: { installed_version: string | null; latest_version: string; available: boolean; test_download?: boolean } | null;
   created_at: string;
 }
 

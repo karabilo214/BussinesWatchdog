@@ -233,6 +233,16 @@ describe('Shopware order source', () => {
     await flushPromises();
     expect(current.get('[data-app-version]').text()).toBe('1.2.0');
     expect(current.find('[data-app-update]').exists()).toBe(false);
+    expect(current.find('[data-app-test-download]').exists()).toBe(false);
+    current.unmount();
+
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([{ ...app('1.2.0'), app_update: { installed_version: '1.2.0', latest_version: '1.2.0', available: false, test_download: true } }]);
+    const local = mount(ShopwarePanel, { props: { storeId: 's-1', canManage: true }, global });
+    await flushPromises();
+    expect(local.get('[data-app-test-download]').text()).toContain('Скачать App 1.2.0');
+    await local.get('[data-app-test-download] button').trigger('click');
+    await flushPromises();
+    expect(providers.downloadShopwareAppUpdate).toHaveBeenCalledTimes(2);
   });
 
   it('every Shopware connector error code is explained in every language', () => {
