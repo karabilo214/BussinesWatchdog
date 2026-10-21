@@ -41,7 +41,7 @@ wp plugin install plugin-check --activate
 wp plugin check bw-release --slug=business-watchdog                        # ошибок должно быть 0
 ```
 
-Подача: аккаунт на wordpress.org → https://wordpress.org/plugins/developers/add/ → загрузить ZIP; адрес `business-watchdog`. В `readme.txt` в `Contributors` вписать имя пользователя WordPress.org владельца. После одобрения код кладётся в SVN (`trunk/` — содержимое ZIP, `tags/<версия>/`), картинки каталога — в `assets/` SVN (icon-128x128.png, icon-256x256.png, banner-772x250.png, banner-1544x500.png, screenshot-N.png). `Stable tag` в `readme.txt` — версия из заголовка плагина. Раздел «External services» обновлять при любом изменении того, что плагин отправляет.
+Подача: аккаунт на wordpress.org → https://wordpress.org/plugins/developers/add/ → загрузить ZIP; адрес `business-watchdog`. В `readme.txt` в `Contributors` вписать имя пользователя WordPress.org владельца. После одобрения код кладётся в SVN (`trunk/` — содержимое ZIP, `tags/<версия>/`), картинки каталога — в `assets/` SVN (icon-128x128.png, icon-256x256.png, banner-772x250.png, banner-1544x500.png, screenshot-N.png); они лежат в `plugins/woocommerce-watchdog/.wordpress-org/` (в релизный ZIP не попадают), подписи к скриншотам — в разделе `== Screenshots ==` `readme.txt`. `Stable tag` в `readme.txt` — версия из заголовка плагина. Раздел «External services» обновлять при любом изменении того, что плагин отправляет.
 
 ## Тексты о скрипте наблюдения для магазинов (Step 214)
 
