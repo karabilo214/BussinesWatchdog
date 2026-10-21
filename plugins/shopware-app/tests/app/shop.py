@@ -80,7 +80,16 @@ def uninstall():
     return {'uninstall': status}
 
 
+def module():
+    """The app's main module as the Administration opens it: Shopware signs its source with the shop secret."""
+    admin = s.admin_token()
+    modules = s.call('GET', '/api/app-system/modules', admin)
+    apps = (modules['json'] or {}).get('modules', []) if isinstance(modules['json'], dict) else []
+    app = next((a for a in apps if a.get('name') == 'BusinessWatchdog'), None)
+    return {'status': modules['status'], 'main_module': (app or {}).get('mainModule'), 'raw': None if app else str(modules['json'])[:400]}
+
+
 if __name__ == '__main__':
     step = sys.argv[1]
-    result = {'upload': lambda: upload(sys.argv[2]), 'update': lambda: update(sys.argv[2]), 'order': order, 'pay': lambda: pay(sys.argv[2]), 'uninstall': uninstall}[step]()
+    result = {'upload': lambda: upload(sys.argv[2]), 'update': lambda: update(sys.argv[2]), 'order': order, 'pay': lambda: pay(sys.argv[2]), 'uninstall': uninstall, 'module': module}[step]()
     print('BW_SHOP=' + json.dumps(result))

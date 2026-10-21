@@ -4025,6 +4025,90 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/downloads/shopware-app:
+    get:
+      tags: [Integrations]
+      operationId: downloadShopwareApp
+      description: "The one Shopware app archive for every store (ADR 0076), current version; 409 shopware_app_release_not_approved while the version is not approved in production (ADR 0074)."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: ZIP (header X-App-Version)
+          content:
+            application/zip:
+              schema: {type: string, format: binary}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/shopware/app/register:
+    get:
+      tags: [Integrations]
+      operationId: registerUniversalShopwareApp
+      security: []
+      description: "Shopware's registration of the universal app (ADR 0076): query shop-id, shop-url, timestamp signed with the app secret (header shopware-app-signature). Creates or renews the shop's installation, which belongs to no customer until bound by a pairing code. 409 shopware_app_shop_moved when a bound installation registers from another host."
+      responses:
+        "200":
+          description: Registration accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [proof, secret, confirmation_url]
+                properties:
+                  proof: {type: string}
+                  secret: {type: string}
+                  confirmation_url: {type: string, format: uri}
+        "401": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/shopware/app/confirm:
+    post:
+      tags: [Integrations]
+      operationId: confirmUniversalShopwareApp
+      security: []
+      description: "The app's API key for a registered installation, signed with the shop secret (header shopware-shop-signature). A bound installation renews its integration's keys."
+      responses:
+        "200": {description: Confirmed}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/shopware/app/webhook:
+    post:
+      tags: [Integrations]
+      operationId: universalShopwareAppWebhook
+      security: []
+      description: "Signed webhooks of universal installations (shop id from source.shopId). A bound installation's events go to its integration; an unbound one only records its version or is deleted on app.deleted (result not_bound / deleted)."
+      responses:
+        "200": {description: Received}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/shopware/app/connect:
+    get:
+      tags: [Integrations]
+      operationId: shopwareAppModule
+      security: []
+      description: "The app's main module, opened by the Shopware Administration in an iframe with a query signed with the shop secret (shopware-shop-signature, ≤ 1 hour old). HTML page (de/en) with the pairing code form; framed only by the shop's origin. 401 page when the signature is missing or invalid."
+      responses:
+        "200": {description: HTML page, content: {text/html: {schema: {type: string}}}}
+        "401": {description: HTML page explaining the page must be opened from Shopware, content: {text/html: {schema: {type: string}}}}
+    post:
+      tags: [Integrations]
+      operationId: bindShopwareAppInstallation
+      security: []
+      description: "Form of the module: signed_query (the module's signed query) and code (the store's pairing code from POST /stores/{id}/pairing-codes). Binds the installation when the code is valid, the store is a Shopware store, the shop URL host equals the store host (without www.) and the app's key reads the shop's orders; the code is consumed. No session or CSRF token; answers the HTML page with the result."
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [signed_query, code]
+              properties:
+                signed_query: {type: string}
+                code: {type: string, maxLength: 100}
+      responses:
+        "200": {description: HTML page with the result, content: {text/html: {schema: {type: string}}}}
+        "401": {description: HTML page explaining the page must be opened from Shopware, content: {text/html: {schema: {type: string}}}}
   /api/v1/shopware/app/{integration_id}/register:
     get:
       tags: [Integrations]

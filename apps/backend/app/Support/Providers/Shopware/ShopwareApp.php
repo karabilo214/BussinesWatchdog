@@ -29,7 +29,7 @@ class ShopwareApp
 {
     public const APP_NAME = 'BusinessWatchdog';
 
-    public const APP_VERSION = '1.4.0';
+    public const APP_VERSION = '1.5.0';
 
     public const PERMISSIONS = ['order', 'order_transaction', 'order_transaction_capture', 'order_transaction_capture_refund', 'currency', 'payment_method', 'state_machine', 'state_machine_state'];
 
@@ -117,7 +117,84 @@ class ShopwareApp
             return $integration;
         });
 
-        return ['integration' => $integration, 'archive' => $this->archive($integration, $manifestSecret), 'filename' => self::APP_NAME.'.zip'];
+        return ['integration' => $integration, 'archive' => $this->integrationArchive($integration, $manifestSecret), 'filename' => self::APP_NAME.'.zip'];
+    }
+
+    /**
+     * The one archive for every store (ADR 0076): generic registration and webhook URLs, the app secret and the main
+     * module where the merchant enters the store's pairing code.
+     *
+     * @return array{archive: string, filename: string}
+     */
+    public function universalPackage(): array
+    {
+        $this->assertReleaseApproved();
+
+        return ['archive' => $this->archive(url('/api/v1/shopware/app/register'), url('/api/v1/shopware/app/webhook'), self::appSecret(), url('/api/v1/shopware/app/connect')), 'filename' => self::APP_NAME.'.zip'];
+    }
+
+    /**
+     * The secret of the universal app, derived from the service key so it needs no setting and never reveals the key.
+     */
+    public static function appSecret(): string
+    {
+        return hash_hmac('sha256', 'shopware-app-secret', (string) config('app.key'));
+    }
+
+    /**
+     * Binds a universal installation whose shop answered with its key to the store (ADR 0076): the same read-only
+     * app integration a per-store archive creates, then checked against the shop and made the order source.
+     *
+     * @param  array{shop_id: string, shop_url: string, shop_secret: string, api_key: string, secret_key: string}  $secrets
+     */
+    public function bindInstallation(Store $store, array $secrets, ?string $appVersion, ?string $actorId): Integration
+    {
+        $integration = DB::transaction(function () use ($store, $secrets, $appVersion, $actorId): Integration {
+            Store::query()->whereKey($store->id)->lockForUpdate()->first();
+            Integration::query()
+                ->where('tenant_id', $store->tenant_id)
+                ->where('store_id', $store->id)
+                ->where('provider', ShopwareConnector::PROVIDER)
+                ->where('status', Integration::STATUS_PENDING)
+                ->get()
+                ->each(fn (Integration $old) => $this->revoke($old, 'replaced_by_app_installation'));
+
+            if (OrderSources::active($store) !== null) {
+                throw new AccountRejected(OrderSources::active($store) === ShopwareConnector::PROVIDER ? 'provider_already_connected' : 'order_source_already_connected', 409);
+            }
+
+            $version = $appVersion ?? self::APP_VERSION;
+            $integration = Integration::query()->create([
+                'tenant_id' => $store->tenant_id,
+                'store_id' => $store->id,
+                'provider' => ShopwareConnector::PROVIDER,
+                'mode' => 'live',
+                'source_authority' => Integration::SOURCE_STORE_REPORTED,
+                'status' => Integration::STATUS_PENDING,
+                'capabilities' => ['orders' => 'read', 'refunds' => 'state_only', 'connection' => 'app', 'webhooks' => 'orders', 'app_distribution' => 'universal'],
+                'api_version' => 'admin-api',
+                'connector_version' => 'shopware-app-'.$version,
+                'external_account_id' => $secrets['shop_id'],
+                'health' => ['app_version' => $version, 'key_last4' => substr($secrets['api_key'], -4), 'app_registered_at' => Carbon::now()->toJSON(), 'shop_url' => $secrets['shop_url'], 'state_change_risk_acknowledged_at' => Carbon::now()->toJSON()],
+            ]);
+            $this->storeInstallationSecrets($integration, $secrets);
+            $this->audit($integration, $actorId, AuditLog::ACTION_INTEGRATION_PROVIDER_CONNECTED, ['provider' => ShopwareConnector::PROVIDER, 'connection' => 'app', 'stage' => 'bound_by_pairing_code']);
+
+            return $integration;
+        });
+
+        $this->activate($integration);
+
+        return $integration->refresh();
+    }
+
+    /**
+     * @param  array{shop_id: string, shop_url: string, shop_secret: string, api_key: string, secret_key: string}  $secrets
+     */
+    public function storeInstallationSecrets(Integration $integration, array $secrets): void
+    {
+        $this->connector->storeSecretJson($integration, IntegrationCredential::KIND_SHOPWARE_APP, ['shop_secret' => $secrets['shop_secret'], 'shop_id' => $secrets['shop_id'], 'shop_url' => $secrets['shop_url']], $secrets['shop_secret']);
+        $this->connector->storeSecretJson($integration, IntegrationCredential::KIND_SHOPWARE_INTEGRATION, ['access_key' => $secrets['api_key'], 'secret' => $secrets['secret_key'], 'api_url' => $secrets['shop_url']], $secrets['api_key']);
     }
 
     /**
@@ -312,14 +389,21 @@ class ShopwareApp
 
         $this->audit($integration, $actorId, AuditLog::ACTION_INTEGRATION_PROVIDER_CONNECTED, ['provider' => ShopwareConnector::PROVIDER, 'connection' => 'app', 'stage' => 'update_package_created', 'version' => self::APP_VERSION]);
 
-        return ['integration' => $integration, 'archive' => $this->archive($integration, $manifestSecret), 'filename' => self::APP_NAME.'.zip'];
+        return ['integration' => $integration, 'archive' => $this->integrationArchive($integration, $manifestSecret), 'filename' => self::APP_NAME.'.zip'];
     }
 
-    private function archive(Integration $integration, string $manifestSecret, string $version = self::APP_VERSION, bool $withSources = true): string
+    private function integrationArchive(Integration $integration, string $manifestSecret): string
     {
         $base = url('/api/v1/shopware/app/'.$integration->id);
+
+        return $this->archive($base.'/register', $base.'/webhook', $manifestSecret);
+    }
+
+    private function archive(string $registrationUrl, string $webhookUrl, string $secret, ?string $moduleUrl = null, string $version = self::APP_VERSION, bool $withSources = true): string
+    {
         $events = self::events();
-        $webhooks = implode("\n", array_map(fn (string $name, string $event): string => sprintf('        <webhook name="%s" url="%s" event="%s"/>', $name, htmlspecialchars($base.'/webhook', ENT_XML1), $event), array_keys($events), $events));
+        $webhooks = implode("\n", array_map(fn (string $name, string $event): string => sprintf('        <webhook name="%s" url="%s" event="%s"/>', $name, htmlspecialchars($webhookUrl, ENT_XML1), $event), array_keys($events), $events));
+        $admin = $moduleUrl === null ? '' : sprintf("    <admin>\n        <main-module source=\"%s\"/>\n    </admin>\n", htmlspecialchars($moduleUrl, ENT_XML1));
         $manifest = <<<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/shopware/trunk/src/Core/Framework/App/Manifest/Schema/manifest-2.0.xsd">
@@ -344,10 +428,10 @@ class ShopwareApp
     <webhooks>
 %s
     </webhooks>
-</manifest>
+%s</manifest>
 
 XML;
-        $xml = sprintf($manifest, self::APP_NAME, $version, htmlspecialchars($base.'/register', ENT_XML1), $manifestSecret, self::permissionsXml(), $webhooks);
+        $xml = sprintf($manifest, self::APP_NAME, $version, htmlspecialchars($registrationUrl, ENT_XML1), $secret, self::permissionsXml(), $webhooks, $admin);
         $path = tempnam(sys_get_temp_dir(), 'bw-shopware-app');
 
         if ($path === false) {
@@ -480,6 +564,11 @@ XML;
         $integration->forceFill(['status' => $status, 'health' => array_filter([...($integration->health ?? []), ...$health], fn (mixed $value): bool => $value !== null)])->save();
 
         return $status;
+    }
+
+    public function abandon(Integration $integration, string $reason): void
+    {
+        $this->revoke($integration, $reason);
     }
 
     private function revoke(Integration $integration, string $reason): string

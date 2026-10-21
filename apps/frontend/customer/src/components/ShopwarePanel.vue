@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { connectShopware, downloadShopwareApp, downloadShopwareAppUpdate, syncProvider } from '@/api/providers';
-import { listStoreIntegrations, revokeIntegration } from '@/api/stores';
-import type { Integration } from '@/api/types';
+import { createPairingCode, listStoreIntegrations, revokeIntegration } from '@/api/stores';
+import type { Integration, PairingCode } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
+import CopyField from './CopyField.vue';
 import ErrorNotice from './ErrorNotice.vue';
 import ObservationTexts from './ObservationTexts.vue';
 import { INTEGRATION_TONES } from './integrationTones';
 
 const POLL_MS = 15_000;
+const CODE_POLL_MS = 5_000;
+const APP_DOWNLOAD_URL = '/api/v1/downloads/shopware-app';
 
 const props = defineProps<{ storeId: string; canManage: boolean }>();
 const emit = defineEmits<{ changed: [] }>();
@@ -24,7 +27,9 @@ const busy = ref(false);
 const error = ref<unknown>(null);
 const notice = ref<string | null>(null);
 const confirmingRevoke = ref(false);
+const code = ref<PairingCode | null>(null);
 let timer: ReturnType<typeof setInterval> | null = null;
+let codeTimer: ReturnType<typeof setInterval> | null = null;
 
 const keyValid = computed(() => /^SWIA[A-Za-z0-9]{10,60}$/.test(form.key.trim()));
 const secretValid = computed(() => /^[A-Za-z0-9]{20,128}$/.test(form.secret.trim()));
@@ -40,8 +45,9 @@ async function load(): Promise<void> {
     integration.value = all.find((item) => item.provider === 'shopware' && ['active', 'degraded', 'pending'].includes(item.status)) ?? null;
     loadError.value = null;
 
-    if (before === 'pending' && integration.value?.status === 'active') {
+    if ((before === 'pending' || code.value !== null) && integration.value?.status === 'active') {
       notice.value = 'store.shopware.app_connected';
+      code.value = null;
       emit('changed');
     }
   } catch (caught) {
@@ -85,6 +91,12 @@ function download(): Promise<void> {
   }, 'store.shopware.app_downloaded');
 }
 
+function createCode(): Promise<void> {
+  return act(async () => {
+    code.value = await createPairingCode(props.storeId);
+  });
+}
+
 function downloadUpdate(): Promise<void> {
   return act(async () => {
     save(await downloadShopwareAppUpdate(props.storeId));
@@ -125,9 +137,22 @@ watch(waitingForApp, (waiting) => {
   }
 });
 
+watch(code, (current) => {
+  if (current !== null && codeTimer === null) {
+    codeTimer = setInterval(load, CODE_POLL_MS);
+  } else if (current === null && codeTimer !== null) {
+    clearInterval(codeTimer);
+    codeTimer = null;
+  }
+});
+
 onBeforeUnmount(() => {
   if (timer !== null) {
     clearInterval(timer);
+  }
+
+  if (codeTimer !== null) {
+    clearInterval(codeTimer);
   }
 });
 
@@ -257,14 +282,23 @@ void load();
             <li>{{ $t('store.shopware.app_step_download') }}</li>
             <li>{{ $t('store.shopware.app_step_upload') }}</li>
             <li>{{ $t('store.shopware.app_step_install') }}</li>
-        <li>{{ $t('store.shopware.app_step_cache') }}</li>
+            <li>{{ $t('store.shopware.app_step_cache') }}</li>
+            <li>{{ $t('store.shopware.app_step_open') }}</li>
+            <li>{{ $t('store.shopware.app_step_code') }}</li>
           </ol>
           <p class="text-[13px] text-text-muted">{{ $t('store.shopware.app_permissions') }}</p>
           <p class="text-[13px] text-text-muted" data-note="checkout-script">{{ $t('store.shopware.app_script_note') }}</p>
           <ObservationTexts />
           <p class="text-[13px] text-warn" data-app-version-note>{{ $t('store.shopware.app_version_note') }}</p>
-          <div>
-            <button type="button" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !form.acknowledged" data-download-app @click="download">{{ $t('store.shopware.app_download') }}</button>
+          <div class="flex flex-wrap gap-2">
+            <a v-if="form.acknowledged" :href="APP_DOWNLOAD_URL" download="BusinessWatchdog.zip" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover" data-download-app>{{ $t('store.shopware.app_download') }}</a>
+            <span v-else class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse opacity-60" aria-disabled="true" data-download-app>{{ $t('store.shopware.app_download') }}</span>
+            <button type="button" class="rounded-md border border-border-strong bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy || !form.acknowledged" data-create-app-code @click="createCode">{{ $t('store.shopware.app_create_code') }}</button>
+          </div>
+          <div v-if="code" class="flex flex-col gap-2 rounded-md border border-note-border bg-note-soft p-3" data-app-code>
+            <CopyField id="shopware-app-code" :label="$t('store.shopware.app_code')" :value="code.pairing_code" />
+            <p class="text-[13px] text-text-muted">{{ $t('store.shopware.app_code_hint', { time: dateTime(code.expires_at) }) }}</p>
+            <p class="text-[13px] text-text-muted" role="status">{{ $t('store.shopware.app_code_waiting') }}</p>
           </div>
         </div>
 

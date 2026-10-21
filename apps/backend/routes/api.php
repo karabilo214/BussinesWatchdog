@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\Integrations\PayPalWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\PluginDownloadController;
 use App\Http\Controllers\Api\V1\Integrations\ProviderSyncController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareAppController;
+use App\Http\Controllers\Api\V1\Integrations\ShopwareAppInstallationController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\StripeIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\StripeWebhookController;
@@ -75,6 +76,16 @@ Route::post('/v1/webhooks/stripe/{integration}', [StripeWebhookController::class
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/paypal/{integration}', [PayPalWebhookController::class, 'store'])
     ->middleware('throttle:provider-webhook');
+Route::get('/v1/shopware/app/register', [ShopwareAppInstallationController::class, 'register'])
+    ->middleware('throttle:provider-webhook');
+Route::post('/v1/shopware/app/confirm', [ShopwareAppInstallationController::class, 'confirm'])
+    ->middleware('throttle:provider-webhook');
+Route::post('/v1/shopware/app/webhook', [ShopwareAppInstallationController::class, 'webhook'])
+    ->middleware('throttle:provider-webhook');
+Route::get('/v1/shopware/app/connect', [ShopwareAppInstallationController::class, 'module'])
+    ->middleware('throttle:provider-webhook');
+Route::post('/v1/shopware/app/connect', [ShopwareAppInstallationController::class, 'connect'])
+    ->middleware('throttle:pairing-exchange');
 Route::get('/v1/shopware/app/{integration}/register', [ShopwareAppController::class, 'register'])
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/shopware/app/{integration}/confirm', [ShopwareAppController::class, 'confirm'])
@@ -205,6 +216,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
     Route::get('/downloads/woocommerce-plugin/file', [PluginDownloadController::class, 'download'])
         ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationRead()), 'throttle:artifact-url']);
+    Route::get('/downloads/shopware-app', [ShopwareAppInstallationController::class, 'download'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
     Route::get('/downloads/observation-texts', [ObservationTextsController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
 

@@ -16,7 +16,8 @@ if ($action === 'old-archive') {
     $secret = app(ShopwareConnector::class)->secretJson($integration, IntegrationCredential::KIND_SHOPWARE_APP)['manifest_secret'];
     $archive = new ReflectionMethod(ShopwareApp::class, 'archive');
     $archive->setAccessible(true);
-    file_put_contents((string) getenv('BW_E2E_ZIP'), $archive->invoke(app(ShopwareApp::class), $integration, $secret, '1.0.0', false));
+    $base = url('/api/v1/shopware/app/'.$integration->id);
+    file_put_contents((string) getenv('BW_E2E_ZIP'), $archive->invoke(app(ShopwareApp::class), $base.'/register', $base.'/webhook', $secret, null, '1.0.0', false));
     $out = ['integration_id' => $integration->id, 'version' => '1.0.0'];
 }
 

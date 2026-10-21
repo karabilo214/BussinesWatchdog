@@ -143,6 +143,24 @@ CREATE TABLE pairing_codes (
  FOREIGN KEY (tenant_id,store_id) REFERENCES stores(tenant_id,id)
 );
 
+-- A Shopware shop that installed the universal app (ADR 0076); bound to a customer's integration only after the
+-- merchant enters the store's pairing code in the app and the shop's domain matches the store. Secrets encrypted.
+CREATE TABLE shopware_app_installations (
+ id uuid PRIMARY KEY,
+ shop_id varchar(64) NOT NULL UNIQUE,
+ shop_url varchar(2048) NOT NULL,
+ app_version varchar(16),
+ secrets text NOT NULL,
+ status varchar(16) NOT NULL CHECK (status IN ('registered','confirmed','bound')),
+ integration_id uuid REFERENCES integrations(id),
+ registered_at timestamptz NOT NULL,
+ confirmed_at timestamptz,
+ bound_at timestamptz,
+ created_at timestamptz,
+ updated_at timestamptz
+);
+CREATE INDEX shopware_app_installations_status_registered_at_index ON shopware_app_installations (status, registered_at);
+
 CREATE TABLE sync_runs (
  id uuid PRIMARY KEY,
  tenant_id uuid NOT NULL,

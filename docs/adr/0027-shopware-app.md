@@ -1,6 +1,6 @@
 # ADR 0027: Shopware App connection
 
-Status: implemented (Step 93); follows the owner's decision "Integration first, App next" (ADR 0025)
+Status: implemented (Step 93); follows the owner's decision "Integration first, App next" (ADR 0025). The per-store archive is replaced by one archive for every store bound by a pairing code (ADR 0076, Step 219); per-store installations keep working.
 
 ## Context
 

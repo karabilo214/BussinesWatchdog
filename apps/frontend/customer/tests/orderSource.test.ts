@@ -162,7 +162,7 @@ describe('Shopware order source', () => {
     expect(wrapper.find('[data-connector="shopware"]').exists()).toBe(true);
     expect(wrapper.find('[data-app-steps]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Extensions → My extensions → Upload extension');
-    expect(wrapper.get('[data-download-app]').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('[data-download-app]').attributes('aria-disabled')).toBe('true');
   });
 
   it('connects only after the state-change risk is acknowledged and never with a malformed key', async () => {
@@ -191,23 +191,30 @@ describe('Shopware order source', () => {
     expect(wrapper.text()).toContain('частичном возврате');
   });
 
-  it('downloads the app only after the acknowledgement and then waits for Shopware', async () => {
-    vi.mocked(stores.listStoreIntegrations).mockResolvedValueOnce([]).mockResolvedValue([integration('shopware', { status: 'pending', capabilities: { connection: 'app' } })]);
-    vi.mocked(providers.downloadShopwareApp).mockResolvedValue({ blob: new Blob(['zip']), filename: 'BusinessWatchdog.zip' });
-    URL.createObjectURL = vi.fn(() => 'blob:app');
-    URL.revokeObjectURL = vi.fn();
+  it('offers the one app for every store after the acknowledgement, then a code, and notices the binding', async () => {
+    vi.useFakeTimers();
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([]);
+    vi.mocked(stores.createPairingCode).mockResolvedValue({ id: 'p-1', store_id: 's-1', pairing_code: 'bwpc_abc', expires_at: '2026-10-21T12:15:00Z', saas_endpoint: '', service_url: '' });
     const wrapper = mount(ShopwarePanel, { props: { storeId: 's-1', canManage: true }, global });
     await flushPromises();
 
-    expect(wrapper.get('[data-download-app]').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('[data-download-app]').attributes('aria-disabled')).toBe('true');
+    expect(wrapper.get('[data-create-app-code]').attributes('disabled')).toBeDefined();
     await wrapper.get('[data-acknowledge]').setValue(true);
-    await wrapper.get('[data-download-app]').trigger('click');
-    await flushPromises();
+    expect(wrapper.get('[data-download-app]').attributes('href')).toBe('/api/v1/downloads/shopware-app');
+    expect(wrapper.text()).toContain('Open app');
 
-    expect(providers.downloadShopwareApp).toHaveBeenCalledWith('s-1');
-    expect(wrapper.find('[data-app-waiting]').exists()).toBe(true);
-    expect(wrapper.text()).toContain('Ждём установки приложения');
+    await wrapper.get('[data-create-app-code]').trigger('click');
+    await flushPromises();
+    expect((wrapper.get('[data-app-code] input').element as HTMLInputElement).value).toBe('bwpc_abc');
+
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([integration('shopware', { status: 'active', capabilities: { connection: 'app' }, health: { key_last4: 'ZXCV' } })]);
+    await vi.advanceTimersByTimeAsync(5_000);
+    await flushPromises();
+    expect(wrapper.find('[data-app-code]').exists()).toBe(false);
+    expect(wrapper.get('[data-connection]').text()).toContain('ZXCV');
     wrapper.unmount();
+    vi.useRealTimers();
   });
 
   it('offers an app update for the same connection when the shop runs an older version', async () => {

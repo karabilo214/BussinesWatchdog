@@ -69,6 +69,12 @@ Schedule::command('artifacts:purge')
     ->withoutOverlapping(60)
     ->onOneServer();
 
+Schedule::command('shopware:app-installations-purge')
+    ->dailyAt('03:35')
+    ->timezone('UTC')
+    ->withoutOverlapping(60)
+    ->onOneServer();
+
 Schedule::command('exports:purge')
     ->dailyAt('03:25')
     ->timezone('UTC')
