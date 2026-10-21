@@ -1540,6 +1540,8 @@
     "matching_note": "Zuordnung über Metadaten wird für PayPal nicht unterstützt: Zahlungen werden Bestellungen nur über die Transaktions-ID zugeordnet, die das PayPal-Plugin in die Bestellung schreibt."
   },
   "billing": {
+    "selected_from_site": "Auf der Website gewählt",
+    "selection_changed": "Der gewählte Preis ist nicht mehr verfügbar. Prüfen Sie die aktuellen Konditionen vor der Zahlung.",
     "subscription": "Ihr Abonnement",
     "plan": "Tarif",
     "no_plan": "Nicht gewählt",

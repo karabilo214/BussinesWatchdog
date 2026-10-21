@@ -1540,6 +1540,8 @@
     "matching_note": "Metadata matching is not supported for PayPal: payments are linked to orders only by the transaction id the PayPal plugin writes to the order."
   },
   "billing": {
+    "selected_from_site": "Selected on the site",
+    "selection_changed": "The selected price is no longer available. Review the current terms before paying.",
     "subscription": "Your subscription",
     "plan": "Plan",
     "no_plan": "Not chosen",

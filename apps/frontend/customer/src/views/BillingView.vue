@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ApiError, newIdempotencyKey } from '@bw/api-client';
 import { formatMinor, parseMinor, StatusBadge, type Tone } from '@bw/ui';
@@ -65,6 +66,7 @@ const STATUS_TONES: Record<SubscriptionStatus, Tone> = {
 const PLAN_LIMITS = ['max_orders_per_month', 'max_active_stores', 'min_check_interval_minutes', 'manual_runs_per_day', 'monthly_event_budget', 'retention_days'] as const;
 
 const { locale, t } = useI18n();
+const route = useRoute();
 const { dateTime, period } = useFormat();
 const { role } = useRole();
 const isOwner = computed(() => role.value === 'owner');
@@ -91,6 +93,10 @@ const change = reactive({ plan: null as BillingPlan | null, extra: 0, faster: fa
 const notice = ref<'applied' | 'scheduled' | 'withdrawn' | 'cancelled' | 'resumed' | 'retained' | null>(null);
 const cancelForm = reactive({ open: false, reason: '' });
 const capacityChoice = ref<string[]>([]);
+const selectedPlanVersionId = ref<string | null>(null);
+const selectedPriceId = ref<string | null>(null);
+const selectionChanged = ref(false);
+let selectionApplied = false;
 
 const paid = computed(() => subscription.value !== null && ['active', 'past_due'].includes(subscription.value.status) && subscription.value.provider !== 'internal');
 const currentPlan = computed(() => catalog.value?.data.find((plan) => plan.plan_version_id === subscription.value?.plan_version_id) ?? null);
@@ -112,7 +118,15 @@ function planName(plan: Pick<BillingPlan, 'name' | 'plan_code'> | null, code: st
 }
 
 function price(plan: BillingPlan, kind: BillingPrice['kind']): BillingPrice | null {
-  return plan.prices.find((item) => item.kind === kind) ?? null;
+  const base = (plan.plan_version_id === selectedPlanVersionId.value
+    ? plan.prices.find((item) => item.kind === 'base' && item.id === selectedPriceId.value)
+    : null) ?? plan.prices.find((item) => item.kind === 'base');
+
+  if (base === undefined || kind === 'base') {
+    return base ?? null;
+  }
+
+  return plan.prices.find((item) => item.kind === kind && item.interval === base.interval && item.interval_count === base.interval_count && item.currency === base.currency) ?? null;
 }
 
 function money(item: BillingPrice, minor = item.amount_minor): string {
@@ -408,6 +422,25 @@ async function load(): Promise<void> {
     for (const plan of loadedCatalog.data) {
       extraStores[plan.plan_version_id] = plan.plan_version_id === loadedSubscription?.plan_version_id ? loadedSubscription.extra_store_quantity : (extraStores[plan.plan_version_id] ?? 0);
       fasterChecks[plan.plan_version_id] = plan.plan_version_id === loadedSubscription?.plan_version_id ? (loadedSubscription.faster_check_interval_minutes ?? null) !== null : (fasterChecks[plan.plan_version_id] ?? false);
+    }
+
+    if (!selectionApplied && typeof route.query.plan === 'string') {
+      selectionApplied = true;
+      const selected = loadedCatalog.data.find((plan) => plan.plan_code === route.query.plan);
+      const requestedPrice = typeof route.query.price === 'string' ? route.query.price : null;
+
+      if (selected === undefined) {
+        selectionChanged.value = true;
+      } else {
+        selectedPlanVersionId.value = selected.plan_version_id;
+        if (requestedPrice !== null && !selected.prices.some((item) => item.kind === 'base' && item.id === requestedPrice)) {
+          selectionChanged.value = true;
+        } else {
+          selectedPriceId.value = requestedPrice;
+        }
+        const requestedStores = typeof route.query.stores === 'string' && /^\d{1,3}$/.test(route.query.stores) ? Number(route.query.stores) : 0;
+        extraStores[selected.plan_version_id] = price(selected, 'extra_store') === null ? 0 : Math.min(requestedStores, maxExtra(selected), 100);
+      }
     }
   } catch (caught) {
     loadError.value = caught;
@@ -809,6 +842,7 @@ onBeforeUnmount(stopPolling);
           <div class="flex flex-col gap-1">
             <h2 id="plans-title" class="text-lg font-semibold">{{ $t('billing.plans') }}</h2>
             <p class="text-sm text-text-muted">{{ $t('billing.tax_note') }}</p>
+            <p v-if="selectionChanged" class="text-sm text-warn" data-selection-changed>{{ $t('billing.selection_changed') }}</p>
             <p v-if="canChange" class="text-sm text-text-muted">{{ $t('billing.change.hint') }}</p>
             <p v-else-if="!isOwner" class="text-sm text-text-muted">{{ $t('billing.owner_manages') }}</p>
             <p v-else-if="!catalog.checkout_available" class="text-sm text-text-muted">{{ $t('billing.checkout_unavailable') }}</p>
@@ -842,13 +876,15 @@ onBeforeUnmount(stopPolling);
               v-for="plan in catalog.data"
               :key="plan.plan_version_id"
               class="flex flex-col gap-4 rounded-xl border bg-surface p-5"
-              :class="plan.plan_version_id === subscription?.plan_version_id ? 'border-primary' : 'border-border'"
+              :class="plan.plan_version_id === selectedPlanVersionId ? 'border-primary ring-2 ring-primary' : plan.plan_version_id === subscription?.plan_version_id ? 'border-primary' : 'border-border'"
               :data-plan="plan.plan_code"
+              :data-selected="plan.plan_version_id === selectedPlanVersionId ? 'true' : undefined"
             >
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-base font-semibold">{{ planName(plan, plan.plan_code) }}</h3>
                 <div class="flex gap-1.5">
                   <StatusBadge v-if="plan.plan_version_id === subscription?.plan_version_id" tone="ok" :label="$t('billing.current')" />
+                  <StatusBadge v-if="plan.plan_version_id === selectedPlanVersionId" tone="note" :label="$t('billing.selected_from_site')" />
                   <StatusBadge v-if="plan.placeholder" tone="unknown" :label="$t('billing.placeholder')" />
                 </div>
               </div>

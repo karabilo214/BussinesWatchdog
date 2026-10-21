@@ -91,6 +91,20 @@ class PolicyAcceptanceTest extends TestCase
         $this->get('/ru/signup')->assertRedirect('/app/settings/billing');
     }
 
+    public function test_pricing_selection_survives_signup_and_the_existing_account_link(): void
+    {
+        $price = (string) Str::uuid7();
+        $target = '/app/settings/billing?plan=start&price='.$price.'&stores=2';
+
+        $this->get('/de/signup?plan=start&price='.$price.'&stores=2')->assertOk()
+            ->assertSee('name="price" value="'.$price.'"', false)
+            ->assertSee('name="stores" value="2"', false)
+            ->assertSee('href="'.str_replace('&', '&amp;', $target).'"', false);
+
+        $this->post('/de/signup', $this->signup(['price' => $price, 'stores' => 2]))->assertRedirect($target);
+        $this->get('/de/signup?plan=start&price='.$price.'&stores=2')->assertRedirect($target);
+    }
+
     public function test_signup_refuses_a_taken_email_and_an_outdated_version_without_creating_anything(): void
     {
         $terms = $this->document('terms', PublicPage::POLICY_SERVICE_TERMS, ['en' => 'Terms']);

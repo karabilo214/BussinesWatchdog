@@ -90,13 +90,15 @@ class PricingTable
         $saving = null;
 
         if ($base !== null && $base['interval'] === 'year' && $count === 1) {
-            $amount = (int) $base['amount_minor'];
-            $monthly = $format((string) intdiv($amount + 6, 12));
+            $amount = (string) $base['amount_minor'];
+            $monthly = $format(bcdiv(bcadd($amount, '6'), '12', 0));
             $month = $this->find($plan, BillingPrice::KIND_BASE, 'month:1', $base['currency']);
 
             if ($month !== null) {
-                $twelve = (int) $month['amount_minor'] * 12;
-                $saving = $twelve > $amount ? intdiv(($twelve - $amount) * 100, $twelve) : null;
+                $twelve = bcmul((string) $month['amount_minor'], '12', 0);
+                $saving = bccomp($twelve, $amount, 0) > 0 && bccomp($twelve, '0', 0) > 0
+                    ? (int) bcdiv(bcmul(bcsub($twelve, $amount, 0), '100', 0), $twelve, 0)
+                    : null;
                 $saving = $saving === 0 ? null : $saving;
             }
         }
@@ -107,7 +109,7 @@ class PricingTable
         $chosen = min($extraStores, $extraMax);
         $total = $extra === null || $chosen === 0 ? null : [
             'count' => $chosen,
-            'price' => $format((string) ((int) $base['amount_minor'] + $chosen * (int) $extra['amount_minor'])),
+            'price' => $format(bcadd((string) $base['amount_minor'], bcmul((string) $extra['amount_minor'], (string) $chosen, 0), 0)),
             'capped' => $chosen < $extraStores,
         ];
         $faster = $base === null || ($plan['faster_check_interval_minutes'] ?? null) === null ? null : $this->find($plan, BillingPrice::KIND_FASTER_CHECKS, self::period($base), $base['currency']);
@@ -127,6 +129,7 @@ class PricingTable
 
         return [
             'code' => $plan['plan_code'],
+            'price_id' => $base['id'] ?? null,
             'placeholder' => (bool) $plan['placeholder'],
             'name' => $plan['name'][$locale] ?? $plan['name']['en'] ?? $plan['plan_code'],
             'description' => $plan['description'][$locale] ?? $plan['description']['en'] ?? null,

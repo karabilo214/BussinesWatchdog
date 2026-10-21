@@ -141,12 +141,12 @@ function catalog(overrides: Partial<BillingCatalog> = {}): BillingCatalog {
   return { data: [START], mode: 'test', checkout_available: true, trial_available: true, ...overrides };
 }
 
-async function mountView() {
+async function mountView(path = '/billing') {
   const router = createRouter({
     history: createMemoryHistory('/app/'),
     routes: ['overview', 'profile', 'team', 'billing', 'incidents', 'reconciliation', 'checks', 'notifications', 'login'].map((name) => ({ path: `/${name}`, name, component: { template: '<div />' } })),
   });
-  await router.push('/billing');
+  await router.push(path);
   const wrapper = mount(BillingView, { global: { plugins: [localization, router], stubs: { RouterLink: RouterLinkStub } } });
   await flushPromises();
 
@@ -164,6 +164,30 @@ beforeEach(() => {
 });
 
 describe('BillingView', () => {
+  it('keeps the public pricing selection through login and uses its exact published price and store count', async () => {
+    session.value = sessionFor('owner');
+    const yearly: BillingPlan = {
+      ...START,
+      prices: [
+        ...START.prices,
+        { ...START.prices[0]!, id: 'p-year', amount_minor: '19000', interval: 'year' },
+        { ...START.prices[1]!, id: 'p-year-extra', amount_minor: '9000', interval: 'year' },
+      ],
+    };
+    api.fetchPlans.mockResolvedValue(catalog({ data: [yearly] }));
+    api.startCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 2, discounts: null, access_state: 'onboarding', provider_checkout: null });
+    api.fetchCheckout.mockResolvedValue({ id: 'c-1', status: 'pending', error_code: null, expires_at: '', extra_store_quantity: 2, discounts: null, access_state: 'onboarding', provider_checkout: null });
+
+    const wrapper = await mountView('/billing?plan=start&price=p-year&stores=2');
+    const card = wrapper.get('[data-plan="start"]');
+    expect(card.attributes('data-selected')).toBe('true');
+    expect((card.get('[data-extra="start"]').element as HTMLInputElement).value).toBe('2');
+    expect(card.text()).toContain('370,00');
+    await card.get('[data-action="buy-start"]').trigger('click');
+    await flushPromises();
+    expect(api.startCheckout).toHaveBeenCalledWith('p-year', 2, expect.any(String), null, false, []);
+  });
+
   it('shows the owner the pilot and test notices, usage and a plan with exact prices', async () => {
     session.value = sessionFor('owner');
     const wrapper = await mountView();
@@ -267,12 +291,12 @@ describe('BillingView', () => {
 
   it('shows any billing period the owner set', async () => {
     session.value = sessionFor('owner');
-    const biweekly: BillingPlan = { ...START, prices: [{ ...START.prices[0]!, interval: 'week', interval_count: 2 }, { ...START.prices[1]!, interval: 'day', interval_count: 21 }] };
+    const biweekly: BillingPlan = { ...START, prices: [{ ...START.prices[0]!, interval: 'week', interval_count: 2 }, { ...START.prices[1]!, interval: 'week', interval_count: 2 }] };
     api.fetchPlans.mockResolvedValue(catalog({ data: [biweekly] }));
     const wrapper = await mountView();
 
     expect(wrapper.get('[data-plan="start"]').text()).toContain('каждые 2 недели');
-    expect(wrapper.get('[data-plan="start"]').text()).toContain('каждый 21 день');
+    expect(wrapper.get('[data-plan="start"]').text()).toContain('+ 9,00');
   });
 
   it('starts a trial and reloads the subscription', async () => {

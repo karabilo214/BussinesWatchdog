@@ -70,7 +70,7 @@
 .bw-page .bw-faq p { @apply text-ink-700; margin-top: 0.75rem; }
 .bw-page .bw-cta { @apply rounded-3xl border border-brand-200 bg-white p-7 sm:p-10; border-top: 4px solid #d59430; }
 .bw-page .bw-pricing-hero { padding-block: 3.5rem 2.5rem; max-width: 50rem; }
-.bw-page .bw-plans { @apply grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-4; }
+.bw-page .bw-plans { @apply grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3; }
 .bw-page .bw-plan { @apply flex flex-col rounded-2xl border border-ink-200 bg-white p-6; min-width: 0; }
 .bw-page .bw-plan-featured { @apply border-2 border-brand-700; box-shadow: 0 14px 35px -28px #14316199; }
 .bw-page .bw-plan h2 { @apply text-2xl; }

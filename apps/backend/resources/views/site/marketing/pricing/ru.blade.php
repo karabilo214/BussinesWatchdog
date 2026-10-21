@@ -32,7 +32,7 @@
             </form>
         @endif
 
-<p class="bw-inline-note">Калькулятор показывает предварительную стоимость. Дополнительные магазины, период и валюта выбираются повторно в кабинете перед оплатой.</p>@if ($pricing['plans'] === [])
+<p class="bw-inline-note">Калькулятор показывает действующие опубликованные цены. Выбор перейдёт в кабинет, где перед оплатой вы подтвердите итоговую сумму.</p>@if ($pricing['plans'] === [])
     <p class="bw-empty">{{ __('site.pricing.empty') }} <a class="bw-textlink" href="{{ \App\Support\Site\SiteContent::url($locale, 'contact') }}">{{ __('site.nav.contact') }}</a></p>
 @else
 <div class="bw-plans">
@@ -45,7 +45,7 @@
         @if ($plan['individual'])
             <p class="bw-price bw-price-custom">{{ __('site.pricing.individual') }}</p>
         @else
-            <p class="bw-price"><strong>{{ $plan['price'] }}</strong><span>{{ $plan['per'] }}</span></p>
+            <p class="bw-price"><strong>{{ $plan['with_extra_stores']['price'] ?? $plan['price'] }}</strong><span>{{ $plan['per'] }}</span></p>
         @endif
         @if ($plan['monthly'])<p class="bw-small">{{ __('site.pricing.monthly', ['amount' => $plan['monthly']]) }}</p>@endif
         @if ($plan['saving'])<p class="bw-pill">{{ __('site.pricing.saving', ['n' => $plan['saving']]) }}</p>@endif
@@ -72,7 +72,7 @@
         @if ($plan['individual'])
             <a class="bw-btn bw-btn-outline" href="{{ \App\Support\Site\SiteContent::url($locale, 'contact') }}">{{ __('site.pricing.contact_us') }}</a>
         @else
-            <a class="bw-btn {{ $plan['code'] === 'business' ? '' : 'bw-btn-outline' }}" href="{{ \App\Support\Site\SiteContent::url($locale, 'signup') }}?plan={{ urlencode($plan['code']) }}">{{ __('site.pricing.choose') }}</a>
+            <a class="bw-btn {{ $plan['code'] === 'business' ? '' : 'bw-btn-outline' }}" href="{{ \App\Support\Site\SiteContent::url($locale, 'signup') }}?{{ http_build_query(['plan' => $plan['code'], 'price' => $plan['price_id'], 'stores' => $plan['with_extra_stores']['count'] ?? 0]) }}">{{ __('site.pricing.choose') }}</a>
             @if ($plan['trial_days'] > 0)<p class="bw-trial">{{ trans_choice('site.pricing.trial', $plan['trial_days'], ['n' => $plan['trial_days']]) }}</p>@endif
         @endif
         </div>

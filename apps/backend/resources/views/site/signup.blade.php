@@ -19,6 +19,8 @@
         <form method="post" action="{{ \App\Support\Site\SiteContent::url($locale, 'signup') }}" class="site-form site-card" data-form="signup" novalidate>
             @csrf
             <input type="hidden" name="plan" value="{{ $plan }}">
+            <input type="hidden" name="price" value="{{ $price }}">
+            <input type="hidden" name="stores" value="{{ $stores }}">
             @foreach ([['name', 'text', 'name', 100], ['organization_name', 'text', 'organization', 100], ['email', 'email', 'email', 255]] as [$field, $type, $autocomplete, $max])
                 <div class="site-field">
                     <label for="signup-{{ $field }}">{{ __('site.signup.'.($field === 'organization_name' ? 'organization' : $field)) }}</label>
@@ -66,7 +68,7 @@
                 </div>
             @endif
             <p><button type="submit" class="site-button">{{ __('site.signup.submit') }}</button></p>
-            <p class="site-muted site-small">{{ __('site.signup.have_account') }} <a href="/app/login">{{ __('site.nav.sign_in') }}</a></p>
+            <p class="site-muted site-small">{{ __('site.signup.have_account') }} <a href="{{ $login_target }}">{{ __('site.nav.sign_in') }}</a></p>
         </form>
     </section>
 @endsection

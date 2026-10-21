@@ -266,6 +266,9 @@ class PublicSiteTest extends TestCase
 
         $three = $this->get('/de/pricing?stores=3')->assertOk();
         $three->assertSee('data-total="start"', false)->assertSee('Mit 3 zusätzlichen Shops:')->assertSee('34,00')->assertDontSee('data-total="solo"', false);
+        $yearlyPriceId = BillingPrice::query()->where('plan_version_id', $start->id)->where('price_kind', BillingPrice::KIND_BASE)->where('billing_interval', 'year')->value('id');
+        $this->get('/de/pricing?stores=2&period=year:1')->assertSee('strong>290,00', false)
+            ->assertSee('price='.$yearlyPriceId.'&amp;stores=2', false);
         $three->assertSee('stores=3', false);
         $this->assertStringContainsString('value="3"', (string) $three->getContent());
 
@@ -273,6 +276,15 @@ class PublicSiteTest extends TestCase
         $this->get('/de/pricing?stores=2&period=year:1')->assertSee('290,00');
         $this->get('/de/pricing?stores=-2')->assertOk()->assertDontSee('data-total=', false);
         $this->get('/de/pricing?stores=abc')->assertOk()->assertDontSee('data-total=', false);
+    }
+
+    public function test_pricing_adds_large_minor_unit_amounts_without_overflow(): void
+    {
+        $this->plan('large', ['en' => 'Large'], [['month', 9000000000000000000]], extra: 100000000000000000);
+
+        $this->get('/en/pricing?stores=2')->assertOk()
+            ->assertSee('92000000000000000.00')
+            ->assertSee('data-total="large"', false);
     }
 
     public function test_contact_form_stores_the_message_notifies_the_owner_and_resists_spam(): void
