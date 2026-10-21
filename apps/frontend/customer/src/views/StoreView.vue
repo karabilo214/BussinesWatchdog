@@ -6,6 +6,7 @@ import OrderSource from '@/components/OrderSource.vue';
 import CoverageList from '@/components/CoverageList.vue';
 import PaymentProviders from '@/components/PaymentProviders.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import CheckoutLayoutSettings from '@/components/CheckoutLayoutSettings.vue';
 import StoreSettings from '@/components/StoreSettings.vue';
 import VerificationPanel from '@/components/VerificationPanel.vue';
 import { storeHost } from '@/components/storeHost';
@@ -79,6 +80,7 @@ watch(
         <PaymentProviders :store-id="store.id" :can-manage="canManageStores" @changed="load" />
         <VerificationPanel :key="store.verified_at ?? 'unverified'" :store="store" :can-manage="canManageStores" @verified="load" />
         <StoreSettings :store="store" :can-manage="canManageStores" @updated="store = $event" @stale="load" />
+        <CheckoutLayoutSettings :store="store" :can-manage="canManageStores" @updated="store = $event" />
       </template>
     </div>
   </AppLayout>

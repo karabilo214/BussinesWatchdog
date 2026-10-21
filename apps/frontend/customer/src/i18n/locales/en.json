@@ -1778,5 +1778,23 @@
     "lia_hint": "Fill in the LIA template with your store's details and keep it with your data protection records — data protection officers often ask for it.",
     "provider_missing": "The service provider's details are not set yet — the text shows a placeholder in square brackets.",
     "failed": "The texts could not be loaded. Please try again later."
+  },
+  "checkout_layout": {
+    "title": "Checkout pages and elements",
+    "intro": "For a Shopware store with a third-party theme or a custom checkout. The browser check and the app's observation script look for these pages and elements; an empty field means the Shopware default (shown in grey). Page paths and CSS selectors only, no JavaScript.",
+    "field": {
+      "confirm_path": "Order confirmation page (path)",
+      "finish_path": "«Thank you» page (path)",
+      "order_form": "Order form (CSS selector)",
+      "submit_button": "Submit order button (CSS selector)",
+      "payment_method": "Payment method choice (CSS selector)",
+      "error_notice": "Error message (CSS selector)"
+    },
+    "hint": "A path starts with «/» and is compared with the end of the page address, so language prefixes like /de work. If the elements are no longer found after a theme change, observation is marked «not confirmed», not «checkout broken». The address the check opens can still be set in the check settings; without it the check opens the confirmation page from here.",
+    "error": {
+      "checkout_layout_path_invalid": "A path starts with «/», without «..», «//», ? or # (for example /checkout/confirm).",
+      "checkout_layout_selector_invalid": "Only letters, digits, space and # . - _ [ ] = : \" ' > ~ + * , ( ) ^ $ | are allowed.",
+      "checkout_layout_too_long": "At most 200 characters."
+    }
   }
 }

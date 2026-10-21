@@ -3567,6 +3567,34 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "428": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/checkout-layout:
+    put:
+      tags: [Stores]
+      operationId: saveStoreCheckoutLayout
+      security:
+        - {UserSession: []}
+      description: "Checkout pages and elements of a Shopware store with a third-party theme (ADR 0075), used by the browser check and the Shopware app's observation script. The whole set is replaced; an empty or missing field means the Shopware default. Paths start with / (no .., //, query); selectors use letters, digits, space and #.-_[]=:\"'>~+*,()^$| only; at most 200 characters each. 422 checkout_layout_unsupported for other platforms."
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CheckoutLayoutFields"}
+      responses:
+        "200":
+          description: The store
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Store"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/stores/{store_id}/delete:
     post:
       tags: [Stores]
@@ -6888,6 +6916,23 @@ components:
         coverage: {$ref: "#/components/schemas/StoreCoverage"}
         last_successful_check_at: {type: [string, "null"], format: date-time}
         active_incident_count: {type: integer, minimum: 0}
+        checkout_layout:
+          type: [object, "null"]
+          description: "Shopware stores only (ADR 0075): the fields the customer set and the defaults that apply to the others; null for other platforms."
+          required: [custom, defaults]
+          properties:
+            custom: {$ref: "#/components/schemas/CheckoutLayoutFields"}
+            defaults: {$ref: "#/components/schemas/CheckoutLayoutFields"}
+    CheckoutLayoutFields:
+      type: object
+      additionalProperties: false
+      properties:
+        confirm_path: {type: string, maxLength: 200}
+        finish_path: {type: string, maxLength: 200}
+        order_form: {type: string, maxLength: 200}
+        submit_button: {type: string, maxLength: 200}
+        payment_method: {type: string, maxLength: 200}
+        error_notice: {type: string, maxLength: 200}
     StoreVerification:
       type: object
       required: [id, store_id, method, state]

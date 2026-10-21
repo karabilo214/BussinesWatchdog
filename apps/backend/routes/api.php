@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\V1\Payments\RefundAllocationController;
 use App\Http\Controllers\Api\V1\Payments\UnmatchedPaymentController;
 use App\Http\Controllers\Api\V1\Privacy\OrganizationDeletionController;
 use App\Http\Controllers\Api\V1\Reconciliation\ReconciliationController;
+use App\Http\Controllers\Api\V1\Stores\StoreCheckoutLayoutController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
 use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
 use App\Http\Controllers\Api\V1\Tenancy\MoneyVisibilityController;
@@ -108,6 +109,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::get('/stores/{store}', [StoreController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::patch('/stores/{store}', [StoreController::class, 'update'])
+        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+    Route::put('/stores/{store}/checkout-layout', [StoreCheckoutLayoutController::class, 'update'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
     Route::post('/stores/{store}/delete', [StoreController::class, 'destroy'])
         ->middleware('tenant.role:'.TenantRoles::OWNER);

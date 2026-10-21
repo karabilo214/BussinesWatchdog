@@ -1778,5 +1778,23 @@
     "lia_hint": "Ergänzen Sie die LIA-Vorlage mit den Angaben Ihres Shops und legen Sie sie zu Ihren Datenschutzunterlagen – Datenschutzbeauftragte fragen häufig danach.",
     "provider_missing": "Die Angaben des Anbieters sind noch nicht hinterlegt – im Text steht ein Platzhalter in eckigen Klammern.",
     "failed": "Die Texte konnten nicht geladen werden. Bitte versuchen Sie es später erneut."
+  },
+  "checkout_layout": {
+    "title": "Seiten und Elemente des Bestellabschlusses",
+    "intro": "Für einen Shopware-Shop mit Theme eines Drittanbieters oder angepasstem Bestellabschluss. Die Browserprüfung und das Beobachtungsskript der App suchen diese Seiten und Elemente; ein leeres Feld bedeutet den Shopware-Standard (grau angezeigt). Nur Seitenpfade und CSS-Selektoren, kein JavaScript.",
+    "field": {
+      "confirm_path": "Bestellbestätigungsseite (Pfad)",
+      "finish_path": "Seite „Vielen Dank für Ihre Bestellung“ (Pfad)",
+      "order_form": "Bestellformular (CSS-Selektor)",
+      "submit_button": "Schaltfläche „Bestellung absenden“ (CSS-Selektor)",
+      "payment_method": "Auswahl der Zahlungsart (CSS-Selektor)",
+      "error_notice": "Fehlermeldung (CSS-Selektor)"
+    },
+    "hint": "Ein Pfad beginnt mit „/“ und wird mit dem Ende der Seitenadresse verglichen, Sprachpräfixe wie /de funktionieren also. Werden die Elemente nach einem Theme-Wechsel nicht mehr gefunden, gilt die Beobachtung als „nicht bestätigt“, nicht als „Checkout defekt“. Die Adresse, die die Prüfung öffnet, lässt sich weiterhin in den Prüfeinstellungen festlegen; ohne sie öffnet die Prüfung die Bestätigungsseite von hier.",
+    "error": {
+      "checkout_layout_path_invalid": "Ein Pfad beginnt mit „/“, ohne „..“, „//“, ? oder # (z. B. /checkout/confirm).",
+      "checkout_layout_selector_invalid": "Erlaubt sind nur Buchstaben, Ziffern, Leerzeichen und # . - _ [ ] = : \" ' > ~ + * , ( ) ^ $ |.",
+      "checkout_layout_too_long": "Höchstens 200 Zeichen."
+    }
   }
 }

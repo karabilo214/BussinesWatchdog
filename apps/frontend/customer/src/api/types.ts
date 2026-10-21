@@ -101,6 +101,16 @@ export interface Store {
   coverage: StoreCoverage;
   last_successful_check_at: string | null;
   active_incident_count: number;
+  checkout_layout?: { custom: CheckoutLayoutFields; defaults: Required<CheckoutLayoutFields> } | null;
+}
+
+export interface CheckoutLayoutFields {
+  confirm_path?: string;
+  finish_path?: string;
+  order_form?: string;
+  submit_button?: string;
+  payment_method?: string;
+  error_notice?: string;
 }
 
 export interface Page<T> {

@@ -5,6 +5,7 @@ namespace App\Support\Browser;
 use App\Models\CheckScenario;
 use App\Models\Integration;
 use App\Models\Store;
+use App\Support\Checkout\CheckoutLayout;
 use App\Support\Checkout\CheckoutObservation;
 
 class ScenarioDefinition
@@ -154,7 +155,7 @@ class ScenarioDefinition
             'store_origin' => $origin,
             'product_url' => $definition['product_url'],
             'cart_url' => $definition['cart_url'] ?? $origin.($shopware ? '/checkout/cart' : '/cart/'),
-            'checkout_url' => $definition['checkout_url'] ?? $origin.($shopware ? '/checkout/confirm' : '/checkout/'),
+            'checkout_url' => $definition['checkout_url'] ?? $origin.($shopware ? CheckoutLayout::effective($store)['confirm_path'] : '/checkout/'),
             'synthetic_location' => $definition['synthetic_location'] ?? null,
             'expect_checkout_script' => $this->expectsCheckoutScript($store, $access),
             'steps' => $this->steps($store->platform, $access),

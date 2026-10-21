@@ -509,3 +509,15 @@ Status: complete in main
 - `app_update.test_download` (integration DTO, `contracts/openapi.yaml`) is true only while `watchdog.connector_release_gate` is off. The Shopware panel then shows «Local environment: download app X.Y.Z» for a connected app with no pending update; it uses the existing update archive (same integration and secret). Never shown in production.
 
 Verification: `ShopwareAppTest` (flag true without the gate, false with it); customer `orderSource.test.ts` (no button without the flag, button with the version and download with it). Backend SQLite 689 passed + 4 skipped; customer 146/146, vue-tsc.
+
+### Step 217: Checkout Pages and Elements per Shopware Store (ADR 0075, part A)
+
+Status: complete in main; parts B–D (app 1.4.0, worker, coverage) follow
+
+- ADR 0075: one setting per store for third-party themes, used by the browser check and the app's script; data only (paths, CSS selectors); the script will read it from its own shop; checking is the browser check on the live store (no copy, ADR 0074).
+- `CheckoutLayout` (`stores.settings.checkout_layout`, no migration): confirm and finish paths, selectors of the order form, submit button, payment methods and error notice; empty = Shopware default. Paths start with `/`, no `..`, `//`, query or a bare `/`; selectors from a restricted character set; 200 characters at most; trailing slashes trimmed.
+- `PUT /api/v1/stores/{store}/checkout-layout` (store managers, Shopware stores only, `checkout_layout_unsupported` otherwise) replaces the set and writes `store.checkout_layout_saved` to the audit log when it changes; `Store.checkout_layout` = `{custom, defaults}` or null (`contracts/openapi.yaml`).
+- The check's default `checkout_url` for Shopware is the store origin plus the confirm path of the setting; a scenario's own `checkout_url` still wins.
+- Cabinet: «Checkout pages and elements» on the store page for Shopware stores (defaults as placeholders, field errors in ru/en/de).
+
+Verification: `StoreCheckoutLayoutTest` (save, trim, defaults, audit, check URL, reset; rejected paths and selectors, bare `/`, other platforms, viewer role), OpenAPI route guard; customer `checkoutLayout.test.ts`. Backend SQLite 691 passed + 4 skipped; customer 148/148, vue-tsc.

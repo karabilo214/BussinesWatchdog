@@ -1,5 +1,5 @@
 import { ApiError, request } from '@bw/api-client';
-import type { CreateStoreInput, Integration, Page, PairingCode, Store, StoreVerification, UpdateStoreInput, VerificationMethod } from './types';
+import type { CheckoutLayoutFields, CreateStoreInput, Integration, Page, PairingCode, Store, StoreVerification, UpdateStoreInput, VerificationMethod } from './types';
 
 export async function listStores(): Promise<Store[]> {
   return (await request<Page<Store>>('GET', '/api/v1/stores')).data.data;
@@ -11,6 +11,10 @@ export async function getStore(id: string): Promise<Store> {
 
 export async function createStore(input: CreateStoreInput): Promise<Store> {
   return (await request<Store>('POST', '/api/v1/stores', { body: input })).data;
+}
+
+export async function saveCheckoutLayout(storeId: string, layout: CheckoutLayoutFields): Promise<Store> {
+  return (await request<Store>('PUT', `/api/v1/stores/${encodeURIComponent(storeId)}/checkout-layout`, { body: layout })).data;
 }
 
 export async function updateStore(store: Store, changes: UpdateStoreInput): Promise<Store> {

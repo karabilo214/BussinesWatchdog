@@ -4,6 +4,7 @@ namespace App\Http\Dto\Stores;
 
 use App\Models\Store;
 use App\Support\Billing\StoreCapacity;
+use App\Support\Checkout\CheckoutLayout;
 use App\Support\Stores\StoreCoverage;
 use Illuminate\Support\Collection;
 
@@ -36,6 +37,7 @@ class StoreDto
             'browser_enabled' => $store->browser_enabled,
             'telemetry_enabled' => $store->telemetry_enabled,
             'config_version' => $store->config_version,
+            'checkout_layout' => CheckoutLayout::supports($store) ? ['custom' => (object) CheckoutLayout::custom($store), 'defaults' => CheckoutLayout::DEFAULTS] : null,
             'coverage' => $summary['coverage'],
             'last_successful_check_at' => $summary['last_successful_check_at'],
             'active_incident_count' => $summary['active_incident_count'],
