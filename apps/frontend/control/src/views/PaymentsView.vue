@@ -3,7 +3,7 @@ import { onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { formatMinor, parseMinor, StatusBadge } from '@bw/ui';
-import { fetchPayments, requestRefund, type Payment, type PaymentMonth, type PaymentStatus } from '@/api';
+import { approveRefund, fetchPayments, requestRefund, type Payment, type PaymentMonth, type PaymentStatus } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import RefundsPanel from '@/components/RefundsPanel.vue';
 import { useStaff } from '@/composables/useStaff';
@@ -27,7 +27,7 @@ const status = ref<string>(typeof route.query.status === 'string' ? route.query.
 const tenantId = typeof route.query.tenant_id === 'string' ? route.query.tenant_id : null;
 const { can } = useStaff();
 const refundsPanel = ref<InstanceType<typeof RefundsPanel> | null>(null);
-const refund = reactive({ payment: null as Payment | null, amount: '', full: false, reason: '', busy: false, error: null as unknown, done: false });
+const refund = reactive({ payment: null as Payment | null, amount: '', full: false, reason: '', code: '', pendingId: null as string | null, busy: false, error: null as unknown, done: false, approved: false });
 
 function left(row: Payment): bigint {
   return BigInt(row.total_minor ?? '0') - BigInt(row.refunded_minor ?? '0');
@@ -36,27 +36,36 @@ function left(row: Payment): bigint {
 function startRefund(row: Payment, full = false): void {
   const digits = left(row).toString().padStart(row.currency_exponent + 1, '0');
   const amount = row.currency_exponent === 0 ? digits : `${digits.slice(0, -row.currency_exponent)}.${digits.slice(-row.currency_exponent)}`;
-  Object.assign(refund, { payment: row, amount, full, reason: '', error: null, done: false });
+  Object.assign(refund, { payment: row, amount: full ? amount : '', full, reason: '', code: '', pendingId: null, error: null, done: false, approved: false });
 }
 
 function refundMinor(): string | null {
   const minor = refund.payment === null ? null : parseMinor(refund.amount, refund.payment.currency_exponent);
 
-  return minor === '0' ? null : minor;
+  if (minor === null || minor === '0' || refund.payment === null) return null;
+  if (BigInt(minor) > left(refund.payment) || (!refund.full && BigInt(minor) >= BigInt(refund.payment.total_minor ?? '0'))) return null;
+  return minor;
 }
 
 async function submitRefund(): Promise<void> {
   const row = refund.payment;
   const minor = refundMinor();
 
-  if (row === null || minor === null || refund.reason.trim().length < 3) return;
+  if (row === null || minor === null || refund.reason.trim().length < 3 || (can('refunds.approve') && refund.code.trim().length < 6)) return;
   refund.busy = true;
   refund.error = null;
 
   try {
-    await requestRefund(row.id, { amount_minor: minor, reason: refund.reason.trim(), cancel_subscription: true });
+    if (refund.pendingId === null) {
+      const requested = await requestRefund(row.id, { amount_minor: minor, reason: refund.reason.trim(), cancel_subscription: refund.full });
+      refund.pendingId = requested.id;
+    }
+    if (can('refunds.approve')) {
+      await approveRefund(refund.pendingId, { reason: refund.reason.trim(), confirmation_code: refund.code.trim() });
+    }
     refund.payment = null;
     refund.done = true;
+    refund.approved = can('refunds.approve');
     await refundsPanel.value?.load();
   } catch (caught) {
     refund.error = caught;
@@ -133,23 +142,27 @@ onMounted(() => load());
         <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover" data-action="filter">{{ $t('tenants.apply') }}</button>
       </form>
 
-      <p v-if="refund.done" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-refund="requested">{{ $t('refunds.requested_done') }}</p>
+      <p v-if="refund.done" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-refund="requested">{{ $t(refund.approved ? 'refunds.sent_done' : 'refunds.requested_done') }}</p>
       <form v-if="refund.payment" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-4 text-sm" data-form="refund" @submit.prevent="submitRefund">
         <p class="font-medium">{{ $t('refunds.form_title', { payment: refund.payment.invoice_number ?? refund.payment.provider_transaction_ref, organisation: refund.payment.tenant?.name ?? '' }) }}</p>
         <label class="flex max-w-xs flex-col gap-1.5">
           <span class="font-medium">{{ $t('refunds.amount', { currency: refund.payment.currency }) }}</span>
-          <input v-model="refund.amount" inputmode="decimal" :readonly="refund.full" class="rounded-md border border-border-strong bg-surface px-3 py-2 tabular-nums read-only:bg-surface-muted" data-field="refund-amount" />
+          <input v-model="refund.amount" inputmode="decimal" :readonly="refund.full || refund.pendingId !== null" class="rounded-md border border-border-strong bg-surface px-3 py-2 tabular-nums read-only:bg-surface-muted" data-field="refund-amount" />
           <span class="text-[13px] text-text-muted">{{ $t('refunds.left', { amount: money(left(refund.payment).toString(), refund.payment.currency, refund.payment.currency_exponent) }) }}</span>
         </label>
         <label class="flex flex-col gap-1.5">
           <span class="font-medium">{{ $t('refunds.reason') }}</span>
-          <textarea v-model="refund.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="refund-reason" />
+          <textarea v-model="refund.reason" maxlength="500" rows="2" :readonly="refund.pendingId !== null" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="refund-reason" />
         </label>
-        <p class="text-crit">{{ $t('refunds.cancel_subscription') }}</p>
-        <p class="text-text-muted">{{ $t('refunds.form_hint') }}</p>
+        <label v-if="can('refunds.approve')" class="flex max-w-xs flex-col gap-1.5">
+          <span class="font-medium">{{ $t('plans.code_confirm') }}</span>
+          <input v-model="refund.code" inputmode="numeric" autocomplete="one-time-code" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="refund-code" />
+        </label>
+        <p :class="refund.full ? 'text-crit' : 'text-text-muted'">{{ refund.full ? $t('refunds.full_effect') : $t('refunds.partial_effect') }}</p>
+        <p class="text-text-muted">{{ $t(can('refunds.approve') ? 'refunds.owner_hint' : 'refunds.form_hint') }}</p>
         <ErrorNotice v-if="refund.error" :error="refund.error" />
         <div class="flex flex-wrap gap-2">
-          <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="refund.busy || refundMinor() === null || refund.reason.trim().length < 3" data-action="submit-refund">{{ $t('refunds.submit') }}</button>
+          <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="refund.busy || refundMinor() === null || refund.reason.trim().length < 3 || (can('refunds.approve') && refund.code.trim().length < 6)" data-action="submit-refund">{{ $t(can('refunds.approve') ? 'refunds.return' : 'refunds.submit') }}</button>
           <button type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted" @click="refund.payment = null">{{ $t('common.cancel') }}</button>
         </div>
       </form>
@@ -185,7 +198,7 @@ onMounted(() => load());
               </td>
               <td class="px-4 py-3 text-right">
                 <div v-if="can('refunds.request') && row.status === 'completed' && left(row) > 0n" class="flex flex-wrap justify-end gap-2">
-                  <button type="button" class="rounded-md border border-border-strong px-3 py-1 text-sm font-medium text-primary hover:bg-primary-soft" data-action="refund" @click="startRefund(row)">{{ $t('refunds.action') }}</button>
+                  <button type="button" class="rounded-md border border-border-strong px-3 py-1 text-sm font-medium text-primary hover:bg-primary-soft" data-action="partial-refund" @click="startRefund(row)">{{ $t('refunds.partial_action') }}</button>
                   <button v-if="left(row) === BigInt(row.total_minor ?? '0')" type="button" class="rounded-md border border-crit-border px-3 py-1 text-sm font-medium text-crit hover:bg-crit-soft" data-action="cancel-and-refund" @click="startRefund(row, true)">{{ $t('refunds.cancel_and_refund') }}</button>
                 </div>
               </td>

@@ -127,6 +127,7 @@ CREATE TABLE billing_subscription_contracts (
  provider_state text,
  currency varchar(3),
  entitlement_snapshot jsonb NOT NULL,
+ started_at timestamptz,
  period_start timestamptz,
  period_end timestamptz,
  paid_until timestamptz,

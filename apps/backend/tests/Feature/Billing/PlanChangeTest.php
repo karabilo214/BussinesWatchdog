@@ -9,6 +9,7 @@ use App\Models\BillingPlanChange;
 use App\Models\BillingPlanVersion;
 use App\Models\BillingPrice;
 use App\Models\BillingSubscriptionContract;
+use App\Models\BillingTransaction;
 use App\Models\CheckRun;
 use App\Models\CheckScenario;
 use App\Models\Store;
@@ -16,6 +17,7 @@ use App\Models\Subscription;
 use App\Support\Billing\DiscountLedger;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
+use App\Support\Billing\Paddle\PaddleRefunds;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
 use App\Support\Billing\Paddle\PaddleSubscriptionSync;
 use App\Support\Browser\CheckScheduler;
@@ -296,6 +298,7 @@ class PlanChangeTest extends TestCase
     public function test_cancel_at_period_end_and_resume_follow_paddle(): void
     {
         $context = $this->subscribed('start', 0);
+        Carbon::setTestNow('2026-10-26T12:00:00Z');
 
         $this->cancelRenewal($context, ['at_period_end' => true, 'reason' => 'Слишком дорого'])
             ->assertOk()
@@ -318,21 +321,47 @@ class PlanChangeTest extends TestCase
         $this->resume($context, [])->assertStatus(409)->assertJsonPath('code', 'cancel_not_scheduled');
     }
 
-    public function test_owner_cancels_paddle_now_without_losing_the_paid_period(): void
+    public function test_owner_withdrawal_keeps_access_until_paddle_approves_the_full_refund(): void
     {
         $context = $this->subscribed('start', 0);
+        $this->payment($context);
 
         $this->cancelRenewal($context, ['reason' => 'No longer needed'])
             ->assertOk()
-            ->assertJsonPath('status', Subscription::STATUS_CANCELLED)
+            ->assertJsonPath('status', Subscription::STATUS_ACTIVE)
             ->assertJsonPath('access_state', 'active')
-            ->assertJsonPath('period_end', '2026-11-11T00:00:00.000000Z');
+            ->assertJsonPath('withdrawal_pending', true);
+        $this->assertCount(0, collect($this->paddleWrites())->where('url', self::API.'/subscriptions/sub_1/cancel'));
+        $this->cancelRenewal($context, [])->assertOk()->assertJsonPath('withdrawal_pending', true);
+        $this->assertCount(1, collect($this->paddleWrites())->where('url', self::API.'/adjustments'));
+
+        app(PaddleRefunds::class)->project([
+            'id' => 'adj_withdrawal_1', 'action' => 'refund', 'status' => 'approved', 'transaction_id' => 'txn_withdrawal',
+            'type' => 'full', 'totals' => ['total' => '1900'], 'updated_at' => '2026-10-20T12:00:01Z',
+        ]);
+        $this->assertNotNull(BillingSubscriptionContract::query()->where('tenant_id', $context['tenant']->id)->first()->access_revoked_at);
         $this->assertSame(['effective_from' => 'immediately'], collect($this->paddleWrites())->firstWhere('url', self::API.'/subscriptions/sub_1/cancel')['body']);
-        $this->assertDatabaseHas('audit_log', ['tenant_id' => $context['tenant']->id, 'action' => 'billing.subscription_cancelled']);
+        $this->assertSame('paused_billing', app(EntitlementCalculator::class)->forTenant($context['tenant']->id)->access);
 
         Carbon::setTestNow('2026-11-11T00:00:01Z');
         app(EntitlementCalculator::class)->forget();
         $this->assertSame('paused_billing', app(EntitlementCalculator::class)->forTenant($context['tenant']->id)->access);
+    }
+
+    public function test_rejected_withdrawal_can_be_retried_after_day_14(): void
+    {
+        $context = $this->subscribed('start', 0);
+        $this->payment($context);
+
+        $this->cancelRenewal($context, [])->assertOk()->assertJsonPath('withdrawal_pending', true);
+        app(PaddleRefunds::class)->project([
+            'id' => 'adj_withdrawal_1', 'action' => 'refund', 'status' => 'rejected', 'transaction_id' => 'txn_withdrawal',
+            'type' => 'full', 'totals' => ['total' => '1900'], 'updated_at' => '2026-10-20T12:00:01Z',
+        ]);
+        Carbon::setTestNow('2026-10-26T12:00:00Z');
+        $this->cancelRenewal($context, [])->assertOk()->assertJsonPath('withdrawal_pending', true);
+        $this->assertCount(2, collect($this->paddleWrites())->where('url', self::API.'/adjustments'));
+        $this->assertCount(0, collect($this->paddleWrites())->where('url', self::API.'/subscriptions/sub_1/cancel'));
     }
 
     public function test_only_the_owner_changes_and_unsupported_changes_are_refused(): void
@@ -450,6 +479,7 @@ class PlanChangeTest extends TestCase
             'normalized_state' => BillingSubscriptionContract::STATE_ACTIVE,
             'currency' => 'EUR',
             'period_start' => '2026-10-11T00:00:00Z',
+            'started_at' => '2026-10-11T00:00:00Z',
             'period_end' => '2026-11-11T00:00:00Z',
             'paid_until' => '2026-11-11T00:00:00Z',
             'entitlement_snapshot' => ['features' => [], 'limits' => []],
@@ -468,6 +498,20 @@ class PlanChangeTest extends TestCase
         app(PaddleSubscriptionSync::class)->sync('sub_1');
 
         return $context;
+    }
+
+    private function payment(array $context): BillingTransaction
+    {
+        $contract = BillingSubscriptionContract::query()->where('tenant_id', $context['tenant']->id)->firstOrFail();
+
+        return BillingTransaction::query()->create([
+            'tenant_id' => $context['tenant']->id, 'contract_id' => $contract->id,
+            'provider' => 'paddle', 'provider_account_ref' => 'default', 'mode' => 'test',
+            'provider_transaction_ref' => 'txn_withdrawal', 'provider_subscription_ref' => 'sub_1',
+            'status' => 'completed', 'currency' => 'EUR', 'currency_exponent' => 2,
+            'subtotal_minor' => 1900, 'discount_minor' => 0, 'tax_minor' => 0, 'total_minor' => 1900,
+            'source_updated_at' => now(),
+        ]);
     }
 
     private function fakePaddle(): void
@@ -533,6 +577,16 @@ class PlanChangeTest extends TestCase
                 return Http::response(['data' => $this->subscription()]);
             }
 
+            if ($request->method() === 'GET' && str_starts_with($path, '/transactions?')) {
+                return Http::response(['data' => [], 'meta' => ['pagination' => ['has_more' => false]]]);
+            }
+
+            if ($request->method() === 'POST' && $path === '/adjustments') {
+                $this->paddle['adjustment_tick'] = ($this->paddle['adjustment_tick'] ?? 0) + 1;
+
+                return Http::response(['data' => ['id' => 'adj_withdrawal_'.$this->paddle['adjustment_tick'], 'action' => 'refund', 'status' => 'pending_approval', 'transaction_id' => 'txn_withdrawal', 'type' => 'full', 'totals' => ['total' => '1900'], 'updated_at' => Carbon::now()->toIso8601ZuluString()]], 201);
+            }
+
             return Http::response(['error' => ['code' => 'not_found']], 404);
         });
     }
@@ -546,6 +600,7 @@ class PlanChangeTest extends TestCase
             'id' => 'sub_1',
             'status' => ! empty($this->paddle['cancelled']) ? 'canceled' : 'active',
             'customer_id' => 'ctm_1',
+            'started_at' => '2026-10-11T00:00:00Z',
             'currency_code' => 'EUR',
             'items' => $this->paddle['items'],
             'current_billing_period' => ! empty($this->paddle['cancelled']) ? null : ['starts_at' => '2026-10-11T00:00:00Z', 'ends_at' => '2026-11-11T00:00:00Z'],

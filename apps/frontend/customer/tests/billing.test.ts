@@ -102,6 +102,9 @@ function paidSubscription(overrides: Partial<BillingSubscription> = {}): Billing
     grace_until: null,
     period_end: '2026-11-11T00:00:00Z',
     cancel_at_period_end: false,
+    withdrawal_ends_at: '2026-10-01T00:00:00Z',
+    withdrawal_pending: false,
+    withdrawal_requested: false,
     extra_store_quantity: 0,
     price: { id: 'p-base', amount_minor: '1900', currency: 'EUR', currency_exponent: 2, billing_interval: 'month', billing_interval_count: 1 },
     scheduled_change: null,
@@ -508,7 +511,7 @@ describe('BillingView', () => {
     await wrapper.get('[data-action="cancel-subscription"]').trigger('click');
     const form = wrapper.get('[data-form="cancel"]');
     expect(form.text()).toContain('Магазины, история, инциденты и настройки сохраняются');
-    expect(form.text()).toContain('не возвращается автоматически');
+    expect(form.text()).toContain('проверки остановятся');
     await form.get('[data-field="cancel-reason"]').setValue('  дорого ');
     api.fetchSubscription.mockResolvedValue(paidSubscription({ cancel_at_period_end: true, version: 4 }));
     await form.get('[data-action="confirm-cancel"]').trigger('click');
@@ -521,6 +524,21 @@ describe('BillingView', () => {
     await wrapper.get('[data-action="resume"]').trigger('click');
     await flushPromises();
     expect(api.resumeSubscription).toHaveBeenCalledWith(4);
+  });
+
+  it('explains the full refund during the withdrawal window and keeps access while Paddle approval is pending', async () => {
+    session.value = sessionFor('owner');
+    api.fetchSubscription.mockResolvedValue(paidSubscription({ withdrawal_ends_at: '2099-10-25T00:00:00Z' }));
+    const wrapper = await mountView();
+
+    await wrapper.get('[data-action="cancel-subscription"]').trigger('click');
+    expect(wrapper.get('[data-form="cancel"]').text()).toContain('вернём всю оплаченную сумму');
+    api.fetchSubscription.mockResolvedValue(paidSubscription({ withdrawal_pending: true, withdrawal_requested: true }));
+    await wrapper.get('[data-action="confirm-cancel"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('[data-withdrawal="pending"]').text()).toContain('ожидает одобрения Paddle');
+    expect(wrapper.find('[data-action="cancel-subscription"]').exists()).toBe(false);
   });
 
   it('shows the order volume of every store, a store over its package with the date to choose by and the individual package', async () => {

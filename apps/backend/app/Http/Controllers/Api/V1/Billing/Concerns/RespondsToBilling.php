@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Support\Billing\BillingCheckoutRejected;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\OrderVolume;
+use App\Support\Billing\Paddle\PaddleRefunds;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
 use App\Support\Billing\StoreCapacity;
 use App\Support\Site\PolicyAcceptanceRequired;
@@ -96,6 +97,9 @@ trait RespondsToBilling
             'grace_until' => $subscription->past_due_since?->copy()->addDays((int) config('watchdog.billing.past_due_grace_days'))->toJSON(),
             'period_end' => $subscription->period_end?->toJSON(),
             'cancel_at_period_end' => $subscription->cancel_at_period_end,
+            'withdrawal_ends_at' => $contract?->started_at?->copy()->timezone('Europe/Berlin')->addDays(14)->toJSON(),
+            'withdrawal_pending' => $contract !== null && app(PaddleRefunds::class)->withdrawalPending($contract),
+            'withdrawal_requested' => $contract !== null && app(PaddleRefunds::class)->withdrawalRequested($contract),
             'extra_store_quantity' => $subscription->extra_store_quantity,
             'faster_check_interval_minutes' => $subscription->faster_check_interval_minutes,
             'price' => $this->priceDto($actions->liveContract($subscription->tenant_id)?->price_id, $scheduled),

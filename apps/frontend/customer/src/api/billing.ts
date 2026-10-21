@@ -104,6 +104,9 @@ export interface BillingSubscription {
   grace_until: string | null;
   period_end: string | null;
   cancel_at_period_end: boolean;
+  withdrawal_ends_at: string | null;
+  withdrawal_pending: boolean;
+  withdrawal_requested: boolean;
   extra_store_quantity: number;
   faster_check_interval_minutes?: number | null;
   price: { id: string; amount_minor: string; currency: string; currency_exponent: number; billing_interval: string; billing_interval_count: number } | null;

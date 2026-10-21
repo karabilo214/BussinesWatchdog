@@ -39,6 +39,8 @@ class RefundTest extends TestCase
     /** @var list<array<string, mixed>> */
     private array $sent = [];
 
+    private array $existingAdjustments = [];
+
     private ?User $customerUser = null;
 
     protected function setUp(): void
@@ -58,6 +60,10 @@ class RefundTest extends TestCase
                     ['id' => 'txnitm_base', 'totals' => ['total' => '1520']],
                     ['id' => 'txnitm_extra', 'totals' => ['total' => '720']],
                 ]]]]);
+            }
+
+            if ($request->method() === 'GET' && str_starts_with($path, '/adjustments?')) {
+                return Http::response(['data' => $this->existingAdjustments]);
             }
 
             if ($request->method() === 'POST' && $path === '/adjustments') {
@@ -130,9 +136,9 @@ class RefundTest extends TestCase
         app(PaddleEventProcessor::class)->processDue();
 
         app(EntitlementCalculator::class)->forget();
-        $this->assertSame('paused_billing', app(EntitlementCalculator::class)->forTenant($payment->tenant_id)->access);
-        $this->assertNotNull(BillingSubscriptionContract::query()->where('provider_subscription_ref', 'sub_1')->value('access_revoked_at'));
-        $this->assertTrue(collect(Http::recorded())->contains(fn (array $pair): bool => $pair[0]->url() === self::API.'/subscriptions/sub_1/cancel' && $pair[0]->data() === ['effective_from' => 'immediately']));
+        $this->assertSame('active', app(EntitlementCalculator::class)->forTenant($payment->tenant_id)->access);
+        $this->assertNull(BillingSubscriptionContract::query()->where('provider_subscription_ref', 'sub_1')->value('access_revoked_at'));
+        $this->assertFalse(collect(Http::recorded())->contains(fn (array $pair): bool => $pair[0]->url() === self::API.'/subscriptions/sub_1/cancel'));
 
         $this->assertSame([BillingRefund::STATUS_REFUNDED, 160], [$refund->fresh()->status, $refund->fresh()->tax_minor]);
         $dashboard = BillingRefund::query()->where('provider_adjustment_ref', 'adj_dash')->sole();
@@ -141,6 +147,26 @@ class RefundTest extends TestCase
 
         $this->getJson('/platform-api/v1/payments')->assertOk()->assertJsonPath('data.0.refunded_minor', '1240')->assertJsonPath('month.0.refunded_minor', '1240');
         $this->actingAs($this->customerUser)->withSession(['active_tenant_id' => $payment->tenant_id])->getJson('/api/v1/billing/invoices')->assertOk()->assertJsonPath('data.0.refunded_minor', '1240');
+    }
+
+    public function test_partial_refund_after_an_approved_partial_uses_only_unreturned_item_balances(): void
+    {
+        $payment = $this->payment();
+        $owner = $this->signIn('owner@platform.test', PlatformStaff::ROLE_OWNER);
+        $this->existingAdjustments = [[
+            'status' => 'approved', 'items' => [['item_id' => 'txnitm_base', 'totals' => ['total' => '1000']]],
+        ]];
+        app(PaddleRefunds::class)->project([
+            'id' => 'adj_prior', 'action' => 'refund', 'type' => 'partial', 'status' => 'approved',
+            'transaction_id' => 'txn_1', 'totals' => ['total' => '1000'], 'updated_at' => '2026-10-20T12:00:00Z',
+        ]);
+
+        $refund = app(PaddleRefunds::class)->request($owner->id, $payment->id, '1240', 'Remaining balance', false);
+        app(PaddleRefunds::class)->approve($owner->id, $refund->id, 'Approved');
+        $this->assertSame([
+            ['item_id' => 'txnitm_base', 'type' => 'partial', 'amount' => '520'],
+            ['item_id' => 'txnitm_extra', 'type' => 'full', 'amount' => '720'],
+        ], $this->sent[0]['items']);
     }
 
     public function test_a_rejected_request_frees_the_amount_and_a_confirmed_refund_cancels_immediately(): void
@@ -163,6 +189,23 @@ class RefundTest extends TestCase
         app(PaddleRefunds::class)->project(['id' => 'adj_1', 'action' => 'refund', 'status' => 'approved', 'transaction_id' => 'txn_1', 'totals' => ['total' => '2240'], 'updated_at' => '2026-10-20T12:05:00Z']);
         $this->assertTrue(collect(Http::recorded())->contains(fn (array $pair): bool => $pair[0]->url() === self::API.'/subscriptions/sub_1/cancel' && $pair[0]->data() === ['effective_from' => 'immediately']));
         $this->assertNotNull(BillingSubscriptionContract::query()->where('provider_subscription_ref', 'sub_1')->value('access_revoked_at'));
+    }
+
+    public function test_full_refund_from_paddle_dashboard_ends_access_and_cancels_the_linked_subscription(): void
+    {
+        $payment = $this->payment();
+        config()->set('watchdog.billing.enforcement', 'enforce');
+        BillingSubscriptionContract::query()->where('provider_subscription_ref', 'sub_1')->update(['period_end' => now()->addMonth(), 'paid_until' => now()->addMonth()]);
+        app(SubscriptionProjector::class)->project($payment->tenant_id, 'test');
+        $this->assertSame('active', app(EntitlementCalculator::class)->forTenant($payment->tenant_id)->access);
+
+        $this->event('evt_full_dashboard', 'adjustment.created', ['id' => 'adj_dashboard_full', 'action' => 'refund', 'type' => 'full', 'status' => 'approved', 'transaction_id' => 'txn_1', 'reason' => 'From Paddle', 'currency_code' => 'EUR', 'totals' => ['total' => '2240'], 'updated_at' => '2026-10-20T12:05:00Z']);
+        app(PaddleEventProcessor::class)->processDue();
+
+        app(EntitlementCalculator::class)->forget();
+        $this->assertSame('paused_billing', app(EntitlementCalculator::class)->forTenant($payment->tenant_id)->access);
+        $this->assertSame(BillingRefund::STATUS_REFUNDED, BillingRefund::query()->where('provider_adjustment_ref', 'adj_dashboard_full')->value('status'));
+        $this->assertTrue(collect(Http::recorded())->contains(fn (array $pair): bool => $pair[0]->url() === self::API.'/subscriptions/sub_1/cancel' && $pair[0]->data() === ['effective_from' => 'immediately']));
     }
 
     private function payment(): BillingTransaction

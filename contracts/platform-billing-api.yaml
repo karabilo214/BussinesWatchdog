@@ -407,7 +407,7 @@ paths:
   /api/v1/billing/cancel:
     post:
       operationId: cancelSaasRenewal
-      description: Cancel the Paddle subscription immediately without a refund; preserve paid access until paid_until. Legacy at_period_end=true schedules cancellation.
+      description: Within 14 days of Paddle started_at request full refunds; access remains until Paddle approves them, then ends immediately. After 14 days schedule cancellation at the paid period end.
       security:
       - CustomerSession: []
       responses:
@@ -453,9 +453,6 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                at_period_end:
-                  type: boolean
-                  description: Legacy scheduled cancellation when true. Omit for immediate cancellation.
                 reason:
                   type: string
                   maxLength: 2000
@@ -1162,6 +1159,11 @@ components:
         period_end: *id004
         next_charge_at: *id004
         cancel_at_period_end:
+          type: boolean
+        withdrawal_ends_at: *id004
+        withdrawal_pending:
+          type: boolean
+        withdrawal_requested:
           type: boolean
         version:
           type: integer

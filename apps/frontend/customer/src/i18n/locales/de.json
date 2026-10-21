@@ -1678,7 +1678,7 @@
         "applied": "Tarif geändert. Paddle hat die Zahlung bestätigt.",
         "scheduled": "Der Tarifwechsel ist für den nächsten Zeitraum geplant.",
         "withdrawn": "Der geplante Tarifwechsel wurde zurückgenommen.",
-        "cancelled": "Verlängerung gekündigt.",
+        "cancelled": "Kündigungsanfrage bearbeitet. Erstattungs- und Abonnementstatus stehen unten.",
         "resumed": "Das Abonnement verlängert sich wieder.",
         "retained": "Shop-Auswahl gespeichert."
       }
@@ -1694,6 +1694,8 @@
       "confirm": "Abonnement kündigen",
       "keep": "Abonnement behalten",
       "scheduled": "Verlängerung gekündigt: Das Abonnement endet am {date}.",
+      "within_14_days": "Innerhalb von 14 Tagen nach Abonnementbeginn erstatten wir den vollständig bezahlten Betrag. Der Zugang endet nach Genehmigung der Erstattung durch Paddle; bis dahin bleibt der Tarif aktiv.",
+      "pending": "Die vollständige Erstattung wartet auf die Genehmigung durch Paddle. Bis dahin bleibt Ihr Tarif aktiv; eine erneute Anfrage ist nicht nötig.",
       "resume": "Abonnement fortsetzen"
     },
     "capacity": {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Billing\Concerns\RespondsToBilling;
 use App\Http\Controllers\Controller;
 use App\Models\Subscription;
 use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\Paddle\PaddleRefunds;
 use App\Support\Billing\Paddle\PaddleSubscriptionActions;
 use App\Support\Billing\StoreCapacity;
 use App\Support\Site\Policies;
@@ -92,13 +93,13 @@ class SubscriptionController extends Controller
         });
     }
 
-    public function cancel(Request $request, TenantContext $tenantContext, PaddleSubscriptionActions $actions, EntitlementCalculator $calculator): JsonResponse
+    public function cancel(Request $request, TenantContext $tenantContext, PaddleRefunds $refunds, EntitlementCalculator $calculator): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('cancel subscription');
-        $validated = $request->validate(['at_period_end' => ['sometimes', 'boolean'], 'reason' => ['sometimes', 'nullable', 'string', 'max:2000']]);
+        $validated = $request->validate(['reason' => ['sometimes', 'nullable', 'string', 'max:2000']]);
 
-        return $this->rejectable(function () use ($actions, $tenantId, $request, $validated, $calculator): JsonResponse {
-            $actions->cancel($tenantId, (string) $request->user()->getAuthIdentifier(), isset($validated['reason']) ? trim($validated['reason']) : null, (bool) ($validated['at_period_end'] ?? false));
+        return $this->rejectable(function () use ($refunds, $tenantId, $request, $validated, $calculator): JsonResponse {
+            $refunds->withdraw($tenantId, (string) $request->user()->getAuthIdentifier(), isset($validated['reason']) ? trim($validated['reason']) : null);
             $calculator->forget();
 
             return response()->json($this->currentSubscription($tenantId, $calculator));

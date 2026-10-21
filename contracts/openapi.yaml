@@ -4478,7 +4478,7 @@ paths:
     post:
       tags: [Billing]
       operationId: cancelBillingSubscription
-      description: "Tenant owner only. Cancels the Paddle subscription immediately without refund; verified paid access continues until paid_until. Legacy at_period_end=true schedules cancellation. The optional reason is stored in the audit log."
+      description: "Tenant owner only. Within 14 days of Paddle started_at, requests full refunds for completed subscription payments; access stays active until Paddle approves all refunds, then subscription and access end immediately. After 14 days, schedules cancellation and access ends at the paid period end. A rejected refund can be retried under the original withdrawal request. The optional reason is audited."
       security:
         - {UserSession: []}
       parameters:
@@ -4491,7 +4491,6 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                at_period_end: {type: boolean, description: "Legacy scheduled cancellation when true; omit for immediate cancellation."}
                 reason: {type: [string, "null"], maxLength: 2000}
       responses:
         "200":
@@ -6552,7 +6551,7 @@ components:
     BillingSubscription:
       type: object
       additionalProperties: false
-      required: [id, tenant_id, provider, plan_code, plan_version_id, status, access_state, access_reason_codes, paid_until, trial_ends_at, grace_until, period_end, cancel_at_period_end, extra_store_quantity, version, entitlements]
+      required: [id, tenant_id, provider, plan_code, plan_version_id, status, access_state, access_reason_codes, paid_until, trial_ends_at, grace_until, period_end, cancel_at_period_end, withdrawal_ends_at, withdrawal_pending, withdrawal_requested, extra_store_quantity, version, entitlements]
       properties:
         id: {type: string, format: uuid}
         tenant_id: {type: string, format: uuid}
@@ -6567,6 +6566,9 @@ components:
         grace_until: {type: [string, "null"], format: date-time}
         period_end: {type: [string, "null"], format: date-time}
         cancel_at_period_end: {type: boolean}
+        withdrawal_ends_at: {type: [string, "null"], format: date-time}
+        withdrawal_pending: {type: boolean}
+        withdrawal_requested: {type: boolean}
         extra_store_quantity: {type: integer, minimum: 0}
         price:
           type: [object, "null"]

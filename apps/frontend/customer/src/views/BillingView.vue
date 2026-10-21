@@ -103,6 +103,7 @@ const currentPlan = computed(() => catalog.value?.data.find((plan) => plan.plan_
 const canTrial = computed(() => isOwner.value && catalog.value?.trial_available === true && subscription.value === null);
 const canBuy = computed(() => isOwner.value && catalog.value?.checkout_available === true && !paid.value);
 const canChange = computed(() => isOwner.value && paid.value && subscription.value?.status === 'active');
+const inWithdrawalWindow = computed(() => subscription.value?.withdrawal_requested === true || (subscription.value?.withdrawal_ends_at != null && Date.now() < Date.parse(subscription.value.withdrawal_ends_at)));
 const consent = ref(false);
 const documents = computed(() => catalog.value?.documents ?? []);
 const consentReady = computed(() => documents.value.length === 0 || consent.value);
@@ -691,20 +692,23 @@ onBeforeUnmount(stopPolling);
           </p>
 
           <template v-if="canChange && subscription">
+            <p v-if="subscription.withdrawal_pending" class="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm text-warn" data-withdrawal="pending">{{ $t('billing.cancel.pending') }}</p>
             <div v-if="subscription.cancel_at_period_end" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm text-warn" data-scheduled="cancel">
               <span>{{ $t('billing.cancel.scheduled', { date: dateTime(subscription.period_end) }) }}</span>
               <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy !== null" data-action="resume" @click="resume">
                 {{ $t('billing.cancel.resume') }}
               </button>
             </div>
-            <div v-if="cancelForm.open" class="flex flex-col gap-3 rounded-md border border-border p-3 text-sm" data-form="cancel">
+            <div v-if="!subscription.withdrawal_pending && !subscription.cancel_at_period_end && cancelForm.open" class="flex flex-col gap-3 rounded-md border border-border p-3 text-sm" data-form="cancel">
               <p class="font-medium">{{ $t('billing.cancel.title') }}</p>
+              <p v-if="inWithdrawalWindow" class="text-text-muted">{{ $t('billing.cancel.within_14_days') }}</p>
+              <template v-else>
               <ul class="flex list-disc flex-col gap-1 pl-5 text-text-muted">
                 <li>{{ $t('billing.cancel.until', { date: dateTime(subscription.period_end) }) }}</li>
                 <li>{{ $t('billing.cancel.after') }}</li>
                 <li>{{ $t('billing.cancel.kept') }}</li>
-                <li>{{ $t('billing.cancel.no_refund') }}</li>
               </ul>
+              </template>
               <label class="flex flex-col gap-1.5">
                 <span>{{ $t('billing.cancel.reason') }}</span>
                 <textarea v-model="cancelForm.reason" maxlength="2000" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="cancel-reason" />
@@ -718,7 +722,7 @@ onBeforeUnmount(stopPolling);
                 </button>
               </div>
             </div>
-            <button v-else type="button" class="self-start text-sm font-medium text-crit underline-offset-2 hover:underline" data-action="cancel-subscription" @click="cancelForm.open = true">
+            <button v-else-if="!subscription.withdrawal_pending && !subscription.cancel_at_period_end" type="button" class="self-start text-sm font-medium text-crit underline-offset-2 hover:underline" data-action="cancel-subscription" @click="cancelForm.open = true">
               {{ $t('billing.cancel.open') }}
             </button>
           </template>

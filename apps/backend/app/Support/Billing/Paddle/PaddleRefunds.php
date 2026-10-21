@@ -2,6 +2,7 @@
 
 namespace App\Support\Billing\Paddle;
 
+use App\Models\AuditLog;
 use App\Models\BillingRefund;
 use App\Models\BillingSubscriptionContract;
 use App\Models\BillingTransaction;
@@ -17,7 +18,8 @@ use Illuminate\Support\Str;
  * Refunds of our own subscription payments (ADR 0044): staff with payments access request one (amount, reason), the
  * platform owner approves it with an authenticator code and only then it is sent to Paddle as a refund adjustment.
  * The requested, sent and done refunds of a payment never exceed what was charged (checked under the payment lock).
- * A confirmed Paddle refund revokes access and cancels the linked subscription immediately.
+ * A confirmed full Paddle refund revokes access and cancels the linked subscription immediately. Partial refunds leave
+ * the subscription and paid plan intact.
  */
 class PaddleRefunds
 {
@@ -32,7 +34,127 @@ class PaddleRefunds
         private readonly PaddleClient $client,
         private readonly PlatformAudit $audit,
         private readonly PaddleSubscriptionActions $actions,
+        private readonly PaddleTransactions $transactions,
+        private readonly PaddleSubscriptionSync $subscriptions,
     ) {}
+
+    public const WITHDRAWAL_REASON = 'Customer withdrawal within 14 days';
+
+    /** Request the unrefunded balance of every completed subscription payment once. Paddle may approve later. */
+    public function withdraw(string $tenantId, string $userId, ?string $reason): void
+    {
+        $contract = $this->actions->liveContract($tenantId);
+
+        if ($contract === null || $contract->provider_subscription_ref === null) {
+            throw new BillingCheckoutRejected('subscription_not_active');
+        }
+
+        try {
+            $this->subscriptions->sync($contract->provider_subscription_ref);
+        } catch (PaddleRequestFailed) {
+            throw new BillingCheckoutRejected('provider_unavailable');
+        }
+
+        $contract->refresh();
+
+        if ($contract->started_at === null) {
+            throw new BillingCheckoutRejected('subscription_start_unknown');
+        }
+
+        if (Carbon::now()->greaterThanOrEqualTo($contract->started_at->copy()->timezone('Europe/Berlin')->addDays(14)) && ! $this->withdrawalRequested($contract)) {
+            $this->actions->cancel($tenantId, $userId, $reason, true);
+
+            return;
+        }
+
+        try {
+            $this->transactions->syncSubscription($contract->provider_subscription_ref);
+        } catch (PaddleRequestFailed) {
+            throw new BillingCheckoutRejected('provider_unavailable');
+        }
+
+        $refunds = DB::transaction(function () use ($contract, $tenantId, $userId, $reason): array {
+            BillingSubscriptionContract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
+            $payments = BillingTransaction::query()->where('tenant_id', $tenantId)->where('mode', $contract->mode)
+                ->where('provider_subscription_ref', $contract->provider_subscription_ref)->where('status', 'completed')
+                ->where('total_minor', '>', 0)->orderBy('id')->lockForUpdate()->get();
+
+            if ($payments->isEmpty()) {
+                throw new BillingCheckoutRejected('refund_not_available');
+            }
+
+            $created = [];
+
+            foreach ($payments as $payment) {
+                $existing = BillingRefund::query()->where('transaction_id', $payment->id)->whereIn('status', BillingRefund::RESERVING)->get();
+                $reserved = $existing->sum('amount_minor');
+                $left = $payment->total_minor - $reserved;
+
+                if ($existing->contains(fn (BillingRefund $refund): bool => $refund->reason === self::WITHDRAWAL_REASON && $refund->status !== BillingRefund::STATUS_REFUNDED)) {
+                    continue;
+                }
+
+                if ($left <= 0) {
+                    continue;
+                }
+
+                $created[] = BillingRefund::query()->create([
+                    'tenant_id' => $tenantId, 'transaction_id' => $payment->id, 'mode' => $payment->mode,
+                    'kind' => $reserved === 0 ? 'full' : 'partial', 'amount_minor' => $left,
+                    'currency' => $payment->currency, 'currency_exponent' => $payment->currency_exponent,
+                    'reason' => self::WITHDRAWAL_REASON, 'cancel_subscription' => true,
+                    'status' => BillingRefund::STATUS_SUBMITTING,
+                ]);
+            }
+
+            if ($created !== []) {
+                AuditLog::query()->create([
+                    'tenant_id' => $tenantId, 'actor_user_id' => $userId, 'actor_type' => AuditLog::ACTOR_USER,
+                    'action' => 'billing.withdrawal_requested', 'entity_type' => 'billing_subscription',
+                    'entity_id' => $contract->id, 'changes' => ['reason' => $reason, 'refund_ids' => array_map(fn (BillingRefund $refund): string => $refund->id, $created)],
+                    'request_id' => (string) Str::uuid(), 'created_at' => Carbon::now(),
+                ]);
+            }
+
+            return $created;
+        });
+
+        foreach ($refunds as $refund) {
+            $this->submit($refund);
+        }
+
+        $this->completeWithdrawal($contract);
+    }
+
+    public function withdrawalPending(BillingSubscriptionContract $contract): bool
+    {
+        return BillingRefund::query()->where('tenant_id', $contract->tenant_id)->where('mode', $contract->mode)
+            ->where('reason', self::WITHDRAWAL_REASON)->whereIn('status', [BillingRefund::STATUS_SUBMITTING, BillingRefund::STATUS_PENDING, BillingRefund::STATUS_UNKNOWN])
+            ->whereIn('transaction_id', BillingTransaction::query()->select('id')->where('provider_subscription_ref', $contract->provider_subscription_ref)->where('tenant_id', $contract->tenant_id))->exists();
+    }
+
+    public function withdrawalRequested(BillingSubscriptionContract $contract): bool
+    {
+        return BillingRefund::query()->where('tenant_id', $contract->tenant_id)->where('mode', $contract->mode)
+            ->where('reason', self::WITHDRAWAL_REASON)
+            ->whereIn('transaction_id', BillingTransaction::query()->select('id')->where('provider_subscription_ref', $contract->provider_subscription_ref)->where('tenant_id', $contract->tenant_id))->exists();
+    }
+
+    private function submit(BillingRefund $refund): void
+    {
+        $transaction = BillingTransaction::query()->findOrFail($refund->transaction_id);
+
+        try {
+            $body = ['action' => 'refund', 'transaction_id' => $transaction->provider_transaction_ref, 'reason' => self::WITHDRAWAL_REASON];
+            $body += $refund->kind === 'full' ? ['type' => 'full'] : ['type' => 'partial', 'items' => $this->items($transaction, $refund->amount_minor)];
+            $adjustment = $this->client->post('/adjustments', $body)['data'] ?? [];
+        } catch (PaddleRequestFailed $exception) {
+            $refund->forceFill(['status' => $exception->outcomeUnknown() ? BillingRefund::STATUS_UNKNOWN : BillingRefund::STATUS_FAILED, 'error_code' => $exception->paddleCode ?? $exception->reasonCode])->save();
+            throw new BillingCheckoutRejected($exception->outcomeUnknown() ? 'provider_outcome_unknown' : 'refund_rejected_by_provider');
+        }
+
+        $this->apply($refund, $adjustment);
+    }
 
     public function request(string $staffId, string $transactionId, string $amountMinor, string $reason, bool $cancelSubscription): BillingRefund
     {
@@ -219,7 +341,36 @@ class PaddleRefunds
             'source_updated_at' => $updatedAt,
         ], fn (mixed $value): bool => $value !== null) + ['error_code' => null])->save();
 
-        if ($refund->status === BillingRefund::STATUS_REFUNDED) {
+        if ($refund->reason === self::WITHDRAWAL_REASON && $refund->status === BillingRefund::STATUS_REFUNDED) {
+            $transaction = BillingTransaction::query()->findOrFail($refund->transaction_id);
+            $contract = BillingSubscriptionContract::query()->where('tenant_id', $refund->tenant_id)->where('mode', $refund->mode)
+                ->where('provider_subscription_ref', $transaction->provider_subscription_ref)->first();
+            if ($contract !== null) {
+                $this->completeWithdrawal($contract);
+            }
+        } elseif ($refund->status === BillingRefund::STATUS_REFUNDED && $refund->kind === 'full') {
+            $this->revokePaidAccess($refund);
+        }
+    }
+
+    private function completeWithdrawal(BillingSubscriptionContract $contract): void
+    {
+        $payments = BillingTransaction::query()->where('tenant_id', $contract->tenant_id)->where('mode', $contract->mode)
+            ->where('provider_subscription_ref', $contract->provider_subscription_ref)->where('status', 'completed')->where('total_minor', '>', 0)->get();
+
+        if ($payments->isEmpty()) {
+            return;
+        }
+
+        foreach ($payments as $payment) {
+            $approved = BillingRefund::query()->where('transaction_id', $payment->id)->where('status', BillingRefund::STATUS_REFUNDED)->sum('amount_minor');
+            if ($approved < $payment->total_minor) {
+                return;
+            }
+        }
+
+        $refund = BillingRefund::query()->where('transaction_id', $payments->first()->id)->where('reason', self::WITHDRAWAL_REASON)->first();
+        if ($refund !== null) {
             $this->revokePaidAccess($refund);
         }
     }
@@ -244,7 +395,7 @@ class PaddleRefunds
             app(EntitlementCalculator::class)->forget();
         }
 
-        if ($contract->normalized_state === BillingSubscriptionContract::STATE_ACTIVE && $contract->provider_subscription_ref !== null) {
+        if (in_array($contract->normalized_state, [BillingSubscriptionContract::STATE_ACTIVE, BillingSubscriptionContract::STATE_PAST_DUE], true) && $contract->provider_subscription_ref !== null) {
             $this->actions->cancelForRefund($refund->tenant_id, $contract->provider_subscription_ref);
         }
     }
@@ -257,6 +408,27 @@ class PaddleRefunds
     private function items(BillingTransaction $transaction, int $amount): array
     {
         $lines = $this->client->get('/transactions/'.rawurlencode($transaction->provider_transaction_ref))['data']['details']['line_items'] ?? [];
+        $refundedByItem = [];
+
+        if (BillingRefund::query()->where('transaction_id', $transaction->id)->where('status', BillingRefund::STATUS_REFUNDED)->exists()) {
+            $adjustments = $this->client->get('/adjustments', ['transaction_id' => $transaction->provider_transaction_ref, 'action' => 'refund', 'per_page' => 100])['data'] ?? [];
+
+            foreach (is_array($adjustments) ? $adjustments : [] as $adjustment) {
+                if (! is_array($adjustment) || ($adjustment['status'] ?? null) !== 'approved') {
+                    continue;
+                }
+
+                foreach (is_array($adjustment['items'] ?? null) ? $adjustment['items'] : [] as $item) {
+                    $id = $item['item_id'] ?? null;
+                    $total = $item['totals']['total'] ?? null;
+
+                    if (is_string($id) && is_string($total) && preg_match('/^\d{1,15}$/', $total) === 1) {
+                        $refundedByItem[$id] = ($refundedByItem[$id] ?? 0) + (int) $total;
+                    }
+                }
+            }
+        }
+
         $items = [];
         $left = $amount;
 
@@ -267,7 +439,12 @@ class PaddleRefunds
                 continue;
             }
 
-            $part = min($left, $total);
+            $available = max(0, $total - ($refundedByItem[$line['id']] ?? 0));
+            if ($available === 0) {
+                continue;
+            }
+
+            $part = min($left, $available);
             $items[] = ['item_id' => $line['id'], 'type' => $part === $total ? 'full' : 'partial', 'amount' => (string) $part];
             $left -= $part;
         }

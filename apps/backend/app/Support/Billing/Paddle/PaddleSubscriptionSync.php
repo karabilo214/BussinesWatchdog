@@ -74,6 +74,7 @@ class PaddleSubscriptionSync
                 'provider_state' => is_string($subscription['status'] ?? null) ? $subscription['status'] : null,
                 'normalized_state' => $state,
                 'currency' => is_string($subscription['currency_code'] ?? null) ? $subscription['currency_code'] : null,
+                'started_at' => isset($subscription['started_at']) ? Carbon::parse($subscription['started_at']) : $contract?->started_at,
                 'period_start' => isset($period['starts_at']) ? Carbon::parse($period['starts_at']) : null,
                 'period_end' => $periodEnd,
                 'next_charge_at' => isset($subscription['next_billed_at']) ? Carbon::parse($subscription['next_billed_at']) : null,

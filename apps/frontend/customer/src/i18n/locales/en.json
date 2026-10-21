@@ -1678,7 +1678,7 @@
         "applied": "Plan changed. Paddle confirmed the payment.",
         "scheduled": "The plan change is scheduled for the next period.",
         "withdrawn": "The scheduled plan change was withdrawn.",
-        "cancelled": "Renewal cancelled.",
+        "cancelled": "Cancellation request processed. The refund and subscription status is shown below.",
         "resumed": "The subscription will renew again.",
         "retained": "Store choice saved."
       }
@@ -1694,6 +1694,8 @@
       "confirm": "Cancel subscription",
       "keep": "Keep subscription",
       "scheduled": "Renewal cancelled: the subscription ends on {date}.",
+      "within_14_days": "Within 14 days of subscribing, we refund the full amount paid. Access ends after Paddle approves the refund; your plan remains active until then.",
+      "pending": "The full refund is awaiting Paddle approval. Your plan remains active until approval; there is no need to request it again.",
       "resume": "Resume subscription"
     },
     "capacity": {
