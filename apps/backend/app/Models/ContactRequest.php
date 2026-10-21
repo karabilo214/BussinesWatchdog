@@ -17,13 +17,14 @@ class ContactRequest extends Model
 
     public const STATUSES = [self::STATUS_NEW, self::STATUS_IN_PROGRESS, self::STATUS_CLOSED];
 
-    protected $fillable = ['locale', 'name', 'email', 'company', 'message', 'status', 'handled_by', 'closed_at', 'notified_at'];
+    protected $fillable = ['locale', 'name', 'email', 'company', 'message', 'status', 'handled_by', 'closed_at', 'notified_at', 'attachment_key', 'attachment_name', 'attachment_content_type', 'attachment_bytes'];
 
     protected function casts(): array
     {
         return [
             'closed_at' => 'datetime',
             'notified_at' => 'datetime',
+            'attachment_bytes' => 'integer',
         ];
     }
 }

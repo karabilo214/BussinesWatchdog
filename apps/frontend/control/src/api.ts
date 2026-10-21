@@ -1055,9 +1055,14 @@ export interface ContactRequest {
   created_at: string | null;
   updated_at: string | null;
   closed_at: string | null;
+  attachment: { name: string; content_type: string; bytes: number } | null;
   notes?: ContactNote[];
   replies?: ContactReply[];
   reply_templates?: ContactReplyTemplate[];
+}
+
+export function contactAttachmentUrl(id: string): string {
+  return `/platform-api/v1/contact-requests/${encodeURIComponent(id)}/attachment`;
 }
 
 export interface ContactNote {

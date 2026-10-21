@@ -7,20 +7,25 @@ use App\Models\PublicPage;
 use App\Models\PublicPageVersion;
 use App\Support\Billing\Paddle\PaddleConfig;
 use App\Support\Site\ContactInbox;
+use App\Support\Site\MathCaptcha;
 use App\Support\Site\Policies;
 use App\Support\Site\PricingTable;
 use App\Support\Site\SiteContent;
 use App\Support\Site\SiteDefaults;
+use App\Support\Site\SiteRejected;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The public site rendered on the server (ADR 0039): every page is complete HTML without JavaScript.
  */
 class SiteController extends Controller
 {
+    private const CONTACT_CAPTCHA_SESSION_KEY = 'contact_math_captcha';
+
     public function __construct(private readonly SiteContent $content) {}
 
     public function root(Request $request): RedirectResponse
@@ -66,47 +71,89 @@ class SiteController extends Controller
         ]);
     }
 
-    public function contact(Request $request, string $locale): Response
+    public function contact(Request $request, string $locale, ContactInbox $inbox): Response
     {
         $page = $this->content->system(PublicPage::KIND_CONTACT);
         $version = $this->content->published($page, $locale);
         $privacy = app(Policies::class)->current(PublicPage::POLICY_PRIVACY_NOTICE, $locale);
+        $limits = $inbox->attachmentLimits();
 
         return $this->render('site.contact', $locale, $page, $version, [
             'title' => $version?->title ?? trans('site.contact.title', [], $locale),
             'sent' => $request->session()->get('contact_sent') === true,
             'privacy' => $privacy === null ? null : SiteContent::url($privacy->locale, (string) app(Policies::class)->page(PublicPage::POLICY_PRIVACY_NOTICE)?->path),
+            'captcha_url' => SiteContent::url($locale, 'contact/captcha').'?v='.bin2hex(random_bytes(4)),
+            'attachment' => [
+                'accept' => implode(',', array_merge(array_map(fn (string $extension): string => '.'.$extension, $limits['extensions']), $limits['content_types'])),
+                'formats' => implode(', ', array_map('strtoupper', array_unique(array_map(fn (string $type): string => $type === 'jpeg' ? 'jpg' : $type, $limits['types'])))),
+                'max_mb' => rtrim(rtrim(number_format($limits['max_bytes'] / 1048576, 1, '.', ''), '0'), '.'),
+                'enabled' => $limits['types'] !== [],
+            ],
         ], private: true);
     }
 
-    public function submitContact(Request $request, string $locale, ContactInbox $inbox): RedirectResponse
+    public function contactCaptcha(Request $request, string $locale, MathCaptcha $captcha): Response
+    {
+        return $captcha->image($request, self::CONTACT_CAPTCHA_SESSION_KEY);
+    }
+
+    public function submitContact(Request $request, string $locale, ContactInbox $inbox, MathCaptcha $captcha): RedirectResponse
     {
         $back = SiteContent::url($locale, 'contact');
+        $fields = ['name', 'email', 'company', 'message'];
 
         if (trim((string) $request->input('website')) !== '') {
             return redirect($back)->with('contact_sent', true);
         }
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'string', 'email:rfc', 'max:254'],
-            'company' => ['nullable', 'string', 'max:160'],
-            'message' => ['required', 'string', 'min:10', 'max:5000'],
-        ], [], [
-            'name' => trans('site.contact.name', [], $locale),
-            'email' => trans('site.contact.email', [], $locale),
-            'company' => trans('site.contact.company', [], $locale),
-            'message' => trans('site.contact.message', [], $locale),
-        ]);
+        $limits = $inbox->attachmentLimits();
+
+        try {
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:120'],
+                'email' => ['required', 'string', 'email:rfc', 'max:254'],
+                'company' => ['nullable', 'string', 'max:160'],
+                'message' => ['required', 'string', 'min:10', 'max:5000'],
+                'captcha_answer' => ['required', 'integer', 'min:0', 'max:99'],
+                'attachment' => $limits['types'] === [] ? ['prohibited'] : ['nullable', 'file', 'max:'.(int) floor($limits['max_bytes'] / 1024)],
+            ], [
+                'attachment.max' => trans('site.contact.attachment_errors.media_too_large', ['mb' => round($limits['max_bytes'] / 1048576, 1)], $locale),
+                'attachment.uploaded' => trans('site.contact.attachment_errors.media_too_large', ['mb' => round($limits['max_bytes'] / 1048576, 1)], $locale),
+            ], [
+                'name' => trans('site.contact.name', [], $locale),
+                'email' => trans('site.contact.email', [], $locale),
+                'company' => trans('site.contact.company', [], $locale),
+                'message' => trans('site.contact.message', [], $locale),
+                'captcha_answer' => trans('site.contact.captcha', [], $locale),
+                'attachment' => trans('site.contact.attachment', [], $locale),
+            ]);
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo($back);
+        }
+
+        if (! $captcha->passes($request, self::CONTACT_CAPTCHA_SESSION_KEY, (string) $validated['captcha_answer'])) {
+            return redirect($back)->withInput($request->only($fields))->withErrors(['captcha_answer' => trans('site.contact.captcha_wrong', [], $locale)]);
+        }
 
         $key = 'site-contact|'.$request->ip();
 
         if (RateLimiter::tooManyAttempts($key, (int) config('watchdog.site.contact_per_hour'))) {
-            return redirect($back)->withInput()->withErrors(['form' => trans('site.contact.too_many', [], $locale)]);
+            return redirect($back)->withInput($request->only($fields))->withErrors(['form' => trans('site.contact.too_many', [], $locale)]);
+        }
+
+        try {
+            $inbox->receive($locale, $validated, $request->file('attachment'));
+        } catch (SiteRejected $rejected) {
+            $code = match (true) {
+                in_array($rejected->reasonCode, ['media_too_large', 'media_type_unsupported', 'media_dimensions_too_large', 'media_too_large_for_server'], true) => $rejected->reasonCode,
+                $rejected->status >= 500 => 'unavailable',
+                default => 'media_unreadable',
+            };
+
+            return redirect($back)->withInput($request->only($fields))->withErrors(['attachment' => trans('site.contact.attachment_errors.'.$code, ['mb' => round($limits['max_bytes'] / 1048576, 1)], $locale)]);
         }
 
         RateLimiter::hit($key, 3600);
-        $inbox->receive($locale, $validated);
 
         return redirect($back)->with('contact_sent', true);
     }

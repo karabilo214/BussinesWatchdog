@@ -10,6 +10,7 @@ import { code, setCode } from './code';
 
 vi.mock('@/api', () => ({
   fetchMe: vi.fn(),
+  contactAttachmentUrl: (id: string) => `/platform-api/v1/contact-requests/${id}/attachment`,
   login: vi.fn(),
   submitMfa: vi.fn(),
   logout: vi.fn(),
@@ -259,7 +260,7 @@ describe('site', () => {
   });
 
   it('lists contact messages by status, adds internal notes one by one and closes a message', async () => {
-    const message: ContactRequest = { id: 'c-1', locale: 'de', name: 'Jonas', email: 'jonas@shop.test', company: 'Kaffee', message: 'Wie verbinde ich zwei Shops?', status: 'new', handled_by: null, created_at: '2026-10-12T10:00:00Z', updated_at: null, closed_at: null };
+    const message: ContactRequest = { id: 'c-1', locale: 'de', name: 'Jonas', email: 'jonas@shop.test', company: 'Kaffee', message: 'Wie verbinde ich zwei Shops?', status: 'new', handled_by: null, created_at: '2026-10-12T10:00:00Z', updated_at: null, closed_at: null, attachment: null };
     mocked.fetchContactRequests.mockResolvedValue({ data: [message], next_cursor: null, counts: { new: 1, in_progress: 0, closed: 4 } });
     mocked.fetchContactRequest.mockResolvedValue(message);
     mocked.updateContactRequest.mockResolvedValue({ ...message, status: 'closed', handled_by: 'Founder', notes: [{ id: 'n-1', body: 'Ответили', author: 'Founder', author_staff_id: 's-1', created_at: '2026-10-12T11:00:00Z', edited_at: null }] });
@@ -308,7 +309,7 @@ describe('site', () => {
       { code: 'more_details' as const, subject: 'Business Watchdog: bitte ein paar Details', body: 'Wir brauchen noch ein paar Angaben.' },
       { code: 'resolved' as const, subject: 'Business Watchdog: Ihre Frage ist geklärt', body: 'Geklärt.' },
     ];
-    const message: ContactRequest = { id: 'c-1', locale: 'de', name: 'Jonas', email: 'jonas@shop.test', company: null, message: 'Wie verbinde ich zwei Shops?', status: 'new', handled_by: null, created_at: '2026-10-12T10:00:00Z', updated_at: null, closed_at: null, replies: [], reply_templates: templates };
+    const message: ContactRequest = { id: 'c-1', locale: 'de', name: 'Jonas', email: 'jonas@shop.test', company: null, message: 'Wie verbinde ich zwei Shops?', status: 'new', handled_by: null, created_at: '2026-10-12T10:00:00Z', updated_at: null, closed_at: null, attachment: null, replies: [], reply_templates: templates };
     mocked.fetchContactRequest.mockResolvedValue(message);
     mocked.replyToContactRequest.mockResolvedValue({ ...message, status: 'in_progress', handled_by: 'Founder', replies: [{ id: 'r-1', template: 'more_details', subject: 'Business Watchdog: bitte ein paar Details', body: 'Welche Shop-Adresse?', sent_by: 'Founder', sent_at: '2026-10-12T11:00:00Z' }] });
     const { wrapper } = await open('/owner/contact-requests/c-1');
@@ -336,10 +337,13 @@ describe('site', () => {
   });
 
   it('shows a message without the form to staff who may only read', async () => {
-    mocked.fetchContactRequest.mockResolvedValue({ id: 'c-1', locale: 'en', name: 'Ann', email: 'ann@shop.test', company: null, message: 'Hello there', status: 'in_progress', handled_by: 'Founder', created_at: null, updated_at: null, closed_at: null, notes: [{ id: 'n-1', body: 'Called back', author: 'Founder', author_staff_id: 's-1', created_at: null, edited_at: null }] });
+    mocked.fetchContactRequest.mockResolvedValue({ id: 'c-1', locale: 'en', name: 'Ann', email: 'ann@shop.test', company: null, message: 'Hello there', status: 'in_progress', handled_by: 'Founder', created_at: null, updated_at: null, closed_at: null, attachment: { name: 'error.png', content_type: 'image/png', bytes: 20480 }, notes: [{ id: 'n-1', body: 'Called back', author: 'Founder', author_staff_id: 's-1', created_at: null, edited_at: null }] });
     const { wrapper } = await open('/owner/contact-requests/c-1', ['contacts.read']);
 
     expect(wrapper.get('[data-message]').text()).toBe('Hello there');
+    expect(wrapper.get('[data-attachment] a').attributes('href')).toBe('/platform-api/v1/contact-requests/c-1/attachment');
+    expect(wrapper.get('[data-attachment]').text()).toContain('error.png');
+    expect(wrapper.get('[data-attachment]').text()).toContain('20 KB');
     expect(wrapper.find('[data-form="contact"]').exists()).toBe(false);
     expect(wrapper.find('[data-action="reply"]').exists()).toBe(false);
     expect(wrapper.text()).toContain('Called back');

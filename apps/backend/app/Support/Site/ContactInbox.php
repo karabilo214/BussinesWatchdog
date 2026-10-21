@@ -8,35 +8,118 @@ use App\Models\ContactRequestNote;
 use App\Models\ContactRequestReply;
 use App\Models\PlatformStaff;
 use App\Support\Platform\PlatformAudit;
+use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
 /**
  * Messages sent through the contact form (ADR 0039): stored for the owner panel, announced by email to the address in
  * `watchdog.site.contact_notify` (or to every active platform owner) by a scheduled command, so the form never waits
- * for the mail server; closed messages are deleted after the retention period.
+ * for the mail server; closed messages are deleted after the retention period. One file may come with a message: only
+ * the formats of `watchdog.site.contact_attachment_types`, recognised by content and cleaned by SafeFiles (images are
+ * encoded again), kept privately and given only to staff as a download.
  */
 class ContactInbox
 {
-    public function __construct(private readonly PlatformAudit $audit) {}
+    public function __construct(private readonly PlatformAudit $audit, private readonly SafeFiles $files) {}
 
     /**
      * @param  array{name: string, email: string, company?: ?string, message: string}  $input
      */
-    public function receive(string $locale, array $input): ContactRequest
+    public function receive(string $locale, array $input, ?UploadedFile $attachment = null): ContactRequest
     {
-        return ContactRequest::query()->create([
-            'locale' => $locale,
-            'name' => trim($input['name']),
-            'email' => mb_strtolower(trim($input['email'])),
-            'company' => ($company = trim((string) ($input['company'] ?? ''))) === '' ? null : $company,
-            'message' => trim($input['message']),
-            'status' => ContactRequest::STATUS_NEW,
-        ]);
+        $stored = $attachment === null ? [] : $this->storeAttachment($attachment);
+
+        try {
+            return ContactRequest::query()->create([
+                'locale' => $locale,
+                'name' => trim($input['name']),
+                'email' => mb_strtolower(trim($input['email'])),
+                'company' => ($company = trim((string) ($input['company'] ?? ''))) === '' ? null : $company,
+                'message' => trim($input['message']),
+                'status' => ContactRequest::STATUS_NEW,
+            ] + $stored);
+        } catch (Throwable $exception) {
+            if ($stored !== []) {
+                $this->disk()->delete($stored['attachment_key']);
+            }
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * The attachment formats and size in force: the configuration, never above what PHP itself accepts.
+     *
+     * @return array{types: list<string>, extensions: list<string>, content_types: list<string>, max_bytes: int, max_side: int, max_pixels: int, resize_max_side: int}
+     */
+    public function attachmentLimits(): array
+    {
+        $types = array_values(array_intersect(array_keys(SafeFiles::FORMATS), (array) config('watchdog.site.contact_attachment_types')));
+
+        return [
+            'types' => $types,
+            'extensions' => array_map(fn (string $type): string => SafeFiles::FORMATS[$type]['extension'], $types),
+            'content_types' => array_map(fn (string $type): string => SafeFiles::FORMATS[$type]['content_type'], $types),
+            'max_bytes' => max(1, min((int) config('watchdog.site.contact_attachment_max_bytes'), SafeFiles::phpUploadLimit())),
+            'max_side' => max(1, (int) config('watchdog.site.media_max_side')),
+            'max_pixels' => max(1, (int) config('watchdog.site.media_max_pixels')),
+            'resize_max_side' => max(0, (int) config('watchdog.site.media_resize_max_side')),
+        ];
+    }
+
+    /**
+     * @return array{body: string, name: string, content_type: string}
+     */
+    public function attachment(string $staffId, string $id): array
+    {
+        $request = $this->find($id);
+        $body = $request->attachment_key === null ? null : $this->disk()->get($request->attachment_key);
+
+        if ($body === null) {
+            throw new SiteRejected('attachment_not_found', 404);
+        }
+
+        $this->audit->record($staffId, 'site.contact.attachment_downloaded', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, ['name' => $request->attachment_name, 'bytes' => $request->attachment_bytes]);
+
+        return ['body' => $body, 'name' => (string) $request->attachment_name, 'content_type' => (string) $request->attachment_content_type];
+    }
+
+    /**
+     * @return array{attachment_key: string, attachment_name: string, attachment_content_type: string, attachment_bytes: int}
+     */
+    private function storeAttachment(UploadedFile $file): array
+    {
+        $limits = $this->attachmentLimits();
+        $clean = $this->files->clean($file, $limits['types'], $limits['max_bytes'], $limits);
+        $key = 'contact-attachments/'.Str::uuid7().'.'.$clean['extension'];
+        $name = trim((string) preg_replace('/[\\\\\/"%]+/', '_', pathinfo($this->files->originalName($file), PATHINFO_FILENAME)));
+
+        try {
+            $this->disk()->put($key, $clean['bytes'], ['visibility' => 'private', 'ContentType' => $clean['content_type']]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            throw new SiteRejected('media_storage_unavailable', 503);
+        }
+
+        return [
+            'attachment_key' => $key,
+            'attachment_name' => mb_substr($name === '' ? 'file' : $name, 0, 190).'.'.$clean['extension'],
+            'attachment_content_type' => $clean['content_type'],
+            'attachment_bytes' => strlen($clean['bytes']),
+        ];
+    }
+
+    private function disk(): Filesystem
+    {
+        return Storage::disk((string) config('watchdog.site.contact_attachment_disk'));
     }
 
     /**
@@ -258,6 +341,7 @@ class ContactInbox
             'created_at' => $request->created_at?->toJSON(),
             'updated_at' => $request->updated_at?->toJSON(),
             'closed_at' => $request->closed_at?->toJSON(),
+            'attachment' => $request->attachment_key === null ? null : ['name' => $request->attachment_name, 'content_type' => $request->attachment_content_type, 'bytes' => $request->attachment_bytes],
         ] + ($full ? ['notes' => $this->notes($request), 'replies' => $this->replies($request), 'reply_templates' => $this->replyTemplates($request)] : []);
     }
 
@@ -327,6 +411,7 @@ class ContactInbox
                         'company' => $request->company ?? '—',
                         'locale' => $request->locale,
                         'message' => $request->message,
+                        'attachment' => $request->attachment_name === null ? '—' : $request->attachment_name.' ('.max(1, (int) ceil($request->attachment_bytes / 1024)).' KB)',
                         'link' => rtrim((string) config('watchdog.site.owner_url'), '/').'/contact-requests/'.$request->id,
                     ], 'ru'),
                 ));
@@ -344,8 +429,20 @@ class ContactInbox
     public function purge(): int
     {
         $days = (int) config('watchdog.site.contact_retention_days');
+        $deleted = 0;
 
-        return ContactRequest::query()->where('status', ContactRequest::STATUS_CLOSED)->where('closed_at', '<', Carbon::now()->subDays($days))->delete();
+        ContactRequest::query()->where('status', ContactRequest::STATUS_CLOSED)->where('closed_at', '<', Carbon::now()->subDays($days))
+            ->chunkById(200, function ($requests) use (&$deleted): void {
+                $keys = $requests->pluck('attachment_key')->filter()->values()->all();
+
+                if ($keys !== []) {
+                    $this->disk()->delete($keys);
+                }
+
+                $deleted += ContactRequest::query()->whereIn('id', $requests->pluck('id'))->delete();
+            });
+
+        return $deleted;
     }
 
     /**

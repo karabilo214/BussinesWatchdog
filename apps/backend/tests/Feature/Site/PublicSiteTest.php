@@ -291,7 +291,7 @@ class PublicSiteTest extends TestCase
     {
         $this->get('/ru/contact')->assertOk()->assertSee('name="_token"', false)->assertHeader('Cache-Control', 'no-store, private');
 
-        $this->post('/ru/contact', ['name' => 'Анна', 'email' => 'Anna@Shop.test', 'company' => 'Kaffee', 'message' => 'Хочу подключить два магазина.'])
+        $this->post('/ru/contact', ['name' => 'Анна', 'email' => 'Anna@Shop.test', 'company' => 'Kaffee', 'message' => 'Хочу подключить два магазина.', 'captcha_answer' => $this->contactCaptcha('ru')])
             ->assertRedirect('/ru/contact')
             ->assertSessionHas('contact_sent', true);
         $this->get('/ru/contact')->assertSee('data-contact="sent"', false);
@@ -303,10 +303,10 @@ class PublicSiteTest extends TestCase
         $this->assertSame(1, ContactRequest::query()->count());
 
         for ($i = 0; $i < 4; $i++) {
-            $this->post('/en/contact', ['name' => 'Ben', 'email' => 'ben@shop.test', 'message' => 'Message number '.$i])->assertSessionHas('contact_sent', true);
+            $this->post('/en/contact', ['name' => 'Ben', 'email' => 'ben@shop.test', 'message' => 'Message number '.$i, 'captcha_answer' => $this->contactCaptcha('en')])->assertSessionHas('contact_sent', true);
         }
 
-        $this->post('/en/contact', ['name' => 'Ben', 'email' => 'ben@shop.test', 'message' => 'One message too many'])->assertSessionHasErrors('form');
+        $this->post('/en/contact', ['name' => 'Ben', 'email' => 'ben@shop.test', 'message' => 'One message too many', 'captcha_answer' => $this->contactCaptcha('en')])->assertSessionHasErrors('form');
         $this->assertSame(5, ContactRequest::query()->count());
 
         Mail::fake();
@@ -471,6 +471,14 @@ class PublicSiteTest extends TestCase
         }
 
         return $version;
+    }
+
+    private function contactCaptcha(string $locale): int
+    {
+        $this->get('/'.$locale.'/contact/captcha')->assertOk();
+        preg_match('/^(\\d+) \\+ (\\d+)$/', (string) (session('contact_math_captcha')['question'] ?? ''), $matches);
+
+        return (int) $matches[1] + (int) $matches[2];
     }
 
     private function owner(string $email): void

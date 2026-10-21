@@ -2471,11 +2471,31 @@ paths:
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
         "502": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/contact-requests/{contactRequest}/attachment:
+    get:
+      tags: [Platform]
+      operationId: platformDownloadContactAttachment
+      description: "Capability contacts.read. The file sent with the message through the contact form (JPG, PNG, WebP or PDF; recognised by content, images encoded again without metadata). Always a download (Content-Disposition attachment, nosniff, CSP sandbox), never shown inline. Audited as site.contact.attachment_downloaded. 404 attachment_not_found when the message has no file."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: contactRequest, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: The file
+          content:
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+            image/webp: {schema: {type: string, format: binary}}
+            application/pdf: {schema: {type: string, format: binary}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/contact-requests/{contactRequest}:
     get:
       tags: [Platform]
       operationId: platformShowContactRequest
-      description: "Capability contacts.read. One message in full with its internal notes (newest first: text, author, time). The card also has replies (sent by, when, template, subject, text) and reply_templates in the language of the message."
+      description: "Capability contacts.read. One message in full with its internal notes (newest first: text, author, time). The card also has replies (sent by, when, template, subject, text), reply_templates in the language of the message and attachment (null, or name, content_type, bytes of the one file sent with the message)."
       security:
         - {StaffSession: []}
       parameters:

@@ -23,9 +23,12 @@
                             <li>{{ $message }}</li>
                         @endforeach
                     </ul>
+                    @if (old('name') !== null && $attachment['enabled'])
+                        <p>{{ __('site.contact.attachment_again') }}</p>
+                    @endif
                 </div>
             @endif
-            <form method="post" action="{{ \App\Support\Site\SiteContent::url($locale, 'contact') }}" class="site-form site-card" data-form="contact" novalidate>
+            <form method="post" action="{{ \App\Support\Site\SiteContent::url($locale, 'contact') }}" class="site-form site-card" data-form="contact" enctype="multipart/form-data" novalidate>
                 @csrf
                 <div class="site-field">
                     <label for="contact-name">{{ __('site.contact.name') }}</label>
@@ -45,6 +48,23 @@
                     <label for="contact-message">{{ __('site.contact.message') }}</label>
                     <textarea id="contact-message" name="message" rows="6" maxlength="5000" required @error('message') aria-invalid="true" aria-describedby="contact-message-error" @enderror>{{ old('message') }}</textarea>
                     @error('message')<p class="site-field-error" id="contact-message-error">{{ $message }}</p>@enderror
+                </div>
+                @if ($attachment['enabled'])
+                    <div class="site-field">
+                        <label for="contact-attachment">{{ __('site.contact.attachment') }}</label>
+                        <input id="contact-attachment" name="attachment" type="file" accept="{{ $attachment['accept'] }}" aria-describedby="contact-attachment-hint @error('attachment') contact-attachment-error @enderror" @error('attachment') aria-invalid="true" @enderror>
+                        <p class="site-muted site-small" id="contact-attachment-hint">{{ __('site.contact.attachment_hint', ['formats' => $attachment['formats'], 'mb' => $attachment['max_mb']]) }}</p>
+                        @error('attachment')<p class="site-field-error" id="contact-attachment-error">{{ $message }}</p>@enderror
+                    </div>
+                @endif
+                <div class="site-field">
+                    <label for="contact-captcha">{{ __('site.contact.captcha') }}</label>
+                    <div class="site-captcha-row">
+                        <img src="{{ $captcha_url }}" alt="{{ __('site.contact.captcha_alt') }}" width="156" height="54">
+                        <input id="contact-captcha" name="captcha_answer" type="number" inputmode="numeric" min="0" max="99" required autocomplete="off" @error('captcha_answer') aria-invalid="true" aria-describedby="contact-captcha-error" @enderror>
+                    </div>
+                    @error('captcha_answer')<p class="site-field-error" id="contact-captcha-error">{{ $message }}</p>@enderror
+                    <p class="site-muted site-small">{{ __('site.contact.captcha_hint') }}</p>
                 </div>
                 <div class="site-trap" aria-hidden="true">
                     <label for="contact-website">{{ __('site.contact.website') }}</label>

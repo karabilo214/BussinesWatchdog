@@ -881,6 +881,7 @@
     "all": "All",
     "empty": "No messages.",
     "status": "Status",
+    "attachment": "File",
     "note_hint": "Visible to staff only.",
     "save": "Save",
     "saved": "Saved.",

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { StatusBadge } from '@bw/ui';
-import { addContactNote, editContactNote, fetchContactRequest, updateContactRequest, type ContactNote, type ContactRequest, type ContactStatus } from '@/api';
+import { addContactNote, contactAttachmentUrl, editContactNote, fetchContactRequest, updateContactRequest, type ContactNote, type ContactRequest, type ContactStatus } from '@/api';
 import ContactReplies from '@/components/ContactReplies.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { CONTACT_TONES } from '@/components/tones';
@@ -112,6 +112,11 @@ onMounted(load);
 
         <section class="rounded-xl border border-border bg-surface p-5 text-sm">
           <p class="whitespace-pre-wrap break-words" data-message>{{ item.message }}</p>
+          <p v-if="item.attachment" class="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4 text-text-muted" data-attachment>
+            <span>{{ $t('contacts.attachment') }}:</span>
+            <a :href="contactAttachmentUrl(item.id)" class="text-primary hover:underline" download>{{ item.attachment.name }}</a>
+            <span>· {{ Math.max(1, Math.ceil(item.attachment.bytes / 1024)) }} KB</span>
+          </p>
         </section>
 
         <ContactReplies :item="item" :manage="manage" @updated="accept" />

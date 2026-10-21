@@ -10,7 +10,10 @@ use App\Support\Site\ContactInbox;
 use App\Support\Site\SiteRejected;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\Response;
 
 class ContactRequestController extends Controller
 {
@@ -33,6 +36,29 @@ class ContactRequestController extends Controller
         } catch (SiteRejected $exception) {
             return response()->json(['code' => $exception->reasonCode, 'message' => 'The message was not found.'], $exception->status);
         }
+    }
+
+    /**
+     * Always a download, never shown inline: the file came from a stranger, even after it was checked and cleaned.
+     */
+    public function attachment(Request $request, string $contactRequest): Response
+    {
+        /** @var PlatformStaff $staff */
+        $staff = $request->attributes->get('platform_staff');
+
+        try {
+            $file = $this->inbox->attachment($staff->id, $contactRequest);
+        } catch (SiteRejected $exception) {
+            return response()->json(['code' => $exception->reasonCode, 'message' => 'The attachment was not found.'], $exception->status);
+        }
+
+        return response($file['body'], 200, [
+            'Content-Type' => $file['content_type'],
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, $file['name'], trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '_', Str::ascii($file['name'])), '_.') ?: 'attachment'),
+            'Cache-Control' => 'no-store, private',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'; sandbox",
+        ]);
     }
 
     public function note(Request $request, string $contactRequest): JsonResponse

@@ -45,6 +45,7 @@ class PublicStorefrontCheckTest extends TestCase
         $answer = $this->captchaAnswer('ru');
 
         $this->post('/ru/check-store', ['url' => 'https://shop.example.com'])
+            ->assertRedirect('/ru/check-store')
             ->assertSessionHasErrors('captcha_answer');
 
         $wrongAnswer = $this->captchaAnswer('ru') + 1;
