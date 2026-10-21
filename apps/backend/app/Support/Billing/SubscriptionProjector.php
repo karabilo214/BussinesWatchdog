@@ -71,7 +71,9 @@ class SubscriptionProjector
             'faster_check_interval_minutes' => $faster ? $version->faster_check_interval_minutes : null,
             'status' => $status,
             'period_start' => $contract->period_start,
-            'period_end' => $contract->paid_until ?? $contract->period_end,
+            'period_end' => $contract->access_revoked_at !== null
+                ? ($contract->paid_until !== null && $contract->paid_until->lessThan($contract->access_revoked_at) ? $contract->paid_until : $contract->access_revoked_at)
+                : ($contract->paid_until ?? $contract->period_end),
             'trial_ends_at' => $status === Subscription::STATUS_TRIAL ? $contract->period_end : null,
             'past_due_since' => $status === Subscription::STATUS_PAST_DUE ? ($row?->status === Subscription::STATUS_PAST_DUE ? $row->past_due_since : $now) : null,
             'cancel_at_period_end' => $contract->cancel_at_period_end,

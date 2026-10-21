@@ -130,6 +130,7 @@ CREATE TABLE billing_subscription_contracts (
  period_start timestamptz,
  period_end timestamptz,
  paid_until timestamptz,
+ access_revoked_at timestamptz,
  cancel_at_period_end boolean NOT NULL DEFAULT false,
  next_charge_at timestamptz,
  source_updated_at timestamptz NOT NULL,

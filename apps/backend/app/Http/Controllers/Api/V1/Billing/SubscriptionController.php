@@ -95,10 +95,10 @@ class SubscriptionController extends Controller
     public function cancel(Request $request, TenantContext $tenantContext, PaddleSubscriptionActions $actions, EntitlementCalculator $calculator): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('cancel subscription');
-        $validated = $request->validate(['at_period_end' => ['required', 'accepted'], 'reason' => ['sometimes', 'nullable', 'string', 'max:2000']]);
+        $validated = $request->validate(['at_period_end' => ['sometimes', 'boolean'], 'reason' => ['sometimes', 'nullable', 'string', 'max:2000']]);
 
         return $this->rejectable(function () use ($actions, $tenantId, $request, $validated, $calculator): JsonResponse {
-            $actions->cancel($tenantId, (string) $request->user()->getAuthIdentifier(), isset($validated['reason']) ? trim($validated['reason']) : null);
+            $actions->cancel($tenantId, (string) $request->user()->getAuthIdentifier(), isset($validated['reason']) ? trim($validated['reason']) : null, (bool) ($validated['at_period_end'] ?? false));
             $calculator->forget();
 
             return response()->json($this->currentSubscription($tenantId, $calculator));

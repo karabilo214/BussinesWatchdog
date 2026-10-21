@@ -26,8 +26,7 @@ use Illuminate\Support\Str;
  * by its token. A more expensive plan takes effect at once with Paddle charging the prorated difference — if the
  * payment fails Paddle does not change the subscription. A cheaper plan takes effect at the next period: Paddle has no
  * scheduled item change, so the items are changed now without billing and the paid plan is kept in our projection
- * until the period ends. Cancellation and resume use Paddle's scheduled cancel. Access always follows the subscription
- * read back from Paddle.
+ * until the period ends. Cancellation stops Paddle renewal immediately while preserving the already paid period locally.
  */
 class PaddleSubscriptionActions
 {
@@ -285,22 +284,41 @@ class PaddleSubscriptionActions
     /**
      * `$userId` null means platform staff acted (recorded on their side); the tenant's audit then shows a system actor.
      */
-    public function cancel(string $tenantId, ?string $userId, ?string $reason): void
+    public function cancel(string $tenantId, ?string $userId, ?string $reason, bool $atPeriodEnd = false): void
     {
         $contract = $this->activeContract($tenantId);
 
-        if ($contract->cancel_at_period_end) {
+        if ($atPeriodEnd && $contract->cancel_at_period_end) {
             return;
         }
 
         try {
-            $this->client->post('/subscriptions/'.rawurlencode((string) $contract->provider_subscription_ref).'/cancel', ['effective_from' => 'next_billing_period']);
+            $this->client->post('/subscriptions/'.rawurlencode((string) $contract->provider_subscription_ref).'/cancel', ['effective_from' => $atPeriodEnd ? 'next_billing_period' : 'immediately']);
         } catch (PaddleRequestFailed $exception) {
             throw new BillingCheckoutRejected($exception->outcomeUnknown() ? 'provider_outcome_unknown' : 'provider_unavailable');
         }
 
-        $this->audit($tenantId, $userId, 'billing.subscription_cancel_scheduled', $contract->id, ['reason' => $reason, 'effective_at' => $contract->period_end?->toJSON()] + ($userId === null ? ['by' => 'platform'] : []));
+        $this->audit($tenantId, $userId, $atPeriodEnd ? 'billing.subscription_cancel_scheduled' : 'billing.subscription_cancelled', $contract->id, ['reason' => $reason, 'paid_until' => $contract->paid_until?->toJSON()] + ($userId === null ? ['by' => 'platform'] : []));
         $this->syncQuietly((string) $contract->provider_subscription_ref);
+    }
+
+    /** Stop recurring charges after an approved Paddle refund. The refund revokes access separately. */
+    public function cancelForRefund(string $tenantId, string $subscriptionRef): void
+    {
+        $contract = $this->liveContract($tenantId);
+
+        if ($contract === null || $contract->provider_subscription_ref !== $subscriptionRef) {
+            return;
+        }
+
+        try {
+            $this->client->post('/subscriptions/'.rawurlencode($contract->provider_subscription_ref).'/cancel', ['effective_from' => 'immediately']);
+        } catch (PaddleRequestFailed $exception) {
+            throw new BillingCheckoutRejected($exception->outcomeUnknown() ? 'provider_outcome_unknown' : 'provider_unavailable');
+        }
+
+        $this->audit($tenantId, null, 'billing.subscription_cancelled_after_refund', $contract->id, []);
+        $this->syncQuietly($contract->provider_subscription_ref);
     }
 
     /**

@@ -407,7 +407,7 @@ paths:
   /api/v1/billing/cancel:
     post:
       operationId: cancelSaasRenewal
-      description: ''
+      description: Cancel the Paddle subscription immediately without a refund; preserve paid access until paid_until. Legacy at_period_end=true schedules cancellation.
       security:
       - CustomerSession: []
       responses:
@@ -454,12 +454,11 @@ paths:
               additionalProperties: false
               properties:
                 at_period_end:
-                  const: true
+                  type: boolean
+                  description: Legacy scheduled cancellation when true. Omit for immediate cancellation.
                 reason:
                   type: string
                   maxLength: 2000
-              required:
-              - at_period_end
   /api/v1/billing/resume:
     post:
       operationId: resumeSaasRenewal

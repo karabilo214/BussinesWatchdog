@@ -3,19 +3,21 @@
 namespace App\Support\Billing\Paddle;
 
 use App\Models\BillingRefund;
+use App\Models\BillingSubscriptionContract;
 use App\Models\BillingTransaction;
 use App\Support\Billing\BillingCheckoutRejected;
+use App\Support\Billing\EntitlementCalculator;
+use App\Support\Billing\SubscriptionProjector;
 use App\Support\Platform\PlatformAudit;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Throwable;
 
 /**
  * Refunds of our own subscription payments (ADR 0044): staff with payments access request one (amount, reason), the
  * platform owner approves it with an authenticator code and only then it is sent to Paddle as a refund adjustment.
  * The requested, sent and done refunds of a payment never exceed what was charged (checked under the payment lock).
- * A refund never cancels the subscription by itself; cancelling at the end of the period is a separate choice.
+ * A confirmed Paddle refund revokes access and cancels the linked subscription immediately.
  */
 class PaddleRefunds
 {
@@ -111,15 +113,6 @@ class PaddleRefunds
 
         $this->apply($refund, $adjustment);
         $this->audit->record($staffId, 'billing.refund_approved', 'billing_refund', $refund->id, PlatformAudit::RESULT_SUCCEEDED, ['adjustment' => $refund->provider_adjustment_ref, 'status' => $refund->status], $reason, $refund->tenant_id);
-
-        if ($refund->cancel_subscription) {
-            try {
-                $this->actions->cancel($refund->tenant_id, null, $reason);
-                $this->audit->record($staffId, 'billing.refund_cancelled_subscription', 'billing_refund', $refund->id, PlatformAudit::RESULT_SUCCEEDED, [], $reason, $refund->tenant_id);
-            } catch (Throwable $exception) {
-                $this->audit->record($staffId, 'billing.refund_cancelled_subscription', 'billing_refund', $refund->id, PlatformAudit::RESULT_FAILED, ['error' => $exception instanceof BillingCheckoutRejected ? $exception->reasonCode : $exception::class], $reason, $refund->tenant_id);
-            }
-        }
 
         return $refund->refresh();
     }
@@ -225,6 +218,35 @@ class PaddleRefunds
             'tax_minor' => is_string($totals['tax'] ?? null) && preg_match('/^\d{1,15}$/', $totals['tax']) === 1 ? (int) $totals['tax'] : null,
             'source_updated_at' => $updatedAt,
         ], fn (mixed $value): bool => $value !== null) + ['error_code' => null])->save();
+
+        if ($refund->status === BillingRefund::STATUS_REFUNDED) {
+            $this->revokePaidAccess($refund);
+        }
+    }
+
+    private function revokePaidAccess(BillingRefund $refund): void
+    {
+        /** @var BillingTransaction $transaction */
+        $transaction = BillingTransaction::query()->findOrFail($refund->transaction_id);
+        /** @var BillingSubscriptionContract|null $contract */
+        $contract = BillingSubscriptionContract::query()
+            ->where('tenant_id', $refund->tenant_id)->where('mode', $refund->mode)
+            ->where('provider_subscription_ref', $transaction->provider_subscription_ref)
+            ->first();
+
+        if ($contract === null) {
+            return;
+        }
+
+        if ($contract->access_revoked_at === null) {
+            $contract->forceFill(['access_revoked_at' => Carbon::now()])->save();
+            app(SubscriptionProjector::class)->project($refund->tenant_id, $refund->mode);
+            app(EntitlementCalculator::class)->forget();
+        }
+
+        if ($contract->normalized_state === BillingSubscriptionContract::STATE_ACTIVE && $contract->provider_subscription_ref !== null) {
+            $this->actions->cancelForRefund($refund->tenant_id, $contract->provider_subscription_ref);
+        }
     }
 
     /**

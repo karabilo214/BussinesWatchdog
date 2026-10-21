@@ -76,7 +76,7 @@ class TenantActions
                 'access_before' => $before,
                 'access_after' => $before,
                 'stores' => $stores,
-                'effective_at' => $action === self::CANCEL_SUBSCRIPTION ? $contract?->period_end?->toJSON() : null,
+                'effective_at' => $action === self::CANCEL_SUBSCRIPTION ? Carbon::now()->toJSON() : null,
                 'contracts' => BillingSubscriptionContract::query()->where('tenant_id', $tenant->id)->where('mode', PaddleConfig::mode())->whereNotNull('provider_subscription_ref')->count(),
             ];
         }
@@ -228,9 +228,6 @@ class TenantActions
                     $reject('no_active_subscription');
                 }
 
-                if ($contract->cancel_at_period_end) {
-                    $reject('cancel_already_scheduled');
-                }
             })(),
             self::REFRESH_BILLING => PaddleConfig::configured() ?: $reject('billing_not_configured'),
             default => $reject('action_unknown'),

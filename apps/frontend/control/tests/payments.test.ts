@@ -96,7 +96,6 @@ describe('payments', () => {
     expect((wrapper.get('[data-field="refund-amount"]').element as HTMLInputElement).value).toBe('22.37');
     await wrapper.get('[data-field="refund-amount"]').setValue('10,5');
     await wrapper.get('[data-field="refund-reason"]').setValue('Ошибка тарифа');
-    await wrapper.get('[data-field="refund-cancel"]').setValue(true);
     await wrapper.get('[data-form="refund"]').trigger('submit');
     await flushPromises();
     expect(mocked.requestRefund).toHaveBeenCalledWith('p-1', { amount_minor: '1050', reason: 'Ошибка тарифа', cancel_subscription: true });
@@ -111,6 +110,29 @@ describe('payments', () => {
     await wrapper.get('[data-form="refund-approve"]').trigger('submit');
     await flushPromises();
     expect(mocked.approveRefund).toHaveBeenCalledWith('r-1', { reason: 'Согласовано', confirmation_code: '123456' });
+  });
+
+  it('opens a full refund from the tenant and locks the payment amount', async () => {
+    mocked.fetchMe.mockResolvedValue(staff(['billing.read', 'refunds.request']));
+    mocked.fetchPayments.mockResolvedValue({
+      data: [{ id: 'p-1', provider_transaction_ref: 'txn_1', status: 'completed', origin: 'subscription_recurring', invoice_number: 'INV-1', currency: 'EUR', currency_exponent: 2, subtotal_minor: '1900', discount_minor: '0', tax_minor: '0', total_minor: '1900', fee_minor: '0', earnings_minor: '1900', refunded_minor: '0', period_start: null, period_end: null, billed_at: '2026-10-11T12:00:00Z', tenant: { id: 't-1', name: 'Kaffee GmbH' } }],
+      next_cursor: null, month: [], mode: 'test',
+    });
+    mocked.requestRefund.mockResolvedValue({ id: 'r-1' });
+    await useStaff().load(true);
+    const router = buildRouter();
+    await router.push('/owner/payments?tenant_id=t-1');
+    await router.isReady();
+    const wrapper = mount(App, { global: { plugins: [localization, router] } });
+    await flushPromises();
+    expect(mocked.fetchPayments).toHaveBeenCalledWith({ tenant_id: 't-1' });
+    await wrapper.get('[data-action="cancel-and-refund"]').trigger('click');
+    expect((wrapper.get('[data-field="refund-amount"]').element as HTMLInputElement).readOnly).toBe(true);
+    expect((wrapper.get('[data-field="refund-amount"]').element as HTMLInputElement).value).toBe('19.00');
+    await wrapper.get('[data-field="refund-reason"]').setValue('Customer request');
+    await wrapper.get('[data-form="refund"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.requestRefund).toHaveBeenCalledWith('p-1', { amount_minor: '1900', reason: 'Customer request', cancel_subscription: true });
   });
 
   it('hides refund actions from staff without refund rights', async () => {
@@ -131,6 +153,7 @@ describe('payments', () => {
     await vi.waitFor(() => expect(wrapper.find('[data-refund="r-1"]').exists()).toBe(true));
 
     expect(wrapper.find('[data-action="refund"]').exists()).toBe(false);
+    expect(wrapper.find('[data-action="cancel-and-refund"]').exists()).toBe(false);
     expect(wrapper.find('[data-action="approve-refund"]').exists()).toBe(false);
   });
 });

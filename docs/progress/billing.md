@@ -2,6 +2,13 @@
 
 Plans and entitlements, Paddle adapter, trials, usage, subscription page, platform staff sign-in, plans/prices/discounts in the owner panel, plan change and cancellation, customers and subscriptions, volume packages, pause, add-ons, retention, invoices and payments, refunds.
 
+### Step 218: Immediate cancellation and Paddle refund access
+
+- ADR 0076. Customer and platform buttons cancel Paddle subscriptions immediately without refund; the verified paid plan remains until `paid_until`. Legacy API `at_period_end=true` still schedules cancellation. Immediate cancellation cannot be resumed.
+- An approved Paddle refund of any amount, including one made in the Paddle dashboard, records `access_revoked_at`, stops access immediately and cancels the linked live subscription. Pending/rejected refunds leave access intact. Migration `2026_10_21_210000_add_refund_access_revocation_to_billing_contracts` and reference billing schema updated.
+- The platform payments panel has a full amount «Cancel and refund» button; the tenant card links to the relevant payments. Existing owner MFA approval remains required before the Paddle refund request. Once Paddle approves the adjustment, cancellation and access revocation follow.
+- Verification: backend SQLite 693 passed, 4 skipped; customer billing 20, platform payments/tenants 21; both frontend typechecks. Live cancellation/refund was not performed.
+
 ### Step 97: Plans and Entitlements
 
 Status: complete (plan contents and prices await the owner)

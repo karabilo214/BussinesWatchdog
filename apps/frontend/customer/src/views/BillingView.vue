@@ -697,7 +697,7 @@ onBeforeUnmount(stopPolling);
                 {{ $t('billing.cancel.resume') }}
               </button>
             </div>
-            <div v-else-if="cancelForm.open" class="flex flex-col gap-3 rounded-md border border-border p-3 text-sm" data-form="cancel">
+            <div v-if="cancelForm.open" class="flex flex-col gap-3 rounded-md border border-border p-3 text-sm" data-form="cancel">
               <p class="font-medium">{{ $t('billing.cancel.title') }}</p>
               <ul class="flex list-disc flex-col gap-1 pl-5 text-text-muted">
                 <li>{{ $t('billing.cancel.until', { date: dateTime(subscription.period_end) }) }}</li>

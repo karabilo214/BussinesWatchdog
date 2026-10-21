@@ -318,6 +318,23 @@ class PlanChangeTest extends TestCase
         $this->resume($context, [])->assertStatus(409)->assertJsonPath('code', 'cancel_not_scheduled');
     }
 
+    public function test_owner_cancels_paddle_now_without_losing_the_paid_period(): void
+    {
+        $context = $this->subscribed('start', 0);
+
+        $this->cancelRenewal($context, ['reason' => 'No longer needed'])
+            ->assertOk()
+            ->assertJsonPath('status', Subscription::STATUS_CANCELLED)
+            ->assertJsonPath('access_state', 'active')
+            ->assertJsonPath('period_end', '2026-11-11T00:00:00.000000Z');
+        $this->assertSame(['effective_from' => 'immediately'], collect($this->paddleWrites())->firstWhere('url', self::API.'/subscriptions/sub_1/cancel')['body']);
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $context['tenant']->id, 'action' => 'billing.subscription_cancelled']);
+
+        Carbon::setTestNow('2026-11-11T00:00:01Z');
+        app(EntitlementCalculator::class)->forget();
+        $this->assertSame('paused_billing', app(EntitlementCalculator::class)->forTenant($context['tenant']->id)->access);
+    }
+
     public function test_only_the_owner_changes_and_unsupported_changes_are_refused(): void
     {
         $context = $this->subscribed('start', 0);
@@ -497,7 +514,12 @@ class PlanChangeTest extends TestCase
             }
 
             if ($request->method() === 'POST' && $path === '/subscriptions/sub_1/cancel') {
-                $this->paddle['scheduled_change'] = ['action' => 'cancel', 'effective_at' => '2026-11-11T00:00:00Z'];
+                if (($body['effective_from'] ?? null) === 'immediately') {
+                    $this->paddle['cancelled'] = true;
+                    $this->paddle['scheduled_change'] = null;
+                } else {
+                    $this->paddle['scheduled_change'] = ['action' => 'cancel', 'effective_at' => '2026-11-11T00:00:00Z'];
+                }
                 $this->paddle['tick']++;
 
                 return Http::response(['data' => $this->subscription()]);
@@ -522,11 +544,11 @@ class PlanChangeTest extends TestCase
     {
         return [
             'id' => 'sub_1',
-            'status' => 'active',
+            'status' => ! empty($this->paddle['cancelled']) ? 'canceled' : 'active',
             'customer_id' => 'ctm_1',
             'currency_code' => 'EUR',
             'items' => $this->paddle['items'],
-            'current_billing_period' => ['starts_at' => '2026-10-11T00:00:00Z', 'ends_at' => '2026-11-11T00:00:00Z'],
+            'current_billing_period' => ! empty($this->paddle['cancelled']) ? null : ['starts_at' => '2026-10-11T00:00:00Z', 'ends_at' => '2026-11-11T00:00:00Z'],
             'next_billed_at' => $this->paddle['scheduled_change'] === null ? '2026-11-11T00:00:00Z' : null,
             'scheduled_change' => $this->paddle['scheduled_change'],
             'updated_at' => Carbon::parse('2026-10-11T12:00:00Z')->addSeconds($this->paddle['tick'])->toIso8601ZuluString(),

@@ -24,18 +24,19 @@ const cursor = ref<string | null>(null);
 const loading = ref(true);
 const error = ref<unknown>(null);
 const status = ref<string>(typeof route.query.status === 'string' ? route.query.status : '');
+const tenantId = typeof route.query.tenant_id === 'string' ? route.query.tenant_id : null;
 const { can } = useStaff();
 const refundsPanel = ref<InstanceType<typeof RefundsPanel> | null>(null);
-const refund = reactive({ payment: null as Payment | null, amount: '', reason: '', cancel: false, busy: false, error: null as unknown, done: false });
+const refund = reactive({ payment: null as Payment | null, amount: '', full: false, reason: '', busy: false, error: null as unknown, done: false });
 
 function left(row: Payment): bigint {
   return BigInt(row.total_minor ?? '0') - BigInt(row.refunded_minor ?? '0');
 }
 
-function startRefund(row: Payment): void {
+function startRefund(row: Payment, full = false): void {
   const digits = left(row).toString().padStart(row.currency_exponent + 1, '0');
   const amount = row.currency_exponent === 0 ? digits : `${digits.slice(0, -row.currency_exponent)}.${digits.slice(-row.currency_exponent)}`;
-  Object.assign(refund, { payment: row, amount, reason: '', cancel: false, error: null, done: false });
+  Object.assign(refund, { payment: row, amount, full, reason: '', error: null, done: false });
 }
 
 function refundMinor(): string | null {
@@ -53,7 +54,7 @@ async function submitRefund(): Promise<void> {
   refund.error = null;
 
   try {
-    await requestRefund(row.id, { amount_minor: minor, reason: refund.reason.trim(), cancel_subscription: refund.cancel });
+    await requestRefund(row.id, { amount_minor: minor, reason: refund.reason.trim(), cancel_subscription: true });
     refund.payment = null;
     refund.done = true;
     await refundsPanel.value?.load();
@@ -73,6 +74,7 @@ async function load(more = false): Promise<void> {
 
   try {
     const query: Record<string, string> = status.value === '' ? {} : { status: status.value };
+    if (tenantId) query.tenant_id = tenantId;
     const page = await fetchPayments(more && cursor.value ? { ...query, cursor: cursor.value } : query);
     rows.value = more ? [...rows.value, ...page.data] : page.data;
     month.value = page.month;
@@ -86,7 +88,7 @@ async function load(more = false): Promise<void> {
 }
 
 async function apply(): Promise<void> {
-  await router.replace({ query: status.value === '' ? {} : { status: status.value } });
+  await router.replace({ query: { ...(tenantId ? { tenant_id: tenantId } : {}), ...(status.value === '' ? {} : { status: status.value }) } });
   await load();
 }
 
@@ -136,17 +138,14 @@ onMounted(() => load());
         <p class="font-medium">{{ $t('refunds.form_title', { payment: refund.payment.invoice_number ?? refund.payment.provider_transaction_ref, organisation: refund.payment.tenant?.name ?? '' }) }}</p>
         <label class="flex max-w-xs flex-col gap-1.5">
           <span class="font-medium">{{ $t('refunds.amount', { currency: refund.payment.currency }) }}</span>
-          <input v-model="refund.amount" inputmode="decimal" class="rounded-md border border-border-strong bg-surface px-3 py-2 tabular-nums" data-field="refund-amount" />
+          <input v-model="refund.amount" inputmode="decimal" :readonly="refund.full" class="rounded-md border border-border-strong bg-surface px-3 py-2 tabular-nums read-only:bg-surface-muted" data-field="refund-amount" />
           <span class="text-[13px] text-text-muted">{{ $t('refunds.left', { amount: money(left(refund.payment).toString(), refund.payment.currency, refund.payment.currency_exponent) }) }}</span>
         </label>
         <label class="flex flex-col gap-1.5">
           <span class="font-medium">{{ $t('refunds.reason') }}</span>
           <textarea v-model="refund.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="refund-reason" />
         </label>
-        <label class="flex items-start gap-2">
-          <input v-model="refund.cancel" type="checkbox" class="mt-0.5 size-4 accent-primary" data-field="refund-cancel" />
-          <span>{{ $t('refunds.cancel_subscription') }}</span>
-        </label>
+        <p class="text-crit">{{ $t('refunds.cancel_subscription') }}</p>
         <p class="text-text-muted">{{ $t('refunds.form_hint') }}</p>
         <ErrorNotice v-if="refund.error" :error="refund.error" />
         <div class="flex flex-wrap gap-2">
@@ -185,7 +184,10 @@ onMounted(() => load());
                 <span v-if="row.refunded_minor && row.refunded_minor !== '0'" class="block text-[13px] text-warn">{{ $t('payments.refunded_short', { amount: money(row.refunded_minor, row.currency, row.currency_exponent) }) }}</span>
               </td>
               <td class="px-4 py-3 text-right">
-                <button v-if="can('refunds.request') && row.status === 'completed' && left(row) > 0n" type="button" class="rounded-md border border-border-strong px-3 py-1 text-sm font-medium text-primary hover:bg-primary-soft" data-action="refund" @click="startRefund(row)">{{ $t('refunds.action') }}</button>
+                <div v-if="can('refunds.request') && row.status === 'completed' && left(row) > 0n" class="flex flex-wrap justify-end gap-2">
+                  <button type="button" class="rounded-md border border-border-strong px-3 py-1 text-sm font-medium text-primary hover:bg-primary-soft" data-action="refund" @click="startRefund(row)">{{ $t('refunds.action') }}</button>
+                  <button v-if="left(row) === BigInt(row.total_minor ?? '0')" type="button" class="rounded-md border border-crit-border px-3 py-1 text-sm font-medium text-crit hover:bg-crit-soft" data-action="cancel-and-refund" @click="startRefund(row, true)">{{ $t('refunds.cancel_and_refund') }}</button>
+                </div>
               </td>
             </tr>
           </tbody>

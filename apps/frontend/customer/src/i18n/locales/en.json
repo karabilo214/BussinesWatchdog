@@ -1684,13 +1684,13 @@
     },
     "cancel": {
       "open": "Cancel subscription",
-      "title": "Cancel the subscription renewal?",
+      "title": "Cancel the subscription now?",
       "until": "Access, checks and notifications keep working until {date}.",
       "after": "After that the subscription does not renew and checks stop.",
       "kept": "Stores, history, incidents and settings are kept — you can subscribe again.",
       "no_refund": "The paid period is not refunded automatically.",
       "reason": "Why are you cancelling? (optional)",
-      "confirm": "Cancel renewal",
+      "confirm": "Cancel subscription",
       "keep": "Keep subscription",
       "scheduled": "Renewal cancelled: the subscription ends on {date}.",
       "resume": "Resume subscription"

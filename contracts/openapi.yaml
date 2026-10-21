@@ -4478,7 +4478,7 @@ paths:
     post:
       tags: [Billing]
       operationId: cancelBillingSubscription
-      description: "Tenant owner only. Cancels renewal at the end of the paid period (Paddle scheduled cancel); access, monitoring and history stay until then, nothing is refunded or deleted. Repeating it while a cancellation is scheduled changes nothing. The reason is optional and stored in the audit log only."
+      description: "Tenant owner only. Cancels the Paddle subscription immediately without refund; verified paid access continues until paid_until. Legacy at_period_end=true schedules cancellation. The optional reason is stored in the audit log."
       security:
         - {UserSession: []}
       parameters:
@@ -4490,9 +4490,8 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [at_period_end]
               properties:
-                at_period_end: {const: true}
+                at_period_end: {type: boolean, description: "Legacy scheduled cancellation when true; omit for immediate cancellation."}
                 reason: {type: [string, "null"], maxLength: 2000}
       responses:
         "200":

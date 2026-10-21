@@ -21,7 +21,7 @@ class BillingSubscriptionContract extends Model
 
     public const STATE_UNKNOWN = 'unknown';
 
-    protected $fillable = ['tenant_id', 'customer_id', 'plan_version_id', 'price_id', 'provider', 'provider_account_ref', 'provider_subscription_ref', 'mode', 'normalized_state', 'provider_state', 'currency', 'extra_store_quantity', 'faster_checks', 'entitlement_snapshot', 'period_start', 'period_end', 'paid_until', 'cancel_at_period_end', 'next_charge_at', 'problem_code', 'source_updated_at', 'version'];
+    protected $fillable = ['tenant_id', 'customer_id', 'plan_version_id', 'price_id', 'provider', 'provider_account_ref', 'provider_subscription_ref', 'mode', 'normalized_state', 'provider_state', 'currency', 'extra_store_quantity', 'faster_checks', 'entitlement_snapshot', 'period_start', 'period_end', 'paid_until', 'access_revoked_at', 'cancel_at_period_end', 'next_charge_at', 'problem_code', 'source_updated_at', 'version'];
 
     protected function casts(): array
     {
@@ -32,6 +32,7 @@ class BillingSubscriptionContract extends Model
             'period_start' => 'datetime',
             'period_end' => 'datetime',
             'paid_until' => 'datetime',
+            'access_revoked_at' => 'datetime',
             'cancel_at_period_end' => 'boolean',
             'next_charge_at' => 'datetime',
             'source_updated_at' => 'datetime',

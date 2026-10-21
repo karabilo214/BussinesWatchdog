@@ -2,6 +2,7 @@
 
 namespace App\Support\Billing;
 
+use App\Models\BillingSubscriptionContract;
 use App\Models\EntitlementOverride;
 use App\Models\Subscription;
 use App\Models\Tenant;
@@ -157,7 +158,12 @@ class EntitlementCalculator
             ->latest('starts_at')
             ->first();
         $snapshot = $subscription === null ? null : self::withFasterChecks(self::withStores(FeatureCatalog::normalize($subscription->entitlements ?? []), (int) $subscription->extra_store_quantity), $subscription->faster_check_interval_minutes);
-        $paid = $subscription !== null && $subscription->status === Subscription::STATUS_ACTIVE && ($subscription->period_end === null || $subscription->period_end->greaterThan($now));
+        $paid = $subscription !== null && (
+            ($subscription->status === Subscription::STATUS_ACTIVE && ($subscription->period_end === null || $subscription->period_end->greaterThan($now)))
+            || ($subscription->status === Subscription::STATUS_CANCELLED && $subscription->period_end !== null && $subscription->period_end->greaterThan($now)
+                && BillingSubscriptionContract::query()->where('tenant_id', $tenantId)->where('provider_subscription_ref', $subscription->provider_subscription_ref)
+                    ->whereNotNull('paid_until')->where('paid_until', '>', $now)->whereNull('access_revoked_at')->exists())
+        );
 
         if ($override !== null) {
             $grant = FeatureCatalog::normalize($override->entitlements ?? []);

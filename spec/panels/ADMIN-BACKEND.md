@@ -44,6 +44,8 @@ Adapter unavailable в P0 → published purchase buttons disabled или trial/m
 | Grace истекла | status suspended | paused_billing, history/payment доступны |
 | Manual service suspension | billing state unchanged | paused_manual независимо от paid |
 | Cancel scheduled | provider flag, current status не cancelled преждевременно | До verified paid_until |
+| Cancel immediately, no refund | provider status cancelled, future charges stop | До verified paid_until |
+| Paddle refund approved (partial/full) | linked subscription cancelled immediately | Access revoked immediately |
 | Contract ended | status cancelled | expired если нет другого approved grant |
 | Provider state unknown | no new paid grant | Previously confirmed period не сокращается без evidence |
 | Temporary override active | paid facts unchanged | Explicit override within interval |
@@ -52,7 +54,7 @@ Adapter unavailable в P0 → published purchase buttons disabled или trial/m
 
 Приоритет: deleted/deleting→no service; security/manual suspension→pause; capacity choice→pause browser jobs; валидный paid период→active; approved override→override limits; valid trial→trial; overdue grace→grace; иначе expired/paused_billing. Override не обходит manual/security suspend. Billing state и `access_state` сохраняются отдельно. All rules config versioned; причины `access_reason_codes` видны owner/tenant_owner.
 
-`paid_until` не вычислять как paid_at+30д. Использовать реальные покрытые periods invoices/contract; annual/monthly timezone и calendar intervals из provider. Partial refund не автоматически пропорциональное сокращение paid_until. Full refund/cancel access policy утверждается commercial rule, action preview shows it. Не менять paid state руками, даже если предоставляется complimentary доступ.
+`paid_until` не вычислять как paid_at+30д. Использовать реальные покрытые periods invoices/contract; annual/monthly timezone и calendar intervals из provider. Partial refund не пропорционально сокращает `paid_until`: одобренный Paddle возврат любого размера ставит отдельный `access_revoked_at`, прекращая доступ сразу. При простой немедленной отмене `paid_until` сохраняется. Не менять paid state руками, даже если предоставляется complimentary доступ.
 
 Один active commercial contract per tenant/provider mode по policy. Параллельный checkout или renew для существующего active contract возвращает existing session/409 либо plan-change flow, не создаёт вторую recurring подписку. Trial eligibility under tenant lock; unique trial_consumed marker. Entitlement projection и domain_outbox changes commit вместе.
 

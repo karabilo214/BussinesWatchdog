@@ -211,7 +211,7 @@ export async function withdrawPlanChange(): Promise<{ change: PlanChange; subscr
 }
 
 export async function cancelSubscription(reason: string | null): Promise<BillingSubscription | null> {
-  return (await request<BillingSubscription | null>('POST', '/api/v1/billing/cancel', { body: { at_period_end: true, reason }, idempotencyKey: newIdempotencyKey() })).data;
+  return (await request<BillingSubscription | null>('POST', '/api/v1/billing/cancel', { body: { reason }, idempotencyKey: newIdempotencyKey() })).data;
 }
 
 export async function resumeSubscription(expectedVersion: number): Promise<BillingSubscription | null> {

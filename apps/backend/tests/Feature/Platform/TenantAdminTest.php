@@ -14,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Account\MfaService;
 use App\Support\Account\Totp;
+use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Billing\Paddle\PaddleSubscriptionSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -38,7 +39,7 @@ class TenantAdminTest extends TestCase
     private string $secret = '';
 
     /** @var array<string, mixed> */
-    private array $paddle = ['scheduled_change' => null, 'writes' => []];
+    private array $paddle = ['scheduled_change' => null, 'cancelled' => false, 'writes' => []];
 
     private BillingPlanVersion $version;
 
@@ -63,16 +64,16 @@ class TenantAdminTest extends TestCase
             }
 
             if ($request->method() === 'POST' && str_ends_with($request->url(), '/subscriptions/sub_1/cancel')) {
-                $this->paddle['scheduled_change'] = ['action' => 'cancel', 'effective_at' => '2026-11-11T00:00:00Z'];
+                $this->paddle['cancelled'] = ($request->data()['effective_from'] ?? null) === 'immediately';
             }
 
             return Http::response(['data' => [
                 'id' => 'sub_1',
-                'status' => 'active',
+                'status' => $this->paddle['cancelled'] ? 'canceled' : 'active',
                 'customer_id' => 'ctm_1',
                 'currency_code' => 'EUR',
                 'items' => [['price' => ['id' => 'pri_start'], 'quantity' => 1, 'status' => 'active']],
-                'current_billing_period' => ['starts_at' => '2026-10-11T00:00:00Z', 'ends_at' => '2026-11-11T00:00:00Z'],
+                'current_billing_period' => $this->paddle['cancelled'] ? null : ['starts_at' => '2026-10-11T00:00:00Z', 'ends_at' => '2026-11-11T00:00:00Z'],
                 'next_billed_at' => $this->paddle['scheduled_change'] === null ? '2026-11-11T00:00:00Z' : null,
                 'scheduled_change' => $this->paddle['scheduled_change'],
                 'updated_at' => '2026-10-20T09:00:0'.count($this->paddle['writes']).'Z',
@@ -255,20 +256,24 @@ class TenantAdminTest extends TestCase
         $tenantId = $paid['tenant']->id;
         $this->signIn();
 
-        $this->postJson("/platform-api/v1/tenants/{$tenantId}/actions/cancel_subscription/preview")->assertOk()->assertJsonPath('effective_at', '2026-11-11T00:00:00.000000Z');
+        $this->postJson("/platform-api/v1/tenants/{$tenantId}/actions/cancel_subscription/preview")->assertOk()->assertJsonPath('access_after.state', 'active');
         $this->act($tenantId, 'cancel_subscription', ['reason' => 'Customer asked by phone'])
             ->assertOk()
-            ->assertJsonPath('billing.subscription.cancel_at_period_end', true)
+            ->assertJsonPath('billing.subscription.status', 'cancelled')
             ->assertJsonPath('access.state', 'active');
         $this->assertSame(['POST', self::API.'/subscriptions/sub_1/cancel'], array_values($this->paddle['writes'][0]));
-        $tenantAudit = DB::table('audit_log')->where('tenant_id', $tenantId)->where('action', 'billing.subscription_cancel_scheduled')->first();
+        $this->assertSame('cancelled', Subscription::query()->where('tenant_id', $tenantId)->value('status'));
+        $this->assertSame('active', app(EntitlementCalculator::class)->forTenant($tenantId)->access);
+        $tenantAudit = DB::table('audit_log')->where('tenant_id', $tenantId)->where('action', 'billing.subscription_cancelled')->first();
         $this->assertSame('system', $tenantAudit->actor_type);
         $this->assertNull($tenantAudit->actor_user_id);
         $this->assertSame('platform', json_decode($tenantAudit->changes, true)['by']);
-        $this->act($tenantId, 'cancel_subscription', ['reason' => 'Twice'])->assertStatus(409)->assertJsonPath('code', 'cancel_already_scheduled');
+        $this->act($tenantId, 'cancel_subscription', ['reason' => 'Twice'])->assertStatus(409)->assertJsonPath('code', 'no_active_subscription');
 
-        $this->paddle['scheduled_change'] = null;
-        $this->act($tenantId, 'refresh_billing', ['reason' => 'Customer resumed at Paddle'])->assertOk()->assertJsonPath('billing.subscription.cancel_at_period_end', false);
+        $this->act($tenantId, 'refresh_billing', ['reason' => 'Check Paddle status'])->assertOk()->assertJsonPath('billing.subscription.status', 'cancelled');
+        Carbon::setTestNow('2026-11-11T00:00:01Z');
+        app(EntitlementCalculator::class)->forget();
+        $this->assertSame('paused_billing', app(EntitlementCalculator::class)->forTenant($tenantId)->access);
     }
 
     /**

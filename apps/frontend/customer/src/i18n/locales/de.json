@@ -1684,13 +1684,13 @@
     },
     "cancel": {
       "open": "Abonnement kündigen",
-      "title": "Verlängerung des Abonnements kündigen?",
+      "title": "Abonnement jetzt kündigen?",
       "until": "Zugang, Prüfungen und Benachrichtigungen laufen bis {date}.",
       "after": "Danach verlängert sich das Abonnement nicht und die Prüfungen enden.",
       "kept": "Shops, Verlauf, Vorfälle und Einstellungen bleiben erhalten — Sie können wieder abonnieren.",
       "no_refund": "Der bezahlte Zeitraum wird nicht automatisch erstattet.",
       "reason": "Warum kündigen Sie? (optional)",
-      "confirm": "Verlängerung kündigen",
+      "confirm": "Abonnement kündigen",
       "keep": "Abonnement behalten",
       "scheduled": "Verlängerung gekündigt: Das Abonnement endet am {date}.",
       "resume": "Abonnement fortsetzen"

@@ -27,7 +27,7 @@ const available = computed<TenantAction[]>(() => {
 
   if (activeOverrides.value.length === 0) actions.push('grant_override');
   if (subscription.value?.provider === 'internal' && subscription.value.status === 'trial') actions.push('extend_trial');
-  if (subscription.value && subscription.value.provider !== 'internal' && subscription.value.status === 'active' && !subscription.value.cancel_at_period_end) actions.push('cancel_subscription');
+  if (subscription.value && subscription.value.provider !== 'internal' && subscription.value.status === 'active') actions.push('cancel_subscription');
   if ((props.card.billing?.contracts.length ?? 0) > 0) actions.push('refresh_billing');
 
   return actions;
@@ -151,6 +151,7 @@ onMounted(async () => {
         {{ $t('tenant.actions.name.revoke_override') }} ({{ dateTime(override.ends_at) }})
       </button>
       <button type="button" class="rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="remind" @click="remind">{{ $t('tenant.reminder.button') }}</button>
+      <RouterLink v-if="subscription?.provider === 'paddle' && subscription.status === 'active'" :to="{ name: 'owner-payments', query: { tenant_id: card.id } }" class="rounded-md border border-crit-border px-3 py-2 text-sm font-medium text-crit hover:bg-crit-soft" data-action="cancel-and-refund">{{ $t('refunds.cancel_and_refund') }}</RouterLink>
     </div>
 
     <TenantReminder v-if="reminding" :tenant-id="card.id" @close="reminding = false" @sent="reminderSent" />

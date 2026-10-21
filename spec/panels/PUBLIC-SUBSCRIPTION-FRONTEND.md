@@ -79,7 +79,7 @@ Paid renewal backend automatic, UI shows next date/provider state. Failed renewa
 
 Upgrade preview returns due_now,currency,taxes,proration lines, next recurring price,effective_at,price version и preview token TTL10мин. User confirms token; backend rechecks current subscription version. Если amount изменился — fresh preview409. Никакого optimistic upgraded access пока confirmed conditions не выполнены. Zero-cost approved upgrade возможен только если verified provider state/policy допускает.
 
-Downgrade scheduled for period_end, existing benefits действуют до effective_at. Выбор retained stores описан CLIENT-PANELS. Cancellation at period_end summary: последняя дата monitoring, renewals stop, data retention и доступ к истории; optional feedback не препятствует отмене. Resume scheduled cancellation проходит backend provider sync. Refund не означает cancellation automatically, и наоборот; интерфейс показывает оба состояния.
+Downgrade scheduled for period_end, existing benefits действуют до effective_at. Выбор retained stores описан CLIENT-PANELS. Кнопка отмены немедленно завершает подписку у Paddle и останавливает новые списания без возврата денег; оплаченный тариф действует до подтверждённого `paid_until`. Feedback необязателен. Ранее запланированную отмену можно возобновить до её наступления; немедленно отменённую подписку оформляют заново. Любой подтверждённый Paddle refund (полный или частичный, включая сделанный в Paddle dashboard) немедленно прекращает доступ к тарифу и отменяет связанную подписку у Paddle.
 
 ## 8 Content и доступность
 
@@ -101,7 +101,7 @@ Performance budget pilot: public pages Lighthouse mobile performance≥80 на �
 | POST /api/v1/billing/portal | return_path | short-lived provider portal URL |
 | POST /api/v1/billing/plan-change-preview | price_id,requested_effect | versioned preview token+amounts |
 | POST /api/v1/billing/plan-change | preview_token | action_id,status,effective_at |
-| POST /api/v1/billing/cancel | at_period_end=true,reason optional | server state, effective_at |
+| POST /api/v1/billing/cancel | reason optional; legacy at_period_end=true schedules cancellation | provider cancellation now, paid access until paid_until |
 | POST /api/v1/billing/resume | expected_version | actual provider-derived state |
 | GET /api/v1/billing/invoices | cursor filters | Own invoices |
 | GET /api/v1/billing/invoices/{id}/download | Auth owner | private URL,expiry |

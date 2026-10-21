@@ -576,7 +576,7 @@
         "grant_override": "Grant temporary access",
         "revoke_override": "Revoke temporary access",
         "extend_trial": "Extend trial",
-        "cancel_subscription": "Cancel subscription at period end",
+        "cancel_subscription": "Cancel subscription",
         "refresh_billing": "Refresh from Paddle"
       },
       "explain": {
@@ -600,7 +600,7 @@
         "grant_override": "Until {date}",
         "revoke_override": "From {date}",
         "extend_trial": "Trial until {date}",
-        "cancel_subscription": "The subscription ends on {date}",
+        "cancel_subscription": "Renewal stops now; paid access lasts until {date}",
         "refresh_billing": "{date}"
       },
       "reason": "Reason (shown in the audit)",
@@ -612,7 +612,7 @@
         "grant_override": "Temporary access granted.",
         "revoke_override": "Temporary access revoked.",
         "extend_trial": "Trial extended.",
-        "cancel_subscription": "Cancellation at period end scheduled.",
+        "cancel_subscription": "Subscription cancelled. Access remains until the paid period ends.",
         "refresh_billing": "Refreshed from Paddle."
       }
     },
@@ -949,9 +949,9 @@
   },
   "refunds": {
     "title": "Refunds",
-    "hint": "Money goes back to the customer only after the platform owner approves with an authenticator code. A refund does not cancel the subscription unless chosen.",
+    "hint": "Money goes back to the customer after platform owner approval. A confirmed refund immediately cancels the subscription and plan access.",
     "empty": "No refunds.",
-    "with_cancel": "and cancellation at period end",
+    "with_cancel": "and immediate subscription cancellation",
     "requested": "requested by {name} {date}",
     "decided": "decided by {name} {date}",
     "approve": "Approve refund",
@@ -960,11 +960,12 @@
     "reject_hint": "Reject the request for {amount}?",
     "decision_reason": "Reason for the decision",
     "action": "Refund",
+    "cancel_and_refund": "Cancel and refund",
     "form_title": "Refund of payment {payment} — {organisation}",
     "amount": "Amount, {currency}",
     "left": "At most {amount} can be refunded",
     "reason": "Reason (shown in the audit and Paddle)",
-    "cancel_subscription": "Also cancel the subscription at the end of the paid period",
+    "cancel_subscription": "Cancel subscription and plan access when the refund is confirmed",
     "form_hint": "The request appears under «Refunds»; money goes out after the owner approves.",
     "submit": "Request refund",
     "requested_done": "The refund request was created and awaits approval.",

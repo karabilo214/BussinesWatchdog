@@ -576,7 +576,7 @@
         "grant_override": "Befristeten Zugang gewähren",
         "revoke_override": "Befristeten Zugang widerrufen",
         "extend_trial": "Testphase verlängern",
-        "cancel_subscription": "Abonnement zum Periodenende kündigen",
+        "cancel_subscription": "Abonnement kündigen",
         "refresh_billing": "Aus Paddle aktualisieren"
       },
       "explain": {
@@ -600,7 +600,7 @@
         "grant_override": "Bis {date}",
         "revoke_override": "Ab {date}",
         "extend_trial": "Testphase bis {date}",
-        "cancel_subscription": "Das Abonnement endet am {date}",
+        "cancel_subscription": "Verlängerung endet jetzt; bezahlter Zugang bis {date}",
         "refresh_billing": "{date}"
       },
       "reason": "Grund (im Audit sichtbar)",
@@ -612,7 +612,7 @@
         "grant_override": "Befristeter Zugang gewährt.",
         "revoke_override": "Befristeter Zugang widerrufen.",
         "extend_trial": "Testphase verlängert.",
-        "cancel_subscription": "Kündigung zum Periodenende geplant.",
+        "cancel_subscription": "Abonnement gekündigt. Zugang bleibt bis zum Ende des bezahlten Zeitraums.",
         "refresh_billing": "Aus Paddle aktualisiert."
       }
     },
@@ -949,9 +949,9 @@
   },
   "refunds": {
     "title": "Erstattungen",
-    "hint": "Geld geht erst nach Freigabe durch den Plattform-Inhaber mit Authenticator-Code an den Kunden zurück. Eine Erstattung kündigt das Abonnement nicht, außer es wird gewählt.",
+    "hint": "Geld geht nach Freigabe durch den Plattform-Inhaber an den Kunden zurück. Eine bestätigte Erstattung beendet Abonnement und Tarifzugang sofort.",
     "empty": "Keine Erstattungen.",
-    "with_cancel": "und Kündigung zum Periodenende",
+    "with_cancel": "und sofortige Kündigung",
     "requested": "angefragt von {name} {date}",
     "decided": "entschieden von {name} {date}",
     "approve": "Erstattung freigeben",
@@ -960,11 +960,12 @@
     "reject_hint": "Anfrage über {amount} ablehnen?",
     "decision_reason": "Grund der Entscheidung",
     "action": "Erstatten",
+    "cancel_and_refund": "Kündigen und erstatten",
     "form_title": "Erstattung der Zahlung {payment} — {organisation}",
     "amount": "Betrag, {currency}",
     "left": "Höchstens {amount} erstattbar",
     "reason": "Grund (im Audit und bei Paddle sichtbar)",
-    "cancel_subscription": "Abonnement auch zum Ende der bezahlten Periode kündigen",
+    "cancel_subscription": "Abonnement und Tarifzugang nach bestätigter Erstattung sofort beenden",
     "form_hint": "Die Anfrage erscheint unter «Erstattungen»; das Geld geht nach Freigabe raus.",
     "submit": "Erstattung anfragen",
     "requested_done": "Die Erstattungsanfrage wurde erstellt und wartet auf Freigabe.",
