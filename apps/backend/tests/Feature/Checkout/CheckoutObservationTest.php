@@ -241,7 +241,7 @@ class CheckoutObservationTest extends TestCase
         }
     }
 
-    public function test_shopware_app_archive_is_not_issued_without_exact_release_approval(): void
+    public function test_shopware_app_archive_is_issued_to_every_store_once_the_exact_version_is_approved(): void
     {
         config()->set('watchdog.connector_release_gate', true);
         $request = fn () => $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
@@ -251,8 +251,6 @@ class CheckoutObservationTest extends TestCase
 
         $app = app(ShopwareApp::class);
         config()->set('watchdog.shopware.app_approved_sha256', $app->releaseFingerprint());
-        $request()->assertStatus(409)->assertJsonPath('code', 'shopware_app_release_not_approved');
-        config()->set('watchdog.shopware.app_approved_store_ids', (string) $this->store->id);
         $request()->assertOk();
 
         config()->set('watchdog.shopware.app_approved_sha256', str_repeat('0', 64));

@@ -490,3 +490,13 @@ Status: complete; deployed 2026-10-21 (`7cad5ef`), provider set in the productio
 - Cabinet `ObservationTexts.vue`: a collapsed block «Texts for your store's privacy policy» (ru/en/de UI, texts in German/English) with copy for the paragraph and a `.txt` download of the LIA; loaded only when opened. Shown with the WooCommerce plugin download, in the Shopware app connection steps and for stores connected through the app.
 
 Verification: `ObservationTextsTest` (provider filled, «servers in Germany», both languages, placeholder and warning without a provider, guests refused), OpenAPI route guard; customer `observationTexts.test.ts` (loaded on open, language switch, provider warning, failed request). Backend SQLite 687 passed + 4 skipped; customer 145/145, vue-tsc, build.
+
+### Step 215: One Approved Shopware App Version for Every Store (ADR 0074)
+
+Status: complete in main
+
+- Owner's decision: no check on a copy of the store and no per-store approval; the owner approves an App version, and every customer downloads it in the cabinet.
+- `ShopwareApp::releaseApproved()` checks only the version fingerprint; `WATCHDOG_SHOPWARE_APP_APPROVED_STORE_IDS` and `watchdog.shopware.app_approved_store_ids` are removed (`infra/production/env.example`); the integration DTO's update availability no longer depends on the store.
+- `docs/ops/integrations.md` (how to approve a version), backlog item on third-party themes rewritten without the copy of the store.
+
+Verification: `CheckoutObservationTest` (archive refused without approval, issued with the exact fingerprint, refused with another); backend SQLite 687 passed + 4 skipped.

@@ -77,7 +77,7 @@ class ShopwareApp
      */
     public function package(Store $store, bool $riskAcknowledged, ?string $actorId): array
     {
-        $this->assertReleaseApproved($store);
+        $this->assertReleaseApproved();
 
         if (! $riskAcknowledged) {
             throw new AccountRejected('shopware_state_change_risk_not_acknowledged');
@@ -293,7 +293,7 @@ class ShopwareApp
      */
     public function updatePackage(Store $store, ?string $actorId): array
     {
-        $this->assertReleaseApproved($store);
+        $this->assertReleaseApproved();
 
         /** @var Integration|null $integration */
         $integration = Integration::query()
@@ -429,7 +429,7 @@ XML;
         ], JSON_THROW_ON_ERROR));
     }
 
-    public function releaseApproved(?string $storeId = null): bool
+    public function releaseApproved(): bool
     {
         if (! (bool) config('watchdog.connector_release_gate')) {
             return true;
@@ -437,18 +437,12 @@ XML;
 
         $approved = strtolower((string) config('watchdog.shopware.app_approved_sha256'));
 
-        if (preg_match('/^[0-9a-f]{64}$/', $approved) !== 1 || ! hash_equals($approved, $this->releaseFingerprint())) {
-            return false;
-        }
-
-        $storeIds = array_filter(array_map('trim', explode(',', (string) config('watchdog.shopware.app_approved_store_ids'))));
-
-        return $storeId !== null && in_array($storeId, $storeIds, true);
+        return preg_match('/^[0-9a-f]{64}$/', $approved) === 1 && hash_equals($approved, $this->releaseFingerprint());
     }
 
-    private function assertReleaseApproved(Store $store): void
+    private function assertReleaseApproved(): void
     {
-        if (! $this->releaseApproved((string) $store->id)) {
+        if (! $this->releaseApproved()) {
             throw new AccountRejected('shopware_app_release_not_approved', 409);
         }
     }
