@@ -46,6 +46,8 @@ $out += [
     'stopped' => is_array(get_option('bw_monitoring_stopped', null)),
     'connection' => $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->prefix . 'bw_state')) === $wpdb->prefix . 'bw_state'
         ? $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}bw_state WHERE name = 'connection'") === '1' : null,
+    'integration_id' => class_exists('\\BusinessWatchdog\\WooCommerce\\Connection\\Connection')
+        ? \BusinessWatchdog\WooCommerce\Connection\Connection::current()?->integrationId() : null,
 ];
 
 echo 'BW_PROBE=' . wp_json_encode($out) . PHP_EOL;

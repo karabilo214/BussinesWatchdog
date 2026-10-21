@@ -9,6 +9,7 @@ use App\Models\ReconciliationDirtySubject;
 use App\Models\Store;
 use App\Support\Account\AccountRejected;
 use App\Support\Integrations\OrderSources;
+use App\Support\Integrations\OrderSourceContinuity;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use App\Support\Security\Keyring;
 use App\Support\Stores\StoreVerificationService;
@@ -93,6 +94,14 @@ class WooCommerceApiConnector
                 'status' => IntegrationCredential::STATUS_ACTIVE,
                 'created_at' => Carbon::now(),
             ]);
+
+            $previous = Integration::query()->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)
+                ->where('provider', self::PROVIDER)->where('status', Integration::STATUS_REVOKED)
+                ->orderByDesc('created_at')->first();
+
+            if ($previous !== null) {
+                app(OrderSourceContinuity::class)->carryForward($previous, $integration);
+            }
 
             AuditLog::query()->create([
                 'tenant_id' => $integration->tenant_id,

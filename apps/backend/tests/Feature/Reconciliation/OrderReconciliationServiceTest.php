@@ -63,6 +63,36 @@ class OrderReconciliationServiceTest extends TestCase
         $this->assertSame(0, $finding->difference_minor);
     }
 
+    public function test_a_reimported_shopware_order_uses_the_same_confirmed_capture_after_app_replacement(): void
+    {
+        $original = $this->order(['paid_marked_at' => now()->subHours(2), 'transaction_ref' => 'shopware-capture']);
+        $allocation = $this->allocateCapture($original, 18400, 18400);
+        $captureRef = $allocation->captureTransaction->external_operation_id;
+        $original->forceFill(['transaction_ref' => $captureRef])->save();
+
+        $old = Integration::query()->create([
+            'tenant_id' => $original->tenant_id, 'store_id' => $original->store_id, 'provider' => 'shopware',
+            'external_account_id' => 'same-shop', 'mode' => 'live', 'source_authority' => Integration::SOURCE_STORE_REPORTED,
+            'status' => Integration::STATUS_REVOKED, 'capabilities' => ['connection' => 'app'], 'connector_version' => 'shopware-app-1.4.0', 'health' => [],
+        ]);
+        $current = $old->replicate(['id']);
+        $current->status = Integration::STATUS_ACTIVE;
+        $current->connector_version = 'shopware-app-1.5.0';
+        $current->save();
+        $original->forceFill(['integration_id' => $old->id])->save();
+        $reimported = $original->replicate(['id']);
+        $reimported->integration_id = $current->id;
+        $reimported->save();
+
+        $run = app(OrderReconciliationService::class)->evaluate($reimported);
+        $this->assertSame(ReconciliationFinding::STATUS_OK, $run->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)->sole()->status);
+        $this->assertSame(0, $run->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_MISSING)->count());
+
+        $reimported->forceFill(['transaction_ref' => 'different-capture'])->save();
+        $changedPayment = app(OrderReconciliationService::class)->evaluate($reimported->fresh());
+        $this->assertSame(0, $changedPayment->findings()->where('rule_code', ReconciliationFinding::RULE_CAPTURE_AMOUNT)->count());
+    }
+
     public function test_it_reports_capture_amount_mismatch_when_capture_differs(): void
     {
         $order = $this->order(['paid_marked_at' => now()->subMinutes(10)]);

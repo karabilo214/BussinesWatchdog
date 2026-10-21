@@ -3,7 +3,9 @@
 namespace Tests\Feature\Pairing;
 
 use App\Models\AuditLog;
+use App\Models\Integration;
 use App\Models\Membership;
+use App\Models\Order;
 use App\Models\PairingCode;
 use App\Models\Store;
 use App\Models\Tenant;
@@ -143,6 +145,35 @@ class PairingApiTest extends TestCase
         $this->postJson('/api/v1/pairing/exchange', $payload)
             ->assertConflict()
             ->assertJsonPath('code', 'pairing_consumed');
+    }
+
+    public function test_repairing_the_same_woocommerce_installation_keeps_existing_orders(): void
+    {
+        [, $tenant, $store] = $this->userWithStore();
+        $installId = '550e8400-e29b-41d4-a716-446655440000';
+        $old = Integration::query()->create([
+            'tenant_id' => $tenant->id, 'store_id' => $store->id, 'provider' => 'woocommerce',
+            'install_id' => $installId, 'mode' => 'live', 'source_authority' => Integration::SOURCE_STORE_REPORTED,
+            'status' => Integration::STATUS_REVOKED, 'capabilities' => [], 'connector_version' => '0.3.1', 'health' => [],
+        ]);
+        $order = Order::query()->create([
+            'tenant_id' => $tenant->id, 'store_id' => $store->id, 'integration_id' => $old->id,
+            'external_id' => '41', 'display_number' => '41', 'source_revision' => 3,
+            'status' => 'processing', 'mode' => 'live', 'currency' => 'EUR', 'currency_exponent' => 2,
+            'total_minor' => 18400, 'payment_expected' => true, 'financial_support' => 'supported',
+            'is_synthetic' => false, 'source_created_at' => now()->subDay(), 'source_updated_at' => now()->subDay(),
+            'current_payload_hash' => str_repeat('a', 64), 'metadata' => [], 'created_at' => now()->subDay(), 'updated_at' => now()->subDay(),
+        ]);
+        $code = 'bwpc_woocommerce_repair_1234567890';
+        $this->pairingCodeFor($store, $code);
+
+        $response = $this->postJson('/api/v1/pairing/exchange', [
+            'pairing_code' => $code, 'install_id' => $installId, 'connector_code' => 'woocommerce',
+            'plugin_version' => '0.3.2', 'base_url' => $store->base_url,
+        ])->assertCreated();
+
+        $this->assertSame($order->id, Order::query()->where('integration_id', $response->json('integration_id'))->where('external_id', '41')->sole()->id);
+        $this->assertSame(1, Order::query()->where('store_id', $store->id)->count());
     }
 
     public function test_expired_pairing_code_is_rejected(): void
