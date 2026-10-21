@@ -78,7 +78,7 @@ class StoreCheckoutLayoutTest extends TestCase
         $member()->getJson("/api/v1/stores/{$store->id}")->assertOk()->assertJsonPath('checkout_layout', null);
 
         $store->forceFill(['platform' => 'shopware'])->save();
-        $viewer = $this->context('viewer', $context['tenant'], $store);
+        $viewer = $this->context('viewer', $context['tenant'], $store, $context['integration']);
         $this->actingAs($viewer['user'])->withSession(['active_tenant_id' => $context['tenant']->id])
             ->putJson("/api/v1/stores/{$store->id}/checkout-layout", ['confirm_path' => '/kasse'])->assertForbidden();
     }
