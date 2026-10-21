@@ -47,7 +47,31 @@ const blocked = (context) => {
   }
 };
 
-async function pageKind(page, timeout) {
+function layoutOf(context) {
+  const layout = context?.scenario?.checkout_layout;
+
+  return layout && typeof layout === 'object' ? layout : {};
+}
+
+function onCustomConfirmPath(page, layout) {
+  const path = String(layout.confirm_path ?? '').replace(/\/+$/, '');
+
+  if (path === '') {
+    return false;
+  }
+
+  try {
+    return new URL(page.url()).pathname.replace(/\/+$/, '').endsWith(path);
+  } catch {
+    return false;
+  }
+}
+
+async function pageKind(page, timeout, layout = {}) {
+  if (onCustomConfirmPath(page, layout)) {
+    return 'confirm';
+  }
+
   return Promise.any([
     page.locator(SELECTORS.confirmPage).first().waitFor({ state: 'attached', timeout }).then(() => 'confirm'),
     page.locator(SELECTORS.registerPage).first().waitFor({ state: 'attached', timeout }).then(() => 'register'),
@@ -242,7 +266,7 @@ export function createShopwareAdapter() {
 
     async checkout(page, step, context) {
       await navigate(page, context.scenario.checkout_url, step.timeout_ms, context);
-      const kind = await pageKind(page, step.timeout_ms);
+      const kind = await pageKind(page, step.timeout_ms, layoutOf(context));
 
       if (kind === 'register') {
         if (!(await present(page, `${SELECTORS.loginForm}, ${SELECTORS.registerForm}`))) {
@@ -298,7 +322,7 @@ export function createShopwareAdapter() {
       }
 
       context.signedIn = response !== null && response.status() < 400;
-      const kind = await pageKind(page, step.timeout_ms);
+      const kind = await pageKind(page, step.timeout_ms, layoutOf(context));
 
       if (kind === 'confirm') {
         context.signedIn = true;
@@ -361,7 +385,7 @@ export function createShopwareAdapter() {
         throw SITE(`guest_registration_http_${response.status()}`);
       }
 
-      const kind = await pageKind(page, timeout);
+      const kind = await pageKind(page, timeout, layoutOf(context));
 
       if (kind === 'confirm') {
         return [{ code: 'guest_registered', passed: true }];
@@ -379,7 +403,7 @@ export function createShopwareAdapter() {
     },
 
     async shipping(page, step, context) {
-      if ((await pageKind(page, step.timeout_ms)) !== 'confirm') {
+      if ((await pageKind(page, step.timeout_ms, layoutOf(context))) !== 'confirm') {
         throw new StepOutcome('inconclusive', 'selector_changed', 'shipping_confirm_page_not_reached');
       }
 
@@ -397,12 +421,14 @@ export function createShopwareAdapter() {
     },
 
     async payment_form(page, step, context) {
-      if ((await pageKind(page, step.timeout_ms)) !== 'confirm') {
+      if ((await pageKind(page, step.timeout_ms, layoutOf(context))) !== 'confirm') {
         throw new StepOutcome('inconclusive', 'selector_changed', 'confirm_page_not_reached');
       }
 
-      const methods = page.locator(SELECTORS.paymentMethod);
-      if (await methods.count() === 0) {
+      const layout = layoutOf(context);
+      const methods = page.locator(layout.payment_method || SELECTORS.paymentMethod);
+      if (await methods.count().catch(() => 0) === 0) {
+        if (layout.payment_method) throw new StepOutcome('inconclusive', 'selector_changed', 'layout_payment_method_not_found');
         throw SITE('no_payment_methods');
       }
       if (!await methods.evaluateAll((inputs) => inputs.some((input) => input.getClientRects().length > 0))) {
@@ -413,9 +439,10 @@ export function createShopwareAdapter() {
       if (context.blockedUnknownMutation) throw UNSUPPORTED('payment_selection_blocked');
       if (!selectable) throw SITE('payment_methods_unselectable');
 
-      const submit = page.locator(SELECTORS.submitOrder).first();
+      const submit = page.locator(layout.submit_button || SELECTORS.submitOrder).first();
 
-      if ((await submit.count()) === 0) {
+      if ((await submit.count().catch(() => 0)) === 0) {
+        if (layout.submit_button) throw new StepOutcome('inconclusive', 'selector_changed', 'layout_submit_button_not_found');
         throw SITE('order_submit_missing');
       }
 
@@ -426,8 +453,14 @@ export function createShopwareAdapter() {
       const assertions = [{ code: 'payment_method_selectable', passed: true, detail_code: `methods_${Math.min(await methods.count(), 99)}` }];
 
       if (context.scenario.expect_checkout_script) {
-        const script = await page.evaluate(() => window.BusinessWatchdogCheckout?.page ?? null).catch(() => null);
+        const marker = await page.waitForFunction(() => window.BusinessWatchdogCheckout ?? null, null, { timeout: 5000 }).then((handle) => handle.jsonValue()).catch(() => null);
+        const script = marker?.page ?? null;
         assertions.push({ code: 'checkout_script_present', passed: script === 'confirm', detail_code: script === null ? 'script_missing' : `page_${script}` });
+
+        if (script === 'confirm' && marker.found && typeof marker.found === 'object') {
+          const missing = ['form', 'submit'].filter((element) => marker.found[element] !== true).concat(Number(marker.found.payment_methods) > 0 ? [] : ['payment_methods']);
+          assertions.push({ code: 'checkout_script_elements', passed: missing.length === 0, detail_code: missing.length === 0 ? `layout_${marker.layout === 'custom' ? 'custom' : 'default'}` : `missing_${missing.join('_')}` });
+        }
       }
 
       return assertions;

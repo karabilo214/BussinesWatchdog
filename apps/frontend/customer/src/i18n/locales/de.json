@@ -196,6 +196,7 @@
       "label": "Checkout-Beobachtung",
       "observing": "aktiv",
       "not_seen_by_check": "die Prüfung hat das Skript auf der Seite nicht gefunden",
+      "elements_not_found": "Beobachtung nicht bestätigt: Die Prüfung hat die Elemente aus den Shop-Einstellungen nicht gefunden – prüfen Sie „Seiten und Elemente des Bestellabschlusses“",
       "no_recent_reports": "seit einem Tag keine Daten",
       "waiting": "wartet auf die ersten Kunden",
       "not_in_plan": "nicht im Tarif",
@@ -1780,6 +1781,7 @@
     "failed": "Die Texte konnten nicht geladen werden. Bitte versuchen Sie es später erneut."
   },
   "checkout_layout": {
+    "not_found": "Die letzte Browserprüfung hat die Elemente dieser Einstellung auf der Bestätigungsseite nicht gefunden. Die Beobachtung ist nicht bestätigt; prüfen Sie die Selektoren nach einem Theme-Wechsel.",
     "title": "Seiten und Elemente des Bestellabschlusses",
     "intro": "Für einen Shopware-Shop mit Theme eines Drittanbieters oder angepasstem Bestellabschluss. Die Browserprüfung und das Beobachtungsskript der App suchen diese Seiten und Elemente; ein leeres Feld bedeutet den Shopware-Standard (grau angezeigt). Nur Seitenpfade und CSS-Selektoren, kein JavaScript.",
     "field": {

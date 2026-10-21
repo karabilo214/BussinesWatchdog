@@ -74,18 +74,32 @@ for IMAGE in ${*:-dockware/play:6.6.10.6 dockware/play:6.7.2.2}; do
     after_check=$(backend BW_E2E_ACTION=state BW_E2E_STORE_ID="$store")
     left=$(docker exec bw-shopware bash -lc "mysql -h127.0.0.1 -uroot -proot shopware -N -e 'select count(*) from custom_entity_bw_checkout_report' 2>/dev/null")
 
-    for v in off_customer off collected failing bought recovered checked after_check left; do eval "echo \"  $v: \$$v\""; done
+    backend BW_E2E_ACTION=layout BW_E2E_STORE_ID="$store" BW_E2E_LAYOUT='{"order_form":"form#confirmOrderForm","submit_button":"button#confirmFormSubmit","payment_method":"input.payment-method-input"}' >/dev/null
+    backend BW_E2E_ACTION=collect BW_E2E_STORE_ID="$store" >/dev/null
+    docker exec bw-shopware bash -lc 'cd /var/www/html && php bin/console cache:clear >/dev/null 2>&1'
+    custom=$(customer peek "$product")
+    backend BW_E2E_ACTION=layout BW_E2E_STORE_ID="$store" BW_E2E_LAYOUT='{"submit_button":"#theme-renamed-submit"}' >/dev/null
+    backend BW_E2E_ACTION=collect BW_E2E_STORE_ID="$store" >/dev/null
+    docker exec bw-shopware bash -lc 'cd /var/www/html && php bin/console cache:clear >/dev/null 2>&1'
+    renamed=$(customer peek "$product")
+    config_answer=$(docker exec bw-shopware bash -lc "curl -s -D - 'http://localhost/storefront/script/bw-observe?config=1'" | tr -d '\r' | grep -i -E '^cache-control|^\{' | tr '\n' ' ')
+
+    for v in off_customer off collected failing bought recovered checked after_check left custom renamed config_answer; do eval "echo \"  $v: \$$v\""; done
     echo "  broken shoppers:$broken"
-    python3 - "$off_customer" "$off" "$failing" "$bought" "$recovered" "$check" "$checked" "$after_check" "$collected" "$first_broken" "$left" "host.docker.internal:${PORT}" <<'PY' || STATUS=1
+    python3 - "$off_customer" "$off" "$failing" "$bought" "$recovered" "$check" "$checked" "$after_check" "$collected" "$first_broken" "$custom" "$renamed" "$left" "host.docker.internal:${PORT}" "$config_answer" <<'PY' || STATUS=1
 import json, sys
-off_customer, off, failing, bought, recovered, check, checked, after_check, collected, first_broken = [json.loads(a) for a in sys.argv[1:11]]
-left, service_host = int(sys.argv[11]), sys.argv[12]
+off_customer, off, failing, bought, recovered, check, checked, after_check, collected, first_broken, custom, renamed = [json.loads(a) for a in sys.argv[1:13]]
+left, service_host, config_answer = int(sys.argv[13]), sys.argv[14], sys.argv[15]
 shoppers = [off_customer, first_broken, bought]
 c, r, a = failing['counts'], recovered['counts'], after_check['counts']
 checks = {
     'the service set the app to observe': collected['observation']['observe'] is True and collected['observation']['last_error'] is None,
     'shoppers\' browsers contacted only the shop, never the service': all(service_host not in s['hosts'] for s in shoppers) and all(h.split(':')[0] in ('localhost',) for s in shoppers for h in s['hosts']),
-    'observed shoppers reported to the app endpoint on the shop': first_broken['observe_requests'] >= 3 and bought['observe_requests'] >= 2 and off_customer['observe_requests'] >= 1,
+    'observed shoppers reported to the app endpoint on the shop': first_broken['observe_requests'] >= 3 and bought['observe_requests'] >= 2,
+    'not observed: the script reads the setting and sends no report': off_customer['observe_requests'] == 0 and off_customer['config_requests'] >= 1,
+    'the setting is read from the shop': '"observe":true' in config_answer and 'theme-renamed-submit' in config_answer,
+    'a custom layout reaches the script and its elements are found': custom['confirm']['layout'] == 'custom' and custom['confirm']['config'] == 'loaded' and custom['confirm']['found']['form'] and custom['confirm']['found']['submit'] and custom['confirm']['found']['payment_methods'] > 0 and any('POST' in r for r in custom['reports']),
+    'a renamed submit button is reported as not found, without form_ready': renamed['confirm']['layout'] == 'custom' and renamed['confirm']['found']['submit'] is False and renamed['confirm']['found']['form'] is True,
     'collected reports deleted in the shop': left == 0 and after_check['observation']['last_error'] is None,
     'script loaded from the app on the confirm page': off_customer['confirm'] is not None and off_customer['confirm']['page'] == 'confirm',
     'not observed while the check stops before sign-in': off_customer['confirm']['state'] == 'available' and sum(off['counts'].values()) == 0 and off['coverage'] == 'check_does_not_reach_payment',
@@ -95,7 +109,7 @@ checks = {
     'finish counted and the order seen as an attempt': r['finish_reached'] == 1 and r['finish_rendered'] == 1 and r['submit_clicked'] == 4 and recovered['attempts'] >= 1,
     'the order resolves the incident': recovered['incidents'] == ['CHECKOUT_SUBMIT_FAILING:resolved'],
     'coverage observing': recovered['coverage'] == 'observing',
-    'the browser check expects and finds the script': check['expect_script'] is True and checked['run_status'] == 'passed' and any(x.get('code') == 'checkout_script_present' and x.get('passed') for x in checked['script']),
+    'the browser check expects and finds the script and its elements': check['expect_script'] is True and checked['run_status'] == 'passed' and any(x.get('code') == 'checkout_script_present' and x.get('passed') for x in checked['script']) and any(x.get('code') == 'checkout_script_elements' and x.get('passed') and x.get('detail_code') == 'layout_default' for x in checked['script']),
     'the check itself is not counted and not reported as an error': a == r and not any(e.startswith('blocked_origin') for e in checked['errors']),
 }
 for name, ok in checks.items():

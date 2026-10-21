@@ -29,8 +29,9 @@ before(async () => {
     } else if (path === '/checkout/confirm') {
       if (fullFlow) {
         const shipping = fault === 'missing_shipping' ? '' : `<div class="shipping-methods"><input class="shipping-method-input" name="shippingMethodId" type="radio" ${fault === 'disabled_shipping' ? 'disabled' : 'checked'}></div>`;
-        const payment = fault === 'missing_payment' ? '' : `<div class="payment-methods"><input class="payment-method-input" name="paymentMethodId" type="radio" ${fault === 'disabled_payment' ? 'disabled' : 'checked'}></div>`;
-        send('is-act-confirmpage', `${shipping}${payment}<button id="confirmFormSubmit" type="submit">Order</button>`);
+        const payment = fault === 'missing_payment' ? '' : fault === 'theme' ? '<div class="pay-options"><input class="pay-option" name="paymentMethodId" type="radio" checked></div>' : `<div class="payment-methods"><input class="payment-method-input" name="paymentMethodId" type="radio" ${fault === 'disabled_payment' ? 'disabled' : 'checked'}></div>`;
+        const submit = fault === 'theme' ? '<button class="buy-now-final" type="submit">Order</button>' : '<button id="confirmFormSubmit" type="submit">Order</button>';
+        send('is-act-confirmpage', `${shipping}${payment}${submit}`);
       } else send('is-act-checkoutregisterpage', '<form class="login-form"></form><form class="register-form"></form>');
     } else { response.writeHead(404); response.end(); }
   });
@@ -44,7 +45,7 @@ after(async () => {
   await new Promise((resolve) => server?.close(resolve));
 });
 
-async function check(nextFault, complete = false) {
+async function check(nextFault, complete = false, layout = null) {
   cart = false;
   fault = nextFault;
   fullFlow = complete;
@@ -57,7 +58,7 @@ async function check(nextFault, complete = false) {
       scenario: {
         adapter_version: 'shopware-payment-form@1', platform: 'shopware', store_origin: origin,
         product_url: `${origin}/detail/product`, cart_url: `${origin}/checkout/cart`, checkout_url: `${origin}/checkout/confirm`,
-        checkout_access: complete ? 'test_customer' : 'stop_before_sign_in', synthetic_location: null, expect_checkout_script: false,
+        checkout_access: complete ? 'test_customer' : 'stop_before_sign_in', synthetic_location: null, expect_checkout_script: false, checkout_layout: layout,
         steps: steps.map((code) => ({ code, timeout_ms: 6000 })),
       },
       network_policy: { allowed_origins: [origin], quiet_paths: [] },
@@ -115,3 +116,15 @@ for (const [faultCode, stepCode] of [['missing_shipping', 'shipping'], ['disable
     assert.equal(result.steps.find((step) => step.code === stepCode).error_code, 'site_failure');
   });
 }
+
+test('a third-party theme passes with the store layout and is not called broken without it', async () => {
+  const layout = { submit_button: 'button.buy-now-final', payment_method: 'input.pay-option' };
+  const themed = await check('theme', true, layout);
+  assert.equal(themed.status, 'passed');
+  assert.ok(themed.steps.find((step) => step.code === 'payment_form').assertions.some((assertion) => assertion.code === 'payment_method_selectable' && assertion.passed));
+
+  const stale = await check('theme', true, { submit_button: '#renamed-again', payment_method: 'input.pay-option' });
+  const step = stale.steps.find((candidate) => candidate.code === 'payment_form');
+  assert.equal(stale.status, 'inconclusive');
+  assert.equal(step.error_code, 'selector_changed');
+});

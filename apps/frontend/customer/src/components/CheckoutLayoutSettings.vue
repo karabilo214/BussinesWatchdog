@@ -64,6 +64,7 @@ async function save(): Promise<void> {
       <h2 id="checkout-layout-title" class="text-lg font-semibold">{{ $t('checkout_layout.title') }}</h2>
       <p class="max-w-3xl text-sm text-text-muted">{{ $t('checkout_layout.intro') }}</p>
     </div>
+    <p v-if="store.coverage?.checkout_script?.state === 'elements_not_found'" role="alert" class="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm text-warn" data-layout-not-found>{{ $t('checkout_layout.not_found') }}</p>
 
     <form class="grid gap-4 sm:grid-cols-2" novalidate @submit.prevent="save">
       <div v-for="field in FIELDS" :key="field" class="flex flex-col gap-1.5">

@@ -11,9 +11,14 @@ const page = await context.newPage();
 const hosts = new Set();
 page.on('request', (request) => hosts.add(new URL(request.url()).host));
 const observeRequests = [];
+let configRequests = 0;
 page.on('request', (request) => {
   if (request.url().includes('/storefront/script/bw-observe')) {
-    observeRequests.push(`${request.method()} ${new URL(request.url()).pathname}`);
+    if (request.method() === 'GET' && new URL(request.url()).searchParams.has('config')) {
+      configRequests++;
+    } else {
+      observeRequests.push(`${request.method()} ${new URL(request.url()).pathname}`);
+    }
   }
 });
 
@@ -53,6 +58,13 @@ await form.locator('button[type=submit]').last().click();
 await page.waitForURL(/checkout\/confirm/, { timeout: 30000 });
 await page.waitForTimeout(3000);
 const onConfirm = await page.evaluate(() => window.BusinessWatchdogCheckout ?? null);
+
+if (mode === 'peek') {
+  await page.waitForTimeout(1500);
+  console.log('BW_CUSTOMER=' + JSON.stringify({ mode, confirm: onConfirm, hosts: [...hosts], observe_requests: observeRequests.length, config_requests: configRequests, reports: observeRequests }));
+  await browser.close();
+  process.exit(0);
+}
 await page.locator('#tos').check({ force: true }).catch(() => null);
 await page.locator('#confirmFormSubmit').click();
 
@@ -64,7 +76,7 @@ if (mode === 'broken') {
 }
 
 const after = await page.evaluate(() => window.BusinessWatchdogCheckout ?? null).catch(() => null);
-console.log('BW_CUSTOMER=' + JSON.stringify({ mode, confirm: onConfirm, after, url: new URL(page.url()).pathname, hosts: [...hosts], observe_requests: observeRequests.length }));
+console.log('BW_CUSTOMER=' + JSON.stringify({ mode, confirm: onConfirm, after, url: new URL(page.url()).pathname, hosts: [...hosts], observe_requests: observeRequests.length, config_requests: configRequests }));
 } catch (error) {
   console.log('BW_CUSTOMER=' + JSON.stringify({ mode, error: String(error.message).split('\n')[0], url: page.url(), body: await page.evaluate(() => document.body.className).catch(() => null) }));
 }

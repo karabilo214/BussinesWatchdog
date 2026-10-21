@@ -43,6 +43,7 @@ export const BROWSER_CHECK_TONES: Record<BrowserChecksState, Tone> = {
 export const CHECKOUT_SCRIPT_TONES: Record<CheckoutScriptState, Tone> = {
   observing: 'ok',
   not_seen_by_check: 'warn',
+  elements_not_found: 'warn',
   no_recent_reports: 'unknown',
   waiting: 'unknown',
   not_in_plan: 'unknown',

@@ -39,6 +39,10 @@ describe('checkout layout settings', () => {
     await flushPromises();
     expect(wrapper.text()).toContain('Путь должен начинаться с «/»');
 
+    expect(wrapper.find('[data-layout-not-found]').exists()).toBe(false);
+    const missing = mount(CheckoutLayoutSettings, { props: { store: { ...store({ submit_button: 'button.buy' }), coverage: { checkout_script: { state: 'elements_not_found', last_report_at: null } } } as unknown as Store, canManage: true }, global: { plugins: [localization] } });
+    expect(missing.get('[data-layout-not-found]').text()).toContain('не нашла');
+
     const other = mount(CheckoutLayoutSettings, { props: { store: store({}, 'woocommerce'), canManage: true }, global: { plugins: [localization] } });
     expect(other.find('[data-panel="checkout-layout"]').exists()).toBe(false);
   });

@@ -196,6 +196,7 @@
       "label": "Checkout observation",
       "observing": "working",
       "not_seen_by_check": "the check did not find the script on the page",
+      "elements_not_found": "observation not confirmed: the check did not find the checkout elements of the store setting — check «Checkout pages and elements»",
       "no_recent_reports": "no data for a day",
       "waiting": "waiting for the first customers",
       "not_in_plan": "not in your plan",
@@ -1780,6 +1781,7 @@
     "failed": "The texts could not be loaded. Please try again later."
   },
   "checkout_layout": {
+    "not_found": "The last browser check did not find the elements of this setting on the confirmation page. Observation is not confirmed; check the selectors after a theme change.",
     "title": "Checkout pages and elements",
     "intro": "For a Shopware store with a third-party theme or a custom checkout. The browser check and the app's observation script look for these pages and elements; an empty field means the Shopware default (shown in grey). Page paths and CSS selectors only, no JavaScript.",
     "field": {

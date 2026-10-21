@@ -136,6 +136,25 @@ class CheckoutObservationTest extends TestCase
         $this->assertSame([ShopwareClient::SETTING_ENTITY, ShopwareClient::REPORT_ENTITY], collect($this->syncs)->flatten(1)->pluck('entity')->unique()->values()->all(), 'the service writes only the app\'s own entities');
     }
 
+    public function test_the_store_checkout_layout_reaches_the_app_setting_and_is_written_again_when_it_changes(): void
+    {
+        $app = $this->integration('app');
+        $this->scenario(CheckScenario::ACCESS_GUEST);
+        $layouts = fn (): array => collect($this->syncs)->flatten(1)->where('entity', ShopwareClient::SETTING_ENTITY)->map(fn (array $op): mixed => $op['payload'][0]['layout'])->values()->all();
+
+        app(ShopwareSync::class)->run($app);
+        $this->assertSame([null], $layouts(), 'the default theme needs no layout');
+
+        $this->store->forceFill(['settings' => ['checkout_layout' => ['submit_button' => 'button.buy-now', 'confirm_path' => '/kasse']]])->save();
+        Carbon::setTestNow(now()->addMinutes(5));
+        app(ShopwareSync::class)->run($app->refresh());
+        $this->assertSame([null, '{"confirm_path":"/kasse","submit_button":"button.buy-now"}'], $layouts());
+
+        Carbon::setTestNow(now()->addMinutes(5));
+        app(ShopwareSync::class)->run($app->refresh());
+        $this->assertCount(2, $layouts(), 'an unchanged layout is not written again within the hour');
+    }
+
     public function test_reports_of_a_store_that_is_not_observed_are_deleted_without_counting(): void
     {
         $app = $this->integration('app');
@@ -236,9 +255,13 @@ class CheckoutObservationTest extends TestCase
             $this->assertStringNotContainsString((string) parse_url((string) config('app.url'), PHP_URL_HOST), $file);
         }
         $this->assertDoesNotMatchRegularExpression('/<(create|update|delete)>/', $manifest, 'the app gets its own entities without extra permissions');
-        foreach (['localStorage', 'sessionStorage', 'document.cookie', '.value', 'fetch('] as $forbidden) {
+        foreach (['localStorage', 'sessionStorage', 'document.cookie', '.value'] as $forbidden) {
             $this->assertStringNotContainsString($forbidden, $script, "the script must not use {$forbidden}");
         }
+        $this->assertSame(1, substr_count($script, 'fetch('), 'the only request to read is the shop\'s own setting');
+        $this->assertStringContainsString("fetch(endpoint('?config=1'), { credentials: 'omit'", $script);
+        $this->assertStringContainsString('<text name="layout"', $entities);
+        $this->assertStringContainsString('response.cache.maxAge(300)', $endpoint);
     }
 
     public function test_shopware_app_archive_is_issued_to_every_store_once_the_exact_version_is_approved(): void
@@ -285,6 +308,16 @@ class CheckoutObservationTest extends TestCase
         $attempt = CheckAttempt::query()->create(['tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'run_id' => $run->id, 'attempt_number' => 1, 'worker_id' => $worker->id, 'fencing_token' => 1, 'lease_token_hash' => str_repeat('0', 64), 'lease_until' => now(), 'absolute_deadline_at' => now(), 'status' => 'passed', 'browser_version' => 'x', 'location' => 'x', 'started_at' => now(), 'finished_at' => now()]);
         CheckStep::query()->create(['tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'attempt_id' => $attempt->id, 'step_index' => 5, 'step_code' => 'payment_form', 'status' => 'passed', 'started_at' => now(), 'finished_at' => now(), 'assertions' => [['code' => 'payment_method_available', 'passed' => true], ['code' => 'checkout_script_present', 'passed' => false, 'detail_code' => 'script_missing']], 'network_summary' => []]);
         $this->assertSame('not_seen_by_check', $coverage()['state']);
+
+        $step = CheckStep::query()->where('attempt_id', $attempt->id)->firstOrFail();
+        $step->forceFill(['assertions' => [['code' => 'checkout_script_present', 'passed' => true, 'detail_code' => 'page_confirm'], ['code' => 'checkout_script_elements', 'passed' => false, 'detail_code' => 'missing_submit']]])->save();
+        $this->assertSame('elements_not_found', $coverage()['state'], 'the script loaded but the theme hides the elements: not confirmed, not broken');
+
+        $step->forceFill(['status' => 'inconclusive', 'error_code' => 'selector_changed', 'assertions' => []])->save();
+        $this->assertSame('observing', $coverage()['state'], 'a changed page without a store layout keeps the reports as the signal');
+        $this->store->forceFill(['settings' => ['checkout_layout' => ['submit_button' => 'button.buy']]])->save();
+        $this->assertSame('elements_not_found', $coverage()['state']);
+        $step->forceFill(['status' => 'passed', 'error_code' => null, 'assertions' => [['code' => 'checkout_script_present', 'passed' => true], ['code' => 'checkout_script_elements', 'passed' => true]]])->save();
     }
 
     private function integration(string $connection, ?Store $store = null): Integration

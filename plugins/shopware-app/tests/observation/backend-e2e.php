@@ -33,6 +33,13 @@ if ($action === 'scenario') {
     $out = ['access' => getenv('BW_E2E_ACCESS')];
 }
 
+if ($action === 'layout') {
+    $settings = $store->settings ?? [];
+    $settings['checkout_layout'] = json_decode((string) getenv('BW_E2E_LAYOUT'), true);
+    $store->forceFill(['settings' => $settings])->save();
+    $out = ['layout' => $settings['checkout_layout']];
+}
+
 if ($action === 'collect' || $action === 'state') {
     $integration = Integration::query()->where('store_id', $store->id)->where('provider', 'shopware')->latest('created_at')->first();
     Cache::flush();
@@ -64,7 +71,7 @@ if ($action === 'check') {
         'trigger' => 'manual', 'dedupe_key' => 'e2e:'.Str::uuid(), 'status' => 'queued', 'config_snapshot' => $snapshot,
         'scheduled_at' => now(), 'next_attempt_at' => now(), 'created_at' => now(),
     ]);
-    $out = ['run_id' => $run->id, 'worker_token' => $token, 'expect_script' => $snapshot['expect_checkout_script'], 'quiet' => $snapshot['network_policy']['quiet_origins']];
+    $out = ['run_id' => $run->id, 'worker_token' => $token, 'expect_script' => $snapshot['expect_checkout_script'], 'quiet' => $snapshot['network_policy']['quiet_paths']];
 }
 
 if ($action === 'check-status') {

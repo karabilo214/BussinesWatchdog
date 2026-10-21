@@ -340,11 +340,13 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
 
       const quietTarget = [parsed.pathname, restRoute(parsed) ?? ''].map((path) => path.replace(/\/$/, ''));
 
-      if (`${parsed.protocol}//${parsed.host}`.toLowerCase() === store && quiet.some((path) => quietTarget.some((target) => target.endsWith(path)))) {
+      const verb = String(method).toUpperCase();
+      const readsShopwareSetting = platform === 'shopware' && verb === 'GET' && parsed.searchParams.has('config');
+
+      if (`${parsed.protocol}//${parsed.host}`.toLowerCase() === store && !readsShopwareSetting && quiet.some((path) => quietTarget.some((target) => target.endsWith(path)))) {
         return { allow: false, reason: 'quiet' };
       }
 
-      const verb = String(method).toUpperCase();
       const publicExternalSubrequest = platform === 'public'
         && !isNavigation
         && (parsed.protocol === 'https:' || (insecureLocal && parsed.protocol === 'http:'))

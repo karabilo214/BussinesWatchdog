@@ -10,6 +10,7 @@
     <entity name="custom_entity_bw_checkout_setting">
         <fields>
             <bool name="observe" required="true" store-api-aware="false"/>
+            <text name="layout" required="false" store-api-aware="false"/>
         </fields>
     </entity>
 </entities>

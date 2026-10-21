@@ -55,6 +55,7 @@ export type CheckoutScriptState =
   | 'check_does_not_reach_payment'
   | 'not_in_plan'
   | 'not_seen_by_check'
+  | 'elements_not_found'
   | 'waiting'
   | 'no_recent_reports'
   | 'observing';

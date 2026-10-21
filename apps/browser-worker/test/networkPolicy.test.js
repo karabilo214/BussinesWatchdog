@@ -152,6 +152,8 @@ test('quiet paths on the store are dropped without counting as blocked traffic',
   const sw = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, platform: 'shopware', checkoutAccess: 'guest', quietPaths: ['/storefront/script/bw-observe'] });
   assert.deepEqual(sw.decide({ method: 'GET', url: `${store}/storefront/script/bw-observe?page=confirm&stages=rendered` }), { allow: false, reason: 'quiet' });
   assert.deepEqual(sw.decide({ method: 'POST', url: `${store}/de/storefront/script/bw-observe`, postData: 'page=confirm' }), { allow: false, reason: 'quiet' });
+  assert.deepEqual(sw.decide({ method: 'GET', url: `${store}/storefront/script/bw-observe?config=1` }), { allow: true }, 'reading the store setting counts nothing');
+  assert.deepEqual(sw.decide({ method: 'POST', url: `${store}/storefront/script/bw-observe?config=1`, postData: 'page=confirm' }), { allow: false, reason: 'quiet' });
   assert.equal(sw.decide({ method: 'GET', url: 'https://other.example/storefront/script/bw-observe' }).reason, 'origin_not_allowed');
   assert.equal(sw.decide({ method: 'GET', url: `${store}/storefront/script/other` }).allow, true);
   assert.equal(sw.decide({ method: 'GET', url: `${store}/checkout/confirm` }).allow, true);

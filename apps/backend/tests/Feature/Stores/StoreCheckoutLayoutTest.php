@@ -42,7 +42,9 @@ class StoreCheckoutLayoutTest extends TestCase
             'version' => 1, 'enabled' => true, 'adapter_version' => ScenarioDefinition::ADAPTER_VERSION, 'definition' => ['product_url' => 'https://shop.example.test/p/1'],
             'interval_seconds' => 900, 'next_due_at' => now(), 'created_at' => now(), 'updated_at' => now(),
         ]);
-        $this->assertSame('https://shop.example.test/kasse/pruefen', app(ScenarioDefinition::class)->snapshot($scenario, $store)['checkout_url']);
+        $snapshot = app(ScenarioDefinition::class)->snapshot($scenario, $store);
+        $this->assertSame('https://shop.example.test/kasse/pruefen', $snapshot['checkout_url']);
+        $this->assertSame(['confirm_path' => '/kasse/pruefen', 'submit_button' => 'button[form="orderForm"].btn-buy'], (array) $snapshot['checkout_layout']);
 
         $member()->putJson("/api/v1/stores/{$store->id}/checkout-layout", [])->assertOk()->assertJsonPath('checkout_layout.custom', []);
         $this->assertArrayNotHasKey('checkout_layout', $store->refresh()->settings ?? []);

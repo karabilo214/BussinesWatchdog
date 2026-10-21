@@ -11,6 +11,7 @@ use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\PaymentAttemptWindow;
 use App\Models\Store;
+use App\Support\Checkout\CheckoutLayout;
 use App\Support\Checkout\CheckoutObservation;
 use App\Support\Integrations\ConnectorFreshness;
 use Illuminate\Support\Carbon;
@@ -163,17 +164,21 @@ class StoreCoverage
 
         $decision = app(CheckoutObservation::class)->decide($connector->id);
         $seenAt = $lastSeen === null ? null : Carbon::parse($lastSeen);
-        $missedByCheck = $lastRun !== null && CheckStep::query()
+        $steps = $lastRun === null ? collect() : CheckStep::query()
             ->where('tenant_id', $store->tenant_id)
             ->whereIn('attempt_id', CheckAttempt::query()->where('run_id', $lastRun->id)->select('id'))
             ->where('step_code', 'payment_form')
-            ->get()
-            ->contains(fn (CheckStep $step): bool => collect($step->assertions)->contains(fn (array $assertion): bool => ($assertion['code'] ?? null) === 'checkout_script_present' && ($assertion['passed'] ?? true) === false));
+            ->get();
+        $failed = fn (string $code): bool => $steps->contains(fn (CheckStep $step): bool => collect($step->assertions)->contains(fn (array $assertion): bool => ($assertion['code'] ?? null) === $code && ($assertion['passed'] ?? true) === false));
+        $missedByCheck = $failed('checkout_script_present');
+        $elementsMissing = $failed('checkout_script_elements')
+            || (CheckoutLayout::custom($store) !== [] && $steps->contains(fn (CheckStep $step): bool => $step->error_code === 'selector_changed'));
 
         return [
             'state' => match (true) {
                 ! $decision['observe'] => $decision['reason'],
                 $missedByCheck => 'not_seen_by_check',
+                $elementsMissing => 'elements_not_found',
                 $seenAt === null => 'waiting',
                 $seenAt->lessThan(Carbon::now()->subHours(self::PAYMENT_ATTEMPTS_QUIET_HOURS)) => 'no_recent_reports',
                 default => 'observing',

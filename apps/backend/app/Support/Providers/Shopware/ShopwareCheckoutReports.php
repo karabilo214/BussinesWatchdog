@@ -3,6 +3,7 @@
 namespace App\Support\Providers\Shopware;
 
 use App\Models\Integration;
+use App\Support\Checkout\CheckoutLayout;
 use App\Support\Checkout\CheckoutObservation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -39,10 +40,13 @@ class ShopwareCheckoutReports
     {
         $now = Carbon::now();
         $observe = $this->observation->decide($integration->id)['observe'];
+        $custom = $integration->store === null ? [] : CheckoutLayout::custom($integration->store);
+        $layout = $custom === [] ? null : json_encode($custom, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $layoutHash = hash('sha256', (string) $layout);
         $setAt = isset($state['setting_at']) ? Carbon::parse($state['setting_at']) : null;
 
-        if (($state['observe'] ?? null) !== $observe || $setAt === null || $setAt->lessThan($now->copy()->subMinutes(self::SETTING_REFRESH_MINUTES))) {
-            $this->client->syncOwnEntities($baseUrl, $token, [['action' => 'upsert', 'entity' => ShopwareClient::SETTING_ENTITY, 'payload' => [['id' => self::SETTING_ID, 'observe' => $observe]]]]);
+        if (($state['observe'] ?? null) !== $observe || ($state['layout_hash'] ?? null) !== $layoutHash || $setAt === null || $setAt->lessThan($now->copy()->subMinutes(self::SETTING_REFRESH_MINUTES))) {
+            $this->client->syncOwnEntities($baseUrl, $token, [['action' => 'upsert', 'entity' => ShopwareClient::SETTING_ENTITY, 'payload' => [['id' => self::SETTING_ID, 'observe' => $observe, 'layout' => $layout]]]]);
             $setAt = $now;
         }
 
@@ -61,7 +65,7 @@ class ShopwareCheckoutReports
             ->where('collected_at', '<', $now->copy()->subDays(self::COLLECTED_RETENTION_DAYS))
             ->delete();
 
-        return ['observe' => $observe, 'setting_at' => $setAt->toJSON(), 'last_collected_at' => $now->toJSON(), 'counted' => $counted, 'dropped' => $dropped, 'last_error' => $error];
+        return ['observe' => $observe, 'layout_hash' => $layoutHash, 'setting_at' => $setAt->toJSON(), 'last_collected_at' => $now->toJSON(), 'counted' => $counted, 'dropped' => $dropped, 'last_error' => $error];
     }
 
     private function drain(Integration $integration, string $baseUrl, string $token, bool $observe, Carbon $now, int &$counted, int &$dropped): void

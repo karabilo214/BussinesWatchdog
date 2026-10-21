@@ -45,7 +45,15 @@ class CheckoutLayout
     {
         $layout = $store->settings['checkout_layout'] ?? [];
 
-        return is_array($layout) ? array_filter(array_intersect_key($layout, self::DEFAULTS), fn (mixed $value): bool => is_string($value) && $value !== '') : [];
+        $custom = [];
+
+        foreach (array_keys(self::DEFAULTS) as $field) {
+            if (is_array($layout) && is_string($layout[$field] ?? null) && $layout[$field] !== '') {
+                $custom[$field] = $layout[$field];
+            }
+        }
+
+        return $custom;
     }
 
     /**

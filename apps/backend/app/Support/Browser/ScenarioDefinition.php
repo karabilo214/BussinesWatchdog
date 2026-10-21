@@ -158,6 +158,7 @@ class ScenarioDefinition
             'checkout_url' => $definition['checkout_url'] ?? $origin.($shopware ? CheckoutLayout::effective($store)['confirm_path'] : '/checkout/'),
             'synthetic_location' => $definition['synthetic_location'] ?? null,
             'expect_checkout_script' => $this->expectsCheckoutScript($store, $access),
+            'checkout_layout' => $shopware ? (object) CheckoutLayout::custom($store) : null,
             'steps' => $this->steps($store->platform, $access),
             'network_policy' => [
                 'version' => self::NETWORK_POLICY_VERSION,
