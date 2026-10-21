@@ -47,6 +47,31 @@ class UnmatchedPaymentApiTest extends TestCase
             ->assertJsonPath('data.0.amount_minor', '18400');
     }
 
+    public function test_payments_carrying_another_stores_marker_are_listed_apart(): void
+    {
+        $context = $this->context('admin');
+        $context['store']->forceFill(['platform' => 'woocommerce', 'base_url' => 'https://kaffee.example'])->save();
+        $shopware = $this->capture($context, $this->payment($context, 'ORD_SW', ['provider_store_transaction_ref' => str_repeat('a1', 16)]), 49595);
+        $otherSite = $this->capture($context, $this->payment($context, 'pi_other_site', ['provider_order_ref' => '7', 'provider_site_origin' => 'https://tee.example']), 1200);
+        $own = $this->payment($context, 'ORD_OWN', ['provider_order_ref' => '100', 'provider_invoice_ref' => 'ab12-100']);
+        app(PaymentAllocationService::class)->allocateCapture($own, $this->capture($context, $own, 1000), $this->order($context, '#100', 1000, null), 1000, PaymentAllocation::STRATEGY_EXACT_REFERENCE, []);
+        $otherPrefix = $this->capture($context, $this->payment($context, 'ORD_ZZ', ['provider_order_ref' => '7', 'provider_invoice_ref' => 'zz99-7']), 1290);
+        $ownSite = $this->capture($context, $this->payment($context, 'pi_own_site', ['provider_order_ref' => '8', 'provider_site_origin' => 'https://kaffee.example']), 2341);
+        $unmarked = $this->capture($context, $this->payment($context, 'ORD_NONE'), 1000);
+        $list = fn (string $scope): array => collect($this->actingAs($context['user'])
+            ->withSession(['active_tenant_id' => $context['tenant']->id])
+            ->getJson("/api/v1/stores/{$context['store']->id}/unmatched-payments?scope={$scope}")
+            ->assertOk()
+            ->json('data'))->pluck('reason', 'capture_transaction_id')->all();
+
+        $this->assertEqualsCanonicalizing([$ownSite->id, $unmarked->id], array_keys($list('own')));
+        $this->assertEquals([
+            $shopware->id => 'other_store_transaction',
+            $otherSite->id => 'other_site',
+            $otherPrefix->id => 'other_invoice_prefix',
+        ], $list('other_stores'));
+    }
+
     public function test_it_suggests_manual_review_candidates_by_amount_when_no_reference_matches(): void
     {
         $context = $this->context('admin');
@@ -152,7 +177,7 @@ class UnmatchedPaymentApiTest extends TestCase
     /**
      * @param  array<string, mixed>  $context
      */
-    private function payment(array $context, string $intentRef): Payment
+    private function payment(array $context, string $intentRef, array $metadata = []): Payment
     {
         return Payment::query()->create([
             'tenant_id' => $context['tenant']->id,
@@ -168,7 +193,7 @@ class UnmatchedPaymentApiTest extends TestCase
             'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
             'source_updated_at' => now()->subHours(25),
             'current_payload_hash' => hash('sha256', fake()->uuid()),
-            'metadata' => [],
+            'metadata' => $metadata,
             'created_at' => now()->subHours(25),
             'updated_at' => now()->subHours(25),
         ]);

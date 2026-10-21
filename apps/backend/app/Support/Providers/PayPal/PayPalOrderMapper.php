@@ -9,7 +9,9 @@ use Illuminate\Support\Carbon;
  * A PayPal order (Orders v2, with its captures, authorizations and refunds) → normalized drafts, like a Stripe
  * PaymentIntent with its charges. A completed PayPal order is not captured money: only captures in COMPLETED,
  * PARTIALLY_REFUNDED or REFUNDED become capture operations; a PENDING capture keeps the payment pending (ADR 0022).
- * Only `custom_id` (the store's order id) is taken as metadata; payer data is never read.
+ * Only the store's markers are taken as metadata: `custom_id` (the store's order id, or SwagPayPal's JSON with the
+ * Shopware order transaction id) and `invoice_id` (PayPal Payments: the store's invoice prefix + order number); payer
+ * data is never read. The markers tell which store of a shared PayPal account a payment belongs to (ADR 0073).
  */
 class PayPalOrderMapper
 {
@@ -58,6 +60,8 @@ class PayPalOrderMapper
                 'status' => $this->paymentStatus((string) ($order['status'] ?? ''), $captures, $authorizations),
                 'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
                 'provider_order_ref' => $this->orderRef($unit['custom_id'] ?? null),
+                'provider_store_transaction_ref' => $this->storeTransactionRef($unit['custom_id'] ?? null),
+                'provider_invoice_ref' => $this->orderRef($unit['invoice_id'] ?? null),
             ],
         ]];
 
@@ -141,6 +145,15 @@ class PayPalOrderMapper
                 'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
             ],
         ];
+    }
+
+    /** SwagPayPal writes `{"orderTransactionId": "<32 hex>", ...}` into custom_id. */
+    private function storeTransactionRef(mixed $value): ?string
+    {
+        $decoded = is_string($value) && str_starts_with($value, '{') ? json_decode($value, true) : null;
+        $id = is_array($decoded) ? ($decoded['orderTransactionId'] ?? null) : null;
+
+        return is_string($id) && preg_match('/^[0-9a-f]{32}$/', $id) === 1 ? $id : null;
     }
 
     private function orderRef(mixed $value): ?string

@@ -110,6 +110,10 @@ class ShopwareOrderMapper
             unset($data['payment_state']);
         }
 
+        if (is_string($transaction['id'] ?? null) && preg_match('/^[0-9a-f]{32}$/', $transaction['id']) === 1) {
+            $data['store_transaction_ref'] = $transaction['id'];
+        }
+
         if ($data['display_number'] === null) {
             unset($data['display_number']);
         }

@@ -4868,6 +4868,10 @@ paths:
         - name: cursor
           in: query
           schema: {type: string, maxLength: 2048}
+        - name: scope
+          in: query
+          description: "own (default): this store's payments without order, since the store was connected. other_stores: payments of the same provider account that carry another store's marker (ADR 0073), without candidates."
+          schema: {enum: [own, other_stores]}
       responses:
         "200":
           description: Unallocated provider captures with suggestions (read-only)
@@ -7123,7 +7127,7 @@ components:
         amount_minor: {$ref: "#/components/schemas/MoneyMinor"}
         mode: {type: [string, "null"]}
         occurred_at: {type: [string, "null"], format: date-time}
-        reason: {enum: [no_candidate_found, review_required]}
+        reason: {enum: [no_candidate_found, review_required, other_store_transaction, other_site, other_invoice_prefix]}
         candidates:
           type: array
           description: "Suggestions only, never an allocation."

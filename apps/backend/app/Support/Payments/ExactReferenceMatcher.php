@@ -169,6 +169,10 @@ class ExactReferenceMatcher
 
     private function matchByMetadata(Payment $payment, FinancialTransaction $capture): bool
     {
+        if (is_string($payment->metadata['provider_store_transaction_ref'] ?? null)) {
+            return $this->matchByStoreTransaction($payment, $capture, $payment->metadata['provider_store_transaction_ref']);
+        }
+
         $orderRef = $payment->metadata['provider_order_ref'] ?? null;
         $siteOrigin = $payment->metadata['provider_site_origin'] ?? null;
         $orderKeyHash = $payment->metadata['provider_order_key_hash'] ?? null;
@@ -212,6 +216,41 @@ class ExactReferenceMatcher
         ));
     }
 
+    /**
+     * The payment app gave the provider the store's own transaction id (SwagPayPal): the order that reports the same
+     * transaction id is the one, also before the store has written the capture id (ADR 0073).
+     */
+    private function matchByStoreTransaction(Payment $payment, FinancialTransaction $capture, string $storeTransactionRef): bool
+    {
+        $orders = Order::query()
+            ->where('tenant_id', $capture->tenant_id)
+            ->where('store_id', $capture->store_id)
+            ->where('metadata->store_transaction_ref', $storeTransactionRef)
+            ->where('mode', $payment->mode)
+            ->where('currency', $capture->currency)
+            ->limit(2)
+            ->get();
+
+        if ($orders->count() !== 1) {
+            return false;
+        }
+
+        $order = $orders->first();
+
+        if (! in_array($order->transaction_ref ?? '', ['', $capture->external_operation_id], true)) {
+            return false;
+        }
+
+        return $this->attempt(fn () => $this->allocations->allocateCapture(
+            $payment,
+            $capture,
+            $order,
+            (int) $capture->amount_minor,
+            PaymentAllocation::STRATEGY_VERIFIED_METADATA,
+            ['matcher' => self::METADATA_MATCHER_VERSION, 'store_transaction_ref' => $storeTransactionRef],
+        ));
+    }
+
     /** An order can arrive after its payment: look for unlinked captures that name it by reference or metadata. */
     private function matchArrivedOrder(EventInbox $event): void
     {
@@ -236,6 +275,10 @@ class ExactReferenceMatcher
                 }
 
                 $query->orWhere('metadata->provider_order_ref', $order->external_id);
+
+                if (is_string($order->metadata['store_transaction_ref'] ?? null)) {
+                    $query->orWhere('metadata->provider_store_transaction_ref', $order->metadata['store_transaction_ref']);
+                }
             })
             ->pluck('id');
 

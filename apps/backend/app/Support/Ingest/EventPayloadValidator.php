@@ -97,7 +97,7 @@ class EventPayloadValidator
         return match ($event['type']) {
             EventInbox::EVENT_ORDER_SNAPSHOT => $event['aggregate_type'] === EventInbox::AGGREGATE_ORDER
                 && array_key_exists('aggregate_revision', $event)
-                && $this->hasOnlyKeys($data, ['status', 'display_number', 'currency', 'currency_exponent', 'total_minor', 'gateway', 'transaction_ref', 'payment_expected', 'paid_marked_at', 'source_created_at', 'source_updated_at', 'mode', 'financial_support', 'order_key_hash', 'refund_state', 'payment_state'])
+                && $this->hasOnlyKeys($data, ['status', 'display_number', 'currency', 'currency_exponent', 'total_minor', 'gateway', 'transaction_ref', 'payment_expected', 'paid_marked_at', 'source_created_at', 'source_updated_at', 'mode', 'financial_support', 'order_key_hash', 'refund_state', 'payment_state', 'store_transaction_ref'])
                 && $this->isRequiredString($data, 'status')
                 && $this->isOptionalString($data, 'display_number')
                 && $this->isCurrencyData($data)
@@ -112,7 +112,8 @@ class EventPayloadValidator
                 && $this->isOptionalEnum($data, 'financial_support', ['supported', 'unsupported', 'unknown'])
                 && $this->isOptionalSha256($data, 'order_key_hash')
                 && $this->isOptionalEnum($data, 'refund_state', ['none', 'partial', 'full'])
-                && $this->isOptionalEnum($data, 'payment_state', Order::PAYMENT_STATES),
+                && $this->isOptionalEnum($data, 'payment_state', Order::PAYMENT_STATES)
+                && $this->isOptionalString($data, 'store_transaction_ref', nullable: true),
             EventInbox::EVENT_ORDER_DELETED => $event['aggregate_type'] === EventInbox::AGGREGATE_ORDER
                 && array_key_exists('aggregate_revision', $event)
                 && $this->hasOnlyKeys($data, ['reason_code'])
@@ -127,11 +128,13 @@ class EventPayloadValidator
                 && $this->isOptionalString($data, 'provider_ref', nullable: true)
                 && $this->isRequiredEnum($data, 'status', ['requested', 'recorded', 'cancelled', 'deleted']),
             EventInbox::EVENT_PAYMENT_SNAPSHOT => $event['aggregate_type'] === EventInbox::AGGREGATE_PAYMENT
-                && $this->hasOnlyKeys($data, ['intent_ref', 'charge_ref', 'mode', 'currency', 'currency_exponent', 'status', 'source_updated_at', 'source_authority', 'provider_order_ref', 'provider_site_origin', 'provider_order_key_hash'])
+                && $this->hasOnlyKeys($data, ['intent_ref', 'charge_ref', 'mode', 'currency', 'currency_exponent', 'status', 'source_updated_at', 'source_authority', 'provider_order_ref', 'provider_site_origin', 'provider_order_key_hash', 'provider_store_transaction_ref', 'provider_invoice_ref'])
                 && $this->isOptionalString($data, 'intent_ref', nullable: true)
                 && $this->isOptionalString($data, 'provider_order_ref', nullable: true)
                 && $this->isOptionalString($data, 'provider_site_origin', nullable: true)
                 && $this->isOptionalSha256($data, 'provider_order_key_hash')
+                && $this->isOptionalString($data, 'provider_store_transaction_ref', nullable: true)
+                && $this->isOptionalString($data, 'provider_invoice_ref', nullable: true)
                 && $this->isOptionalString($data, 'charge_ref', nullable: true)
                 && $this->isRequiredEnum($data, 'mode', ['live', 'test'])
                 && $this->isCurrencyData($data)

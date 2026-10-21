@@ -901,7 +901,8 @@
       "link": "Match",
       "link_warning": "The whole capture will count towards this order. The action is logged and can be revoked on the order page.",
       "link_confirm": "Match to order",
-      "linked": "Payment matched. The order is reconciled again automatically."
+      "linked": "Payment matched. The order is reconciled again automatically.",
+      "other_stores": {"title": "Payments of other stores on this account", "subtitle": "The payment account also serves other stores. These payments carry another store's marker, so they are not discrepancies here.", "empty": "No payments of other stores.", "reason": {"other_store_transaction": "another Shopware store's transaction", "other_site": "paid on another site", "other_invoice_prefix": "another WooCommerce invoice prefix"}}
     },
     "rule": {
       "MONEY_CAPTURE_MISSING": "Capture for a paid order",

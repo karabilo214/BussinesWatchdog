@@ -270,6 +270,10 @@ class OrderReconciliationService
                 }
 
                 $query->orWhere('metadata->provider_order_ref', $order->external_id);
+
+                if (is_string($order->metadata['store_transaction_ref'] ?? null)) {
+                    $query->orWhere('metadata->provider_store_transaction_ref', $order->metadata['store_transaction_ref']);
+                }
             });
     }
 

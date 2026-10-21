@@ -13,6 +13,7 @@ use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Integrations\ProviderCoverage;
+use App\Support\Payments\StorePaymentAttribution;
 use App\Support\Providers\WooCommerce\WooCommerceApiConnector;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +36,8 @@ class UnmatchedPaymentScanner
 
     /**
      * A provider account keeps its history from before the store was connected, often with payments from other shops
-     * or channels; only captures since the store was connected can be «payments without order» (ADR 0072).
+     * or channels; only captures since the store was connected can be «payments without order» (ADR 0072), and not those
+     * carrying another store's marker (ADR 0073).
      */
     public static function since(Store $store): Carbon
     {
@@ -63,6 +65,8 @@ class UnmatchedPaymentScanner
             ];
 
             $graceDeadline = $now->copy()->subHours(self::ORPHAN_GRACE_HOURS);
+            app(StorePaymentAttribution::class)->refresh($store);
+            $foreignPaymentIds = Payment::query()->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)->whereNotNull('foreign_store_reason')->select('id');
 
             $allocatedCaptureIds = PaymentAllocation::query()
                 ->where('tenant_id', $store->tenant_id)
@@ -81,6 +85,7 @@ class UnmatchedPaymentScanner
                 ->where('occurred_at', '<=', $graceDeadline)
                 ->where('occurred_at', '>=', self::since($store))
                 ->whereNotIn('id', $allocatedCaptureIds)
+                ->where(fn ($query) => $query->whereNull('payment_id')->orWhereNotIn('payment_id', $foreignPaymentIds))
                 ->orderBy('occurred_at')
                 ->limit(self::MAX_FINDINGS_PER_RUN)
                 ->get();

@@ -19,8 +19,8 @@ export async function listFindings(storeId: string, filters: FindingFilters): Pr
   ).data;
 }
 
-export async function listUnmatchedPayments(storeId: string, cursor?: string): Promise<Page<UnmatchedPayment>> {
-  return (await request<Page<UnmatchedPayment>>('GET', `/api/v1/stores/${encodeURIComponent(storeId)}/unmatched-payments`, { query: { cursor, limit: 50 } })).data;
+export async function listUnmatchedPayments(storeId: string, cursor?: string, scope: 'own' | 'other_stores' = 'own'): Promise<Page<UnmatchedPayment>> {
+  return (await request<Page<UnmatchedPayment>>('GET', `/api/v1/stores/${encodeURIComponent(storeId)}/unmatched-payments`, { query: { cursor, limit: 50, scope } })).data;
 }
 
 export async function getOrder(id: string): Promise<OrderDetail> {

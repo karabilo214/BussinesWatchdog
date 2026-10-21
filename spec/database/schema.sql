@@ -318,6 +318,7 @@ CREATE TABLE payments (
  source_authority text NOT NULL CHECK (source_authority IN ('store_reported','independent_provider')),
  source_updated_at timestamptz NOT NULL,
  metadata jsonb NOT NULL DEFAULT '{}',
+ foreign_store_reason text,
  created_at timestamptz NOT NULL DEFAULT now(),
  updated_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE (integration_id,external_id),

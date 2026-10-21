@@ -37,6 +37,31 @@ async function load(more = false): Promise<void> {
   }
 }
 
+const others = ref<UnmatchedPayment[]>([]);
+const othersCursor = ref<string | null>(null);
+const othersLoaded = ref(false);
+const othersError = ref<unknown>(null);
+
+/** Payments of the same provider account with another store's marker: loaded only when the section is opened. */
+async function loadOthers(more = false): Promise<void> {
+  othersError.value = null;
+
+  try {
+    const page = await listUnmatchedPayments(props.storeId, more ? (othersCursor.value ?? undefined) : undefined, 'other_stores');
+    others.value = more ? [...others.value, ...page.data] : page.data;
+    othersCursor.value = page.next_cursor;
+    othersLoaded.value = true;
+  } catch (caught) {
+    othersError.value = caught;
+  }
+}
+
+function toggleOthers(event: Event): void {
+  if ((event.target as HTMLDetailsElement).open && !othersLoaded.value) {
+    void loadOthers();
+  }
+}
+
 function startLink(item: UnmatchedPayment, candidate: UnmatchedCandidate): void {
   linking.value = { capture: item.capture_transaction_id, order: candidate.order_id };
   reason.value = '';
@@ -140,5 +165,25 @@ watch(() => props.storeId, () => load(), { immediate: true });
         {{ $t('incidents.load_more') }}
       </button>
     </div>
+
+    <details class="rounded-xl border border-border bg-surface p-4" data-panel="other-stores" @toggle="toggleOthers">
+      <summary class="cursor-pointer text-sm font-medium">{{ $t('reconciliation.unmatched.other_stores.title') }}</summary>
+      <div class="mt-3 flex flex-col gap-3">
+        <p class="max-w-3xl text-sm text-text-muted">{{ $t('reconciliation.unmatched.other_stores.subtitle') }}</p>
+        <ErrorNotice v-if="othersError" :error="othersError" />
+        <p v-else-if="othersLoaded && others.length === 0" class="text-sm text-text-muted" data-empty-others>{{ $t('reconciliation.unmatched.other_stores.empty') }}</p>
+        <ul v-else class="flex flex-col divide-y divide-border">
+          <li v-for="item in others" :key="item.capture_transaction_id" class="flex flex-wrap items-baseline justify-between gap-2 py-2 text-sm" :data-other-store="item.capture_transaction_id">
+            <span class="font-mono">{{ amount(item.amount_minor, item.currency, item.currency_exponent) }} · {{ item.external_operation_id }}</span>
+            <span class="text-text-muted">{{ dateTime(item.occurred_at) }} · {{ $te(`reconciliation.unmatched.other_stores.reason.${item.reason}`) ? $t(`reconciliation.unmatched.other_stores.reason.${item.reason}`) : item.reason }}</span>
+          </li>
+        </ul>
+        <div v-if="othersCursor">
+          <button type="button" class="rounded-md border border-border-strong bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-primary-soft" @click="loadOthers(true)">
+            {{ $t('incidents.load_more') }}
+          </button>
+        </div>
+      </div>
+    </details>
   </div>
 </template>

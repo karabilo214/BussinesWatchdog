@@ -901,7 +901,8 @@
       "link": "Zuordnen",
       "link_warning": "Die gesamte Abbuchung wird dieser Bestellung angerechnet. Die Aktion wird protokolliert und kann auf der Bestellseite aufgehoben werden.",
       "link_confirm": "Der Bestellung zuordnen",
-      "linked": "Zahlung zugeordnet. Die Bestellung wird automatisch neu abgeglichen."
+      "linked": "Zahlung zugeordnet. Die Bestellung wird automatisch neu abgeglichen.",
+      "other_stores": {"title": "Zahlungen anderer Shops dieses Kontos", "subtitle": "Das Zahlungskonto wird auch von anderen Shops genutzt. Diese Zahlungen tragen das Merkmal eines anderen Shops und gelten hier nicht als Abweichung.", "empty": "Keine Zahlungen anderer Shops.", "reason": {"other_store_transaction": "Transaktion eines anderen Shopware-Shops", "other_site": "auf einer anderen Website bezahlt", "other_invoice_prefix": "anderes WooCommerce-Rechnungspräfix"}}
     },
     "rule": {
       "MONEY_CAPTURE_MISSING": "Abbuchung für bezahlte Bestellung",

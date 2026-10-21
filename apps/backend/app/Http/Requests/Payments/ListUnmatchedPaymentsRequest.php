@@ -19,6 +19,7 @@ class ListUnmatchedPaymentsRequest extends FormRequest
         return [
             'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'cursor' => ['sometimes', 'string'],
+            'scope' => ['sometimes', 'string', 'in:own,other_stores'],
         ];
     }
 }

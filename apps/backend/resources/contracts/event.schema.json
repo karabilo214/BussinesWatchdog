@@ -186,6 +186,14 @@
             "chargeback"
           ],
           "description": "The store's own payment status of the order, normalized (Shopware: the order transaction state, ADR 0072). Optional; a store-reported paid status is never capture evidence."
+        },
+        "store_transaction_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255,
+          "description": "The store's own id of the order's payment transaction (Shopware order_transaction id); matches the marker a payment app gives the provider (ADR 0073)."
         }
       }
     },
@@ -341,6 +349,22 @@
           ],
           "pattern": "^[0-9a-f]{64}$",
           "description": "SHA-256 of the order key the provider recorded (e.g. Stripe metadata order_key)."
+        },
+        "provider_store_transaction_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{32}$",
+          "description": "The store's own payment transaction id the provider recorded (SwagPayPal custom_id orderTransactionId, ADR 0073)."
+        },
+        "provider_invoice_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255,
+          "description": "The invoice reference the provider recorded (PayPal invoice_id; PayPal Payments for WooCommerce: invoice prefix + order number, ADR 0073)."
         }
       }
     },

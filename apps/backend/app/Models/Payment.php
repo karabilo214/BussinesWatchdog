@@ -27,6 +27,7 @@ class Payment extends Model
         'source_updated_at',
         'current_payload_hash',
         'metadata',
+        'foreign_store_reason',
         'created_at',
         'updated_at',
     ];

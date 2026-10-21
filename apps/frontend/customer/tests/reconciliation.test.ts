@@ -138,6 +138,24 @@ describe('rule names', () => {
 });
 
 describe('UnmatchedPayments', () => {
+  it('lists payments of other stores on the same account apart, only when opened', async () => {
+    mocked.listUnmatchedPayments.mockResolvedValueOnce({ data: [], next_cursor: null });
+    mocked.listUnmatchedPayments.mockResolvedValueOnce({ data: [{ ...unmatched(), external_operation_id: '07N95410377426817', amount_minor: '2000', reason: 'other_store_transaction', candidates: [] }], next_cursor: null });
+    const wrapper = mount(UnmatchedPayments, { props: { storeId: 's-1', canAllocate: true }, global });
+    await flushPromises();
+    expect(mocked.listUnmatchedPayments).toHaveBeenCalledTimes(1);
+
+    const details = wrapper.get('[data-panel="other-stores"]');
+    (details.element as HTMLDetailsElement).open = true;
+    await details.trigger('toggle');
+    await flushPromises();
+
+    expect(mocked.listUnmatchedPayments).toHaveBeenLastCalledWith('s-1', undefined, 'other_stores');
+    expect(details.text()).toContain('07N95410377426817');
+    expect(details.text()).toContain('транзакция другого магазина Shopware');
+    expect(details.find('button').exists()).toBe(false);
+  });
+
   it('matches the whole capture to the chosen order only with a reason', async () => {
     mocked.listUnmatchedPayments.mockResolvedValue({ data: [unmatched()], next_cursor: null });
     mocked.allocatePayment.mockResolvedValue({} as never);

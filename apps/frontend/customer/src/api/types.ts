@@ -434,7 +434,7 @@ export interface UnmatchedPayment {
   amount_minor: string;
   mode: string | null;
   occurred_at: string | null;
-  reason: 'no_candidate_found' | 'review_required';
+  reason: 'no_candidate_found' | 'review_required' | 'other_store_transaction' | 'other_site' | 'other_invoice_prefix';
   candidates: UnmatchedCandidate[];
 }
 

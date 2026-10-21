@@ -12,6 +12,7 @@ use App\Models\PaymentAllocation;
 use App\Models\Store;
 use App\Support\Api\UuidCursor;
 use App\Support\Billing\HistoryWindow;
+use App\Support\Payments\StorePaymentAttribution;
 use App\Support\Reconciliation\UnmatchedPaymentScanner;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,9 @@ class UnmatchedPaymentController extends Controller
 
         $validated = $request->validated();
         $limit = $validated['limit'] ?? 50;
+        $otherStores = ($validated['scope'] ?? 'own') === 'other_stores';
+        app(StorePaymentAttribution::class)->refresh($store);
+        $foreignPaymentIds = Payment::query()->where('tenant_id', $tenantId)->where('store_id', $store->id)->whereNotNull('foreign_store_reason')->select('id');
 
         $allocatedCaptureIds = PaymentAllocation::query()
             ->where('tenant_id', $tenantId)
@@ -45,6 +49,11 @@ class UnmatchedPaymentController extends Controller
             ->where('status', 'succeeded')
             ->whereNotIn('id', $allocatedCaptureIds)
             ->where('occurred_at', '>=', UnmatchedPaymentScanner::since($store))
+            ->when(
+                $otherStores,
+                fn ($query) => $query->whereIn('payment_id', $foreignPaymentIds),
+                fn ($query) => $query->where(fn ($own) => $own->whereNull('payment_id')->orWhereNotIn('payment_id', $foreignPaymentIds)),
+            )
             ->when(app(HistoryWindow::class)->cutoff($tenantId), fn ($query, $cutoff) => $query->where('occurred_at', '>=', $cutoff));
 
         if (isset($validated['cursor'])) {
@@ -63,9 +72,32 @@ class UnmatchedPaymentController extends Controller
             : null;
 
         return response()->json([
-            'data' => $captures->map(fn (FinancialTransaction $capture): array => $this->unmatchedEntry($store, $capture))->all(),
+            'data' => $captures->map(fn (FinancialTransaction $capture): array => $otherStores ? $this->otherStoreEntry($capture) : $this->unmatchedEntry($store, $capture))->all(),
             'next_cursor' => $nextCursor,
         ]);
+    }
+
+    /**
+     * A payment of the same provider account that carries another store's marker: shown apart, never matched here.
+     *
+     * @return array<string, mixed>
+     */
+    private function otherStoreEntry(FinancialTransaction $capture): array
+    {
+        $payment = Payment::query()->find($capture->payment_id);
+
+        return [
+            'payment_id' => $payment?->id,
+            'capture_transaction_id' => $capture->id,
+            'external_operation_id' => $capture->external_operation_id,
+            'currency' => $capture->currency,
+            'currency_exponent' => $capture->currency_exponent,
+            'amount_minor' => (string) $capture->amount_minor,
+            'mode' => $payment?->mode,
+            'occurred_at' => $capture->occurred_at?->toJSON(),
+            'reason' => $payment?->foreign_store_reason,
+            'candidates' => [],
+        ];
     }
 
     /**

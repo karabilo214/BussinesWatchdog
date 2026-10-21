@@ -475,3 +475,16 @@ Found in the live Shopware run (Step 206): order 10005 (PayPal refused, shop «o
 - Tests: `OrderReconciliationServiceTest` (pending → mismatch → ok, store marked failed, another capture), `UnmatchedPaymentScannerTest`, `ShopwareIntegrationTest`, fixtures with backdated stores; customer `reconciliation.test.ts`, control `tenants.test.ts`.
 
 Verification: backend SQLite 680 passed + 4 skipped, PostgreSQL 18 684/684; customer vitest 142/142, control vitest 69/69, vue-tsc ok, Pint ok.
+
+### Step 211: Which Store a Provider Payment Belongs To (ADR 0073)
+
+Status: complete in main; ADR 0073 accepted by the owner on 2026-10-21
+
+Found in the live run: Woo-Test and Shopware-Test share a PayPal sandbox account, so each saw the other's payments (they would become payments without order).
+
+- `PayPalOrderMapper`: `provider_store_transaction_ref` (SwagPayPal `custom_id` JSON) and `provider_invoice_ref`; `ShopwareOrderMapper`: `store_transaction_ref`; schema (`contracts/event.schema.json` + backend copy), `EventPayloadValidator`, projectors.
+- `ExactReferenceMatcher`: SwagPayPal payments link to the order with the same Shopware transaction id (`verified_metadata`), also when the order arrives later; `OrderReconciliationService` finds the order's provider payments by it too.
+- `StorePaymentAttribution` + migration `payments.foreign_store_reason` (`spec/database/schema.sql`): other store's Shopware transaction, other site origin, other invoice prefix. `UnmatchedPaymentScanner` skips them; `GET /stores/{id}/unmatched-payments?scope=other_stores` lists them (`contracts/openapi.yaml`); the cabinet shows a collapsed «Payments of other stores on this account».
+- Tests: `UnmatchedPaymentApiTest` (three reasons, own site and unmarked stay), `PayPalIntegrationTest` (SwagPayPal link before the capture id), `ShopwareIntegrationTest`; customer `reconciliation.test.ts`.
+
+Verification: backend SQLite 682 passed + 4 skipped, PostgreSQL 18 686/686; customer vitest 143/143, vue-tsc ok, Pint ok.

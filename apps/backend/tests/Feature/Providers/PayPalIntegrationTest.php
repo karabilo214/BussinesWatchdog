@@ -168,7 +168,7 @@ class PayPalIntegrationTest extends TestCase
         $this->assertSame('ok', $result['status']);
         $payment = Payment::query()->where('external_id', '56072027MF355241N')->firstOrFail();
         $this->assertSame(['captured', '56072027MF355241N', '5TR80192ED162870P', 'test'], [$payment->status, $payment->intent_ref, $payment->charge_ref, $payment->mode]);
-        $this->assertSame(['provider_order_ref' => '41'], $payment->metadata);
+        $this->assertEquals(['provider_order_ref' => '41', 'provider_invoice_ref' => 'wc-41'], $payment->metadata);
         $this->assertSame([PaymentAllocation::STRATEGY_EXACT_REFERENCE, 1000], [PaymentAllocation::query()->value('strategy'), (int) PaymentAllocation::query()->value('amount_minor')]);
         $refundLink = RefundAllocation::query()->where('refund_id', $storeRefund->id)->firstOrFail();
         $this->assertSame([PaymentAllocation::STRATEGY_UNIQUE_AMOUNT, 300], [$refundLink->strategy, (int) $refundLink->amount_minor]);
@@ -220,6 +220,24 @@ class PayPalIntegrationTest extends TestCase
         $this->requests = [];
         app(PayPalSync::class)->syncPointers($integration->refresh());
         $this->assertSame(['GET /v2/payments/captures/1UNKNOWN0CAPTURE0'], $this->reads());
+    }
+
+    public function test_a_swagpaypal_payment_is_linked_by_the_shopware_transaction_id_before_the_store_knows_the_capture(): void
+    {
+        $transactionId = '01a159918fdd71f190785fa03e6fa9c8';
+        $order = $this->order('', 1000, '10004');
+        $order->forceFill(['transaction_ref' => null, 'metadata' => ['store_transaction_ref' => $transactionId]])->save();
+        $this->paypalOrder('ORD0000000000007S', json_encode(['orderTransactionId' => $transactionId, 'pluginVersion' => '10.8.5', 'shopwareVersion' => '6.7.15.1']), [$this->capture('CAP0000000000007S', 'COMPLETED', '10.00')], []);
+        $integration = $this->connected();
+
+        app(PayPalSync::class)->syncOrder($integration, 'ORD0000000000007S');
+        $this->drain();
+
+        $payment = Payment::query()->where('intent_ref', 'ORD0000000000007S')->sole();
+        $this->assertSame($transactionId, $payment->metadata['provider_store_transaction_ref']);
+        $this->assertArrayNotHasKey('provider_order_ref', $payment->metadata);
+        $allocation = PaymentAllocation::query()->where('order_id', $order->id)->sole();
+        $this->assertSame([PaymentAllocation::STRATEGY_VERIFIED_METADATA, $transactionId], [$allocation->strategy, $allocation->evidence['store_transaction_ref']]);
     }
 
     public function test_a_known_capture_is_read_again_while_the_store_reports_a_refund_paypal_has_not_shown(): void

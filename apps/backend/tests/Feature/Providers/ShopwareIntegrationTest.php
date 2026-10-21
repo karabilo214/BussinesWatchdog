@@ -146,6 +146,7 @@ class ShopwareIntegrationTest extends TestCase
         $this->assertSame(['open', 'EUR', 3998, 'swag_paypal_paypal', 'CAPTURE00000001X', 'test', 'supported', '10001', 'none'], [$paypal->status, $paypal->currency, (int) $paypal->total_minor, $paypal->gateway, $paypal->transaction_ref, $paypal->mode, $paypal->financial_support, $paypal->display_number, $paypal->metadata['refund_state']]);
         $this->assertNotNull($paypal->paid_marked_at);
         $this->assertSame(['paid', 'open'], [$paypal->metadata['payment_state'], Order::query()->where('external_id', $this->id('a2'))->firstOrFail()->metadata['payment_state']], 'the store payment state is normalized');
+        $this->assertSame($this->id('t1'), $paypal->metadata['store_transaction_ref'], 'the effective transaction id is kept to match SwagPayPal payments');
         $this->assertSame(['unsupported', null], [Order::query()->where('external_id', $this->id('a2'))->value('financial_support'), Order::query()->where('external_id', $this->id('a2'))->value('paid_marked_at')]);
         $yen = Order::query()->where('external_id', $this->id('a3'))->firstOrFail();
         $this->assertSame([1500, 'payment_invoicepayment'], [(int) $yen->total_minor, $yen->gateway], 'the cancelled transaction is skipped for the effective one');
