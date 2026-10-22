@@ -2,7 +2,7 @@
 
 Date: 2026-10-10
 
-Status: accepted with changes by the owner on 2026-10-16 (implemented in Step 63; follow-ups in `docs/backlog.md`).
+Status: accepted with changes by the owner on 2026-10-16 (implemented in Step 63; original follow-ups in `docs/backlog-old.md`).
 
 ## Context
 
