@@ -80,10 +80,10 @@ Plan for the connector (needs owner decisions marked ⚑):
 
 Owner decisions (2026-10-22):
 
-- Refunds (point 4): support them ourselves where possible, otherwise show information. The service stays read-only and never writes payment states into Shopware, so it cannot make the plugin sync refunds. What it does itself: it reads Stripe refunds directly (amount, time) and shows them on the order. "Refund at Stripe, Shopware still paid" with this plugin is **information** («возвраты не поддерживаются вашим платёжным плагином»), not a finding. Proposed default, to confirm: "Shopware refunded, no refund at Stripe" stays a finding, because the money was not returned.
+- Refunds (point 4): support them ourselves where possible, otherwise show information. The service stays read-only and never writes payment states into Shopware, so it cannot make the plugin sync refunds. What it does itself: it reads Stripe refunds directly (amount, time) and shows them on the order. "Refund at Stripe, Shopware still paid" with this plugin is **information** («возвраты не поддерживаются вашим платёжным плагином»), not a finding. "Shopware refunded, no refund at Stripe" stays a finding, because the money was not returned (confirmed by the owner).
 - Mode (point 3): accepted — from the linked Stripe payment, unlinked = unknown.
 - Accounts (point 5): one Stripe account per store.
-- Test keys: the existing Stripe test account (`WATCHDOG_DEV_STRIPE_*`, also used by WooCommerce-Test). A shared account is also the real case of ADR 0073 attribution.
+- Test keys: the existing Stripe test account (`WATCHDOG_DEV_STRIPE_*`, also used by WooCommerce-Test), entered by the owner in the plugin's administration page, as a merchant would. A shared account is also the real case of ADR 0073 attribution.
 
 ## Open
 
