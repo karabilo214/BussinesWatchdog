@@ -3,6 +3,7 @@
 use App\Http\Controllers\Site\PublicStorefrontCheckController;
 use App\Http\Controllers\Site\SignupController;
 use App\Http\Controllers\Site\SiteController;
+use App\Http\Controllers\Site\SitemapController;
 use App\Http\Controllers\Site\SiteMediaController;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,8 @@ Route::middleware('web')->group(function (): void {
 
 Route::middleware([SubstituteBindings::class])->group(function (): void {
     Route::get('/', [SiteController::class, 'root']);
+    Route::get('/sitemap.xml', [SitemapController::class, 'sitemap']);
+    Route::get('/robots.txt', [SitemapController::class, 'robots']);
     Route::get('/media/{media}.{extension}', [SiteMediaController::class, 'show'])->where(['media' => '[0-9a-f-]{36}', 'extension' => 'jpg|png|webp|pdf']);
     Route::get('/{locale}', [SiteController::class, 'home'])->where('locale', 'ru|en|de');
     Route::get('/{locale}/pricing', [SiteController::class, 'pricing'])->where('locale', 'ru|en|de');

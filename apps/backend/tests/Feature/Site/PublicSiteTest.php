@@ -46,6 +46,52 @@ class PublicSiteTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_sitemap_lists_shown_pages_with_their_languages_and_robots_points_to_it(): void
+    {
+        $about = PublicPage::query()->create(['kind' => 'page', 'slug' => 'about', 'path' => 'about', 'menu' => 'footer', 'sort' => 0]);
+        PublicPageVersion::query()->create(['page_id' => $about->id, 'locale' => 'de', 'version' => 1, 'title' => 'Über uns', 'body' => '<p>Text</p>', 'content_hash' => str_repeat('0', 64), 'state' => 'published', 'published_at' => Carbon::parse('2026-10-15T08:00:00Z')]);
+        PublicPageVersion::query()->create(['page_id' => $about->id, 'locale' => 'en', 'version' => 1, 'title' => 'About', 'body' => '<p>Text</p>', 'content_hash' => str_repeat('1', 64), 'state' => 'published', 'published_at' => Carbon::parse('2026-10-16T08:00:00Z')]);
+        PublicPageVersion::query()->create(['page_id' => $about->id, 'locale' => 'ru', 'version' => 1, 'title' => 'О нас', 'body' => '<p>Текст</p>', 'content_hash' => str_repeat('2', 64), 'state' => 'draft']);
+        $old = PublicPage::query()->create(['kind' => 'page', 'slug' => 'old', 'path' => 'old', 'menu' => 'none', 'sort' => 0, 'archived_at' => Carbon::now()]);
+        PublicPageVersion::query()->create(['page_id' => $old->id, 'locale' => 'en', 'version' => 1, 'title' => 'Old', 'body' => '<p>Old</p>', 'content_hash' => str_repeat('3', 64), 'state' => 'published', 'published_at' => Carbon::now()]);
+
+        $response = $this->get('/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml; charset=UTF-8');
+        $xml = simplexml_load_string((string) $response->getContent());
+        $this->assertNotFalse($xml);
+        $locs = [];
+
+        foreach ($xml->url as $url) {
+            $locs[] = (string) $url->loc;
+        }
+
+        foreach (['ru', 'en', 'de'] as $locale) {
+            foreach (['', '/pricing', '/contact'] as $path) {
+                $this->assertContains("https://watchdog.test/{$locale}{$path}", $locs);
+            }
+        }
+
+        $this->assertContains('https://watchdog.test/de/about', $locs);
+        $this->assertContains('https://watchdog.test/en/about', $locs);
+        $this->assertNotContains('https://watchdog.test/ru/about', $locs, 'a draft is not shown');
+        $this->assertNotContains('https://watchdog.test/en/old', $locs, 'an archived page is not shown');
+        $this->assertSame([], array_values(array_filter($locs, fn (string $loc): bool => preg_match('#/(signup|check-store|pay)$#', $loc) === 1)));
+        $this->assertSame(['https://watchdog.test/ru', 'https://watchdog.test/en', 'https://watchdog.test/de'], array_slice($locs, 0, 3), 'the home page comes first');
+
+        $about = collect($xml->url)->first(fn ($url): bool => (string) $url->loc === 'https://watchdog.test/de/about');
+        $this->assertSame('2026-10-15', (string) $about->lastmod);
+        $alternates = [];
+
+        foreach ($about->children('http://www.w3.org/1999/xhtml')->link as $link) {
+            $alternates[(string) $link->attributes()->hreflang] = (string) $link->attributes()->href;
+        }
+
+        $this->assertSame(['en' => 'https://watchdog.test/en/about', 'de' => 'https://watchdog.test/de/about'], $alternates);
+
+        $this->get('/robots.txt')->assertOk()->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
+            ->assertSee('Sitemap: https://watchdog.test/sitemap.xml', false)
+            ->assertSee("User-agent: *\nDisallow:\n", false);
+    }
+
     public function test_root_sends_the_visitor_to_their_language_and_home_works_without_published_content(): void
     {
         $this->get('/', ['Accept-Language' => 'de-DE,de;q=0.9'])->assertRedirect('/de')->assertHeader('Vary', 'Accept-Language');

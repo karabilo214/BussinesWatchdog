@@ -337,3 +337,13 @@ Status: complete; deployed 2026-10-22 (`deb2162`)
 - Owner panel: the message card has `attachment` (name, type, bytes) and a link `GET /platform-api/v1/contact-requests/{id}/attachment` (`contacts.read`): always a download (`Content-Disposition: attachment`, `nosniff`, CSP `sandbox`, `no-store`), audited as `site.contact.attachment_downloaded`. OpenAPI updated.
 
 Verification: new `ContactFormTest` (4 tests: fresh/wrong/reused/expired CAPTCHA, cleaned PNG with an appended PHP payload, staff-only download with headers and audit, owner email, purge deletes the file, PDF kept byte for byte, HTML/SVG/EXE/PHP/ZIP/broken PDF/too large/disabled refused with nothing stored); `PublicStorefrontCheckTest` now asserts the redirect back to the form (fails without the fix). Backend SQLite 709 passed + 4 skipped, Site suite on PostgreSQL 18 48/48, Pint ok; control typecheck and 70/70 tests. Not checked in a real browser.
+
+### Step 228: Sitemap and robots.txt
+
+Status: complete; deployed 2026-10-22
+
+- `/sitemap.xml` (`SitemapController`) answered 404 before. It now lists every page the site shows: home, pricing and contact in ru/en/de, other pages in the languages with a published version, archived pages left out. Each URL has its languages as `xhtml:link` hreflang alternates and, for edited pages, `lastmod` = publication date. Sign-up, store check and pay are not listed. Absolute addresses come from `APP_URL`.
+- `/robots.txt` is now served by the application instead of the static `public/robots.txt`: still allows everything and adds `Sitemap: <APP_URL>/sitemap.xml`.
+- Ops: `docs/ops/site.md`.
+
+Verification: `PublicSiteTest::test_sitemap_lists_shown_pages_with_their_languages_and_robots_points_to_it` (system pages in three languages, home first, a page only in its published languages with alternates and lastmod, draft and archived pages left out, forms left out, robots line); backend SQLite 711 passed + 4 skipped, Pint ok.
