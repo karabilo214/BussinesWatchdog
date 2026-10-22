@@ -54,9 +54,33 @@ Dockware images stop at 6.7.2.2 / 6.6.10.6, so `plugins/shopware-app/tests/build
 - Real PayPal money through SwagPayPal (`paypal/run.sh`, SwagPayPal 10.x on 6.7, 9.x on 6.6): PASS on both.
 - Shopware App (`app/app-e2e.sh`): PASS on 6.7.15.1. **Fails on 6.6.10.29 inside Shopware**: since 6.6.10.25 `Framework/DependencyInjection/app.xml` defines `shopware.app_system.trusted_url_resolver` with an empty `<argument/>`, which Symfony (7.2 and 7.4 alike) turns into `''`, while `TrustedUrlResolver::__construct(?Closure $dnsResolver)` needs a closure or null — the app registration request throws a TypeError. This breaks the installation of any app with a registration URL on 6.6.10.25–6.6.10.29 (checked against the upstream tags), not only ours. On those versions the integration key is the working path; the owner may report it to Shopware alongside the ACL finding.
 
+## Spike part 4 — Stripe Payment for Shopware 6 (installed copy, 2026-10-22, Step 226)
+
+The owner obtained the plugin and installed it on Shopware-Test: `StripeShopwarePayment` 1.17.4 (`stripe/shopware-payment`, vendor "Stripe Payments Europe, Ltd.", code copyright Pickware; proprietary licence — read for interoperability only, no code taken into this repository; the source stays on the test server under `custom/plugins/`). Read from the source; no Stripe keys configured yet, so nothing executed.
+
+- **One flow for every method.** Card, Apple/Google Pay (digital wallets), SEPA, Klarna, iDEAL, P24, EPS, Bancontact all create a PaymentIntent (Stripe API version `2020-03-02`, automatic capture, `confirm=true`). The legacy Sources/Charges code is dead. Payment method technical names: `stripe_shopware_payment_payment_handler_{card,digital_wallets,sepa,klarna,ideal,p24,eps,bancontact}`.
+- **Link written at Stripe:** PaymentIntent `metadata.shopware_order_transaction_id` = the Shopware **order transaction id** (32 hex) — the same value our Shopware mapper already sends as `store_transaction_ref`, and the same kind of link as SwagPayPal's `custom_id`. Also `metadata.platform_name`. No order id, order number or site URL in metadata.
+- **Link written in Shopware:** order transaction custom field `stripe_payment_context.payment` with `payment_intent_id` (`pi_…`) and, once succeeded, `charge_id` (`ch_…`/`py_…`). Readable with `order_transaction:read` like `swag_paypal_resource_id`. **No test/live flag is stored** (unlike `swag_paypal_is_sandbox`).
+- **Personal data at Stripe:** PaymentIntent `description` = `<customer email> / Customer <number> / Order <order number>`; a Stripe Customer per Shopware customer with name and email; `receipt_email` when enabled. The connector must keep reading only ids and the one metadata key (ADR 0020).
+- `statement_descriptor_suffix` = `Ref. <order number> <descriptor or sales channel name>` (≤ 22 characters) — a weak human hint, not a link.
+- **Keys per sales channel:** plugin configuration (secret key, webhook id/secret) can differ per sales channel, so one Shopware store may use several Stripe accounts.
+- **Webhooks handled:** `payment_intent.succeeded|canceled|payment_failed`, `charge.succeeded|failed|expired` → transaction paid / cancelled / failed. SEPA and other delayed methods finish `processing` and become paid by webhook later.
+- **No refunds at all:** there is no refund action in the administration and **`charge.refunded` is not subscribed**. A refund made in the Stripe Dashboard never reaches Shopware — the transaction stays `paid`. Conversely, setting a transaction to `refunded` in Shopware moves no money at Stripe.
+- **Current state of our code:** `ProviderCoverage::providerForGateway()` maps every `stripe_*` technical name to Stripe, so such Shopware orders are already `financial_support = supported`, while the customer cabinet says Stripe orders in Shopware are "not supported". The order has no `transaction_ref` and the Stripe connector does not read `shopware_order_transaction_id`, so by the code (read, not run) a paid order with a Stripe integration connected would end as `payment_not_matched` after the grace — a false finding. No customer uses this combination yet.
+
+Plan for the connector (needs owner decisions marked ⚑):
+
+1. Shopware mapper: `transaction_ref` = `stripe_payment_context.payment.payment_intent_id` for Stripe transactions (exact link through `intent_ref`, existing code path).
+2. Stripe mapper: `provider_store_transaction_ref` from `metadata.shopware_order_transaction_id` (32 hex only) — second, independent link; also gives store attribution of a shared Stripe account through the existing `other_store_transaction` rule (ADR 0073). Check that a charge snapshot without metadata does not clear the value set by the PaymentIntent snapshot.
+3. ⚑ Mode: Shopware does not say test/live. Proposal: take the mode from the linked Stripe payment (`livemode`), and treat an unlinked order as unknown, never as live-mismatch.
+4. ⚑ Refunds: every Stripe refund will look like "refund at the provider, store still paid", and every Shopware "refunded" without a Stripe refund is real money not returned. Both are true facts with this plugin. Decide whether the first is a finding (with a note that the plugin never syncs refunds) or informational only.
+5. ⚑ Several Stripe accounts per store (per sales channel): one integration per store for now, or allow several.
+6. Until 1–4 ship: keep `stripe_shopware_payment_*` as unsupported to match the cabinet text and avoid the false finding.
+7. Verification as with PayPal (part 3): Stripe test keys in the plugin on Shopware-Test, webhook registered from the plugin, card / 3-D Secure / SEPA / failed card orders, a refund in the Dashboard; then the chain through the service.
+
 ## Open
 
-- Stripe plugin data for Shopware.
+- Stripe plugin data for Shopware: read (part 4); connector and owner decisions open.
 - Shopware App: manifest permissions, registration handshake, webhooks (order written, state changes), Cloud vs self-hosted.
 - Load: paging large stores with the OR delta filter.
 

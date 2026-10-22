@@ -585,3 +585,12 @@ Status: complete in main; submission needs the owner's WordPress.org account; di
 - Version 0.3.3 (no behaviour change).
 
 Verification: plugin integration suite 58/58 on the floor target (PHP 7.4, WordPress 5.9, WooCommerce 6.0) and on WooCommerce 9.9.7 HPOS; PHP 7.4 lint of the package; Plugin Check 0 errors on the built ZIP.
+
+### Step 226: Stripe Payment for Shopware 6 — Plugin Read
+
+Status: analysis complete; no code changed
+
+- The owner installed `StripeShopwarePayment` 1.17.4 on Shopware-Test. Its source was read (copied to a temporary folder, not into the public repository; proprietary licence). Findings and the connector plan with open owner decisions: ADR 0025, "Spike part 4".
+- Key facts: every method goes through a PaymentIntent with `metadata.shopware_order_transaction_id` = Shopware order transaction id; the transaction keeps `stripe_payment_context.payment.payment_intent_id`/`charge_id`; no test/live flag; no refunds and no `charge.refunded` handling; PaymentIntent description carries customer email; keys per sales channel.
+- Found in our code: `stripe_shopware_payment_*` methods are classified as supported Stripe orders while the cabinet says they are not supported; without the links above this would produce `payment_not_matched` findings for a store that connects Stripe (by reading, not run). No customer has this combination.
+- Plugin state on the test shop: 8 Stripe payment methods active, no Stripe keys, no orders paid with Stripe yet.
