@@ -193,6 +193,13 @@ describe('IncidentExplanation', () => {
     const closed = mount(IncidentExplanation, { props: { explanation: explanation({ status: 'closed_by_user', outcome: { code: 'closed_by_user', at: '2026-10-22T09:00:00Z', reason: null } }) }, global });
     expect(closed.get('[data-outcome]').text()).toContain('Это не подтверждает, что расхождение устранено.');
     expect(closed.find('[data-auto-close]').exists()).toBe(false);
+    expect(closed.find('[data-steps]').exists()).toBe(true);
+
+    const fixed = mount(IncidentExplanation, { props: { explanation: explanation({ status: 'resolved_confirmed', outcome: { code: 'confirmed_fixed', at: '2026-10-22T09:00:00Z', reason: 'auto_resolved_fresh_reconciliation_ok' } }) }, global });
+    expect(fixed.get('[data-outcome]').text()).toContain('свежая сверка не нашла расхождения');
+    expect(fixed.find('[data-steps]').exists()).toBe(false);
+    expect(fixed.find('[data-causes]').exists()).toBe(false);
+    expect(fixed.find('[data-evidence]').exists()).toBe(true);
   });
 
   it('names the step a browser check stopped at and links the run', () => {

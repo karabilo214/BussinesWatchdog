@@ -76,6 +76,8 @@ const fact = computed(() => {
 });
 
 const observation = computed(() => props.explanation.observation);
+/** Once new data confirmed the fix there is nothing left to check; a manual close confirms nothing, so the steps stay. */
+const actionable = computed(() => props.explanation.status !== 'resolved_confirmed');
 const outcome = computed(() => props.explanation.outcome);
 
 function evidenceValue(row: IncidentExplanation['evidence'][number]): string {
@@ -134,7 +136,7 @@ const technical = computed(() =>
       </div>
     </div>
 
-    <div v-if="explanation.causes.length > 0" class="flex flex-col gap-1">
+    <div v-if="actionable && explanation.causes.length > 0" class="flex flex-col gap-1">
       <h3 class="text-base font-semibold">{{ $t('incident.explain.causes_title') }}</h3>
       <p class="text-[13px] text-text-muted">{{ $t('incident.explain.causes_note') }}</p>
       <ul class="list-disc pl-5 text-sm" data-causes>
@@ -142,7 +144,7 @@ const technical = computed(() =>
       </ul>
     </div>
 
-    <div class="flex flex-col gap-2 rounded-lg border border-note-border bg-note-soft p-4">
+    <div v-if="actionable" class="flex flex-col gap-2 rounded-lg border border-note-border bg-note-soft p-4">
       <h3 class="text-base font-semibold">{{ $t('incident.explain.steps_title') }}</h3>
       <ol class="list-decimal pl-5 text-sm" data-steps>
         <li v-for="step in explanation.steps" :key="step" :data-step="step">
