@@ -315,7 +315,7 @@ class NotificationRenderer
         $provider = is_string($params['provider'] ?? null) ? $params['provider'] : 'default';
         $providerAt = $this->t('provider_at.'.$provider, [], $locale, 'provider_at.default');
 
-        return $this->t('first_step.'.$step, ['provider_at' => $providerAt, 'reference' => (string) ($params['reference'] ?? ''), 'capture' => (string) ($params['capture'] ?? '')], $locale);
+        return $this->t('first_step.'.$step, ['provider_at' => $providerAt, 'reference' => (string) ($params['reference'] ?? ''), 'capture' => (string) ($params['capture'] ?? ''), 'refund' => (string) ($params['refund'] ?? '')], $locale);
     }
 
     private function t(string $key, array $replace, string $locale, ?string $fallbackKey = null): string

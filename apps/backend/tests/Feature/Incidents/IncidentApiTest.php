@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Incidents;
 
+use App\Models\FinancialTransaction;
 use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\Membership;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\ReconciliationFinding;
 use App\Models\Signal;
 use App\Models\Store;
@@ -198,6 +200,71 @@ class IncidentApiTest extends TestCase
         $this->assertSame(['repeat_path_manually', 'check_recent_changes', 'run_check_again'], $explanation['steps'], 'no run to open: the steps do not point to it');
         $this->assertSame(['browser_check_no_payment', 'scheduled_checks_pass', null], [$explanation['warning'], $explanation['auto_close'], $explanation['observation']]);
         $this->assertSame(['step', 'none', 'error', 'not_available', 'at'], array_column($explanation['evidence'], 'value'));
+    }
+
+    public function test_a_refund_made_only_at_the_provider_is_explained_as_money_already_returned(): void
+    {
+        $context = $this->context('owner');
+        $context['integration']->forceFill(['last_successful_sync_at' => now()->subMinutes(5)])->save();
+        $order = $this->order($context, ['gateway' => 'stripe', 'metadata' => ['refund_state' => 'none']]);
+        $incident = $this->incidentFor($context, $order, ReconciliationFinding::RULE_REFUND_EXTRA, ['refund_expected_minor' => 0, 'refund_actual_minor' => 500, 'reason_code' => 'refund_extra_store_state_none']);
+
+        $explanation = app(IncidentExplainer::class)->explain($incident);
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['refund_not_recorded', 'without_reference'], [$explanation['scenario'], $explanation['variant']]);
+        $this->assertSame(['minor' => '500', 'currency' => 'EUR', 'exponent' => 2], $explanation['params']['actual']);
+        $this->assertSame(['amount', 'unknown', 'none'], [$explanation['evidence'][1]['value'], $explanation['evidence'][2]['value'], $explanation['evidence'][3]['value']]);
+        $this->assertSame(['refund_made_at_provider', 'store_refund_notification_not_processed'], $explanation['causes']);
+        $this->assertSame(['find_refund_in_provider', 'check_who_refunded', 'record_refund_in_store_without_sending', 'recheck'], $explanation['steps']);
+        $this->assertSame(['refund_already_sent', 'store_records_refund'], [$explanation['warning'], $explanation['auto_close']]);
+    }
+
+    public function test_a_smaller_capture_and_several_captures_get_their_own_causes_and_steps(): void
+    {
+        $context = $this->context('owner');
+        $order = $this->order($context, ['gateway' => 'stripe']);
+        $amount = $this->incidentFor($context, $order, ReconciliationFinding::RULE_CAPTURE_AMOUNT, ['gross_minor' => 18400, 'captured_minor' => 15000, 'expected_minor' => 18400, 'actual_minor' => 15000, 'difference_minor' => -3400, 'reason_code' => 'capture_amount_mismatch', 'evidence' => ['capture_operation_ids' => ['ch_part']]]);
+
+        $explanation = app(IncidentExplainer::class)->explain($amount);
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['capture_amount', 'less'], [$explanation['scenario'], $explanation['variant']]);
+        $this->assertSame('3400', $explanation['params']['difference']['minor']);
+        $this->assertSame(['partial_capture', 'second_capture_pending', 'order_edited_after_payment'], $explanation['causes']);
+        $this->assertSame('settle_difference_without_recharge', $explanation['steps'][2]);
+        $this->assertSame(['ids', 'not_detected'], [$explanation['evidence'][2]['value'], $explanation['evidence'][3]['value']]);
+        $this->assertSame('no_recharge', $explanation['warning']);
+
+        $second = $this->order($context, ['gateway' => 'stripe', 'display_number' => '#1002']);
+        $multiple = $this->incidentFor($context, $second, ReconciliationFinding::RULE_MULTIPLE_CAPTURES, ['reason_code' => 'multiple_distinct_captures', 'evidence' => ['capture_operation_ids' => ['ch_a', 'ch_b']]]);
+        $explanation = app(IncidentExplainer::class)->explain($multiple);
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['multiple_captures', '2'], [$explanation['scenario'], $explanation['params']['count']]);
+        $this->assertSame('ch_a, ch_b', $explanation['evidence'][2]['params']['ids']);
+        $this->assertSame(['no_auto_refund', 'refund_duplicate_once'], [$explanation['warning'], $explanation['steps'][2]]);
+    }
+
+    public function test_a_payment_without_an_order_is_found_money_not_a_loss(): void
+    {
+        $context = $this->context('owner');
+        $context['integration']->forceFill(['last_successful_sync_at' => now()->subMinutes(5)])->save();
+        $payment = Payment::query()->create([
+            'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'integration_id' => $context['integration']->id, 'external_id' => 'pi_orphan', 'intent_ref' => 'pi_orphan',
+            'mode' => 'live', 'currency' => 'EUR', 'currency_exponent' => 2, 'status' => 'captured', 'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER, 'source_updated_at' => now(),
+            'current_payload_hash' => hash('sha256', 'pi_orphan'), 'metadata' => [], 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $capture = FinancialTransaction::query()->create([
+            'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'integration_id' => $context['integration']->id, 'payment_id' => $payment->id,
+            'external_operation_id' => 'ch_orphan', 'kind' => 'capture', 'status' => 'succeeded', 'currency' => 'EUR', 'currency_exponent' => 2, 'amount_minor' => 4200,
+            'occurred_at' => now()->subDays(2), 'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER, 'operation_hash' => hash('sha256', 'ch_orphan'), 'metadata' => [],
+        ]);
+        $incident = $this->incidentFor($context, null, ReconciliationFinding::RULE_PAYMENT_WITHOUT_ORDER, ['payment_id' => $payment->id, 'actual_minor' => 4200, 'reason_code' => 'unmatched_capture_awaiting_review', 'evidence' => ['capture_transaction_id' => $capture->id, 'occurred_at' => now()->subDays(2)->toJSON()]]);
+
+        $explanation = app(IncidentExplainer::class)->explain($incident);
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['payment_without_order', 'with_reference'], [$explanation['scenario'], $explanation['variant']]);
+        $this->assertSame(['stripe', 'ch_orphan', '4200'], [$explanation['params']['provider'], $explanation['params']['capture'], $explanation['params']['amount']['minor']]);
+        $this->assertSame('open_capture_in_provider', $explanation['steps'][0]);
+        $this->assertSame(['payment_not_lost', 'payment_linked', 'fresh'], [$explanation['warning'], $explanation['auto_close'], $explanation['observation']['state']]);
     }
 
     public function test_list_returns_newest_first_with_a_cursor_and_filters_several_states(): void
@@ -531,12 +598,12 @@ class IncidentApiTest extends TestCase
     /**
      * @param  array<string, mixed>  $finding
      */
-    private function incidentFor(array $context, Order $order, string $rule, array $finding): Incident
+    private function incidentFor(array $context, ?Order $order, string $rule, array $finding): Incident
     {
         $runId = (string) Str::uuid7();
         DB::table('reconciliation_runs')->insert(['id' => $runId, 'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'algorithm_version' => 'test', 'config_version' => 1, 'currency' => 'EUR', 'scope' => '{}', 'coverage_snapshot' => '{}', 'counters' => '{}', 'status' => 'completed', 'started_at' => now(), 'finished_at' => now(), 'created_at' => now()]);
         $stored = ReconciliationFinding::query()->create($finding + [
-            'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'run_id' => $runId, 'order_id' => $order->id, 'rule_code' => $rule,
+            'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'run_id' => $runId, 'order_id' => $order?->id, 'rule_code' => $rule,
             'status' => ReconciliationFinding::STATUS_MISMATCH, 'mode' => 'live', 'currency' => 'EUR', 'currency_exponent' => 2, 'evidence' => [], 'evaluated_at' => now(),
         ]);
         $signal = Signal::query()->create([
@@ -545,7 +612,7 @@ class IncidentApiTest extends TestCase
             'finding_id' => $stored->id, 'currency' => 'EUR', 'observed_start' => now(), 'observed_end' => now(), 'evidence' => [], 'data_quality' => [], 'detected_at' => now(),
         ]);
 
-        return app(IncidentRecorder::class)->openOrAttach($context['tenant']->id, $context['store']->id, 'refund-test-'.$order->id, ['family' => 'money', 'component' => 'refund', 'title_code' => $rule, 'severity' => Incident::SEVERITY_WARNING, 'currency' => 'EUR', 'mode' => 'live', 'first_bad_at' => now()], $signal, 'finding');
+        return app(IncidentRecorder::class)->openOrAttach($context['tenant']->id, $context['store']->id, 'explain-test-'.$stored->id, ['family' => 'money', 'component' => 'refund', 'title_code' => $rule, 'severity' => Incident::SEVERITY_WARNING, 'currency' => 'EUR', 'mode' => 'live', 'first_bad_at' => now()], $signal, 'finding');
     }
 
     /**

@@ -315,7 +315,7 @@ export interface IncidentExplanationAmount {
 
 /** Codes and values only (IncidentExplainer); the texts are templates under incident.explain. */
 export interface IncidentExplanation {
-  scenario: 'capture_unconfirmed' | 'capture_not_recorded' | 'refund_unconfirmed' | 'browser_check_stopped' | 'source_unavailable' | null;
+  scenario: 'capture_unconfirmed' | 'capture_not_recorded' | 'refund_unconfirmed' | 'refund_not_recorded' | 'capture_amount' | 'multiple_captures' | 'payment_without_order' | 'browser_check_stopped' | 'source_unavailable' | null;
   variant?: string;
   params?: Record<string, string | IncidentExplanationAmount | undefined>;
   evidence: { item: string; value: string; params: Record<string, unknown> }[];

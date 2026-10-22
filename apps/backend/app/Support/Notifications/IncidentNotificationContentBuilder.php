@@ -310,6 +310,7 @@ class IncidentNotificationContentBuilder
             'provider' => is_string($explanation['params']['provider'] ?? null) ? $explanation['params']['provider'] : null,
             'reference' => is_string($explanation['params']['reference'] ?? null) ? $explanation['params']['reference'] : null,
             'capture' => is_string($explanation['params']['capture'] ?? null) ? $explanation['params']['capture'] : null,
+            'refund' => is_string($explanation['params']['refund'] ?? null) ? $explanation['params']['refund'] : null,
         ])];
     }
 

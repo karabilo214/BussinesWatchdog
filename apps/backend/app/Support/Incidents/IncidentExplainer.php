@@ -3,11 +3,13 @@
 namespace App\Support\Incidents;
 
 use App\Models\CheckRun;
+use App\Models\FinancialTransaction;
 use App\Models\Incident;
 use App\Models\IncidentSignal;
 use App\Models\Integration;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
 use App\Models\Signal;
 use App\Support\Browser\CheckOutcomeEvaluator;
@@ -35,6 +37,14 @@ class IncidentExplainer
 
     public const SCENARIO_SOURCE_UNAVAILABLE = 'source_unavailable';
 
+    public const SCENARIO_REFUND_NOT_RECORDED = 'refund_not_recorded';
+
+    public const SCENARIO_CAPTURE_AMOUNT = 'capture_amount';
+
+    public const SCENARIO_MULTIPLE_CAPTURES = 'multiple_captures';
+
+    public const SCENARIO_PAYMENT_WITHOUT_ORDER = 'payment_without_order';
+
     private const PROVIDER_SYNC_STALE_HOURS = 24;
 
     /** Every code an explanation can carry in these lists; each has a text in the cabinet (ru/en/de). */
@@ -42,33 +52,48 @@ class IncidentExplainer
         'cause' => [
             'authorized_not_captured',
             'capture_pending',
+            'captured_more_than_order',
+            'customer_paid_twice',
             'key_permissions_changed',
             'key_revoked_or_changed',
             'marked_paid_early',
             'notification_not_processed',
+            'order_deleted_or_from_elsewhere',
+            'order_edited_after_payment',
+            'order_not_received_yet',
             'page_changed',
+            'partial_capture',
             'payment_failed_but_marked_paid',
+            'payment_reference_not_in_order',
+            'payment_retried_after_error',
+            'planned_partial_captures',
             'plugin_disabled',
             'plugin_not_active',
             'provider_data_incomplete',
             'reference_mismatch',
             'reference_missing',
             'refund_failed_at_provider',
+            'refund_larger_than_store',
+            'refund_made_at_provider',
             'refund_marked_only',
             'refund_partial_at_provider',
             'scheduler_slow_or_stopped',
+            'second_capture_pending',
             'site_down',
             'site_overloaded',
             'site_unreachable',
             'status_changed_manually',
             'step_failed_on_site',
             'store_marked_failed_after_payment',
+            'store_refund_notification_not_processed',
             'temporary_outage',
         ],
         'step' => [
             'check_captured_not_authorized',
             'check_connection',
+            'check_if_split_payment_expected',
             'check_key_permissions',
+            'check_order_history',
             'check_order_status',
             'check_payment_module_data',
             'check_payment_module_notifications',
@@ -77,34 +102,52 @@ class IncidentExplainer
             'check_refund_at_provider',
             'check_scheduler',
             'check_site_reachable',
+            'check_who_refunded',
+            'compare_amounts_in_provider',
             'compare_reference',
             'find_capture_in_provider',
+            'find_order_by_amount_and_date',
             'find_payment_in_provider',
+            'find_refund_in_provider',
             'link_manually',
+            'link_on_unmatched_page',
             'mark_paid_without_recharge',
             'open_capture_in_provider',
             'open_check_run',
+            'open_each_capture',
             'open_payment_by_reference',
+            'open_refund_in_provider',
             'recheck',
+            'record_refund_in_store_without_sending',
+            'refund_duplicate_once',
+            'refund_excess_if_confirmed',
             'refund_in_provider_dashboard',
             'repeat_path_manually',
             'replace_key',
             'restore_provider_access',
             'run_check_again',
             'send_refund_through_provider_if_missing',
+            'settle_difference_without_recharge',
         ],
         'warning' => [
             'browser_check_no_payment',
+            'no_auto_refund',
             'no_double_refund',
             'no_recharge',
+            'payment_not_lost',
+            'refund_already_sent',
             'source_gap_not_sales_stop',
         ],
         'auto_close' => [
+            'amounts_match',
             'capture_linked_or_unmarked',
+            'captures_match_order',
+            'payment_linked',
             'provider_refund_matches',
             'scheduled_checks_pass',
             'source_fresh_again',
             'store_marks_paid',
+            'store_records_refund',
         ],
     ];
 
@@ -133,17 +176,26 @@ class IncidentExplainer
         $finding = $this->latestFinding($incident);
         /** @var Order|null $order */
         $order = $finding?->order_id === null ? null : Order::query()->where('tenant_id', $incident->tenant_id)->whereKey($finding->order_id)->first();
-        $provider = ProviderCoverage::providerForGateway($order?->gateway);
+        $orphanCapture = $order === null && is_string($finding?->evidence['capture_transaction_id'] ?? null)
+            ? FinancialTransaction::query()->where('tenant_id', $incident->tenant_id)->whereKey($finding->evidence['capture_transaction_id'])->first()
+            : null;
+        $provider = ProviderCoverage::providerForGateway($order?->gateway)
+            ?? ($orphanCapture === null ? null : Integration::query()->whereKey($orphanCapture->integration_id)->value('provider'));
         $observation = $this->providerObservation($incident, $provider);
         $scenario = match ($incident->title_code) {
             ReconciliationFinding::RULE_CAPTURE_MISSING, ReconciliationFinding::RULE_PAYMENT_NOT_MATCHED => self::SCENARIO_CAPTURE_UNCONFIRMED,
             ReconciliationFinding::RULE_CAPTURE_NOT_RECORDED => self::SCENARIO_CAPTURE_NOT_RECORDED,
             ReconciliationFinding::RULE_REFUND_MISSING => self::SCENARIO_REFUND_UNCONFIRMED,
+            ReconciliationFinding::RULE_REFUND_EXTRA => self::SCENARIO_REFUND_NOT_RECORDED,
+            ReconciliationFinding::RULE_CAPTURE_AMOUNT => self::SCENARIO_CAPTURE_AMOUNT,
+            ReconciliationFinding::RULE_MULTIPLE_CAPTURES => self::SCENARIO_MULTIPLE_CAPTURES,
+            ReconciliationFinding::RULE_PAYMENT_WITHOUT_ORDER => self::SCENARIO_PAYMENT_WITHOUT_ORDER,
             default => null,
         };
         $exponent = $finding?->currency_exponent ?? $order?->currency_exponent;
-        $amount = fn (mixed $minor): ?array => $showMoneyAmounts && $minor !== null && $exponent !== null && $order !== null
-            ? ['minor' => (string) $minor, 'currency' => $order->currency, 'exponent' => (int) $exponent]
+        $currency = $finding?->currency ?? $order?->currency;
+        $amount = fn (mixed $minor): ?array => $showMoneyAmounts && $minor !== null && $exponent !== null && $currency !== null
+            ? ['minor' => (string) $minor, 'currency' => $currency, 'exponent' => (int) $exponent]
             : null;
         $payment = $order === null ? null : $this->referencedPayment($order);
         $captureIds = array_values(array_filter((array) ($finding?->evidence['capture_operation_ids'] ?? []), 'is_string'));
@@ -248,7 +300,133 @@ class IncidentExplainer
             ] + $common;
         }
 
+        if ($scenario === self::SCENARIO_REFUND_NOT_RECORDED) {
+            $refundState = $order?->metadata['refund_state'] ?? null;
+            $expected = $finding?->refund_expected_minor;
+            $actual = $finding?->refund_actual_minor ?? (isset($finding?->evidence['provider_refunded_minor']) ? (int) $finding->evidence['provider_refunded_minor'] : null);
+            $refundIds = $order === null ? [] : $this->providerRefundIds($order);
+            $partialButFull = $finding?->reason_code === 'refund_partial_but_provider_full';
+
+            return [
+                'scenario' => $scenario,
+                'variant' => $refundIds === [] ? 'without_reference' : 'with_reference',
+                'params' => $params + array_filter(['actual' => $amount($actual), 'refund' => $refundIds[0] ?? null]),
+                'evidence' => [
+                    $this->storeOrderRow($order, $amount($order?->total_minor)),
+                    ['item' => 'provider_refund', 'value' => $amount($actual) === null ? 'found_no_amount' : 'amount', 'params' => array_filter(['amount' => $amount($actual), 'provider' => $provider])],
+                    ['item' => 'provider_refund_ids', 'value' => $refundIds === [] ? 'unknown' : 'ids', 'params' => array_filter(['ids' => implode(', ', array_slice($refundIds, 0, 5))])],
+                    ['item' => 'store_refund', 'value' => match (true) {
+                        $expected !== null && (int) $expected > 0 => 'amount',
+                        $refundState === 'partial' => 'partial_no_amount',
+                        default => 'none',
+                    }, 'params' => array_filter(['amount' => $expected !== null && (int) $expected > 0 ? $amount($expected) : null])],
+                    $lastSync,
+                ],
+                'causes' => $partialButFull ? ['refund_larger_than_store'] : ['refund_made_at_provider', 'store_refund_notification_not_processed'],
+                'steps' => [$refundIds === [] ? 'find_refund_in_provider' : 'open_refund_in_provider', 'check_who_refunded', 'record_refund_in_store_without_sending', 'recheck'],
+                'warning' => 'refund_already_sent',
+                'auto_close' => 'store_records_refund',
+                'technical' => $common['technical'] + array_filter(['refund_operation_ids' => $refundIds === [] ? null : $refundIds]),
+            ] + $common;
+        }
+
+        if ($scenario === self::SCENARIO_CAPTURE_AMOUNT) {
+            $gross = $finding?->gross_minor ?? $finding?->expected_minor ?? $order?->total_minor;
+            $captured = $finding?->captured_minor ?? $finding?->actual_minor;
+            $less = $gross !== null && $captured !== null && (int) $captured < (int) $gross;
+            $changed = $finding?->reason_code === 'order_changed_after_capture';
+
+            return [
+                'scenario' => $scenario,
+                'variant' => $less ? 'less' : 'more',
+                'params' => $params + array_filter(['expected' => $amount($gross), 'actual' => $amount($captured), 'difference' => $gross !== null && $captured !== null ? $amount(abs((int) $captured - (int) $gross)) : null]),
+                'evidence' => [
+                    $this->storeOrderRow($order, $amount($gross)),
+                    ['item' => 'provider_capture', 'value' => $amount($captured) === null ? 'confirmed_no_amount' : 'confirmed', 'params' => array_filter(['amount' => $amount($captured)])],
+                    ['item' => 'capture_operations', 'value' => $captureIds === [] ? 'unknown' : 'ids', 'params' => array_filter(['ids' => implode(', ', $captureIds)])],
+                    ['item' => 'order_changed_after_payment', 'value' => $changed ? 'yes' : 'not_detected', 'params' => []],
+                    $lastSync,
+                ],
+                'causes' => match (true) {
+                    $changed => ['order_edited_after_payment'],
+                    $less => ['partial_capture', 'second_capture_pending', 'order_edited_after_payment'],
+                    default => ['captured_more_than_order', 'order_edited_after_payment'],
+                },
+                'steps' => ['compare_amounts_in_provider', 'check_order_history', $less ? 'settle_difference_without_recharge' : 'refund_excess_if_confirmed', 'recheck'],
+                'warning' => $less ? 'no_recharge' : 'no_double_refund',
+                'auto_close' => 'amounts_match',
+            ] + $common;
+        }
+
+        if ($scenario === self::SCENARIO_MULTIPLE_CAPTURES) {
+            $internal = array_values(array_filter((array) ($finding?->evidence['capture_transaction_ids'] ?? []), 'is_string'));
+            $ids = $captureIds !== [] ? $captureIds : FinancialTransaction::query()->where('tenant_id', $incident->tenant_id)->whereIn('id', $internal)->pluck('external_operation_id')->all();
+            $count = max(count($ids), count($internal));
+
+            return [
+                'scenario' => $scenario,
+                'variant' => 'default',
+                'params' => $params + array_filter(['count' => $count > 0 ? (string) $count : null, 'amount' => $amount($order?->total_minor)]),
+                'evidence' => [
+                    $this->storeOrderRow($order, $amount($order?->total_minor)),
+                    ['item' => 'distinct_captures', 'value' => $count > 0 ? 'count' : 'several', 'params' => array_filter(['count' => $count > 0 ? (string) $count : null])],
+                    ['item' => 'capture_operations', 'value' => $ids === [] ? 'unknown' : 'ids', 'params' => array_filter(['ids' => implode(', ', array_slice($ids, 0, 5))])],
+                    $lastSync,
+                ],
+                'causes' => ['customer_paid_twice', 'planned_partial_captures', 'payment_retried_after_error'],
+                'steps' => ['open_each_capture', 'check_if_split_payment_expected', 'refund_duplicate_once', 'recheck'],
+                'warning' => 'no_auto_refund',
+                'auto_close' => 'captures_match_order',
+                'technical' => $common['technical'] + array_filter(['capture_operation_ids' => $ids === [] ? null : $ids]),
+            ] + $common;
+        }
+
+        if ($scenario === self::SCENARIO_PAYMENT_WITHOUT_ORDER) {
+            $operation = $orphanCapture?->external_operation_id;
+            $occurred = is_string($finding?->evidence['occurred_at'] ?? null) ? $finding->evidence['occurred_at'] : $orphanCapture?->occurred_at?->toJSON();
+
+            return [
+                'scenario' => $scenario,
+                'variant' => $operation === null ? 'without_reference' : 'with_reference',
+                'params' => array_filter(['provider' => $provider, 'capture' => $operation, 'amount' => $amount($finding?->actual_minor), 'at' => $occurred]),
+                'evidence' => [
+                    ['item' => 'provider_capture', 'value' => $amount($finding?->actual_minor) === null ? 'confirmed_no_amount' : 'confirmed', 'params' => array_filter(['amount' => $amount($finding?->actual_minor)])],
+                    ['item' => 'capture_operations', 'value' => $operation === null ? 'unknown' : 'ids', 'params' => array_filter(['ids' => $operation])],
+                    ['item' => 'captured_at', 'value' => $occurred === null ? 'unknown' : 'at', 'params' => array_filter(['at' => $occurred])],
+                    ['item' => 'matching_order', 'value' => 'not_found', 'params' => []],
+                    $lastSync,
+                ],
+                'causes' => ['order_not_received_yet', 'order_deleted_or_from_elsewhere', 'payment_reference_not_in_order'],
+                'steps' => [$operation === null ? 'find_capture_in_provider' : 'open_capture_in_provider', 'find_order_by_amount_and_date', 'link_on_unmatched_page', 'recheck'],
+                'warning' => 'payment_not_lost',
+                'auto_close' => 'payment_linked',
+                'technical' => $common['technical'] + array_filter(['capture_operation_ids' => $operation === null ? null : [$operation]]),
+            ] + $common;
+        }
+
         return ['scenario' => null, 'params' => $params] + $common;
+    }
+
+    /**
+     * Ids of the provider refunds on the payments linked to the order.
+     *
+     * @return list<string>
+     */
+    private function providerRefundIds(Order $order): array
+    {
+        $paymentIds = PaymentAllocation::query()->where('tenant_id', $order->tenant_id)->where('order_id', $order->id)->whereNull('revoked_at')->pluck('payment_id');
+
+        return FinancialTransaction::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->whereIn('payment_id', $paymentIds)
+            ->where('kind', 'refund')
+            ->where('status', 'succeeded')
+            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
+            ->orderBy('occurred_at')
+            ->pluck('external_operation_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->values()
+            ->all();
     }
 
     /**

@@ -1043,7 +1043,13 @@
         "source": "Quelle",
         "source_reason": "Was mit der Quelle ist",
         "last_signal": "Letztes Signal",
-        "last_successful_sync": "Letzte erfolgreiche Synchronisierung"
+        "last_successful_sync": "Letzte erfolgreiche Synchronisierung",
+        "provider_refund_ids": "Erstattungsvorgänge beim Anbieter",
+        "capture_operations": "Einzugsvorgänge",
+        "order_changed_after_payment": "Bestellung nach Zahlung geändert",
+        "distinct_captures": "Getrennte erfolgreiche Einzüge",
+        "captured_at": "Eingezogen am",
+        "matching_order": "Bestellung im Shop"
       },
       "evidence": {
         "store_order": {
@@ -1077,11 +1083,13 @@
         "store_refund": {
           "amount": "vermerkt über {amount}",
           "full_no_amount": "Bestellung als vollständig erstattet markiert (der Shop meldet keinen Betrag)",
-          "partial_no_amount": "Bestellung als teilweise erstattet markiert (der Shop meldet keinen Betrag)"
+          "partial_no_amount": "Bestellung als teilweise erstattet markiert (der Shop meldet keinen Betrag)",
+          "none": "nicht vermerkt"
         },
         "provider_refund": {
           "amount": "gefunden über {amount}",
-          "none": "nicht gefunden"
+          "none": "nicht gefunden",
+          "found_no_amount": "gefunden"
         },
         "last_provider_sync": {
           "at": "{at}",
@@ -1126,6 +1134,29 @@
         "last_successful_sync": {
           "at": "{at}",
           "never": "keine"
+        },
+        "provider_refund_ids": {
+          "ids": "{ids}",
+          "unknown": "nicht bestimmt"
+        },
+        "capture_operations": {
+          "ids": "{ids}",
+          "unknown": "nicht bestimmt"
+        },
+        "order_changed_after_payment": {
+          "yes": "ja",
+          "not_detected": "nicht festgestellt"
+        },
+        "distinct_captures": {
+          "count": "{count}",
+          "several": "mehrere"
+        },
+        "captured_at": {
+          "at": "{at}",
+          "unknown": "unbekannt"
+        },
+        "matching_order": {
+          "not_found": "über die Zahlungs-IDs nicht gefunden"
         }
       },
       "cause": {
@@ -1152,7 +1183,20 @@
         "scheduler_slow_or_stopped": "geplante Aufgaben auf der Seite (WP-Cron, Action Scheduler) laufen nicht oder hängen hinterher",
         "site_overloaded": "die Seite ist überlastet",
         "site_down": "die Seite ist nicht erreichbar",
-        "plugin_disabled": "das Plugin wurde deaktiviert oder entfernt"
+        "plugin_disabled": "das Plugin wurde deaktiviert oder entfernt",
+        "refund_made_at_provider": "die Erstattung wurde direkt im Dashboard des Zahlungssystems gemacht, am Shop vorbei",
+        "store_refund_notification_not_processed": "die Erstattungsbenachrichtigung hat den Shop nicht erreicht oder wurde vom Zahlungsmodul nicht verarbeitet",
+        "refund_larger_than_store": "im Shop ist eine Teilerstattung vermerkt, beim Anbieter wurde der volle Betrag erstattet",
+        "order_edited_after_payment": "die Bestellung wurde nach der Zahlung geändert (Artikel, Versand, Rabatt)",
+        "partial_capture": "nur ein Teil des Betrags wurde eingezogen — der Rest vielleicht nicht",
+        "second_capture_pending": "die Bestellung wird in Teilen bezahlt und der nächste Einzug steht noch aus",
+        "captured_more_than_order": "mehr als der Bestellbetrag wurde eingezogen — z. B. weil der Betrag später sank",
+        "customer_paid_twice": "der Kunde hat die Bestellung zweimal bezahlt (z. B. erneut auf «Bezahlen» gedrückt)",
+        "planned_partial_captures": "Einzüge in Teilen sind vorgesehen — z. B. bei Teillieferungen",
+        "payment_retried_after_error": "nach einem Fehler wurde erneut bezahlt, und der erste Einzug ging auch durch",
+        "order_not_received_yet": "die Bestellung ist noch nicht beim Dienst angekommen — z. B. weil der Shop gerade erst verbunden ist oder hinterherhängt",
+        "order_deleted_or_from_elsewhere": "die Bestellung wurde gelöscht oder die Zahlung kam nicht aus dem Shop (Zahlungslink, Rechnung, anderer Kanal)",
+        "payment_reference_not_in_order": "die Bestellung enthält die ID dieser Zahlung nicht, daher wurde nicht automatisch zugeordnet"
       },
       "step": {
         "restore_provider_access": "Stellen Sie den Zugriff des Dienstes auf {provider} wieder her: ohne ihn lässt sich die Abweichung nicht erneut prüfen.",
@@ -1180,20 +1224,40 @@
         "check_site_reachable": "Öffnen Sie die Seite und prüfen Sie, dass sie läuft und schnell antwortet.",
         "check_key_permissions": "Prüfen Sie die Rechte des Zugriffsschlüssels im Shop.",
         "check_plugin_active": "Prüfen Sie, dass das Business-Watchdog-Plugin installiert und aktiv ist.",
-        "check_scheduler": "Prüfen Sie, dass geplante Aufgaben auf der Seite laufen (WP-Cron oder Action Scheduler)."
+        "check_scheduler": "Prüfen Sie, dass geplante Aufgaben auf der Seite laufen (WP-Cron oder Action Scheduler).",
+        "open_refund_in_provider": "Öffnen Sie die Erstattung {refund} {provider_at} und sehen Sie nach, wann und in welcher Höhe sie erfolgte.",
+        "find_refund_in_provider": "Suchen Sie die Erstattung zu dieser Bestellung {provider_at}.",
+        "check_who_refunded": "Klären Sie, wer erstattet hat und ob es nötig war.",
+        "record_refund_in_store_without_sending": "Vermerken Sie die Erstattung im Shop, ohne erneut Geld zu senden (WooCommerce: «manuelle Erstattung», Shopware: Status «erstattet»).",
+        "compare_amounts_in_provider": "Vergleichen Sie den Bestellbetrag mit dem eingezogenen Betrag {provider_at}.",
+        "check_order_history": "Prüfen Sie die Bestellhistorie: wurden Artikel, Versand oder Rabatt nach der Zahlung geändert.",
+        "settle_difference_without_recharge": "Ist die Differenz echt, klären Sie sie mit dem Kunden — nicht automatisch erneut belasten.",
+        "refund_excess_if_confirmed": "Wurde zu viel eingezogen, erstatten Sie die Differenz einmal {provider_at}.",
+        "open_each_capture": "Öffnen Sie jeden Einzug {provider_at} und vergleichen Sie Beträge und Zeiten.",
+        "check_if_split_payment_expected": "Prüfen Sie, ob Zahlung in Teilen für diese Bestellung vorgesehen ist.",
+        "refund_duplicate_once": "Ist einer der Einzüge zu viel, erstatten Sie ihn einmal {provider_at}.",
+        "find_order_by_amount_and_date": "Suchen Sie die Bestellung im Shop nach Betrag, Zahlungszeit und E-Mail des Kunden.",
+        "link_on_unmatched_page": "Ordnen Sie die Zahlung unter «Abgleich» → «Nicht zugeordnete Zahlungen» von Hand zu."
       },
       "warning": {
         "no_recharge": "Belasten Sie den Kunden nicht erneut allein aufgrund dieses Vorfalls.",
         "no_double_refund": "Senden Sie keine zweite Erstattung automatisch: prüfen Sie zuerst, dass es keine erste gibt.",
         "browser_check_no_payment": "Die Prüfung erstellt keine Bestellung und belastet kein Geld — bestätigen Sie eine Behebung, indem Sie denselben Weg von Hand gehen.",
-        "source_gap_not_sales_stop": "Das heißt nicht, dass der Verkauf stillsteht: solange die Quelle schweigt, sieht der Dienst nur keine neuen Daten."
+        "source_gap_not_sales_stop": "Das heißt nicht, dass der Verkauf stillsteht: solange die Quelle schweigt, sieht der Dienst nur keine neuen Daten.",
+        "refund_already_sent": "Das Geld ist schon zurück — senden Sie die Erstattung nicht erneut aus dem Shop.",
+        "no_auto_refund": "Nicht automatisch erstatten: prüfen Sie zuerst, ob der Einzug wirklich zu viel ist.",
+        "payment_not_lost": "Die Zahlung ist nicht verloren: das Geld ist eingegangen, es fehlt nur die Zuordnung zu einer Bestellung."
       },
       "auto_close": {
         "capture_linked_or_unmarked": "Der Vorfall schließt sich selbst, sobald ein bestätigter Einzug der Bestellung zugeordnet ist oder der Shop die Bezahlt-Markierung entfernt.",
         "store_marks_paid": "Der Vorfall schließt sich selbst, sobald der Shop die Bestellung als bezahlt markiert.",
         "provider_refund_matches": "Der Vorfall schließt sich selbst, sobald die Erstattung beim Anbieter zur Erstattung im Shop passt.",
         "scheduled_checks_pass": "Der Vorfall schließt sich selbst nach zwei erfolgreichen geplanten Prüfungen hintereinander.",
-        "source_fresh_again": "Der Vorfall schließt sich selbst, sobald die Quelle wieder aktualisiert wird."
+        "source_fresh_again": "Der Vorfall schließt sich selbst, sobald die Quelle wieder aktualisiert wird.",
+        "store_records_refund": "Der Vorfall schließt sich selbst, sobald die Erstattung im Shop erscheint.",
+        "amounts_match": "Der Vorfall schließt sich selbst, sobald der eingezogene Betrag zum Bestellbetrag passt.",
+        "captures_match_order": "Der Vorfall schließt sich selbst, sobald der zusätzliche Einzug erstattet ist oder nur einer bleibt.",
+        "payment_linked": "Der Vorfall schließt sich selbst, sobald die Zahlung einer Bestellung zugeordnet ist."
       },
       "technical": {
         "rule_code": "Regel",
@@ -1206,7 +1270,46 @@
         "source": "Quelle",
         "error_code": "Fehlercode",
         "check_run_id": "Prüfung",
-        "integration_id": "Verbindung"
+        "integration_id": "Verbindung",
+        "refund_operation_ids": "Erstattungsvorgänge"
+      },
+      "refund_not_recorded": {
+        "headline": {
+          "with_order": "Für Bestellung {order} wurde {provider_at} erstattet, der Shop zeigt das aber nicht",
+          "no_order": "Es wurde {provider_at} erstattet, der Shop zeigt das aber nicht"
+        },
+        "fact": {
+          "default": "{provider} hat dem Kunden Geld für diese Bestellung zurückgezahlt, im Shop ist die Erstattung aber nicht vermerkt. Das Geld ist schon zurück — nicht erneut erstatten, nur im Shop vermerken."
+        }
+      },
+      "capture_amount": {
+        "headline": {
+          "with_order": "Der eingezogene Betrag für Bestellung {order} passt nicht zum Bestellbetrag",
+          "no_order": "Der eingezogene Betrag passt nicht zum Bestellbetrag"
+        },
+        "fact": {
+          "less": "{provider} hat einen Einzug unter dem Bestellbetrag bestätigt. Vielleicht wurde nur ein Teil eingezogen oder die Bestellung nach der Zahlung geändert. Die Beträge stehen unten in der Tabelle.",
+          "more": "{provider} hat einen Einzug über dem Bestellbetrag bestätigt. Vielleicht wurde die Bestellung nach der Zahlung verkleinert. Die Beträge stehen unten in der Tabelle."
+        }
+      },
+      "multiple_captures": {
+        "headline": {
+          "with_order": "Für Bestellung {order} wurden mehrere erfolgreiche Einzüge gefunden",
+          "no_order": "Für die Bestellung wurden mehrere erfolgreiche Einzüge gefunden"
+        },
+        "fact": {
+          "default": "{provider_at} wurden mehrere getrennte erfolgreiche Einzüge für eine Bestellung gefunden — verschiedene Vorgänge, keine wiederholten Meldungen zu einem. Das ist nicht unbedingt ein Fehler: die Bestellung kann in Teilen bezahlt worden sein."
+        }
+      },
+      "payment_without_order": {
+        "headline": {
+          "with_order": "Eine Zahlung {provider_at} ist keiner Bestellung zugeordnet",
+          "no_order": "Eine Zahlung {provider_at} ist keiner Bestellung zugeordnet"
+        },
+        "fact": {
+          "default": "{provider} hat einen erfolgreichen Einzug bestätigt, im Shop wurde aber keine passende Bestellung gefunden. Das Geld ist eingegangen — die Zahlung ist nicht verloren, es fehlt nur die Zuordnung zu einer Bestellung.",
+          "default_amount": "{provider} hat einen erfolgreichen Einzug über {amount} bestätigt, im Shop wurde aber keine passende Bestellung gefunden. Das Geld ist eingegangen — die Zahlung ist nicht verloren, es fehlt nur die Zuordnung zu einer Bestellung."
+        }
       }
     }
   },

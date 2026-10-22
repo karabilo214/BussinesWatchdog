@@ -1043,7 +1043,13 @@
         "source": "Source",
         "source_reason": "What is wrong with the source",
         "last_signal": "Last signal",
-        "last_successful_sync": "Last successful sync"
+        "last_successful_sync": "Last successful sync",
+        "provider_refund_ids": "Refund operations at the provider",
+        "capture_operations": "Capture operations",
+        "order_changed_after_payment": "Order changed after payment",
+        "distinct_captures": "Separate successful captures",
+        "captured_at": "Captured at",
+        "matching_order": "Order in the store"
       },
       "evidence": {
         "store_order": {
@@ -1077,11 +1083,13 @@
         "store_refund": {
           "amount": "recorded for {amount}",
           "full_no_amount": "order marked fully refunded (the store reports no amount)",
-          "partial_no_amount": "order marked partially refunded (the store reports no amount)"
+          "partial_no_amount": "order marked partially refunded (the store reports no amount)",
+          "none": "not recorded"
         },
         "provider_refund": {
           "amount": "found for {amount}",
-          "none": "not found"
+          "none": "not found",
+          "found_no_amount": "found"
         },
         "last_provider_sync": {
           "at": "{at}",
@@ -1126,6 +1134,29 @@
         "last_successful_sync": {
           "at": "{at}",
           "never": "none"
+        },
+        "provider_refund_ids": {
+          "ids": "{ids}",
+          "unknown": "not determined"
+        },
+        "capture_operations": {
+          "ids": "{ids}",
+          "unknown": "not determined"
+        },
+        "order_changed_after_payment": {
+          "yes": "yes",
+          "not_detected": "not detected"
+        },
+        "distinct_captures": {
+          "count": "{count}",
+          "several": "several"
+        },
+        "captured_at": {
+          "at": "{at}",
+          "unknown": "unknown"
+        },
+        "matching_order": {
+          "not_found": "not found by the payment ids"
         }
       },
       "cause": {
@@ -1152,7 +1183,20 @@
         "scheduler_slow_or_stopped": "scheduled tasks on the site (WP-Cron, Action Scheduler) do not run or lag behind",
         "site_overloaded": "the site is overloaded",
         "site_down": "the site is down",
-        "plugin_disabled": "the plugin was disabled or removed"
+        "plugin_disabled": "the plugin was disabled or removed",
+        "refund_made_at_provider": "the refund was made directly in the payment system's dashboard, bypassing the store",
+        "store_refund_notification_not_processed": "the refund notification did not reach the store or the payment module did not process it",
+        "refund_larger_than_store": "the store records a partial refund, but the provider refunded the whole amount",
+        "order_edited_after_payment": "the order was changed after payment (items, shipping, discount)",
+        "partial_capture": "only part of the amount was captured — the rest may not have been",
+        "second_capture_pending": "the order is paid in parts and the next capture has not happened yet",
+        "captured_more_than_order": "more than the order total was captured — e.g. the order total was reduced later",
+        "customer_paid_twice": "the customer paid the order twice (e.g. pressed «Pay» again)",
+        "planned_partial_captures": "captures in parts are intended — e.g. for split shipments",
+        "payment_retried_after_error": "after an error the payment was made again, and the first capture went through too",
+        "order_not_received_yet": "the order has not reached the service yet — e.g. the store was connected recently or lags behind",
+        "order_deleted_or_from_elsewhere": "the order was deleted or the payment did not come from the store (payment link, invoice, another channel)",
+        "payment_reference_not_in_order": "the order does not carry this payment's id, so no link was made automatically"
       },
       "step": {
         "restore_provider_access": "Restore the service's access to {provider}: without it the discrepancy cannot be re-checked.",
@@ -1180,20 +1224,40 @@
         "check_site_reachable": "Open the site and make sure it works and answers quickly.",
         "check_key_permissions": "Check the access key's permissions in the store.",
         "check_plugin_active": "Check that the Business Watchdog plugin is installed and active.",
-        "check_scheduler": "Check that scheduled tasks run on the site (WP-Cron or Action Scheduler)."
+        "check_scheduler": "Check that scheduled tasks run on the site (WP-Cron or Action Scheduler).",
+        "open_refund_in_provider": "Open the refund {refund} {provider_at} and see when and for how much it was made.",
+        "find_refund_in_provider": "Find the refund for this order {provider_at}.",
+        "check_who_refunded": "Find out who made the refund and whether it was needed.",
+        "record_refund_in_store_without_sending": "Record the refund in the store without sending money again (WooCommerce: «refund manually», Shopware: status «refunded»).",
+        "compare_amounts_in_provider": "Compare the order total with the captured amount {provider_at}.",
+        "check_order_history": "Check the order history: were items, shipping or discount changed after payment.",
+        "settle_difference_without_recharge": "If the difference is real, settle it with the customer — do not charge again automatically.",
+        "refund_excess_if_confirmed": "If too much was captured, refund the difference once {provider_at}.",
+        "open_each_capture": "Open each capture {provider_at} and compare amounts and times.",
+        "check_if_split_payment_expected": "Check whether paying in parts is intended for this order.",
+        "refund_duplicate_once": "If one of the captures is extra, refund it once {provider_at}.",
+        "find_order_by_amount_and_date": "Find the order in the store by amount, payment time and customer email.",
+        "link_on_unmatched_page": "Link the payment to the order by hand in «Reconciliation» → «Unmatched payments»."
       },
       "warning": {
         "no_recharge": "Do not charge the customer again based on this incident alone.",
         "no_double_refund": "Do not send a second refund automatically: first make sure there is no first one.",
         "browser_check_no_payment": "The check creates no order and charges no money — confirm a fix by walking the same path by hand.",
-        "source_gap_not_sales_stop": "This does not mean sales stopped: while the source is silent, the service simply does not see new data."
+        "source_gap_not_sales_stop": "This does not mean sales stopped: while the source is silent, the service simply does not see new data.",
+        "refund_already_sent": "The money is already back — do not send the refund from the store again.",
+        "no_auto_refund": "Do not refund automatically: first make sure the capture really is extra.",
+        "payment_not_lost": "The payment is not lost: the money was received, only the link to an order is missing."
       },
       "auto_close": {
         "capture_linked_or_unmarked": "The incident closes by itself once a confirmed capture is linked to the order or the store removes the paid mark.",
         "store_marks_paid": "The incident closes by itself once the store marks the order paid.",
         "provider_refund_matches": "The incident closes by itself once the provider's refund matches the store's refund.",
         "scheduled_checks_pass": "The incident closes by itself after two successful scheduled checks in a row.",
-        "source_fresh_again": "The incident closes by itself once the source updates again."
+        "source_fresh_again": "The incident closes by itself once the source updates again.",
+        "store_records_refund": "The incident closes by itself once the refund appears in the store.",
+        "amounts_match": "The incident closes by itself once the captured amount matches the order total.",
+        "captures_match_order": "The incident closes by itself once the extra capture is refunded or one capture remains.",
+        "payment_linked": "The incident closes by itself once the payment is linked to an order."
       },
       "technical": {
         "rule_code": "Rule",
@@ -1206,7 +1270,46 @@
         "source": "Source",
         "error_code": "Error code",
         "check_run_id": "Check",
-        "integration_id": "Connection"
+        "integration_id": "Connection",
+        "refund_operation_ids": "Refund operations"
+      },
+      "refund_not_recorded": {
+        "headline": {
+          "with_order": "A refund for order {order} was made {provider_at}, but the store does not show it",
+          "no_order": "A refund was made {provider_at}, but the store does not show it"
+        },
+        "fact": {
+          "default": "{provider} returned money to the customer for this order, but the store has not recorded the refund. The money is already back — do not refund again, only record it in the store."
+        }
+      },
+      "capture_amount": {
+        "headline": {
+          "with_order": "The captured amount for order {order} does not match the order total",
+          "no_order": "The captured amount does not match the order total"
+        },
+        "fact": {
+          "less": "{provider} confirmed a capture smaller than the order total. Perhaps only part was captured or the order changed after payment. The amounts are in the table below.",
+          "more": "{provider} confirmed a capture larger than the order total. Perhaps the order was reduced after payment. The amounts are in the table below."
+        }
+      },
+      "multiple_captures": {
+        "headline": {
+          "with_order": "Several successful captures were found for order {order}",
+          "no_order": "Several successful captures were found for the order"
+        },
+        "fact": {
+          "default": "Several separate successful capture operations were found {provider_at} for one order — different operations, not repeated messages about one. This is not necessarily an error: the order may have been paid in parts."
+        }
+      },
+      "payment_without_order": {
+        "headline": {
+          "with_order": "A payment {provider_at} is not linked to any order",
+          "no_order": "A payment {provider_at} is not linked to any order"
+        },
+        "fact": {
+          "default": "{provider} confirmed a successful capture, but no matching order was found in the store. The money was received — the payment is not lost, only the link to an order is missing.",
+          "default_amount": "{provider} confirmed a successful capture of {amount}, but no matching order was found in the store. The money was received — the payment is not lost, only the link to an order is missing."
+        }
       }
     }
   },

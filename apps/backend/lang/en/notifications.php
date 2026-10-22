@@ -72,6 +72,10 @@ return [
         'default' => 'at the payment provider',
     ],
     'first_step' => [
+        'open_refund_in_provider' => 'Start here: open the refund :refund :provider_at and record it in the store without sending money again.',
+        'find_refund_in_provider' => 'Start here: find the refund for the order :provider_at and record it in the store without sending money again.',
+        'compare_amounts_in_provider' => 'Start here: compare the order total with the captured amount :provider_at and check the order history. Do not charge the customer again.',
+        'open_each_capture' => 'Start here: open each capture :provider_at and check whether one of them is extra. Do not refund automatically.',
         'restore_provider_access' => 'Start here: restore the service\'s access to the payment provider — the discrepancy cannot be re-checked right now.',
         'open_payment_by_reference' => 'Start here: open the payment :provider_at by its id :reference and check that the money was actually captured, not only authorized. Do not charge the customer again.',
         'check_payment_module_data' => 'Start here: the order has no payment id — check the payment module data in the order. Do not charge the customer again.',

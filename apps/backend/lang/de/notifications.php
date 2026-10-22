@@ -72,6 +72,10 @@ return [
         'default' => 'beim Zahlungsanbieter',
     ],
     'first_step' => [
+        'open_refund_in_provider' => 'Zuerst: öffnen Sie die Erstattung :refund :provider_at und vermerken Sie sie im Shop, ohne erneut Geld zu senden.',
+        'find_refund_in_provider' => 'Zuerst: suchen Sie die Erstattung zur Bestellung :provider_at und vermerken Sie sie im Shop, ohne erneut Geld zu senden.',
+        'compare_amounts_in_provider' => 'Zuerst: vergleichen Sie Bestellbetrag und eingezogenen Betrag :provider_at und prüfen Sie die Bestellhistorie. Den Kunden nicht erneut belasten.',
+        'open_each_capture' => 'Zuerst: öffnen Sie jeden Einzug :provider_at und prüfen Sie, ob einer zu viel ist. Nicht automatisch erstatten.',
         'restore_provider_access' => 'Zuerst: stellen Sie den Zugriff des Dienstes auf den Zahlungsanbieter wieder her — die Abweichung lässt sich gerade nicht erneut prüfen.',
         'open_payment_by_reference' => 'Zuerst: öffnen Sie die Zahlung :provider_at über die ID :reference und prüfen Sie, dass das Geld tatsächlich eingezogen und nicht nur autorisiert wurde. Den Kunden nicht erneut belasten.',
         'check_payment_module_data' => 'Zuerst: die Bestellung hat keine Zahlungs-ID — prüfen Sie die Daten des Zahlungsmoduls in der Bestellung. Den Kunden nicht erneut belasten.',

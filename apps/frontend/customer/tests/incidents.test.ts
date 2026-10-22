@@ -225,6 +225,24 @@ describe('IncidentExplanation', () => {
     expect(wrapper.find('[data-observation]').exists()).toBe(false);
   });
 
+  it('says that money already went back or arrived for a refund only at Stripe and a payment without an order', () => {
+    const refund = mount(IncidentExplanation, {
+      props: { explanation: explanation({ scenario: 'refund_not_recorded', variant: 'with_reference', params: { order: '#1042', provider: 'stripe', refund: 're_1' }, causes: ['refund_made_at_provider'], steps: ['open_refund_in_provider'], warning: 'refund_already_sent', auto_close: 'store_records_refund' }) },
+      global,
+    });
+    expect(refund.get('[data-headline]').text()).toBe('По заказу #1042 сделан возврат в Stripe, но в магазине он не отражён');
+    expect(refund.get('[data-step="open_refund_in_provider"]').text()).toContain('re_1');
+    expect(refund.get('[data-warning]').text()).toContain('не отправляйте возврат из магазина ещё раз');
+
+    const orphan = mount(IncidentExplanation, {
+      props: { explanation: explanation({ scenario: 'payment_without_order', variant: 'with_reference', params: { provider: 'stripe', capture: 'ch_9', amount: { minor: '4200', currency: 'EUR', exponent: 2 } }, causes: ['order_not_received_yet'], steps: ['open_capture_in_provider'], warning: 'payment_not_lost', auto_close: 'payment_linked' }) },
+      global,
+    });
+    expect(orphan.get('[data-headline]').text()).toBe('Платёж в Stripe не связан ни с одним заказом');
+    expect(orphan.get('[data-fact]').text()).toContain(formatMinor('4200', 'EUR', 2, 'ru'));
+    expect(orphan.get('[data-fact]').text()).toContain('платёж не потерян');
+  });
+
   it('every cause, step, warning and closing condition the backend can return has a text in all languages', () => {
     const source = readFileSync(resolve(__dirname, '../../../backend/app/Support/Incidents/IncidentExplainer.php'), 'utf8');
     const block = source.slice(source.indexOf('TEXT_CODES = ['), source.indexOf('];', source.indexOf('TEXT_CODES = [')));
