@@ -463,10 +463,10 @@ Verification: `PaddleBillingTest::test_a_checkout_refused_by_paddle_fails_and_lo
 
 ### Step 234: Monthly Totals Beside Payments
 
-Status: implemented locally; not deployed (ADR 0043, 0044; OWNER-PANEL §3–4)
+Status: deployed 2026-10-22 as `544e5d8` (ADR 0043, 0044; OWNER-PANEL §3–4)
 
 - The owner panel `/owner/payments` now places a monthly totals block beside «This month», separately per currency and Paddle mode. It shows collected cash after confirmed refunds (`payments − refunds`) and the amount after recorded tax, Paddle fees and refunds (`payments − tax − fees − refunds + refunded tax`). Negative months are allowed. These are not accounting profit: operating costs and possible fee adjustments on refunds are not recorded.
 - `PaymentLedger::month` includes currencies with refunds this month even if the payments occurred in an earlier month, returns refunded tax and marks incomplete tax/fee data unknown. The UI calculates with `BigInt`; no float or cross-currency sum. Labels and explanation are available in ru/en/de. The existing Paddle earnings line is labelled as after the Paddle fee so it is not confused with the new after-tax amount.
 - `contracts/openapi.yaml` documents the extended monthly response. No migration.
 
-Verification: `BillingTransactionsTest`, `RefundTest`, `OpenApiRoutesTest` on SQLite — 13/13; billing tests on PostgreSQL 18 — 12/12; control `payments.test.ts` — 4/4, including amounts above 2^53; control typecheck and production build; PHP Pint on changed files; `spec/validate_spec.py` static checks — passed. Manual browser and live Paddle checks were not run for this change.
+Verification: `BillingTransactionsTest`, `RefundTest`, `OpenApiRoutesTest` on SQLite — 13/13; billing tests on PostgreSQL 18 — 12/12; control `payments.test.ts` — 4/4, including amounts above 2^53; control typecheck and production build; PHP Pint on changed files; `spec/validate_spec.py` static checks — passed. Production deploy succeeded: remote HEAD `544e5d8`, containers running with that image tag, `/owner/payments` returns HTTP 200. Manual authenticated browser and live Paddle checks were not run for this change.
