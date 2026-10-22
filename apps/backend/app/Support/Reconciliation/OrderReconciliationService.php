@@ -102,7 +102,7 @@ class OrderReconciliationService
                     'reason_code' => ProviderCoverage::REASON_NOT_CONNECTED,
                     'evidence' => ['financial_support' => $lockedOrder->financial_support],
                 ], $now);
-            } elseif (($lockedOrder->metadata['mode_reported'] ?? true) === false && $this->coverage->onlyTestMode($lockedOrder->tenant_id, $lockedOrder->store_id, $lockedOrder->gateway)) {
+            } elseif (($lockedOrder->metadata['mode_reported'] ?? true) === false && $this->coverage->onlyTestMode($lockedOrder->tenant_id, $lockedOrder->store_id, $lockedOrder->gateway) && ! $this->exactlyLinked($lockedOrder)) {
                 $findings[] = $this->findingAttributes($run, $lockedOrder, ReconciliationFinding::RULE_UNSUPPORTED, [
                     'status' => ReconciliationFinding::STATUS_UNKNOWN,
                     'reason_code' => ProviderCoverage::REASON_MODE_NEEDS_PLUGIN,
@@ -276,6 +276,39 @@ class OrderReconciliationService
             ->where('store_id', $order->store_id)
             ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
             ->where('external_operation_id', $reference)
+            ->exists();
+    }
+
+    /**
+     * An order without a reported mode is checked against a test-mode provider only once an exact id ties it to a
+     * payment there (ADR 0025): the payment's id says which mode the order was paid in.
+     */
+    private function exactlyLinked(Order $order): bool
+    {
+        if (PaymentAllocation::query()->where('order_id', $order->id)->whereNull('revoked_at')->exists()) {
+            return true;
+        }
+
+        $reference = (string) ($order->transaction_ref ?? '');
+        $storeTransaction = $order->metadata['store_transaction_ref'] ?? null;
+
+        if ($reference === '' && ! is_string($storeTransaction)) {
+            return false;
+        }
+
+        return Payment::query()
+            ->where('tenant_id', $order->tenant_id)
+            ->where('store_id', $order->store_id)
+            ->where('source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
+            ->where(function ($query) use ($reference, $storeTransaction): void {
+                if ($reference !== '') {
+                    $query->orWhere('intent_ref', $reference)->orWhere('charge_ref', $reference);
+                }
+
+                if (is_string($storeTransaction)) {
+                    $query->orWhere('metadata->provider_store_transaction_ref', $storeTransaction);
+                }
+            })
             ->exists();
     }
 
@@ -770,7 +803,9 @@ class OrderReconciliationService
     /**
      * Stores that keep a refund only as the payment state (ADR 0026): `full` must match the provider refunding the
      * whole captured amount, `partial` has no store amount (the provider's refunded amount is shown and the result is
-     * unknown unless the provider refunded nothing or everything), `none` with provider refunds is an extra refund.
+     * unknown unless the provider refunded nothing or everything), `none` with provider refunds is an extra refund —
+     * or only information when the store's payment app never writes provider refunds (`provider_refunds_synced`,
+     * Stripe Payment for Shopware, ADR 0025); a store refund the provider does not have stays a discrepancy.
      *
      * @return list<array<string, mixed>>
      */
@@ -796,6 +831,7 @@ class OrderReconciliationService
         $evidence = ['refund_state' => $refundState, 'captured_minor' => (string) $captured, 'provider_refunded_minor' => (string) $refunded];
 
         [$rule, $status, $reason, $expected, $grace] = match (true) {
+            $refundState === 'none' && ($order->metadata['provider_refunds_synced'] ?? true) === false => [ReconciliationFinding::RULE_REFUND_EXTRA, ReconciliationFinding::STATUS_UNSUPPORTED, 'refund_not_synced_by_payment_app', 0, null],
             $refundState === 'none' => [ReconciliationFinding::RULE_REFUND_EXTRA, ReconciliationFinding::STATUS_MISMATCH, 'refund_extra_store_state_none', 0, $extraGrace],
             $refundState === 'full' && $refunded === $captured => [ReconciliationFinding::RULE_REFUND_MISSING, ReconciliationFinding::STATUS_OK, 'refund_reconciled_ok', $captured, null],
             $refundState === 'full' && $refunded < $captured => [ReconciliationFinding::RULE_REFUND_MISSING, ReconciliationFinding::STATUS_MISMATCH, 'refund_missing_store_state_full', $captured, $missingGrace],

@@ -69,6 +69,7 @@ function operations(finding: Finding): string | null {
           <td class="py-2 pr-4">
             <span class="block">{{ $te(`reconciliation.rule.${finding.rule_code}`) ? $t(`reconciliation.rule.${finding.rule_code}`) : finding.rule_code }}</span>
             <span class="block text-[13px] text-text-muted">{{ dateTime(finding.evaluated_at) }}</span>
+            <span v-if="finding.reason_code && $te(`reconciliation.reason_note.${finding.reason_code}`)" class="block text-[13px] text-text-muted" data-reason-note>{{ $t(`reconciliation.reason_note.${finding.reason_code}`) }}</span>
             <span v-if="operations(finding)" class="block font-mono text-[13px] text-text-muted" data-provider-operations>{{ operations(finding) }}</span>
           </td>
           <td v-if="showStatus" class="py-2 pr-4">

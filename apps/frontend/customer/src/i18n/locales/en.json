@@ -447,7 +447,7 @@
       "app_version_note": "Because of its own bug, Shopware 6.6.10.25–6.6.10.29 cannot install apps that connect to a server — on those versions choose \"Integration key\". The app works on 6.7 and on 6.6 up to 6.6.10.24.",
       "app_test_download_note": "Local environment: you can download the current app version {version} at any time to try it on your Shopware shop.",
       "app_test_download": "Download app {version}",
-      "stripe_note": "Money checks for Shopware currently cover PayPal (SwagPayPal). Orders paid through Stripe or other providers are shown as \"payment method not supported\" — no false discrepancies.",
+      "stripe_note": "Money checks for Shopware cover PayPal (SwagPayPal) and Stripe (the \"Stripe Payment\" plugin). Orders paid through other Stripe apps or other providers are shown as \"payment method not supported\" — no false discrepancies. The Stripe plugin does not carry refunds into Shopware: a refund made in Stripe is shown as information.",
       "app_step_cache": "Clear the Shopware cache (Settings → System → Caches & indexes → Clear cache) so that checkout observation starts on the checkout page.",
       "app_script_note": "The app also adds a small observation script to the order confirmation and «Thank you» pages. It only counts checkout stages (page shown, order sent, order placed), uses no cookies and reads no shopper data. The shopper's browser sends the counts only to your shop; Business Watchdog collects them from there. It works when the browser check signs in as a test customer or a guest.",
       "app_version": "App version",
@@ -976,6 +976,9 @@
       "MONEY_CANCELLED_PAID": "Cancelled paid order",
       "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Failed payment, open order",
       "MONEY_UNSUPPORTED": "Reconciliation possible"
+    },
+    "reason_note": {
+      "refund_not_synced_by_payment_app": "The refund was made at the provider, but your payment plugin does not carry refunds into the store, so the order still shows as paid there. This is not a discrepancy: mark the refund in the store by hand if you need to."
     }
   },
   "order": {

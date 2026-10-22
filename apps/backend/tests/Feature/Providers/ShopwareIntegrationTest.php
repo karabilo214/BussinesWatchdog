@@ -2,16 +2,20 @@
 
 namespace Tests\Feature\Providers;
 
+use App\Http\Dto\Orders\OrderDto;
 use App\Models\EventInbox;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
 use App\Models\Membership;
 use App\Models\Order;
+use App\Models\Payment;
+use App\Models\PaymentAllocation;
 use App\Models\ReconciliationFinding;
 use App\Models\Store;
 use App\Models\StoreVerification;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Integrations\ProviderCoverage;
 use App\Support\Network\DnsClient;
 use App\Support\Outbox\DomainOutboxDispatcher;
 use App\Support\Providers\PayPal\PayPalOrderMapper;
@@ -19,6 +23,7 @@ use App\Support\Providers\ProviderEventEmitter;
 use App\Support\Providers\Shopware\ShopwareClient;
 use App\Support\Providers\Shopware\ShopwareOrderMapper;
 use App\Support\Providers\Shopware\ShopwareSync;
+use App\Support\Providers\Stripe\StripeEventMapper;
 use App\Support\Reconciliation\OrderReconciliationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
@@ -228,6 +233,72 @@ class ShopwareIntegrationTest extends TestCase
 
         $partial = ReconciliationFinding::query()->where('reason_code', 'refund_amount_not_reported')->sole();
         $this->assertEquals(['refund_state' => 'partial', 'captured_minor' => '4000', 'provider_refunded_minor' => '1500', 'capture_operation_ids' => ['CAPTURE000000003X']], $partial->evidence, 'the provider refunded amount is shown for a partial refund');
+    }
+
+    public function test_stripe_payment_plugin_orders_link_both_ways_take_the_payment_mode_and_refunds_only_at_stripe_are_information(): void
+    {
+        $integration = $this->connected();
+        $stripe = Integration::query()->create([
+            'tenant_id' => $this->tenant->id, 'store_id' => $this->store->id, 'provider' => 'stripe', 'mode' => 'test',
+            'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER, 'status' => Integration::STATUS_ACTIVE, 'capabilities' => [], 'connector_version' => 'stripe-adapter-1', 'health' => [],
+        ]);
+        $card = 'stripe_shopware_payment_payment_handler_card';
+        $context = fn (string $intent): array => ['stripe_payment_context' => ['payment' => ['payment_intent_id' => $intent, 'charge_id' => 'ch_'.substr($intent, 3)]]];
+        $this->swOrder('card', '10006', 40.0, 'EUR', 'open', [$this->transaction('t_card', 'paid', $card, $context('pi_card0000000001'), '-3 hours')], '-3 hours');
+        $this->swOrder('declined', '10009', 40.0, 'EUR', 'open', [$this->transaction('t_declined', 'failed', $card, [], '-3 hours')], '-3 hours');
+        $this->swOrder('stripe_refund', '10011', 40.0, 'EUR', 'open', [$this->transaction('t_stripe_refund', 'paid', $card, $context('pi_refund00000001'), '-3 hours')], '-3 hours');
+        $this->swOrder('shop_refund', '10012', 40.0, 'EUR', 'open', [$this->transaction('t_shop_refund', 'refunded', $card, $context('pi_shoprefund0001'), '-3 hours')], '-3 hours');
+        $this->swOrder('metadata_only', '10013', 40.0, 'EUR', 'open', [$this->transaction('t_metadata_only', 'paid', 'stripe_shopware_payment_payment_handler_sepa', [], '-3 hours')], '-3 hours');
+        $this->swOrder('other_app', '10014', 40.0, 'EUR', 'open', [$this->transaction('t_other_app', 'paid', 'stripe_card', ['stripe_payment_intent' => 'pi_other0000000001'], '-3 hours')], '-3 hours');
+
+        $created = now()->subHours(3)->getTimestamp();
+        $payments = ['pi_card0000000001' => 't_card', 'pi_refund00000001' => 't_stripe_refund', 'pi_shoprefund0001' => 't_shop_refund', 'pi_metadata000001' => 't_metadata_only'];
+
+        foreach ($payments as $intent => $transaction) {
+            $metadata = ['platform_name' => 'UMXJ4nBknsWR3LN_shopware_v50', 'shopware_order_transaction_id' => $this->id($transaction)];
+            $charge = 'ch_'.substr($intent, 3);
+            $objects = [
+                ['id' => $intent, 'object' => 'payment_intent', 'status' => 'succeeded', 'amount' => 4000, 'currency' => 'eur', 'livemode' => false, 'latest_charge' => $charge, 'created' => $created, 'metadata' => $metadata, 'description' => 'buyer@example.test / Customer 1 / Order 1'],
+                ['id' => $charge, 'object' => 'charge', 'status' => 'succeeded', 'captured' => true, 'amount' => 4000, 'amount_captured' => 4000, 'currency' => 'eur', 'livemode' => false, 'payment_intent' => $intent, 'created' => $created, 'metadata' => $metadata],
+            ];
+
+            foreach ($objects as $object) {
+                app(ProviderEventEmitter::class)->emit($stripe, app(StripeEventMapper::class)->map($stripe, $object)['drafts']);
+            }
+        }
+
+        $declined = ['id' => 'pi_declined000001', 'object' => 'payment_intent', 'status' => 'requires_payment_method', 'last_payment_error' => ['code' => 'card_declined'], 'amount' => 4000, 'currency' => 'eur', 'livemode' => false, 'created' => $created, 'metadata' => ['shopware_order_transaction_id' => $this->id('t_declined')]];
+        app(ProviderEventEmitter::class)->emit($stripe, app(StripeEventMapper::class)->map($stripe, $declined)['drafts']);
+        $refund = ['id' => 're_refund00000001', 'object' => 'refund', 'status' => 'succeeded', 'amount' => 500, 'currency' => 'eur', 'livemode' => false, 'payment_intent' => 'pi_refund00000001', 'charge' => 'ch_refund00000001', 'created' => now()->subHours(2)->getTimestamp()];
+        app(ProviderEventEmitter::class)->emit($stripe, app(StripeEventMapper::class)->map($stripe, $refund)['drafts']);
+
+        app(ShopwareSync::class)->run($integration);
+        $this->drain();
+
+        $order = fn (string $name): Order => Order::query()->where('external_id', $this->id($name))->firstOrFail();
+        $this->assertSame(['pi_card0000000001', 'supported', false, false], [$order('card')->transaction_ref, $order('card')->financial_support, $order('card')->metadata['mode_reported'], $order('card')->metadata['provider_refunds_synced']], 'the plugin\'s PaymentIntent id is the reference; Shopware reports no mode and no refunds');
+        $this->assertSame(['unsupported', null], [$order('other_app')->financial_support, $order('other_app')->transaction_ref], 'another Stripe app for Shopware leaves no known reference');
+        $this->assertSame($this->id('t_card'), Payment::query()->where('intent_ref', 'pi_card0000000001')->sole()->metadata['provider_store_transaction_ref']);
+        $this->assertStringNotContainsString('@', json_encode(EventInbox::query()->pluck('payload'), JSON_THROW_ON_ERROR), 'the PaymentIntent description with the customer email is never read');
+
+        $strategy = fn (string $name): ?string => PaymentAllocation::query()->where('order_id', $order($name)->id)->whereNull('revoked_at')->value('strategy');
+        $this->assertSame(PaymentAllocation::STRATEGY_EXACT_REFERENCE, $strategy('card'), 'linked by the PaymentIntent id in a test-mode account although the order had no mode');
+        $this->assertSame(PaymentAllocation::STRATEGY_VERIFIED_METADATA, $strategy('metadata_only'), 'linked by the Shopware transaction id the plugin gave Stripe');
+        $this->assertSame(['test', true], [app(OrderDto::class)->toArray($order('card'))['mode'], app(OrderDto::class)->toArray($order('card'))['mode_reported']], 'the cabinet shows the linked payment\'s mode');
+        $this->assertSame(['live', false], [app(OrderDto::class)->toArray($order('declined'))['mode'], app(OrderDto::class)->toArray($order('declined'))['mode_reported']], 'an unlinked order keeps an unknown mode');
+
+        foreach (['card', 'declined', 'stripe_refund', 'shop_refund', 'metadata_only', 'other_app'] as $name) {
+            app(OrderReconciliationService::class)->evaluate($order($name));
+        }
+
+        $findings = fn (string $name): array => ReconciliationFinding::query()->where('order_id', $order($name)->id)->get()->map(fn (ReconciliationFinding $finding): string => $finding->rule_code.':'.$finding->status.':'.$finding->reason_code)->sort()->values()->all();
+        $this->assertNotContains('MONEY_UNSUPPORTED:unknown:'.ProviderCoverage::REASON_MODE_NEEDS_PLUGIN, $findings('card'));
+        $this->assertSame([], array_values(array_filter($findings('card'), fn (string $finding): bool => ! str_contains($finding, ':ok:'))), 'a paid card order is all ok');
+        $this->assertSame([], array_values(array_filter($findings('metadata_only'), fn (string $finding): bool => ! str_contains($finding, ':ok:'))));
+        $this->assertContains('MONEY_REFUND_EXTRA:unsupported:refund_not_synced_by_payment_app', $findings('stripe_refund'), 'a refund only at Stripe is information: the plugin never syncs refunds');
+        $this->assertContains('MONEY_REFUND_MISSING:mismatch:refund_missing_store_state_full', $findings('shop_refund'), 'refunded in Shopware without a Stripe refund: the money was not returned');
+        $this->assertSame(['MONEY_UNSUPPORTED:unsupported:gateway_unsupported'], $findings('other_app'));
+        $this->assertSame([], array_values(array_filter($findings('declined'), fn (string $finding): bool => str_contains($finding, ':mismatch:'))), 'a declined card is not a discrepancy');
     }
 
     public function test_float_amounts_are_converted_only_when_exact(): void

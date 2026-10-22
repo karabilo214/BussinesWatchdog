@@ -194,6 +194,10 @@
           ],
           "maxLength": 255,
           "description": "The store's own id of the order's payment transaction (Shopware order_transaction id); matches the marker a payment app gives the provider (ADR 0073)."
+        },
+        "provider_refunds_synced": {
+          "type": "boolean",
+          "description": "false when the store's payment app never writes provider refunds into the store (Stripe Payment for Shopware, ADR 0025): a provider refund the store does not show is then information, not a discrepancy. Omitted otherwise."
         }
       }
     },

@@ -132,6 +132,7 @@ class OrderSnapshotProjector
                 'refund_state' => in_array($data['refund_state'] ?? null, ['none', 'partial', 'full'], true) ? $data['refund_state'] : null,
                 'payment_state' => in_array($data['payment_state'] ?? null, Order::PAYMENT_STATES, true) ? $data['payment_state'] : null,
                 'store_transaction_ref' => ProjectionValueNormalizer::nullableString($data['store_transaction_ref'] ?? null),
+                'provider_refunds_synced' => ($data['provider_refunds_synced'] ?? null) === false ? false : null,
             ], fn (mixed $value): bool => $value !== null),
             'updated_at' => $now,
             'created_at' => $now,

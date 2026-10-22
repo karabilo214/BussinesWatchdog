@@ -137,7 +137,7 @@ class ExactReferenceMatcher
         $orders = Order::query()
             ->where('tenant_id', $capture->tenant_id)
             ->where('store_id', $capture->store_id)
-            ->where('mode', $payment->mode)
+            ->where(fn ($query) => $this->sameModeOrUnreported($query, $payment->mode))
             ->where('currency', $capture->currency)
             ->whereIn('transaction_ref', $references)
             ->limit(2)
@@ -226,7 +226,7 @@ class ExactReferenceMatcher
             ->where('tenant_id', $capture->tenant_id)
             ->where('store_id', $capture->store_id)
             ->where('metadata->store_transaction_ref', $storeTransactionRef)
-            ->where('mode', $payment->mode)
+            ->where(fn ($query) => $this->sameModeOrUnreported($query, $payment->mode))
             ->where('currency', $capture->currency)
             ->limit(2)
             ->get();
@@ -384,6 +384,16 @@ class ExactReferenceMatcher
                 ['matcher' => self::UNIQUE_AMOUNT_MATCHER_VERSION, 'amount_minor' => (string) $storeRefund->amount_minor, 'currency' => $storeRefund->currency],
             ));
         }
+    }
+
+    /**
+     * An exact provider id or the store's own transaction id cannot belong to the other mode, so an order whose store did
+     * not report test/live (Stripe Payment for Shopware, a store connected without the plugin) takes the payment's mode.
+     * The weaker order-id metadata link keeps requiring the same mode.
+     */
+    private function sameModeOrUnreported($query, string $mode): void
+    {
+        $query->where('mode', $mode)->orWhere('metadata->mode_reported', false);
     }
 
     /** A rejected link (amount already allocated, scope or currency mismatch) is left for a person to review. */

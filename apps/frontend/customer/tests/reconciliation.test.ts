@@ -118,6 +118,16 @@ describe('FindingsTable', () => {
 });
 
 describe('rule names', () => {
+  it('explains a refund the payment plugin never carries into the store as information', () => {
+    const wrapper = mount(FindingsTable, {
+      props: { findings: [finding({ rule_code: 'MONEY_REFUND_EXTRA', status: 'unsupported', reason_code: 'refund_not_synced_by_payment_app', expected_minor: '0', actual_minor: '500', difference_minor: null })] },
+      global,
+    });
+
+    expect(wrapper.get('[data-reason-note]').text()).toContain('не переносит возвраты');
+    expect(mount(FindingsTable, { props: { findings: [finding()] }, global }).find('[data-reason-note]').exists()).toBe(false);
+  });
+
   it('every reconciliation rule has a neutral check name in all languages', async () => {
     const { RULE_CODES } = await import('@/components/reconciliation/tones');
     const locales = await Promise.all(['ru', 'en', 'de'].map((lang) => import(`@/i18n/locales/${lang}.json`)));

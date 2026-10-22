@@ -140,13 +140,15 @@ class StripeEventMapper
                 'provider_order_ref' => $this->orderRef($object),
                 'provider_site_origin' => $this->siteOrigin($object),
                 'provider_order_key_hash' => $this->orderKeyHash($object),
+                'provider_store_transaction_ref' => $this->storeTransactionRef($object),
             ],
         ];
     }
 
     /**
-     * Only the store's order id, site origin and a hash of the order key are taken from metadata (written by the
-     * WooCommerce Stripe Gateway); customer email and name in the same metadata are never read (ADR 0020).
+     * Only the store's order id, site origin and a hash of the order key (WooCommerce Stripe Gateway) and the Shopware
+     * order transaction id (Stripe Payment for Shopware, ADR 0025) are taken from metadata; customer email and name in
+     * the same metadata or the description are never read (ADR 0020).
      *
      * @param  array<string, mixed>  $object
      */
@@ -155,6 +157,16 @@ class StripeEventMapper
         $value = $object['metadata']['order_id'] ?? null;
 
         return is_string($value) && preg_match('/^[A-Za-z0-9_-]{1,255}$/', $value) === 1 ? $value : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $object
+     */
+    private function storeTransactionRef(array $object): ?string
+    {
+        $value = $object['metadata']['shopware_order_transaction_id'] ?? null;
+
+        return is_string($value) && preg_match('/^[0-9a-f]{32}$/', $value) === 1 ? $value : null;
     }
 
     /**

@@ -447,7 +447,7 @@
       "app_version_note": "Wegen eines eigenen Fehlers kann Shopware 6.6.10.25–6.6.10.29 keine Apps mit Serveranbindung installieren — wählen Sie dort „Integrationsschlüssel“. Unter 6.7 und 6.6 bis 6.6.10.24 funktioniert die App.",
       "app_test_download_note": "Lokale Umgebung: Sie können die aktuelle App-Version {version} jederzeit herunterladen, um sie in Ihrem Shopware-Shop zu testen.",
       "app_test_download": "App {version} herunterladen",
-      "stripe_note": "Der Zahlungsabgleich für Shopware deckt derzeit PayPal (SwagPayPal) ab. Über Stripe oder andere Anbieter bezahlte Bestellungen erscheinen als „Zahlungsart nicht unterstützt“ — ohne falsche Abweichungen.",
+      "stripe_note": "Der Zahlungsabgleich für Shopware deckt PayPal (SwagPayPal) und Stripe (Plugin „Stripe Payment“) ab. Bestellungen über andere Stripe-Apps oder andere Anbieter erscheinen als „Zahlungsart nicht unterstützt“ — ohne falsche Abweichungen. Das Stripe-Plugin überträgt keine Erstattungen nach Shopware: Eine in Stripe ausgeführte Erstattung wird als Hinweis angezeigt.",
       "app_step_cache": "Leeren Sie den Shopware-Cache (Einstellungen → System → Caches & Indizes → Cache leeren), damit die Beobachtung auf der Checkout-Seite startet.",
       "app_script_note": "Die App fügt außerdem den Seiten Bestellbestätigung und «Vielen Dank» ein kleines Beobachtungsskript hinzu. Es zählt nur die Schritte des Checkouts (Seite angezeigt, Bestellung abgeschickt, Bestellung abgeschlossen), verwendet keine Cookies und liest keine Kundendaten. Der Browser der Kunden sendet die Zählwerte nur an Ihren Shop; Business Watchdog holt sie dort ab. Es arbeitet, wenn die Browserprüfung sich als Testkunde oder Gast anmeldet.",
       "app_version": "App-Version",
@@ -976,6 +976,9 @@
       "MONEY_CANCELLED_PAID": "Stornierte bezahlte Bestellung",
       "MONEY_PAYMENT_FAILED_ORDER_OPEN": "Fehlgeschlagene Zahlung, offene Bestellung",
       "MONEY_UNSUPPORTED": "Abgleich möglich"
+    },
+    "reason_note": {
+      "refund_not_synced_by_payment_app": "Die Erstattung wurde beim Anbieter ausgeführt, aber Ihr Zahlungs-Plugin überträgt Erstattungen nicht in den Shop, daher bleibt die Bestellung dort bezahlt. Das ist keine Abweichung: Markieren Sie die Erstattung bei Bedarf manuell im Shop."
     }
   },
   "order": {

@@ -102,9 +102,17 @@ Shopware-Test 6.7.15.1 + StripeShopwarePayment 1.17.4, the owner's Stripe test a
 - Partial refund 50 € at Stripe on 10006: Shopware stays `paid`; `charge.refunded` is not sent to the shop (the endpoint does not subscribe to it). Confirms the refund decision.
 - Our production service today: the five orders are `financial_support = supported`, `mode = live`, no `transaction_ref`; findings `MONEY_UNSUPPORTED` / `unknown` / `provider_not_connected` because Shopware-Test has no Stripe integration. Connecting Stripe now would lead to the false `payment_not_matched` described in part 4.
 
+Implementation (Step 227):
+
+- Shopware mapper: for `stripe_shopware_payment_payment_handler_*` transactions `transaction_ref` = `stripe_payment_context.payment.payment_intent_id` (`pi_…` only) and `provider_refunds_synced = false` (new optional `order.snapshot` field, `contracts/event.schema.json`); other `stripe_*` technical names in Shopware are `unsupported`.
+- Stripe mapper: `provider_store_transaction_ref` from `metadata.shopware_order_transaction_id` (32 hex); the description and every other metadata key stay unread.
+- Mode: the exact-reference and store-transaction matchers accept an order with `mode_reported = false` for a payment of either mode (exact ids cannot belong to the other mode; the order-id metadata link still needs the same mode); the "mode needs plugin" gate is skipped once the order is exactly linked; the order card shows the linked payment's mode.
+- Refunds: with `provider_refunds_synced = false`, store state `none` and provider refunds → `MONEY_REFUND_EXTRA` / `unsupported` / `refund_not_synced_by_payment_app` (no incident; the cabinet explains it). Store `refunded` without a provider refund stays `refund_missing_store_state_full` (mismatch).
+- After deploy once: `shopware:sync --audit` and `stripe:sync --audit` (`docs/ops/maintenance.md`).
+
 ## Open
 
-- Stripe plugin data for Shopware: read (part 4); connector and owner decisions open.
+- Stripe in Shopware: connector written (Step 227); end-to-end check on Shopware-Test with a connected Stripe integration open.
 - Shopware App: manifest permissions, registration handshake, webhooks (order written, state changes), Cloud vs self-hosted.
 - Load: paging large stores with the OR delta filter.
 

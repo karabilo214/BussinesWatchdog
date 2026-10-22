@@ -9,13 +9,18 @@ use Illuminate\Support\Carbon;
 /**
  * Maps a Shopware order (read with `includes`, so no customer data) to `order.snapshot` (ADR 0026). Shopware keeps
  * refunds only as the payment state, so the snapshot carries `refund_state` instead of refund events. Amounts are JSON
- * floats; only values exactly representable in the currency's ISO minor units are sent.
+ * floats; only values exactly representable in the currency's ISO minor units are sent. Payment references: SwagPayPal's
+ * capture id, or the PaymentIntent id of the Stripe Payment plugin (ADR 0025 part 4). Other Stripe apps for Shopware
+ * leave no known reference and stay unsupported. The Stripe Payment plugin never writes provider refunds into Shopware,
+ * which the snapshot says with `provider_refunds_synced = false`.
  */
 class ShopwareOrderMapper
 {
     private const PAID_STATES = ['paid', 'paid_partially', 'refunded', 'refunded_partially'];
 
     private const INACTIVE_TRANSACTION_STATES = ['cancelled', 'failed'];
+
+    private const STRIPE_PAYMENT_PREFIX = 'stripe_shopware_payment_payment_handler_';
 
     /**
      * Criteria part shared by every order read: the associations needed and nothing else.
@@ -71,7 +76,9 @@ class ShopwareOrderMapper
         $gateway = is_string($transaction['paymentMethod']['technicalName'] ?? null) ? $transaction['paymentMethod']['technicalName'] : '';
         $transactionState = (string) ($transaction['stateMachineState']['technicalName'] ?? '');
         $custom = is_array($transaction['customFields'] ?? null) ? $transaction['customFields'] : [];
-        $captureRef = is_string($custom['swag_paypal_resource_id'] ?? null) ? trim($custom['swag_paypal_resource_id']) : '';
+        $stripePayment = str_starts_with($gateway, self::STRIPE_PAYMENT_PREFIX);
+        $captureRef = $stripePayment ? $this->stripeIntent($custom) : (is_string($custom['swag_paypal_resource_id'] ?? null) ? trim($custom['swag_paypal_resource_id']) : '');
+        $provider = ProviderCoverage::providerForGateway($gateway);
         $created = $this->time($order['createdAt'] ?? null);
         $changed = collect([$this->time($order['updatedAt'] ?? null), $created, $this->time($transaction['updatedAt'] ?? null)])->filter()->max();
 
@@ -85,7 +92,11 @@ class ShopwareOrderMapper
             'transaction_ref' => $captureRef !== '' ? substr($captureRef, 0, 255) : null,
             'payment_expected' => $total !== '0',
             'paid_marked_at' => in_array($transactionState, self::PAID_STATES, true) ? ($this->time($transaction['updatedAt'] ?? null) ?? $this->time($transaction['createdAt'] ?? null)) : null,
-            'financial_support' => $gateway === '' ? 'unknown' : (ProviderCoverage::providerForGateway($gateway) !== null ? 'supported' : 'unsupported'),
+            'financial_support' => match (true) {
+                $gateway === '' => 'unknown',
+                $provider === null, $provider === 'stripe' && ! $stripePayment => 'unsupported',
+                default => 'supported',
+            },
             'refund_state' => match ($transactionState) {
                 'refunded' => 'full',
                 'refunded_partially' => 'partial',
@@ -108,6 +119,10 @@ class ShopwareOrderMapper
 
         if ($data['payment_state'] === null) {
             unset($data['payment_state']);
+        }
+
+        if ($stripePayment) {
+            $data['provider_refunds_synced'] = false;
         }
 
         if (is_string($transaction['id'] ?? null) && preg_match('/^[0-9a-f]{32}$/', $transaction['id']) === 1) {
@@ -190,6 +205,16 @@ class ShopwareOrderMapper
         }
 
         return $rows[0] ?? [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $custom
+     */
+    private function stripeIntent(array $custom): string
+    {
+        $intent = $custom['stripe_payment_context']['payment']['payment_intent_id'] ?? null;
+
+        return is_string($intent) && preg_match('/^pi_[A-Za-z0-9]{1,250}$/', $intent) === 1 ? $intent : '';
     }
 
     private function time(mixed $value): ?string
