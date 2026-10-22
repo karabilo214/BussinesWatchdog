@@ -14,7 +14,7 @@ SaaS для обнаружения денежных расхождений и п
 | `apps/frontend/public` | Стили публичного сайта (сами страницы — `apps/backend/resources/views/site`) |
 | `apps/browser-worker` | Воркер браузерных проверок (Node + Playwright) |
 | `plugins/woocommerce-watchdog` | WooCommerce-плагин |
-| `plugins/shopware-app` | Shopware App: `src/` (ссылка на `apps/backend/resources/shopware-app` — скрипт наблюдения и шаблоны витрины) и тесты; архив с `manifest.xml` выдаёт кабинет для каждого магазина |
+| `plugins/shopware-app` | Shopware App: `src/` (ссылка на `apps/backend/resources/shopware-app` — скрипт наблюдения и шаблоны витрины) и тесты; с версии 1.5.0 кабинет выдаёт один одобренный архив для всех магазинов |
 | `contracts` | Рабочие контракты API (`openapi.yaml` сверяется тестом с маршрутами) |
 | `infra` | Docker, nginx, egress-прокси, скрипты |
 

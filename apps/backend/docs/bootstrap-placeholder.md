@@ -1,8 +1,9 @@
-# Backend
+# Backend bootstrap history
 
-Laravel backend placeholder.
+This file recorded the D1 starting point. The Laravel backend is implemented; see
+`../README.md`, `../../../PROJECT_STATE.md` and `../../../docs/ops/setup.md` for current behavior and operation.
 
-Target stack from the specification:
+The original target stack was:
 
 - Laravel 13
 - PHP 8.4
@@ -10,7 +11,7 @@ Target stack from the specification:
 - Redis + Horizon
 - Sanctum same-origin sessions
 
-First backend slice:
+The initial implementation sequence was:
 
 1. Create Laravel application files.
 2. Add health endpoints.

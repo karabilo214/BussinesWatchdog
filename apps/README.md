@@ -1,6 +1,6 @@
 # Applications
 
-Application code lives here after D1 bootstrap:
+Application code lives here:
 
 - `backend/` — Laravel modular monolith.
 - `frontend/` — Vue 3 customer and platform UI entrypoints.

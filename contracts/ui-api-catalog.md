@@ -159,7 +159,9 @@ Provider error message не подставляется в UI напрямую. T
 
 Все user-facing DTO/message fields, validation errors, notification templates, export headers and public/portal content MUST support `ru`, `en`, `de`. API `code` values remain stable English machine identifiers; localized text is selected by active user/tenant locale or explicit `locale` parameter.
 
-## 11 Состояние реализации (Step 55, 2026-10-09)
+## 11 Состояние реализации на Step 55 (2026-10-09, исторический срез)
+
+Этот раздел записывает отклонения на указанных шагах и не является текущим списком нереализованных функций. Актуальное состояние — `../PROJECT_STATE.md`, `../docs/readiness.md` и рабочие `openapi.yaml` / `platform-billing-api.yaml`.
 
 Все реализованные маршруты `/api/v1` и `/internal/v1` описаны в `openapi.yaml`; тест `OpenApiRoutesTest` проверяет совпадение маршрутов и контракта в обе стороны (копии в `spec/contracts` нет).
 
@@ -188,4 +190,4 @@ Step 165 (ADR 0021): TeamMember дополнен `mfa_enabled`. `POST /membershi
 
 Step 70 (ADR 0022): PayPal — `POST /stores/{id}/integrations/paypal` (environment, client_id, client_secret, webhook_id, обязательный `write_access_acknowledged`), `PUT /integrations/{id}/webhook-id`, `POST /webhooks/paypal/{id}`; `POST /integrations/{id}/sync` работает для Stripe и PayPal. Стратегия связи возвратов `unique_amount`.
 
-Ещё не реализовано из каталога: `POST /tenants` и переключатель команд в кабинете, billing/privacy exports, maintenance windows, rules, billing, real Telegram bot webhook registration and live update delivery.
+На Step 70 ещё не было реализовано из каталога: `POST /tenants` и переключатель команд в кабинете, billing/privacy exports, maintenance windows, rules, billing, real Telegram bot webhook registration and live update delivery. С тех пор реализованы billing, maintenance windows и Telegram webhook; оставшиеся пункты сверяйте с текущим OpenAPI и `PROJECT_STATE.md`.

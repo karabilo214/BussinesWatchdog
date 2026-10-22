@@ -5,7 +5,7 @@
 | | WooCommerce | Shopware |
 |---|---|---|
 | Версии | WordPress 7.1.3 / PHP 8.3, WooCommerce 11.2.0 (HPOS), Storefront | Shopware 6.7.15.1 (`bw-shopware:6.7.15.1`, собран из dockware 6.7.2.2), режим `prod` |
-| Оплата | Stripe Gateway 11.0.1 (test), PayPal Payments 4.1.3 (sandbox), банковский перевод | SwagPayPal 10.8.5 (sandbox), предоплата, счёт, наличные |
+| Оплата | Stripe Gateway 11.0.1 (test), PayPal Payments 4.1.3 (sandbox), банковский перевод | Stripe Payment 1.17.4 (test, Step 227), SwagPayPal 10.8.5 (sandbox), предоплата, счёт, наличные |
 | Товары | Testkaffee 250 g (12,90 €, доставка 4,90 €), Testgutschein 10 € (виртуальный), Testtasse (вариант Weiß/Schwarz) | демо-каталог dockware |
 | Админка | `/wp-admin`, пользователь `bwadmin` | `/admin`, пользователь `admin` |
 

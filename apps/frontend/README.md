@@ -5,7 +5,7 @@ npm workspace with three packages (ADR 0017, ADR 0039) on Vue 3 + TypeScript + V
 | App | Path | Dev port | API |
 | --- | --- | --- | --- |
 | `customer/` | `/app/` customer workspace, Sanctum session | 5173 | `/api/v1` |
-| `control/` | `/owner`, `/admin` platform control zone (placeholders) | 5174 | `/platform-api/v1` |
+| `control/` | `/owner`, `/admin` platform control zone | 5174 | `/platform-api/v1` |
 | `public/` | stylesheet of the public site, built into `apps/backend/public/site`; the pages are rendered by Laravel (ADR 0039) | — | none |
 
 Shared packages: `packages/design` (frozen palette, base styles, fonts), `packages/ui` (status badge, tones), `packages/i18n` (locales, language switch, translation parity check), `packages/api-client` (CSRF/session HTTP client).

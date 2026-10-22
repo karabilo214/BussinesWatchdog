@@ -1,6 +1,6 @@
 # Business Watchdog Implementation Rules
 
-This repository contains the specification package (`spec/`) and an in-progress implementation: the Laravel backend in `apps/backend` is built step by step (see `PROJECT_STATE.md` for the current status and `docs/progress.md` — an index of step history split by area in `docs/progress/`). `plugins/woocommerce-watchdog` (WooCommerce connector) and `apps/browser-worker` (Node/Playwright check worker) are implemented; `apps/frontend` is still a placeholder.
+This repository contains the specification package (`spec/`) and the implemented Laravel backend (`apps/backend`), Vue customer and platform frontends (`apps/frontend`), WooCommerce and Shopware connectors (`plugins/`), and Node/Playwright browser worker (`apps/browser-worker`). See `PROJECT_STATE.md` for the current status and `docs/progress.md` for the step history.
 
 Before a task, read `PROJECT_STATE.md`, then:
 
