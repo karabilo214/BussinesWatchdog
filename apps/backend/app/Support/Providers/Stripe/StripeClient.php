@@ -36,15 +36,15 @@ class StripeClient
     }
 
     /**
-     * Every object of a list endpoint created at or after `$createdFrom`, newest first, bounded by pages.
+     * Every object of a list endpoint created at or after `$createdFrom`, newest first, bounded by pages. A list is
+     * continued after `$startingAfter` (the id of the last object read); `last_id` is the cursor for the next run.
      *
      * @param  array<string, mixed>  $query
-     * @return array{objects: list<array<string, mixed>>, complete: bool}
+     * @return array{objects: list<array<string, mixed>>, complete: bool, last_id: ?string}
      */
-    public function listCreatedSince(string $apiKey, string $path, int $createdFrom, array $query = []): array
+    public function listCreatedSince(string $apiKey, string $path, int $createdFrom, array $query = [], ?string $startingAfter = null): array
     {
         $objects = [];
-        $startingAfter = null;
         $maxPages = (int) config('watchdog.stripe.max_pages_per_run');
 
         for ($page = 0; $page < $maxPages; $page++) {
@@ -63,13 +63,13 @@ class StripeClient
             }
 
             if (($result['has_more'] ?? false) !== true || $data === []) {
-                return ['objects' => $objects, 'complete' => true];
+                return ['objects' => $objects, 'complete' => true, 'last_id' => null];
             }
 
             $startingAfter = (string) ($data[array_key_last($data)]['id'] ?? '');
         }
 
-        return ['objects' => $objects, 'complete' => false];
+        return ['objects' => $objects, 'complete' => false, 'last_id' => $startingAfter];
     }
 
     private function errorCode(Response $response): string

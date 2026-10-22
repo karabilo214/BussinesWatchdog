@@ -11,8 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Polling is the guarantee, webhooks only make it faster (spec §10). Delta: objects created since the per-resource
- * watermark minus an overlap. Audit: the whole retention window. Lists are newest-first and page-bounded, so an
- * unfinished window is remembered as a backlog and continued on the next run instead of advancing the watermark.
+ * watermark minus an overlap. Audit: the whole retention window. Lists are newest-first and page-bounded, so every
+ * unfinished window is remembered as a backlog — its bounds and the id of the last object read — and continued after
+ * that id on the next runs, as Stripe pages lists. A second, never a timestamp alone, would lose objects created in the
+ * same second as the last one read. When the last object is gone, the window restarts from its second (inclusive).
  */
 class StripeSync
 {
@@ -53,15 +55,19 @@ class StripeSync
         try {
             foreach (StripeConnector::READ_PROBES as $resource => $path) {
                 $current = is_array($resources[$resource] ?? null) ? $resources[$resource] : [];
+                $remaining = [];
 
-                if (isset($current['backlog_before'], $current['backlog_from'])) {
-                    $page = $this->client->listCreatedSince($apiKey, $path, (int) $current['backlog_from'], ['created[lt]' => (int) $current['backlog_before']]);
+                foreach ($this->backlogs($current) as $window) {
+                    $page = $this->continueWindow($apiKey, $path, $window);
                     $this->add($totals, $this->ingestor->ingest($integration, $page['objects']));
 
-                    if ($page['complete']) {
-                        unset($current['backlog_before'], $current['backlog_from']);
-                    } else {
-                        $current['backlog_before'] = $this->oldest($page['objects']) ?? $current['backlog_before'];
+                    if (! $page['complete']) {
+                        $remaining[] = [
+                            'from' => $window['from'],
+                            'until' => $page['until'],
+                            'after' => $page['last_id'] ?? $window['after'],
+                            'oldest' => $this->oldest($page['objects']) ?? $window['oldest'],
+                        ];
                         $complete = false;
                     }
                 }
@@ -69,7 +75,8 @@ class StripeSync
                 $from = $mode === self::MODE_AUDIT || ! isset($current['watermark'])
                     ? $retentionStart
                     : max($retentionStart, (int) $current['watermark'] - $overlap);
-                $page = $this->client->listCreatedSince($apiKey, $path, $from);
+                $until = $now->getTimestamp();
+                $page = $this->client->listCreatedSince($apiKey, $path, $from, ['created[lte]' => $until]);
                 $this->add($totals, $this->ingestor->ingest($integration, $page['objects']));
                 $newest = $this->newest($page['objects']);
 
@@ -77,12 +84,13 @@ class StripeSync
                     $current['watermark'] = max((int) ($current['watermark'] ?? 0), $newest);
                 }
 
-                if (! $page['complete'] && ! isset($current['backlog_before'])) {
-                    $current['backlog_from'] = $from;
-                    $current['backlog_before'] = $this->oldest($page['objects']);
+                if (! $page['complete']) {
+                    $remaining[] = ['from' => $from, 'until' => $until, 'after' => $page['last_id'], 'oldest' => $this->oldest($page['objects'])];
                     $complete = false;
                 }
 
+                unset($current['backlog_before'], $current['backlog_from']);
+                $current['backlogs'] = $remaining;
                 $resources[$resource] = $current;
             }
         } catch (StripeRequestFailed $failure) {
@@ -104,6 +112,59 @@ class StripeSync
         ], ['last_successful_sync_at' => $now]);
 
         return ['status' => 'ok', 'emitted' => $totals['emitted'], 'unchanged' => $totals['unchanged'], 'complete' => $complete];
+    }
+
+    /**
+     * Unfinished windows of the resource; a continuation saved by an earlier release (`backlog_from`/`backlog_before`,
+     * the oldest second read) is taken as a window without a cursor.
+     *
+     * @param  array<string, mixed>  $current
+     * @return list<array{from: int, until: ?int, after: ?string, oldest: ?int}>
+     */
+    private function backlogs(array $current): array
+    {
+        $windows = [];
+
+        foreach (is_array($current['backlogs'] ?? null) ? $current['backlogs'] : [] as $window) {
+            if (is_array($window) && is_int($window['from'] ?? null)) {
+                $windows[] = [
+                    'from' => $window['from'],
+                    'until' => is_int($window['until'] ?? null) ? $window['until'] : null,
+                    'after' => is_string($window['after'] ?? null) && $window['after'] !== '' ? $window['after'] : null,
+                    'oldest' => is_int($window['oldest'] ?? null) ? $window['oldest'] : null,
+                ];
+            }
+        }
+
+        if (isset($current['backlog_from'], $current['backlog_before'])) {
+            $windows[] = ['from' => (int) $current['backlog_from'], 'until' => (int) $current['backlog_before'], 'after' => null, 'oldest' => (int) $current['backlog_before']];
+        }
+
+        return $windows;
+    }
+
+    /**
+     * Continues a window after its last object. Without a cursor, or when Stripe no longer knows that object, it reads
+     * again from the oldest second already read, inclusive; objects read twice are unchanged and change nothing.
+     *
+     * @param  array{from: int, until: ?int, after: ?string, oldest: ?int}  $window
+     * @return array{objects: list<array<string, mixed>>, complete: bool, last_id: ?string, until: ?int}
+     */
+    private function continueWindow(string $apiKey, string $path, array $window): array
+    {
+        if ($window['after'] !== null) {
+            try {
+                return $this->client->listCreatedSince($apiKey, $path, $window['from'], array_filter(['created[lte]' => $window['until']], fn (mixed $value): bool => $value !== null), $window['after']) + ['until' => $window['until']];
+            } catch (StripeRequestFailed $failure) {
+                if ($failure->reasonCode !== 'stripe_request_rejected') {
+                    throw $failure;
+                }
+            }
+        }
+
+        $until = $window['oldest'] ?? $window['until'];
+
+        return $this->client->listCreatedSince($apiKey, $path, $window['from'], array_filter(['created[lte]' => $until], fn (mixed $value): bool => $value !== null)) + ['until' => $until];
     }
 
     /**

@@ -77,11 +77,17 @@ class StripeIntegrationTest extends TestCase
 
             parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
             $objects = array_values(array_filter($this->stripe[$resource] ?? [], fn (array $object): bool => $object['created'] >= (int) ($query['created']['gte'] ?? 0)
-                && (! isset($query['created']['lt']) || $object['created'] < (int) $query['created']['lt'])));
+                && (! isset($query['created']['lt']) || $object['created'] < (int) $query['created']['lt'])
+                && (! isset($query['created']['lte']) || $object['created'] <= (int) $query['created']['lte'])));
             usort($objects, fn (array $a, array $b): int => $b['created'] <=> $a['created']);
 
             if (isset($query['starting_after'])) {
                 $index = array_search($query['starting_after'], array_column($objects, 'id'), true);
+
+                if ($index === false) {
+                    return Http::response(['error' => ['type' => 'invalid_request_error', 'code' => 'resource_missing']], 400);
+                }
+
                 $objects = array_slice($objects, $index + 1);
             }
 
@@ -349,6 +355,91 @@ class StripeIntegrationTest extends TestCase
 
         $this->assertTrue($third['complete']);
         $this->assertSame(5, FinancialTransaction::query()->where('kind', 'capture')->count());
+    }
+
+    public function test_a_continued_window_keeps_objects_created_in_the_same_second_as_the_last_one_read(): void
+    {
+        config(['watchdog.stripe.page_size' => 2, 'watchdog.stripe.max_pages_per_run' => 1, 'watchdog.stripe.delta_overlap_minutes' => 0]);
+        $second = now()->subMinutes(20)->getTimestamp();
+        $this->stripe['charges'] = [
+            $this->charge('ch_newest', null, 'succeeded', true, 100, now()->subMinutes(10)->getTimestamp()),
+            $this->charge('ch_same_a', null, 'succeeded', true, 200, $second),
+            $this->charge('ch_same_b', null, 'succeeded', true, 300, $second),
+            $this->charge('ch_oldest', null, 'succeeded', true, 400, now()->subMinutes(30)->getTimestamp()),
+        ];
+        $integration = $this->connected();
+
+        $this->assertFalse(app(StripeSync::class)->run($integration)['complete'], 'two of four charges fit the page budget');
+
+        for ($run = 0; $run < 3; $run++) {
+            app(StripeSync::class)->run($integration->refresh());
+        }
+
+        $this->drain();
+        $this->assertSame(['ch_newest', 'ch_oldest', 'ch_same_a', 'ch_same_b'], FinancialTransaction::query()->where('kind', 'capture')->orderBy('external_operation_id')->pluck('external_operation_id')->all(), 'the charge sharing the second with the last one read is not lost');
+        $this->assertSame([], $integration->refresh()->health['sync']['resources']['charges']['backlogs'] ?? [], 'nothing is left to continue');
+    }
+
+    public function test_a_new_unfinished_window_is_remembered_while_an_older_one_is_still_being_continued(): void
+    {
+        config(['watchdog.stripe.page_size' => 1, 'watchdog.stripe.max_pages_per_run' => 1, 'watchdog.stripe.delta_overlap_minutes' => 0]);
+
+        foreach (range(1, 3) as $i) {
+            $this->stripe['charges'][] = $this->charge("ch_old{$i}", null, 'succeeded', true, 100 * $i, now()->subHours(10)->subMinutes($i)->getTimestamp());
+        }
+
+        $integration = $this->connected();
+        app(StripeSync::class)->run($integration);
+
+        foreach (range(1, 3) as $i) {
+            $this->stripe['charges'][] = $this->charge("ch_new{$i}", null, 'succeeded', true, 1000 * $i, now()->subMinutes($i)->getTimestamp());
+        }
+
+        for ($run = 0; $run < 8; $run++) {
+            app(StripeSync::class)->run($integration->refresh());
+        }
+
+        $this->drain();
+        $this->assertSame(6, FinancialTransaction::query()->where('kind', 'capture')->count(), 'both unfinished windows are read to the end');
+    }
+
+    public function test_a_continuation_whose_last_object_is_gone_restarts_from_that_second(): void
+    {
+        config(['watchdog.stripe.page_size' => 1, 'watchdog.stripe.max_pages_per_run' => 1, 'watchdog.stripe.delta_overlap_minutes' => 0]);
+        $this->stripe['charges'] = [
+            $this->charge('ch_a', null, 'succeeded', true, 100, now()->subMinutes(10)->getTimestamp()),
+            $this->charge('ch_b', null, 'succeeded', true, 200, now()->subMinutes(20)->getTimestamp()),
+        ];
+        $integration = $this->connected();
+        app(StripeSync::class)->run($integration);
+        $this->stripe['charges'] = array_values(array_filter($this->stripe['charges'], fn (array $charge): bool => $charge['id'] !== 'ch_a'));
+
+        $result = app(StripeSync::class)->run($integration->refresh());
+        app(StripeSync::class)->run($integration->refresh());
+        $this->drain();
+
+        $this->assertSame('ok', $result['status'], 'a vanished cursor does not stop the sync');
+        $this->assertTrue(FinancialTransaction::query()->where('external_operation_id', 'ch_b')->exists());
+    }
+
+    public function test_a_continuation_saved_by_the_previous_release_is_finished_without_a_gap(): void
+    {
+        config(['watchdog.stripe.page_size' => 5, 'watchdog.stripe.delta_overlap_minutes' => 0]);
+        $second = now()->subHours(5)->getTimestamp();
+        $this->stripe['charges'] = [
+            $this->charge('ch_read', null, 'succeeded', true, 100, $second),
+            $this->charge('ch_unread', null, 'succeeded', true, 200, $second),
+        ];
+        $integration = $this->connected();
+        $health = $integration->health;
+        $health['sync']['resources']['charges'] = ['watermark' => now()->getTimestamp(), 'backlog_from' => now()->subDays(30)->getTimestamp(), 'backlog_before' => $second];
+        $integration->forceFill(['health' => $health])->save();
+
+        app(StripeSync::class)->run($integration->refresh());
+        $this->drain();
+
+        $this->assertTrue(FinancialTransaction::query()->where('external_operation_id', 'ch_unread')->exists(), 'the old exclusive second is read inclusively');
+        $this->assertArrayNotHasKey('backlog_before', $integration->refresh()->health['sync']['resources']['charges']);
     }
 
     private function connect(array $body = []): TestResponse
