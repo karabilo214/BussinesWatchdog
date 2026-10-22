@@ -145,7 +145,7 @@ class RefundTest extends TestCase
         $this->assertSame([240, 'From the dashboard', null, BillingRefund::STATUS_REFUNDED], [$dashboard->amount_minor, $dashboard->reason, $dashboard->requested_by, $dashboard->status]);
         $this->assertSame(2, BillingRefund::query()->count());
 
-        $this->getJson('/platform-api/v1/payments')->assertOk()->assertJsonPath('data.0.refunded_minor', '1240')->assertJsonPath('month.0.refunded_minor', '1240');
+        $this->getJson('/platform-api/v1/payments')->assertOk()->assertJsonPath('data.0.refunded_minor', '1240')->assertJsonPath('month.0.refunded_minor', '1240')->assertJsonPath('month.0.refunded_tax_minor', '198');
         $this->actingAs($this->customerUser)->withSession(['active_tenant_id' => $payment->tenant_id])->getJson('/api/v1/billing/invoices')->assertOk()->assertJsonPath('data.0.refunded_minor', '1240');
     }
 

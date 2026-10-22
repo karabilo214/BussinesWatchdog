@@ -1161,7 +1161,8 @@ export interface PaymentMonth {
   tax_minor: string | null;
   fee_minor: string | null;
   earnings_minor: string | null;
-  refunded_minor?: string;
+  refunded_minor: string;
+  refunded_tax_minor: string | null;
 }
 
 export async function fetchPayments(filters: Partial<Record<'status' | 'tenant_id' | 'cursor', string>>): Promise<{ data: Payment[]; next_cursor: string | null; month: PaymentMonth[]; mode: 'test' | 'live' }> {

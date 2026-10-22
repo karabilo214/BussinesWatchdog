@@ -2540,7 +2540,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListPayments
-      description: "Capability billing.read (ADR 0043). Every transaction of our subscriptions in the current mode, newest first, 50 per page, with the organisation; `month` sums the paid and completed transactions billed this calendar month (UTC) per currency — charged, tax, provider fee, earnings (fee and earnings null when a transaction has none yet) — never across currencies. `refunded_minor` per payment and per month counts refunds Paddle confirmed (ADR 0044)."
+      description: "Capability billing.read (ADR 0043). Every transaction of our subscriptions in the current mode, newest first, 50 per page, with the organisation; `month` sums paid and completed transactions billed this calendar month (UTC) and Paddle-confirmed refunds updated this month per currency — charged, tax, provider fee, earnings, refunded amount and refunded tax. A month with only refunds still has a currency row. Fee and earnings are null when any payment lacks the fee; refunded tax is null when any refund lacks it. `refunded_minor` per payment counts its confirmed refunds (ADR 0044). Amounts are minor-unit strings and currencies are never added together."
       security:
         - {StaffSession: []}
       parameters:
@@ -2558,7 +2558,21 @@ paths:
                 properties:
                   data: {type: array, items: {type: object}}
                   next_cursor: {type: [string, "null"]}
-                  month: {type: array, items: {type: object}}
+                  month:
+                    type: array
+                    items:
+                      type: object
+                      required: [currency, currency_exponent, payments, total_minor, tax_minor, fee_minor, earnings_minor, refunded_minor, refunded_tax_minor]
+                      properties:
+                        currency: {type: string}
+                        currency_exponent: {type: integer}
+                        payments: {type: integer}
+                        total_minor: {type: string}
+                        tax_minor: {type: [string, "null"]}
+                        fee_minor: {type: [string, "null"]}
+                        earnings_minor: {type: [string, "null"]}
+                        refunded_minor: {type: string}
+                        refunded_tax_minor: {type: [string, "null"]}
                   mode: {enum: [test, live]}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}

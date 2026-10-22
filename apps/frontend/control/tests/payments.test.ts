@@ -39,8 +39,9 @@ describe('payments', () => {
       data: [{ id: 'p-1', provider_transaction_ref: 'txn_1', status: 'completed', origin: 'web', invoice_number: 'INV-1', currency: 'EUR', currency_exponent: 2, subtotal_minor: '2300', discount_minor: '400', tax_minor: '437', total_minor: '2737', fee_minor: '186', earnings_minor: '2551', period_start: null, period_end: null, billed_at: '2026-10-11T12:00:00Z', tenant: { id: 't-1', name: 'Kaffee GmbH' } }],
       next_cursor: null,
       month: [
-        { currency: 'EUR', currency_exponent: 2, payments: 2, total_minor: '5474', tax_minor: '874', fee_minor: '372', earnings_minor: '5102' },
-        { currency: 'USD', currency_exponent: 2, payments: 1, total_minor: '1900', tax_minor: '0', fee_minor: null, earnings_minor: null },
+        { currency: 'EUR', currency_exponent: 2, payments: 2, total_minor: '5474', tax_minor: '874', fee_minor: '372', earnings_minor: '5102', refunded_minor: '1240', refunded_tax_minor: '198' },
+        { currency: 'USD', currency_exponent: 2, payments: 1, total_minor: '1900', tax_minor: '0', fee_minor: null, earnings_minor: null, refunded_minor: '500', refunded_tax_minor: null },
+        { currency: 'JPY', currency_exponent: 0, payments: 1, total_minor: '9007199254740993', tax_minor: '0', fee_minor: '0', earnings_minor: '9007199254740993', refunded_minor: '2', refunded_tax_minor: '0' },
       ],
       mode: 'test',
     });
@@ -58,6 +59,11 @@ describe('payments', () => {
     expect(eur).toContain('3,72');
     expect(eur).toContain('51,02');
     expect(wrapper.get('[data-month="USD"]').text()).toContain('ещё не известно');
+    expect(wrapper.get('[data-net="EUR"]').text()).toContain('42,34');
+    expect(wrapper.get('[data-net="EUR"]').text()).toContain('31,86');
+    expect(wrapper.get('[data-net="USD"]').text()).toContain('14,00');
+    expect(wrapper.get('[data-net="USD"]').text()).toContain('ещё не известно');
+    expect(wrapper.get('[data-net="JPY"] p.text-2xl').text().replace(/\D/g, '')).toBe('9007199254740991');
     expect(wrapper.text()).toContain('тестовый режим Paddle');
     const row = wrapper.get('[data-payment="txn_1"]').text();
     expect(row).toContain('Kaffee GmbH');

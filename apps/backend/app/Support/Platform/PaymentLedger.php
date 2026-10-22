@@ -56,30 +56,54 @@ class PaymentLedger
             ->where('billed_at', '<', $start->copy()->addMonth())
             ->groupBy('currency', 'currency_exponent')
             ->orderBy('currency')
-            ->selectRaw('currency, currency_exponent, count(*) as payments, sum(total_minor) as total, sum(tax_minor) as tax, sum(fee_minor) as fee, sum(earnings_minor) as earnings, sum(case when fee_minor is null then 1 else 0 end) as fee_unknown')
+            ->selectRaw('currency, currency_exponent, count(*) as payments, sum(total_minor) as total, sum(tax_minor) as tax, sum(fee_minor) as fee, sum(earnings_minor) as earnings, sum(case when tax_minor is null then 1 else 0 end) as tax_unknown, sum(case when fee_minor is null then 1 else 0 end) as fee_unknown')
             ->get();
         $refunds = DB::table('billing_refunds')
             ->where('mode', PaddleConfig::mode())
             ->where('status', 'refunded')
             ->where('source_updated_at', '>=', $start)
             ->where('source_updated_at', '<', $start->copy()->addMonth())
-            ->groupBy('currency')
-            ->selectRaw('currency, sum(amount_minor) as refunded')
-            ->pluck('refunded', 'currency');
+            ->groupBy('currency', 'currency_exponent')
+            ->selectRaw('currency, currency_exponent, sum(amount_minor) as refunded, sum(tax_minor) as refunded_tax, sum(case when tax_minor is null then 1 else 0 end) as tax_unknown')
+            ->get()
+            ->keyBy(fn (object $row): string => $row->currency.':'.$row->currency_exponent);
 
-        return $rows
-            ->map(fn (object $row): array => [
-                'currency' => $row->currency,
-                'currency_exponent' => (int) $row->currency_exponent,
-                'payments' => (int) $row->payments,
-                'total_minor' => (string) $row->total,
-                'tax_minor' => $row->tax === null ? null : (string) $row->tax,
-                'fee_minor' => (int) $row->fee_unknown > 0 ? null : (string) $row->fee,
-                'earnings_minor' => (int) $row->fee_unknown > 0 ? null : (string) $row->earnings,
-                'refunded_minor' => (string) ($refunds[$row->currency] ?? 0),
-            ])
-            ->values()
-            ->all();
+        $months = $rows
+            ->map(function (object $row) use ($refunds): array {
+                $refund = $refunds->get($row->currency.':'.$row->currency_exponent);
+
+                return [
+                    'currency' => $row->currency,
+                    'currency_exponent' => (int) $row->currency_exponent,
+                    'payments' => (int) $row->payments,
+                    'total_minor' => (string) $row->total,
+                    'tax_minor' => (int) $row->tax_unknown > 0 ? null : (string) $row->tax,
+                    'fee_minor' => (int) $row->fee_unknown > 0 ? null : (string) $row->fee,
+                    'earnings_minor' => (int) $row->fee_unknown > 0 ? null : (string) $row->earnings,
+                    'refunded_minor' => (string) ($refund->refunded ?? 0),
+                    'refunded_tax_minor' => $refund !== null && (int) $refund->tax_unknown > 0 ? null : (string) ($refund->refunded_tax ?? 0),
+                ];
+            });
+
+        foreach ($refunds as $key => $refund) {
+            if ($rows->contains(fn (object $row): bool => $row->currency.':'.$row->currency_exponent === $key)) {
+                continue;
+            }
+
+            $months->push([
+                'currency' => $refund->currency,
+                'currency_exponent' => (int) $refund->currency_exponent,
+                'payments' => 0,
+                'total_minor' => '0',
+                'tax_minor' => '0',
+                'fee_minor' => '0',
+                'earnings_minor' => '0',
+                'refunded_minor' => (string) $refund->refunded,
+                'refunded_tax_minor' => (int) $refund->tax_unknown > 0 ? null : (string) $refund->refunded_tax,
+            ]);
+        }
+
+        return $months->sortBy('currency')->values()->all();
     }
 
     /**

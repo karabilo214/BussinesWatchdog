@@ -78,6 +78,16 @@ function money(minor: string | null, currency: string, exponent: number): string
   return minor === null ? '—' : (formatMinor(minor, currency, exponent, locale.value) ?? `${minor} ${currency}`);
 }
 
+function afterRefunds(row: PaymentMonth): string {
+  return money((BigInt(row.total_minor) - BigInt(row.refunded_minor ?? '0')).toString(), row.currency, row.currency_exponent);
+}
+
+function afterPaddle(row: PaymentMonth): string | null {
+  if (row.tax_minor === null || row.fee_minor === null || (BigInt(row.refunded_minor ?? '0') !== 0n && row.refunded_tax_minor == null)) return null;
+
+  return money((BigInt(row.total_minor) - BigInt(row.tax_minor) - BigInt(row.fee_minor) - BigInt(row.refunded_minor ?? '0') + BigInt(row.refunded_tax_minor ?? '0')).toString(), row.currency, row.currency_exponent);
+}
+
 async function load(more = false): Promise<void> {
   error.value = null;
 
@@ -114,22 +124,41 @@ onMounted(() => load());
 
       <ErrorNotice v-if="error" :error="error" />
 
-      <section class="flex flex-col gap-3" aria-labelledby="month-title" data-panel="month">
-        <h2 id="month-title" class="text-lg font-semibold">{{ $t('payments.month') }} <span v-if="mode === 'test'" class="text-sm font-normal text-warn">· {{ $t('payments.test_mode') }}</span></h2>
-        <p v-if="!loading && month.length === 0" class="rounded-xl border border-border bg-surface p-5 text-sm text-text-muted">{{ $t('payments.month_empty') }}</p>
-        <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <article v-for="row in month" :key="row.currency" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 text-sm" :data-month="row.currency">
-            <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ row.currency }} · {{ $t('payments.count', { n: row.payments }) }}</p>
-            <p class="text-2xl font-semibold tabular-nums">{{ money(row.total_minor, row.currency, row.currency_exponent) }}</p>
-            <dl class="grid grid-cols-2 gap-x-3 gap-y-1">
-              <dt class="text-text-muted">{{ $t('payments.tax') }}</dt><dd class="text-right tabular-nums">{{ money(row.tax_minor, row.currency, row.currency_exponent) }}</dd>
-              <dt class="text-text-muted">{{ $t('payments.fee') }}</dt><dd class="text-right tabular-nums">{{ row.fee_minor === null ? $t('payments.unknown') : money(row.fee_minor, row.currency, row.currency_exponent) }}</dd>
-              <dt class="text-text-muted">{{ $t('payments.earnings') }}</dt><dd class="text-right font-medium tabular-nums">{{ row.earnings_minor === null ? $t('payments.unknown') : money(row.earnings_minor, row.currency, row.currency_exponent) }}</dd>
-              <dt class="text-text-muted">{{ $t('payments.refunded') }}</dt><dd class="text-right tabular-nums">{{ money(row.refunded_minor ?? '0', row.currency, row.currency_exponent) }}</dd>
-            </dl>
-          </article>
-        </div>
-      </section>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <section class="flex flex-col gap-3" aria-labelledby="month-title" data-panel="month">
+          <h2 id="month-title" class="text-lg font-semibold">{{ $t('payments.month') }} <span v-if="mode === 'test'" class="text-sm font-normal text-warn">· {{ $t('payments.test_mode') }}</span></h2>
+          <p v-if="!loading && month.length === 0" class="rounded-xl border border-border bg-surface p-5 text-sm text-text-muted">{{ $t('payments.month_empty') }}</p>
+          <div v-else class="grid gap-3">
+            <article v-for="row in month" :key="row.currency" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 text-sm" :data-month="row.currency">
+              <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ row.currency }} · {{ $t('payments.count', { n: row.payments }) }}</p>
+              <p class="text-2xl font-semibold tabular-nums">{{ money(row.total_minor, row.currency, row.currency_exponent) }}</p>
+              <dl class="grid grid-cols-2 gap-x-3 gap-y-1">
+                <dt class="text-text-muted">{{ $t('payments.tax') }}</dt><dd class="text-right tabular-nums">{{ money(row.tax_minor, row.currency, row.currency_exponent) }}</dd>
+                <dt class="text-text-muted">{{ $t('payments.fee') }}</dt><dd class="text-right tabular-nums">{{ row.fee_minor === null ? $t('payments.unknown') : money(row.fee_minor, row.currency, row.currency_exponent) }}</dd>
+                <dt class="text-text-muted">{{ $t('payments.earnings') }}</dt><dd class="text-right font-medium tabular-nums">{{ row.earnings_minor === null ? $t('payments.unknown') : money(row.earnings_minor, row.currency, row.currency_exponent) }}</dd>
+                <dt class="text-text-muted">{{ $t('payments.refunded') }}</dt><dd class="text-right tabular-nums">{{ money(row.refunded_minor ?? '0', row.currency, row.currency_exponent) }}</dd>
+              </dl>
+            </article>
+          </div>
+        </section>
+
+        <section class="flex flex-col gap-3" aria-labelledby="month-net-title" data-panel="month-net">
+          <h2 id="month-net-title" class="text-lg font-semibold">{{ $t('payments.net_title') }} <span v-if="mode === 'test'" class="text-sm font-normal text-warn">· {{ $t('payments.test_mode') }}</span></h2>
+          <p v-if="!loading && month.length === 0" class="rounded-xl border border-border bg-surface p-5 text-sm text-text-muted">{{ $t('payments.month_empty') }}</p>
+          <div v-else class="grid gap-3">
+            <article v-for="row in month" :key="row.currency" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 text-sm" :data-net="row.currency">
+              <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ row.currency }}</p>
+              <p class="text-xs text-text-muted">{{ $t('payments.after_refunds') }}</p>
+              <p class="text-2xl font-semibold tabular-nums">{{ afterRefunds(row) }}</p>
+              <dl class="grid grid-cols-2 gap-3 border-t border-border pt-2">
+                <dt class="text-text-muted">{{ $t('payments.after_paddle') }}</dt>
+                <dd class="text-right font-medium tabular-nums">{{ afterPaddle(row) ?? $t('payments.unknown') }}</dd>
+              </dl>
+            </article>
+          </div>
+          <p class="text-xs text-text-muted">{{ $t('payments.net_hint') }}</p>
+        </section>
+      </div>
 
       <form class="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-4 text-sm" data-form="payment-filters" @submit.prevent="apply">
         <label class="flex flex-col gap-1.5">

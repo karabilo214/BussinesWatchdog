@@ -3,6 +3,7 @@
 namespace Tests\Feature\Billing;
 
 use App\Models\BillingEventInbox;
+use App\Models\BillingRefund;
 use App\Models\BillingSubscriptionContract;
 use App\Models\BillingTransaction;
 use App\Models\PlatformStaff;
@@ -124,7 +125,7 @@ class BillingTransactionsTest extends TestCase
         $second = $this->context();
         $this->stored($first['tenant']->id, 'txn_1', 'completed');
         $this->stored($second['tenant']->id, 'txn_2', 'paid');
-        $this->stored($second['tenant']->id, 'txn_3', 'completed', ['currency' => 'USD', 'total_minor' => 1900, 'tax_minor' => 0, 'fee_minor' => null, 'earnings_minor' => null]);
+        $this->stored($second['tenant']->id, 'txn_3', 'completed', ['currency' => 'USD', 'total_minor' => 1900, 'tax_minor' => null, 'fee_minor' => null, 'earnings_minor' => null]);
         $this->stored($second['tenant']->id, 'txn_4', 'past_due');
         $this->stored($first['tenant']->id, 'txn_old', 'completed', ['billed_at' => now()->subMonths(2)]);
 
@@ -133,8 +134,8 @@ class BillingTransactionsTest extends TestCase
         $this->assertCount(5, $response->json('data'));
         $this->assertSame($second['tenant']->name, $response->json('data.1.tenant.name'));
         $this->assertSame([
-            ['currency' => 'EUR', 'currency_exponent' => 2, 'payments' => 2, 'total_minor' => '5474', 'tax_minor' => '874', 'fee_minor' => '372', 'earnings_minor' => '5102', 'refunded_minor' => '0'],
-            ['currency' => 'USD', 'currency_exponent' => 2, 'payments' => 1, 'total_minor' => '1900', 'tax_minor' => '0', 'fee_minor' => null, 'earnings_minor' => null, 'refunded_minor' => '0'],
+            ['currency' => 'EUR', 'currency_exponent' => 2, 'payments' => 2, 'total_minor' => '5474', 'tax_minor' => '874', 'fee_minor' => '372', 'earnings_minor' => '5102', 'refunded_minor' => '0', 'refunded_tax_minor' => '0'],
+            ['currency' => 'USD', 'currency_exponent' => 2, 'payments' => 1, 'total_minor' => '1900', 'tax_minor' => null, 'fee_minor' => null, 'earnings_minor' => null, 'refunded_minor' => '0', 'refunded_tax_minor' => '0'],
         ], $response->json('month'));
         $this->assertCount(1, $this->getJson('/platform-api/v1/payments?status=past_due')->json('data'));
         $this->getJson("/platform-api/v1/tenants/{$first['tenant']->id}")->assertOk()->assertJsonPath('billing.transactions.0.provider_transaction_ref', 'txn_old');
@@ -144,6 +145,28 @@ class BillingTransactionsTest extends TestCase
     {
         $this->signIn(PlatformStaff::ROLE_SUPPORT);
         $this->getJson('/platform-api/v1/payments')->assertForbidden();
+    }
+
+    public function test_month_includes_refunds_of_earlier_payments_even_without_new_payments(): void
+    {
+        $context = $this->context();
+        $eur = $this->stored($context['tenant']->id, 'txn_old_eur', 'completed', ['billed_at' => now()->subMonths(2)]);
+        $usd = $this->stored($context['tenant']->id, 'txn_old_usd', 'completed', ['currency' => 'USD', 'billed_at' => now()->subMonths(2)]);
+
+        foreach ([[$eur, 1000, 160], [$usd, 500, null]] as [$transaction, $amount, $tax]) {
+            BillingRefund::query()->create([
+                'tenant_id' => $context['tenant']->id, 'transaction_id' => $transaction->id, 'mode' => 'test',
+                'kind' => 'partial', 'amount_minor' => $amount, 'tax_minor' => $tax,
+                'currency' => $transaction->currency, 'currency_exponent' => 2, 'reason' => 'Customer request',
+                'cancel_subscription' => false, 'status' => 'refunded', 'source_updated_at' => now(),
+            ]);
+        }
+
+        $this->signIn(PlatformStaff::ROLE_OWNER);
+        $this->assertSame([
+            ['currency' => 'EUR', 'currency_exponent' => 2, 'payments' => 0, 'total_minor' => '0', 'tax_minor' => '0', 'fee_minor' => '0', 'earnings_minor' => '0', 'refunded_minor' => '1000', 'refunded_tax_minor' => '160'],
+            ['currency' => 'USD', 'currency_exponent' => 2, 'payments' => 0, 'total_minor' => '0', 'tax_minor' => '0', 'fee_minor' => '0', 'earnings_minor' => '0', 'refunded_minor' => '500', 'refunded_tax_minor' => null],
+        ], $this->getJson('/platform-api/v1/payments')->assertOk()->json('month'));
     }
 
     /**
