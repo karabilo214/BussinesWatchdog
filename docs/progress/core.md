@@ -969,10 +969,11 @@ Verification: backend `OrganizationDeletionTest` 8/8 with the emails (scheduled 
 
 ### Unnumbered (2026-10-21): PHP security advisory — pin the backend PHP image
 
-Status: committed; not deployed (the Docker Hub tag is not published yet)
+Status: complete; deployed 2026-10-22 (`deb2162`, together with Step 225)
 
 - PHP 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35 fix two critical unauthenticated RCE vulnerabilities; PHP-FPM is affected. Production serves the backend through `php:8.4-fpm` behind Caddy.
 - The Dockerfile used the floating tags `php:8.4-cli` / `php:8.4-fpm`, and `deploy.sh` ran `docker compose build` without `--pull`, so the server kept whichever base image it had cached at first build and never picked up PHP patch releases.
 - Now both stages are pinned to `php:8.4.27-cli` / `php:8.4.27-fpm`, and `deploy.sh` runs `docker compose build --pull` (also refreshes `node`, `caddy`, `composer` base images). Until the 8.4.27 tag appears on Docker Hub a deploy fails at `FROM` instead of shipping a vulnerable PHP.
 - Not covered by this change: the test stores on the same server (`infra/test-shops`: `wordpress:7.1.3-php8.3-apache` is mod_php, the dockware Shopware image ships its own PHP) — they need `docker compose pull`/rebuild once patched images exist, or a stop until then. Local Homebrew `php@8.4` is 8.4.26 (CLI only, not serving requests).
 - Ops: `docs/ops/production-server.md`.
+- Deployed 2026-10-22 once the tags were published (21.10 22:10 UTC): local build of the `fpm` stage checked first (PHP 8.4.27, redis/gd/intl/pdo_pgsql/exif). On the server app, scheduler, sync and reconciliation workers report 8.4.27. Test stores: WooCommerce recreated on the refreshed `wordpress:7.1.3-php8.3-apache` (8.3.35 → 8.3.36, data in volumes); Shopware (dockware, PHP-FPM from the ondrej PPA) upgraded in place with `apt-get install --only-upgrade php8.3-*` and `service php8.3-fpm restart` (8.3.25 → 8.3.36) — lost if the container is recreated from `bw-shopware`.

@@ -328,7 +328,7 @@ Verification: `PublicSiteTest` and `PolicyAcceptanceTest` (22 passed, 448 assert
 
 ### Step 225: CAPTCHA and One Safe Attachment on the Contact Form
 
-Status: complete; not deployed
+Status: complete; deployed 2026-10-22 (`deb2162`)
 
 - CAPTCHA: the self-hosted image CAPTCHA of the public store check (sum of two digits, HMAC in the session, 10 minutes, single use) moved into `App\Support\Site\MathCaptcha` and is now required on `/{locale}/contact` too (`GET /{locale}/contact/captcha`, its own session key). A wrong, reused or expired answer keeps the typed fields and shows a new image. No third-party script or cookie.
 - Bug fixed on both forms: the CAPTCHA image request is a GET, so Laravel stored it as the "previous URL" and a validation error redirected the visitor to the image. The forms now always return to their own page (`ValidationException::redirectTo`). This was live on the store check form.

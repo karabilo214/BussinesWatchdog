@@ -41,3 +41,4 @@ ssh bw-prod 'cd /opt/business-watchdog/repo/infra/test-shops && sh shopware-setu
 - WooCommerce хранит данные в томах `bw-test-shops_woo-db` и `bw-test-shops_woo-html`.
 - Почта из магазинов не отправляется (у WordPress нет sendmail, у Shopware `MAILER_DSN=null://null`).
 - Остановить: `cd infra/test-shops && docker compose --env-file /opt/business-watchdog/test-shops.env stop` (поддомены ответят 502).
+- Обновление PHP (security-релизы): WooCommerce — `docker pull wordpress:<тег>` и `docker compose --env-file /opt/business-watchdog/test-shops.env up -d woo` (данные в томах); Shopware — внутри контейнера `apt-get install --only-upgrade` пакетов `php8.3-*` из PPA ondrej и `service php8.3-fpm restart` (обновление живёт до пересоздания контейнера; надёжно — пересобрать `bw-shopware` на новом dockware).
