@@ -307,11 +307,34 @@ export interface Suppression {
   created_at: string;
 }
 
+export interface IncidentExplanationAmount {
+  minor: string;
+  currency: string;
+  exponent: number;
+}
+
+/** Codes and values only (IncidentExplainer); the texts are templates under incident.explain. */
+export interface IncidentExplanation {
+  scenario: 'capture_unconfirmed' | 'capture_not_recorded' | 'refund_unconfirmed' | 'browser_check_stopped' | 'source_unavailable' | null;
+  variant?: string;
+  params?: Record<string, string | IncidentExplanationAmount | undefined>;
+  evidence: { item: string; value: string; params: Record<string, unknown> }[];
+  causes: string[];
+  steps: string[];
+  warning?: string | null;
+  auto_close?: string | null;
+  observation: { state: 'fresh' | 'partial' | 'unavailable'; reason: string | null; checked_at: string | null } | null;
+  status: 'detected' | 'unverifiable' | 'resolved_confirmed' | 'closed_by_user';
+  outcome: { code: 'confirmed_fixed' | 'closed_by_user' | 'still_present' | 'not_rechecked'; at: string | null; reason: string | null } | null;
+  technical: Record<string, string | string[]>;
+}
+
 export interface IncidentDetail extends Incident {
   signals: Signal[];
   findings: Finding[];
   activity: IncidentActivity[];
   active_suppression: Suppression | null;
+  explanation?: IncidentExplanation;
 }
 
 export interface CheckArtifact {

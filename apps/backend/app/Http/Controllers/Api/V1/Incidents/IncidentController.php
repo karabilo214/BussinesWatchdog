@@ -21,6 +21,7 @@ use App\Models\Signal;
 use App\Models\Suppression;
 use App\Support\Api\UuidCursor;
 use App\Support\Billing\HistoryWindow;
+use App\Support\Incidents\IncidentExplainer;
 use App\Support\Incidents\IncidentLifecycleService;
 use App\Support\Tenancy\MoneyAmountVisibility;
 use App\Support\Tenancy\TenantContext;
@@ -136,6 +137,7 @@ class IncidentController extends Controller
                 ->values()
                 ->all(),
             'activity' => $this->activityDto->collection($incident->activity),
+            'explanation' => app(IncidentExplainer::class)->explain($incident, $showMoneyAmounts),
             'active_suppression' => $suppression === null ? null : $this->suppressionDto->toArray($suppression),
         ]))->setEtag((string) $incident->revision);
     }

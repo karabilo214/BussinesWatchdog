@@ -12,13 +12,16 @@ use App\Models\Store;
 use App\Support\Browser\CheckOutcomeEvaluator;
 use App\Support\Checkout\CheckoutObservationEvaluator;
 use App\Support\Checkout\PaymentAttemptMonitor;
+use App\Support\Incidents\IncidentExplainer;
 use App\Support\Integrations\ConnectorFreshness;
 
 class IncidentNotificationContentBuilder
 {
-    public const TEMPLATE_VERSION = 'incident.v1';
+    public const TEMPLATE_VERSION = 'incident.v2';
 
     public const TEST_TEMPLATE_VERSION = 'test.v1';
+
+    public function __construct(private readonly IncidentExplainer $explainer) {}
 
     /**
      * @return array<string, mixed>
@@ -76,6 +79,7 @@ class IncidentNotificationContentBuilder
                 ? $incident->resolved_at?->toJSON()
                 : null,
             'source' => 'reconciliation',
+            ...$this->firstStep($incident),
             'checked_steps' => ['store_order_data', 'provider_transactions', 'payment_allocations'],
             'link' => $this->incidentLink($incident),
         ];
@@ -197,6 +201,7 @@ class IncidentNotificationContentBuilder
                 ? $incident->resolved_at?->toJSON()
                 : null,
             'source' => 'connector_heartbeat',
+            ...$this->firstStep($incident),
             'checked_steps' => ['connector_heartbeat', 'connector_delivery'],
             'link' => $this->incidentLink($incident),
         ];
@@ -232,6 +237,7 @@ class IncidentNotificationContentBuilder
                 ? $incident->resolved_at?->toJSON()
                 : null,
             'source' => 'browser_check',
+            ...$this->firstStep($incident),
             'checked_steps' => ['check_product', 'check_cart', 'check_checkout', 'check_payment_form'],
             'link' => $this->incidentLink($incident),
         ];
@@ -278,6 +284,33 @@ class IncidentNotificationContentBuilder
             ->where('status', ReconciliationFinding::STATUS_MISMATCH)
             ->orderByDesc('evaluated_at')
             ->first();
+    }
+
+    /**
+     * The first thing to check, from the incident's explanation (IncidentExplainer), for the short message; the full
+     * explanation stays in the cabinet. Amounts are never needed here. A silent connector keeps the general advice,
+     * which names the site, the plugin and the scheduler at once, unless the store rejected the key.
+     *
+     * @return array{first_step?: string, first_step_params?: array<string, string>}
+     */
+    private function firstStep(Incident $incident): array
+    {
+        $explanation = $this->explainer->explain($incident, false);
+        $step = $explanation['steps'][0] ?? null;
+
+        if ($explanation['scenario'] === null || ! is_string($step)) {
+            return [];
+        }
+
+        if ($explanation['scenario'] === IncidentExplainer::SCENARIO_SOURCE_UNAVAILABLE && $step !== 'replace_key') {
+            return [];
+        }
+
+        return ['first_step' => $step, 'first_step_params' => array_filter([
+            'provider' => is_string($explanation['params']['provider'] ?? null) ? $explanation['params']['provider'] : null,
+            'reference' => is_string($explanation['params']['reference'] ?? null) ? $explanation['params']['reference'] : null,
+            'capture' => is_string($explanation['params']['capture'] ?? null) ? $explanation['params']['capture'] : null,
+        ])];
     }
 
     private function incidentLink(Incident $incident): string

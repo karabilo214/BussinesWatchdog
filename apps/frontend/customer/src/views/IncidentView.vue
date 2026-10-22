@@ -6,6 +6,7 @@ import type { IncidentDetail, Store } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import IncidentActions from '@/components/incidents/IncidentActions.vue';
 import IncidentEvidence from '@/components/incidents/IncidentEvidence.vue';
+import IncidentExplanation from '@/components/incidents/IncidentExplanation.vue';
 import IncidentTimeline from '@/components/incidents/IncidentTimeline.vue';
 import { SEVERITY_TONES, STATE_TONES } from '@/components/incidents/tones';
 import { useIncidentText } from '@/components/incidents/useIncidentText';
@@ -107,7 +108,9 @@ watch(
           </p>
         </section>
 
-        <section class="flex flex-col gap-1 rounded-xl border border-note-border bg-note-soft p-5" aria-labelledby="advice-title">
+        <IncidentExplanation v-if="incident.explanation?.scenario" :explanation="incident.explanation" />
+
+        <section v-else class="flex flex-col gap-1 rounded-xl border border-note-border bg-note-soft p-5" aria-labelledby="advice-title">
           <h2 id="advice-title" class="text-base font-semibold">{{ $t('incident.advice_title') }}</h2>
           <p class="text-sm">{{ advice(incident.title_code) }}</p>
         </section>

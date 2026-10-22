@@ -890,6 +890,324 @@
         "severity_changed": "Severity changed",
         "suppressed": "Notifications snoozed"
       }
+    },
+    "explain": {
+      "unknown": "unknown",
+      "problem_label": "What is known about the problem",
+      "observation_label": "How current the data is",
+      "checked_at": "data last updated: {at}",
+      "evidence_title": "What this is based on",
+      "evidence_check": "Checked",
+      "evidence_result": "Result",
+      "causes_title": "What this may mean",
+      "causes_note": "These are possible causes, not established facts.",
+      "steps_title": "What to check",
+      "technical_title": "Technical details",
+      "open_check_run_link": "Open the check",
+      "provider": {
+        "stripe": "Stripe",
+        "paypal": "PayPal",
+        "default": "The payment provider"
+      },
+      "provider_at": {
+        "stripe": "in Stripe",
+        "paypal": "in PayPal",
+        "default": "at the payment provider"
+      },
+      "source": {
+        "woocommerce": "WooCommerce plugin",
+        "woocommerce_api": "WooCommerce (REST API)",
+        "shopware": "Shopware",
+        "stripe": "Stripe",
+        "paypal": "PayPal"
+      },
+      "check_step": {
+        "product": "product page",
+        "add_to_cart": "adding to cart",
+        "cart": "cart",
+        "checkout": "checkout",
+        "shipping": "address and shipping",
+        "payment_form": "payment form",
+        "login": "test customer login"
+      },
+      "payment_status": {
+        "pending": "pending",
+        "authorized": "authorized, not captured",
+        "captured": "captured",
+        "failed": "declined",
+        "cancelled": "cancelled",
+        "unknown": "state unknown"
+      },
+      "store_state": {
+        "open": "open",
+        "pending": "awaiting payment",
+        "authorized": "authorized",
+        "paid": "paid",
+        "partially_paid": "partially paid",
+        "refunded": "refunded",
+        "partially_refunded": "partially refunded",
+        "failed": "payment failed",
+        "cancelled": "cancelled",
+        "chargeback": "disputed (chargeback)"
+      },
+      "status": {
+        "detected": "Detected, needs checking",
+        "unverifiable": "Detected earlier; cannot be checked again right now",
+        "resolved_confirmed": "Resolved — confirmed by new data",
+        "closed_by_user": "Closed by a user — this does not confirm it was fixed"
+      },
+      "observation": {
+        "fresh": "Current and complete",
+        "partial": "Incomplete",
+        "unavailable": "Source unavailable"
+      },
+      "observation_reason": {
+        "provider_not_connected": "{provider} is not connected to this store",
+        "provider_access_lost": "access {provider_at} was revoked or the key is no longer accepted",
+        "provider_not_synced_yet": "data {provider_at} has not been loaded yet",
+        "provider_sync_stale": "data {provider_at} has not been updated for more than a day",
+        "provider_sync_incomplete": "loading data {provider_at} has not finished yet",
+        "store_data_stale": "the store data is out of date"
+      },
+      "outcome": {
+        "confirmed_fixed": "New data confirmed the fix: {reason}. The incident was closed automatically ({at}).",
+        "closed_by_user": "Closed by a user on {at}. This does not confirm that the discrepancy was fixed.",
+        "still_present": "Last check {at}: the problem is still there.",
+        "not_rechecked": "The last check on {at} could not re-check the discrepancy: the data is unavailable."
+      },
+      "capture_unconfirmed": {
+        "headline": {
+          "with_order": "Order {order} is marked paid, but the capture {provider_at} is not confirmed yet",
+          "no_order": "The order is marked paid, but the capture {provider_at} is not confirmed yet"
+        },
+        "fact": {
+          "default": "The store marked the order paid. The available data {provider_at} shows no confirmed successful capture for it after the waiting period. A discrepancy is established, not a loss of money.",
+          "default_amount": "The store marked the order for {amount} paid. The available data {provider_at} shows no confirmed successful capture for it after the waiting period. A discrepancy is established, not a loss of money."
+        }
+      },
+      "capture_not_recorded": {
+        "headline": {
+          "with_order": "Money for order {order} was captured {provider_at}, but the store has not marked the order paid",
+          "no_order": "Money was captured {provider_at}, but the store has not marked the order paid"
+        },
+        "fact": {
+          "default": "{provider} confirmed a successful capture, but the store has not marked the order paid. The customer has probably paid already — do not charge again.",
+          "default_amount": "{provider} confirmed a successful capture of {amount}, but the store has not marked the order paid. The customer has probably paid already — do not charge again."
+        }
+      },
+      "refund_unconfirmed": {
+        "headline": {
+          "with_order": "A refund for order {order} is marked in the store but not confirmed {provider_at}",
+          "no_order": "A refund is marked in the store but not confirmed {provider_at}"
+        },
+        "fact": {
+          "default": "The store records a refund for the order, but no matching refund was found {provider_at}. A refund recorded in the store does not prove that the money reached the customer.",
+          "payment_app_without_refunds": "The store marks the order refunded, but there is no refund {provider_at}. Your payment plugin does not make refunds from the store: marking it refunded moves no money — refunds are made {provider_at}."
+        }
+      },
+      "browser_check_stopped": {
+        "headline": {
+          "step_known": "The checkout check stopped at «{step}»",
+          "step_unknown": "The checkout check did not reach the end"
+        },
+        "fact": {
+          "default": "The service walked the customer path in a browser and stopped at this step. This checks that checkout is reachable: no order is created, no money is charged, and captures are not checked."
+        }
+      },
+      "source_unavailable": {
+        "headline": {
+          "stale": "The source «{source}» stopped updating",
+          "delayed": "The source «{source}» is sending data late"
+        },
+        "fact": {
+          "default": "While the source does not update, the service cannot reliably watch the orders and payments it provides. It does not mean that sales stopped."
+        }
+      },
+      "evidence_item": {
+        "store_order": "Order in the store",
+        "paid_mark": "Paid mark in the store",
+        "payment_reference": "Payment reference",
+        "provider_payment": "Payment at the provider",
+        "successful_capture": "Successful capture",
+        "provider_capture": "Capture at the provider",
+        "store_payment_state": "Payment status in the store",
+        "store_refund": "Refund in the store",
+        "provider_refund": "Refund at the provider",
+        "last_provider_sync": "Last provider data load",
+        "data_completeness": "Data completeness",
+        "stopped_step": "Stopped at",
+        "reached_step": "Last step passed",
+        "stop_reason": "Reason for stopping",
+        "screenshot": "Screenshot",
+        "last_passed_check": "Last successful check",
+        "source": "Source",
+        "source_reason": "What is wrong with the source",
+        "last_signal": "Last signal",
+        "last_successful_sync": "Last successful sync"
+      },
+      "evidence": {
+        "store_order": {
+          "order": "{order}, total {amount}",
+          "order_only": "{order}",
+          "unknown": "order not found"
+        },
+        "paid_mark": {
+          "yes": "yes",
+          "no": "no"
+        },
+        "payment_reference": {
+          "from_order": "taken from the order: {reference}",
+          "missing": "missing in the order"
+        },
+        "provider_payment": {
+          "found": "found, state: {status}",
+          "not_found": "not found by the order's reference"
+        },
+        "successful_capture": {
+          "not_confirmed": "not confirmed"
+        },
+        "provider_capture": {
+          "confirmed": "confirmed: {amount}",
+          "confirmed_no_amount": "confirmed"
+        },
+        "store_payment_state": {
+          "state": "{state}",
+          "unknown": "unknown"
+        },
+        "store_refund": {
+          "amount": "recorded for {amount}",
+          "full_no_amount": "order marked fully refunded (the store reports no amount)",
+          "partial_no_amount": "order marked partially refunded (the store reports no amount)"
+        },
+        "provider_refund": {
+          "amount": "found for {amount}",
+          "none": "not found"
+        },
+        "last_provider_sync": {
+          "at": "{at}",
+          "never": "not yet"
+        },
+        "data_completeness": {
+          "full": "complete",
+          "limited": "limited: {reason}"
+        },
+        "stopped_step": {
+          "step": "{step}",
+          "unknown": "not determined"
+        },
+        "reached_step": {
+          "step": "{step}",
+          "none": "no step passed"
+        },
+        "stop_reason": {
+          "error": "{error}",
+          "unknown": "not determined"
+        },
+        "screenshot": {
+          "available": "available — open the check",
+          "not_available": "none or already deleted"
+        },
+        "last_passed_check": {
+          "at": "{at}",
+          "never": "not yet"
+        },
+        "source": {
+          "connector": "{source}",
+          "unknown": "unknown"
+        },
+        "source_reason": {
+          "reason": "{reason}",
+          "unknown": "not determined"
+        },
+        "last_signal": {
+          "at": "{at}",
+          "never": "none"
+        },
+        "last_successful_sync": {
+          "at": "{at}",
+          "never": "none"
+        }
+      },
+      "cause": {
+        "authorized_not_captured": "the payment is authorized but the money is not captured yet — the capture has to be confirmed in the payment system or the store's payment module",
+        "capture_pending": "the provider is still processing the payment; the capture has not finished",
+        "payment_failed_but_marked_paid": "the provider declined or cancelled the payment, but the store marked the order paid anyway",
+        "marked_paid_early": "the store marked the order paid before the capture was confirmed, or someone marked it by hand",
+        "reference_mismatch": "the order names a different payment, and the real payment went through under another id",
+        "reference_missing": "the payment module did not save the payment id in the order, so the order cannot be linked to a payment",
+        "provider_data_incomplete": "the provider data is not complete — the capture may appear after loading",
+        "store_marked_failed_after_payment": "the store marked the payment failed or cancelled the order after the capture",
+        "notification_not_processed": "the payment notification did not reach the store or was not processed by the payment module",
+        "status_changed_manually": "the order status was changed by hand",
+        "refund_marked_only": "the refund was only marked in the store and never sent through the payment system",
+        "refund_failed_at_provider": "the refund was sent, but the payment system declined it",
+        "refund_partial_at_provider": "only part of the amount was refunded at the provider",
+        "step_failed_on_site": "the site showed an error or did not respond at this step",
+        "page_changed": "the page or theme changed and the element is no longer found",
+        "temporary_outage": "a temporary site or network outage during the check",
+        "key_revoked_or_changed": "the access key was revoked, deleted or replaced",
+        "site_unreachable": "the site is unreachable or answers very slowly",
+        "key_permissions_changed": "the key's permissions changed",
+        "plugin_not_active": "the plugin is installed but not activated or not connected",
+        "scheduler_slow_or_stopped": "scheduled tasks on the site (WP-Cron, Action Scheduler) do not run or lag behind",
+        "site_overloaded": "the site is overloaded",
+        "site_down": "the site is down",
+        "plugin_disabled": "the plugin was disabled or removed"
+      },
+      "step": {
+        "restore_provider_access": "Restore the service's access to {provider}: without it the discrepancy cannot be re-checked.",
+        "open_payment_by_reference": "Open the payment {provider_at} by its id {reference}.",
+        "check_captured_not_authorized": "Check that the money was actually captured, not only authorized.",
+        "compare_reference": "Compare the payment id in the order with the payment {provider_at}.",
+        "check_payment_module_data": "Open the order in the store and check the payment module data: is there a payment id, and which payment method is set.",
+        "find_payment_in_provider": "Find the payment {provider_at} by amount, date and customer email.",
+        "link_manually": "If you find the payment, link it to the order by hand on the order page.",
+        "recheck": "After checking, run the order reconciliation again — the result appears here.",
+        "open_capture_in_provider": "Open the capture {capture} {provider_at} and make sure it succeeded.",
+        "find_capture_in_provider": "Find the capture {provider_at} by the order amount and date.",
+        "check_order_status": "Check the order status and its change history in the store.",
+        "check_payment_module_notifications": "Check the payment module log: did the payment notification (webhook) arrive and was it processed.",
+        "mark_paid_without_recharge": "If the capture is confirmed, mark the order paid — without charging again.",
+        "check_refund_at_provider": "Find the refund for this order {provider_at} and check its state.",
+        "refund_in_provider_dashboard": "If there is no refund and one is needed, make it {provider_at} — your payment plugin does not make refunds from the store.",
+        "send_refund_through_provider_if_missing": "If there is no refund and one is needed, send it once through the store's payment module or {provider_at}.",
+        "open_check_run": "Open the check result: the steps, the reason and the screenshot.",
+        "repeat_path_manually": "Walk the same path by hand: product, cart, checkout.",
+        "check_recent_changes": "Think of recent changes: theme, plugins, shipping and payment settings.",
+        "run_check_again": "Run the check again after fixing it.",
+        "replace_key": "Create a new access key in the store and replace it in the connection settings.",
+        "check_connection": "Check the connection in the cabinet: the service shows whether syncing works.",
+        "check_site_reachable": "Open the site and make sure it works and answers quickly.",
+        "check_key_permissions": "Check the access key's permissions in the store.",
+        "check_plugin_active": "Check that the Business Watchdog plugin is installed and active.",
+        "check_scheduler": "Check that scheduled tasks run on the site (WP-Cron or Action Scheduler)."
+      },
+      "warning": {
+        "no_recharge": "Do not charge the customer again based on this incident alone.",
+        "no_double_refund": "Do not send a second refund automatically: first make sure there is no first one.",
+        "browser_check_no_payment": "The check creates no order and charges no money — confirm a fix by walking the same path by hand.",
+        "source_gap_not_sales_stop": "This does not mean sales stopped: while the source is silent, the service simply does not see new data."
+      },
+      "auto_close": {
+        "capture_linked_or_unmarked": "The incident closes by itself once a confirmed capture is linked to the order or the store removes the paid mark.",
+        "store_marks_paid": "The incident closes by itself once the store marks the order paid.",
+        "provider_refund_matches": "The incident closes by itself once the provider's refund matches the store's refund.",
+        "scheduled_checks_pass": "The incident closes by itself after two successful scheduled checks in a row.",
+        "source_fresh_again": "The incident closes by itself once the source updates again."
+      },
+      "technical": {
+        "rule_code": "Rule",
+        "reason_code": "Reason",
+        "order_reference": "Reference in the order",
+        "store_transaction_ref": "Store transaction",
+        "payment_intent": "PaymentIntent / payment",
+        "charge": "Charge",
+        "capture_operation_ids": "Capture operations",
+        "source": "Source",
+        "error_code": "Error code",
+        "check_run_id": "Check",
+        "integration_id": "Connection"
+      }
     }
   },
   "reconciliation": {

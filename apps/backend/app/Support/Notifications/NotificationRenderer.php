@@ -71,7 +71,7 @@ class NotificationRenderer
                 $content['checked_steps'],
             )),
         ], $locale);
-        $lines[] = $this->t('what_to_check.'.$content['component'], [], $locale, 'what_to_check.default');
+        $lines[] = $this->firstStep($content, $locale) ?? $this->t('what_to_check.'.$content['component'], [], $locale, 'what_to_check.default');
         $lines[] = '';
         $lines[] = $this->t('link', ['link' => $content['link']], $locale);
 
@@ -297,6 +297,27 @@ class NotificationRenderer
     /**
      * @param  array<string, mixed>  $replace
      */
+    /**
+     * The first step of the incident's explanation, worded for this case (a known payment id, the provider); null keeps
+     * the general advice for incidents without an explanation and for notifications written before it existed.
+     *
+     * @param  array<string, mixed>  $content
+     */
+    private function firstStep(array $content, string $locale): ?string
+    {
+        $step = $content['first_step'] ?? null;
+
+        if (! is_string($step) || trans('notifications.first_step.'.$step, [], $locale) === 'notifications.first_step.'.$step) {
+            return null;
+        }
+
+        $params = is_array($content['first_step_params'] ?? null) ? $content['first_step_params'] : [];
+        $provider = is_string($params['provider'] ?? null) ? $params['provider'] : 'default';
+        $providerAt = $this->t('provider_at.'.$provider, [], $locale, 'provider_at.default');
+
+        return $this->t('first_step.'.$step, ['provider_at' => $providerAt, 'reference' => (string) ($params['reference'] ?? ''), 'capture' => (string) ($params['capture'] ?? '')], $locale);
+    }
+
     private function t(string $key, array $replace, string $locale, ?string $fallbackKey = null): string
     {
         $fullKey = 'notifications.'.$key;

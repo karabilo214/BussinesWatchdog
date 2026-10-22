@@ -890,6 +890,324 @@
         "severity_changed": "Schweregrad geändert",
         "suppressed": "Benachrichtigungen stumm"
       }
+    },
+    "explain": {
+      "unknown": "unbekannt",
+      "problem_label": "Was über das Problem bekannt ist",
+      "observation_label": "Wie aktuell die Daten sind",
+      "checked_at": "Daten zuletzt aktualisiert: {at}",
+      "evidence_title": "Worauf das beruht",
+      "evidence_check": "Geprüft",
+      "evidence_result": "Ergebnis",
+      "causes_title": "Was das bedeuten kann",
+      "causes_note": "Das sind mögliche Ursachen, keine festgestellten Tatsachen.",
+      "steps_title": "Was zu prüfen ist",
+      "technical_title": "Technische Details",
+      "open_check_run_link": "Prüfung öffnen",
+      "provider": {
+        "stripe": "Stripe",
+        "paypal": "PayPal",
+        "default": "Der Zahlungsanbieter"
+      },
+      "provider_at": {
+        "stripe": "bei Stripe",
+        "paypal": "bei PayPal",
+        "default": "beim Zahlungsanbieter"
+      },
+      "source": {
+        "woocommerce": "WooCommerce-Plugin",
+        "woocommerce_api": "WooCommerce (REST-API)",
+        "shopware": "Shopware",
+        "stripe": "Stripe",
+        "paypal": "PayPal"
+      },
+      "check_step": {
+        "product": "Produktseite",
+        "add_to_cart": "In den Warenkorb",
+        "cart": "Warenkorb",
+        "checkout": "Kasse",
+        "shipping": "Adresse und Versand",
+        "payment_form": "Zahlungsformular",
+        "login": "Anmeldung des Testkunden"
+      },
+      "payment_status": {
+        "pending": "ausstehend",
+        "authorized": "autorisiert, nicht eingezogen",
+        "captured": "eingezogen",
+        "failed": "abgelehnt",
+        "cancelled": "storniert",
+        "unknown": "Zustand unbekannt"
+      },
+      "store_state": {
+        "open": "offen",
+        "pending": "wartet auf Zahlung",
+        "authorized": "autorisiert",
+        "paid": "bezahlt",
+        "partially_paid": "teilweise bezahlt",
+        "refunded": "erstattet",
+        "partially_refunded": "teilweise erstattet",
+        "failed": "Zahlung fehlgeschlagen",
+        "cancelled": "storniert",
+        "chargeback": "angefochten (Chargeback)"
+      },
+      "status": {
+        "detected": "Erkannt, muss geprüft werden",
+        "unverifiable": "Früher erkannt; kann gerade nicht erneut geprüft werden",
+        "resolved_confirmed": "Behoben — durch neue Daten bestätigt",
+        "closed_by_user": "Von einer Person geschlossen — das bestätigt keine Behebung"
+      },
+      "observation": {
+        "fresh": "Aktuell und vollständig",
+        "partial": "Unvollständig",
+        "unavailable": "Quelle nicht verfügbar"
+      },
+      "observation_reason": {
+        "provider_not_connected": "{provider} ist mit diesem Shop nicht verbunden",
+        "provider_access_lost": "der Zugriff {provider_at} wurde entzogen oder der Schlüssel wird nicht mehr angenommen",
+        "provider_not_synced_yet": "Daten {provider_at} wurden noch nie geladen",
+        "provider_sync_stale": "Daten {provider_at} wurden seit über einem Tag nicht aktualisiert",
+        "provider_sync_incomplete": "das Laden der Daten {provider_at} ist noch nicht abgeschlossen",
+        "store_data_stale": "die Shopdaten sind veraltet"
+      },
+      "outcome": {
+        "confirmed_fixed": "Neue Daten haben die Behebung bestätigt: {reason}. Der Vorfall wurde automatisch geschlossen ({at}).",
+        "closed_by_user": "Am {at} von einer Person geschlossen. Das bestätigt nicht, dass die Abweichung behoben ist.",
+        "still_present": "Letzte Prüfung {at}: das Problem besteht weiter.",
+        "not_rechecked": "Die letzte Prüfung am {at} konnte die Abweichung nicht erneut prüfen: die Daten sind nicht verfügbar."
+      },
+      "capture_unconfirmed": {
+        "headline": {
+          "with_order": "Bestellung {order} ist als bezahlt markiert, aber der Einzug {provider_at} ist noch nicht bestätigt",
+          "no_order": "Die Bestellung ist als bezahlt markiert, aber der Einzug {provider_at} ist noch nicht bestätigt"
+        },
+        "fact": {
+          "default": "Der Shop hat die Bestellung als bezahlt markiert. In den verfügbaren Daten {provider_at} ist nach der Wartezeit kein bestätigter erfolgreicher Einzug dafür zu finden. Festgestellt ist eine Abweichung, kein Geldverlust.",
+          "default_amount": "Der Shop hat die Bestellung über {amount} als bezahlt markiert. In den verfügbaren Daten {provider_at} ist nach der Wartezeit kein bestätigter erfolgreicher Einzug dafür zu finden. Festgestellt ist eine Abweichung, kein Geldverlust."
+        }
+      },
+      "capture_not_recorded": {
+        "headline": {
+          "with_order": "Das Geld für Bestellung {order} wurde {provider_at} eingezogen, aber der Shop hat sie nicht als bezahlt markiert",
+          "no_order": "Geld wurde {provider_at} eingezogen, aber der Shop hat die Bestellung nicht als bezahlt markiert"
+        },
+        "fact": {
+          "default": "{provider} hat einen erfolgreichen Einzug bestätigt, aber der Shop hat die Bestellung nicht als bezahlt markiert. Der Kunde hat wahrscheinlich schon bezahlt — nicht erneut belasten.",
+          "default_amount": "{provider} hat einen erfolgreichen Einzug über {amount} bestätigt, aber der Shop hat die Bestellung nicht als bezahlt markiert. Der Kunde hat wahrscheinlich schon bezahlt — nicht erneut belasten."
+        }
+      },
+      "refund_unconfirmed": {
+        "headline": {
+          "with_order": "Eine Erstattung für Bestellung {order} ist im Shop vermerkt, aber {provider_at} nicht bestätigt",
+          "no_order": "Eine Erstattung ist im Shop vermerkt, aber {provider_at} nicht bestätigt"
+        },
+        "fact": {
+          "default": "Im Shop ist für die Bestellung eine Erstattung vermerkt, aber {provider_at} wurde keine passende Erstattung gefunden. Eine Erstattung im Shop beweist nicht, dass das Geld beim Kunden angekommen ist.",
+          "payment_app_without_refunds": "Der Shop markiert die Bestellung als erstattet, aber {provider_at} gibt es keine Erstattung. Ihr Zahlungs-Plugin erstattet nicht aus dem Shop: die Markierung bewegt kein Geld — Erstattungen erfolgen {provider_at}."
+        }
+      },
+      "browser_check_stopped": {
+        "headline": {
+          "step_known": "Die Checkout-Prüfung blieb beim Schritt «{step}» stehen",
+          "step_unknown": "Die Checkout-Prüfung kam nicht bis zum Ende"
+        },
+        "fact": {
+          "default": "Der Dienst ist den Weg des Kunden im Browser gegangen und bei diesem Schritt stehen geblieben. Geprüft wird die Erreichbarkeit der Kasse: es entsteht keine Bestellung, es wird kein Geld belastet und Einzüge werden nicht geprüft."
+        }
+      },
+      "source_unavailable": {
+        "headline": {
+          "stale": "Die Quelle «{source}» wird nicht mehr aktualisiert",
+          "delayed": "Die Quelle «{source}» liefert Daten verspätet"
+        },
+        "fact": {
+          "default": "Solange die Quelle nicht aktualisiert wird, kann der Dienst ihre Bestellungen und Zahlungen nicht zuverlässig überwachen. Das heißt nicht, dass der Verkauf stillsteht."
+        }
+      },
+      "evidence_item": {
+        "store_order": "Bestellung im Shop",
+        "paid_mark": "Bezahlt-Markierung im Shop",
+        "payment_reference": "Zahlungsreferenz",
+        "provider_payment": "Zahlung beim Anbieter",
+        "successful_capture": "Erfolgreicher Einzug",
+        "provider_capture": "Einzug beim Anbieter",
+        "store_payment_state": "Zahlungsstatus im Shop",
+        "store_refund": "Erstattung im Shop",
+        "provider_refund": "Erstattung beim Anbieter",
+        "last_provider_sync": "Letztes Laden der Anbieterdaten",
+        "data_completeness": "Vollständigkeit der Daten",
+        "stopped_step": "Gestoppt bei",
+        "reached_step": "Letzter bestandener Schritt",
+        "stop_reason": "Grund des Abbruchs",
+        "screenshot": "Bildschirmfoto",
+        "last_passed_check": "Letzte erfolgreiche Prüfung",
+        "source": "Quelle",
+        "source_reason": "Was mit der Quelle ist",
+        "last_signal": "Letztes Signal",
+        "last_successful_sync": "Letzte erfolgreiche Synchronisierung"
+      },
+      "evidence": {
+        "store_order": {
+          "order": "{order}, Betrag {amount}",
+          "order_only": "{order}",
+          "unknown": "Bestellung nicht gefunden"
+        },
+        "paid_mark": {
+          "yes": "ja",
+          "no": "nein"
+        },
+        "payment_reference": {
+          "from_order": "aus der Bestellung: {reference}",
+          "missing": "fehlt in der Bestellung"
+        },
+        "provider_payment": {
+          "found": "gefunden, Zustand: {status}",
+          "not_found": "über die Referenz der Bestellung nicht gefunden"
+        },
+        "successful_capture": {
+          "not_confirmed": "nicht bestätigt"
+        },
+        "provider_capture": {
+          "confirmed": "bestätigt: {amount}",
+          "confirmed_no_amount": "bestätigt"
+        },
+        "store_payment_state": {
+          "state": "{state}",
+          "unknown": "unbekannt"
+        },
+        "store_refund": {
+          "amount": "vermerkt über {amount}",
+          "full_no_amount": "Bestellung als vollständig erstattet markiert (der Shop meldet keinen Betrag)",
+          "partial_no_amount": "Bestellung als teilweise erstattet markiert (der Shop meldet keinen Betrag)"
+        },
+        "provider_refund": {
+          "amount": "gefunden über {amount}",
+          "none": "nicht gefunden"
+        },
+        "last_provider_sync": {
+          "at": "{at}",
+          "never": "noch nicht"
+        },
+        "data_completeness": {
+          "full": "vollständig",
+          "limited": "eingeschränkt: {reason}"
+        },
+        "stopped_step": {
+          "step": "{step}",
+          "unknown": "nicht bestimmt"
+        },
+        "reached_step": {
+          "step": "{step}",
+          "none": "kein Schritt bestanden"
+        },
+        "stop_reason": {
+          "error": "{error}",
+          "unknown": "nicht bestimmt"
+        },
+        "screenshot": {
+          "available": "vorhanden — Prüfung öffnen",
+          "not_available": "keins oder bereits gelöscht"
+        },
+        "last_passed_check": {
+          "at": "{at}",
+          "never": "noch nicht"
+        },
+        "source": {
+          "connector": "{source}",
+          "unknown": "unbekannt"
+        },
+        "source_reason": {
+          "reason": "{reason}",
+          "unknown": "nicht bestimmt"
+        },
+        "last_signal": {
+          "at": "{at}",
+          "never": "keins"
+        },
+        "last_successful_sync": {
+          "at": "{at}",
+          "never": "keine"
+        }
+      },
+      "cause": {
+        "authorized_not_captured": "die Zahlung ist autorisiert, aber das Geld noch nicht eingezogen — der Einzug muss im Zahlungssystem oder im Zahlungsmodul des Shops bestätigt werden",
+        "capture_pending": "der Anbieter verarbeitet die Zahlung noch; der Einzug ist nicht abgeschlossen",
+        "payment_failed_but_marked_paid": "der Anbieter hat die Zahlung abgelehnt oder storniert, der Shop hat die Bestellung trotzdem als bezahlt markiert",
+        "marked_paid_early": "der Shop hat die Bestellung als bezahlt markiert, bevor der Einzug bestätigt war, oder sie wurde von Hand markiert",
+        "reference_mismatch": "die Bestellung nennt eine andere Zahlung, die echte Zahlung lief unter einer anderen ID",
+        "reference_missing": "das Zahlungsmodul hat keine Zahlungs-ID in der Bestellung gespeichert, daher lässt sich die Bestellung keiner Zahlung zuordnen",
+        "provider_data_incomplete": "die Anbieterdaten sind nicht vollständig — der Einzug kann nach dem Laden erscheinen",
+        "store_marked_failed_after_payment": "der Shop hat die Zahlung nach dem Einzug als fehlgeschlagen markiert oder die Bestellung storniert",
+        "notification_not_processed": "die Zahlungsbenachrichtigung hat den Shop nicht erreicht oder wurde vom Zahlungsmodul nicht verarbeitet",
+        "status_changed_manually": "der Bestellstatus wurde von Hand geändert",
+        "refund_marked_only": "die Erstattung wurde nur im Shop vermerkt und nie über das Zahlungssystem gesendet",
+        "refund_failed_at_provider": "die Erstattung wurde gesendet, aber vom Zahlungssystem abgelehnt",
+        "refund_partial_at_provider": "beim Anbieter wurde nur ein Teil des Betrags erstattet",
+        "step_failed_on_site": "die Seite zeigte bei diesem Schritt einen Fehler oder antwortete nicht",
+        "page_changed": "Seite oder Theme haben sich geändert, das Element wird nicht mehr gefunden",
+        "temporary_outage": "ein vorübergehender Ausfall der Seite oder des Netzes während der Prüfung",
+        "key_revoked_or_changed": "der Zugriffsschlüssel wurde entzogen, gelöscht oder ersetzt",
+        "site_unreachable": "die Seite ist nicht erreichbar oder antwortet sehr langsam",
+        "key_permissions_changed": "die Rechte des Schlüssels haben sich geändert",
+        "plugin_not_active": "das Plugin ist installiert, aber nicht aktiviert oder nicht verbunden",
+        "scheduler_slow_or_stopped": "geplante Aufgaben auf der Seite (WP-Cron, Action Scheduler) laufen nicht oder hängen hinterher",
+        "site_overloaded": "die Seite ist überlastet",
+        "site_down": "die Seite ist nicht erreichbar",
+        "plugin_disabled": "das Plugin wurde deaktiviert oder entfernt"
+      },
+      "step": {
+        "restore_provider_access": "Stellen Sie den Zugriff des Dienstes auf {provider} wieder her: ohne ihn lässt sich die Abweichung nicht erneut prüfen.",
+        "open_payment_by_reference": "Öffnen Sie die Zahlung {provider_at} über ihre ID {reference}.",
+        "check_captured_not_authorized": "Prüfen Sie, dass das Geld tatsächlich eingezogen und nicht nur autorisiert wurde.",
+        "compare_reference": "Vergleichen Sie die Zahlungs-ID in der Bestellung mit der Zahlung {provider_at}.",
+        "check_payment_module_data": "Öffnen Sie die Bestellung im Shop und prüfen Sie die Daten des Zahlungsmoduls: gibt es eine Zahlungs-ID, welche Zahlungsart ist gesetzt.",
+        "find_payment_in_provider": "Suchen Sie die Zahlung {provider_at} nach Betrag, Datum und E-Mail des Kunden.",
+        "link_manually": "Wenn Sie die Zahlung finden, ordnen Sie sie auf der Bestellseite von Hand zu.",
+        "recheck": "Starten Sie danach den Abgleich der Bestellung erneut — das Ergebnis erscheint hier.",
+        "open_capture_in_provider": "Öffnen Sie den Einzug {capture} {provider_at} und prüfen Sie, dass er erfolgreich war.",
+        "find_capture_in_provider": "Suchen Sie den Einzug {provider_at} nach Betrag und Datum der Bestellung.",
+        "check_order_status": "Prüfen Sie den Bestellstatus und seine Änderungshistorie im Shop.",
+        "check_payment_module_notifications": "Prüfen Sie das Protokoll des Zahlungsmoduls: kam die Zahlungsbenachrichtigung (Webhook) an und wurde sie verarbeitet.",
+        "mark_paid_without_recharge": "Ist der Einzug bestätigt, markieren Sie die Bestellung als bezahlt — ohne erneut zu belasten.",
+        "check_refund_at_provider": "Suchen Sie die Erstattung zu dieser Bestellung {provider_at} und prüfen Sie ihren Zustand.",
+        "refund_in_provider_dashboard": "Gibt es keine Erstattung und ist eine nötig, führen Sie sie {provider_at} aus — Ihr Zahlungs-Plugin erstattet nicht aus dem Shop.",
+        "send_refund_through_provider_if_missing": "Gibt es keine Erstattung und ist eine nötig, senden Sie sie einmal über das Zahlungsmodul des Shops oder {provider_at}.",
+        "open_check_run": "Öffnen Sie das Prüfergebnis: Schritte, Grund und Bildschirmfoto.",
+        "repeat_path_manually": "Gehen Sie denselben Weg von Hand: Produkt, Warenkorb, Kasse.",
+        "check_recent_changes": "Denken Sie an kürzliche Änderungen: Theme, Plugins, Versand- und Zahlungseinstellungen.",
+        "run_check_again": "Starten Sie die Prüfung nach der Behebung erneut.",
+        "replace_key": "Erstellen Sie im Shop einen neuen Zugriffsschlüssel und ersetzen Sie ihn in den Verbindungseinstellungen.",
+        "check_connection": "Prüfen Sie die Verbindung im Kundenkonto: der Dienst zeigt, ob die Synchronisierung läuft.",
+        "check_site_reachable": "Öffnen Sie die Seite und prüfen Sie, dass sie läuft und schnell antwortet.",
+        "check_key_permissions": "Prüfen Sie die Rechte des Zugriffsschlüssels im Shop.",
+        "check_plugin_active": "Prüfen Sie, dass das Business-Watchdog-Plugin installiert und aktiv ist.",
+        "check_scheduler": "Prüfen Sie, dass geplante Aufgaben auf der Seite laufen (WP-Cron oder Action Scheduler)."
+      },
+      "warning": {
+        "no_recharge": "Belasten Sie den Kunden nicht erneut allein aufgrund dieses Vorfalls.",
+        "no_double_refund": "Senden Sie keine zweite Erstattung automatisch: prüfen Sie zuerst, dass es keine erste gibt.",
+        "browser_check_no_payment": "Die Prüfung erstellt keine Bestellung und belastet kein Geld — bestätigen Sie eine Behebung, indem Sie denselben Weg von Hand gehen.",
+        "source_gap_not_sales_stop": "Das heißt nicht, dass der Verkauf stillsteht: solange die Quelle schweigt, sieht der Dienst nur keine neuen Daten."
+      },
+      "auto_close": {
+        "capture_linked_or_unmarked": "Der Vorfall schließt sich selbst, sobald ein bestätigter Einzug der Bestellung zugeordnet ist oder der Shop die Bezahlt-Markierung entfernt.",
+        "store_marks_paid": "Der Vorfall schließt sich selbst, sobald der Shop die Bestellung als bezahlt markiert.",
+        "provider_refund_matches": "Der Vorfall schließt sich selbst, sobald die Erstattung beim Anbieter zur Erstattung im Shop passt.",
+        "scheduled_checks_pass": "Der Vorfall schließt sich selbst nach zwei erfolgreichen geplanten Prüfungen hintereinander.",
+        "source_fresh_again": "Der Vorfall schließt sich selbst, sobald die Quelle wieder aktualisiert wird."
+      },
+      "technical": {
+        "rule_code": "Regel",
+        "reason_code": "Grund",
+        "order_reference": "Referenz in der Bestellung",
+        "store_transaction_ref": "Shop-Transaktion",
+        "payment_intent": "PaymentIntent / Zahlung",
+        "charge": "Charge",
+        "capture_operation_ids": "Einzugsoperationen",
+        "source": "Quelle",
+        "error_code": "Fehlercode",
+        "check_run_id": "Prüfung",
+        "integration_id": "Verbindung"
+      }
     }
   },
   "reconciliation": {

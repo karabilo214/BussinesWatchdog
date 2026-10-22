@@ -7,12 +7,17 @@ use App\Models\Integration;
 use App\Models\Membership;
 use App\Models\Order;
 use App\Models\ReconciliationFinding;
+use App\Models\Signal;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Incidents\IncidentExplainer;
+use App\Support\Incidents\IncidentRecorder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\Concerns\KnownProviderPayment;
 use Tests\TestCase;
 
@@ -70,6 +75,129 @@ class IncidentApiTest extends TestCase
             ->assertJsonPath('findings.0.rule_code', 'MONEY_CAPTURE_MISSING')
             ->assertJsonPath('findings.0.order_display_number', '#1001')
             ->assertJsonPath('findings.0.expected_minor', '18400');
+    }
+
+    public function test_an_unconfirmed_capture_is_explained_from_its_evidence_with_steps_for_a_known_reference(): void
+    {
+        $context = $this->context('owner');
+        $context['integration']->forceFill(['last_successful_sync_at' => now()->subMinutes(5)])->save();
+        $incidentId = $this->triggerIncident($context, ['gateway' => 'stripe']);
+        $reference = Order::query()->value('transaction_ref');
+
+        $explanation = $this->detail($context, $incidentId)->json('explanation');
+        $this->assertCodesKnown($explanation);
+
+        $this->assertSame(['capture_unconfirmed', 'with_reference', 'detected'], [$explanation['scenario'], $explanation['variant'], $explanation['status']]);
+        $this->assertSame(['order' => '#1001', 'provider' => 'stripe', 'reference' => $reference, 'amount' => ['minor' => '18400', 'currency' => 'EUR', 'exponent' => 2]], $explanation['params']);
+        $this->assertSame(['store_order', 'paid_mark', 'payment_reference', 'provider_payment', 'successful_capture', 'last_provider_sync', 'data_completeness'], array_column($explanation['evidence'], 'item'));
+        $this->assertSame(['found', 'not_confirmed', 'full'], [$explanation['evidence'][3]['value'], $explanation['evidence'][4]['value'], $explanation['evidence'][6]['value']]);
+        $this->assertSame(['capture_pending'], $explanation['causes'], 'only the cause that fits: the payment exists and waits; no "wait for the sync" when the data is complete');
+        $this->assertSame(['open_payment_by_reference', 'check_captured_not_authorized', 'compare_reference', 'recheck'], $explanation['steps']);
+        $this->assertSame(['no_recharge', 'capture_linked_or_unmarked'], [$explanation['warning'], $explanation['auto_close']]);
+        $this->assertSame(['state' => 'fresh', 'reason' => null], array_intersect_key($explanation['observation'], ['state' => 1, 'reason' => 1]));
+        $this->assertSame($reference, $explanation['technical']['payment_intent']);
+        $this->assertSame('MONEY_CAPTURE_MISSING', $explanation['technical']['rule_code']);
+    }
+
+    public function test_without_a_payment_reference_the_steps_start_at_the_payment_module_and_lost_access_makes_it_unverifiable(): void
+    {
+        $context = $this->context('owner');
+        $context['integration']->forceFill(['last_successful_sync_at' => now()->subMinutes(5)])->save();
+        $incidentId = $this->triggerIncident($context, ['gateway' => 'stripe', 'transaction_ref' => null]);
+
+        $explanation = $this->detail($context, $incidentId)->json('explanation');
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['capture_unconfirmed', 'without_reference'], [$explanation['scenario'], $explanation['variant']]);
+        $this->assertArrayNotHasKey('reference', $explanation['params']);
+        $this->assertSame('missing', $explanation['evidence'][2]['value']);
+        $this->assertSame(['reference_missing', 'marked_paid_early'], $explanation['causes']);
+        $this->assertSame('check_payment_module_data', $explanation['steps'][0]);
+
+        $context['integration']->forceFill(['status' => Integration::STATUS_DEGRADED, 'health' => ['key_rejected_at' => now()->toJSON()]])->save();
+        $explanation = $this->detail($context, $incidentId)->json('explanation');
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['unverifiable', 'unavailable', 'provider_access_lost'], [$explanation['status'], $explanation['observation']['state'], $explanation['observation']['reason']], 'found earlier, cannot be checked again now: neither fixed nor freshly confirmed');
+        $this->assertSame('restore_provider_access', $explanation['steps'][0]);
+        $this->assertContains('provider_data_incomplete', $explanation['causes']);
+    }
+
+    public function test_closing_by_hand_is_not_a_confirmation_and_hidden_amounts_stay_hidden(): void
+    {
+        $context = $this->context('owner');
+        $incidentId = $this->triggerIncident($context, ['gateway' => 'stripe']);
+        $this->assertSame('provider_not_synced_yet', $this->detail($context, $incidentId)->json('explanation.observation.reason'));
+        $this->assertContains('provider_data_incomplete', $this->detail($context, $incidentId)->json('explanation.causes'));
+
+        $this->actingAs($context['user'])->withSession(['active_tenant_id' => $context['tenant']->id])->withHeader('If-Match', '"1"')
+            ->postJson("/api/v1/incidents/{$incidentId}/resolve", ['reason' => 'Checked by phone.'])->assertOk();
+        $explanation = $this->detail($context, $incidentId)->json('explanation');
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['closed_by_user', 'closed_by_user'], [$explanation['status'], $explanation['outcome']['code']]);
+
+        $explanation = app(IncidentExplainer::class)->explain(Incident::query()->findOrFail($incidentId), false);
+        $this->assertCodesKnown($explanation);
+        $this->assertArrayNotHasKey('amount', $explanation['params']);
+        $this->assertArrayNotHasKey('amount', $explanation['evidence'][0]['params']);
+    }
+
+    public function test_a_refund_marked_in_shopware_with_a_payment_app_without_refunds_points_to_the_provider_dashboard(): void
+    {
+        $context = $this->context('owner');
+        $context['integration']->forceFill(['last_successful_sync_at' => now()->subMinutes(5)])->save();
+        $order = $this->order($context, ['gateway' => 'stripe_shopware_payment_payment_handler_card', 'metadata' => ['refund_state' => 'full', 'provider_refunds_synced' => false]]);
+        $incident = $this->incidentFor($context, $order, ReconciliationFinding::RULE_REFUND_MISSING, ['refund_expected_minor' => null, 'refund_actual_minor' => 0, 'reason_code' => 'refund_missing_store_state_full']);
+
+        $explanation = app(IncidentExplainer::class)->explain($incident);
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['refund_unconfirmed', 'payment_app_without_refunds'], [$explanation['scenario'], $explanation['variant']]);
+        $this->assertSame(['full_no_amount', 'none'], [$explanation['evidence'][1]['value'], $explanation['evidence'][2]['value']]);
+        $this->assertSame(['refund_marked_only', 'refund_failed_at_provider'], $explanation['causes']);
+        $this->assertSame(['check_refund_at_provider', 'refund_in_provider_dashboard', 'recheck'], $explanation['steps']);
+        $this->assertSame('no_double_refund', $explanation['warning']);
+    }
+
+    public function test_a_source_that_stopped_updating_explains_the_reason_and_the_first_check(): void
+    {
+        $context = $this->context('owner');
+        $woo = Integration::query()->create([
+            'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'provider' => 'woocommerce_api', 'mode' => 'live',
+            'source_authority' => Integration::SOURCE_STORE_REPORTED, 'status' => Integration::STATUS_ACTIVE, 'capabilities' => [], 'connector_version' => '1', 'health' => [],
+            'last_successful_sync_at' => now()->subHours(3),
+        ]);
+        $signal = Signal::query()->create([
+            'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'signal_type' => Signal::TYPE_CONNECTOR_FRESHNESS, 'family' => 'integration', 'component' => 'stale',
+            'dedupe_key' => 'test-freshness', 'severity' => Signal::SEVERITY_WARNING, 'confidence' => Signal::CONFIDENCE_OBSERVED, 'rule_version' => 'v1', 'config_version' => 1,
+            'observed_start' => now()->subHours(3), 'observed_end' => now(), 'evidence' => ['integration_id' => $woo->id, 'provider' => 'woocommerce_api', 'state' => 'stale', 'reason' => 'api_key_rejected', 'last_heartbeat_at' => null],
+            'data_quality' => [], 'detected_at' => now(),
+        ]);
+        $incident = app(IncidentRecorder::class)->openOrAttach($context['tenant']->id, $context['store']->id, 'freshness-test', ['family' => 'integration', 'component' => 'connector', 'title_code' => 'INTEGRATION_STALE', 'severity' => Incident::SEVERITY_WARNING, 'first_bad_at' => now()], $signal, 'connector_stale');
+
+        $explanation = app(IncidentExplainer::class)->explain($incident);
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['source_unavailable', 'stale', 'detected'], [$explanation['scenario'], $explanation['variant'], $explanation['status']]);
+        $this->assertSame(['key_revoked_or_changed'], $explanation['causes']);
+        $this->assertSame(['replace_key', 'check_connection'], $explanation['steps']);
+        $this->assertSame(['unavailable', 'api_key_rejected'], [$explanation['observation']['state'], $explanation['observation']['reason']]);
+        $this->assertSame('at', $explanation['evidence'][3]['value'], 'the last successful sync is shown');
+    }
+
+    public function test_a_stopped_browser_check_names_the_step_and_never_suggests_a_payment(): void
+    {
+        $context = $this->context('owner');
+        $signal = Signal::query()->create([
+            'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'signal_type' => Signal::TYPE_BROWSER_CHECK, 'family' => 'checkout', 'component' => 'failed',
+            'dedupe_key' => 'test-browser', 'severity' => Signal::SEVERITY_WARNING, 'confidence' => Signal::CONFIDENCE_OBSERVED, 'rule_version' => 'v1', 'config_version' => 1,
+            'observed_start' => now(), 'observed_end' => now(), 'evidence' => ['run_status' => 'failed', 'error_code' => 'site_failure', 'failed_step' => 'cart'], 'data_quality' => [], 'detected_at' => now(),
+        ]);
+        $incident = app(IncidentRecorder::class)->openOrAttach($context['tenant']->id, $context['store']->id, 'browser-test', ['family' => 'checkout', 'component' => 'payment_form', 'title_code' => 'CHECKOUT_FLOW_FAILED', 'severity' => Incident::SEVERITY_WARNING, 'first_bad_at' => now(), 'last_good_at' => now()->subDay()], $signal, 'browser_check_failed');
+
+        $explanation = app(IncidentExplainer::class)->explain($incident);
+        $this->assertCodesKnown($explanation);
+        $this->assertSame(['browser_check_stopped', 'step_known'], [$explanation['scenario'], $explanation['variant']]);
+        $this->assertSame(['step' => 'cart', 'error' => 'site_failure'], $explanation['params']);
+        $this->assertSame(['repeat_path_manually', 'check_recent_changes', 'run_check_again'], $explanation['steps'], 'no run to open: the steps do not point to it');
+        $this->assertSame(['browser_check_no_payment', 'scheduled_checks_pass', null], [$explanation['warning'], $explanation['auto_close'], $explanation['observation']]);
+        $this->assertSame(['step', 'none', 'error', 'not_available', 'at'], array_column($explanation['evidence'], 'value'));
     }
 
     public function test_list_returns_newest_first_with_a_cursor_and_filters_several_states(): void
@@ -362,9 +490,9 @@ class IncidentApiTest extends TestCase
     /**
      * @param  array<string, mixed>  $context
      */
-    private function triggerIncident(array $context): string
+    private function triggerIncident(array $context, array $overrides = []): string
     {
-        $order = $this->order($context, ['paid_marked_at' => now()->subMinutes(31)]);
+        $order = $this->order($context, ['paid_marked_at' => now()->subMinutes(31)] + $overrides);
 
         $response = $this->actingAs($context['user'])
             ->withSession(['active_tenant_id' => $context['tenant']->id])
@@ -377,6 +505,47 @@ class IncidentApiTest extends TestCase
         $incident = Incident::query()->firstOrFail();
 
         return $incident->id;
+    }
+
+    /**
+     * @param  array<string, mixed>  $explanation
+     */
+    private function assertCodesKnown(array $explanation): void
+    {
+        foreach (['causes' => 'cause', 'steps' => 'step'] as $field => $group) {
+            $this->assertSame([], array_values(array_diff($explanation[$field] ?? [], IncidentExplainer::TEXT_CODES[$group])), $group);
+        }
+
+        foreach (['warning', 'auto_close'] as $group) {
+            if (($explanation[$group] ?? null) !== null) {
+                $this->assertContains($explanation[$group], IncidentExplainer::TEXT_CODES[$group], $group);
+            }
+        }
+    }
+
+    private function detail(array $context, string $incidentId): TestResponse
+    {
+        return $this->actingAs($context['user'])->withSession(['active_tenant_id' => $context['tenant']->id])->getJson("/api/v1/incidents/{$incidentId}")->assertOk();
+    }
+
+    /**
+     * @param  array<string, mixed>  $finding
+     */
+    private function incidentFor(array $context, Order $order, string $rule, array $finding): Incident
+    {
+        $runId = (string) Str::uuid7();
+        DB::table('reconciliation_runs')->insert(['id' => $runId, 'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'algorithm_version' => 'test', 'config_version' => 1, 'currency' => 'EUR', 'scope' => '{}', 'coverage_snapshot' => '{}', 'counters' => '{}', 'status' => 'completed', 'started_at' => now(), 'finished_at' => now(), 'created_at' => now()]);
+        $stored = ReconciliationFinding::query()->create($finding + [
+            'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'run_id' => $runId, 'order_id' => $order->id, 'rule_code' => $rule,
+            'status' => ReconciliationFinding::STATUS_MISMATCH, 'mode' => 'live', 'currency' => 'EUR', 'currency_exponent' => 2, 'evidence' => [], 'evaluated_at' => now(),
+        ]);
+        $signal = Signal::query()->create([
+            'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'signal_type' => Signal::TYPE_RECONCILIATION_FINDING, 'family' => 'money', 'component' => 'refund',
+            'dedupe_key' => 'test-'.$stored->id, 'severity' => Signal::SEVERITY_WARNING, 'confidence' => Signal::CONFIDENCE_OBSERVED, 'rule_version' => 'v1', 'config_version' => 1,
+            'finding_id' => $stored->id, 'currency' => 'EUR', 'observed_start' => now(), 'observed_end' => now(), 'evidence' => [], 'data_quality' => [], 'detected_at' => now(),
+        ]);
+
+        return app(IncidentRecorder::class)->openOrAttach($context['tenant']->id, $context['store']->id, 'refund-test-'.$order->id, ['family' => 'money', 'component' => 'refund', 'title_code' => $rule, 'severity' => Incident::SEVERITY_WARNING, 'currency' => 'EUR', 'mode' => 'live', 'first_bad_at' => now()], $signal, 'finding');
     }
 
     /**

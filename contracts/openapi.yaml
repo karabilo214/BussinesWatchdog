@@ -7492,6 +7492,9 @@ components:
               oneOf:
                 - {$ref: "#/components/schemas/Suppression"}
                 - {type: "null"}
+            explanation:
+              type: object
+              description: "The incident explained for the store owner from the evidence already collected (IncidentExplainer): codes and values only, the texts are cabinet templates (ru/en/de). scenario is capture_unconfirmed, capture_not_recorded, refund_unconfirmed, browser_check_stopped, source_unavailable or null (then only status/outcome/technical are meaningful and the cabinet shows the general advice). variant, params (order, provider, reference, capture, step, error, reason, check_run_id; amounts as {minor, currency, exponent}, left out when amounts are hidden or unknown), evidence [{item, value, params}], causes and steps (codes from IncidentExplainer::TEXT_CODES, only those that fit the case), warning, auto_close, observation {state fresh|partial|unavailable, reason, checked_at} (how current the data is), status detected|unverifiable|resolved_confirmed|closed_by_user (what is known about the problem; closing by hand is not a confirmation), outcome {code confirmed_fixed|closed_by_user|still_present|not_rechecked, at, reason} and technical ids (rule, reason, PaymentIntent, charge, capture operations, check run)."
     Suppression:
       type: object
       required: [id, incident_id, reason, starts_at, ends_at]

@@ -122,6 +122,10 @@ class IncidentNotificationFlowTest extends TestCase
         $this->assertStringContainsString('не позднее', $sent['message']->body);
         $this->assertStringContainsString('/app/incidents/'.$incident->id, $sent['message']->body);
         $this->assertStringNotContainsString($context['tenant']->id, $sent['message']->body);
+        $reference = (string) Order::query()->value('transaction_ref');
+        $this->assertStringContainsString('С чего начать: откройте платёж у платёжного провайдера по идентификатору '.$reference, $sent['message']->body, 'the first step of the explanation, worded for this case');
+        $this->assertStringContainsString('Повторно с покупателя не списывайте.', $sent['message']->body);
+        $this->assertStringNotContainsString('Что проверить:', $sent['message']->body);
 
         $delivery = NotificationDelivery::query()->firstOrFail();
         $this->assertSame(NotificationDelivery::STATUS_SENT, $delivery->status);

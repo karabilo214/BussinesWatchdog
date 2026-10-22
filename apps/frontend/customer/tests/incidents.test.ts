@@ -3,13 +3,16 @@ import { join, resolve } from 'node:path';
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '@/api/incidents';
-import type { IncidentDetail } from '@/api/types';
+import type { IncidentDetail, IncidentExplanation as Explanation } from '@/api/types';
 import IncidentActions from '@/components/incidents/IncidentActions.vue';
 import IncidentEvidence from '@/components/incidents/IncidentEvidence.vue';
+import IncidentExplanation from '@/components/incidents/IncidentExplanation.vue';
 import IncidentListItem from '@/components/incidents/IncidentListItem.vue';
 import IncidentTimeline from '@/components/incidents/IncidentTimeline.vue';
 import { formatMinor } from '@bw/ui';
+import de from '@/i18n/locales/de.json';
 import en from '@/i18n/locales/en.json';
+import ru from '@/i18n/locales/ru.json';
 import { localization, setLocale } from '@/i18n';
 
 vi.mock('@/api/incidents', () => ({
@@ -113,6 +116,122 @@ describe('incident title codes', () => {
     for (const code of codes) {
       expect(titles[code], `title for ${code}`).toBeTruthy();
       expect(advice[code], `advice for ${code}`).toBeTruthy();
+    }
+  });
+});
+
+function explanation(overrides: Partial<Explanation> = {}): Explanation {
+  return {
+    scenario: 'capture_unconfirmed',
+    variant: 'with_reference',
+    params: { order: '#1042', provider: 'stripe', reference: 'pi_123', amount: { minor: '8900', currency: 'EUR', exponent: 2 } },
+    evidence: [
+      { item: 'store_order', value: 'order', params: { order: '#1042', amount: { minor: '8900', currency: 'EUR', exponent: 2 } } },
+      { item: 'payment_reference', value: 'from_order', params: { reference: 'pi_123' } },
+      { item: 'successful_capture', value: 'not_confirmed', params: {} },
+      { item: 'data_completeness', value: 'full', params: {} },
+    ],
+    causes: ['capture_pending'],
+    steps: ['open_payment_by_reference', 'check_captured_not_authorized', 'compare_reference', 'recheck'],
+    warning: 'no_recharge',
+    auto_close: 'capture_linked_or_unmarked',
+    observation: { state: 'fresh', reason: null, checked_at: '2026-10-22T08:00:00Z' },
+    status: 'detected',
+    outcome: null,
+    technical: { rule_code: 'MONEY_CAPTURE_MISSING', payment_intent: 'pi_123' },
+    ...overrides,
+  };
+}
+
+describe('IncidentExplanation', () => {
+  beforeEach(() => setLocale('ru'));
+
+  it('says what is established, what it rests on and where to start, without calling it a loss', () => {
+    const wrapper = mount(IncidentExplanation, { props: { explanation: explanation() }, global });
+
+    expect(wrapper.get('[data-headline]').text()).toBe('Заказ #1042 отмечен оплаченным, но списание в Stripe пока не подтверждено');
+    expect(wrapper.get('[data-fact]').text()).toContain(formatMinor('8900', 'EUR', 2, 'ru'));
+    expect(wrapper.get('[data-fact]').text()).toContain('расхождение, а не потеря денег');
+    expect(wrapper.get('[data-evidence-item="payment_reference"]').text()).toContain('получена из заказа: pi_123');
+    expect(wrapper.get('[data-problem-status]').text()).toContain('Обнаружена, требует проверки');
+    expect(wrapper.get('[data-observation]').text()).toContain('Свежие и полные');
+    expect(wrapper.findAll('[data-cause]').map((item) => item.attributes('data-cause'))).toEqual(['capture_pending']);
+    expect(wrapper.get('[data-step="open_payment_by_reference"]').text()).toBe('Откройте платёж в Stripe по идентификатору pi_123.');
+    expect(wrapper.get('[data-warning]').text()).toContain('Не списывайте деньги с покупателя повторно');
+    expect(wrapper.get('[data-auto-close]').text()).toContain('закроется сам');
+    expect(wrapper.get('[data-technical]').text()).toContain('pi_123');
+  });
+
+  it('words a missing amount and an unknown provider instead of leaving gaps', () => {
+    const wrapper = mount(IncidentExplanation, {
+      props: {
+        explanation: explanation({
+          variant: 'without_reference',
+          params: { order: '#1042' },
+          evidence: [{ item: 'store_order', value: 'order_only', params: { order: '#1042' } }, { item: 'payment_reference', value: 'missing', params: {} }],
+          steps: ['check_payment_module_data'],
+        }),
+      },
+      global,
+    });
+
+    expect(wrapper.get('[data-headline]').text()).toBe('Заказ #1042 отмечен оплаченным, но списание у платёжного провайдера пока не подтверждено');
+    expect(wrapper.get('[data-fact]').text()).toContain('В магазине заказ отмечен оплаченным.');
+    expect(wrapper.get('[data-evidence-item="store_order"]').text()).not.toContain('сумма');
+    expect(wrapper.get('[data-evidence-item="payment_reference"]').text()).toContain('в заказе отсутствует');
+  });
+
+  it('keeps the state of the problem apart from the state of the data and after a manual close', () => {
+    const unverifiable = mount(IncidentExplanation, {
+      props: { explanation: explanation({ status: 'unverifiable', observation: { state: 'unavailable', reason: 'provider_access_lost', checked_at: null }, outcome: { code: 'not_rechecked', at: '2026-10-22T09:00:00Z', reason: null } }) },
+      global,
+    });
+    expect(unverifiable.get('[data-problem-status]').text()).toContain('сейчас перепроверить нельзя');
+    expect(unverifiable.get('[data-observation]').text()).toContain('доступ в Stripe отозван');
+    expect(unverifiable.get('[data-outcome]').text()).toContain('не смогла перепроверить');
+
+    const closed = mount(IncidentExplanation, { props: { explanation: explanation({ status: 'closed_by_user', outcome: { code: 'closed_by_user', at: '2026-10-22T09:00:00Z', reason: null } }) }, global });
+    expect(closed.get('[data-outcome]').text()).toContain('Это не подтверждает, что расхождение устранено.');
+    expect(closed.find('[data-auto-close]').exists()).toBe(false);
+  });
+
+  it('names the step a browser check stopped at and links the run', () => {
+    const wrapper = mount(IncidentExplanation, {
+      props: {
+        explanation: explanation({
+          scenario: 'browser_check_stopped',
+          variant: 'step_known',
+          params: { step: 'cart', error: 'site_failure', check_run_id: 'run-1' },
+          evidence: [{ item: 'stopped_step', value: 'step', params: { step: 'cart' } }],
+          causes: ['step_failed_on_site'],
+          steps: ['open_check_run', 'repeat_path_manually'],
+          warning: 'browser_check_no_payment',
+          observation: null,
+        }),
+      },
+      global,
+    });
+
+    expect(wrapper.get('[data-headline]').text()).toBe('Проверка оформления заказа остановилась на шаге «корзина»');
+    expect(wrapper.get('[data-evidence-item="stopped_step"]').text()).toContain('корзина');
+    expect(wrapper.getComponent(RouterLinkStub).props('to')).toEqual({ name: 'check-run', params: { id: 'run-1' } });
+    expect(wrapper.find('[data-observation]').exists()).toBe(false);
+  });
+
+  it('every cause, step, warning and closing condition the backend can return has a text in all languages', () => {
+    const source = readFileSync(resolve(__dirname, '../../../backend/app/Support/Incidents/IncidentExplainer.php'), 'utf8');
+    const block = source.slice(source.indexOf('TEXT_CODES = ['), source.indexOf('];', source.indexOf('TEXT_CODES = [')));
+    const groups = Object.fromEntries([...block.matchAll(/'([a-z_]+)' => \[([^\]]*)\]/g)].map((match) => [match[1]!, [...match[2]!.matchAll(/'([a-z_]+)'/g)].map((code) => code[1]!)]));
+    const sources = { ru, en, de } as unknown as Record<string, { incident: { explain: Record<string, Record<string, string>> } }>;
+
+    expect(Object.keys(groups)).toEqual(['cause', 'step', 'warning', 'auto_close']);
+    for (const [group, codes] of Object.entries(groups)) {
+      expect(codes.length, group).toBeGreaterThan(0);
+      for (const code of codes) {
+        for (const [locale, messages] of Object.entries(sources)) {
+          expect(messages.incident.explain[group]?.[code], `${locale} ${group}.${code}`).toBeTruthy();
+        }
+      }
     }
   });
 });
