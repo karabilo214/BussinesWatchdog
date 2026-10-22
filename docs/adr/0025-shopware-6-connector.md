@@ -112,7 +112,7 @@ Implementation (Step 227):
 
 ## Open
 
-- Stripe in Shopware: connector written (Step 227); end-to-end check on Shopware-Test with a connected Stripe integration open.
+- Stripe in Shopware: connector deployed and checked end to end on Shopware-Test (Step 227).
 - Shopware App: manifest permissions, registration handshake, webhooks (order written, state changes), Cloud vs self-hosted.
 - Load: paging large stores with the OR delta filter.
 
