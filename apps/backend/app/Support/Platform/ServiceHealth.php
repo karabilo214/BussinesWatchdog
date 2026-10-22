@@ -2,6 +2,7 @@
 
 namespace App\Support\Platform;
 
+use App\Jobs\SyncIntegration;
 use App\Models\BillingEventInbox;
 use App\Models\CheckRun;
 use App\Models\DomainOutbox;
@@ -11,6 +12,8 @@ use App\Support\Health\ReadinessChecks;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
+use Throwable;
 
 class ServiceHealth
 {
@@ -22,7 +25,10 @@ class ServiceHealth
 
     public const WORKER_SEEN_SECONDS = 300;
 
-    public function __construct(private readonly ReadinessChecks $readiness) {}
+    /** Jobs waiting this long with no worker alive are a problem, not a worker restart in progress. */
+    public const NO_WORKER_GRACE_SECONDS = 300;
+
+    public function __construct(private readonly ReadinessChecks $readiness, private readonly QueueWorkerHeartbeats $workers) {}
 
     /**
      * @return array<string, mixed>
@@ -38,7 +44,7 @@ class ServiceHealth
                 + ['last_received_at' => $this->time(DB::table('billing_event_inbox')->max('received_at'))],
             'reconciliation' => $this->queue(DB::table('reconciliation_dirty_subjects'), 'due_at', null, $now),
             'notifications' => $this->queue(DB::table('notification_deliveries')->whereIn('status', [NotificationDelivery::STATUS_QUEUED, NotificationDelivery::STATUS_SENDING]), 'created_at', DB::table('notification_deliveries')->whereIn('status', [NotificationDelivery::STATUS_FAILED, NotificationDelivery::STATUS_DEAD_LETTER])->where('created_at', '>=', $now->copy()->subDay()), $now),
-            'jobs' => $this->queue(DB::table('jobs'), 'created_at', DB::table('failed_jobs')->where('failed_at', '>=', $now->copy()->subDay()), $now, true),
+            'jobs' => $this->jobs($now),
         ];
         $workers = DB::table('browser_workers')->where('status', 'active')->whereNull('revoked_at')->where('last_seen_at', '>=', $now->copy()->subSeconds(self::WORKER_SEEN_SECONDS))->count();
         $checks = $this->queue(DB::table('check_runs')->where('status', CheckRun::STATUS_QUEUED), 'scheduled_at', null, $now)
@@ -75,15 +81,60 @@ class ServiceHealth
     /**
      * @return array{waiting: int, oldest_age_seconds: ?int, problems: int, state: string}
      */
-    private function queue(mixed $waiting, string $column, mixed $problems, Carbon $now, bool $epoch = false): array
+    private function queue(mixed $waiting, string $column, mixed $problems, Carbon $now): array
     {
         $count = (clone $waiting)->count();
         $oldest = (clone $waiting)->min($column);
-        $age = $oldest === null ? null : max(0, (int) round($now->getTimestamp() - ($epoch ? (int) $oldest : Carbon::parse($oldest)->getTimestamp())));
+        $age = $oldest === null ? null : max(0, (int) round($now->getTimestamp() - Carbon::parse($oldest)->getTimestamp()));
         $broken = $problems === null ? 0 : $problems->count();
         $state = $age !== null && $age > self::CRIT_SECONDS ? 'crit' : (($age !== null && $age > self::WARN_SECONDS) || $broken > 0 ? 'warn' : 'ok');
 
         return ['waiting' => $count, 'oldest_age_seconds' => $age, 'problems' => $broken, 'state' => $state];
+    }
+
+    /**
+     * The queue the workers really take jobs from (`QUEUE_CONNECTION`, Redis in production): connector sync jobs and
+     * anything on the default queue. Pending, delayed (released, e.g. waiting for the same integration) and reserved
+     * (running) jobs, the age of the oldest pending one, failed jobs of the last day and the workers seen alive. A
+     * backend that answers is not enough: pending jobs with no worker alive is a problem.
+     *
+     * @return array<string, mixed>
+     */
+    private function jobs(Carbon $now): array
+    {
+        $connection = (string) config('queue.default');
+        $queues = array_values(array_unique([SyncIntegration::QUEUE, (string) (config("queue.connections.{$connection}.queue") ?? 'default')]));
+        $failed = DB::table('failed_jobs')->where('failed_at', '>=', $now->copy()->subDay())->count();
+        $workers = $this->workers->summary($connection, $queues, $now);
+        $base = ['connection' => $connection, 'queues' => $queues, 'problems' => $failed, 'workers_seen' => $workers['alive'], 'last_processed_at' => $workers['last_job_at']];
+
+        try {
+            $queue = Queue::connection($connection);
+            $pending = $delayed = $reserved = 0;
+            $oldest = null;
+
+            foreach ($queues as $name) {
+                $pending += (int) $queue->pendingSize($name);
+                $delayed += (int) $queue->delayedSize($name);
+                $reserved += (int) $queue->reservedSize($name);
+                $created = $queue->creationTimeOfOldestPendingJob($name);
+                $oldest = is_numeric($created) ? min($oldest ?? (int) $created, (int) $created) : $oldest;
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return $base + ['waiting' => 0, 'delayed' => 0, 'reserved' => 0, 'oldest_age_seconds' => null, 'state' => 'crit', 'error' => 'queue_unavailable'];
+        }
+
+        $age = $oldest === null ? null : max(0, $now->getTimestamp() - $oldest);
+        $state = match (true) {
+            $age !== null && $age > self::CRIT_SECONDS => 'crit',
+            $pending > 0 && $workers['alive'] === 0 && $age !== null && $age > self::NO_WORKER_GRACE_SECONDS => 'crit',
+            ($age !== null && $age > self::WARN_SECONDS) || $failed > 0 => 'warn',
+            default => 'ok',
+        };
+
+        return $base + ['waiting' => $pending, 'delayed' => $delayed, 'reserved' => $reserved, 'oldest_age_seconds' => $age, 'state' => $state];
     }
 
     private function time(mixed $value): ?string

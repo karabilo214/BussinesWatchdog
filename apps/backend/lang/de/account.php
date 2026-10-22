@@ -69,7 +69,7 @@ return [
             'queue_billing_events' => 'Paddle-Ereignisse',
             'queue_reconciliation' => 'Abgleich-Warteschlange',
             'queue_notifications' => 'Kundenbenachrichtigungen',
-            'queue_jobs' => 'Hintergrundaufgaben',
+            'queue_jobs' => 'Synchronisierungsaufgaben (Queue-Worker)',
             'browser_checks' => 'Browserprüfungen (keine Worker)',
         ],
     ],

@@ -69,7 +69,7 @@ return [
             'queue_billing_events' => 'события Paddle',
             'queue_reconciliation' => 'очередь сверки',
             'queue_notifications' => 'уведомления клиентам',
-            'queue_jobs' => 'фоновые задания',
+            'queue_jobs' => 'задания синхронизации (обработчики очереди)',
             'browser_checks' => 'браузерные проверки (нет воркеров)',
         ],
     ],

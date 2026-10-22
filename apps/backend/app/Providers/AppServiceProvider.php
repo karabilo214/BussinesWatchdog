@@ -8,10 +8,15 @@ use App\Support\Network\SystemDnsClient;
 use App\Support\Notifications\Channels\EmailNotificationSender;
 use App\Support\Notifications\Channels\NotificationSenderRegistry;
 use App\Support\Notifications\Channels\TelegramNotificationSender;
+use App\Support\Platform\QueueWorkerHeartbeats;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -39,6 +44,11 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(MessageSending::class, function (MessageSending $event): void {
             app(DkimMailSigner::class)->sign($event->message);
         });
+
+        Event::listen(Looping::class, fn (Looping $event) => app(QueueWorkerHeartbeats::class)->waiting($event->connectionName, $event->queue));
+        Event::listen(JobProcessing::class, fn (JobProcessing $event) => app(QueueWorkerHeartbeats::class)->started($event->connectionName, $event->job->getQueue()));
+        Event::listen(JobProcessed::class, fn (JobProcessed $event) => app(QueueWorkerHeartbeats::class)->finished($event->connectionName, $event->job->getQueue()));
+        Event::listen(JobFailed::class, fn (JobFailed $event) => app(QueueWorkerHeartbeats::class)->finished($event->connectionName, $event->job->getQueue()));
 
         RateLimiter::for('platform-login', fn (Request $request): array => [
             Limit::perMinute((int) config('watchdog.platform.login_per_minute'))->by('platform|'.$request->ip()),

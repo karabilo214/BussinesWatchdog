@@ -1372,6 +1372,10 @@
       "oldest": "Ältester",
       "problems": "Probleme",
       "state": "Zustand",
+      "jobs_source": "Warteschlange: {connection} ({queues})",
+      "jobs_detail": "verzögert: {delayed} · laufen: {reserved}",
+      "jobs_workers": "aktive Worker: {n} · letzte Aufgabe abgeschlossen: {date}",
+      "jobs_unavailable": "Die Warteschlange antwortet nicht: Anzahl der Aufgaben unbekannt.",
       "last_received": "letztes Paddle-Ereignis: {date}",
       "names": {
         "event_inbox": "Shop-Ereignisse",
@@ -1387,7 +1391,7 @@
         "billing_events": "Webhooks und Ereignisabruf; Probleme sind in Quarantäne oder verworfen",
         "reconciliation": "Bestellungen, die neu geprüft werden; Alter — wie überfällig",
         "notifications": "E-Mails und Nachrichten in der Warteschlange; Probleme wurden am letzten Tag nicht zugestellt",
-        "jobs": "Laravel-Warteschlange; Probleme sind am letzten Tag fehlgeschlagen"
+        "jobs": "Synchronisierungsaufgaben der Konnektoren, die die Worker übernehmen (queue:work); Probleme sind am letzten Tag fehlgeschlagen"
       }
     },
     "browser": {

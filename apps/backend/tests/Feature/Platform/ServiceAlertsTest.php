@@ -4,6 +4,7 @@ namespace Tests\Feature\Platform;
 
 use App\Mail\NotificationMessageMail;
 use App\Support\Health\ReadinessChecks;
+use App\Support\Platform\QueueWorkerHeartbeats;
 use App\Support\Platform\ServiceHealth;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -31,7 +32,7 @@ class ServiceAlertsTest extends TestCase
         {
             public function __construct(ReadinessChecks $readiness, private readonly ServiceAlertsTest $test)
             {
-                parent::__construct($readiness);
+                parent::__construct($readiness, app(QueueWorkerHeartbeats::class));
             }
 
             public function build(?Carbon $now = null): array

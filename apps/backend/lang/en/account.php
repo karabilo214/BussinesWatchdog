@@ -69,7 +69,7 @@ return [
             'queue_billing_events' => 'Paddle events',
             'queue_reconciliation' => 'reconciliation queue',
             'queue_notifications' => 'customer notifications',
-            'queue_jobs' => 'background jobs',
+            'queue_jobs' => 'connector sync jobs (queue workers)',
             'browser_checks' => 'browser checks (no workers)',
         ],
     ],

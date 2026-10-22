@@ -15,7 +15,7 @@ const HEALTH: ServiceHealth = {
   as_of: '2026-10-20T10:00:00Z',
   state: 'crit',
   components: { database: 'ok', redis: 'crit', cache: 'ok', keyring: 'ok' },
-  queues: { event_inbox: QUEUE, domain_outbox: { waiting: 1, oldest_age_seconds: 1260, problems: 1, state: 'warn' }, billing_events: { ...QUEUE, last_received_at: null }, reconciliation: QUEUE, notifications: QUEUE, jobs: QUEUE },
+  queues: { event_inbox: QUEUE, domain_outbox: { waiting: 1, oldest_age_seconds: 1260, problems: 1, state: 'warn' }, billing_events: { ...QUEUE, last_received_at: null }, reconciliation: QUEUE, notifications: QUEUE, jobs: { ...QUEUE, waiting: 3, connection: 'redis', queues: ['sync', 'default'], delayed: 1, reserved: 2, workers_seen: 0, last_processed_at: null } },
   browser_checks: { waiting: 1, oldest_age_seconds: 300, problems: 0, state: 'crit', running: 0, workers_seen: 0 },
   connector_sync: { active: 2, stale: 1, state: 'warn' },
   thresholds: { warn_seconds: 900, crit_seconds: 3600, sync_stale_hours: 24 },
@@ -53,6 +53,10 @@ describe('service', () => {
     expect(wrapper.get('[data-component="redis"]').text()).toContain('Проблема');
     expect(wrapper.get('[data-queue="domain_outbox"]').text()).toContain('21');
     expect(wrapper.get('[data-queue="domain_outbox"]').text()).toContain('Внимание');
+    expect(wrapper.get('[data-jobs-source]').text()).toBe('очередь: redis (sync, default)');
+    expect(wrapper.get('[data-jobs-detail]').text()).toBe('отложены: 1 · выполняются: 2');
+    expect(wrapper.get('[data-jobs-workers]').text()).toContain('обработчиков на связи: 0');
+    expect(wrapper.get('[data-jobs-workers]').classes()).toContain('text-crit');
     expect(wrapper.get('[data-section="browser"]').text()).toContain('воркеров на связи за 5 минут: 0');
     expect(wrapper.get('[data-section="sync"]').text()).toContain('больше 24 ч: 1');
     expect(wrapper.get('[data-section="version"]').text()).toContain('2026.10.20-1');

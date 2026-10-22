@@ -1372,6 +1372,10 @@
       "oldest": "Oldest",
       "problems": "Problems",
       "state": "State",
+      "jobs_source": "queue: {connection} ({queues})",
+      "jobs_detail": "delayed: {delayed} · running: {reserved}",
+      "jobs_workers": "workers alive: {n} · last job finished: {date}",
+      "jobs_unavailable": "The queue does not answer: the number of jobs is unknown.",
       "last_received": "last Paddle event: {date}",
       "names": {
         "event_inbox": "Store events",
@@ -1387,7 +1391,7 @@
         "billing_events": "webhooks and event polling; problems are quarantined or dropped",
         "reconciliation": "orders waiting to be re-checked; age is how overdue",
         "notifications": "emails and messages queued; problems were not delivered in the last day",
-        "jobs": "Laravel queue jobs; problems failed in the last day"
+        "jobs": "connector sync jobs taken by the workers (queue:work); problems failed in the last day"
       }
     },
     "browser": {

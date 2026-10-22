@@ -720,11 +720,21 @@ export interface HealthQueue {
   last_received_at?: string | null;
 }
 
+export interface HealthJobQueue extends HealthQueue {
+  connection: string;
+  queues: string[];
+  delayed: number;
+  reserved: number;
+  workers_seen: number;
+  last_processed_at: string | null;
+  error?: 'queue_unavailable';
+}
+
 export interface ServiceHealth {
   as_of: string;
   state: HealthState;
   components: Record<string, HealthState>;
-  queues: Record<'event_inbox' | 'domain_outbox' | 'billing_events' | 'reconciliation' | 'notifications' | 'jobs', HealthQueue>;
+  queues: Record<'event_inbox' | 'domain_outbox' | 'billing_events' | 'reconciliation' | 'notifications', HealthQueue> & { jobs: HealthJobQueue };
   browser_checks: HealthQueue & { running: number; workers_seen: number };
   connector_sync: { active: number; stale: number; state: HealthState };
   thresholds: { warn_seconds: number; crit_seconds: number; sync_stale_hours: number };

@@ -103,6 +103,12 @@ onBeforeUnmount(() => {
                     <span class="font-medium">{{ $t(`service.queues.names.${name}`) }}</span>
                     <span class="block text-[13px] text-text-muted">{{ $t(`service.queues.about.${name}`) }}</span>
                     <span v-if="name === 'billing_events'" class="block text-[13px] text-text-muted">{{ $t('service.queues.last_received', { date: dateTime(health.queues.billing_events.last_received_at ?? null) }) }}</span>
+                    <template v-if="name === 'jobs'">
+                      <span class="block text-[13px] text-text-muted" data-jobs-source>{{ $t('service.queues.jobs_source', { connection: health.queues.jobs.connection, queues: health.queues.jobs.queues.join(', ') }) }}</span>
+                      <span class="block text-[13px] text-text-muted" data-jobs-detail>{{ $t('service.queues.jobs_detail', { delayed: health.queues.jobs.delayed, reserved: health.queues.jobs.reserved }) }}</span>
+                      <span class="block text-[13px]" :class="health.queues.jobs.workers_seen === 0 && health.queues.jobs.waiting > 0 ? 'text-crit' : 'text-text-muted'" data-jobs-workers>{{ $t('service.queues.jobs_workers', { n: health.queues.jobs.workers_seen, date: dateTime(health.queues.jobs.last_processed_at) }) }}</span>
+                      <span v-if="health.queues.jobs.error" class="block text-[13px] text-crit" data-jobs-error>{{ $t('service.queues.jobs_unavailable') }}</span>
+                    </template>
                   </td>
                   <td class="px-4 py-3 tabular-nums">{{ health.queues[name].waiting }}</td>
                   <td class="px-4 py-3 tabular-nums">{{ age(health.queues[name].oldest_age_seconds) }}</td>
