@@ -115,7 +115,7 @@ for path,item in api['paths'].items():
             params.append(resolve(api,param['$ref']) if '$ref' in param else param)
         placeholders=set(re.findall(r'\{(.*?)\}',path))
         assert placeholders=={p['name'] for p in params if p['in']=='path'},path
-assert len(ops)==len(set(ops))
+assert len(ops)==len(set(ops)), sorted({op for op in ops if ops.count(op)>1})
 checked(f'OpenAPI YAML, internal references, path parameters and unique operation IDs: {len(ops)} operations')
 
 extra_api=yaml.safe_load((ROOT.parent/'contracts/platform-billing-api.yaml').read_text())
@@ -127,7 +127,7 @@ for path,item in extra_api['paths'].items():
         extra_ops.append(op['operationId'])
         parameters=[resolve(extra_api,p['$ref']) if '$ref' in p else p for p in op.get('parameters',[])]
         assert set(re.findall(r'\{(.*?)\}',path))=={p['name'] for p in parameters if p['in']=='path'}
-assert len(extra_ops)==20 and len(set(extra_ops+ops))==len(extra_ops+ops)
+assert len(extra_ops)>=20 and len(set(extra_ops+ops))==len(extra_ops+ops), sorted({op for op in extra_ops+ops if (extra_ops+ops).count(op)>1})
 purchase={'price_id':'44444444-4444-4444-8444-444444444444','policy_version_ids':['55555555-5555-4555-8555-555555555555'],'return_path':'/checkout/return'}
 validate(purchase,extra_api['components']['schemas']['CheckoutRequest'],extra_api)
 for key,value in [('amount_minor','1'),('return_path','https://evil.example.invalid')]:
@@ -141,7 +141,7 @@ invalid=json.loads(json.dumps(refund_action));invalid['parameters']['execute_sql
 try:validate(invalid,extra_api['components']['schemas']['PlatformActionRequest'],extra_api)
 except (AssertionError,ValueError,KeyError,TypeError):pass
 else:raise AssertionError('Arbitrary action parameter accepted')
-checked('Extension OpenAPI: 20 operations, references/paths and positive/negative purchase/action DTO fixtures')
+checked(f'Extension OpenAPI: {len(extra_ops)} operations, references/paths and positive/negative purchase/action DTO fixtures')
 
 event_schema=json.loads((ROOT.parent/'contracts/event.schema.json').read_text())
 refs(event_schema,event_schema,ROOT.parent/'contracts')
@@ -204,7 +204,7 @@ for m in matches:
             fm=re.search(r'REFERENCES\s+(\w+)\s*\((.*?)\)',field)
             if fm: foreign_keys.append((name,(col,),fm[1],tuple(x.strip() for x in fm[2].split(','))))
     tables[name]=columns;uniques[name]=keys
-assert len(tables)==62,len(tables)
+assert len(tables)>=62,len(tables)
 for alter in re.finditer(r'ALTER TABLE\s+(\w+)\s+ADD COLUMN\s+(\w+)',sql):
     assert alter[1] in tables and alter[2] not in tables[alter[1]]
     tables[alter[1]].add(alter[2])
@@ -226,21 +226,21 @@ checked(f'SQL static structural checks: {len(tables)} tables, {len(foreign_keys)
 
 main=(ROOT/'Business-Watchdog-TZ.md').read_text()
 sections=re.findall(r'^## (\d+) ',main,re.M)
-assert sections==[str(i) for i in range(1,43)]
+assert len(sections)>=42 and sections==[str(i) for i in range(1,len(sections)+1)],sections
 acc=(ROOT/'ACCEPTANCE.md').read_text()
 ids=re.findall(r'\| (ACC-\d+) \|',acc)
-assert ids==[f'ACC-{i:02d}' for i in range(1,51)]
+assert len(ids)>=50 and ids==[f'ACC-{i:02d}' for i in range(1,len(ids)+1)],ids
 for path in ['database/schema.sql','contracts/ui-api-catalog.md','examples/reconciliation-cases.json','CODEX-IMPLEMENTATION.md','ACCEPTANCE.md','README.md']:
     assert (ROOT/path).is_file(),path
-checked('42 numbered TZ sections, 50 unique acceptance IDs, all listed deliverables present')
+checked(f'{len(sections)} numbered TZ sections, {len(ids)} unique acceptance IDs, all listed deliverables present')
 
 extra_files=['panels/OWNER-PANEL.md','panels/ADMIN-PANEL.md','panels/CLIENT-PANELS.md','panels/PUBLIC-SUBSCRIPTION-FRONTEND.md','panels/ADMIN-BACKEND.md','database/platform-billing-extension.sql','examples/saas-billing-cases.json','PANELS-ACCEPTANCE.md']
 for path in extra_files:assert (ROOT/path).is_file(),path
 billing_cases=json.loads((ROOT/'examples/saas-billing-cases.json').read_text())['cases']
-assert len(billing_cases)==16 and len({c['id'] for c in billing_cases})==16
+assert len(billing_cases)>=16 and len({c['id'] for c in billing_cases})==len(billing_cases)
 extra_acc=re.findall(r'\| (EXT-\d+) \|',(ROOT/'PANELS-ACCEPTANCE.md').read_text())
-assert extra_acc==[f'EXT-{i:02d}' for i in range(1,29)]
-checked('Extension: five panel specifications, 16 unique billing cases, 28 additional acceptance scenarios')
+assert len(extra_acc)>=28 and extra_acc==[f'EXT-{i:02d}' for i in range(1,len(extra_acc)+1)],extra_acc
+checked(f'Extension: five panel specifications, {len(billing_cases)} unique billing cases, {len(extra_acc)} additional acceptance scenarios')
 
 report=['# Проверка пакета спецификации','',
 'Проверено 8 октября 2026 года для версии1.1. Ниже перечислены фактически выполненные проверки файлов, а не тесты рабочего SaaS.','']

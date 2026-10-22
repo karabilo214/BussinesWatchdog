@@ -4048,7 +4048,7 @@ paths:
   /api/v1/downloads/shopware-app:
     get:
       tags: [Integrations]
-      operationId: downloadShopwareApp
+      operationId: downloadUniversalShopwareApp
       description: "The one Shopware app archive for every store (ADR 0076), current version; 409 shopware_app_release_not_approved while the version is not approved in production (ADR 0074)."
       security:
         - {UserSession: []}

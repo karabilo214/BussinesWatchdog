@@ -94,6 +94,20 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm test
 
+  spec:
+    name: Specification and contracts (static checks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pyyaml==6.0.2
+      - run: python spec/validate_spec.py
+      - name: The committed report matches the checks
+        run: git diff --exit-code spec/VALIDATION.md
+
   plugins:
     name: WooCommerce plugin (PHP 7.4 syntax)
     runs-on: ubuntu-24.04

@@ -989,3 +989,14 @@ Status: complete; deployed 2026-10-22
 - Note: a job released many times (waiting for the same integration) keeps its original creation time, so its age includes those waits.
 
 Verification: `ServiceHealthTest` — new test runs a real `queue:work --once` on the database queue (heartbeat with the finished job), jobs waiting 10 minutes with no worker → crit, a 2-minute gap → ok, a worker inside a long job counts as alive, an unreachable Redis queue → crit `queue_unavailable`; the summary test reads pending/delayed/reserved separately. `ServiceAlertsTest` adapted. Backend SQLite 716 passed + 4 skipped, Platform tests on PostgreSQL 18 58/58, Pint ok; control typecheck and 70/70.
+
+### Step 231: Specification Validator Passes Again and Runs in CI
+
+Status: complete (CI and contracts only; nothing to deploy)
+
+- Reported: `spec/validate_spec.py` failed on unique operation ids — `downloadShopwareApp` named both `POST /api/v1/stores/{store_id}/integrations/shopware-app` and `GET /api/v1/downloads/shopware-app`. The GET is now `downloadUniversalShopwareApp` (the one archive for every store, ADR 0076). The frontend calls are hand-written, nothing generated depends on the id.
+- Further failures once that passed: `platformListTenants` was used both in `contracts/openapi.yaml` and in the design contract `contracts/platform-billing-api.yaml` for the same route; renamed in the design contract to `platformSearchTenants` (its other ten shared routes already had their own names). Exact counts frozen at the first version (62 tables, 42 TZ sections, 50/28 acceptance ids, 16 billing cases, 20 extension operations) turned into "at least that many, numbered without gaps, unique"; the structural checks are unchanged. Duplicate-id assertions now name the duplicates.
+- `spec/VALIDATION.md` regenerated (it still said 10 operations); the validator's output is deterministic.
+- CI: new job «Specification and contracts (static checks)» — Python 3.12, PyYAML 6.0.2, `python spec/validate_spec.py`, then `git diff --exit-code spec/VALIDATION.md`. Ops: `docs/ops/development.md`.
+
+Verification: validator passes locally (237 + 20 operations, 64 tables, 43 TZ sections, 50 + 29 acceptance ids); `OpenApiRoutesTest` passes; CI run checked after push.

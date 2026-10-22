@@ -569,7 +569,7 @@ paths:
           default: 50
   /platform-api/v1/tenants:
     get:
-      operationId: platformListTenants
+      operationId: platformSearchTenants
       description: Platform capability required. Role-specific commercial fields and
         safe summaries only.
       security:

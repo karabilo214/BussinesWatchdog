@@ -9,6 +9,7 @@ make frontend-check                 # типы, тесты и сборка фр�
 make frontend-smoke                 # кабинет в Chromium против настоящего бэкенда
 make frontend-dev                   # кабинет на :5173; make frontend-dev-control — панель на :5174
 make worker-test                    # тесты воркера
+python3 spec/validate_spec.py       # статические проверки спецификации и контрактов (нужен PyYAML: pip install pyyaml); обновляет spec/VALIDATION.md — закоммитить вместе с изменением, CI сверяет
 make shopware-observation-e2e       # скрипт наблюдения App на настоящем Shopware 6.6/6.7 с настоящими покупателями (Docker, своя база bw_observation_e2e)
 make shopware-app-update-e2e        # обновление App у подключённого магазина на настоящем Shopware 6.6/6.7 (Docker, своя база bw_app_update_e2e)
 make woocommerce-observation-e2e     # скрипт наблюдения плагина WooCommerce с настоящими покупателями на матрице (Docker, своя база bw_wc_observation_e2e; TARGETS=latest — одна цель)
