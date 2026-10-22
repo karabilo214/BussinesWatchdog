@@ -85,6 +85,23 @@ Owner decisions (2026-10-22):
 - Accounts (point 5): one Stripe account per store.
 - Test keys: the existing Stripe test account (`WATCHDOG_DEV_STRIPE_*`, also used by WooCommerce-Test), entered by the owner in the plugin's administration page, as a merchant would. A shared account is also the real case of ADR 0073 attribution.
 
+## Spike part 5 — real Stripe test payments through the plugin (2026-10-22, Step 226)
+
+Shopware-Test 6.7.15.1 + StripeShopwarePayment 1.17.4, the owner's Stripe test account entered by the owner in the plugin page (the save validated the keys and registered `https://shopware-test.business-watchdog.com/stripe-payment/webhook/execute`, 9 events, API 2020-03-02 — correct HTTPS URL behind our proxy). The owner assigned Card and SEPA to the Storefront channel (Stripe methods are not assigned by the plugin). Guest orders by `infra/test-shops/sw-shopper.mjs` (Chromium, Stripe Elements):
+
+| Order | Case | Shopware transaction | `stripe_payment_context.payment` | Stripe |
+|---|---|---|---|---|
+| 10006 | card 4242 | `paid` | `payment_intent_id` + `charge_id` (`ch_`) | PI `succeeded`, 495.95 € |
+| 10007 | 3-D Secure completed | `paid` | both | PI `succeeded` |
+| 10008 | 3-D Secure failed | `failed` | `payment_intent_id` only | PI `requires_payment_method` |
+| 10009 | card declined | `failed` | **nothing** (the plugin saves nothing when the confirm call fails) | PI `requires_payment_method`, `generic_decline` |
+| 10010 | SEPA test IBAN | `open` → `paid` by webhook after ~3 min | both (`py_` charge) | PI `succeeded` |
+
+- `metadata.shopware_order_transaction_id` equals the Shopware transaction id on **every** PaymentIntent, the declined one included, and is also copied to the **charge**. So the provider side always links, even when Shopware has no reference; WooCommerce-Test payments in the same account carry no such key (attribution works). The search API found the declined PI only after a delay; listing found it at once.
+- `livemode: false` on the PI — the mode source of decision 3.
+- Partial refund 50 € at Stripe on 10006: Shopware stays `paid`; `charge.refunded` is not sent to the shop (the endpoint does not subscribe to it). Confirms the refund decision.
+- Our production service today: the five orders are `financial_support = supported`, `mode = live`, no `transaction_ref`; findings `MONEY_UNSUPPORTED` / `unknown` / `provider_not_connected` because Shopware-Test has no Stripe integration. Connecting Stripe now would lead to the false `payment_not_matched` described in part 4.
+
 ## Open
 
 - Stripe plugin data for Shopware: read (part 4); connector and owner decisions open.

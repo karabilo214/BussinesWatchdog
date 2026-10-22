@@ -588,9 +588,11 @@ Verification: plugin integration suite 58/58 on the floor target (PHP 7.4, WordP
 
 ### Step 226: Stripe Payment for Shopware 6 — Plugin Read
 
-Status: analysis complete; no code changed
+Status: analysis and live test payments complete; connector not written yet
 
 - The owner installed `StripeShopwarePayment` 1.17.4 on Shopware-Test. Its source was read (copied to a temporary folder, not into the public repository; proprietary licence). Findings and the connector plan with open owner decisions: ADR 0025, "Spike part 4".
 - Key facts: every method goes through a PaymentIntent with `metadata.shopware_order_transaction_id` = Shopware order transaction id; the transaction keeps `stripe_payment_context.payment.payment_intent_id`/`charge_id`; no test/live flag; no refunds and no `charge.refunded` handling; PaymentIntent description carries customer email; keys per sales channel.
 - Found in our code: `stripe_shopware_payment_*` methods are classified as supported Stripe orders while the cabinet says they are not supported; without the links above this would produce `payment_not_matched` findings for a store that connects Stripe (by reading, not run). No customer has this combination.
 - Plugin state on the test shop: 8 Stripe payment methods active, no Stripe keys, no orders paid with Stripe yet.
+- Live run (ADR 0025 part 5): owner entered the Stripe test keys in the plugin page, the plugin registered its HTTPS webhook; Card and SEPA assigned to Storefront by the owner. `sw-shopper.mjs` gained `stripe`, `stripe_3ds`, `stripe_3ds_fail`, `stripe_decline`, `stripe_sepa` (Stripe test cards / test IBAN only). Orders 10006–10010: paid, 3-D Secure paid, 3-D Secure failed, declined, SEPA paid by webhook; the metadata link is present on every PaymentIntent and charge; a Stripe refund leaves Shopware `paid`. Production shows them as `MONEY_UNSUPPORTED`/`provider_not_connected` (no Stripe integration on Shopware-Test).
+- Run: `ssh bw-prod "docker run --rm -i --security-opt seccomp=/opt/business-watchdog/repo/infra/production/seccomp/bw-browser-worker.json -e BW_SHOP=https://shopware-test.business-watchdog.com -e BW_PAY=stripe -w /app --entrypoint node business-watchdog/browser-worker:<release> --input-type=module -" < infra/test-shops/sw-shopper.mjs`.
