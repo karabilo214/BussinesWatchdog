@@ -1012,10 +1012,12 @@ Status: deployed 2026-10-23 (`1d51398`)
 
 Verification: backend SQLite 728 passed + 4 skipped (6212 assertions), PostgreSQL 18 732/732 (6220 assertions); after adding the request e-mail, focused `SupportGrantTest` passed 2/2 (44 assertions) on both databases. Platform frontend 70/70, customer frontend 158/158, both typechecks and builds; Pint and static spec validator passed (246 core + 25 extension operations). Production deploy `1d51398`: migration `2026_10_23_100000_create_support_access_grants` applied; app, web, workers and mail running; `/app/settings/support`, `/owner/tenants` and `/ru` returned HTTP 200; both support grant APIs returned 401 without a session. Owner-led end-to-end check remains open.
 
+Owner acceptance on production (2026-10-23): request submission, notification e-mail and its link, approval button, audit record and revoke button all worked. Expiry, an already open staff page and an old artifact link were not part of this manual check.
+
 ### Step 236: Automatic Support Case Numbers
 
-Status: implemented; deployment pending
+Status: deployed 2026-10-23 (`99f409c`)
 
 - Owner clarified that the support access request number must be assigned without staff input. One global sequence serves every organisation. The server allocates `SUP-000001`, `SUP-000002`, … inside the same transaction as the new request, after matching pending requests have been checked. A duplicate request keeps its number and sends no duplicate owner e-mail.
 - New migration `2026_10_23_110000_create_support_case_counter` seeds the counter after any existing manually entered `SUP-` references. Both request APIs prohibit a supplied `case_reference`; their responses and the owner e-mail still include it. Both cabinets remove the input and show the number after creation, as the owner chose. Contracts, ADR 0078, panel specs and support runbook updated.
-- Verification: backend SQLite 728 passed + 4 skipped (6218 assertions), PostgreSQL 18 732/732 (6226 assertions); control 70/70 and customer 158/158; both frontend builds, Pint and static spec validator passed. Production smoke pending deployment.
+- Verification: backend SQLite 728 passed + 4 skipped (6218 assertions), PostgreSQL 18 732/732 (6226 assertions); control 70/70 and customer 158/158; both frontend builds, Pint and static spec validator passed. Production migration `2026_10_23_110000_create_support_case_counter` applied; app/web/workers running; `/health/live`, `/health/ready`, `/app/settings/support` and `/owner/tenants` returned HTTP 200. The owner has not yet tested creating an automatically numbered request in the cabinet.
