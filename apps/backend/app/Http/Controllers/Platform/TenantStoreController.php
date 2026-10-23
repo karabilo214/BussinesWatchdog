@@ -17,10 +17,13 @@ use App\Models\AuditLog;
 use App\Models\CheckRun;
 use App\Models\CheckScenario;
 use App\Models\Incident;
+use App\Models\Membership;
 use App\Models\Order;
 use App\Models\PlatformStaff;
 use App\Models\Store;
 use App\Models\Tenant;
+use App\Models\User;
+use App\Support\Account\AccountMailer;
 use App\Support\Account\MfaService;
 use App\Support\Api\UuidCursor;
 use App\Support\Billing\HistoryWindow;
@@ -35,7 +38,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TenantStoreController extends Controller
 {
@@ -158,7 +163,47 @@ class TenantStoreController extends Controller
 
     public function artifact(string $tenant, string $artifact): JsonResponse
     {
-        return $this->as($tenant, fn (Tenant $model): JsonResponse => app()->call([app(CheckRunController::class), 'download'], ['artifact' => $this->find(Artifact::class, $model, $artifact)]));
+        return $this->as($tenant, function (Tenant $model) use ($artifact): JsonResponse {
+            $found = $this->find(Artifact::class, $model, $artifact);
+            abort_unless($found->state === Artifact::STATE_READY && $found->expires_at->isFuture(), 404);
+
+            // The browser requests the bytes through the guarded route again. A presigned object URL would
+            // remain usable after the customer revoked the grant.
+            return response()->json([
+                'url' => "/platform-api/v1/tenants/{$model->id}/artifacts/{$found->id}/content",
+                'content_type' => $found->content_type,
+                'size_bytes' => $found->size_bytes,
+            ])->header('Cache-Control', 'no-store');
+        });
+    }
+
+    public function artifactContent(string $tenant, string $artifact): StreamedResponse
+    {
+        $model = Tenant::query()->whereKey($tenant)->whereNotIn('status', ['deleting', 'deleted'])->firstOrFail();
+        /** @var Artifact $found */
+        $found = Artifact::query()->where('tenant_id', $model->id)->whereKey($artifact)->firstOrFail();
+        abort_unless($found->state === Artifact::STATE_READY && $found->expires_at->isFuture(), 404);
+        $disk = Storage::disk((string) config('watchdog.artifacts.disk'));
+        abort_unless($disk->exists($found->object_key), 404);
+
+        return response()->stream(function () use ($disk, $found): void {
+            $stream = $disk->readStream($found->object_key);
+
+            if ($stream === false) {
+                return;
+            }
+
+            try {
+                fpassthru($stream);
+            } finally {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => $found->content_type,
+            'Content-Disposition' => 'inline',
+            'Cache-Control' => 'no-store, private',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function incidents(Request $request, string $tenant, string $store): JsonResponse
@@ -225,6 +270,7 @@ class TenantStoreController extends Controller
         return $this->as($tenant, function (Tenant $model) use ($request, $incident, $reason, $platformAction, $tenantAction, $change, $dto): JsonResponse {
             $found = $this->find(Incident::class, $model, $incident);
             $reason = trim($reason);
+            $beforeRevision = $found->revision;
 
             try {
                 $changed = $change($found, ['by' => 'platform', 'reason' => $reason]);
@@ -234,8 +280,31 @@ class TenantStoreController extends Controller
 
             $this->recordSupport($request, $model, $found->store_id, $platformAction, 'incident', $found->id, ['state' => $changed->state], $tenantAction, $reason);
 
+            if ($changed->revision !== $beforeRevision) {
+                $this->notifyIncidentOwners($model, $changed, $platformAction);
+            }
+
             return response()->json($dto->toArray($changed, null, true));
         });
+    }
+
+    private function notifyIncidentOwners(Tenant $tenant, Incident $incident, string $action): void
+    {
+        $mailer = app(AccountMailer::class);
+        $owners = User::query()->whereIn('id', Membership::query()->where('tenant_id', $tenant->id)->where('role', 'owner')->select('user_id'))->get();
+        $template = $action === 'tenant.incident_resolved' ? 'support_incident_resolved' : 'support_incident_acknowledged';
+
+        foreach ($owners as $owner) {
+            try {
+                $mailer->send($owner->email, $owner->locale, $template, [
+                    'tenant' => $tenant->name,
+                    'incident' => $incident->id,
+                    'link' => $mailer->link('/app/incidents/'.$incident->id),
+                ]);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
     }
 
     /**
@@ -243,6 +312,13 @@ class TenantStoreController extends Controller
      */
     private function recordSupport(Request $request, Tenant $tenant, ?string $storeId, string $platformAction, string $targetType, string $targetId, array $changes, string $tenantAction, string $reason): void
     {
+        $changes += ['staff_id' => $this->staff($request)->id];
+        $grantId = $request->attributes->get('support_grant_id');
+
+        if (is_string($grantId)) {
+            $changes['grant_id'] = $grantId;
+        }
+
         $this->audit->record($this->staff($request)->id, $platformAction, $targetType, $targetId, PlatformAudit::RESULT_SUCCEEDED, $changes, $reason, $tenant->id);
         AuditLog::query()->create([
             'tenant_id' => $tenant->id,

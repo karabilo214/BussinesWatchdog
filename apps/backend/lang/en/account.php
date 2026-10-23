@@ -1,6 +1,18 @@
 <?php
 
 return [
+    'support_access_requested' => [
+        'subject' => 'Business Watchdog: support access request for your store',
+        'body' => "Staff member :staff requested access to store :store in organisation :tenant for case :case. No store data is available to them until you approve. Review the request:\n:link\n\nIf you did not expect this request, deny it in your account.",
+    ],
+    'support_incident_acknowledged' => [
+        'subject' => 'Business Watchdog: support acknowledged an incident',
+        'body' => "Support acknowledged incident :incident for “:tenant”. The action is recorded in your organisation history. Review it here:\n:link",
+    ],
+    'support_incident_resolved' => [
+        'subject' => 'Business Watchdog: support resolved an incident',
+        'body' => "Support marked incident :incident for “:tenant” as resolved. The action is recorded in your organisation history. Review it here:\n:link",
+    ],
     'password_reset' => [
         'subject' => 'Business Watchdog: password reset',
         'body' => "Someone asked to reset the password of your Business Watchdog account.\n\nTo set a new password, open this link (valid for :minutes min):\n:link\n\nIf you did not ask for it, ignore this email — your password stays the same.",

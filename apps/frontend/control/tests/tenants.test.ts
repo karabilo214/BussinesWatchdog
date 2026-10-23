@@ -35,6 +35,7 @@ vi.mock('@/api', () => ({
   fetchCustomerOrder: vi.fn(),
   fetchCustomerCheck: vi.fn(),
   fetchCustomerArtifactUrl: vi.fn(),
+  listPlatformSupportGrants: vi.fn(),
   fetchTenantInvitations: vi.fn(),
   inviteTenantMember: vi.fn(),
   revokeTenantInvitation: vi.fn(),
@@ -89,7 +90,7 @@ function card(overrides: Partial<TenantCard> = {}): TenantCard {
   };
 }
 
-async function open(path: string, capabilities = ['tenants.read', 'tenants.manage', 'billing.read', 'plans.read'], role: StaffMe['role'] = 'platform_owner') {
+async function open(path: string, capabilities = ['tenants.read', 'tenants.manage', 'tenants.support', 'billing.read', 'plans.read'], role: StaffMe['role'] = 'platform_owner') {
   mocked.fetchMe.mockResolvedValue(staff(capabilities, role));
   await useStaff().load(true);
   const router = buildRouter();
@@ -110,6 +111,12 @@ beforeEach(() => {
   mocked.fetchPlans.mockResolvedValue({ data: [{ id: 'p-1', code: 'start', state: 'published', versions: [{ id: 'v-1', version: 1, state: 'published', name: { ru: 'Старт' }, description: {}, placeholder: false, trial_days: 14, entitlements: { features: [], limits: {} }, published_at: null, subscribers: 1, prices: [] }] }], mode: 'test', provider_configured: true } as never);
   mocked.fetchTenants.mockResolvedValue({ data: [ROW], next_cursor: null });
   mocked.fetchTenant.mockResolvedValue(card());
+  mocked.listPlatformSupportGrants.mockResolvedValue([{
+    id: 'g-1', tenant_id: 't-1', store_id: 's-1', staff_id: 's-1',
+    scopes: ['read_diagnostics', 'read_artifacts', 'request_recheck'], state: 'approved',
+    reason: 'Customer request', case_reference: 'SUP-1', duration_hours: 24,
+    created_at: '2026-10-23T10:00:00Z', approved_at: '2026-10-23T10:01:00Z', expires_at: '2099-10-24T10:01:00Z',
+  }]);
 });
 
 describe('tenants', () => {
@@ -328,7 +335,7 @@ describe('tenants', () => {
     mocked.createCustomerStore.mockResolvedValue({ id: 's-2', name: 'Zweiter Shop', base_url: 'https://zweiter.example', platform: 'shopware', status: 'onboarding', default_currency: 'EUR', timezone: 'Europe/Berlin' });
     const { wrapper } = await open('/owner/tenants/t-1?tab=stores');
 
-    expect(wrapper.get('[data-open-store]').attributes('href')).toBe('/owner/tenants/t-1/stores/s-1');
+    expect(wrapper.get('[data-open-store]').attributes('href')).toBe('/owner/tenants/t-1?tab=support');
     await wrapper.get('[data-action="add-store"]').trigger('click');
     expect(wrapper.get('[data-action="confirm-store"]').attributes('disabled')).toBeDefined();
     await wrapper.get('[data-field="store-name"]').setValue('Zweiter Shop');
@@ -417,7 +424,7 @@ describe('tenants', () => {
     mocked.fetchStoreIncidents.mockResolvedValue({ data: [incident], next_cursor: null });
     mocked.rerunStoreCheck.mockResolvedValue({ id: 'r-2', scenario_id: 'sc-1', trigger: 'support', status: 'queued', error_code: null, scheduled_at: '2026-10-20T10:00:00Z', started_at: null, finished_at: null });
     mocked.changeStoreIncident.mockResolvedValueOnce({ ...incident, state: 'acknowledged' }).mockResolvedValueOnce({ ...incident, state: 'resolved', resolved_at: '2026-10-20T10:05:00Z' });
-    const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1?tab=checks', ['tenants.read', 'tenants.support']);
+    const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1?tab=checks', ['tenants.read', 'tenants.support', 'tenants.incident_actions']);
 
     await wrapper.get('[data-action="support-rerun"]').trigger('click');
     expect(wrapper.get('[data-action="support-confirm"]').attributes('disabled')).toBeDefined();

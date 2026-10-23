@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Account\AccountController;
 use App\Http\Controllers\Api\V1\Account\MfaController;
+use App\Http\Controllers\Api\V1\Account\SupportGrantController;
 use App\Http\Controllers\Api\V1\Account\TeamController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Billing\CheckoutController;
@@ -113,6 +114,12 @@ Route::middleware('stateful.session')->prefix('/v1/invitations')->group(function
 });
 
 Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefix('/v1')->group(function (): void {
+    Route::get('/support-grants', [SupportGrantController::class, 'index']);
+    Route::post('/support-grants', [SupportGrantController::class, 'store']);
+    Route::post('/support-grants/{grant}/approve', [SupportGrantController::class, 'approve'])->whereUuid('grant');
+    Route::post('/support-grants/{grant}/deny', [SupportGrantController::class, 'deny'])->whereUuid('grant');
+    Route::post('/support-grants/{grant}/revoke', [SupportGrantController::class, 'revoke'])->whereUuid('grant');
+    Route::get('/support-grants/{grant}/activity', [SupportGrantController::class, 'activity'])->whereUuid('grant');
     Route::post('/tenants/{tenant}/activate', [TenantController::class, 'activate']);
     Route::get('/tenants/context', [TenantController::class, 'context']);
 

@@ -34,9 +34,9 @@ Data refresh polling15–30с только visible page, stop on hidden tab/unmo
 
 ## 3 Поиск клиента и support grant
 
-Support case P1 — reason+target tenant+scope+expiry. Минимальные summary доступны staff по роли; подробные orders/findings/screenshots требуют grant. Grant выдаёт tenant_owner в кабинете, TTL default24ч, maximum72ч; permissions read_diagnostics/read_artifacts/request_recheck явно перечислены. Staff access read-only; изменяющее действие проходит отдельный platform action policy.
+Support case P1 — обязательные номер обращения и основание, один tenant и магазин, scopes и срок. Запрос создаёт сотрудник с `tenants.support` или tenant_owner, который выбирает активного сотрудника по рабочему e-mail. Только tenant_owner одобряет/отклоняет/отзывает, включая запрос для platform_owner. Минимальные summary доступны staff по роли; подробные orders/findings/screenshots требуют grant. TTL default24ч, maximum72ч от одобрения; permissions read_diagnostics/read_artifacts/request_recheck явно перечислены. Для acknowledge/resolve нужен отдельный `tenants.incident_actions`, основание, аудит и письмо клиенту, без grant; создание/удаление магазина управляются отдельными правами.
 
-До owner approval staff видит «Ожидает разрешение». Revoke мгновенно закрывает выдачу новых links и API; уже выданный artifact link действует только до короткого TTL. Owner service emergency доступ не реализован обходом grant в P1; emergency runbook отдельно, capability break_glass LATER.
+До owner approval staff видит «Ожидает разрешение». Revoke и истечение закрывают каждый последующий API-запрос и выданный artifact link: материал загружается через приложение с повторной проверкой grant. Открытая страница очищает подробности при обнаружении отзыва/истечения. Owner service emergency доступ не реализован обходом grant в P1; emergency runbook отдельно, capability break_glass LATER.
 
 Card tabs: connection health, sync/backfill, supported capabilities, sanitized errors, runs/incidents при grant, support notes и action history. Support notes не могут включать credentials/customer card data. Нет Login as customer и импорта tenant session cookies.
 

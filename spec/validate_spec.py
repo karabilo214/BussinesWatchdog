@@ -243,7 +243,7 @@ assert len(extra_acc)>=28 and extra_acc==[f'EXT-{i:02d}' for i in range(1,len(ex
 checked(f'Extension: five panel specifications, {len(billing_cases)} unique billing cases, {len(extra_acc)} additional acceptance scenarios')
 
 report=['# Проверка пакета спецификации','',
-'Проверено 8 октября 2026 года для версии1.1. Ниже перечислены фактически выполненные проверки файлов, а не тесты рабочего SaaS.','']
+'Проверено 23 октября 2026 года для версии1.1. Ниже перечислены фактически выполненные проверки файлов, а не тесты рабочего SaaS.','']
 report += ['- '+x for x in checks]
 report += ['', 'Ограничения проверки', '',
 '- PostgreSQL server и полноценный PostgreSQL parser в текущем окружении недоступны. SQL проверен статически по структуре, полям, FK и уникальным ключам; выполнение DDL в PostgreSQL18 и Laravel migrations обязательно на D1.',

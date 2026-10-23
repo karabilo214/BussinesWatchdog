@@ -511,6 +511,7 @@
     "tab": {
       "overview": "Übersicht",
       "stores": "Shops",
+      "support": "Support-Zugriff",
       "subscription": "Abonnement",
       "members": "Team",
       "audit": "Audit",
@@ -1570,8 +1571,12 @@
       "hint": "Authenticator eines Kundennutzers abschalten (mit Grund und Code)."
     },
     "tenants_support": {
-      "label": "Kunden: Support-Aktionen",
-      "hint": "Prüfung neu starten, Vorfall für den Kunden annehmen und schließen – mit Grund, ohne seine Kontingente zu verbrauchen."
+      "label": "Kunden: befristeter Support-Zugriff",
+      "hint": "Vom Kunden genehmigten Zugriff auf Shop-Diagnose, Materialien oder erneute Prüfung beantragen."
+    },
+    "tenants_incident_actions": {
+      "label": "Kunden: Vorfall-Aktionen",
+      "hint": "Vorfall für Kunden mit Begründung, Protokoll und Benachrichtigung annehmen oder abschließen."
     },
     "tenants_delete": {
       "label": "Kunden: Organisation löschen",
@@ -1625,5 +1630,31 @@
       "label": "Mitarbeiter",
       "hint": "Mitarbeiter einladen und ihre Rechte."
     }
+  },
+  "support_grants": {
+    "access_ended": "Der Support-Zugriff ist beendet. Bitten Sie den Organisationseigentümer bei Bedarf um eine neue Freigabe.",
+    "staff_explanation": "Shop-Details erfordern die Freigabe des Organisationseigentümers, auch für Plattform-Eigentümer. Beantragen Sie nur den benötigten Zugriff für einen Shop.",
+    "request_title": "Befristeten Zugriff beantragen",
+    "store": "Shop",
+    "scopes": "Zugriffskategorien",
+    "scope": {
+      "read_diagnostics": "Diagnose, Bestellungen und Zahlungen",
+      "read_artifacts": "Screenshots und Materialien",
+      "request_recheck": "Neue Browserprüfung starten"
+    },
+    "hours": "Stunden (höchstens 72)",
+    "reason": "Begründung",
+    "case": "Supportfall-Referenz",
+    "request": "Anfrage senden",
+    "empty": "Noch keine Zugriffsanfragen.",
+    "state": {
+      "pending": "Wartet auf Genehmigung",
+      "approved": "Aktiv",
+      "denied": "Abgelehnt",
+      "revoked": "Widerrufen",
+      "expired": "Abgelaufen"
+    },
+    "until": "Bis",
+    "open_store": "Shop-Details öffnen"
   }
 }

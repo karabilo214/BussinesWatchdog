@@ -511,6 +511,7 @@
     "tab": {
       "overview": "Overview",
       "stores": "Stores",
+      "support": "Support access",
       "subscription": "Subscription",
       "members": "Team",
       "audit": "Audit",
@@ -1570,8 +1571,12 @@
       "hint": "Turn off a customer user's authenticator (with a reason and a code)."
     },
     "tenants_support": {
-      "label": "Customers: support actions",
-      "hint": "Rerun a check, acknowledge and resolve an incident for the customer — with a reason, without using their limits."
+      "label": "Customers: temporary support access",
+      "hint": "Request a customer-approved grant for store diagnostics, materials or a browser recheck."
+    },
+    "tenants_incident_actions": {
+      "label": "Customers: incident actions",
+      "hint": "Acknowledge or resolve an incident for a customer with a reason, audit and customer notification."
     },
     "tenants_delete": {
       "label": "Customers: delete an organization",
@@ -1625,5 +1630,31 @@
       "label": "Staff",
       "hint": "Inviting staff and their permissions."
     }
+  },
+  "support_grants": {
+    "access_ended": "Support access has ended. Ask the organisation owner for a new grant if more work is needed.",
+    "staff_explanation": "Detailed store data requires approval by the organisation owner, including for platform owners. Ask for one store and only the access needed.",
+    "request_title": "Request temporary access",
+    "store": "Store",
+    "scopes": "Access categories",
+    "scope": {
+      "read_diagnostics": "Diagnostics, orders and payments",
+      "read_artifacts": "Screenshots and materials",
+      "request_recheck": "Start a browser recheck"
+    },
+    "hours": "Hours (maximum 72)",
+    "reason": "Reason",
+    "case": "Support case reference",
+    "request": "Send request",
+    "empty": "No access requests yet.",
+    "state": {
+      "pending": "Waiting for approval",
+      "approved": "Active",
+      "denied": "Denied",
+      "revoked": "Revoked",
+      "expired": "Expired"
+    },
+    "until": "Until",
+    "open_store": "Open store details"
   }
 }

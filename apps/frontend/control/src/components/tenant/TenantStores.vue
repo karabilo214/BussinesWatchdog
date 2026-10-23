@@ -5,7 +5,7 @@ import { createCustomerStore, deleteCustomerStore, fetchTenant, type NewCustomer
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 
-const props = defineProps<{ card: TenantCard; canManage?: boolean; canDelete?: boolean }>();
+const props = defineProps<{ card: TenantCard; canManage?: boolean; canSupport?: boolean; canDelete?: boolean }>();
 const emit = defineEmits<{ updated: [card: TenantCard] }>();
 const { dateTime } = useFormat();
 
@@ -131,7 +131,7 @@ async function remove(): Promise<void> {
         <tbody class="divide-y divide-border">
           <tr v-for="store in card.stores" :key="store.id" :data-store="store.host">
             <td class="px-4 py-3">
-              <RouterLink v-if="canManage" :to="{ name: 'owner-tenant-store', params: { id: card.id, storeId: store.id } }" class="font-medium text-primary hover:underline" data-open-store>{{ store.name }}</RouterLink>
+              <RouterLink v-if="canSupport" :to="{ name: 'owner-tenant', params: { id: card.id }, query: { tab: 'support' } }" class="font-medium text-primary hover:underline" data-open-store>{{ store.name }}</RouterLink>
               <span v-else class="font-medium">{{ store.name }}</span><span class="block text-[13px] text-text-muted">{{ store.host }}</span></td>
             <td class="px-4 py-3">{{ store.platform }}</td>
             <td class="px-4 py-3">

@@ -108,14 +108,14 @@ Staff audit records read of detailed customer evidence, secret rotations metadat
 | GET /platform-api/v1/actions/{id} | — | safe stage/results, no secrets |
 | GET/POST /platform-api/v1/staff | role/invitation details | staff catalog/invite |
 | PATCH /platform-api/v1/staff/{id} | role,disabled,version | last owner guard/MFA audit |
-| POST /platform-api/v1/support-grants | tenant_id,scopes,expires_at,reason | pending request |
+| GET/POST /platform-api/v1/support-grants | tenant_id,store_id,scopes,duration_hours,case_reference,reason | own grants / pending request; default 24h, max 72h |
 | GET /platform-api/v1/audit | actor/action/target/from/to | safe audit records |
 | GET /platform-api/v1/queues/{kind} | state,age | operational metadata scoped by role |
 | GET /platform-api/v1/public-content | slug,locale,state | draft/published page versions |
 | POST /platform-api/v1/public-content | slug,locale,title,body | sanitized draft |
 | POST /platform-api/v1/public-content/{id}/publish | reason/version | content action |
 
-Customer support endpoints `/api/v1/support-grants`: list own tenant requests; approve/revoke owner only. Granted scope,expiry validated backend, API never accepts staff asserted «has_grant=true».
+Customer support endpoints `/api/v1/support-grants`: tenant_owner lists, creates for an active staff work e-mail, approves/denies/revokes and views access activity for its tenant. Only tenant_owner decides. All platform staff, including platform_owner, need a grant for detailed diagnostics and artifacts. Granted scope, expiry, tenant and store are checked per request; artifact content is served through a guarded app route, and API never accepts staff asserted «has_grant=true». Incident acknowledge/resolve uses `tenants.incident_actions`, reason, audit and customer notification separately from grant.
 
 ### DTO fields
 

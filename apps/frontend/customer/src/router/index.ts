@@ -20,6 +20,7 @@ export function buildRouter(): Router {
       { path: '/settings/team', name: 'team', component: () => import('@/views/TeamView.vue') },
       { path: '/settings/billing', name: 'billing', component: () => import('@/views/BillingView.vue') },
       { path: '/settings/organization', name: 'organization', component: () => import('@/views/OrganizationView.vue') },
+      { path: '/settings/support', name: 'support', component: () => import('@/views/SupportGrantsView.vue') },
       { path: '/overview', name: 'overview', component: () => import('@/views/OverviewView.vue') },
       { path: '/stores/new', name: 'store-create', component: () => import('@/views/StoreCreateView.vue') },
       { path: '/stores/:id', name: 'store', component: () => import('@/views/StoreView.vue'), props: true },

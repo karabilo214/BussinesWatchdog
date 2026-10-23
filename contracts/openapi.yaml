@@ -841,7 +841,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformShowTenantStore
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Views are not audited (ADR 0048); every change from the panel is."
+      description: "Capability tenants.support plus an active read_diagnostics grant for this exact tenant and store (EXT-05/06). Reads are audited for the customer and platform; the response is tenant scoped and uses the customer's history window. Detailed views are audited."
       security:
         - {StaffSession: []}
       parameters:
@@ -894,7 +894,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListTenantStoreFindings
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Reconciliation findings, newest first, with the filters of the account endpoint."
+      description: "Capability tenants.support plus an active read_diagnostics grant for this exact tenant and store (EXT-05/06). Reads are audited for the customer and platform; the response is tenant scoped and uses the customer's history window. Reconciliation findings, newest first, with the filters of the account endpoint."
       security:
         - {StaffSession: []}
       parameters:
@@ -913,7 +913,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListTenantStoreOrders
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Orders of the store, newest first (amounts in minor units as strings); next_cursor for the next page."
+      description: "Capability tenants.support plus an active read_diagnostics grant for this exact tenant and store (EXT-05/06). Reads are audited for the customer and platform; the response is tenant scoped and uses the customer's history window. Orders of the store, newest first (amounts in minor units as strings); next_cursor for the next page."
       security:
         - {StaffSession: []}
       parameters:
@@ -935,7 +935,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListTenantStoreChecks
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Browser check runs, newest first."
+      description: "Capability tenants.support plus an active read_diagnostics grant for this exact tenant and store (EXT-05/06). Reads are audited for the customer and platform; the response is tenant scoped and uses the customer's history window. Browser check runs, newest first."
       security:
         - {StaffSession: []}
       parameters:
@@ -956,7 +956,7 @@ paths:
     post:
       tags: [Platform]
       operationId: platformRerunTenantCheck
-      description: "Capability tenants.support (ADR 0048). Reruns a browser check scenario of the customer's store for the customer, with a reason: the same conditions as a manual run (store eligible, in plan, not paused, no active run, at most one support run a minute — 429), but the customer's manual-run allowance is neither checked nor used; the run has trigger support. Audited in the platform audit (tenant.check_rerun) and the organisation audit (check_run.support_started, by platform). 202 with the run."
+      description: "Capability tenants.support plus an active request_recheck grant for this store (EXT-05/06). Reruns a browser check scenario of the customer's store for the customer, with a reason: the same conditions as a manual run (store eligible, in plan, not paused, no active run, at most one support run a minute — 429), but the customer's manual-run allowance is neither checked nor used; the run has trigger support. Audited in the platform audit (tenant.check_rerun) and the organisation audit (check_run.support_started, by platform). 202 with the run."
       security:
         - {StaffSession: []}
       parameters:
@@ -988,7 +988,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListTenantStoreIncidents
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Incidents of the store."
+      description: "Capability tenants.support plus an active read_diagnostics grant for this exact tenant and store (EXT-05/06). Reads are audited for the customer and platform; the response is tenant scoped and uses the customer's history window. Incidents of the store."
       security:
         - {StaffSession: []}
       parameters:
@@ -1007,7 +1007,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformShowTenantOrder
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Order with findings, captures, refunds, allocations and revisions."
+      description: "Capability tenants.support plus an active read_diagnostics grant for this exact tenant and store (EXT-05/06). Reads are audited for the customer and platform; the response is tenant scoped and uses the customer's history window. Order with findings, captures, refunds, allocations and revisions."
       security:
         - {StaffSession: []}
       parameters:
@@ -1026,7 +1026,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformShowTenantCheck
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Check run with attempts, steps and redacted screenshots (ids only, no storage keys)."
+      description: "Capability tenants.support plus an active read_diagnostics grant for this exact tenant and store (EXT-05/06). Reads are audited for the customer and platform; the response is tenant scoped and uses the customer's history window. Check run with attempts, steps and redacted screenshots (ids only, no storage keys)."
       security:
         - {StaffSession: []}
       parameters:
@@ -1045,7 +1045,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformDownloadTenantArtifact
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Short-lived URL of a redacted screenshot (no-store)."
+      description: "Capability tenants.support plus an active read_artifacts grant for the artifact's exact tenant and store (EXT-05/06). Returns an authenticated same-origin URL for a redacted screenshot. Both this request and the byte request recheck the grant; revocation invalidates the URL immediately (no-store)."
       security:
         - {StaffSession: []}
       parameters:
@@ -1060,11 +1060,32 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/artifacts/{artifact}/content:
+    get:
+      tags: [Platform]
+      operationId: platformStreamTenantArtifact
+      description: "Streams redacted screenshot bytes through staff authentication and a fresh read_artifacts grant check. No presigned storage URL or cache."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: artifact, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Redacted screenshot bytes
+          content:
+            image/jpeg:
+              schema: {type: string, format: binary}
+            image/png:
+              schema: {type: string, format: binary}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/incidents/{incident}:
     get:
       tags: [Platform]
       operationId: platformShowTenantIncident
-      description: "Capability tenants.manage. Read-only view of a customer's data for the owner panel (ADR 0048): the same response as the customer account gets, scoped to this organisation and its history window. Incident with its timeline."
+      description: "Capability tenants.support plus an active read_diagnostics grant for this exact tenant and store (EXT-05/06). Reads are audited for the customer and platform; the response is tenant scoped and uses the customer's history window. Incident with its timeline."
       security:
         - {StaffSession: []}
       parameters:
@@ -1083,7 +1104,7 @@ paths:
     post:
       tags: [Platform]
       operationId: platformAcknowledgeTenantIncident
-      description: "Capability tenants.support (ADR 0048). Acknowledges an incident of the organisation for the customer with a reason; the incident activity records by platform and the reason (no customer user as actor). Audited in the platform audit (tenant.incident_acknowledged) and the organisation audit (incident.acknowledged_by_platform). 409 when already resolved."
+      description: "Capability tenants.incident_actions (separate from diagnostic grants). Notifies the customer owner. Acknowledges an incident of the organisation for the customer with a reason; the incident activity records by platform and the reason (no customer user as actor). Audited in the platform audit (tenant.incident_acknowledged) and the organisation audit (incident.acknowledged_by_platform). 409 when already resolved."
       security:
         - {StaffSession: []}
       parameters:
@@ -1114,7 +1135,7 @@ paths:
     post:
       tags: [Platform]
       operationId: platformResolveTenantIncident
-      description: "Capability tenants.support (ADR 0048). Resolves an incident of the organisation for the customer; the reason is the resolution reason. Activity by platform; audited (tenant.incident_resolved, incident.resolved_by_platform). 409 when already resolved."
+      description: "Capability tenants.incident_actions (separate from diagnostic grants). Notifies the customer owner. Resolves an incident of the organisation for the customer; the reason is the resolution reason. Activity by platform; audited (tenant.incident_resolved, incident.resolved_by_platform). 409 when already resolved."
       security:
         - {StaffSession: []}
       parameters:
@@ -6439,6 +6460,89 @@ paths:
           $ref: '#/components/responses/Problem'
         '422':
           $ref: '#/components/responses/Problem'
+  /platform-api/v1/support-grants:
+    get:
+      tags: [Platform]
+      operationId: runtimePlatformListSupportGrants
+      description: "Requires tenants.support. Staff sees only their own grant requests for the required tenant_id."
+      security: [{StaffSession: []}]
+      parameters:
+        - {name: tenant_id, in: query, required: true, schema: {type: string, format: uuid}}
+        - {name: store_id, in: query, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Own grants, content: {application/json: {schema: {type: object}}}}
+    post:
+      tags: [Platform]
+      operationId: runtimePlatformRequestSupportGrant
+      description: "Requires tenants.support. Case reference, reason and one store are mandatory; 24 hours by default, maximum 72. Pending grants give no access."
+      security: [{StaffSession: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [tenant_id, store_id, scopes, reason, case_reference]}
+      responses:
+        "201": {description: Pending grant, content: {application/json: {schema: {type: object}}}}
+  /api/v1/support-grants:
+    get:
+      tags: [Account]
+      operationId: runtimeCustomerListSupportGrants
+      description: "Tenant owner lists requests and their effective state for the active organisation."
+      security: [{CustomerSession: []}]
+      responses:
+        "200": {description: Grants, content: {application/json: {schema: {type: object}}}}
+    post:
+      tags: [Account]
+      operationId: runtimeCustomerRequestSupportGrant
+      description: "Tenant owner requests a grant for one store and an active employee identified by work e-mail. Case reference and reason required."
+      security: [{CustomerSession: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [store_id, staff_email, scopes, reason, case_reference]}
+      responses:
+        "201": {description: Pending grant, content: {application/json: {schema: {type: object}}}}
+  /api/v1/support-grants/{grant}/approve:
+    post:
+      tags: [Account]
+      operationId: runtimeCustomerApproveSupportGrant
+      description: "Only tenant_owner approves; the duration begins now."
+      security: [{CustomerSession: []}]
+      parameters:
+        - {name: grant, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Approved grant, content: {application/json: {schema: {type: object}}}}
+  /api/v1/support-grants/{grant}/deny:
+    post:
+      tags: [Account]
+      operationId: runtimeCustomerDenySupportGrant
+      description: "Only tenant_owner denies a pending request."
+      security: [{CustomerSession: []}]
+      parameters:
+        - {name: grant, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Denied grant, content: {application/json: {schema: {type: object}}}}
+  /api/v1/support-grants/{grant}/revoke:
+    post:
+      tags: [Account]
+      operationId: runtimeCustomerRevokeSupportGrant
+      description: "Only tenant_owner revokes an approved grant. The next detailed request or artifact link is denied."
+      security: [{CustomerSession: []}]
+      parameters:
+        - {name: grant, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Revoked grant, content: {application/json: {schema: {type: object}}}}
+  /api/v1/support-grants/{grant}/activity:
+    get:
+      tags: [Account]
+      operationId: runtimeCustomerSupportGrantActivity
+      description: "Tenant owner sees decision, detailed read, material and recheck metadata without customer content or secrets."
+      security: [{CustomerSession: []}]
+      parameters:
+        - {name: grant, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Audit activity, content: {application/json: {schema: {type: object}}}}
 components:
   securitySchemes:
     IntegrationKeyId:

@@ -14,6 +14,7 @@ class StoreDeletion
 {
     /** Children before parents. Missing tables are skipped for older deployed schemas. */
     private const TABLES = [
+        'support_access_grants',
         'check_steps', 'artifacts', 'check_attempts', 'check_runs', 'check_scenarios',
         'incident_signals', 'incident_activity', 'suppressions', 'incidents', 'signals',
         'reconciliation_subject_states', 'reconciliation_findings', 'reconciliation_runs', 'reconciliation_dirty_subjects',

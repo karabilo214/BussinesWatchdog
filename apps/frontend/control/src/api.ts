@@ -2,6 +2,30 @@ import { request } from '@bw/api-client';
 
 export type StaffRole = 'platform_owner' | 'platform_member';
 
+export type SupportGrantScope = 'read_diagnostics' | 'read_artifacts' | 'request_recheck';
+export interface PlatformSupportGrant {
+  id: string;
+  tenant_id: string;
+  store_id: string;
+  staff_id: string;
+  scopes: SupportGrantScope[];
+  state: 'pending' | 'approved' | 'denied' | 'revoked' | 'expired';
+  reason: string;
+  case_reference: string;
+  duration_hours: number;
+  created_at: string;
+  approved_at: string | null;
+  expires_at: string | null;
+}
+
+export async function listPlatformSupportGrants(tenantId: string): Promise<PlatformSupportGrant[]> {
+  return (await request<{ data: PlatformSupportGrant[] }>('GET', '/platform-api/v1/support-grants', { query: { tenant_id: tenantId } })).data.data;
+}
+
+export async function requestPlatformSupportGrant(input: { tenant_id: string; store_id: string; scopes: SupportGrantScope[]; duration_hours: number; reason: string; case_reference: string }): Promise<PlatformSupportGrant> {
+  return (await request<PlatformSupportGrant>('POST', '/platform-api/v1/support-grants', { body: input })).data;
+}
+
 export interface PublicStorefrontCheckHistory {
   id: string;
   url: string;

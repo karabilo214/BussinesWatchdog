@@ -1781,7 +1781,8 @@
       "profile": "Profil",
       "team": "Team",
       "billing": "Abonnement",
-      "organization": "Organisation"
+      "organization": "Organisation",
+      "support": "Support-Zugriff"
     }
   },
   "account": {
@@ -2279,5 +2280,30 @@
       "checkout_layout_selector_invalid": "Erlaubt sind nur Buchstaben, Ziffern, Leerzeichen und # . - _ [ ] = : \" ' > ~ + * , ( ) ^ $ |.",
       "checkout_layout_too_long": "Höchstens 200 Zeichen."
     }
+  },
+  "support_grants": {
+    "title": "Support-Zugriff",
+    "explanation": "Nur der Eigentümer Ihrer Organisation kann befristeten Zugriff auf einen Shop genehmigen. Mitarbeitende sehen nur die ausgewählten Kategorien. Sie können den Zugriff jederzeit widerrufen.",
+    "new": "Zugriff für Support beantragen",
+    "store": "Shop",
+    "staff_email": "Geschäftliche E-Mail des Mitarbeitenden",
+    "scopes": "Erlaubter Zugriff",
+    "scope": { "read_diagnostics": "Vorfälle, Prüfungen, Bestellungen und Zahlungen", "read_artifacts": "Screenshots und Materialien", "request_recheck": "Neue Browserprüfung starten" },
+    "hours": "Dauer in Stunden (höchstens 72)",
+    "reason": "Begründung",
+    "case": "Supportfall-Referenz",
+    "request": "Anfrage erstellen",
+    "requests": "Anfragen und aktiver Zugriff",
+    "empty": "Noch keine Anfragen.",
+    "state": { "pending": "Wartet auf Ihre Genehmigung", "approved": "Aktiv", "denied": "Abgelehnt", "revoked": "Widerrufen", "expired": "Abgelaufen" },
+    "requested_at": "Beantragt",
+    "until": "Bis",
+    "approve": "Genehmigen",
+    "deny": "Ablehnen",
+    "revoke": "Zugriff widerrufen",
+    "activity": "Aktivität",
+    "no_activity": "Noch keine Aktivität erfasst.",
+    "event": { "support_grant.requested": "Zugriff beantragt", "support_grant.approved": "Zugriff genehmigt", "support_grant.denied": "Anfrage abgelehnt", "support_grant.revoked": "Zugriff widerrufen", "support_access.opened": "Detaildaten geöffnet", "support_access.artifact": "Material heruntergeladen", "check_run.support_started": "Neue Prüfung gestartet" },
+    "warning": "Ein Widerruf sperrt neue Anfragen und Links sofort. Bereits gesehene oder gespeicherte Informationen können dadurch nicht gelöscht werden."
   }
 }

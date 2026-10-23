@@ -1781,7 +1781,8 @@
       "profile": "Profile",
       "team": "Team",
       "billing": "Subscription",
-      "organization": "Organization"
+      "organization": "Organization",
+      "support": "Support access"
     }
   },
   "account": {
@@ -2279,5 +2280,30 @@
       "checkout_layout_selector_invalid": "Only letters, digits, space and # . - _ [ ] = : \" ' > ~ + * , ( ) ^ $ | are allowed.",
       "checkout_layout_too_long": "At most 200 characters."
     }
+  },
+  "support_grants": {
+    "title": "Support access",
+    "explanation": "Only your organisation owner can approve temporary access to one store. Staff see only the selected categories. You can revoke access at any time.",
+    "new": "Request access for support",
+    "store": "Store",
+    "staff_email": "Staff work email",
+    "scopes": "Allowed access",
+    "scope": { "read_diagnostics": "Incidents, checks, orders and payments", "read_artifacts": "Screenshots and other materials", "request_recheck": "Start a new browser check" },
+    "hours": "Duration in hours (maximum 72)",
+    "reason": "Reason",
+    "case": "Support case reference",
+    "request": "Create request",
+    "requests": "Requests and active access",
+    "empty": "No requests yet.",
+    "state": { "pending": "Waiting for your approval", "approved": "Active", "denied": "Denied", "revoked": "Revoked", "expired": "Expired" },
+    "requested_at": "Requested",
+    "until": "Until",
+    "approve": "Approve",
+    "deny": "Deny",
+    "revoke": "Revoke access",
+    "activity": "Activity",
+    "no_activity": "No activity recorded.",
+    "event": { "support_grant.requested": "Access requested", "support_grant.approved": "Access approved", "support_grant.denied": "Access denied", "support_grant.revoked": "Access revoked", "support_access.opened": "Detailed data opened", "support_access.artifact": "Material downloaded", "check_run.support_started": "New check started" },
+    "warning": "Revoking access stops new requests and links immediately. It cannot erase information the employee has already seen or saved."
   }
 }

@@ -2,13 +2,16 @@
 
 namespace Tests\Feature\Platform;
 
+use App\Mail\NotificationMessageMail;
 use App\Models\CheckScenario;
 use App\Models\Incident;
+use App\Models\Membership;
 use App\Models\PlatformStaff;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationRun;
 use App\Models\Store;
 use App\Models\Subscription;
+use App\Models\SupportAccessGrant;
 use App\Models\User;
 use App\Support\Account\MfaService;
 use App\Support\Account\Totp;
@@ -20,6 +23,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -58,9 +62,11 @@ class TenantStoreDataTest extends TestCase
         $tenant = $context['tenant']->id;
         $store = $context['store']->id;
         $this->signIn();
+        $this->getJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}")->assertForbidden();
+        $this->grant($tenant, $store, [SupportAccessGrant::READ_DIAGNOSTICS, SupportAccessGrant::READ_ARTIFACTS]);
 
         $this->getJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}")->assertOk()->assertJsonPath('id', $store)->assertJsonPath('name', 'Main Shop');
-        $this->assertSame(0, DB::table('platform_audit_log')->where('target_tenant_id', $tenant)->count(), 'Views are not audited.');
+        $this->assertGreaterThan(0, DB::table('platform_audit_log')->where('target_tenant_id', $tenant)->count(), 'Detailed views are audited.');
 
         $findings = $this->getJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}/findings")->assertOk()->json('data');
         $this->assertSame([$data['finding']], array_column($findings, 'id'));
@@ -79,7 +85,7 @@ class TenantStoreDataTest extends TestCase
         $this->assertSame($data['artifact'], $detail->json('attempts.0.artifacts.0.id'));
         $this->assertArrayNotHasKey('object_key', $detail->json('attempts.0.artifacts.0'));
         $url = $this->getJson("/platform-api/v1/tenants/{$tenant}/artifacts/{$data['artifact']}/download")->assertOk()->assertHeader('Cache-Control', 'no-store, private');
-        $this->assertStringStartsWith('https://objects.example.test/', $url->json('url'));
+        $this->assertStringStartsWith('/platform-api/v1/tenants/', $url->json('url'));
 
         $incidents = $this->getJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}/incidents")->assertOk()->json('data');
         $this->assertSame([$data['incident']], array_column($incidents, 'id'));
@@ -94,6 +100,11 @@ class TenantStoreDataTest extends TestCase
         $this->getJson("/platform-api/v1/tenants/{$tenant}/incidents/{$foreign['incident']}")->assertNotFound();
         $this->getJson('/platform-api/v1/tenants/'.Str::uuid().'/stores/'.$store)->assertNotFound();
         $this->getJson("/platform-api/v1/tenants/{$tenant}/stores/not-a-uuid")->assertNotFound();
+
+        $disk->put("tenants/{$tenant}/stores/{$store}/checks/{$data['artifact']}.jpg", 'redacted screenshot');
+        $this->get($url->json('url'))->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+        SupportAccessGrant::query()->where('tenant_id', $tenant)->update(['state' => SupportAccessGrant::REVOKED, 'revoked_at' => now()]);
+        $this->get($url->json('url'))->assertForbidden();
     }
 
     public function test_owner_adds_a_store_for_the_customer_with_a_reason_within_the_plan(): void
@@ -207,6 +218,10 @@ class TenantStoreDataTest extends TestCase
         $store = $context['store']->id;
         $scenario = CheckScenario::query()->where('store_id', $store)->value('id');
         $this->signIn(PlatformStaff::ROLE_SUPPORT);
+        $staff = PlatformStaff::query()->where('role', PlatformStaff::ROLE_MEMBER)->firstOrFail();
+        $staff->forceFill(['capabilities' => ['tenants.support', 'tenants.incident_actions']])->save();
+        $this->grant($tenant, $store, [SupportAccessGrant::REQUEST_RECHECK]);
+        Mail::fake();
 
         $this->postJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}/checks", ['scenario_id' => $scenario])->assertStatus(422)->assertJsonValidationErrors('reason');
         $this->postJson("/platform-api/v1/tenants/{$tenant}/stores/{$store}/checks", ['scenario_id' => CheckScenario::query()->where('store_id', '!=', $store)->value('id'), 'reason' => 'Customer asked'])->assertNotFound();
@@ -225,6 +240,7 @@ class TenantStoreDataTest extends TestCase
         $this->assertEqualsCanonicalizing(['reason' => 'Fixed with the customer', 'by' => 'platform'], json_decode((string) $activity->sanitized_data, true));
         $this->assertSame(['tenant.incident_acknowledged', 'tenant.incident_resolved'], DB::table('platform_audit_log')->where('target_id', $data['incident'])->orderBy('created_at')->pluck('action')->all());
         $this->assertDatabaseHas('audit_log', ['tenant_id' => $tenant, 'action' => 'incident.resolved_by_platform', 'entity_id' => $data['incident']]);
+        Mail::assertSent(NotificationMessageMail::class, 2);
     }
 
     public function test_support_actions_need_their_own_permission(): void
@@ -292,6 +308,26 @@ class TenantStoreDataTest extends TestCase
         PlatformStaff::query()->create(['user_id' => $user->id, 'role' => $role, 'state' => PlatformStaff::STATE_ACTIVE]);
         $this->postJson('/platform-api/v1/auth/login', ['email' => 'staff@platform.test', 'password' => 'staff-password-1234'])->assertOk();
         $this->postJson('/platform-api/v1/auth/mfa', ['code' => $this->code()])->assertOk();
+    }
+
+    /** @param list<string> $scopes */
+    private function grant(string $tenantId, string $storeId, array $scopes): void
+    {
+        $staff = PlatformStaff::query()->whereIn('user_id', User::query()->where('email', 'staff@platform.test')->select('id'))->firstOrFail();
+        SupportAccessGrant::query()->create([
+            'tenant_id' => $tenantId,
+            'store_id' => $storeId,
+            'staff_id' => $staff->id,
+            'requested_by_staff_id' => $staff->id,
+            'approved_by' => Membership::query()->where('tenant_id', $tenantId)->where('role', 'owner')->value('user_id'),
+            'scopes' => $scopes,
+            'reason' => 'Customer approved support',
+            'case_reference' => 'CASE-TEST',
+            'state' => SupportAccessGrant::APPROVED,
+            'duration_hours' => 24,
+            'expires_at' => now()->addDay(),
+            'approved_at' => now(),
+        ]);
     }
 
     private function code(): string

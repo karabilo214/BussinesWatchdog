@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { ApiError } from '@bw/api-client';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { StatusBadge, formatMinor } from '@bw/ui';
@@ -13,6 +14,7 @@ import {
   fetchStoreFindings,
   fetchStoreIncidents,
   fetchStoreOrders,
+  listPlatformSupportGrants,
   rerunStoreCheck,
   type CustomerStore,
   type Page,
@@ -51,13 +53,51 @@ const order = ref<StoreOrderDetail | null>(null);
 const check = ref<StoreCheckDetail | null>(null);
 const incident = ref<StoreIncident | null>(null);
 const screenshots = ref<Record<string, string>>({});
+const accessEnded = ref(false);
+const grantScopes = ref<string[]>([]);
+let grantTimer: ReturnType<typeof setInterval> | null = null;
 const { can } = useStaff();
 const canSupport = computed(() => can('tenants.support'));
+const canIncidentAction = computed(() => can('tenants.incident_actions'));
+const canRecheck = computed(() => canSupport.value && grantScopes.value.includes('request_recheck'));
+const canArtifacts = computed(() => grantScopes.value.includes('read_artifacts'));
 const support = reactive({ kind: null as 'rerun' | 'acknowledge' | 'resolve' | null, reason: '', busy: false, error: null as unknown, done: null as string | null });
 const scenarioToRerun = computed(() => checks.value[0]?.scenario_id ?? null);
 
 function askSupport(kind: NonNullable<typeof support.kind>): void {
   Object.assign(support, { kind, reason: '', error: null, done: null });
+}
+
+function expireAccess(): void {
+  accessEnded.value = true;
+  store.value = null;
+  findings.value = [];
+  orders.value = [];
+  checks.value = [];
+  incidents.value = [];
+  order.value = null;
+  check.value = null;
+  incident.value = null;
+  screenshots.value = {};
+  grantScopes.value = [];
+}
+
+function accessError(caught: unknown): void {
+  if (caught instanceof ApiError && caught.status === 403) expireAccess();
+}
+
+async function refreshGrant(): Promise<void> {
+  if (document.hidden || accessEnded.value) return;
+  try {
+    const now = Date.now();
+    const scopes = (await listPlatformSupportGrants(props.id))
+      .filter((grant) => grant.store_id === props.storeId && grant.state === 'approved' && grant.expires_at !== null && Date.parse(grant.expires_at) > now)
+      .flatMap((grant) => grant.scopes);
+    grantScopes.value = [...new Set(scopes)];
+    if (!grantScopes.value.includes('read_diagnostics')) expireAccess();
+  } catch (caught) {
+    accessError(caught);
+  }
 }
 
 async function confirmSupport(): Promise<void> {
@@ -79,6 +119,7 @@ async function confirmSupport(): Promise<void> {
     support.kind = null;
   } catch (caught) {
     support.error = caught;
+    accessError(caught);
   } finally {
     support.busy = false;
   }
@@ -123,12 +164,14 @@ async function page<T>(load: (cursor: string | null) => Promise<Page<T>>, target
     cursor.value = result.next_cursor;
   } catch (caught) {
     listError.value = caught;
+    accessError(caught);
   } finally {
     busy.value = false;
   }
 }
 
 function loadTab(more = false): Promise<void> {
+  if (accessEnded.value) return Promise.resolve();
   if (!more) {
     order.value = null;
     check.value = null;
@@ -154,6 +197,7 @@ async function openOrder(id: string): Promise<void> {
     order.value = await fetchCustomerOrder(props.id, id);
   } catch (caught) {
     listError.value = caught;
+    accessError(caught);
   }
 }
 
@@ -165,6 +209,7 @@ async function openCheck(id: string): Promise<void> {
     check.value = await fetchCustomerCheck(props.id, id);
   } catch (caught) {
     listError.value = caught;
+    accessError(caught);
   }
 }
 
@@ -173,6 +218,7 @@ async function showScreenshot(id: string): Promise<void> {
     screenshots.value = { ...screenshots.value, [id]: (await fetchCustomerArtifactUrl(props.id, id)).url };
   } catch (caught) {
     listError.value = caught;
+    accessError(caught);
   }
 }
 
@@ -185,13 +231,18 @@ async function findingOrder(finding: StoreFinding): Promise<void> {
 onMounted(async () => {
   try {
     store.value = await fetchCustomerStore(props.id, props.storeId);
+    await refreshGrant();
     await loadTab();
   } catch (caught) {
     error.value = caught;
+    accessError(caught);
   } finally {
     loading.value = false;
   }
+  grantTimer = setInterval(() => void refreshGrant(), 15000);
 });
+
+onUnmounted(() => { if (grantTimer !== null) clearInterval(grantTimer); });
 
 watch(tab, () => void loadTab());
 </script>
@@ -201,6 +252,7 @@ watch(tab, () => void loadTab());
     <div class="flex max-w-7xl flex-col gap-6">
       <RouterLink :to="{ name: 'owner-tenant', params: { id }, query: { tab: 'stores' } }" class="self-start text-sm text-primary hover:underline">← {{ $t('store_data.back') }}</RouterLink>
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
+      <p v-else-if="accessEnded" role="status" class="rounded-md border border-note-border bg-note-soft p-4 text-sm">{{ $t('support_grants.access_ended') }}</p>
       <ErrorNotice v-else-if="error" :error="error" />
 
       <template v-else-if="store">
@@ -227,7 +279,7 @@ watch(tab, () => void loadTab());
         <ErrorNotice v-if="listError" :error="listError" />
 
         <p v-if="support.done" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-support-done>{{ $t(support.done) }}</p>
-        <button v-if="canSupport && tab === 'checks' && scenarioToRerun" type="button" class="self-start rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft" data-action="support-rerun" @click="askSupport('rerun')">{{ $t('store_data.support.rerun') }}</button>
+        <button v-if="canRecheck && tab === 'checks' && scenarioToRerun" type="button" class="self-start rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft" data-action="support-rerun" @click="askSupport('rerun')">{{ $t('store_data.support.rerun') }}</button>
         <form v-if="support.kind" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-4 text-sm" :data-form="`support-${support.kind}`" @submit.prevent="confirmSupport">
           <p class="font-medium">{{ $t(`store_data.support.confirm.${support.kind}`) }}</p>
           <label class="flex flex-col gap-1.5">
@@ -386,7 +438,7 @@ watch(tab, () => void loadTab());
               <p v-if="attempt.artifacts.length === 0" class="text-text-muted">{{ $t('store_data.check.no_screenshots') }}</p>
               <div v-for="artifact in attempt.artifacts" :key="artifact.id" class="flex flex-col gap-2" :data-artifact="artifact.id">
                 <img v-if="screenshots[artifact.id]" :src="screenshots[artifact.id]" :alt="$t('store_data.check.screenshot_alt')" class="max-w-full rounded-md border border-border" />
-                <button v-else type="button" class="self-start rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="show-screenshot" @click="showScreenshot(artifact.id)">{{ $t('store_data.check.show') }} ({{ Math.ceil(artifact.size_bytes / 1024) }} KB)</button>
+                <button v-else-if="canArtifacts" type="button" class="self-start rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="show-screenshot" @click="showScreenshot(artifact.id)">{{ $t('store_data.check.show') }} ({{ Math.ceil(artifact.size_bytes / 1024) }} KB)</button>
               </div>
             </div>
           </article>
@@ -404,7 +456,7 @@ watch(tab, () => void loadTab());
             <div><dt class="text-text-muted">{{ $t('store_data.incident.discrepancy') }}</dt><dd class="tabular-nums">{{ money(incident.verified_discrepancy_minor, incident.currency, incident.currency_exponent) }}</dd></div>
           </dl>
           <p v-if="incident.resolved_at">{{ $t('store_data.incident.resolved') }}: {{ dateTime(incident.resolved_at) }}</p>
-          <div v-if="canSupport && incident.state !== 'resolved'" class="flex flex-wrap gap-2">
+          <div v-if="canIncidentAction && incident.state !== 'resolved'" class="flex flex-wrap gap-2">
             <button v-if="incident.state === 'open'" type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="support-acknowledge" @click="askSupport('acknowledge')">{{ $t('store_data.support.acknowledge') }}</button>
             <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="support-resolve" @click="askSupport('resolve')">{{ $t('store_data.support.resolve') }}</button>
           </div>

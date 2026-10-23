@@ -11,11 +11,12 @@ import TenantOverview from '@/components/tenant/TenantOverview.vue';
 import TenantReminders from '@/components/tenant/TenantReminders.vue';
 import TenantStores from '@/components/tenant/TenantStores.vue';
 import TenantSubscription from '@/components/tenant/TenantSubscription.vue';
+import TenantSupportGrants from '@/components/tenant/TenantSupportGrants.vue';
 import { ACCESS_TONES, SUBSCRIPTION_TONES } from '@/components/tones';
 import { useStaff } from '@/composables/useStaff';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 
-const TABS = ['overview', 'stores', 'subscription', 'members', 'reminders', 'audit'] as const;
+const TABS = ['overview', 'stores', 'support', 'subscription', 'members', 'reminders', 'audit'] as const;
 type Tab = (typeof TABS)[number];
 
 const props = defineProps<{ id: string }>();
@@ -27,8 +28,9 @@ const loading = ref(true);
 const error = ref<unknown>(null);
 
 const tab = computed<Tab>(() => (TABS as readonly string[]).includes(String(route.query.tab)) ? (route.query.tab as Tab) : 'overview');
-const tabs = computed(() => TABS.filter((item) => item !== 'subscription' || card.value?.billing !== null));
+const tabs = computed(() => TABS.filter((item) => (item !== 'subscription' || card.value?.billing !== null) && (item !== 'support' || canSupport.value)));
 const canManage = computed(() => me.value?.capabilities.includes('tenants.manage') === true);
+const canSupport = computed(() => me.value?.capabilities.includes('tenants.support') === true);
 const canResetMfa = computed(() => me.value?.capabilities.includes('customers.mfa_reset') === true);
 const canDelete = computed(() => me.value?.capabilities.includes('tenants.delete') === true);
 const canDeleteStore = computed(() => me.value?.role === 'platform_owner' && canManage.value);
@@ -80,7 +82,8 @@ onMounted(load);
         </nav>
 
         <TenantOverview v-if="tab === 'overview'" :card="card" :can-manage="canManage" @updated="card = $event" />
-        <TenantStores v-else-if="tab === 'stores'" :card="card" :can-manage="canManage" :can-delete="canDeleteStore" @updated="card = $event" />
+        <TenantStores v-else-if="tab === 'stores'" :card="card" :can-manage="canManage" :can-support="canSupport" :can-delete="canDeleteStore" @updated="card = $event" />
+        <TenantSupportGrants v-else-if="tab === 'support' && canSupport" :card="card" />
         <TenantSubscription v-else-if="tab === 'subscription' && card.billing" :billing="card.billing" />
         <TenantMembers v-else-if="tab === 'members'" :card="card" :can-manage="canManage" :can-reset-mfa="canResetMfa" @updated="card = $event" />
         <TenantReminders v-else-if="tab === 'reminders'" :tenant-id="card.id" />

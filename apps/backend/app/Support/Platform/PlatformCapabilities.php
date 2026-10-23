@@ -22,6 +22,8 @@ final class PlatformCapabilities
 
     public const TENANTS_SUPPORT = 'tenants.support';
 
+    public const TENANTS_INCIDENT_ACTIONS = 'tenants.incident_actions';
+
     public const TENANTS_DELETE = 'tenants.delete';
 
     public const BILLING_READ = 'billing.read';
@@ -42,7 +44,7 @@ final class PlatformCapabilities
 
     /** Every capability of the owner panel, in the order the panel lists them. */
     public const ALL = [
-        self::TENANTS_READ, self::TENANTS_MANAGE, self::CUSTOMER_MFA_RESET, self::TENANTS_SUPPORT, self::TENANTS_DELETE,
+        self::TENANTS_READ, self::TENANTS_MANAGE, self::CUSTOMER_MFA_RESET, self::TENANTS_SUPPORT, self::TENANTS_INCIDENT_ACTIONS, self::TENANTS_DELETE,
         self::BILLING_READ, self::REFUNDS_REQUEST, self::REFUNDS_APPROVE,
         self::PLANS_READ, self::PLANS_MANAGE,
         self::CONTENT_MANAGE, self::CONTACTS_READ, self::CONTACTS_MANAGE,
@@ -60,6 +62,7 @@ final class PlatformCapabilities
         self::TENANTS_MANAGE => [self::TENANTS_READ],
         self::CUSTOMER_MFA_RESET => [self::TENANTS_READ],
         self::TENANTS_SUPPORT => [self::TENANTS_READ],
+        self::TENANTS_INCIDENT_ACTIONS => [self::TENANTS_READ],
         self::REFUNDS_REQUEST => [self::BILLING_READ],
         self::PLANS_MANAGE => [self::PLANS_READ],
         self::CONTACTS_MANAGE => [self::CONTACTS_READ],

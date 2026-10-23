@@ -1,6 +1,18 @@
 <?php
 
 return [
+    'support_access_requested' => [
+        'subject' => 'Business Watchdog: Anfrage auf Support-Zugriff',
+        'body' => "Mitarbeiter :staff hat für Vorgang :case Zugriff auf den Shop :store der Organisation :tenant angefragt. Vor Ihrer Freigabe sind die Shop-Daten nicht zugänglich. Anfrage prüfen:\n:link\n\nFalls Sie diese Anfrage nicht erwartet haben, lehnen Sie sie im Kundenkonto ab.",
+    ],
+    'support_incident_acknowledged' => [
+        'subject' => 'Business Watchdog: Support hat einen Vorfall übernommen',
+        'body' => "Der Support hat den Vorfall :incident für „:tenant“ übernommen. Die Aktion wurde im Organisationsprotokoll festgehalten. Details:\n:link",
+    ],
+    'support_incident_resolved' => [
+        'subject' => 'Business Watchdog: Support hat einen Vorfall abgeschlossen',
+        'body' => "Der Support hat den Vorfall :incident für „:tenant“ als gelöst markiert. Die Aktion wurde im Organisationsprotokoll festgehalten. Details:\n:link",
+    ],
     'password_reset' => [
         'subject' => 'Business Watchdog: Passwort zurücksetzen',
         'body' => "Jemand hat das Zurücksetzen des Passworts für Ihr Business-Watchdog-Konto angefordert.\n\nUm ein neues Passwort festzulegen, öffnen Sie diesen Link (gültig :minutes Min.):\n:link\n\nFalls Sie das nicht angefordert haben, ignorieren Sie diese E-Mail – Ihr Passwort bleibt unverändert.",

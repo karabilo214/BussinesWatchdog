@@ -16,6 +16,7 @@ use App\Http\Controllers\Platform\SettingsController;
 use App\Http\Controllers\Platform\SiteMediaController;
 use App\Http\Controllers\Platform\StaffController;
 use App\Http\Controllers\Platform\StaffInvitationController;
+use App\Http\Controllers\Platform\SupportGrantController;
 use App\Http\Controllers\Platform\TenantController;
 use App\Http\Controllers\Platform\TenantDeletionController;
 use App\Http\Controllers\Platform\TenantStoreController;
@@ -42,6 +43,10 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/lookup', [DiscountController::class, 'tenants']);
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants', [TenantController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/{tenant}', [TenantController::class, 'show']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_SUPPORT)->group(function (): void {
+        Route::get('/support-grants', [SupportGrantController::class, 'index']);
+        Route::post('/support-grants', [SupportGrantController::class, 'store'])->middleware('throttle:platform-step-up');
+    });
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/{tenant}/reminders', [TenantController::class, 'reminders'])->whereUuid('tenant');
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/subscriptions', [TenantController::class, 'subscriptions']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/payments', [PaymentController::class, 'index']);
@@ -69,7 +74,9 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::post('/tenants/{tenant}/members/{user}/mfa/reset', [TenantTeamController::class, 'resetMfa'])
         ->whereUuid(['tenant', 'user'])->middleware(['platform.staff:'.PlatformCapabilities::CUSTOMER_MFA_RESET, 'throttle:platform-step-up']);
     Route::middleware(['platform.staff:'.PlatformCapabilities::TENANTS_SUPPORT, 'throttle:platform-step-up'])->group(function (): void {
-        Route::post('/tenants/{tenant}/stores/{store}/checks', [TenantStoreController::class, 'rerunCheck'])->whereUuid(['tenant', 'store']);
+        Route::post('/tenants/{tenant}/stores/{store}/checks', [TenantStoreController::class, 'rerunCheck'])->whereUuid(['tenant', 'store'])->middleware('platform.support.grant:request_recheck');
+    });
+    Route::middleware(['platform.staff:'.PlatformCapabilities::TENANTS_INCIDENT_ACTIONS, 'throttle:platform-step-up'])->group(function (): void {
         Route::post('/tenants/{tenant}/incidents/{incident}/acknowledge', [TenantStoreController::class, 'acknowledgeIncident'])->whereUuid(['tenant', 'incident']);
         Route::post('/tenants/{tenant}/incidents/{incident}/resolve', [TenantStoreController::class, 'resolveIncident'])->whereUuid(['tenant', 'incident']);
     });
@@ -95,15 +102,20 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/tenants/{tenant}/invitations/{invitation}/revoke', [TenantTeamController::class, 'revoke']);
         Route::patch('/tenants/{tenant}/members/{user}', [TenantTeamController::class, 'changeRole'])->whereUuid(['tenant', 'user']);
         Route::post('/tenants/{tenant}/members/{user}/remove', [TenantTeamController::class, 'removeMember'])->whereUuid(['tenant', 'user']);
-        Route::get('/tenants/{tenant}/stores/{store}', [TenantStoreController::class, 'show']);
-        Route::get('/tenants/{tenant}/stores/{store}/findings', [TenantStoreController::class, 'findings']);
-        Route::get('/tenants/{tenant}/stores/{store}/orders', [TenantStoreController::class, 'orders']);
-        Route::get('/tenants/{tenant}/stores/{store}/checks', [TenantStoreController::class, 'checks']);
-        Route::get('/tenants/{tenant}/stores/{store}/incidents', [TenantStoreController::class, 'incidents']);
-        Route::get('/tenants/{tenant}/orders/{order}', [TenantStoreController::class, 'order']);
-        Route::get('/tenants/{tenant}/checks/{check}', [TenantStoreController::class, 'check']);
-        Route::get('/tenants/{tenant}/artifacts/{artifact}/download', [TenantStoreController::class, 'artifact']);
-        Route::get('/tenants/{tenant}/incidents/{incident}', [TenantStoreController::class, 'incident']);
+    });
+    Route::middleware(['platform.staff:'.PlatformCapabilities::TENANTS_SUPPORT, 'platform.support.grant:read_diagnostics'])->group(function (): void {
+        Route::get('/tenants/{tenant}/stores/{store}', [TenantStoreController::class, 'show'])->whereUuid(['tenant', 'store']);
+        Route::get('/tenants/{tenant}/stores/{store}/findings', [TenantStoreController::class, 'findings'])->whereUuid(['tenant', 'store']);
+        Route::get('/tenants/{tenant}/stores/{store}/orders', [TenantStoreController::class, 'orders'])->whereUuid(['tenant', 'store']);
+        Route::get('/tenants/{tenant}/stores/{store}/checks', [TenantStoreController::class, 'checks'])->whereUuid(['tenant', 'store']);
+        Route::get('/tenants/{tenant}/stores/{store}/incidents', [TenantStoreController::class, 'incidents'])->whereUuid(['tenant', 'store']);
+        Route::get('/tenants/{tenant}/orders/{order}', [TenantStoreController::class, 'order'])->whereUuid(['tenant', 'order']);
+        Route::get('/tenants/{tenant}/checks/{check}', [TenantStoreController::class, 'check'])->whereUuid(['tenant', 'check']);
+        Route::get('/tenants/{tenant}/incidents/{incident}', [TenantStoreController::class, 'incident'])->whereUuid(['tenant', 'incident']);
+    });
+    Route::middleware(['platform.staff:'.PlatformCapabilities::TENANTS_SUPPORT, 'platform.support.grant:read_artifacts'])->group(function (): void {
+        Route::get('/tenants/{tenant}/artifacts/{artifact}/download', [TenantStoreController::class, 'artifact'])->whereUuid(['tenant', 'artifact']);
+        Route::get('/tenants/{tenant}/artifacts/{artifact}/content', [TenantStoreController::class, 'artifactContent'])->whereUuid(['tenant', 'artifact']);
     });
 
     Route::middleware('platform.staff:'.PlatformCapabilities::CONTENT_MANAGE)->group(function (): void {

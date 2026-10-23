@@ -1000,3 +1000,14 @@ Status: complete (CI and contracts only; nothing to deploy)
 - CI: new job «Specification and contracts (static checks)» — Python 3.12, PyYAML 6.0.2, `python spec/validate_spec.py`, then `git diff --exit-code spec/VALIDATION.md`. Ops: `docs/ops/development.md`.
 
 Verification: validator passes locally (237 + 20 operations, 64 tables, 43 TZ sections, 50 + 29 acceptance ids); `OpenApiRoutesTest` passes; CI run checked after push.
+
+### Step 235: Temporary Support Access per Store
+
+Status: implemented locally; not deployed
+
+- Owner decisions are recorded in ADR 0078: an employee or tenant_owner requests access for one store; tenant_owner alone approves, denies and revokes, including for platform_owner. Customer selects an active employee by work e-mail. A case reference and reason are required; 24 hours by default, at most 72 from approval.
+- `support_access_grants` migration, model and service store fixed scopes (`read_diagnostics`, `read_artifacts`, `request_recheck`), requester, approval, version and expiry. Pending requests grant no access; matching retries reuse a pending request. The exact staff capability, tenant, store, scope, state and time are checked on each detailed route. Artifact content is served through a grant-checked application route so a revoked link stops working. Grant decisions, opens and actions are audited.
+- Customer settings and platform tenant card have localized grant request/status/activity screens. A new request e-mails organisation owners once even when the same pending request is retried. The open staff store page clears loaded details when access ends. Incident acknowledge/resolve has a separate `tenants.incident_actions` capability, reason, audit and owner e-mail; store create/delete retain their administrative permissions.
+- Contracts: `contracts/openapi.yaml`, `contracts/platform-billing-api.yaml`, `spec/database/platform-billing-extension.sql`; panel specifications and EXT-05/06 updated. No connector or money semantic changes.
+
+Verification: backend SQLite 728 passed + 4 skipped (6212 assertions), PostgreSQL 18 732/732 (6220 assertions); after adding the request e-mail, focused `SupportGrantTest` passed 2/2 (44 assertions) on both databases. Platform frontend 70/70, customer frontend 158/158, both typechecks and builds; Pint and static spec validator passed (246 core + 25 extension operations). Release e2e/deploy still pending.

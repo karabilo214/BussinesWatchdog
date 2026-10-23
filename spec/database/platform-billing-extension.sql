@@ -46,19 +46,28 @@ CREATE INDEX platform_audit_target_idx ON platform_audit_log(target_tenant_id,cr
 CREATE TABLE support_access_grants (
  id uuid PRIMARY KEY,
  tenant_id uuid NOT NULL REFERENCES tenants(id),
+ store_id uuid NOT NULL,
  staff_id uuid NOT NULL REFERENCES platform_staff(id),
- requested_by uuid NOT NULL REFERENCES platform_staff(id),
+ requested_by_staff_id uuid REFERENCES platform_staff(id),
+ requested_by_user_id uuid REFERENCES users(id),
  approved_by uuid REFERENCES users(id),
  scopes jsonb NOT NULL,
  reason text NOT NULL,
+ case_reference text NOT NULL,
  state text NOT NULL CHECK (state IN ('pending','approved','denied','revoked','expired')),
- expires_at timestamptz NOT NULL,
+ duration_hours smallint NOT NULL DEFAULT 24 CHECK (duration_hours BETWEEN 1 AND 72),
+ version bigint NOT NULL DEFAULT 1 CHECK (version>0),
+ expires_at timestamptz,
  approved_at timestamptz,
  revoked_at timestamptz,
  created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(),
+ FOREIGN KEY (tenant_id,store_id) REFERENCES stores(tenant_id,id),
+ CHECK ((requested_by_staff_id IS NOT NULL) <> (requested_by_user_id IS NOT NULL)),
  UNIQUE (tenant_id,id)
 );
-CREATE INDEX support_grants_lookup_idx ON support_access_grants(tenant_id,staff_id,state,expires_at);
+CREATE INDEX support_grants_access_idx ON support_access_grants(tenant_id,store_id,staff_id,state,expires_at);
+CREATE INDEX support_grants_tenant_time_idx ON support_access_grants(tenant_id,created_at);
 
 CREATE TABLE billing_plans (
  id uuid PRIMARY KEY,

@@ -32,6 +32,7 @@ class OrganizationPurger
 
     /** Children before parents; each table is emptied for the tenant before the next one starts. */
     public const PURGED_TABLES = [
+        'support_access_grants',
         'check_steps',
         'artifacts',
         'check_attempts',

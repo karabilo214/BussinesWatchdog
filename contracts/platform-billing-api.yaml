@@ -889,9 +889,34 @@ paths:
         required: true
         schema: *id003
   /platform-api/v1/support-grants:
+    get:
+      operationId: platformListSupportGrants
+      description: Staff member lists only their own requests for one tenant; tenant_id is required.
+      security:
+      - StaffSession: []
+      parameters:
+      - name: tenant_id
+        in: query
+        required: true
+        schema: *id003
+      - name: store_id
+        in: query
+        schema: *id003
+      responses:
+        '200':
+          description: Own support grants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SupportGrant'
     post:
       operationId: platformRequestSupportGrant
-      description: ''
+      description: Requires tenants.support. A pending grant never gives access until tenant_owner approves it.
       security:
       - StaffSession: []
       responses:
@@ -927,13 +952,50 @@ paths:
                 $ref: '#/components/schemas/Problem'
       parameters:
       - $ref: '#/components/parameters/Csrf'
-      - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SupportGrantRequest'
+  /api/v1/support-grants:
+    get:
+      operationId: customerListSupportGrants
+      description: Tenant owner lists requests, effective expiry and staff identity for the active tenant.
+      security:
+      - CustomerSession: []
+      responses:
+        '200':
+          description: Own tenant grants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SupportGrant'
+    post:
+      operationId: customerRequestSupportGrant
+      description: Tenant owner requests access for an active platform staff member by work email; approval remains a separate action.
+      security:
+      - CustomerSession: []
+      parameters:
+      - $ref: '#/components/parameters/Csrf'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerSupportGrantRequest'
+      responses:
+        '201':
+          description: Pending grant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportGrant'
   /api/v1/support-grants/{grant_id}/approve:
     post:
       operationId: customerApproveSupportGrant
@@ -978,20 +1040,29 @@ paths:
         required: true
         schema: *id003
       - $ref: '#/components/parameters/Csrf'
-      - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
+  /api/v1/support-grants/{grant_id}/deny:
+    post:
+      operationId: customerDenySupportGrant
+      description: Only the tenant owner can deny a pending request.
+      security:
+      - CustomerSession: []
+      parameters:
+      - name: grant_id
+        in: path
         required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              properties: {}
-              required: []
+        schema: *id003
+      - $ref: '#/components/parameters/Csrf'
+      responses:
+        '200':
+          description: Denied grant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportGrant'
   /api/v1/support-grants/{grant_id}/revoke:
     post:
       operationId: customerRevokeSupportGrant
-      description: ''
+      description: Tenant owner revokes access immediately. Artifact bytes are served only through a guarded route, so previously shown links stop working.
       security:
       - CustomerSession: []
       responses:
@@ -1031,21 +1102,29 @@ paths:
         required: true
         schema: *id003
       - $ref: '#/components/parameters/Csrf'
-      - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
+  /api/v1/support-grants/{grant_id}/activity:
+    get:
+      operationId: customerSupportGrantActivity
+      description: Tenant owner sees scoped read, material, recheck and decision audit metadata without order contents or secrets.
+      security:
+      - CustomerSession: []
+      parameters:
+      - name: grant_id
+        in: path
         required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              properties:
-                reason:
-                  type: string
-                  minLength: 5
-                  maxLength: 2000
-              required:
-              - reason
+        schema: *id003
+      responses:
+        '200':
+          description: Support access activity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
 components:
   schemas:
     Problem:
@@ -1603,7 +1682,20 @@ components:
       properties:
         id: *id003
         tenant_id: *id003
+        store_id: *id003
         staff_id: *id003
+        store_name:
+          type:
+          - string
+          - 'null'
+        staff:
+          type:
+          - object
+          - 'null'
+          properties:
+            id: *id003
+            name: *id001
+            email: *id001
         scopes:
           type: array
           items:
@@ -1619,20 +1711,51 @@ components:
           - revoked
           - expired
         reason: *id001
-        expires_at: *id004
+        case_reference:
+          type: string
+          minLength: 1
+          maxLength: 120
+        duration_hours:
+          type: integer
+          minimum: 1
+          maximum: 72
+        version:
+          type: integer
+          minimum: 1
+        created_at: *id004
+        approved_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        expires_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        revoked_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
       required:
       - id
       - tenant_id
+      - store_id
       - staff_id
       - scopes
       - state
       - reason
-      - expires_at
+      - case_reference
+      - duration_hours
+      - version
+      - created_at
     SupportGrantRequest:
       type: object
       additionalProperties: false
       properties:
         tenant_id: *id003
+        store_id: *id003
         scopes:
           type: array
           minItems: 1
@@ -1641,18 +1764,63 @@ components:
             - read_diagnostics
             - read_artifacts
             - request_recheck
-        expires_at:
-          type: string
-          format: date-time
+        duration_hours:
+          type: integer
+          minimum: 1
+          maximum: 72
+          default: 24
         reason:
           type: string
           minLength: 5
-          maxLength: 2000
+          maxLength: 500
+        case_reference:
+          type: string
+          minLength: 1
+          maxLength: 120
       required:
       - tenant_id
+      - store_id
       - scopes
-      - expires_at
       - reason
+      - case_reference
+    CustomerSupportGrantRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        store_id: *id003
+        staff_email:
+          type: string
+          format: email
+          maxLength: 255
+        scopes:
+          type: array
+          minItems: 1
+          maxItems: 3
+          uniqueItems: true
+          items:
+            enum:
+            - read_diagnostics
+            - read_artifacts
+            - request_recheck
+        duration_hours:
+          type: integer
+          minimum: 1
+          maximum: 72
+          default: 24
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+        case_reference:
+          type: string
+          minLength: 1
+          maxLength: 120
+      required:
+      - store_id
+      - staff_email
+      - scopes
+      - reason
+      - case_reference
     TenantSummary:
       type: object
       additionalProperties: false

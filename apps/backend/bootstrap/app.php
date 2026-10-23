@@ -16,6 +16,7 @@ use App\Http\Middleware\Idempotency\EnsureIdempotencyKey;
 use App\Http\Middleware\Integrations\AuthenticateIntegrationHmac;
 use App\Http\Middleware\Platform\RecordPlatformChanges;
 use App\Http\Middleware\Platform\RequirePlatformStaff;
+use App\Http\Middleware\Platform\RequireSupportGrant;
 use App\Http\Middleware\Platform\UsePlatformSession;
 use App\Http\Middleware\Platform\ValidatePlatformCsrfToken;
 use App\Http\Middleware\Tenancy\RequireTenantRole;
@@ -74,6 +75,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'platform.staff' => RequirePlatformStaff::class,
+            'platform.support.grant' => RequireSupportGrant::class,
             'browser.worker' => AuthenticateBrowserWorker::class,
             'idempotency' => EnsureIdempotencyKey::class,
             'stateful.session' => RequireStatefulSession::class,
