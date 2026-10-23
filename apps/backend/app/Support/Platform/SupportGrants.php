@@ -20,23 +20,26 @@ class SupportGrants
     public function __construct(private readonly PlatformAudit $audit, private readonly AccountMailer $mailer) {}
 
     /** @param list<string> $scopes */
-    public function request(string $tenantId, string $storeId, PlatformStaff $staff, array $scopes, int $hours, string $reason, string $caseReference, ?User $customer): SupportAccessGrant
+    public function request(string $tenantId, string $storeId, PlatformStaff $staff, array $scopes, int $hours, string $reason, ?User $customer): SupportAccessGrant
     {
         abort_unless($staff->active() && PlatformCapabilities::allows($staff, PlatformCapabilities::TENANTS_SUPPORT), 403);
         abort_unless($hours >= 1 && $hours <= 72 && $scopes !== [] && array_values(array_unique($scopes)) === $scopes && array_diff($scopes, SupportAccessGrant::SCOPES) === [], 422);
-        abort_unless(trim($caseReference) !== '', 422);
 
-        $grant = DB::transaction(function () use ($tenantId, $storeId, $staff, $scopes, $hours, $reason, $caseReference, $customer): SupportAccessGrant {
+        $grant = DB::transaction(function () use ($tenantId, $storeId, $staff, $scopes, $hours, $reason, $customer): SupportAccessGrant {
             // Serialize requests for this store; a retry with identical parameters returns the same pending request.
             $store = Store::query()->where('tenant_id', $tenantId)->whereKey($storeId)->lockForUpdate()->firstOrFail();
             $open = SupportAccessGrant::query()->where('tenant_id', $tenantId)->where('store_id', $store->id)
                 ->where('staff_id', $staff->id)->where('state', SupportAccessGrant::PENDING)->get();
 
             foreach ($open as $existing) {
-                if ($existing->scopes === $scopes && $existing->duration_hours === $hours && $existing->reason === $reason && $existing->case_reference === $caseReference) {
+                if ($existing->scopes === $scopes && $existing->duration_hours === $hours && $existing->reason === trim($reason)) {
                     return $existing;
                 }
             }
+
+            $nextNumber = DB::table('support_case_counters')->where('name', 'support_access')->lockForUpdate()->value('next_number');
+            abort_if($nextNumber === null, 500, 'support_case_counter_missing');
+            DB::table('support_case_counters')->where('name', 'support_access')->update(['next_number' => (int) $nextNumber + 1]);
 
             $grant = SupportAccessGrant::query()->create([
                 'tenant_id' => $tenantId,
@@ -47,7 +50,7 @@ class SupportGrants
                 'scopes' => $scopes,
                 'duration_hours' => $hours,
                 'reason' => trim($reason),
-                'case_reference' => $caseReference,
+                'case_reference' => sprintf('SUP-%06d', $nextNumber),
                 'state' => SupportAccessGrant::PENDING,
                 'version' => 1,
             ]);

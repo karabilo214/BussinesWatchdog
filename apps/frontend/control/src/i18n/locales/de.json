@@ -1635,6 +1635,7 @@
     "access_ended": "Der Support-Zugriff ist beendet. Bitten Sie den Organisationseigentümer bei Bedarf um eine neue Freigabe.",
     "staff_explanation": "Shop-Details erfordern die Freigabe des Organisationseigentümers, auch für Plattform-Eigentümer. Beantragen Sie nur den benötigten Zugriff für einen Shop.",
     "request_title": "Befristeten Zugriff beantragen",
+    "number_after_create": "Nach dem Absenden wird automatisch eine Vorgangsnummer vergeben.",
     "store": "Shop",
     "scopes": "Zugriffskategorien",
     "scope": {

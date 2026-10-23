@@ -916,7 +916,7 @@ paths:
                       $ref: '#/components/schemas/SupportGrant'
     post:
       operationId: platformRequestSupportGrant
-      description: Requires tenants.support. A pending grant never gives access until tenant_owner approves it.
+      description: Requires tenants.support. The service assigns a global sequential case_reference on creation; callers must not provide one. A pending grant never gives access until tenant_owner approves it.
       security:
       - StaffSession: []
       responses:
@@ -978,7 +978,7 @@ paths:
                       $ref: '#/components/schemas/SupportGrant'
     post:
       operationId: customerRequestSupportGrant
-      description: Tenant owner requests access for an active platform staff member by work email; approval remains a separate action.
+      description: Tenant owner requests access for an active platform staff member by work email. The service assigns a global sequential case_reference on creation; callers must not provide one. Approval remains a separate action.
       security:
       - CustomerSession: []
       parameters:
@@ -1773,16 +1773,11 @@ components:
           type: string
           minLength: 5
           maxLength: 500
-        case_reference:
-          type: string
-          minLength: 1
-          maxLength: 120
       required:
       - tenant_id
       - store_id
       - scopes
       - reason
-      - case_reference
     CustomerSupportGrantRequest:
       type: object
       additionalProperties: false
@@ -1811,16 +1806,11 @@ components:
           type: string
           minLength: 5
           maxLength: 500
-        case_reference:
-          type: string
-          minLength: 1
-          maxLength: 120
       required:
       - store_id
       - staff_email
       - scopes
       - reason
-      - case_reference
     TenantSummary:
       type: object
       additionalProperties: false

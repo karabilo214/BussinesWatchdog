@@ -2285,6 +2285,7 @@
     "title": "Support-Zugriff",
     "explanation": "Nur der Eigentümer Ihrer Organisation kann befristeten Zugriff auf einen Shop genehmigen. Mitarbeitende sehen nur die ausgewählten Kategorien. Sie können den Zugriff jederzeit widerrufen.",
     "new": "Zugriff für Support beantragen",
+    "number_after_create": "Nach dem Erstellen der Anfrage wird automatisch eine Vorgangsnummer vergeben.",
     "store": "Shop",
     "staff_email": "Geschäftliche E-Mail des Mitarbeitenden",
     "scopes": "Erlaubter Zugriff",

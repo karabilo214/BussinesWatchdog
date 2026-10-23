@@ -33,7 +33,7 @@ export async function listSupportGrants(): Promise<SupportGrant[]> {
   return (await request<{ data: SupportGrant[] }>('GET', '/api/v1/support-grants')).data.data;
 }
 
-export async function requestSupportGrant(input: { store_id: string; staff_email: string; scopes: GrantScope[]; duration_hours: number; reason: string; case_reference: string }): Promise<SupportGrant> {
+export async function requestSupportGrant(input: { store_id: string; staff_email: string; scopes: GrantScope[]; duration_hours: number; reason: string }): Promise<SupportGrant> {
   return (await request<SupportGrant>('POST', '/api/v1/support-grants', { body: input })).data;
 }
 

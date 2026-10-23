@@ -108,7 +108,7 @@ Staff audit records read of detailed customer evidence, secret rotations metadat
 | GET /platform-api/v1/actions/{id} | — | safe stage/results, no secrets |
 | GET/POST /platform-api/v1/staff | role/invitation details | staff catalog/invite |
 | PATCH /platform-api/v1/staff/{id} | role,disabled,version | last owner guard/MFA audit |
-| GET/POST /platform-api/v1/support-grants | tenant_id,store_id,scopes,duration_hours,case_reference,reason | own grants / pending request; default 24h, max 72h |
+| GET/POST /platform-api/v1/support-grants | tenant_id,store_id,scopes,duration_hours,reason | own grants / pending request; server assigns global `case_reference`; default 24h, max 72h |
 | GET /platform-api/v1/audit | actor/action/target/from/to | safe audit records |
 | GET /platform-api/v1/queues/{kind} | state,age | operational metadata scoped by role |
 | GET /platform-api/v1/public-content | slug,locale,state | draft/published page versions |

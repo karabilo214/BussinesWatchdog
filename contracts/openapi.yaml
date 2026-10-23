@@ -6480,7 +6480,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {type: object, required: [tenant_id, store_id, scopes, reason, case_reference]}
+            schema: {type: object, required: [tenant_id, store_id, scopes, reason]}
       responses:
         "201": {description: Pending grant, content: {application/json: {schema: {type: object}}}}
   /api/v1/support-grants:
@@ -6500,7 +6500,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {type: object, required: [store_id, staff_email, scopes, reason, case_reference]}
+            schema: {type: object, required: [store_id, staff_email, scopes, reason]}
       responses:
         "201": {description: Pending grant, content: {application/json: {schema: {type: object}}}}
   /api/v1/support-grants/{grant}/approve:

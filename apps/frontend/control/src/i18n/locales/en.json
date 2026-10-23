@@ -1635,6 +1635,7 @@
     "access_ended": "Support access has ended. Ask the organisation owner for a new grant if more work is needed.",
     "staff_explanation": "Detailed store data requires approval by the organisation owner, including for platform owners. Ask for one store and only the access needed.",
     "request_title": "Request temporary access",
+    "number_after_create": "A case number will be assigned automatically after you send the request.",
     "store": "Store",
     "scopes": "Access categories",
     "scope": {

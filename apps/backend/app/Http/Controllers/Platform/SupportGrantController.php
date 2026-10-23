@@ -37,10 +37,10 @@ class SupportGrantController extends Controller
             'scopes.*' => ['required', 'string', Rule::in(SupportAccessGrant::SCOPES)],
             'duration_hours' => ['sometimes', 'integer', 'between:1,72'],
             'reason' => ['required', 'string', 'min:5', 'max:500'],
-            'case_reference' => ['required', 'string', 'min:1', 'max:120'],
+            'case_reference' => ['prohibited'],
         ]);
         $tenant = Tenant::query()->whereKey($validated['tenant_id'])->whereNotIn('status', ['deleting', 'deleted'])->firstOrFail();
-        $grant = $this->grants->request($tenant->id, $validated['store_id'], $this->staff($request), array_values($validated['scopes']), (int) ($validated['duration_hours'] ?? 24), trim($validated['reason']), trim($validated['case_reference']), null);
+        $grant = $this->grants->request($tenant->id, $validated['store_id'], $this->staff($request), array_values($validated['scopes']), (int) ($validated['duration_hours'] ?? 24), trim($validated['reason']), null);
 
         return response()->json($this->dto($grant), 201);
     }

@@ -45,13 +45,16 @@ class SupportGrantTest extends TestCase
         $detail = "/platform-api/v1/tenants/{$tenant}/stores/{$store}";
 
         $this->getJson($detail)->assertForbidden();
-        $request = ['tenant_id' => $tenant, 'store_id' => $store, 'scopes' => ['read_diagnostics'], 'reason' => 'Investigate case 42', 'case_reference' => 'CASE-42'];
-        $this->postJson('/platform-api/v1/support-grants', array_diff_key($request, ['case_reference' => true]))->assertStatus(422)->assertJsonValidationErrors('case_reference');
-        $grantId = $this->postJson('/platform-api/v1/support-grants', $request)->assertCreated()->assertJsonPath('state', 'pending')->assertJsonPath('duration_hours', 24)->json('id');
+        $request = ['tenant_id' => $tenant, 'store_id' => $store, 'scopes' => ['read_diagnostics'], 'reason' => 'Investigate case 42'];
+        $this->postJson('/platform-api/v1/support-grants', [...$request, 'case_reference' => 'MANUAL-42'])->assertStatus(422)->assertJsonValidationErrors('case_reference');
+        $grantId = $this->postJson('/platform-api/v1/support-grants', $request)->assertCreated()->assertJsonPath('state', 'pending')->assertJsonPath('duration_hours', 24)->assertJsonPath('case_reference', 'SUP-000001')->json('id');
         $this->postJson('/platform-api/v1/support-grants', $request)->assertCreated()->assertJsonPath('id', $grantId);
         $this->assertSame(1, SupportAccessGrant::query()->count());
+        $this->assertSame(2, DB::table('support_case_counters')->where('name', 'support_access')->value('next_number'));
         Mail::assertSent(NotificationMessageMail::class, 1);
-        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => str_contains($mail->bodyText, 'CASE-42') && str_contains($mail->bodyText, '/app/settings/support'));
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => str_contains($mail->bodyText, 'SUP-000001') && str_contains($mail->bodyText, '/app/settings/support'));
+        $second = app(SupportGrants::class)->request($other['tenant']->id, $other['store']->id, $staff, ['read_diagnostics'], 24, 'Investigate another store', null);
+        $this->assertSame('SUP-000002', $second->case_reference);
         $this->getJson($detail)->assertForbidden();
 
         $this->actingAs($other['user'])->withSession(['active_tenant_id' => $other['tenant']->id])
@@ -86,14 +89,13 @@ class SupportGrantTest extends TestCase
             'store_id' => $customer['store']->id, 'staff_email' => $staff->user->email,
             'scopes' => ['read_diagnostics', 'read_artifacts'], 'duration_hours' => 72,
             'reason' => 'Please inspect case 17',
-            'case_reference' => 'CASE-17',
         ];
 
         $this->actingAs($member['user'])->withSession(['active_tenant_id' => $tenant])->postJson('/api/v1/support-grants', $input)->assertForbidden();
         $this->actingAs($customer['user'])->withSession(['active_tenant_id' => $tenant]);
-        $this->postJson('/api/v1/support-grants', array_diff_key($input, ['case_reference' => true]))->assertStatus(422)->assertJsonValidationErrors('case_reference');
+        $this->postJson('/api/v1/support-grants', [...$input, 'case_reference' => 'MANUAL-17'])->assertStatus(422)->assertJsonValidationErrors('case_reference');
         $this->postJson('/api/v1/support-grants', [...$input, 'duration_hours' => 73])->assertStatus(422);
-        $grantId = $this->postJson('/api/v1/support-grants', $input)->assertCreated()->assertJsonPath('state', 'pending')->json('id');
+        $grantId = $this->postJson('/api/v1/support-grants', $input)->assertCreated()->assertJsonPath('state', 'pending')->assertJsonPath('case_reference', 'SUP-000001')->json('id');
         $this->actingAs($member['user'])->withSession(['active_tenant_id' => $tenant])->postJson("/api/v1/support-grants/{$grantId}/approve")->assertForbidden();
         $this->actingAs($customer['user'])->withSession(['active_tenant_id' => $tenant])->postJson("/api/v1/support-grants/{$grantId}/approve")->assertOk();
         $this->assertDatabaseHas('support_access_grants', ['id' => $grantId, 'requested_by_user_id' => $customer['user']->id, 'approved_by' => $customer['user']->id]);

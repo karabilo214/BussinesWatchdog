@@ -41,12 +41,12 @@ class SupportGrantController extends Controller
             'scopes.*' => ['required', 'string', Rule::in(SupportAccessGrant::SCOPES)],
             'duration_hours' => ['sometimes', 'integer', 'between:1,72'],
             'reason' => ['required', 'string', 'min:5', 'max:500'],
-            'case_reference' => ['required', 'string', 'min:1', 'max:120'],
+            'case_reference' => ['prohibited'],
         ]);
         $email = mb_strtolower(trim($validated['staff_email']));
         $staff = PlatformStaff::query()->whereIn('user_id', User::query()->whereRaw('lower(email) = ?', [$email])->select('id'))->first();
         abort_unless($staff !== null && $staff->active() && PlatformCapabilities::allows($staff, PlatformCapabilities::TENANTS_SUPPORT), 422, 'support_staff_not_found');
-        $grant = $this->grants->request($tenantId, $validated['store_id'], $staff, array_values($validated['scopes']), (int) ($validated['duration_hours'] ?? 24), trim($validated['reason']), trim($validated['case_reference']), $request->user());
+        $grant = $this->grants->request($tenantId, $validated['store_id'], $staff, array_values($validated['scopes']), (int) ($validated['duration_hours'] ?? 24), trim($validated['reason']), $request->user());
 
         return response()->json($this->dto($grant, $staff->load('user'), Store::query()->whereKey($grant->store_id)->value('name')), 201);
     }

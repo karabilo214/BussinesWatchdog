@@ -69,6 +69,13 @@ CREATE TABLE support_access_grants (
 CREATE INDEX support_grants_access_idx ON support_access_grants(tenant_id,store_id,staff_id,state,expires_at);
 CREATE INDEX support_grants_tenant_time_idx ON support_access_grants(tenant_id,created_at);
 
+-- One global, transactionally locked sequence for support access request references.
+CREATE TABLE support_case_counters (
+ name text PRIMARY KEY,
+ next_number bigint NOT NULL CHECK (next_number > 0)
+);
+INSERT INTO support_case_counters (name,next_number) VALUES ('support_access',1);
+
 CREATE TABLE billing_plans (
  id uuid PRIMARY KEY,
  code text NOT NULL UNIQUE,

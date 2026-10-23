@@ -2285,6 +2285,7 @@
     "title": "Support access",
     "explanation": "Only your organisation owner can approve temporary access to one store. Staff see only the selected categories. You can revoke access at any time.",
     "new": "Request access for support",
+    "number_after_create": "A case number will be assigned automatically after the request is created.",
     "store": "Store",
     "staff_email": "Staff work email",
     "scopes": "Allowed access",
