@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { ApiError } from '@bw/api-client';
 import { updateStore } from '@/api/stores';
-import type { Store, UpdateStoreInput } from '@/api/types';
+import type { Store, StorePlatform, UpdateStoreInput } from '@/api/types';
 import { fieldErrorsOf } from '@/composables/errors';
 import ErrorNotice from './ErrorNotice.vue';
 import { currencies, timezones } from './storeOptions';
@@ -14,6 +14,8 @@ const form = reactive({ name: '', timezone: '', default_currency: '' });
 const saving = ref(false);
 const error = ref<unknown>(null);
 const saved = ref(false);
+const changingPlatform = ref(false);
+const targetPlatform = ref<StorePlatform>('woocommerce');
 const invalid = computed(() => new Set(fieldErrorsOf(error.value)));
 const zoneOptions = computed(() => timezones(props.store.timezone));
 const currencyOptions = computed(() => currencies(props.store.default_currency));
@@ -29,6 +31,7 @@ watch(
     form.name = store.name;
     form.timezone = store.timezone;
     form.default_currency = store.default_currency;
+    targetPlatform.value = store.platform === 'shopware' ? 'shopware' : 'woocommerce';
   },
   { immediate: true },
 );
@@ -61,10 +64,16 @@ function save(): Promise<void> {
 
   return apply(changes);
 }
+
+async function changePlatform(): Promise<void> {
+  if (targetPlatform.value === props.store.platform) return;
+  await apply({ platform: targetPlatform.value, platform_change_confirmed: true });
+  if (!error.value) changingPlatform.value = false;
+}
 </script>
 
 <template>
-  <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="settings-title" data-panel="settings">
+  <section id="store-settings" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="settings-title" data-panel="settings">
     <div class="flex flex-col gap-1">
       <h2 id="settings-title" class="text-lg font-semibold">{{ $t('store.settings.title') }}</h2>
       <p class="text-sm text-text-muted">{{ $t('store.settings.base_url', { url: store.base_url }) }}</p>
@@ -109,6 +118,23 @@ function save(): Promise<void> {
     </form>
 
     <ErrorNotice v-if="error" :error="error" />
+
+    <div v-if="canManage" class="flex flex-col gap-3 border-t border-border pt-4">
+      <p class="text-sm text-text-muted">{{ $t('store.settings.platform_current', { platform: $t(`store.form.platforms.${store.platform}`) }) }}</p>
+      <button v-if="!changingPlatform" type="button" class="self-start rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-surface-muted" @click="changingPlatform = true">{{ $t('store.settings.platform_change') }}</button>
+      <div v-else class="flex flex-col gap-3 rounded-md border border-warn-border bg-warn-soft p-4 text-sm">
+        <label for="settings-platform" class="font-medium">{{ $t('store.form.platform') }}</label>
+        <select id="settings-platform" v-model="targetPlatform" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base">
+          <option value="woocommerce">{{ $t('store.form.platforms.woocommerce') }}</option>
+          <option value="shopware">{{ $t('store.form.platforms.shopware') }}</option>
+        </select>
+        <p>{{ $t('store.settings.platform_warning') }}</p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="rounded-md bg-crit-solid px-3 py-1.5 font-medium text-white disabled:opacity-60" :disabled="saving || targetPlatform === store.platform" @click="changePlatform">{{ $t('store.settings.platform_confirm') }}</button>
+          <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 font-medium" @click="changingPlatform = false">{{ $t('common.cancel') }}</button>
+        </div>
+      </div>
+    </div>
 
     <div v-if="canManage && (canPause || canResume)" class="flex flex-col gap-2 border-t border-border pt-4">
       <p class="text-sm text-text-muted">{{ canPause ? $t('store.settings.pause_hint') : $t('store.settings.resume_hint') }}</p>

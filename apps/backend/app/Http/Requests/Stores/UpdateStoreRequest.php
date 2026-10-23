@@ -36,6 +36,8 @@ class UpdateStoreRequest extends FormRequest
             'status' => ['sometimes', 'string', 'in:paused,active'],
             'browser_enabled' => ['sometimes', 'boolean'],
             'telemetry_enabled' => ['sometimes', 'boolean'],
+            'platform' => ['sometimes', 'string', 'in:woocommerce,shopware'],
+            'platform_change_confirmed' => ['sometimes', 'boolean'],
         ];
     }
 

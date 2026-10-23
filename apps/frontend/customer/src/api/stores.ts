@@ -13,6 +13,10 @@ export async function createStore(input: CreateStoreInput): Promise<Store> {
   return (await request<Store>('POST', '/api/v1/stores', { body: input })).data;
 }
 
+export async function detectStorePlatform(baseUrl: string): Promise<'woocommerce' | 'shopware' | null> {
+  return (await request<{ detected_platform: 'woocommerce' | 'shopware' | null }>('POST', '/api/v1/stores/detect-platform', { body: { base_url: baseUrl } })).data.detected_platform;
+}
+
 export async function saveCheckoutLayout(storeId: string, layout: CheckoutLayoutFields): Promise<Store> {
   return (await request<Store>('PUT', `/api/v1/stores/${encodeURIComponent(storeId)}/checkout-layout`, { body: layout })).data;
 }

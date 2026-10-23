@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { connectShopware, downloadShopwareApp, downloadShopwareAppUpdate, syncProvider } from '@/api/providers';
-import { createPairingCode, listStoreIntegrations, revokeIntegration } from '@/api/stores';
+import { createPairingCode, detectStorePlatform, listStoreIntegrations, revokeIntegration } from '@/api/stores';
 import type { Integration, PairingCode } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
 import CopyField from './CopyField.vue';
 import ErrorNotice from './ErrorNotice.vue';
+import ConnectionProgress from './ConnectionProgress.vue';
 import ObservationTexts from './ObservationTexts.vue';
 import { INTEGRATION_TONES } from './integrationTones';
 
 const POLL_MS = 15_000;
 const CODE_POLL_MS = 5_000;
 const APP_DOWNLOAD_URL = '/api/v1/downloads/shopware-app';
+const screenshotBase = `${import.meta.env.BASE_URL}onboarding/`;
 
-const props = defineProps<{ storeId: string; canManage: boolean }>();
+const props = defineProps<{ storeId: string; baseUrl?: string; canManage: boolean }>();
 const emit = defineEmits<{ changed: [] }>();
 const { dateTime } = useFormat();
 
@@ -25,6 +27,7 @@ const method = ref<'app' | 'key'>('key');
 const form = reactive({ key: '', secret: '', acknowledged: false });
 const busy = ref(false);
 const error = ref<unknown>(null);
+const platformMismatch = ref(false);
 const notice = ref<string | null>(null);
 const confirmingRevoke = ref(false);
 const code = ref<PairingCode | null>(null);
@@ -62,6 +65,7 @@ async function load(): Promise<void> {
 async function act(action: () => Promise<void>, success: string | null = null): Promise<void> {
   busy.value = true;
   error.value = null;
+  platformMismatch.value = false;
   notice.value = null;
 
   try {
@@ -69,6 +73,9 @@ async function act(action: () => Promise<void>, success: string | null = null): 
     notice.value = success;
   } catch (caught) {
     error.value = caught;
+    if (!integration.value && props.baseUrl) {
+      try { platformMismatch.value = (await detectStorePlatform(props.baseUrl)) === 'woocommerce'; } catch { /* Keep the original connection error. */ }
+    }
     await load();
   } finally {
     busy.value = false;
@@ -262,15 +269,15 @@ void load();
     <template v-else>
       <p class="text-sm">{{ $t('store.shopware.why') }}</p>
       <div v-if="canManage" class="flex flex-col gap-4">
-        <fieldset class="flex flex-col gap-2">
+        <fieldset class="flex flex-col gap-3">
           <legend class="mb-1 text-sm font-medium">{{ $t('store.shopware.method') }}</legend>
-          <label class="flex items-start gap-2 text-sm">
+          <label class="flex items-start gap-3 rounded-lg border-2 border-primary bg-primary-soft p-4 text-sm">
             <input v-model="method" type="radio" value="key" class="mt-0.5 size-4 accent-primary" data-method="key" />
-            <span><span class="font-medium">{{ $t('store.shopware.method_key') }}</span> <StatusBadge tone="note" :label="$t('store.order_source.recommended')" /><span class="block text-[13px] text-text-muted">{{ $t('store.shopware.method_key_hint') }}</span></span>
+            <span><span class="font-semibold">{{ $t('store.order_source.primary_shopware') }}</span><span class="block text-[13px] text-text-muted">{{ $t('store.shopware.method_key_hint') }}</span></span>
           </label>
-          <label class="flex items-start gap-2 text-sm">
+          <label class="flex items-start gap-3 rounded-lg border border-border p-4 text-sm">
             <input v-model="method" type="radio" value="app" class="mt-0.5 size-4 accent-primary" data-method="app" />
-            <span><span class="font-medium">{{ $t('store.shopware.method_app') }}</span><span class="block text-[13px] text-text-muted">{{ $t('store.shopware.method_app_hint') }}</span></span>
+            <span><span class="font-medium">{{ $t('store.order_source.extra_shopware') }}</span><span class="block text-[13px] text-text-muted">{{ $t('store.shopware.method_app_hint') }}</span></span>
           </label>
         </fieldset>
 
@@ -308,6 +315,25 @@ void load();
             <li>{{ $t('store.shopware.step_integration') }}</li>
             <li>{{ $t('store.shopware.step_paste') }}</li>
           </ol>
+          <div class="grid gap-3 lg:grid-cols-2">
+            <figure class="overflow-hidden rounded-lg border border-border bg-surface-muted">
+              <img :src="`${screenshotBase}shopware-roles.png`" :alt="$t('store.shopware.roles_screenshot_alt')" loading="lazy" class="w-full" />
+              <figcaption class="p-3 text-[13px] text-text-muted">{{ $t('store.shopware.roles_screenshot_caption') }}</figcaption>
+            </figure>
+            <figure class="overflow-hidden rounded-lg border border-border bg-surface-muted">
+              <img :src="`${screenshotBase}shopware-role-form.png`" :alt="$t('store.shopware.role_form_screenshot_alt')" loading="lazy" class="w-full" />
+              <figcaption class="p-3 text-[13px] text-text-muted">{{ $t('store.shopware.role_form_screenshot_caption') }}</figcaption>
+            </figure>
+            <figure class="overflow-hidden rounded-lg border border-border bg-surface-muted">
+              <img :src="`${screenshotBase}shopware-order-permission.png`" :alt="$t('store.shopware.permission_screenshot_alt')" loading="lazy" class="w-full" />
+              <figcaption class="p-3 text-[13px] text-text-muted">{{ $t('store.shopware.permission_screenshot_caption') }}</figcaption>
+            </figure>
+            <figure class="overflow-hidden rounded-lg border border-border bg-surface-muted">
+              <img :src="`${screenshotBase}shopware-integration-form.png`" :alt="$t('store.shopware.integration_screenshot_alt')" loading="lazy" class="w-full" />
+              <figcaption class="p-3 text-[13px] text-text-muted">{{ $t('store.shopware.integration_screenshot_caption') }}</figcaption>
+            </figure>
+          </div>
+          <CopyField id="shopware-permissions" :label="$t('store.shopware.permissions_label')" :value="$t('store.shopware.required_permissions')" />
           <p class="text-[13px] text-text-muted">{{ $t('store.shopware.requirements') }}</p>
           <div class="grid gap-3 sm:grid-cols-2">
             <div class="flex flex-col gap-1.5">
@@ -320,6 +346,7 @@ void load();
               <input id="sw-secret" v-model="form.secret" type="password" autocomplete="off" spellcheck="false" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-sm" />
             </div>
           </div>
+          <p class="text-[13px] text-text-muted">{{ $t('store.order_source.key_security') }}</p>
           <div>
             <button type="submit" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !keyValid || !secretValid || !form.acknowledged">{{ $t('store.shopware.connect') }}</button>
           </div>
@@ -343,7 +370,8 @@ void load();
     </template>
 
     <p v-if="notice" class="text-sm text-ok" role="status">{{ $t(notice) }}</p>
-    <ErrorNotice v-if="error" :error="error" />
+    <ErrorNotice v-if="error" :error="error"><ConnectionProgress :error="error" platform="shopware" /></ErrorNotice>
+    <p v-if="platformMismatch" role="alert" class="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm text-warn">{{ $t('store.order_source.platform_mismatch', { platform: 'WooCommerce' }) }} <a href="#store-settings" class="font-semibold text-primary hover:underline">{{ $t('store.order_source.change_platform') }}</a></p>
 
     <div v-if="installOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @keydown.esc="installOpen = false">
       <div role="dialog" aria-modal="true" aria-labelledby="shopware-install-title" class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-surface p-5 shadow-xl" data-app-install-dialog>

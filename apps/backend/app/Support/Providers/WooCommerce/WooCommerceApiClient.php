@@ -4,6 +4,7 @@ namespace App\Support\Providers\WooCommerce;
 
 use App\Support\Network\StoreOriginFailure;
 use App\Support\Network\StoreOriginHttp;
+use App\Support\Network\StoreProtectionPage;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 
@@ -50,7 +51,8 @@ class WooCommerceApiClient
         $json = $response->json();
 
         if (! is_array($json)) {
-            throw new WooCommerceApiRequestFailed('woocommerce_invalid_response', $response->status());
+            $protection = StoreProtectionPage::reason($response);
+            throw new WooCommerceApiRequestFailed($protection ? 'woocommerce_'.$protection : 'woocommerce_invalid_response', $response->status());
         }
 
         $total = $response->header('X-WP-Total');
@@ -71,6 +73,9 @@ class WooCommerceApiClient
     public function keyCanWrite(string $baseUrl, string $key, string $secret): bool
     {
         $response = $this->send($baseUrl, $key, $secret, fn (PendingRequest $request, string $url) => $request->withBody('{}', 'application/json')->post($url), self::PROBE_ROUTE);
+        if ($protection = StoreProtectionPage::reason($response)) {
+            throw new WooCommerceApiRequestFailed('woocommerce_'.$protection, $response->status());
+        }
         $code = (string) ($response->json('code') ?? '');
 
         return match (true) {
@@ -115,6 +120,10 @@ class WooCommerceApiClient
 
     private function failure(Response $response): WooCommerceApiRequestFailed
     {
+        if ($protection = StoreProtectionPage::reason($response)) {
+            return new WooCommerceApiRequestFailed('woocommerce_'.$protection, $response->status());
+        }
+
         $code = (string) ($response->json('code') ?? '');
         $retryAfter = $response->header('Retry-After');
 

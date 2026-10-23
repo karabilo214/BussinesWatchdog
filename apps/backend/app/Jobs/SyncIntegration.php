@@ -61,6 +61,7 @@ class SyncIntegration implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        $runner->run($integration, $this->mode);
+        $result = $runner->run($integration, $this->mode);
+        $runner->recordScheduledSuccess($integration, $result);
     }
 }

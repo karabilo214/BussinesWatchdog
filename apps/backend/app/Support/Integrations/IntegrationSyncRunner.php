@@ -82,4 +82,24 @@ class IntegrationSyncRunner
             default => throw new InvalidArgumentException('Unknown provider '.$integration->provider),
         };
     }
+
+    /** Called only by scheduled command/job paths, after a complete successful run. */
+    public function recordScheduledSuccess(Integration $integration, array $result): void
+    {
+        if (($result['status'] ?? null) !== 'ok' || ($result['complete'] ?? false) !== true) {
+            return;
+        }
+
+        $integration->refresh();
+        $health = $integration->health ?? [];
+        $sync = $health['sync'] ?? [];
+
+        if (! is_array($sync) || isset($sync['first_scheduled_sync_at'])) {
+            return;
+        }
+
+        $sync['first_scheduled_sync_at'] = now()->toJSON();
+        $integration->health = [...$health, 'sync' => $sync];
+        $integration->save();
+    }
 }

@@ -6,15 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Http\Dto\Stores\StoreDto;
 use App\Http\Requests\Stores\CreateStoreRequest;
 use App\Http\Requests\Stores\UpdateStoreRequest;
+use App\Models\AuditLog;
+use App\Models\Integration;
 use App\Models\Store;
+use App\Rules\PublicHttpsUrl;
 use App\Support\Account\StepUp;
 use App\Support\Billing\EntitlementCalculator;
 use App\Support\Billing\FeatureCatalog;
 use App\Support\Privacy\StoreDeletion;
+use App\Support\Stores\StorePlatformDetector;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class StoreController extends Controller
@@ -39,6 +44,13 @@ class StoreController extends Controller
         ]);
     }
 
+    public function detectPlatform(Request $request, StorePlatformDetector $detector): JsonResponse
+    {
+        $validated = $request->validate(['base_url' => ['required', 'url', 'max:2048', 'starts_with:https://', new PublicHttpsUrl]]);
+
+        return response()->json(['detected_platform' => $detector->detect(rtrim($validated['base_url'], '/'))]);
+    }
+
     public function store(CreateStoreRequest $request, TenantContext $tenantContext): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('create store');
@@ -56,7 +68,7 @@ class StoreController extends Controller
             'timezone' => $validated['timezone'],
             'locale' => $validated['locale'],
             'default_currency' => $validated['default_currency'],
-            'platform' => $validated['platform'] ?? 'woocommerce',
+            'platform' => $validated['platform'],
         ]);
 
         return response()->json($this->storeDto->toArray($store->refresh()), 201);
@@ -80,7 +92,7 @@ class StoreController extends Controller
         $expectedVersion = $this->expectedVersion($request);
         $validated = $request->validated();
 
-        $updated = DB::transaction(function () use ($store, $validated, $expectedVersion): Store|string|null {
+        $updated = DB::transaction(function () use ($store, $validated, $expectedVersion, $request): Store|string|null {
             /** @var Store $locked */
             $locked = Store::query()
                 ->whereKey($store->id)
@@ -91,10 +103,47 @@ class StoreController extends Controller
                 return null;
             }
 
+            $platformChanged = array_key_exists('platform', $validated) && $validated['platform'] !== $locked->platform;
+
+            if ($platformChanged) {
+                if (array_diff(array_keys($validated), ['platform', 'platform_change_confirmed']) !== []) {
+                    return 'platform_change_only';
+                }
+
+                if (empty($validated['platform_change_confirmed'])) {
+                    return 'platform_change_confirmation_required';
+                }
+
+                if (Integration::query()->where('tenant_id', $locked->tenant_id)->where('store_id', $locked->id)
+                    ->whereIn('status', [Integration::STATUS_PENDING, Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED])->exists()) {
+                    return 'disconnect_integrations_first';
+                }
+
+                $oldPlatform = $locked->platform;
+                app(StoreDeletion::class)->purgeData($locked);
+                $locked->verified_at = null;
+                $locked->browser_enabled = false;
+                $locked->telemetry_enabled = false;
+                $locked->status = 'onboarding';
+                $locked->settings = [];
+                AuditLog::query()->create([
+                    'tenant_id' => $locked->tenant_id,
+                    'store_id' => $locked->id,
+                    'actor_user_id' => $request->user()?->id,
+                    'actor_type' => AuditLog::ACTOR_USER,
+                    'action' => AuditLog::ACTION_STORE_PLATFORM_CHANGED,
+                    'entity_type' => AuditLog::ENTITY_STORE,
+                    'entity_id' => $locked->id,
+                    'changes' => ['from' => $oldPlatform, 'to' => $validated['platform'], 'previous_store_data_deleted' => true],
+                    'request_id' => (string) Str::uuid(),
+                    'created_at' => now(),
+                ]);
+            }
+
             $baseUrlChanged = array_key_exists('base_url', $validated)
                 && $validated['base_url'] !== $locked->base_url;
 
-            $locked->fill($validated);
+            $locked->fill(collect($validated)->except('platform_change_confirmed')->all());
 
             if ($baseUrlChanged) {
                 $locked->verified_at = null;
@@ -123,6 +172,10 @@ class StoreController extends Controller
                 'code' => 'store_not_verified',
                 'message' => 'Browser checks and activation require a verified store domain.',
             ], 422);
+        }
+
+        if (in_array($updated, ['platform_change_confirmation_required', 'disconnect_integrations_first', 'platform_change_only'], true)) {
+            return response()->json(['code' => $updated, 'message' => $updated], 422);
         }
 
         return response()->json($this->storeDto->toArray($updated))->setEtag((string) $updated->config_version);

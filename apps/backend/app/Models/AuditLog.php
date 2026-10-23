@@ -46,6 +46,8 @@ class AuditLog extends Model
 
     public const ACTION_STORE_VERIFIED = 'store.verified';
 
+    public const ACTION_STORE_PLATFORM_CHANGED = 'store.platform_changed';
+
     public const ACTION_STORE_CHECKOUT_LAYOUT_SAVED = 'store.checkout_layout_saved';
 
     public const ACTION_PAYMENT_ALLOCATION_CREATED = 'payment_allocation.created';

@@ -213,6 +213,7 @@ class EntitlementsTest extends TestCase
             'base_url' => 'https://second.example.test',
             'timezone' => 'Europe/Kyiv',
             'default_currency' => 'EUR',
+            'platform' => 'woocommerce',
         ])->assertForbidden()->assertJsonPath('code', 'plan_store_limit_reached')->assertJsonPath('errors.0.value', 1);
 
         Subscription::query()->update(['extra_store_quantity' => 1]);
@@ -221,6 +222,7 @@ class EntitlementsTest extends TestCase
             'base_url' => 'https://second.example.test',
             'timezone' => 'Europe/Kyiv',
             'default_currency' => 'EUR',
+            'platform' => 'woocommerce',
         ])->assertCreated();
     }
 

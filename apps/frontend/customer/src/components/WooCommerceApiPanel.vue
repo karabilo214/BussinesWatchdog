@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { connectWooCommerceApi, setUpWooCommerceWebhook, syncProvider, type WooCommerceWebhookSetup } from '@/api/providers';
-import { listStoreIntegrations, revokeIntegration } from '@/api/stores';
+import { detectStorePlatform, listStoreIntegrations, revokeIntegration } from '@/api/stores';
 import type { Integration } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
 import CopyField from './CopyField.vue';
 import ErrorNotice from './ErrorNotice.vue';
+import ConnectionProgress from './ConnectionProgress.vue';
 import { INTEGRATION_TONES } from './integrationTones';
 
-const props = defineProps<{ storeId: string; canManage: boolean; pluginActive: boolean }>();
+const props = defineProps<{ storeId: string; baseUrl?: string; canManage: boolean; pluginActive: boolean }>();
 const emit = defineEmits<{ changed: [] }>();
 const { dateTime } = useFormat();
 
@@ -19,6 +20,7 @@ const loadError = ref<unknown>(null);
 const form = reactive({ key: '', secret: '' });
 const busy = ref(false);
 const error = ref<unknown>(null);
+const platformMismatch = ref(false);
 const notice = ref<string | null>(null);
 const confirmingRevoke = ref(false);
 const webhookSetup = ref<WooCommerceWebhookSetup | null>(null);
@@ -28,6 +30,7 @@ const secretValid = computed(() => /^cs_[a-f0-9]{40}$/.test(form.secret.trim()))
 const keyRejected = computed(() => integration.value?.health?.key_rejected_at !== undefined);
 const sync = computed(() => integration.value?.health?.sync ?? null);
 const webhook = computed(() => integration.value?.health?.webhook ?? null);
+const screenshotUrl = `${import.meta.env.BASE_URL}onboarding/woo-api-key-form.png`;
 
 async function load(): Promise<void> {
   try {
@@ -44,6 +47,7 @@ async function load(): Promise<void> {
 async function act(action: () => Promise<void>, success: string | null = null): Promise<void> {
   busy.value = true;
   error.value = null;
+  platformMismatch.value = false;
   notice.value = null;
 
   try {
@@ -51,6 +55,9 @@ async function act(action: () => Promise<void>, success: string | null = null): 
     notice.value = success;
   } catch (caught) {
     error.value = caught;
+    if (!integration.value && props.baseUrl) {
+      try { platformMismatch.value = (await detectStorePlatform(props.baseUrl)) === 'shopware'; } catch { /* Keep the original connection error. */ }
+    }
     await load();
   } finally {
     busy.value = false;
@@ -163,6 +170,10 @@ void load();
           <li>{{ $t('store.api.step_permissions') }}</li>
           <li>{{ $t('store.api.step_paste') }}</li>
         </ol>
+        <figure class="max-w-3xl overflow-hidden rounded-lg border border-border bg-surface-muted">
+          <img :src="screenshotUrl" :alt="$t('store.api.screenshot_alt')" loading="lazy" class="w-full" />
+          <figcaption class="p-3 text-[13px] text-text-muted">{{ $t('store.api.screenshot_caption') }}</figcaption>
+        </figure>
         <p class="text-[13px] text-text-muted">{{ $t('store.api.requirements') }}</p>
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="flex flex-col gap-1.5">
@@ -176,6 +187,7 @@ void load();
             <p v-if="form.secret && !secretValid" class="text-[13px] text-crit">{{ $t('store.api.secret_hint') }}</p>
           </div>
         </div>
+        <p class="text-[13px] text-text-muted">{{ $t('store.order_source.key_security') }}</p>
         <details class="rounded-lg border border-border p-3 text-sm" data-api-access>
           <summary class="cursor-pointer font-medium">{{ $t('store.api.access_title') }}</summary>
           <ul class="mt-2 flex list-disc flex-col gap-1 pl-5">
@@ -199,6 +211,7 @@ void load();
     </template>
 
     <p v-if="notice" class="text-sm text-ok" role="status">{{ $t(notice) }}</p>
-    <ErrorNotice v-if="error" :error="error" />
+    <ErrorNotice v-if="error" :error="error"><ConnectionProgress :error="error" platform="woocommerce" /></ErrorNotice>
+    <p v-if="platformMismatch" role="alert" class="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm text-warn">{{ $t('store.order_source.platform_mismatch', { platform: 'Shopware' }) }} <a href="#store-settings" class="font-semibold text-primary hover:underline">{{ $t('store.order_source.change_platform') }}</a></p>
   </div>
 </template>

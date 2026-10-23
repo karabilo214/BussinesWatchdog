@@ -9,6 +9,8 @@ use App\Models\CheckScenario;
 use App\Models\CheckStep;
 use App\Models\Incident;
 use App\Models\Integration;
+use App\Models\NotificationChannel;
+use App\Models\Order;
 use App\Models\PaymentAttemptWindow;
 use App\Models\Store;
 use App\Support\Checkout\CheckoutLayout;
@@ -53,6 +55,10 @@ class StoreCoverage
             ->selectRaw('store_id, count(*) as aggregate')
             ->groupBy('store_id')
             ->pluck('aggregate', 'store_id');
+        $orderCounts = Order::query()->where('tenant_id', $tenantId)->whereIn('store_id', $storeIds)
+            ->selectRaw('store_id, count(*) as aggregate')->groupBy('store_id')->pluck('aggregate', 'store_id');
+        $telegramReady = NotificationChannel::query()->where('tenant_id', $tenantId)
+            ->where('kind', NotificationChannel::KIND_TELEGRAM)->where('enabled', true)->whereNotNull('verified_at')->exists();
         $lastWindow = PaymentAttemptWindow::query()
             ->where('tenant_id', $tenantId)
             ->whereIn('store_id', $storeIds)
@@ -138,6 +144,16 @@ class StoreCoverage
                 ],
                 'last_successful_check_at' => $passedAt === null ? null : Carbon::parse($passedAt)->toJSON(),
                 'active_incident_count' => (int) $incidents->get($store->id, 0),
+                'onboarding' => [
+                    'source_connected' => $connector !== null,
+                    'access_verified' => $connector?->status === Integration::STATUS_ACTIVE,
+                    'orders_received' => (int) $orderCounts->get($store->id, 0),
+                    'first_scheduled_sync_at' => $connector?->health['sync']['first_scheduled_sync_at'] ?? null,
+                    'scheduled_sync_applicable' => $connector !== null && in_array($connector->provider, ['woocommerce_api', 'shopware'], true),
+                    'last_sync_error' => $connector?->health['last_error']['code'] ?? null,
+                    'provider_connected' => $provider !== null,
+                    'telegram_notifications_ready' => $telegramReady,
+                ],
             ];
         }
 

@@ -13,6 +13,10 @@ class SafeHttpFetcher
 
     public const ERROR_CONNECTION = 'connection_failed';
 
+    public const ERROR_TIMEOUT = 'connection_timeout';
+
+    public const ERROR_TLS = 'tls_failed';
+
     public const ERROR_REDIRECT = 'redirect_not_allowed';
 
     public const ERROR_HTTP_STATUS = 'http_status_unexpected';
@@ -61,8 +65,14 @@ class SafeHttpFetcher
                 ->connectTimeout(self::TIMEOUT_SECONDS)
                 ->withHeaders(['Accept' => 'text/plain', 'User-Agent' => 'BusinessWatchdog-Verifier/1'])
                 ->get($url);
-        } catch (ConnectionException) {
-            return SafeFetchResult::failed(self::ERROR_CONNECTION);
+        } catch (ConnectionException $failure) {
+            $message = strtolower($failure->getMessage());
+
+            return SafeFetchResult::failed(match (true) {
+                str_contains($message, 'timed out'), str_contains($message, 'curl error 28') => self::ERROR_TIMEOUT,
+                str_contains($message, 'certificate'), str_contains($message, 'ssl'), str_contains($message, 'curl error 60') => self::ERROR_TLS,
+                default => self::ERROR_CONNECTION,
+            });
         }
 
         if ($response->redirect()) {
@@ -70,6 +80,10 @@ class SafeHttpFetcher
         }
 
         if ($response->status() !== 200) {
+            if ($protection = StoreProtectionPage::reason($response)) {
+                return SafeFetchResult::failed($protection);
+            }
+
             return SafeFetchResult::failed(self::ERROR_HTTP_STATUS);
         }
 

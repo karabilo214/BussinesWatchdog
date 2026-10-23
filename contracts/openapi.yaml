@@ -3534,7 +3534,7 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [name, base_url, timezone, default_currency]
+              required: [name, base_url, timezone, default_currency, platform]
               properties:
                 name: {type: string, minLength: 1, maxLength: 100}
                 base_url:
@@ -3544,13 +3544,44 @@ paths:
                 timezone: {type: string}
                 locale: {enum: [ru, en, de]}
                 default_currency: {type: string, pattern: "^[A-Z]{3}$"}
-                platform: {enum: [woocommerce, shopware], default: woocommerce}
+                platform: {enum: [woocommerce, shopware]}
       responses:
         "201":
           description: "Created (onboarding, unverified)"
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Store"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/detect-platform:
+    post:
+      tags: [Stores]
+      operationId: detectStorePlatform
+      security:
+        - {UserSession: []}
+      description: Advisory platform detection from public HTML through the pinned, SSRF-safe store-origin client. Unknown is returned as null and never changes the selected platform.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base_url]
+              properties:
+                base_url: {type: string, format: uri}
+      responses:
+        "200":
+          description: Public platform hint
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [detected_platform]
+                properties:
+                  detected_platform: {type: [string, "null"], enum: [woocommerce, shopware, null]}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
@@ -3582,7 +3613,7 @@ paths:
       operationId: updateStore
       security:
         - {UserSession: []}
-      description: Owner/admin; If-Match carries config_version. Activation and browser checks require a verified domain (422 store_not_verified).
+      description: Owner/admin; If-Match carries config_version. Activation and browser checks require a verified domain (422 store_not_verified). Platform correction requires explicit confirmation, disconnecting all active integrations, and purges old store-scoped data with an audit entry.
       parameters:
         - name: store_id
           in: path
@@ -3606,6 +3637,8 @@ paths:
                 status: {enum: [paused, active]}
                 browser_enabled: {type: boolean}
                 telemetry_enabled: {type: boolean}
+                platform: {enum: [woocommerce, shopware]}
+                platform_change_confirmed: {type: boolean, description: Required when changing platform; confirms irreversible deletion of previous store data.}
       responses:
         "200":
           description: Updated
@@ -7156,6 +7189,7 @@ components:
         - coverage
         - last_successful_check_at
         - active_incident_count
+        - onboarding
       properties:
         id: {type: string, format: uuid}
         name: {type: string}
@@ -7179,6 +7213,18 @@ components:
         coverage: {$ref: "#/components/schemas/StoreCoverage"}
         last_successful_check_at: {type: [string, "null"], format: date-time}
         active_incident_count: {type: integer, minimum: 0}
+        onboarding:
+          type: object
+          required: [source_connected, access_verified, orders_received, first_scheduled_sync_at, scheduled_sync_applicable, last_sync_error, provider_connected, telegram_notifications_ready]
+          properties:
+            source_connected: {type: boolean}
+            access_verified: {type: boolean}
+            orders_received: {type: integer, minimum: 0, description: Number of orders stored for this tenant/store.}
+            first_scheduled_sync_at: {type: [string, "null"], format: date-time, description: First completed scheduled order-source sync; null until observed.}
+            scheduled_sync_applicable: {type: boolean, description: False for plugin/App push sources.}
+            last_sync_error: {type: [string, "null"]}
+            provider_connected: {type: boolean}
+            telegram_notifications_ready: {type: boolean}
         checkout_layout:
           type: [object, "null"]
           description: "Shopware stores only (ADR 0075): the fields the customer set and the defaults that apply to the others; null for other platforms."

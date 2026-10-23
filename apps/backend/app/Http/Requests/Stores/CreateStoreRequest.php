@@ -33,7 +33,7 @@ class CreateStoreRequest extends FormRequest
             'timezone' => ['required', 'timezone'],
             'locale' => ['sometimes', 'string', 'in:ru,en,de'],
             'default_currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
-            'platform' => ['sometimes', 'string', 'in:woocommerce,shopware'],
+            'platform' => ['required', 'string', 'in:woocommerce,shopware'],
         ];
     }
 

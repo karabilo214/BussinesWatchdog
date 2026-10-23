@@ -14,7 +14,7 @@ UI states: loading skeleton; not_connected onboarding; warming_up; healthy with 
 
 1. Confirm email, organization name/timezone/locale; зарегистрированный пользователь без organization создаёт tenant.
 2. Trial или paid access определяется backend; каталог тарифов и checkout — `PUBLIC-SUBSCRIPTION-FRONTEND.md`.
-3. Add store, verify public origin, install plugin и pairing code, capabilities/backfill health.
+3. Выбрать платформу явно (без предвыбранной), указать публичный HTTPS-адрес; подсказка по публичным признакам предупреждает о несовпадении. Основной путь WooCommerce/Shopware — ключ API и проверка доступа без установки; плагин/App предлагается отдельно для дополнительного наблюдения. Показывать число полученных заказов, первую успешную плановую синхронизацию и неполное покрытие. При исправлении платформы после отключения интеграций удаление прежних данных требует явного подтверждения и аудита.
 4. Определить тестовый товар/checkout adapter, включить проверку с описанными безопасными границами.
 5. Для независимой сверки отдельно подключить поддерживаемый payment source. Отсутствие источника явно показывать.
 6. Настроить email/Telegram; verified channel и test message.

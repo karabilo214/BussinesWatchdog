@@ -26,6 +26,21 @@ class StoreDeletion
 
     public function delete(Store $store): void
     {
+        $this->purgeData($store);
+
+        // Keep only the keyed anti-abuse marker, as organization deletion does.
+        DB::table('trial_store_hosts')->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)
+            ->where('host', 'not like', TrialStoreHosts::HASH_PREFIX.'%')
+            ->get(['host'])
+            ->each(fn ($row) => DB::table('trial_store_hosts')->where('host', $row->host)->update(['host' => TrialStoreHosts::hashed($row->host)]));
+
+        DB::table('stores')->where('tenant_id', $store->tenant_id)->where('id', $store->id)->delete();
+        DB::table('store_deletion_journal')->insertOrIgnore(['store_id' => $store->id, 'tenant_id' => $store->tenant_id, 'deleted_at' => now()]);
+    }
+
+    /** Purge every store-scoped record while retaining the store and trial-use marker for a platform correction. */
+    public function purgeData(Store $store): void
+    {
         $uncovered = array_values(array_filter(
             Schema::getTableListing(null, false),
             fn (string $table): bool => ! in_array($table, [...self::TABLES, 'trial_store_hosts', 'store_deletion_journal'], true) && Schema::hasColumn($table, 'store_id'),
@@ -66,13 +81,5 @@ class StoreDeletion
             }
         }
 
-        // Keep only the keyed anti-abuse marker, as organization deletion does.
-        DB::table('trial_store_hosts')->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)
-            ->where('host', 'not like', TrialStoreHosts::HASH_PREFIX.'%')
-            ->get(['host'])
-            ->each(fn ($row) => DB::table('trial_store_hosts')->where('host', $row->host)->update(['host' => TrialStoreHosts::hashed($row->host)]));
-
-        DB::table('stores')->where('tenant_id', $store->tenant_id)->where('id', $store->id)->delete();
-        DB::table('store_deletion_journal')->insertOrIgnore(['store_id' => $store->id, 'tenant_id' => $store->tenant_id, 'deleted_at' => now()]);
     }
 }

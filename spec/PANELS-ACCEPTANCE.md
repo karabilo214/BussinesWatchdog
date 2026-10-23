@@ -2,7 +2,7 @@
 
 Версия 1.1. Обновлено: 2026-10-18, Step 166 (EXT-16, ADR 0037 п. 6).
 
-Это добавочные критерии к `ACCEPTANCE.md`. Матрица теперь показывает текущее evidence. Customer cabinet, SaaS billing, публичная регистрация и большая часть owner panel реализованы существенно дальше исходного ТЗ; основной сценарий support grants владелец проверил на боевом Step 235, автоматическая нумерация выложена в Step 236. Проверка истечения/старой ссылки, privacy deletion, restore/load gates и часть production evidence остаются открытыми.
+Это добавочные критерии к `ACCEPTANCE.md`. Матрица теперь показывает текущее evidence. Customer cabinet, SaaS billing, публичная регистрация и большая часть owner panel реализованы существенно дальше исходного ТЗ; доступ поддержки владелец принял после проверки боевого сценария Step 235, автоматическая нумерация выложена в Step 236. Privacy deletion, restore/load gates и часть production evidence остаются открытыми.
 
 Статусы:
 
@@ -17,7 +17,7 @@
 | EXT-03 | done | Owner без MFA/step-up | Customer MFA/ownership transfer (`MfaApiTest`, `TeamApiTest`, Step 69), owner MFA warning (Step 164), tenant-owner/platform-support reset with scoped step-up, session revocation, audit and email (`MfaApiTest`, `TenantAdminTest`, Step 165), and platform MFA + step-up for plans, tenant actions, refunds, staff and settings (`PlatformAuthTest`, `PlanAdminTest`, `RefundTest`, `TenantAdminTest`, `StaffAdminTest`, `PlatformSettingsTest`; Steps 103-104, 108-109, 120, 132, 134) | — |
 | EXT-04 | done | Удаление последнего platform owner | `StaffAdminTest` covers last-owner and self-lockout guards; Step 132 | — |
 | EXT-05 | done | Support без customer grant | `SupportGrantTest`, `TenantStoreDataTest`: exact tenant/store/scope and capability, owner-only approval, direct UUID denial; ADR 0078, Step 235. Владелец подтвердил на боевом релизе `1d51398`: запрос, письмо и ссылку, одобрение и запись аудита | — |
-| EXT-06 | partial | Grant revoked/expired | `SupportGrantTest`, `TenantStoreDataTest`: next request denied after revoke/expiry, guarded artifact content link; open page clears details on refresh; Step 235. Владелец подтвердил отзыв на боевом релизе `1d51398` | Live expiry/open-page/old-artifact-link check ещё нужен |
+| EXT-06 | done | Grant revoked/expired | `SupportGrantTest`, `TenantStoreDataTest`: next request denied after revoke/expiry, guarded artifact content link; open page clears details on refresh; Step 235. Владелец подтвердил отзыв на боевом релизе `1d51398` и закрыл задачу 2026-10-23 | Истечение, уже открытая страница и старая ссылка проверены автоматическими тестами; отдельного ручного live-прогона этих трёх случаев не было |
 | EXT-07 | done | Published price изменён | Versioned plans/prices, publish/retire, old subscribers kept on snapshots; `PlanAdminTest`, live `run-live.sh plans`; Step 104 | — |
 | EXT-08 | done | Forged price/amount/currency from browser | Checkout uses server-side published prices/provider refs, not browser totals; `PaddleBillingTest`, `BillingPlansTest`, live `run-billing-live.sh`; Steps 98, 102, 104-106 | Production Paddle account not connected |
 | EXT-09 | partial | Concurrent two checkout requests | Checkout session idempotency, request hash conflict and superseded pending sessions covered by `PaddleBillingTest`; Step 98 | True concurrent process race not exercised |

@@ -27,7 +27,7 @@ const host = computed(() => storeHost(props.store.base_url));
         <StatusBadge tone="crit" solid :label="$t('overview.active_incidents', { n: store.active_incident_count })" />
       </RouterLink>
       <StatusBadge v-else-if="store.capacity_paused_at" tone="unknown" :label="$t('overview.paused_badge')" />
-      <StatusBadge v-else tone="ok" :label="$t('overview.no_incidents')" />
+      <StatusBadge v-else tone="unknown" :label="$t('overview.no_incidents')" />
     </header>
 
     <p v-if="store.capacity_paused_at" class="rounded-md border border-unknown-border bg-unknown-soft px-3 py-2 text-sm text-unknown" data-store-paused="capacity">

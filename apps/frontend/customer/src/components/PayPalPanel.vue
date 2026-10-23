@@ -11,6 +11,7 @@ import ErrorNotice from './ErrorNotice.vue';
 const props = defineProps<{ storeId: string; canManage: boolean }>();
 const emit = defineEmits<{ changed: [] }>();
 const { dateTime } = useFormat();
+const officialDocsScreenshot = `${import.meta.env.BASE_URL}onboarding/paypal-official-docs.png`;
 
 const integration = ref<Integration | null>(null);
 const loading = ref(true);
@@ -175,6 +176,10 @@ void load();
           <li>{{ $t('paypal.step_features') }}</li>
           <li>{{ $t('paypal.step_copy') }}</li>
         </ol>
+        <figure class="overflow-hidden rounded-lg border border-border bg-surface-muted">
+          <img :src="officialDocsScreenshot" :alt="$t('paypal.official_docs_image')" loading="lazy" class="w-full" />
+          <figcaption class="p-3 text-[13px] text-text-muted">{{ $t('paypal.official_docs_caption') }} <a href="https://developer.paypal.com/api/get-started/" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">PayPal Developer ↗</a></figcaption>
+        </figure>
         <div class="grid gap-3 sm:grid-cols-2">
           <label class="flex flex-col gap-1.5 text-sm font-medium">
             {{ $t('paypal.environment') }}
@@ -192,6 +197,7 @@ void load();
             <input id="paypal-client-secret" v-model="form.clientSecret" type="password" autocomplete="off" spellcheck="false" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-sm font-normal" />
           </label>
         </div>
+        <p class="text-[13px] text-text-muted">{{ $t('store.order_source.key_security') }}</p>
         <details class="rounded-lg border border-border p-3 text-sm">
           <summary class="cursor-pointer font-medium">{{ $t('checks.scenario.advanced') }}</summary>
           <label class="mt-3 flex flex-col gap-1.5 font-medium sm:max-w-md">

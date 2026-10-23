@@ -4,6 +4,7 @@ namespace App\Support\Providers\Shopware;
 
 use App\Support\Network\StoreOriginFailure;
 use App\Support\Network\StoreOriginHttp;
+use App\Support\Network\StoreProtectionPage;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
@@ -50,7 +51,8 @@ class ShopwareClient
         $expiresIn = (int) ($response->json('expires_in') ?? 600);
 
         if (! is_string($token) || $token === '') {
-            throw new ShopwareRequestFailed('shopware_invalid_response', $response->status());
+            $protection = StoreProtectionPage::reason($response);
+            throw new ShopwareRequestFailed($protection ? 'shopware_'.$protection : 'shopware_invalid_response', $response->status());
         }
 
         $result = ['token' => $token, 'expires_in' => $expiresIn];
@@ -120,6 +122,9 @@ class ShopwareClient
         }
 
         if ($response->successful()) {
+            if ($protection = StoreProtectionPage::reason($response)) {
+                throw new ShopwareRequestFailed('shopware_'.$protection, $response->status());
+            }
             if (strlen($response->body()) > (int) config('watchdog.shopware.max_response_bytes')) {
                 throw new ShopwareRequestFailed('shopware_response_too_large', $response->status());
             }
@@ -128,6 +133,9 @@ class ShopwareClient
         }
 
         $code = (string) ($response->json('errors.0.code') ?? '');
+        if ($protection = StoreProtectionPage::reason($response)) {
+            throw new ShopwareRequestFailed('shopware_'.$protection, $response->status());
+        }
         $retryAfter = $response->header('Retry-After');
 
         throw new ShopwareRequestFailed(match (true) {

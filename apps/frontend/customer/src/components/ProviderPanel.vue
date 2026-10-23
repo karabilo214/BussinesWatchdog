@@ -11,6 +11,7 @@ import ErrorNotice from './ErrorNotice.vue';
 const props = defineProps<{ storeId: string; canManage: boolean }>();
 const emit = defineEmits<{ changed: [] }>();
 const { dateTime } = useFormat();
+const officialDocsScreenshot = `${import.meta.env.BASE_URL}onboarding/stripe-official-docs.png`;
 
 const integration = ref<Integration | null>(null);
 const loading = ref(true);
@@ -166,6 +167,10 @@ void load();
           <li>{{ $t('provider.step_permissions') }}</li>
           <li>{{ $t('provider.step_paste') }}</li>
         </ol>
+        <figure class="overflow-hidden rounded-lg border border-border bg-surface-muted">
+          <img :src="officialDocsScreenshot" :alt="$t('provider.official_docs_image')" loading="lazy" class="w-full" />
+          <figcaption class="p-3 text-[13px] text-text-muted">{{ $t('provider.official_docs_caption') }} <a href="https://docs.stripe.com/keys/restricted-api-keys" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Stripe Docs ↗</a></figcaption>
+        </figure>
         <div class="flex flex-col gap-1.5">
           <label for="stripe-key" class="text-sm font-medium">{{ $t('provider.key_label') }}</label>
           <input id="stripe-key" v-model="form.key" type="password" autocomplete="off" spellcheck="false" placeholder="rk_live_…" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-sm" />

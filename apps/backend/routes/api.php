@@ -127,6 +127,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::post('/stores', [StoreController::class, 'store'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+    Route::post('/stores/detect-platform', [StoreController::class, 'detectPlatform'])
+        ->middleware(['tenant.role:'.implode(',', TenantRoles::storeManage()), 'throttle:20,1']);
     Route::get('/stores/{store}', [StoreController::class, 'show'])
         ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
     Route::patch('/stores/{store}', [StoreController::class, 'update'])

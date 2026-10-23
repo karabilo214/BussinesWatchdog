@@ -45,6 +45,7 @@ const state = computed(() => verdict(stores.value, overview.value?.incidents.act
 const storeNames = computed(() => new Map(stores.value.map((store) => [store.id, store.name])));
 const lastCheck = computed(() => lastSuccessfulCheck(stores.value));
 const uncovered = computed(() => stores.value.filter((store) => store.coverage.connector.state !== 'fresh' || store.coverage.money.state !== 'reconciling' || store.coverage.browser_checks.state !== 'passing').length);
+const setupStores = computed(() => stores.value.filter((store) => !store.onboarding.access_verified || !store.onboarding.provider_connected || store.coverage.browser_checks.state === 'disabled'));
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -198,6 +199,19 @@ onMounted(load);
 
         <section class="flex flex-col gap-3" aria-labelledby="stores-title">
           <h2 id="stores-title" class="text-lg font-semibold">{{ $t('overview.stores') }}</h2>
+          <div v-if="setupStores.length" class="rounded-xl border border-border bg-surface p-4 text-sm">
+            <h3 class="font-semibold">{{ $t('store.more.title') }}</h3>
+            <p class="mt-1 text-text-muted">{{ $t('store.more.subtitle') }}</p>
+            <ul class="mt-2 flex flex-col gap-2">
+              <li v-for="shop in setupStores" :key="shop.id" class="flex flex-wrap gap-x-3 gap-y-1">
+                <span class="font-medium">{{ shop.name }}:</span>
+                <RouterLink v-if="!shop.onboarding.access_verified" :to="{ name: 'store', params: { id: shop.id }, hash: '#order-source' }" class="text-primary hover:underline">{{ $t('store.order_source.title') }}</RouterLink>
+                <RouterLink v-if="!shop.onboarding.provider_connected" :to="{ name: 'store', params: { id: shop.id }, hash: '#payment-providers' }" class="text-primary hover:underline">{{ $t('store.more.payment') }}</RouterLink>
+                <RouterLink v-if="shop.coverage.browser_checks.state === 'disabled'" :to="{ name: 'store', params: { id: shop.id }, hash: '#browser-checks' }" class="text-primary hover:underline">{{ $t('store.more.browser') }}</RouterLink>
+                <RouterLink :to="{ name: 'notifications' }" class="text-primary hover:underline">{{ $t('store.more.telegram') }}</RouterLink>
+              </li>
+            </ul>
+          </div>
           <div class="grid gap-4 lg:grid-cols-2">
             <StoreCard v-for="store in stores" :key="store.id" :store="store" :can-delete="role === 'owner'" @delete="openDelete" />
           </div>

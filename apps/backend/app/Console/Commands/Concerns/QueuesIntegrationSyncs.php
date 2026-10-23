@@ -23,6 +23,7 @@ trait QueuesIntegrationSyncs
         foreach ($runner->due($provider)->get() as $integration) {
             /** @var Integration $integration */
             $result = $runner->run($integration, $mode);
+            $runner->recordScheduledSuccess($integration, $result);
             $this->line(sprintf('%s %s emitted=%d unchanged=%d complete=%s%s', $integration->id, $result['status'], $result['emitted'], $result['unchanged'], $result['complete'] ? 'yes' : 'no', isset($result['error']) ? ' error='.$result['error'] : ''));
         }
 

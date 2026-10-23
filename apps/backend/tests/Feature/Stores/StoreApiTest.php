@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Stores;
 
+use App\Models\Integration;
 use App\Models\Membership;
 use App\Models\Store;
 use App\Models\Tenant;
@@ -9,6 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class StoreApiTest extends TestCase
@@ -51,6 +53,7 @@ class StoreApiTest extends TestCase
                 'timezone' => 'Europe/Kyiv',
                 'locale' => 'ru',
                 'default_currency' => 'eur',
+                'platform' => 'woocommerce',
             ]);
 
         $response
@@ -83,6 +86,31 @@ class StoreApiTest extends TestCase
             ->assertJsonPath('code', 'tenant_forbidden');
 
         $this->assertDatabaseCount('stores', 0);
+    }
+
+    public function test_store_creation_requires_explicit_platform(): void
+    {
+        [$user, $tenant] = $this->userWithTenant();
+
+        $this->actingAs($user)
+            ->withSession(['active_tenant_id' => $tenant->id])
+            ->postJson('/api/v1/stores', [
+                'name' => 'Shop',
+                'base_url' => 'https://shop.example.test',
+                'timezone' => 'Europe/Kyiv',
+                'default_currency' => 'EUR',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('platform');
+    }
+
+    public function test_platform_hint_rejects_private_addresses_before_network_access(): void
+    {
+        [$user, $tenant] = $this->userWithTenant();
+
+        $this->actingAs($user)->withSession(['active_tenant_id' => $tenant->id])
+            ->postJson('/api/v1/stores/detect-platform', ['base_url' => 'https://127.0.0.1'])
+            ->assertUnprocessable()->assertJsonValidationErrors('base_url');
     }
 
     public function test_user_lists_only_active_tenant_stores(): void
@@ -212,6 +240,39 @@ class StoreApiTest extends TestCase
         ]);
     }
 
+    public function test_platform_change_requires_confirmation_and_disconnect_then_purges_previous_orders(): void
+    {
+        [$user, $tenant] = $this->userWithTenant();
+        $store = Store::query()->create([
+            'tenant_id' => $tenant->id, 'name' => 'Shop', 'base_url' => 'https://shop.example.test',
+            'timezone' => 'Europe/Kyiv', 'default_currency' => 'EUR', 'platform' => 'woocommerce',
+        ]);
+        $integration = Integration::query()->create([
+            'tenant_id' => $tenant->id, 'store_id' => $store->id, 'provider' => 'woocommerce_api',
+            'source_authority' => Integration::SOURCE_STORE_REPORTED, 'status' => Integration::STATUS_ACTIVE,
+            'connector_version' => 'test',
+        ]);
+        DB::table('orders')->insert([
+            'id' => (string) Str::uuid(), 'tenant_id' => $tenant->id, 'store_id' => $store->id,
+            'integration_id' => $integration->id, 'external_id' => '123', 'display_number' => '123',
+            'source_revision' => 1, 'status' => 'processing', 'currency' => 'EUR',
+            'currency_exponent' => 2, 'total_minor' => 100, 'payment_expected' => true,
+            'source_created_at' => now(), 'source_updated_at' => now(),
+            'current_payload_hash' => str_repeat('a', 64), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $update = fn (array $data) => $this->actingAs($user)->withSession(['active_tenant_id' => $tenant->id])
+            ->withHeader('If-Match', (string) $store->refresh()->config_version)
+            ->patchJson("/api/v1/stores/{$store->id}", $data);
+
+        $update(['platform' => 'shopware'])->assertUnprocessable()->assertJsonPath('code', 'platform_change_confirmation_required');
+        $update(['platform' => 'shopware', 'platform_change_confirmed' => true])->assertUnprocessable()->assertJsonPath('code', 'disconnect_integrations_first');
+        $integration->update(['status' => Integration::STATUS_REVOKED]);
+        $update(['platform' => 'shopware', 'platform_change_confirmed' => true])->assertOk()->assertJsonPath('platform', 'shopware')->assertJsonPath('status', 'onboarding');
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseMissing('integrations', ['id' => $integration->id]);
+        $this->assertDatabaseHas('audit_log', ['store_id' => $store->id, 'action' => 'store.platform_changed']);
+    }
+
     public function test_store_update_requires_if_match_header(): void
     {
         [$user, $tenant] = $this->userWithTenant();
@@ -283,6 +344,7 @@ class StoreApiTest extends TestCase
                 'base_url' => 'https://admin.example.test',
                 'timezone' => 'Europe/Kyiv',
                 'default_currency' => 'EUR',
+                'platform' => 'shopware',
             ])
             ->assertCreated()
             ->json('id');

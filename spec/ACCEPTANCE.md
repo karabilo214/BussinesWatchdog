@@ -13,7 +13,7 @@
 | ID | Этап | Статус | Сценарий | Evidence | Осталось / ограничение |
 |---|---|---|---|---|---|
 | ACC-01 | P0 | partial | Fresh setup без secrets | `Makefile`, `docker-compose.yml`, health endpoints, `make frontend-smoke`; README release/operations guide; `docs/progress.md` Steps 01-03, 56-64, 103 | Финальный demo/release checklist и production-like bootstrap ещё не закрыты |
-| ACC-02 | P0 | partial | Tenant A знает UUID B | Backend feature tests for stores/incidents/checks/payments/orders/exports/billing; platform/customer guards and route policies; Steps 56-64, 97-120, 126; Step 161 owner-only money visibility and API/export masking tests | Privacy deletion and support-grant surfaces are not complete |
+| ACC-02 | P0 | partial | Tenant A знает UUID B | Backend feature tests for stores/incidents/checks/payments/orders/exports/billing; platform/customer guards and route policies; Steps 56-64, 97-120, 126; Step 161 owner-only money visibility and API/export masking tests; support grant tenant/store/scope and artifact access tests (Step 235, EXT-05/06) | Privacy deletion surface remains to be accepted end to end |
 | ACC-03 | P0 | done | Нет tenant context в job | `tests/Unit/Tenancy/TenantContextTest.php`, `tests/Feature/Tenancy/TenantContextContainerTest.php`; fail-closed `TenantContext` | — |
 | ACC-04 | P0 | done | Pairing retry/expired/used code | `tests/Feature/Pairing/PairingApiTest.php`; `docs/progress.md` Steps 12-15, 40 | — |
 | ACC-05 | P0 | done | HMAC body altered/nonce replay | `tests/Feature/Ingest/IntegrationHmacAuthTest.php`; HMAC middleware and credential rotation tests | — |

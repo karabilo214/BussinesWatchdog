@@ -27,6 +27,7 @@ function store(overrides: Partial<Store> = {}): Store {
     },
     last_successful_check_at: null,
     active_incident_count: 2,
+    onboarding: { source_connected: true, access_verified: true, orders_received: 0, first_scheduled_sync_at: null, scheduled_sync_applicable: false, last_sync_error: null, provider_connected: false, telegram_notifications_ready: false },
     ...overrides,
   };
 }

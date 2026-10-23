@@ -69,29 +69,26 @@ describe('Connector installation', () => {
 });
 
 describe('OrderSource', () => {
-  it('recommends the REST API key when nothing is connected and keeps the plugin one tab away', async () => {
+  it('shows the API path first and keeps plugin setup in a secondary block', async () => {
     vi.mocked(stores.listStoreIntegrations).mockResolvedValue([]);
     const wrapper = mount(OrderSource, { props: { storeId: 's-1', canManage: true }, global });
     await flushPromises();
 
-    expect(wrapper.get('[data-source-tab="api"]').attributes('aria-selected')).toBe('true');
-    expect(wrapper.get('[data-source-tab="api"]').text()).toContain('рекомендуется');
+    expect(wrapper.text()).toContain('Подключить WooCommerce через API');
     expect(wrapper.find('#wc-consumer-key').exists()).toBe(true);
-    expect(wrapper.text()).toContain('WooCommerce → Настройки → Дополнительно → REST API');
+    expect(wrapper.text()).toContain('WooCommerce → Настройки (Settings) → Дополнительно (Advanced)');
 
-    await wrapper.get('[data-source-tab="plugin"]').trigger('click');
+    await wrapper.findAll('button').find((button) => button.text() === 'Показать настройку')!.trigger('click');
     expect(wrapper.text()).toContain('Плагин ещё не подключён.');
     expect(wrapper.findAll('button').some((button) => button.text() === 'Получить код подключения')).toBe(true);
   });
 
-  it('opens the plugin tab for a paired store and does not offer a second source', async () => {
+  it('shows the paired plugin and prevents a second order source', async () => {
     vi.mocked(stores.listStoreIntegrations).mockResolvedValue([integration('woocommerce')]);
     const wrapper = mount(OrderSource, { props: { storeId: 's-1', canManage: true }, global });
     await flushPromises();
 
-    expect(wrapper.get('[data-source-tab="plugin"]').attributes('aria-selected')).toBe('true');
-    await wrapper.get('[data-source-tab="api"]').trigger('click');
-    await flushPromises();
+    expect(wrapper.find('[data-connector="plugin"]').exists()).toBe(true);
     expect(wrapper.find('#wc-consumer-key').exists()).toBe(false);
     expect(wrapper.get('[data-other-source]').text()).toContain('сначала отключите плагин');
   });
@@ -103,7 +100,7 @@ describe('OrderSource', () => {
 
     expect(wrapper.text()).toContain('ck_••••1234567');
     expect(wrapper.text()).toContain('только чтение');
-    await wrapper.get('[data-source-tab="plugin"]').trigger('click');
+    await wrapper.findAll('button').find((button) => button.text() === 'Показать настройку')!.trigger('click');
     await flushPromises();
     expect(wrapper.get('[data-other-source]').text()).toContain('сначала отключите ключ');
     expect(wrapper.findAll('button').some((button) => /код/i.test(button.text()))).toBe(false);
@@ -133,7 +130,7 @@ describe('WooCommerceApiPanel', () => {
     await flushPromises();
     expect(providers.connectWooCommerceApi).toHaveBeenLastCalledWith('s-1', { consumer_key: KEY, consumer_secret: SECRET });
     expect(wrapper.emitted('changed')).toHaveLength(1);
-    expect(wrapper.text()).toContain('магазин подтверждён');
+    expect(wrapper.text()).toContain('Доступ по ключу проверен');
     expect(wrapper.find('#wc-consumer-secret').exists()).toBe(false);
   });
 

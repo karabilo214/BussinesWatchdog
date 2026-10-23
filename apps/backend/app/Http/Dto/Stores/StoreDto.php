@@ -15,7 +15,7 @@ class StoreDto
     ) {}
 
     /**
-     * @param  array{coverage: array<string, mixed>, last_successful_check_at: ?string, active_incident_count: int}|null  $summary
+     * @param  array{coverage: array<string, mixed>, last_successful_check_at: ?string, active_incident_count: int, onboarding: array<string, mixed>}|null  $summary
      * @return array<string, mixed>
      */
     public function toArray(Store $store, ?array $summary = null): array
@@ -41,6 +41,7 @@ class StoreDto
             'coverage' => $summary['coverage'],
             'last_successful_check_at' => $summary['last_successful_check_at'],
             'active_incident_count' => $summary['active_incident_count'],
+            'onboarding' => $summary['onboarding'],
         ];
     }
 

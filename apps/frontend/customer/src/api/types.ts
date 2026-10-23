@@ -102,6 +102,16 @@ export interface Store {
   coverage: StoreCoverage;
   last_successful_check_at: string | null;
   active_incident_count: number;
+  onboarding: {
+    source_connected: boolean;
+    access_verified: boolean;
+    orders_received: number;
+    first_scheduled_sync_at: string | null;
+    scheduled_sync_applicable: boolean;
+    last_sync_error: string | null;
+    provider_connected: boolean;
+    telegram_notifications_ready: boolean;
+  };
   checkout_layout?: { custom: CheckoutLayoutFields; defaults: Required<CheckoutLayoutFields> } | null;
 }
 
@@ -125,13 +135,15 @@ export interface CreateStoreInput {
   timezone: string;
   locale: Locale;
   default_currency: string;
-  platform?: StorePlatform;
+  platform: StorePlatform;
 }
 
 export type StorePlatform = 'woocommerce' | 'shopware';
 
 export type UpdateStoreInput = Partial<Pick<Store, 'name' | 'timezone' | 'default_currency' | 'browser_enabled' | 'telemetry_enabled'>> & {
   status?: 'active' | 'paused';
+  platform?: StorePlatform;
+  platform_change_confirmed?: boolean;
 };
 
 export type VerificationMethod = 'dns' | 'plugin_challenge' | 'api_key';
