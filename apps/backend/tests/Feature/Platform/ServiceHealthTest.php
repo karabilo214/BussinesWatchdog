@@ -115,6 +115,25 @@ class ServiceHealthTest extends TestCase
         $this->assertStringNotContainsString($context['tenant']->id, (string) $response->getContent());
     }
 
+    public function test_connector_sync_follows_plugin_heartbeats_and_skips_paused_stores(): void
+    {
+        $fresh = $this->context();
+        $fresh['integration']->forceFill(['provider' => 'woocommerce', 'status' => 'active', 'last_heartbeat_at' => now()->subMinutes(5), 'last_successful_sync_at' => null])->save();
+        $silent = $this->context();
+        $silent['integration']->forceFill(['provider' => 'woocommerce', 'status' => 'active', 'last_heartbeat_at' => now()->subDays(2), 'last_successful_sync_at' => now()])->save();
+        $synced = $this->context();
+        $synced['integration']->forceFill(['status' => 'active', 'last_successful_sync_at' => now()->subHour()])->save();
+        $paused = $this->context();
+        $paused['integration']->forceFill(['status' => 'active', 'last_successful_sync_at' => now()->subDays(3)])->save();
+        $paused['store']->forceFill(['capacity_paused_at' => now()->subDays(3)])->save();
+
+        $this->assertSame(['active' => 4, 'stale' => 1, 'state' => 'warn'], app(ServiceHealth::class)->build()['connector_sync']);
+
+        $silent['integration']->forceFill(['last_heartbeat_at' => now()->subMinutes(5)])->save();
+
+        $this->assertSame(['active' => 4, 'stale' => 0, 'state' => 'ok'], app(ServiceHealth::class)->build()['connector_sync']);
+    }
+
     public function test_support_and_billing_staff_do_not_see_the_service_summary(): void
     {
         $this->signIn(PlatformStaff::ROLE_SUPPORT);

@@ -1021,3 +1021,12 @@ Status: deployed 2026-10-23 (`99f409c`)
 - Owner clarified that the support access request number must be assigned without staff input. One global sequence serves every organisation. The server allocates `SUP-000001`, `SUP-000002`, … inside the same transaction as the new request, after matching pending requests have been checked. A duplicate request keeps its number and sends no duplicate owner e-mail.
 - New migration `2026_10_23_110000_create_support_case_counter` seeds the counter after any existing manually entered `SUP-` references. Both request APIs prohibit a supplied `case_reference`; their responses and the owner e-mail still include it. Both cabinets remove the input and show the number after creation, as the owner chose. Contracts, ADR 0078, panel specs and support runbook updated.
 - Verification: backend SQLite 728 passed + 4 skipped (6218 assertions), PostgreSQL 18 732/732 (6226 assertions); control 70/70 and customer 158/158; both frontend builds, Pint and static spec validator passed. Production migration `2026_10_23_110000_create_support_case_counter` applied; app/web/workers running; `/health/live`, `/health/ready`, `/app/settings/support` and `/owner/tenants` returned HTTP 200. The owner has not yet tested creating an automatically numbered request in the cabinet.
+
+### Step 238: «Сервис» Connector Sync Counts Plugin Heartbeats
+
+Status: complete
+
+- Reported: «Сервис» kept warning «активных подключений: 9, без успешной синхронизации больше 24 ч: 1». Read-only production query (2026-10-24): all 9 active integrations were healthy; the one counted was the WooCommerce plugin integration of WooCommerce-Test (heartbeat 06:55 UTC that day). `ServiceHealth` judged every integration by `last_successful_sync_at`, which only API syncs (WooCommerce REST, Shopware, Stripe, PayPal) write; the plugin pushes events and reports only heartbeats, so an active plugin was always "stale".
+- `ServiceHealth` now judges pushed order sources (`OrderSources::PROVIDERS` minus `POLLED`, i.e. the WooCommerce plugin) by `last_heartbeat_at` and everything else by `last_successful_sync_at`, both against the same 24 h. Stores paused for capacity or in organisation deletion (`StoreCapacity::pausedStoreIds()`) are not counted as stale, since nothing syncs them; they still count as active. No API shape or contract change.
+
+Verification: new `ServiceHealthTest` case (fresh plugin, silent plugin with a recent API sync value, synced provider, paused store); backend SQLite 734 passed + 4 skipped, PostgreSQL 18 738/738, Pint ok.

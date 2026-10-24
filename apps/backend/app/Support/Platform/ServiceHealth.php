@@ -8,7 +8,9 @@ use App\Models\CheckRun;
 use App\Models\DomainOutbox;
 use App\Models\EventInbox;
 use App\Models\NotificationDelivery;
+use App\Support\Billing\StoreCapacity;
 use App\Support\Health\ReadinessChecks;
+use App\Support\Integrations\OrderSources;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -55,9 +57,16 @@ class ServiceHealth
         }
 
         $integrations = DB::table('integrations')->where('status', 'active');
+        $staleBefore = $now->copy()->subHours(self::SYNC_STALE_HOURS);
+        $pushed = array_values(array_diff(OrderSources::PROVIDERS, OrderSources::POLLED));
         $sync = [
             'active' => (clone $integrations)->count(),
-            'stale' => (clone $integrations)->where(fn ($stale) => $stale->whereNull('last_successful_sync_at')->orWhere('last_successful_sync_at', '<', $now->copy()->subHours(self::SYNC_STALE_HOURS)))->count(),
+            'stale' => (clone $integrations)
+                ->whereNotIn('store_id', StoreCapacity::pausedStoreIds())
+                ->where(fn ($stale) => $stale
+                    ->where(fn ($plugin) => $plugin->whereIn('provider', $pushed)->where(fn ($seen) => $seen->whereNull('last_heartbeat_at')->orWhere('last_heartbeat_at', '<', $staleBefore)))
+                    ->orWhere(fn ($api) => $api->whereNotIn('provider', $pushed)->where(fn ($synced) => $synced->whereNull('last_successful_sync_at')->orWhere('last_successful_sync_at', '<', $staleBefore))))
+                ->count(),
         ];
         $sync['state'] = $sync['stale'] > 0 ? 'warn' : 'ok';
 
