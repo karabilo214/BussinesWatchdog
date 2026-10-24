@@ -217,3 +217,13 @@ Status: выложено 2026-10-23 (`d4ac7b5`); сквозная проверк
 - Контракт: `POST /api/v1/stores/detect-platform`, обязательное поле `platform` при создании, `platform_change_confirmed` при исправлении, поля `onboarding` в Store DTO. Миграций нет. См. `contracts/openapi.yaml`, `spec/panels/CLIENT-PANELS.md`.
 - Проверки: backend SQLite 733 passed / 4 skipped, PostgreSQL 737/737; frontend customer typecheck, 158 tests, production build; Pint, static spec validator. Выкладка: миграций нет, backend и оба кабинета собраны из `d4ac7b5`; live/ready 200, файлы инструкций 200, анонимный запрос нового API 401.
 - Открыто: ручной путь от регистрации до первых данных на WooCommerce-Test/Shopware-Test и доступных тестовых Stripe/PayPal/Telegram; проверка полноты скриншотов, каждого типа ошибок и текстов после живого прохода (backlog 11 A, C, D, F).
+
+### Step 239: "Back" Returns to the Same Filtered List
+
+Status: complete (frontend only)
+
+- Reported: from `/app/incidents?store=…` into an incident card and back, the store was no longer selected — the «← Инциденты» link in `IncidentView.vue` pointed to `{ name: 'incidents' }` without a query.
+- New `useBackLink(listName, fallback)` (`apps/frontend/customer/src/composables/useBackLink.ts`): when Vue Router's `history.state.back` is a page of that list, the link goes back to it exactly (store, severity, tab and other query filters); otherwise to the fallback — the list filtered to the item's store. Used by the incident card, the order card (reconciliation) and the check run card (their old fallback kept only the store).
+- Remaining parts of the backlog item (store selector visibility, scroll position) stay open.
+
+Verification: `tests/backLink.test.ts` (exact list page kept; direct open and other pages fall back); customer frontend 160/160, typecheck and build ok; backend SQLite suite green. No API or DB change.

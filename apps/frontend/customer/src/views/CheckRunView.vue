@@ -10,6 +10,7 @@ import { useFormat } from '@/composables/useFormat';
 import { useRole } from '@/composables/useRole';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { StatusBadge } from '@bw/ui';
+import { useBackLink } from '@/composables/useBackLink';
 
 const POLL_MS = 10_000;
 
@@ -20,6 +21,7 @@ const { dateTime } = useFormat();
 const run = ref<CheckRunDetail | null>(null);
 const loading = ref(true);
 const error = ref<unknown>(null);
+const backLink = useBackLink('checks', () => ({ name: 'checks', query: run.value ? { store: run.value.store_id } : {} }));
 const screenshots = ref<Record<string, string>>({});
 const screenshotError = ref<unknown>(null);
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -81,7 +83,7 @@ onBeforeUnmount(() => {
 <template>
   <AppLayout>
     <div class="flex flex-col gap-6">
-      <RouterLink :to="{ name: 'checks', query: run ? { store: run.store_id } : {} }" class="text-sm text-primary hover:underline">← {{ $t('nav.checks') }}</RouterLink>
+      <RouterLink :to="backLink" class="text-sm text-primary hover:underline">← {{ $t('nav.checks') }}</RouterLink>
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
       <ErrorNotice v-else-if="error && !run" :error="error">

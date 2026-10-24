@@ -13,6 +13,7 @@ import { useFormat } from '@/composables/useFormat';
 import { useRole } from '@/composables/useRole';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { StatusBadge } from '@bw/ui';
+import { useBackLink } from '@/composables/useBackLink';
 
 const props = defineProps<{ id: string }>();
 const { canManageStores, canHandleIncidents } = useRole();
@@ -23,6 +24,7 @@ const order = ref<OrderDetail | null>(null);
 const store = ref<Store | null>(null);
 const loading = ref(true);
 const error = ref<unknown>(null);
+const backLink = useBackLink('reconciliation', () => ({ name: 'reconciliation', query: order.value ? { store: order.value.store_id } : {} }));
 const rechecking = ref(false);
 const recheckError = ref<unknown>(null);
 const recheckDone = ref(false);
@@ -148,7 +150,7 @@ watch(
 <template>
   <AppLayout>
     <div class="flex flex-col gap-6">
-      <RouterLink :to="{ name: 'reconciliation', query: order ? { store: order.store_id } : {} }" class="text-sm text-primary hover:underline">← {{ $t('nav.reconciliation') }}</RouterLink>
+      <RouterLink :to="backLink" class="text-sm text-primary hover:underline">← {{ $t('nav.reconciliation') }}</RouterLink>
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
 
