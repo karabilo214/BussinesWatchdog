@@ -237,3 +237,13 @@ Status: complete (customer frontend only)
 - Still open in the backlog item: which staff member (name), which store, scopes, duration and reason in each line.
 
 Verification: customer frontend 162/162, typecheck and build ok; backend SQLite suite green. No API or DB change.
+
+### Step 242: Support Access History Shows the Employee
+
+Status: complete
+
+- `GET /api/v1/support-grants/{grant}/activity` entries carry `staff_name` — the support employee's display name (no e-mail; the grant list already shows the same name). Names are loaded in one query for the staff ids in the page of entries.
+- `/app/settings/support` → «История»: each line reads «date · event · employee · object», e.g. «… · Открыты подробные данные · Volodymyr · заказ».
+- Contract: the activity operation description lists the entry fields. Remaining in the backlog item: store, scopes, duration and reason in the line.
+
+Verification: `SupportGrantTest` asserts `staff_name`; backend SQLite 734 passed + 4 skipped, PostgreSQL 18 738/738, Pint ok; customer frontend 162/162, typecheck and build ok. Spec validator not run locally (PyYAML missing on this machine, also before the change); CI runs it.

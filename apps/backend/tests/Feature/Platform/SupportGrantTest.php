@@ -71,7 +71,7 @@ class SupportGrantTest extends TestCase
         Carbon::setTestNow(Carbon::now()->addHours(25));
         $this->assertNull($grants->active($staff, $tenant, $store, SupportAccessGrant::READ_DIAGNOSTICS));
         Carbon::setTestNow(Carbon::now()->subHours(25));
-        $this->getJson("/api/v1/support-grants/{$grantId}/activity")->assertOk()->assertJsonFragment(['action' => 'support_access.opened']);
+        $this->getJson("/api/v1/support-grants/{$grantId}/activity")->assertOk()->assertJsonFragment(['action' => 'support_access.opened', 'staff_name' => $staff->user->name]);
         $this->assertDatabaseHas('platform_audit_log', ['actor_staff_id' => $staff->id, 'action' => 'support_access.opened', 'target_tenant_id' => $tenant]);
 
         $this->postJson("/api/v1/support-grants/{$grantId}/revoke")->assertOk()->assertJsonPath('state', 'revoked');

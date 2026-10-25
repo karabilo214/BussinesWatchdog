@@ -79,12 +79,15 @@ class SupportGrantController extends Controller
                 $query->where('entity_id', $model->id)->orWhere('changes->grant_id', $model->id);
             })
             ->orderByDesc('created_at')->limit(100)->get();
+        $staffNames = PlatformStaff::query()->with('user')->whereIn('id', $entries->pluck('changes.staff_id')->filter()->unique()->values())->get()
+            ->mapWithKeys(fn (PlatformStaff $staff): array => [$staff->id => $staff->user?->name]);
 
         return response()->json(['data' => $entries->map(fn (AuditLog $entry): array => [
             'id' => $entry->id,
             'action' => $entry->action,
             'at' => $entry->created_at?->toJSON(),
             'staff_id' => $entry->changes['staff_id'] ?? null,
+            'staff_name' => $staffNames[$entry->changes['staff_id'] ?? ''] ?? null,
             'target_type' => $entry->changes['target_type'] ?? null,
             'target_id' => $entry->changes['target_type'] ?? null ? $entry->entity_id : null,
         ])->all()]);

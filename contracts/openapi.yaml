@@ -6570,7 +6570,7 @@ paths:
     get:
       tags: [Account]
       operationId: runtimeCustomerSupportGrantActivity
-      description: "Tenant owner sees decision, detailed read, material and recheck metadata without customer content or secrets."
+      description: "Tenant owner sees decision, detailed read, material and recheck metadata without customer content or secrets. Each entry: id, action, at, staff_id, staff_name (support employee display name, no e-mail), target_type (store, order, check, artifact, incident), target_id."
       security: [{CustomerSession: []}]
       parameters:
         - {name: grant, in: path, required: true, schema: {type: string, format: uuid}}

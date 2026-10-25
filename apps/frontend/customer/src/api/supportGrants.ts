@@ -25,6 +25,7 @@ export interface GrantActivity {
   action: string;
   at: string;
   staff_id: string | null;
+  staff_name: string | null;
   target_type: string | null;
   target_id: string | null;
 }
