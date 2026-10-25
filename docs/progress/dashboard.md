@@ -269,3 +269,14 @@ Status: complete
 - Backend and customer frontend must be deployed together (the old form sends `staff_email`).
 
 Verification: `SupportGrantTest` — list only for the owner, only the active support employee, no `@` in the response; disabled and non-support staff rejected; `staff_email` no longer accepted. Backend SQLite 734 passed + 4 skipped, PostgreSQL 18 738/738, Pint ok; customer frontend 163/163, typecheck and build ok; `spec/validate_spec.py` passes (PyYAML 6.0.2 in a temporary venv).
+
+### Step 246: «Моя организация» on the Organisation Settings Page
+
+Status: complete (customer frontend only)
+
+- `/app/settings/organization` had only the deletion block. New `OrganizationSummary` above it: organisation name and your role; subscription (plan name, payment state, «до» trial end or paid-until) with a link to «Подписка»; stores «N из лимита» with name (link), platform, state and «приостановлен по лимиту тарифа»; team with names and roles (no e-mail addresses), pending invitations count and a link to «Команда». Read-only; changes stay in their sections.
+- Built from the existing endpoints (stores, team, invitations, subscription, plans) loaded with `Promise.allSettled`: a section the member's role may not read (the server answers 403) is simply not shown, so visibility follows server permissions without a new API.
+- The deletion block stays last and gets a red border as a dangerous action. The summary is hidden while the organisation is being deleted.
+- Not done from the backlog item: connected providers and notification channels counts, organisation creation date, language and time zone (not in any customer endpoint yet).
+
+Verification: `organization.test.ts` — summary content (plan name, «2 из 3», paused store, team names without e-mail, invitations), summary above deletion, subscription/team sections hidden on 403; existing deletion tests unchanged. Customer frontend 165/165, typecheck and build ok; backend SQLite suite green. No API or DB change.

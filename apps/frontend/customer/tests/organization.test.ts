@@ -4,6 +4,8 @@ import { ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { ApiError } from '@bw/api-client';
 import * as api from '@/api/account';
+import * as billing from '@/api/billing';
+import * as storesApi from '@/api/stores';
 import type { AuthSession, OrganizationDeletionState } from '@/api/types';
 import { localization, setLocale } from '@/i18n';
 import OrganizationView from '@/views/OrganizationView.vue';
@@ -16,7 +18,11 @@ vi.mock('@/api/account', () => ({
   requestOrganizationDeletion: vi.fn(),
   cancelOrganizationDeletion: vi.fn(),
   resendEmailVerification: vi.fn(),
+  listMembers: vi.fn(async () => ({ data: [], assignable_roles: [] })),
+  listInvitations: vi.fn(async () => []),
 }));
+vi.mock('@/api/stores', () => ({ listStores: vi.fn(async () => []) }));
+vi.mock('@/api/billing', () => ({ fetchSubscription: vi.fn(async () => null), fetchPlans: vi.fn(async () => ({ data: [] })) }));
 vi.mock('@/api/maintenance', () => ({ getMaintenance: vi.fn(async () => null) }));
 vi.mock('@/composables/useSession', () => ({
   useSession: () => ({ session, load, signOut: vi.fn(), replace: vi.fn() }),
@@ -55,6 +61,43 @@ async function mountView() {
 beforeEach(() => {
   vi.clearAllMocks();
   setLocale('ru');
+});
+
+describe('organization summary', () => {
+  it('shows the organisation, subscription, stores and team above the deletion block, hiding what the role may not read', async () => {
+    session.value = sessionFor('owner');
+    mocked.getOrganizationDeletion.mockResolvedValue(state());
+    vi.mocked(storesApi.listStores).mockResolvedValue([
+      { id: 's-1', name: 'Rösterei Shop', platform: 'shopware', status: 'active', capacity_paused_at: null },
+      { id: 's-2', name: 'Outlet', platform: 'woocommerce', status: 'paused', capacity_paused_at: '2026-10-20T00:00:00Z' },
+    ] as never);
+    mocked.listMembers.mockResolvedValue({ data: [
+      { user_id: 'u-me', tenant_id: 't-1', name: 'Me', email: 'me@example.test', mfa_enabled: true, role: 'owner', is_you: true },
+      { user_id: 'u-2', tenant_id: 't-1', name: 'Anna Berg', email: 'anna@example.test', mfa_enabled: false, role: 'viewer', is_you: false },
+    ], assignable_roles: [] } as never);
+    mocked.listInvitations.mockResolvedValue([{ id: 'i-1', email: 'x@example.test', role: 'admin', state: 'pending', invited_by: null, expires_at: '2026-10-30T00:00:00Z', created_at: null }]);
+    vi.mocked(billing.fetchSubscription).mockResolvedValue({ plan_code: 'start', plan_version_id: 'v-start', status: 'active', paid_until: '2026-11-20T00:00:00Z', trial_ends_at: null, capacity: { limit: 3, stores: 2, paused: 1, choice_required: false } } as never);
+    vi.mocked(billing.fetchPlans).mockResolvedValue({ data: [{ plan_version_id: 'v-start', plan_code: 'start', name: { ru: 'Старт', en: 'Start' } }] } as never);
+    const { wrapper } = await mountView();
+
+    const summary = wrapper.get('[data-panel="organization-summary"]');
+    expect(summary.text()).toContain('Kaffee Rösterei');
+    expect(summary.get('[data-summary="subscription"]').text()).toContain('Старт · Оплачена');
+    expect(summary.get('[data-summary="stores"]').text()).toContain('Магазины: 2 из 3');
+    expect(summary.get('[data-summary-store="s-2"]').text()).toContain('приостановлен по лимиту тарифа');
+    expect(summary.get('[data-summary="team"]').text()).toContain('Anna Berg');
+    expect(summary.get('[data-summary="team"]').text()).not.toContain('anna@example.test');
+    expect(summary.get('[data-summary="invitations"]').text()).toContain('1');
+    const html = wrapper.html();
+    expect(html.indexOf('organization-summary')).toBeLessThan(html.indexOf('delete-organization'));
+
+    vi.mocked(billing.fetchSubscription).mockRejectedValue(new ApiError(403, 'forbidden'));
+    mocked.listMembers.mockRejectedValue(new ApiError(403, 'forbidden'));
+    const second = await mountView();
+    expect(second.wrapper.find('[data-summary="subscription"]').exists()).toBe(false);
+    expect(second.wrapper.find('[data-summary="team"]').exists()).toBe(false);
+    expect(second.wrapper.find('[data-summary="stores"]').exists()).toBe(true);
+  });
 });
 
 describe('organization deletion', () => {

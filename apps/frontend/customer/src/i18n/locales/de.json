@@ -2300,6 +2300,22 @@
     "now": "Wartung läuft bis {to}."
   },
   "organization": {
+    "summary": {
+      "title": "Meine Organisation",
+      "your_role": "Ihre Rolle: {role}",
+      "subscription": "Abonnement",
+      "no_subscription": "Noch kein Abonnement",
+      "until": "bis {date}",
+      "open_billing": "Abonnement öffnen",
+      "stores": "Shops: {n}",
+      "stores_of": "Shops: {n} von {limit}",
+      "no_stores": "Noch keine Shops",
+      "paused_by_limit": "wegen Tariflimit pausiert",
+      "team": "Team: {n}",
+      "no_name": "Ohne Namen",
+      "invitations": "Offene Einladungen: {n}",
+      "open_team": "Team öffnen"
+    },
     "delete": {
       "title": "Organisation löschen",
       "pause": "Um einen Shop eine Zeit lang nicht zu überwachen, pausieren Sie die Überwachung in seinen Einstellungen – Daten und Abonnement bleiben erhalten.",

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { cancelOrganizationDeletion, getOrganizationDeletion, requestOrganizationDeletion } from '@/api/account';
 import type { OrganizationDeletionState } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import OrganizationSummary from '@/components/account/OrganizationSummary.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
 import { stepUpErrorKey } from '@/composables/errors';
 import { useFormat } from '@/composables/useFormat';
@@ -85,6 +86,8 @@ async function cancel(): Promise<void> {
 
       <ErrorNotice v-if="loadError" :error="loadError" />
 
+      <OrganizationSummary v-if="state && !deleting" :name="state.tenant_name" />
+
       <section
         v-if="state && deleting && state.request"
         class="flex flex-col gap-4 rounded-xl border border-crit-border bg-crit-soft p-5"
@@ -120,7 +123,7 @@ async function cancel(): Promise<void> {
         <p v-else class="text-sm">{{ $t('organization.deleting.in_progress') }}</p>
       </section>
 
-      <section v-else-if="state" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="delete-title" data-panel="delete-organization">
+      <section v-else-if="state" class="flex flex-col gap-4 rounded-xl border border-crit-border bg-surface p-5" aria-labelledby="delete-title" data-panel="delete-organization">
         <h2 id="delete-title" class="text-lg font-semibold">{{ $t('organization.delete.title') }}</h2>
         <ul class="flex list-disc flex-col gap-1.5 pl-5 text-sm">
           <li>{{ $t('organization.delete.pause') }}</li>

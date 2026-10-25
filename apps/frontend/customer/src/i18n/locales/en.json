@@ -2300,6 +2300,22 @@
     "now": "Maintenance in progress until {to}."
   },
   "organization": {
+    "summary": {
+      "title": "My organisation",
+      "your_role": "Your role: {role}",
+      "subscription": "Subscription",
+      "no_subscription": "No subscription yet",
+      "until": "until {date}",
+      "open_billing": "Open Subscription",
+      "stores": "Stores: {n}",
+      "stores_of": "Stores: {n} of {limit}",
+      "no_stores": "No stores yet",
+      "paused_by_limit": "paused by plan limit",
+      "team": "Team: {n}",
+      "no_name": "No name",
+      "invitations": "Pending invitations: {n}",
+      "open_team": "Open Team"
+    },
     "delete": {
       "title": "Delete the organization",
       "pause": "To stop watching a store for a while, pause monitoring in its settings — the data and the subscription stay.",
