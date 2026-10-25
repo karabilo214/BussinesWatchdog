@@ -1,4 +1,10 @@
 {
+  "nav_badge": {
+    "contacts_new": "neue Anfragen: {n}",
+    "service_crit": "Dienst: ein Problem",
+    "service_warn": "Dienst: eine Warnung",
+    "refunds_requested": "Erstattungen warten auf Freigabe: {n}"
+  },
   "payment_method_kind": {
     "apple_pay": "Apple Pay",
     "google_pay": "Google Pay",

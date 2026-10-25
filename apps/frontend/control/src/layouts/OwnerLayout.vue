@@ -2,7 +2,9 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LocaleSwitch } from '@bw/i18n';
-import { StatusBadge } from '@bw/ui';
+import { SOLID_TONE_CLASSES, StatusBadge } from '@bw/ui';
+import { useI18n } from 'vue-i18n';
+import { useOwnerBadges } from '@/composables/useOwnerBadges';
 import { useStaff } from '@/composables/useStaff';
 import { allowedSections } from '@/router';
 
@@ -11,6 +13,13 @@ const router = useRouter();
 const { me, signOut } = useStaff();
 const menuOpen = ref(false);
 const sections = computed(() => allowedSections(me.value?.capabilities ?? []));
+const { t } = useI18n();
+const { badges } = useOwnerBadges(sections);
+
+function badgeHint(section: string): string {
+  const badge = badges.value[section];
+  return badge ? t(badge.hint.key, { n: badge.hint.n }) : '';
+}
 
 async function leave(): Promise<void> {
   await signOut().catch(() => undefined);
@@ -62,7 +71,18 @@ watch(() => route.fullPath, () => {
               :class="(section === 'plans' && (String($route.name).startsWith('owner-plan') || String($route.name).startsWith('owner-discount'))) || (section === 'tenants' && String($route.name).startsWith('owner-tenant')) || (section === 'site' && ['owner-page', 'owner-blocks', 'owner-block'].includes(String($route.name))) || (section === 'contacts' && $route.name === 'owner-contact') ? 'bg-primary-soft !text-primary' : ''"
               exact-active-class="bg-primary-soft !text-primary"
             >
-              {{ $t(`section.${section}.title`) }}
+              <span class="flex items-center justify-between gap-2">
+                <span>{{ $t(`section.${section}.title`) }}</span>
+                <span
+                  v-if="badges[section]"
+                  class="inline-flex min-w-5 items-center justify-center rounded-full border px-1.5 text-xs font-semibold tabular-nums"
+                  :class="SOLID_TONE_CLASSES[badges[section].level]"
+                  :title="badgeHint(section)"
+                  :aria-label="badgeHint(section)"
+                  :data-nav-badge="section"
+                  :data-level="badges[section].level"
+                >{{ badges[section].text }}</span>
+              </span>
             </RouterLink>
           </li>
         </ul>

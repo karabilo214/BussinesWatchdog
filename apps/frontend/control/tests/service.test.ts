@@ -8,6 +8,10 @@ import { localization } from '@/i18n';
 import { buildRouter } from '@/router';
 
 vi.mock('@/api', () => ({ fetchMe: vi.fn(), login: vi.fn(), submitMfa: vi.fn(), logout: vi.fn(), fetchServiceHealth: vi.fn() }));
+vi.mock('@/composables/useOwnerBadges', async () => {
+  const { ref } = await import('vue');
+  return { useOwnerBadges: () => ({ badges: ref({}) }) };
+});
 
 const mocked = vi.mocked(api);
 const QUEUE = { waiting: 0, oldest_age_seconds: null, problems: 0, state: 'ok' as const };

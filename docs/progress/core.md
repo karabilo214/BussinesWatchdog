@@ -1050,3 +1050,13 @@ Status: complete (control panel frontend only)
 - Not done from the backlog item: a link in the address bar that opens the dialog directly and closes it with the browser «Back».
 
 Verification: `tenants.test.ts` — the order detail is a `<dialog>`, opens, closes on Esc (`cancel`) and on «Закрыть»; check, screenshot, incident and support action tests unchanged and green. Control 72/72, typecheck and build ok; backend SQLite suite green. No API or DB change.
+
+### Step 250: Badges in the Admin Menu
+
+Status: complete (control panel frontend only)
+
+- The admin side menu shows a badge where something waits, coloured like the customer cabinet (Step 249): «Обращения» — new requests (yellow, count); «Сервис» — «!» red when the service state is crit, yellow when warn; «Оплаты» — refunds awaiting the owner's approval (status `requested`, yellow, count). Hover text and screen-reader label explain it, ru/en/de; more than 99 shows «99+».
+- Uses existing endpoints: contact requests `counts.new`, `GET /platform-api/v1/health` state, refunds filtered by `status=requested`. Only sections the staff member may open are queried (the server checks the capability anyway); refresh once a minute while the tab is visible; a failed request just shows no badge.
+- Not done from the backlog item: «Подписки» (past due) and «Организации» (pending support requests) — no cheap existing source.
+
+Verification: `tests/ownerBadges.test.ts` (no badges when calm, counts, service colours, 99+, texts in three languages); `service.test.ts` stubs the menu badges so it still counts only the page's own health requests. Control 75/75, typecheck and build ok; backend SQLite suite green. No API or DB change.
