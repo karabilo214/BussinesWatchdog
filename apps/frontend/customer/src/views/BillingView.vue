@@ -108,6 +108,23 @@ const consent = ref(false);
 const documents = computed(() => catalog.value?.documents ?? []);
 const consentReady = computed(() => documents.value.length === 0 || consent.value);
 const policyIds = computed(() => (consent.value ? documents.value.map((document) => document.version_id) : []));
+const planConsent = reactive<Record<string, boolean>>({});
+
+function offersTrial(plan: BillingPlan): boolean {
+  return canTrial.value && plan.trial_days > 0 && !plan.contact_sales;
+}
+
+function needsPlanConsent(plan: BillingPlan): boolean {
+  return documents.value.length > 0 && (offersTrial(plan) || (canBuy.value && price(plan, 'base') !== null));
+}
+
+function planReady(plan: BillingPlan): boolean {
+  return documents.value.length === 0 || planConsent[plan.plan_version_id] === true;
+}
+
+function planPolicyIds(plan: BillingPlan): string[] {
+  return planReady(plan) ? documents.value.map((document) => document.version_id) : [];
+}
 const changingPlan = computed(() => catalog.value?.data.find((plan) => plan.plan_version_id === subscription.value?.scheduled_change?.to.plan_version_id) ?? null);
 
 function planName(plan: Pick<BillingPlan, 'name' | 'plan_code'> | null, code: string | null): string {
@@ -456,6 +473,9 @@ async function refreshDocuments(caught: unknown): Promise<void> {
   }
 
   consent.value = false;
+  for (const key of Object.keys(planConsent)) {
+    planConsent[key] = false;
+  }
   catalog.value = await fetchPlans().catch(() => catalog.value);
 }
 
@@ -464,7 +484,7 @@ async function trial(plan: BillingPlan): Promise<void> {
   actionError.value = null;
 
   try {
-    await startTrial(plan.plan_version_id, policyIds.value);
+    await startTrial(plan.plan_version_id, planPolicyIds(plan));
     trialStarted.value = true;
     await load();
   } catch (caught) {
@@ -551,7 +571,7 @@ async function buy(plan: BillingPlan): Promise<void> {
   stopPolling();
 
   try {
-    checkout.value = await startCheckout(base.id, quantity, pendingKey.key, code, faster, policyIds.value);
+    checkout.value = await startCheckout(base.id, quantity, pendingKey.key, code, faster, planPolicyIds(plan));
 
     if (checkout.value.provider_checkout === null) {
       checkoutPhase.value = 'confirming';
@@ -851,15 +871,6 @@ onBeforeUnmount(stopPolling);
             <p v-else-if="!isOwner" class="text-sm text-text-muted">{{ $t('billing.owner_manages') }}</p>
             <p v-else-if="!catalog.checkout_available" class="text-sm text-text-muted">{{ $t('billing.checkout_unavailable') }}</p>
           </div>
-          <div v-if="isOwner && documents.length > 0 && (canTrial || canBuy || canChange)" class="flex items-start gap-2 rounded-md border border-border bg-surface p-3 text-sm" data-consent>
-            <input id="billing-consent" v-model="consent" type="checkbox" class="mt-0.5 size-4 accent-primary" data-field="consent" />
-            <label for="billing-consent">
-              {{ $t('billing.consent') }}
-              <template v-for="(document, index) in documents" :key="document.type">
-                <a :href="document.url" target="_blank" rel="noopener" class="text-primary hover:underline" :data-document="document.type">{{ document.title }}</a><template v-if="index < documents.length - 1">, </template>
-              </template>
-            </label>
-          </div>
 
           <form v-if="canBuy && catalog.data.length > 0" class="flex flex-wrap items-end gap-2" data-form="promo" @submit.prevent="applyPromo">
             <label class="flex flex-col gap-1.5 text-sm">
@@ -923,16 +934,27 @@ onBeforeUnmount(stopPolling);
               </ul>
 
               <div v-if="isOwner" class="mt-auto flex flex-col gap-3">
+                <template v-if="offersTrial(plan)">
+                <div v-if="needsPlanConsent(plan)" class="flex items-start gap-2 rounded-md border border-border bg-surface-muted p-3 text-sm" data-consent :data-consent-plan="plan.plan_code">
+                  <input :id="`billing-consent-${plan.plan_code}`" v-model="planConsent[plan.plan_version_id]" type="checkbox" class="mt-0.5 size-4 accent-primary" data-field="consent" />
+                  <label :for="`billing-consent-${plan.plan_code}`">
+                    {{ $t('billing.consent') }}
+                    <template v-for="(document, index) in documents" :key="document.type">
+                      <a :href="document.url" target="_blank" rel="noopener" class="text-primary hover:underline" :data-document="document.type">{{ document.title }}</a><template v-if="index < documents.length - 1">, </template>
+                    </template>
+                  </label>
+                </div>
                 <button
-                  v-if="canTrial && plan.trial_days > 0 && !plan.contact_sales"
+                  v-if="offersTrial(plan)"
                   type="button"
                   class="rounded-md border border-border-strong bg-surface px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
-                  :disabled="busy !== null || !consentReady"
+                  :disabled="busy !== null || !planReady(plan)"
                   :data-action="`trial-${plan.plan_code}`"
                   @click="trial(plan)"
                 >
                   {{ $t('billing.start_trial', { days: plan.trial_days }) }}
                 </button>
+                </template>
 
                 <template v-if="canBuy && price(plan, 'base')">
                   <label v-if="price(plan, 'extra_store') && maxExtra(plan) > 0" class="flex items-center justify-between gap-3 text-sm">
@@ -956,10 +978,21 @@ onBeforeUnmount(stopPolling);
                     {{ $t('billing.discount.first_payment') }}
                   </p>
                   <p v-else class="text-sm">{{ $t('billing.total', { price: total(plan), period: period(price(plan, 'base')!.interval, price(plan, 'base')!.interval_count) }) }}</p>
+  <template v-if="!offersTrial(plan)">
+                  <div v-if="needsPlanConsent(plan)" class="flex items-start gap-2 rounded-md border border-border bg-surface-muted p-3 text-sm" data-consent :data-consent-plan="plan.plan_code">
+                    <input :id="`billing-consent-${plan.plan_code}`" v-model="planConsent[plan.plan_version_id]" type="checkbox" class="mt-0.5 size-4 accent-primary" data-field="consent" />
+                    <label :for="`billing-consent-${plan.plan_code}`">
+                      {{ $t('billing.consent') }}
+                      <template v-for="(document, index) in documents" :key="document.type">
+                        <a :href="document.url" target="_blank" rel="noopener" class="text-primary hover:underline" :data-document="document.type">{{ document.title }}</a><template v-if="index < documents.length - 1">, </template>
+                      </template>
+                    </label>
+                  </div>
+                    </template>
                   <button
                     type="button"
                     class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"
-                    :disabled="busy !== null || checkoutPhase === 'confirming' || !consentReady"
+                    :disabled="busy !== null || checkoutPhase === 'confirming' || !planReady(plan)"
                     :data-action="`buy-${plan.plan_code}`"
                     @click="buy(plan)"
                   >

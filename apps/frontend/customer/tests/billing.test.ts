@@ -253,6 +253,34 @@ describe('BillingView', () => {
     expect(api.startTrial).toHaveBeenCalledWith('v-start', ['pv-terms', 'pv-recurring']);
   });
 
+  it('keeps the terms consent inside each plan card, right above its buttons, and per plan', async () => {
+    session.value = sessionFor('owner');
+    const pro = { ...START, plan_version_id: 'v-pro', plan_code: 'pro', prices: START.prices.map((item) => ({ ...item, id: `${item.id}-pro` })) };
+    api.fetchPlans.mockResolvedValue(catalog({
+      data: [START, pro],
+      documents: [{ type: 'service_terms', version_id: 'pv-terms', version: 3, locale: 'ru', title: 'Условия использования', url: '/ru/terms', published_at: null }],
+    }));
+    api.startTrial.mockResolvedValue(paidSubscription());
+    const wrapper = await mountView();
+
+    expect(wrapper.findAll('[data-consent]')).toHaveLength(2);
+    const startCard = wrapper.get('[data-plan="start"]');
+    const proCard = wrapper.get('[data-plan="pro"]');
+    expect(startCard.find('[data-consent-plan="start"]').exists()).toBe(true);
+    const actions = startCard.get('[data-consent-plan="start"]').element.parentElement!;
+    expect(actions.contains(startCard.get('[data-action="trial-start"]').element)).toBe(true);
+
+    await startCard.get('[data-field="consent"]').setValue(true);
+    expect(startCard.get('[data-action="trial-start"]').attributes('disabled')).toBeUndefined();
+    expect(startCard.get('[data-action="buy-start"]').attributes('disabled')).toBeUndefined();
+    expect(proCard.get('[data-action="trial-pro"]').attributes('disabled')).toBeDefined();
+    expect(proCard.get('[data-action="buy-pro"]').attributes('disabled')).toBeDefined();
+
+    await proCard.get('[data-action="trial-pro"]').trigger('click');
+    await flushPromises();
+    expect(api.startTrial).not.toHaveBeenCalled();
+  });
+
   it('lists invoices with tax and discount, opens the PDF link and changes the payment method through Paddle', async () => {
     session.value = sessionFor('owner');
     api.fetchSubscription.mockResolvedValue(paidSubscription());

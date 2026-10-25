@@ -470,3 +470,12 @@ Status: deployed 2026-10-22 as `544e5d8` (ADR 0043, 0044; OWNER-PANEL §3–4)
 - `contracts/openapi.yaml` documents the extended monthly response. No migration.
 
 Verification: `BillingTransactionsTest`, `RefundTest`, `OpenApiRoutesTest` on SQLite — 13/13; billing tests on PostgreSQL 18 — 12/12; control `payments.test.ts` — 4/4, including amounts above 2^53; control typecheck and production build; PHP Pint on changed files; `spec/validate_spec.py` static checks — passed. Production deploy succeeded: remote HEAD `544e5d8`, containers running with that image tag, `/owner/payments` returns HTTP 200. Manual authenticated browser and live Paddle checks were not run for this change.
+
+### Step 245: Terms Consent Inside Each Plan Card
+
+Status: complete (customer frontend only)
+
+- `/app/settings/billing`: the «Я принимаю …» checkbox was one block above all plan cards. It now sits inside each card, directly above the card's first checkout button (above «Начать пробный период» when a trial is offered, otherwise above «Оформить подписку»). One checkbox per card enables that card's trial and purchase buttons only; ticking it in one card leaves the other cards disabled. Plan change keeps its consent next to the confirm button in the change preview.
+- Document texts and links unchanged (legal texts are owned by the lawyer); the accepted document version ids are still sent with the trial/checkout request and checked by the server as before. A `policy_acceptance_required` answer clears every card's tick and reloads the documents.
+
+Verification: new `billing.test.ts` case (two plans: consent block inside each card next to its buttons, per-plan enabling, no trial for the unticked card); existing consent test unchanged. Customer frontend 164/164, typecheck and build ok; backend SQLite suite green. No API or DB change.
