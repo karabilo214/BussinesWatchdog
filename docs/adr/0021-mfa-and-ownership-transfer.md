@@ -32,3 +32,7 @@ WebAuthn/passkeys, a "trusted device" option, a list of sessions per device, for
 - After an ownership transfer the previous owner becomes admin (confirmed).
 - The new owner is not required to have MFA, but must be told clearly that MFA is off.
 - Passkeys, trusted devices, a session list and team-wide forced MFA go to the general TODO.
+
+## Amendment 2026-10-25 (Step 253, owner decision)
+
+Switching off a customer member's MFA from the control panel is reserved for the service owner (`platform_owner`), still with a fresh authenticator code and a reason. Other staff get 403 `owner_only` even if they hold `customers.mfa_reset`; the denied attempt is audited. Staff with `tenants.support` can instead send the member the standard password reset e-mail (reason required, audited); they never see or set the password.

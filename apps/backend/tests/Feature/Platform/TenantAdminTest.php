@@ -418,7 +418,7 @@ class TenantAdminTest extends TestCase
         $this->postJson("/platform-api/v1/tenants/{$other['tenant']->id}/invitations/{$invitation['id']}/revoke", ['reason' => 'Wrong tenant'])->assertNotFound();
     }
 
-    public function test_support_resets_customer_mfa_with_step_up_and_scoped_audit(): void
+    public function test_only_the_service_owner_resets_customer_mfa_with_step_up_and_scoped_audit(): void
     {
         Mail::fake();
         $context = $this->context();
@@ -429,7 +429,7 @@ class TenantAdminTest extends TestCase
         $secret = $mfa->beginSetup($target)['secret'];
         $mfa->confirm($target, (new Totp)->codeAt($secret, (new Totp)->step(now()->getTimestamp())));
         DB::table('sessions')->insert(['id' => 'customer-device', 'user_id' => $target->id, 'payload' => '', 'last_activity' => time()]);
-        $this->signIn(PlatformStaff::ROLE_SUPPORT);
+        $this->signIn();
 
         $path = "/platform-api/v1/tenants/{$tenantId}/members/{$target->id}/mfa/reset";
         $this->postJson($path, ['reason' => 'Customer called'])->assertStatus(422)->assertJsonValidationErrors('confirmation_code');
@@ -446,6 +446,28 @@ class TenantAdminTest extends TestCase
         $other = $this->context();
         $this->postJson("/platform-api/v1/tenants/{$other['tenant']->id}/members/{$target->id}/mfa/reset", ['reason' => 'Wrong tenant', 'confirmation_code' => $this->code()])
             ->assertNotFound();
+    }
+
+    public function test_support_sends_a_customer_member_the_password_reset_link(): void
+    {
+        Mail::fake();
+        $context = $this->context();
+        $tenantId = $context['tenant']->id;
+        $target = $context['user'];
+        $this->signIn(PlatformStaff::ROLE_SUPPORT);
+        $path = "/platform-api/v1/tenants/{$tenantId}/members/{$target->id}/password-reset";
+
+        $this->postJson("/platform-api/v1/tenants/{$tenantId}/members/{$target->id}/mfa/reset", ['reason' => 'Customer called', 'confirmation_code' => $this->code()])
+            ->assertForbidden()->assertJsonPath('code', 'owner_only');
+        $this->assertDatabaseHas('platform_audit_log', ['action' => 'tenant.member_mfa_reset', 'result' => 'denied']);
+        $this->postJson($path, [])->assertStatus(422)->assertJsonValidationErrors('reason');
+        $this->postJson($path, ['reason' => 'Customer lost the password'])->assertStatus(202);
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => $target->email]);
+        Mail::assertSent(NotificationMessageMail::class, fn (NotificationMessageMail $mail): bool => $mail->hasTo($target->email));
+        $this->assertSame('Customer lost the password', DB::table('platform_audit_log')->where('action', 'tenant.member_password_reset_sent')->where('target_id', $target->id)->value('reason'));
+
+        $other = $this->context();
+        $this->postJson("/platform-api/v1/tenants/{$other['tenant']->id}/members/{$target->id}/password-reset", ['reason' => 'Wrong tenant'])->assertNotFound();
     }
 
     private function paidCustomer(string $name): array

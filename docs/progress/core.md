@@ -1082,3 +1082,15 @@ Status: complete — contains a migration
 - Note: `control/tests/site.test.ts` failed once and passed in three following full runs — a flaky timing test, unrelated to this change.
 
 Verification: `SupportGrantTest` — pending and active requests cannot be hidden; a cancelled one is hidden twice without error, disappears from the staff list while the active one stays, row and audit kept; another employee's request is 404 (test clock moved past the step-up limit). Backend SQLite 735 passed + 4 skipped, PostgreSQL 18 739/739, Pint ok; control 76/76, typecheck and build ok; spec validator passes.
+
+### Step 253: Customer MFA Reset for the Owner Only, Password Reset Link for Support
+
+Status: complete
+
+- Owner decision (2026-10-24): «Отключить MFA» of a customer member only for the service owner, with the authenticator code; «Отправить ссылку на восстановление пароля» for the owner and staff with the right.
+- `POST /platform-api/v1/tenants/{tenant}/members/{user}/mfa/reset` now answers 403 `owner_only` (audited as denied) for anyone but `platform_owner`, even with `customers.mfa_reset`; the owner path (code, reason, session revocation, e-mail) is unchanged.
+- New `POST /platform-api/v1/tenants/{tenant}/members/{user}/password-reset` (`tenants.support`, step-up throttled): reason required, member must belong to the tenant (404 otherwise), sends the standard reset e-mail via `PasswordResetService`, audited as `tenant.member_password_reset_sent`; 202.
+- Control panel, customer card → «Участники»: «Отключить MFA» only for the service owner; «Ссылка для смены пароля» with a reason form for staff with `tenants.support`, ru/en/de. Placed in the member row (both act on one person) rather than «Обзор → Действия» as first described in the backlog.
+- ADR 0021 amended; `contracts/openapi.yaml` (new operation, MFA reset description), `spec/VALIDATION.md` (252 operations).
+
+Verification: `TenantAdminTest` — the owner resets MFA as before; support gets `owner_only` and a denied audit row; support sends the reset link (token row, e-mail to the member, audit with reason), another tenant 404, reason required. Control `tenants.test.ts` — support sees the link button and not the MFA reset, sends with a reason. Backend SQLite 736 passed + 4 skipped, PostgreSQL 18 740/740, Pint ok; control 77/77, typecheck and build ok; spec validator passes.

@@ -77,6 +77,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::post('/tenants/{tenant}/members/{user}/mfa/reset', [TenantTeamController::class, 'resetMfa'])
         ->whereUuid(['tenant', 'user'])->middleware(['platform.staff:'.PlatformCapabilities::CUSTOMER_MFA_RESET, 'throttle:platform-step-up']);
     Route::middleware(['platform.staff:'.PlatformCapabilities::TENANTS_SUPPORT, 'throttle:platform-step-up'])->group(function (): void {
+        Route::post('/tenants/{tenant}/members/{user}/password-reset', [TenantTeamController::class, 'sendPasswordReset'])->whereUuid(['tenant', 'user']);
         Route::post('/tenants/{tenant}/stores/{store}/checks', [TenantStoreController::class, 'rerunCheck'])->whereUuid(['tenant', 'store'])->middleware('platform.support.grant:request_recheck');
     });
     Route::middleware(['platform.staff:'.PlatformCapabilities::TENANTS_INCIDENT_ACTIONS, 'throttle:platform-step-up'])->group(function (): void {

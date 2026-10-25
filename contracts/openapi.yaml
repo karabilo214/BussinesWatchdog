@@ -717,11 +717,29 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/members/{user}/password-reset:
+    post:
+      tags: [Platform]
+      operationId: platformSendCustomerPasswordReset
+      description: "Capability tenants.support (service owner included). Sends the standard password reset e-mail to the member's own address; staff never see or set the password. Reason required; audited as tenant.member_password_reset_sent. Unknown member or another tenant answers 404."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: user, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [reason], properties: {reason: {type: string, minLength: 3, maxLength: 500}}}
+      responses:
+        "202": {description: Reset e-mail requested}
   /platform-api/v1/tenants/{tenant}/members/{user}/mfa/reset:
     post:
       tags: [Platform]
       operationId: platformResetCustomerMfa
-      description: "Capability customers.mfa_reset (owner/admin/support). Scoped customer member; platform staff accounts protected. Requires a fresh staff authenticator code and reason. Audited in platform and affected tenant teams; revokes sessions and recovery codes and emails the user."
+      description: "Service owner only (platform_owner; other staff get 403 owner_only even with customers.mfa_reset, owner decision 2026-10-24). Scoped customer member; platform staff accounts protected. Requires a fresh staff authenticator code and reason. Audited in platform and affected tenant teams; revokes sessions and recovery codes and emails the user."
       security:
         - {StaffSession: []}
       parameters:

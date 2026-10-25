@@ -712,6 +712,10 @@ export async function revokeTenantInvitation(tenantId: string, invitationId: str
   return (await request<TenantInvitation>('POST', tenantPath(tenantId, `invitations/${encodeURIComponent(invitationId)}/revoke`), { body: { reason } })).data;
 }
 
+export async function sendCustomerPasswordReset(tenantId: string, userId: string, reason: string): Promise<void> {
+  await request('POST', tenantPath(tenantId, `members/${encodeURIComponent(userId)}/password-reset`), { body: { reason } });
+}
+
 export async function resetCustomerMfa(tenantId: string, userId: string, reason: string, confirmationCode: string): Promise<void> {
   await request('POST', tenantPath(tenantId, `members/${encodeURIComponent(userId)}/mfa/reset`), { body: { reason, confirmation_code: confirmationCode } });
 }

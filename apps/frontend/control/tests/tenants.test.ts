@@ -44,6 +44,7 @@ vi.mock('@/api', () => ({
   inviteTenantMember: vi.fn(),
   revokeTenantInvitation: vi.fn(),
   resetCustomerMfa: vi.fn(),
+  sendCustomerPasswordReset: vi.fn(),
   fetchSubscriptions: vi.fn(),
   requestTenantDeletion: vi.fn(),
   cancelTenantDeletion: vi.fn(),
@@ -157,7 +158,7 @@ describe('tenants', () => {
     expect(wrapper.find('[data-panel="tenant-deletion"]').exists()).toBe(false);
   });
 
-  it('lets support reset a customer authenticator with a reason and code', async () => {
+  it('lets the service owner reset a customer authenticator with a reason and code', async () => {
     mocked.fetchTenant.mockResolvedValueOnce(card()).mockResolvedValueOnce(card({ members: [{ user_id: 'u-1', role: 'owner', mfa_enabled: false, joined_at: null, name: 'Anna', email: 'anna@example.test', email_verified: true }] }));
     mocked.resetCustomerMfa.mockResolvedValue();
     const { wrapper } = await open('/owner/tenants/t-1?tab=members', ['tenants.read', 'customers.mfa_reset']);
@@ -172,6 +173,21 @@ describe('tenants', () => {
     expect(mocked.resetCustomerMfa).toHaveBeenCalledWith('t-1', 'u-1', 'Customer called', '123456');
     expect(wrapper.text()).toContain('MFA пользователя сброшена');
     expect(wrapper.find('[data-action="reset-mfa"]').exists()).toBe(false);
+  });
+
+  it('lets support send a password reset link but not switch off a customer authenticator', async () => {
+    mocked.fetchTenant.mockResolvedValue(card({ members: [{ user_id: 'u-1', role: 'owner', mfa_enabled: true, joined_at: null, name: 'Anna', email: 'anna@example.test', email_verified: true }] }));
+    mocked.sendCustomerPasswordReset.mockResolvedValue();
+    const { wrapper } = await open('/owner/tenants/t-1?tab=members', ['tenants.read', 'tenants.support', 'customers.mfa_reset'], 'platform_member');
+
+    expect(wrapper.find('[data-action="reset-mfa"]').exists()).toBe(false);
+    await wrapper.get('[data-action="send-password-reset"]').trigger('click');
+    await wrapper.get('[data-field="password-reset-reason"]').setValue('Customer lost access');
+    await wrapper.get('[data-form="password-reset"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.sendCustomerPasswordReset).toHaveBeenCalledWith('t-1', 'u-1', 'Customer lost access');
+    expect(wrapper.text()).toContain('Ссылка для смены пароля отправлена');
   });
 
   it('lists organisations with access and billing apart and keeps filters, not the search, in the address', async () => {

@@ -31,7 +31,8 @@ const tab = computed<Tab>(() => (TABS as readonly string[]).includes(String(rout
 const tabs = computed(() => TABS.filter((item) => (item !== 'subscription' || card.value?.billing !== null) && (item !== 'support' || canSupport.value)));
 const canManage = computed(() => me.value?.capabilities.includes('tenants.manage') === true);
 const canSupport = computed(() => me.value?.capabilities.includes('tenants.support') === true);
-const canResetMfa = computed(() => me.value?.capabilities.includes('customers.mfa_reset') === true);
+const canResetMfa = computed(() => me.value?.role === 'platform_owner');
+const canSendReset = computed(() => me.value?.capabilities.includes('tenants.support') === true);
 const canDelete = computed(() => me.value?.capabilities.includes('tenants.delete') === true);
 const canDeleteStore = computed(() => me.value?.role === 'platform_owner' && canManage.value);
 
@@ -85,7 +86,7 @@ onMounted(load);
         <TenantStores v-else-if="tab === 'stores'" :card="card" :can-manage="canManage" :can-support="canSupport" :can-delete="canDeleteStore" @updated="card = $event" />
         <TenantSupportGrants v-else-if="tab === 'support' && canSupport" :card="card" />
         <TenantSubscription v-else-if="tab === 'subscription' && card.billing" :billing="card.billing" />
-        <TenantMembers v-else-if="tab === 'members'" :card="card" :can-manage="canManage" :can-reset-mfa="canResetMfa" @updated="card = $event" />
+        <TenantMembers v-else-if="tab === 'members'" :card="card" :can-manage="canManage" :can-reset-mfa="canResetMfa" :can-send-reset="canSendReset" @updated="card = $event" />
         <TenantReminders v-else-if="tab === 'reminders'" :tenant-id="card.id" />
         <TenantAudit v-else-if="tab === 'audit'" :card="card" />
       </template>

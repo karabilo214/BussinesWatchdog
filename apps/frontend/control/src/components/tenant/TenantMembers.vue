@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { changeTenantMemberRole, fetchTenant, fetchTenantInvitations, inviteTenantMember, removeTenantMember, resetCustomerMfa, revokeTenantInvitation, type InvitableRole, type TenantCard, type TenantInvitation } from '@/api';
+import { changeTenantMemberRole, fetchTenant, fetchTenantInvitations, inviteTenantMember, removeTenantMember, resetCustomerMfa, revokeTenantInvitation, sendCustomerPasswordReset, type InvitableRole, type TenantCard, type TenantInvitation } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 
 const ROLES: InvitableRole[] = ['admin', 'operator', 'viewer'];
 
-const props = defineProps<{ card: TenantCard; canManage?: boolean; canResetMfa?: boolean }>();
+const props = defineProps<{ card: TenantCard; canManage?: boolean; canResetMfa?: boolean; canSendReset?: boolean }>();
 const emit = defineEmits<{ updated: [card: TenantCard] }>();
 const { dateTime } = useFormat();
 
@@ -18,6 +18,7 @@ const notice = ref<string | null>(null);
 const form = reactive({ email: '', role: 'operator' as InvitableRole, reason: '' });
 const revoke = reactive({ id: null as string | null, reason: '' });
 const reset = reactive({ userId: null as string | null, reason: '', code: '' });
+const link = reactive({ userId: null as string | null, reason: '' });
 const change = reactive({ kind: null as 'role' | 'remove' | null, userId: '', role: 'operator' as InvitableRole, reason: '' });
 
 function askChange(kind: 'role' | 'remove', userId: string, role: string): void {
@@ -52,6 +53,21 @@ async function load(): Promise<void> {
     invitations.value = await fetchTenantInvitations(props.card.id);
   } catch (caught) {
     error.value = caught;
+  }
+}
+
+async function confirmPasswordReset(): Promise<void> {
+  if (!link.userId || link.reason.trim().length < 3 || busy.value) return;
+  busy.value = true;
+  error.value = null;
+  try {
+    await sendCustomerPasswordReset(props.card.id, link.userId, link.reason.trim());
+    link.userId = null;
+    notice.value = 'tenant.team.password_reset_sent';
+  } catch (caught) {
+    error.value = caught;
+  } finally {
+    busy.value = false;
   }
 }
 
@@ -159,6 +175,7 @@ onMounted(load);
                 <button type="button" class="rounded-md border border-border-strong px-2.5 py-1 text-primary hover:bg-primary-soft" data-action="change-role" @click="askChange('role', member.user_id, member.role)">{{ $t('tenant.team.change_role') }}</button>
                 <button type="button" class="rounded-md border border-crit-border px-2.5 py-1 text-crit hover:bg-crit-soft" data-action="remove-member" @click="askChange('remove', member.user_id, member.role)">{{ $t('tenant.team.remove') }}</button>
               </span>
+              <button v-if="canSendReset && member.user_id" type="button" class="mr-1.5 rounded-md border border-border-strong px-2.5 py-1 text-primary hover:bg-primary-soft" data-action="send-password-reset" @click="Object.assign(link, { userId: member.user_id, reason: '' }); reset.userId = null; notice = null">{{ $t('tenant.team.password_reset') }}</button>
               <button v-if="canResetMfa && member.mfa_enabled" type="button" class="rounded-md border border-warn-border px-2.5 py-1 text-warn hover:bg-warn-soft" data-action="reset-mfa" @click="Object.assign(reset, { userId: member.user_id, reason: '', code: '' }); notice = null">{{ $t('tenant.team.mfa_reset') }}</button>
             </td>
           </tr>
@@ -177,6 +194,15 @@ onMounted(load);
       <div class="flex gap-2">
         <button type="submit" class="rounded-md bg-primary px-3 py-2 font-medium text-text-inverse disabled:opacity-60" :disabled="busy || change.reason.trim().length < 3" data-action="member-confirm">{{ $t(change.kind === 'role' ? 'tenant.team.change_role' : 'tenant.team.remove') }}</button>
         <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-2" @click="change.kind = null">{{ $t('common.cancel') }}</button>
+      </div>
+    </form>
+
+    <form v-if="link.userId" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-4 text-sm" data-form="password-reset" @submit.prevent="confirmPasswordReset">
+      <p>{{ $t('tenant.team.password_reset_hint') }}</p>
+      <label class="flex flex-col gap-1 font-medium">{{ $t('tenant.actions.reason') }}<input v-model="link.reason" maxlength="500" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-normal" data-field="password-reset-reason" /></label>
+      <div class="flex gap-2">
+        <button type="submit" class="rounded-md bg-primary px-3 py-2 font-medium text-text-inverse disabled:opacity-60" :disabled="busy || link.reason.trim().length < 3" data-action="password-reset-confirm">{{ $t('tenant.team.password_reset_send') }}</button>
+        <button type="button" class="rounded-md border border-border-strong bg-surface px-3 py-2" @click="link.userId = null">{{ $t('common.cancel') }}</button>
       </div>
     </form>
 
