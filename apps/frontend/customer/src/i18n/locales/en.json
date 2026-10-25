@@ -1,4 +1,13 @@
 {
+  "nav_badge": {
+    "critical": "critical: {n}",
+    "warning": "warnings: {n}",
+    "info": "for information: {n}",
+    "discrepancies": "open discrepancies: {n}",
+    "checks_failed": "failed checks: {n}",
+    "checks_unsure": "checks without result: {n}",
+    "paused_stores": "stores paused by plan limit: {n}"
+  },
   "payment_method_kind": {
     "apple_pay": "Apple Pay",
     "google_pay": "Google Pay",

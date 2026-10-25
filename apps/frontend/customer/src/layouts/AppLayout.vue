@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { LocaleSwitch } from '@bw/i18n';
 import { resendEmailVerification } from '@/api/account';
 import { getMaintenance, type MaintenanceNotice } from '@/api/maintenance';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
+import { useNavBadges, type NavSection } from '@/composables/useNavBadges';
 import { useSession } from '@/composables/useSession';
+import { SOLID_TONE_CLASSES } from '@bw/ui';
 
+const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const { session, signOut, load } = useSession();
@@ -17,6 +21,15 @@ const verifyError = ref<unknown>(null);
 const verifiedNotice = ref<'1' | '0' | null>(null);
 const maintenance = ref<MaintenanceNotice | null>(null);
 const { dateTime } = useFormat();
+const { badges } = useNavBadges();
+
+function badgeFor(name: string) {
+  return badges.value[name as NavSection] ?? null;
+}
+
+function badgeText(name: string): string {
+  return (badgeFor(name)?.parts ?? []).map((part) => t(part.key, { n: part.n })).join(', ');
+}
 
 onMounted(async () => {
   try {
@@ -86,7 +99,15 @@ watch(() => route.fullPath, () => {
             :class="active(item) ? 'bg-primary-soft text-primary' : 'text-text-muted hover:bg-surface-muted hover:text-text'"
             :aria-current="active(item) ? 'page' : undefined"
           >
-            {{ $t(item.label) }}
+            {{ $t(item.label) }}<span
+              v-if="badgeFor(item.name)"
+              class="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full border px-1.5 text-xs font-semibold tabular-nums"
+              :class="SOLID_TONE_CLASSES[badgeFor(item.name)!.level]"
+              :title="badgeText(item.name)"
+              :aria-label="badgeText(item.name)"
+              :data-nav-badge="item.name"
+              :data-level="badgeFor(item.name)!.level"
+            >{{ badgeFor(item.name)!.count > 99 ? '99+' : badgeFor(item.name)!.count }}</span>
           </RouterLink>
         </nav>
 
@@ -127,7 +148,15 @@ watch(() => route.fullPath, () => {
             :class="active(item) ? 'bg-primary-soft text-primary' : 'text-text hover:bg-surface-muted'"
             :aria-current="active(item) ? 'page' : undefined"
           >
-            {{ $t(item.label) }}
+            {{ $t(item.label) }}<span
+              v-if="badgeFor(item.name)"
+              class="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full border px-1.5 text-xs font-semibold tabular-nums"
+              :class="SOLID_TONE_CLASSES[badgeFor(item.name)!.level]"
+              :title="badgeText(item.name)"
+              :aria-label="badgeText(item.name)"
+              :data-nav-badge="item.name"
+              :data-level="badgeFor(item.name)!.level"
+            >{{ badgeFor(item.name)!.count > 99 ? '99+' : badgeFor(item.name)!.count }}</span>
           </RouterLink>
         </nav>
         <div class="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">

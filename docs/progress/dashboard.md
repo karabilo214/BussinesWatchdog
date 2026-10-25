@@ -291,3 +291,13 @@ Status: complete (frontend only)
 - Display only: reconciliation, payment attempt monitoring and stored data still use the code. Still open in the backlog item: storing the shop's own method title (Shopware `translated.name`, WooCommerce `payment_method_title`) for methods the rules do not recognise.
 
 Verification: `customer/tests/paymentMethods.test.ts` (real WooCommerce/Shopware codes, fallback, labels in three languages); incident evidence expectation updated to «Банковская карта». Customer 168/168, control 72/72, both typechecks and builds ok; backend SQLite suite green. No API or DB change.
+
+### Step 249: Badges in the Customer Cabinet Menu
+
+Status: complete (customer frontend only)
+
+- The top menu (desktop and mobile) shows a count badge where something needs attention, coloured by the most important item: «Инциденты» — open incidents (red if any critical, yellow if any warning, blue for information only); «Сверка» — open discrepancies including those of unknown amount (yellow); «Проверки» — scenarios whose latest run failed (red) or ended blocked/inconclusive (yellow); «Обзор» — stores paused by the plan limit (yellow). The hover text and screen-reader label explain the number («критичных: 2, предупреждений: 1»), ru/en/de; more than 99 shows «99+».
+- Counts come from the existing `GET /api/v1/overview`, which the server already scopes to the active organisation and member (amount visibility included) — no new API. `useNavBadges` shares one result between pages, refreshes at most once a minute and only while the tab is visible; a failed request leaves the menu without badges.
+- Not done from the backlog item: «Уведомления» (undelivered / unconfirmed channel) and «Настройки» (pending support request, unpaid subscription, owner without MFA) — they need data the overview does not have.
+
+Verification: `tests/navBadges.test.ts` (no badges when calm, severity colours and explanations, unknown-amount discrepancies, latest run per scenario, paused stores, texts in three languages). Customer frontend 172/172, typecheck and build ok; backend SQLite suite green. No API or DB change.

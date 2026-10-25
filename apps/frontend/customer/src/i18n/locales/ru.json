@@ -1,4 +1,13 @@
 {
+  "nav_badge": {
+    "critical": "критичных: {n}",
+    "warning": "предупреждений: {n}",
+    "info": "для сведения: {n}",
+    "discrepancies": "открытых расхождений: {n}",
+    "checks_failed": "проверок с ошибкой: {n}",
+    "checks_unsure": "проверок без результата: {n}",
+    "paused_stores": "магазинов приостановлено по лимиту: {n}"
+  },
   "payment_method_kind": {
     "apple_pay": "Apple Pay",
     "google_pay": "Google Pay",
