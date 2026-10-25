@@ -65,6 +65,7 @@ class PasswordResetService
             ])->save();
 
             DB::table('sessions')->where('user_id', $user->id)->delete();
+            DB::table('trusted_devices')->where('user_id', $user->id)->delete();
         });
     }
 }

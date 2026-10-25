@@ -16,6 +16,12 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Сервис» 
 - When the overall state becomes "problem", an e-mail goes to the responsible person whose address is set in config (env).
 - Repair actions from the panel are not needed now; they may be added later.
 
+## Guarded outbox retry (Step 259, 2026-10-25)
+
+The later owner backlog request supersedes the 2026-10-16 deferral of repair actions. A separate assignable `service.manage` capability implies `service.read`. Its holder can list up to 50 oldest `domain_outbox` dead-letter entries (ID, topic, error code, attempts and creation time; no payload or customer identity), then requeue one chosen entry with an authenticator code and a reason. The server locks the record, accepts only `dead_letter`, resets the attempt budget and lease, and makes it due for the existing dispatcher; a second request returns 409. Successful and denied attempts are recorded in the platform audit with target, tenant where known, reason and result. This does not run shell or SQL supplied by staff.
+
+The action covers the internal domain outbox only. Store/billing inbox quarantine, notification deliveries and failed framework jobs have distinct recovery semantics and cannot be retried through this action. Retrying a persistent error can return the entry to dead letter; staff must resolve its cause first.
+
 ## Implementation of the alert decision (Step 179)
 
 - `service:alerts` (every minute) builds the same summary; when the overall state becomes "problem" (`crit`) it e-mails `WATCHDOG_SERVICE_ALERT_EMAIL` the parts that are a problem (names only, no tenant data) and a link to «Сервис»; when the state is no longer "problem" it e-mails the recovery. The last state written about is kept in `service_alert_state`, so a lasting problem is written about once; a failed e-mail is retried on the next run. Language `WATCHDOG_SERVICE_ALERT_LOCALE`. Each sent alert is in the platform audit (`service.alert_sent`, system). «Настройки» shows how many recipients are set.

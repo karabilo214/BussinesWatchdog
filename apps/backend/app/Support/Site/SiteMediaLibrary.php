@@ -94,7 +94,6 @@ class SiteMediaLibrary
             'uploaded_by' => $staffId,
         ]);
         $this->audit->record($staffId, 'site.media.uploaded', 'site_media', $media->id, PlatformAudit::RESULT_SUCCEEDED, [
-            'name' => $media->original_name,
             'content_type' => $media->content_type,
             'bytes' => $media->bytes,
             'original_bytes' => (int) $file->getSize(),
@@ -114,7 +113,7 @@ class SiteMediaLibrary
 
         $this->disk()->delete($media->object_key);
         $media->forceFill(['deleted_at' => Carbon::now()])->save();
-        $this->audit->record($staffId, 'site.media.deleted', 'site_media', $media->id, PlatformAudit::RESULT_SUCCEEDED, ['name' => $media->original_name, 'sha256' => $media->sha256]);
+        $this->audit->record($staffId, 'site.media.deleted', 'site_media', $media->id, PlatformAudit::RESULT_SUCCEEDED, ['sha256' => $media->sha256, 'before' => ['deleted_at' => null], 'after' => ['deleted_at' => $media->deleted_at?->toJSON()]]);
     }
 
     /**

@@ -7,7 +7,7 @@ import { useStaff } from '@/composables/useStaff';
 import { localization } from '@/i18n';
 import { buildRouter } from '@/router';
 
-vi.mock('@/api', () => ({ fetchMe: vi.fn(), login: vi.fn(), submitMfa: vi.fn(), logout: vi.fn(), fetchServiceHealth: vi.fn() }));
+vi.mock('@/api', () => ({ fetchMe: vi.fn(), login: vi.fn(), submitMfa: vi.fn(), logout: vi.fn(), fetchServiceHealth: vi.fn(), fetchDeadOutbox: vi.fn(), retryDeadOutbox: vi.fn(), fetchOwnerAttention: vi.fn() }));
 vi.mock('@/composables/useOwnerBadges', async () => {
   const { ref } = await import('vue');
   return { useOwnerBadges: () => ({ badges: ref({}) }) };
@@ -44,6 +44,7 @@ async function open(capabilities: string[]) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocked.fetchOwnerAttention.mockResolvedValue({});
   useStaff().forget();
   localization.setLocale('ru');
 });
@@ -64,10 +65,30 @@ describe('service', () => {
     expect(wrapper.get('[data-section="browser"]').text()).toContain('воркеров на связи за 5 минут: 0');
     expect(wrapper.get('[data-section="sync"]').text()).toContain('больше 24 ч: 1');
     expect(wrapper.get('[data-section="version"]').text()).toContain('2026.10.20-1');
+    expect(wrapper.find('[data-section="dead-outbox"]').exists()).toBe(false);
+    expect(mocked.fetchDeadOutbox).not.toHaveBeenCalled();
 
     await wrapper.get('[data-action="refresh"]').trigger('click');
     await flushPromises();
     expect(mocked.fetchServiceHealth).toHaveBeenCalledTimes(2);
+  });
+
+  it('lists dead outbox entries and confirms an audited retry with reason and code', async () => {
+    mocked.fetchServiceHealth.mockResolvedValue(HEALTH);
+    mocked.fetchDeadOutbox.mockResolvedValue([{ id: 'dead-1', topic: 'event_inbox.received', error_code: 'worker_failed', attempts: 5, created_at: '2026-10-19T10:00:00Z' }]);
+    mocked.retryDeadOutbox.mockResolvedValue();
+    const wrapper = await open(['service.read', 'service.manage']);
+
+    expect(wrapper.get('[data-dead-outbox="dead-1"]').text()).toContain('worker_failed');
+    await wrapper.get('[data-retry="dead-1"]').trigger('click');
+    await wrapper.get('[data-field="retry-reason"]').setValue('Worker fixed');
+    await wrapper.get('[data-field="retry-code"]').setValue('123456');
+    await wrapper.get('[data-retry-form]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.retryDeadOutbox).toHaveBeenCalledWith('dead-1', 'Worker fixed', '123456');
+    expect(mocked.fetchDeadOutbox).toHaveBeenCalledTimes(2);
+    expect(wrapper.find('[data-retry-form]').exists()).toBe(false);
   });
 
   it('does not load the summary for staff without access', async () => {

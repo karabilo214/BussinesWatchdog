@@ -11,13 +11,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\PasskeyAuthenticatable;
 
 #[Fillable(['name', 'email', 'password_hash', 'locale'])]
 #[Hidden(['password_hash', 'remember_token', 'mfa_secret_ciphertext'])]
-class User extends Authenticatable
+class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasUuids, Notifiable;
+    use HasFactory, HasUuids, Notifiable, PasskeyAuthenticatable;
 
     public function getAuthPassword(): string
     {

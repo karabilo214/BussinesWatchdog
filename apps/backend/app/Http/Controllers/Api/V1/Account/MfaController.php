@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\Account\AccountRejected;
 use App\Support\Account\MfaService;
 use App\Support\Account\StepUp;
+use App\Support\Account\TrustedDevices;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -27,6 +28,7 @@ class MfaController extends Controller
         private readonly MfaService $mfa,
         private readonly StepUp $stepUp,
         private readonly AuthSessionDto $authSessionDto,
+        private readonly TrustedDevices $trustedDevices,
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -64,6 +66,7 @@ class MfaController extends Controller
             return $this->rejected($exception);
         }
 
+        $this->trustedDevices->clearCookie();
         $request->session()->regenerate();
         DB::table('sessions')->where('user_id', $user->id)->where('id', '!=', $request->session()->getId())->delete();
 
@@ -82,6 +85,7 @@ class MfaController extends Controller
 
         $this->stepUp->require($user, $validated['current_password'], $validated['code'] ?? null);
         $this->mfa->disable($user);
+        $this->trustedDevices->clearCookie();
 
         return response()->json($this->state($user->refresh()));
     }
@@ -104,7 +108,7 @@ class MfaController extends Controller
     /** Second step of sign-in: an authenticator or recovery code for the sign-in waiting in this session. */
     public function challenge(Request $request): JsonResponse
     {
-        $validated = $request->validate(['code' => ['required', 'string', 'max:32']]);
+        $validated = $request->validate(['code' => ['required', 'string', 'max:32'], 'remember_device' => ['sometimes', 'boolean']]);
         $pending = $request->session()->get(self::PENDING_LOGIN);
 
         if (! is_array($pending) || ($pending['expires_at'] ?? 0) < Carbon::now()->getTimestamp() || ($pending['attempts'] ?? 0) >= self::PENDING_MAX_ATTEMPTS) {
@@ -129,6 +133,10 @@ class MfaController extends Controller
 
         if ($activeTenantId !== null) {
             $request->session()->put('active_tenant_id', $activeTenantId);
+        }
+
+        if ($validated['remember_device'] ?? false) {
+            $this->trustedDevices->issue($request, $user);
         }
 
         return response()->json($this->authSessionDto->toArray($user, $activeTenantId));

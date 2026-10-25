@@ -3,7 +3,9 @@
     "contacts_new": "new requests: {n}",
     "service_crit": "Service: a problem needs attention",
     "service_warn": "Service: a warning",
-    "refunds_requested": "refunds awaiting approval: {n}"
+    "refunds_requested": "refunds awaiting approval: {n}",
+    "subscriptions_past_due": "subscriptions with overdue payment: {n}",
+    "support_requests_pending": "your access requests awaiting customer decision: {n}"
   },
   "payment_method_kind": {
     "apple_pay": "Apple Pay",
@@ -140,6 +142,7 @@
     "request_id": "Request ID: {id}",
     "platform_forbidden": "Your role cannot do this.",
     "step_up_failed": "The confirmation code did not work.",
+    "outbox_not_dead": "This entry is no longer dead-lettered. Refresh the page.",
     "store_name_mismatch": "The store name does not match.",
     "plan_code_invalid": "Plan code: lowercase Latin letters, digits, “-” and “_”, 2 to 32 characters.",
     "plan_code_taken": "A plan with this code exists.",
@@ -725,6 +728,8 @@
   },
   "audit_action": {
     "tenant": {
+      "deletion_requested": "Organization deletion requested",
+      "deletion_cancelled": "Organization deletion cancelled",
       "suspend": "Service suspended",
       "resume": "Service resumed",
       "grant_override": "Temporary access granted",
@@ -735,6 +740,7 @@
       "reminder_sent": "Reminder sent",
       "member_invited": "Team member invited",
       "invitation_revoked": "Invitation revoked",
+      "member_password_reset_sent": "Member password reset link sent",
       "member_mfa_reset": "Customer MFA reset",
       "store_created": "Store added",
       "store_viewed": "Store data opened",
@@ -765,6 +771,8 @@
         "unpublished": "Page unpublished",
         "archived": "Page deleted",
         "restored": "Page version restored",
+        "version_deleted": "Page version deleted",
+        "draft_saved": "Page draft saved",
         "draft_discarded": "Draft discarded"
       },
       "block": {
@@ -776,7 +784,8 @@
         "updated": "Message status changed",
         "replied": "Message replied",
         "noted": "Note on a message",
-        "template_saved": "Reply template saved",
+        "attachment_downloaded": "Contact attachment downloaded",
+      "template_saved": "Reply template saved",
         "note_edited": "Note edited"
       },
       "media": {
@@ -798,7 +807,8 @@
       "template_saved": "Reminder template saved"
     },
     "service": {
-      "alert_sent": "«Service» alert sent"
+      "alert_sent": "«Service» alert sent",
+      "outbox_retry": "Internal queue entry retried"
     },
     "billing": {
       "refund_requested": "Refund requested",
@@ -831,6 +841,9 @@
       "retired": "Plan version retired"
     },
     "support_grant": {
+      "cancelled": "Support access request cancelled",
+      "hidden": "Support access request hidden",
+      "resent": "Support access request resent",
       "requested": "Support access requested",
       "approved": "Support access approved",
       "denied": "Support access denied",
@@ -916,6 +929,7 @@
     "unsaved": "Unsaved changes",
     "unsaved_switch": "Unsaved changes will be lost. Switch the language?",
     "save_first": "Save the draft first, then publish.",
+    "unknown_action": "Other action",
     "action": {
       "save": "Save draft",
       "publish": "Publish",
@@ -1085,6 +1099,8 @@
     }
   },
   "editor": {
+    "drag_block": "Drag block",
+    "drag_block_keyboard": "Drag block; Alt + Up or Down moves it",
     "block": "Text type",
     "paragraph": "Normal text",
     "heading": "Heading {level}",
@@ -1467,7 +1483,22 @@
     "as_of": "Calculated: {date}."
   },
   "service": {
-    "hint": "Service summary: components, queues and their delays, browser checks, connector sync, version. Aggregates only, no customer data. Refreshed every minute.",
+    "repair": {
+      "title": "Retry failed entries",
+      "hint": "Up to 50 oldest dead-letter entries from the internal queue are shown without customer data. After fixing the cause, you can queue an entry again. Processing may take time.",
+      "empty": "No dead-letter entries in the internal queue.",
+      "record": "Entry and topic",
+      "error": "Error code",
+      "attempts": "Attempts",
+      "created": "Created",
+      "action": "Action",
+      "retry": "Retry",
+      "confirm": "Retry entry {id}?",
+      "reason": "Reason for retry",
+      "code": "Authenticator code",
+      "limit": "Showing the first 50 entries."
+    },
+    "hint": "Service summary: components, queues and their delays, browser checks, connector sync, version. Queue recovery requires a separate permission. No customer data. Refreshed every minute.",
     "forbidden": "This section is available to the service owner and administrators.",
     "refresh": "Refresh",
     "as_of": "As of {date}",
@@ -1731,6 +1762,10 @@
     "service_read": {
       "label": "Service",
       "hint": "Service health and the public check history."
+    },
+    "service_manage": {
+      "label": "Service: recovery",
+      "hint": "Retry dead-letter entries in the internal queue with a code and audit record."
     },
     "audit_read": {
       "label": "Audit",

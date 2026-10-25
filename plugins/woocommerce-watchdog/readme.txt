@@ -1,5 +1,5 @@
 === Business Watchdog for WooCommerce ===
-Contributors: businesswatchdog
+Contributors: karabin214
 Tags: woocommerce, payments, monitoring, checkout, reconciliation
 Requires at least: 5.9
 Tested up to: 7.1

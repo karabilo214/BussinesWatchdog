@@ -86,7 +86,7 @@ class ContactInbox
             throw new SiteRejected('attachment_not_found', 404);
         }
 
-        $this->audit->record($staffId, 'site.contact.attachment_downloaded', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, ['name' => $request->attachment_name, 'bytes' => $request->attachment_bytes]);
+        $this->audit->record($staffId, 'site.contact.attachment_downloaded', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, ['bytes' => $request->attachment_bytes]);
 
         return ['body' => $body, 'name' => (string) $request->attachment_name, 'content_type' => (string) $request->attachment_content_type];
     }
@@ -158,6 +158,8 @@ class ContactInbox
     public function update(string $staffId, string $id, array $input): ContactRequest
     {
         $request = $this->find($id);
+        $previousStatus = $request->status;
+        $previousHandler = $request->handled_by;
         $changes = [];
 
         if (isset($input['status'])) {
@@ -170,7 +172,7 @@ class ContactInbox
         }
 
         $request->forceFill($changes + ['handled_by' => $staffId])->save();
-        $this->audit->record($staffId, 'site.contact.updated', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, array_intersect_key($changes, ['status' => true]));
+        $this->audit->record($staffId, 'site.contact.updated', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['status' => $previousStatus, 'handled_by' => $previousHandler], 'after' => ['status' => $request->status, 'handled_by' => $request->handled_by]]);
 
         return $request;
     }
@@ -285,6 +287,8 @@ class ContactInbox
     public function reply(string $staffId, string $id, array $input): ContactRequestReply
     {
         $request = $this->find($id);
+        $previousStatus = $request->status;
+        $previousHandler = $request->handled_by;
         $subject = trim($input['subject']);
         $body = trim($input['body']);
 
@@ -317,7 +321,7 @@ class ContactInbox
 
             return $reply;
         });
-        $this->audit->record($staffId, 'site.contact.replied', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, ['reply_id' => $reply->id, 'template' => $reply->template, 'content_hash' => hash('sha256', $subject."\n".$body)]);
+        $this->audit->record($staffId, 'site.contact.replied', 'contact_request', $request->id, PlatformAudit::RESULT_SUCCEEDED, ['reply_id' => $reply->id, 'template' => $reply->template, 'content_hash' => hash('sha256', $subject."\n".$body), 'before' => ['status' => $previousStatus, 'handled_by' => $previousHandler], 'after' => ['status' => $request->status, 'handled_by' => $request->handled_by]]);
 
         return $reply;
     }

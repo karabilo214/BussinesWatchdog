@@ -6,6 +6,9 @@ import type { Locale } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { fieldErrorsOf } from '@/composables/errors';
 import MfaPanel from '@/components/account/MfaPanel.vue';
+import SessionsPanel from '@/components/account/SessionsPanel.vue';
+import TrustedDevicesPanel from '@/components/account/TrustedDevicesPanel.vue';
+import PasskeysPanel from '@/components/account/PasskeysPanel.vue';
 import PasswordFields from '@/components/account/PasswordFields.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
 import { useSession } from '@/composables/useSession';
@@ -142,6 +145,9 @@ async function savePassword(): Promise<void> {
       </section>
 
       <MfaPanel />
+      <PasskeysPanel />
+      <TrustedDevicesPanel />
+      <SessionsPanel />
     </div>
   </AppLayout>
 </template>

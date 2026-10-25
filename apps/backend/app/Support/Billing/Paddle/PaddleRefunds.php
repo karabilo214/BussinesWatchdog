@@ -204,8 +204,9 @@ class PaddleRefunds
     {
         return DB::transaction(function () use ($staffId, $refundId, $reason): BillingRefund {
             $refund = $this->locked($refundId);
+            $previousStatus = $refund->status;
             $refund->forceFill(['status' => BillingRefund::STATUS_REJECTED, 'decided_by' => $staffId, 'decision_reason' => $reason, 'decided_at' => Carbon::now()])->save();
-            $this->audit->record($staffId, 'billing.refund_rejected', 'billing_refund', $refund->id, PlatformAudit::RESULT_SUCCEEDED, [], $reason, $refund->tenant_id);
+            $this->audit->record($staffId, 'billing.refund_rejected', 'billing_refund', $refund->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['status' => $previousStatus], 'after' => ['status' => $refund->status]], $reason, $refund->tenant_id);
 
             return $refund;
         });
@@ -213,8 +214,10 @@ class PaddleRefunds
 
     public function approve(string $staffId, string $refundId, string $reason): BillingRefund
     {
-        $refund = DB::transaction(function () use ($staffId, $refundId, $reason): BillingRefund {
+        $previousStatus = null;
+        $refund = DB::transaction(function () use ($staffId, $refundId, $reason, &$previousStatus): BillingRefund {
             $refund = $this->locked($refundId);
+            $previousStatus = $refund->status;
             $refund->forceFill(['status' => BillingRefund::STATUS_SUBMITTING, 'decided_by' => $staffId, 'decision_reason' => $reason, 'decided_at' => Carbon::now()])->save();
 
             return $refund;
@@ -228,13 +231,13 @@ class PaddleRefunds
             $adjustment = $this->client->post('/adjustments', $body)['data'] ?? [];
         } catch (PaddleRequestFailed $exception) {
             $refund->forceFill(['status' => $exception->outcomeUnknown() ? BillingRefund::STATUS_UNKNOWN : BillingRefund::STATUS_FAILED, 'error_code' => $exception->paddleCode ?? $exception->reasonCode])->save();
-            $this->audit->record($staffId, 'billing.refund_approved', 'billing_refund', $refund->id, $exception->outcomeUnknown() ? 'unknown' : PlatformAudit::RESULT_FAILED, ['error' => $exception->paddleCode ?? $exception->reasonCode], $reason, $refund->tenant_id);
+            $this->audit->record($staffId, 'billing.refund_approved', 'billing_refund', $refund->id, $exception->outcomeUnknown() ? 'unknown' : PlatformAudit::RESULT_FAILED, ['error' => $exception->paddleCode ?? $exception->reasonCode, 'before' => ['status' => $previousStatus], 'after' => ['status' => $refund->status]], $reason, $refund->tenant_id);
 
             throw new BillingCheckoutRejected($exception->outcomeUnknown() ? 'provider_outcome_unknown' : 'refund_rejected_by_provider');
         }
 
         $this->apply($refund, $adjustment);
-        $this->audit->record($staffId, 'billing.refund_approved', 'billing_refund', $refund->id, PlatformAudit::RESULT_SUCCEEDED, ['adjustment' => $refund->provider_adjustment_ref, 'status' => $refund->status], $reason, $refund->tenant_id);
+        $this->audit->record($staffId, 'billing.refund_approved', 'billing_refund', $refund->id, PlatformAudit::RESULT_SUCCEEDED, ['adjustment' => $refund->provider_adjustment_ref, 'before' => ['status' => $previousStatus], 'after' => ['status' => $refund->status]], $reason, $refund->tenant_id);
 
         return $refund->refresh();
     }

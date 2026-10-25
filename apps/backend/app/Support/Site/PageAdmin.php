@@ -161,8 +161,9 @@ class PageAdmin
             $changes['policy_type'] = $type;
         }
 
+        $before = array_intersect_key($page->getAttributes(), $changes);
         $page->forceFill($changes)->save();
-        $this->audit->record($staffId, 'site.page.updated', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, $changes);
+        $this->audit->record($staffId, 'site.page.updated', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => $before, 'after' => $changes]);
 
         return $page;
     }
@@ -170,7 +171,7 @@ class PageAdmin
     /**
      * @param  array{title: string, description?: ?string, body?: ?string}  $input
      */
-    public function saveDraft(string $staffId, string $pageId, string $locale, array $input): PublicPageVersion
+    public function saveDraft(string $staffId, string $pageId, string $locale, array $input, bool $recordAudit = true): PublicPageVersion
     {
         $page = $this->editable($pageId);
         $this->locale($locale);
@@ -190,25 +191,35 @@ class PageAdmin
             throw new SiteRejected('body_required');
         }
 
-        return DB::transaction(function () use ($staffId, $page, $locale, $title, $description, $body): PublicPageVersion {
+        return DB::transaction(function () use ($staffId, $page, $locale, $title, $description, $body, $recordAudit): PublicPageVersion {
             $this->lock($page);
             $content = ['title' => $title, 'description' => $description === '' ? null : $description, 'body' => $body, 'content_hash' => self::hash($title, $description, $body)];
             /** @var PublicPageVersion|null $draft */
             $draft = PublicPageVersion::query()->where('page_id', $page->id)->where('locale', $locale)->where('state', PublicPageVersion::STATE_DRAFT)->first();
+            $before = $draft === null ? ['title' => null, 'description' => null, 'body' => null] : $draft->only(['title', 'description', 'body']);
 
             if ($draft !== null) {
                 $draft->forceFill($content + ['created_by' => $staffId])->save();
 
+                if ($recordAudit) {
+                    $this->audit->record($staffId, 'site.page.draft_saved', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['locale' => $locale, 'version' => $draft->version, 'before' => $before, 'after' => array_intersect_key($content, $before)]);
+                }
+
                 return $draft;
             }
 
-            return PublicPageVersion::query()->create($content + [
+            $draft = PublicPageVersion::query()->create($content + [
                 'page_id' => $page->id,
                 'locale' => $locale,
                 'version' => $this->nextVersion($page, $locale),
                 'state' => PublicPageVersion::STATE_DRAFT,
                 'created_by' => $staffId,
             ]);
+            if ($recordAudit) {
+                $this->audit->record($staffId, 'site.page.draft_saved', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['locale' => $locale, 'version' => $draft->version, 'before' => $before, 'after' => array_intersect_key($content, $before)]);
+            }
+
+            return $draft;
         });
     }
 
@@ -219,7 +230,7 @@ class PageAdmin
         $deleted = PublicPageVersion::query()->where('page_id', $page->id)->where('locale', $locale)->where('state', PublicPageVersion::STATE_DRAFT)->delete();
 
         if ($deleted > 0) {
-            $this->audit->record($staffId, 'site.page.draft_discarded', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['locale' => $locale]);
+            $this->audit->record($staffId, 'site.page.draft_discarded', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['locale' => $locale, 'before' => ['state' => PublicPageVersion::STATE_DRAFT], 'after' => ['state' => 'deleted']]);
         }
     }
 
@@ -240,7 +251,7 @@ class PageAdmin
             $now = Carbon::now();
             $previous = $this->retirePublished($page, $locale, $now);
             $draft->forceFill(['state' => PublicPageVersion::STATE_PUBLISHED, 'published_at' => $now, 'published_by' => $staffId])->save();
-            $this->audit->record($staffId, 'site.page.published', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $page->path, 'locale' => $locale, 'version' => $draft->version, 'previous_version' => $previous, 'content_hash' => $draft->content_hash], $reason);
+            $this->audit->record($staffId, 'site.page.published', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $page->path, 'locale' => $locale, 'version' => $draft->version, 'previous_version' => $previous, 'content_hash' => $draft->content_hash, 'before' => ['state' => PublicPageVersion::STATE_DRAFT], 'after' => ['state' => $draft->state]], $reason);
 
             return $draft;
         });
@@ -259,7 +270,7 @@ class PageAdmin
                 throw new SiteRejected('not_published', 409);
             }
 
-            $this->audit->record($staffId, 'site.page.unpublished', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $page->path, 'locale' => $locale, 'version' => $previous], $reason);
+            $this->audit->record($staffId, 'site.page.unpublished', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $page->path, 'locale' => $locale, 'version' => $previous, 'before' => ['state' => PublicPageVersion::STATE_PUBLISHED], 'after' => ['state' => PublicPageVersion::STATE_RETIRED]], $reason);
         });
     }
 
@@ -273,8 +284,10 @@ class PageAdmin
             throw new SiteRejected('version_not_found', 404);
         }
 
-        $draft = $this->saveDraft($staffId, $page->id, $source->locale, ['title' => $source->title, 'description' => $source->description, 'body' => $source->body]);
-        $this->audit->record($staffId, 'site.page.restored', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['locale' => $source->locale, 'from_version' => $source->version, 'draft_version' => $draft->version]);
+        $previousDraft = PublicPageVersion::query()->where('page_id', $page->id)->where('locale', $source->locale)->where('state', PublicPageVersion::STATE_DRAFT)->first();
+        $before = $previousDraft === null ? ['title' => null, 'description' => null, 'body' => null] : $previousDraft->only(['title', 'description', 'body']);
+        $draft = $this->saveDraft($staffId, $page->id, $source->locale, ['title' => $source->title, 'description' => $source->description, 'body' => $source->body], false);
+        $this->audit->record($staffId, 'site.page.restored', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['locale' => $source->locale, 'from_version' => $source->version, 'draft_version' => $draft->version, 'before' => $before, 'after' => $draft->only(['title', 'description', 'body'])]);
 
         return $draft;
     }
@@ -301,7 +314,7 @@ class PageAdmin
             }
 
             $version->delete();
-            $this->audit->record($staffId, 'site.page.version_deleted', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['locale' => $version->locale, 'version' => $version->version, 'content_hash' => $version->content_hash], $reason);
+            $this->audit->record($staffId, 'site.page.version_deleted', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['locale' => $version->locale, 'version' => $version->version, 'content_hash' => $version->content_hash, 'before' => ['state' => PublicPageVersion::STATE_RETIRED], 'after' => ['state' => 'deleted']], $reason);
         });
     }
 
@@ -327,8 +340,9 @@ class PageAdmin
             }
 
             PublicPageVersion::query()->where('page_id', $page->id)->where('state', PublicPageVersion::STATE_DRAFT)->delete();
+            $previousPolicy = $page->policy_type;
             $page->forceFill(['archived_at' => $now, 'policy_type' => null])->save();
-            $this->audit->record($staffId, 'site.page.archived', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $page->path], $reason);
+            $this->audit->record($staffId, 'site.page.archived', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $page->path, 'before' => ['archived_at' => null, 'policy_type' => $previousPolicy], 'after' => ['archived_at' => $now->toJSON(), 'policy_type' => null]], $reason);
         });
     }
 

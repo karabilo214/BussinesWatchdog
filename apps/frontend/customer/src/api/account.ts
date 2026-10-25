@@ -1,4 +1,5 @@
-import { request } from '@bw/api-client';
+import { ensureCsrfCookie, request } from '@bw/api-client';
+import { Passkeys } from '@laravel/passkeys';
 import type { AuthSession, InvitationLookup, Locale, MfaSetup, MfaState, OrganizationDeletionState, TeamInvitation, TeamMember, TeamRole } from './types';
 
 export async function requestPasswordReset(email: string): Promise<void> {
@@ -19,6 +20,58 @@ export async function updateProfile(changes: { name?: string; locale?: Locale })
 
 export async function changePassword(currentPassword: string, password: string): Promise<void> {
   await request('POST', '/api/v1/auth/password', { body: { current_password: currentPassword, password, password_confirmation: password } });
+}
+
+export interface AccountSession {
+  current: boolean;
+  device: 'Chrome' | 'Edge' | 'Firefox' | 'Safari' | 'other' | 'unknown';
+  ip_address: string | null;
+  last_active_at: string;
+}
+
+export async function listAccountSessions(): Promise<AccountSession[]> {
+  return (await request<{ data: AccountSession[] }>('GET', '/api/v1/auth/sessions')).data.data;
+}
+
+export async function revokeAllAccountSessions(currentPassword: string, code: string | null): Promise<void> {
+  await request('POST', '/api/v1/auth/sessions/revoke-all', { body: { current_password: currentPassword, code } });
+}
+
+export interface TrustedDevice {
+  id: string;
+  device: string;
+  current: boolean;
+  last_used_at: string | null;
+  expires_at: string;
+}
+
+export async function listTrustedDevices(): Promise<TrustedDevice[]> {
+  return (await request<{ data: TrustedDevice[] }>('GET', '/api/v1/auth/trusted-devices')).data.data;
+}
+
+export async function revokeTrustedDevice(id: string): Promise<void> {
+  await request('DELETE', `/api/v1/auth/trusted-devices/${encodeURIComponent(id)}`);
+}
+
+export interface AccountPasskey {
+  id: number;
+  name: string;
+  created_at: string | null;
+  last_used_at: string | null;
+}
+
+export async function listPasskeys(): Promise<AccountPasskey[]> {
+  return (await request<{ data: AccountPasskey[] }>('GET', '/api/v1/auth/passkeys')).data.data;
+}
+
+export async function registerPasskey(name: string, currentPassword: string, code: string | null): Promise<void> {
+  await request('POST', '/api/v1/auth/passkeys/authorize', { body: { current_password: currentPassword, code } });
+  await ensureCsrfCookie();
+  await Passkeys.register({ name, routes: { options: '/api/v1/auth/passkeys/register/options', submit: '/api/v1/auth/passkeys/register' } });
+}
+
+export async function deletePasskey(id: number, currentPassword: string, code: string | null): Promise<void> {
+  await request('DELETE', `/api/v1/auth/passkeys/${id}`, { body: { current_password: currentPassword, code } });
 }
 
 export async function listMembers(): Promise<{ data: TeamMember[]; assignable_roles: Exclude<TeamRole, 'owner'>[] }> {

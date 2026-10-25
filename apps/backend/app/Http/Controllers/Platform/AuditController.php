@@ -17,7 +17,10 @@ class AuditController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json($this->journal->page($this->filters($request, true)));
+        /** @var PlatformStaff $staff */
+        $staff = $request->attributes->get('platform_staff');
+
+        return response()->json($this->journal->page($this->filters($request, true), $staff, $staff->user?->locale ?? 'en'));
     }
 
     public function export(Request $request, PlatformAudit $audit): StreamedResponse
@@ -26,16 +29,24 @@ class AuditController extends Controller
         /** @var PlatformStaff $staff */
         $staff = $request->attributes->get('platform_staff');
         $audit->record($staff->id, 'audit.exported', 'platform_audit_log', 'export', PlatformAudit::RESULT_SUCCEEDED, ['filters' => $filters]);
-        $rows = $this->journal->export($filters);
+        $locale = $staff->user?->locale ?? 'en';
+        $rows = $this->journal->export($filters, $staff, $locale);
 
-        return response()->streamDownload(function () use ($rows): void {
+        return response()->streamDownload(function () use ($rows, $locale): void {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['time', 'actor', 'actor_email', 'action', 'target_type', 'target_id', 'tenant', 'result', 'reason', 'changes', 'request_id'], escape: '');
+            $headers = [
+                'ru' => ['Время', 'Кто', 'Действие', 'Объект', 'Организация', 'Результат', 'Описание'],
+                'en' => ['Time', 'Actor', 'Action', 'Object', 'Organization', 'Result', 'Description'],
+                'de' => ['Zeit', 'Person', 'Aktion', 'Objekt', 'Organisation', 'Ergebnis', 'Beschreibung'],
+            ];
+            fputcsv($out, $headers[$locale] ?? $headers['en'], escape: '');
 
             foreach ($rows as $row) {
                 fputcsv($out, array_map(fn (mixed $value): string => $this->cell($value), [
-                    $row['created_at'], $row['actor']['name'] ?? 'system', $row['actor']['email'] ?? '', $row['action'], $row['target_type'], $row['target_id'],
-                    $row['tenant']['name'] ?? '', $row['result'], $row['reason'] ?? '', json_encode($row['changes'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $row['request_id'],
+                    $row['created_at'], $row['actor']['name'] ?? match ($locale) {
+                        'ru' => 'Система', 'de' => 'System', default => 'System'
+                    }, $row['presentation']['title'], $row['presentation']['object']['label'],
+                    $row['tenant']['name'] ?? '', $row['presentation']['result_label'], $row['presentation']['description'],
                 ]), escape: '');
             }
 

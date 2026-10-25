@@ -109,9 +109,10 @@ class DiscountAdmin
         }
 
         return DB::transaction(function () use ($staffId, $discount, $editable, $tenantIds, $reason): BillingDiscount {
+            $before = $this->auditChanges($discount, $discount->tenants()->pluck('tenants.id')->all());
             $discount->forceFill($editable)->save();
             $discount->tenants()->sync($discount->audience === BillingDiscount::AUDIENCE_TENANT ? $tenantIds : []);
-            $this->audit->record($staffId, 'discount.updated', 'billing_discount', $discount->id, PlatformAudit::RESULT_SUCCEEDED, $this->auditChanges($discount, $tenantIds), $reason);
+            $this->audit->record($staffId, 'discount.updated', 'billing_discount', $discount->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => $before, 'after' => $this->auditChanges($discount, $tenantIds)], $reason);
 
             return $discount->refresh();
         });
@@ -131,8 +132,9 @@ class DiscountAdmin
             throw new PlanAdminRejected('provider_unavailable', 502);
         }
 
+        $previousState = $discount->state;
         $discount->forceFill(['state' => BillingDiscount::STATE_ARCHIVED, 'archived_at' => Carbon::now()])->save();
-        $this->audit->record($staffId, 'discount.archived', 'billing_discount', $discount->id, PlatformAudit::RESULT_SUCCEEDED, [], $reason);
+        $this->audit->record($staffId, 'discount.archived', 'billing_discount', $discount->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['state' => $previousState], 'after' => ['state' => $discount->state]], $reason);
 
         return $discount;
     }

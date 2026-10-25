@@ -21,3 +21,5 @@ Status: implemented (Step 173). Owner decision of 2026-10-16 (ADR 0046, ADR 0052
 
 - Point 3 (staff management and refund approval only for platform owners) — confirmed.
 - Point 4 (a change capability brings its view capability) — confirmed.
+
+Step 259 adds assignable `service.manage` for guarded recovery of the internal outbox (ADR 0051). It implies `service.read`; the platform owner has it through the owner role, while members receive it only when explicitly assigned.

@@ -8,6 +8,14 @@ Vue3/TypeScript, shared component library для tenant интерфейсов. 
 
 Customer guard + Sanctum same-origin session, no platform cookie. Customer API `/api/v1`, CSS/route скрытие не заменяет role policy. Header active organization, role, monitoring coverage, billing warning, timezone. Unpaid warning не должен закрывать доступ к истории и странице оплаты. Side nav billing только owner; tenant_admin может видеть service status/limits без суммы счетов и payment details.
 
+Профиль показывает активные сеансы входа самого пользователя (браузер, IP, время последней активности, текущий сеанс) без раскрытия ID и содержимого сеанса. «Выйти везде» завершает и текущий сеанс после повторного ввода пароля и MFA-кода, если MFA включена; действие записывается в аудит всех команд пользователя (ADR 0021, Step 254).
+
+Профиль управляет passkeys пользователя: добавление после пароля и MFA-кода (если MFA включена), удаление с тем же step-up; вход с passkey требует локального подтверждения пользователя и серверной проверки WebAuthn. Список не отдаёт credential material. Для регистрации и входа challenge действует пять минут и используется один раз (ADR 0021, Step 255).
+
+После успешного ввода MFA-кода пользователь может явно доверить текущему браузеру вход с паролем без повторного кода на 30 дней. Доверие относится только к этому пользователю и не заменяет повторный MFA-код для опасных действий. В профиле виден список доверенных устройств без токенов; любое можно отозвать. Смена/сброс пароля, сброс MFA и «Выйти везде» отзывают доверие (ADR 0021, Step 256).
+
+В «Обзоре» каждый пользователь без MFA видит предупреждение со ссылкой на настройки профиля. В самом профиле владелец и участники любой роли без MFA видят рекомендацию включить защиту; участникам явно сказано, что это не условие работы. После включения предупреждения исчезают (ADR 0021, Step 257).
+
 UI states: loading skeleton; not_connected onboarding; warming_up; healthy with fresh coverage; incidents; degraded; paused_manual; paused_billing; unsupported. Полный outage и неподдерживаемый gateway имеют разные тексты. Error показан с request_id, retry сохраняет фильтры. Desktop1200+, tablet768, mobile360; readable tables с explicit horizontal scroll/card layout, без обрезанных денег/currency.
 
 ## 2 Первый вход владельца клиента

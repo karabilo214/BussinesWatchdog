@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue';
+import { nextTick, onMounted, ref } from 'vue';
+import { Passkeys, UserCancelledError } from '@laravel/passkeys';
 import { useRoute, useRouter } from 'vue-router';
 import { ApiError } from '@bw/api-client';
 import { useSession } from '@/composables/useSession';
@@ -7,16 +8,22 @@ import AuthLayout from '@/layouts/AuthLayout.vue';
 
 const route = useRoute();
 const router = useRouter();
-const { signIn, completeMfa } = useSession();
+const { signIn, signInWithPasskey, completeMfa } = useSession();
+const passkeySupported = ref(false);
 const email = ref('');
 const password = ref('');
 const remember = ref(false);
 const step = ref<'password' | 'code'>('password');
 const code = ref('');
+const rememberDevice = ref(false);
 const codeInput = ref<HTMLInputElement | null>(null);
 const submitting = ref(false);
 const errorKey = ref<string | null>(route.query.expired === '1' ? 'auth.session_expired' : null);
 const infoKey = route.query.reset === '1' ? 'account.reset.done' : null;
+
+onMounted(() => {
+  passkeySupported.value = Passkeys.isSupported();
+});
 
 async function proceed(): Promise<void> {
   const target = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') ? route.query.redirect : { name: 'overview' };
@@ -66,7 +73,7 @@ async function submitCode(): Promise<void> {
   errorKey.value = null;
 
   try {
-    await completeMfa(code.value.trim());
+    await completeMfa(code.value.trim(), rememberDevice.value);
     await proceed();
   } catch (error) {
     if (error instanceof ApiError && error.code === 'mfa_challenge_expired') {
@@ -82,9 +89,26 @@ async function submitCode(): Promise<void> {
   }
 }
 
+async function submitPasskey(): Promise<void> {
+  submitting.value = true;
+  errorKey.value = null;
+
+  try {
+    await signInWithPasskey(remember.value);
+    await proceed();
+  } catch (error) {
+    if (! (error instanceof UserCancelledError)) {
+      errorKey.value = failure(error, 'auth.passkey_failed');
+    }
+  } finally {
+    submitting.value = false;
+  }
+}
+
 function restart(reason: string | null = null): void {
   step.value = 'password';
   code.value = '';
+  rememberDevice.value = false;
   errorKey.value = reason;
 }
 </script>
@@ -137,6 +161,9 @@ function restart(reason: string | null = null): void {
       >
         {{ submitting ? $t('auth.submitting') : $t('auth.submit') }}
       </button>
+      <button v-if="passkeySupported" type="button" class="rounded-md border border-border-strong px-4 py-2.5 text-sm font-semibold text-primary hover:bg-surface-muted disabled:opacity-60" :disabled="submitting" @click="submitPasskey">
+        {{ $t('auth.passkey_sign_in') }}
+      </button>
     </form>
 
     <form v-else class="flex flex-col gap-5 rounded-xl border border-border bg-surface p-6 shadow-sm" novalidate data-step="mfa" @submit.prevent="submitCode">
@@ -165,6 +192,10 @@ function restart(reason: string | null = null): void {
         />
         <p class="text-[13px] text-text-muted">{{ $t('auth.mfa.recovery_hint') }}</p>
       </div>
+      <label class="flex items-start gap-2 text-sm">
+        <input v-model="rememberDevice" type="checkbox" class="mt-1 accent-primary" />
+        <span>{{ $t('auth.mfa.remember_device') }}</span>
+      </label>
       <button
         type="submit"
         class="rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"

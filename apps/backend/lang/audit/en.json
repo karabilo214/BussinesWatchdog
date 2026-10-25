@@ -1,0 +1,135 @@
+{
+  "tenant": {
+    "suspend": "Service suspended",
+    "resume": "Service resumed",
+    "grant_override": "Temporary access granted",
+    "revoke_override": "Temporary access revoked",
+    "extend_trial": "Trial extended",
+    "cancel_subscription": "Subscription cancellation",
+    "refresh_billing": "Refresh from Paddle",
+    "reminder_sent": "Reminder sent",
+    "member_invited": "Team member invited",
+    "invitation_revoked": "Invitation revoked",
+    "member_password_reset_sent": "Member password reset link sent",
+    "member_mfa_reset": "Customer MFA reset",
+    "store_created": "Store added",
+    "store_viewed": "Store data opened",
+    "check_rerun": "Check rerun by support",
+    "incident_acknowledged": "Incident acknowledged by support",
+    "incident_resolved": "Incident resolved by support",
+    "member_role_changed": "Customer member role changed",
+    "member_removed": "Customer member removed",
+    "store_deleted": "Store deleted",
+    "deletion_requested": "Organization deletion requested",
+    "deletion_cancelled": "Organization deletion cancelled"
+  },
+  "staff": {
+    "login": "Staff sign-in",
+    "invited": "Staff member invited",
+    "invitation_revoked": "Staff invitation revoked",
+    "joined": "Staff member joined",
+    "updated": "Staff member changed",
+    "sessions_revoked": "Staff sessions ended",
+    "mfa_reset": "Staff authenticator reset",
+    "bootstrap_owner": "First owner created",
+    "mfa_reenrolled": "Staff member connected a new authenticator",
+    "logout": "Staff sign-out"
+  },
+  "site": {
+    "page": {
+      "created": "Page created",
+      "updated": "Page settings changed",
+      "published": "Page published",
+      "unpublished": "Page unpublished",
+      "archived": "Page deleted",
+      "restored": "Page version restored",
+      "version_deleted": "Page version deleted",
+      "draft_discarded": "Draft discarded",
+      "draft_saved": "Page draft saved"
+    },
+    "block": {
+      "created": "Block template created",
+      "updated": "Block template changed",
+      "archived": "Block template deleted"
+    },
+    "contact": {
+      "updated": "Message status changed",
+      "replied": "Message replied",
+      "noted": "Note on a message",
+      "attachment_downloaded": "Contact attachment downloaded",
+      "template_saved": "Reply template saved",
+      "note_edited": "Note edited"
+    },
+    "media": {
+      "uploaded": "Site file uploaded",
+      "deleted": "Site file deleted"
+    }
+  },
+  "audit": {
+    "exported": "Audit exported"
+  },
+  "settings": {
+    "maintenance_scheduled": "Maintenance planned",
+    "maintenance_cancelled": "Maintenance cancelled"
+  },
+  "platform": {
+    "change": "Change from the owner panel"
+  },
+  "reminder": {
+    "template_saved": "Reminder template saved"
+  },
+  "service": {
+    "alert_sent": "«Service» alert sent",
+    "outbox_retry": "Internal queue entry retried"
+  },
+  "billing": {
+    "refund_requested": "Refund requested",
+    "refund_approved": "Refund approved",
+    "refund_rejected": "Refund rejected",
+    "withdrawal_requested": "Withdrawal with refund requested",
+    "plan_change_cancelled": "Plan change cancelled",
+    "subscription_cancel_scheduled": "Subscription cancellation scheduled",
+    "subscription_cancelled": "Subscription cancelled",
+    "subscription_cancelled_after_refund": "Subscription cancelled after refund",
+    "subscription_cancelled_for_deletion": "Subscription cancelled for organisation deletion",
+    "subscription_resumed": "Subscription resumed"
+  },
+  "discount": {
+    "created": "Discount created",
+    "updated": "Discount updated",
+    "archived": "Discount archived"
+  },
+  "plan": {
+    "created": "Plan created"
+  },
+  "plan_price": {
+    "added": "Plan price added",
+    "removed": "Plan price removed"
+  },
+  "plan_version": {
+    "created": "Plan version created",
+    "updated": "Plan version updated",
+    "published": "Plan version published",
+    "retired": "Plan version retired"
+  },
+  "support_grant": {
+    "cancelled": "Support access request cancelled",
+    "hidden": "Support access request hidden",
+    "resent": "Support access request resent",
+    "requested": "Support access requested",
+    "approved": "Support access approved",
+    "denied": "Support access denied",
+    "revoked": "Support access revoked"
+  },
+  "support_access": {
+    "opened": "Support opened store data",
+    "artifact": "Support opened check materials"
+  },
+  "user": {
+    "mfa_enabled": "MFA enabled",
+    "mfa_disabled": "MFA disabled",
+    "mfa_reset": "MFA reset",
+    "mfa_recovery_code_used": "MFA recovery code used",
+    "mfa_recovery_codes_regenerated": "MFA recovery codes regenerated"
+  }
+}

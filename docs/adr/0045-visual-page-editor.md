@@ -32,6 +32,10 @@ Pages of the public site (ADR 0039) were edited as raw HTML in a text field. The
 - Next: image upload in the editor, syntax highlighting in the HTML mode, and the block templates section moved from the main menu into the site pages section.
 - Drag-and-drop of blocks is not needed for now.
 
+## Block reordering (Step 258, 2026-10-25)
+
+The later backlog request supersedes the 2026-10-16 deferral. The visual editor now uses the MIT `@tiptap/extension-drag-handle` 3.31.4 with a handle beside each top-level block. A section moves with its nested content, classes, IDs, links and other markup intact. The focused handle also accepts Alt + Up/Down for keyboard reordering. This is an editor-only change: saved pages remain sanitized HTML, with the existing preview, versioning and server sanitizer. The handle is only present in visual mode. The extension's peer packages (`extension-collaboration`, `extension-node-range`, `y-tiptap`, `yjs`, `y-protocols`) are pinned in the control app; no collaborative editing is enabled.
+
 ## Syntax highlighting in the HTML mode (Step 171)
 
 - The "HTML code" mode of the page and block template editors is CodeMirror 6 (MIT) instead of a plain text field: `@codemirror/state` 6.7.6, `view` 6.43.14, `language` 6.13.1, `lang-html` 6.4.12, `commands` 6.11.1, `autocomplete` 6.20.3, `@lezer/highlight` 1.2.5, pinned exactly. Highlighting of tags, attributes, values, comments and entities in the panel palette (light and dark), line numbers, active line, bracket matching, closing tags completed on `>`/`/`, undo/redo, Tab indents, long lines wrap.

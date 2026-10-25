@@ -1094,3 +1094,67 @@ Status: complete
 - ADR 0021 amended; `contracts/openapi.yaml` (new operation, MFA reset description), `spec/VALIDATION.md` (252 operations).
 
 Verification: `TenantAdminTest` — the owner resets MFA as before; support gets `owner_only` and a denied audit row; support sends the reset link (token row, e-mail to the member, audit with reason), another tenant 404, reason required. Control `tenants.test.ts` — support sees the link button and not the MFA reset, sends with a reason. Backend SQLite 736 passed + 4 skipped, PostgreSQL 18 740/740, Pint ok; control 77/77, typecheck and build ok; spec validator passes.
+
+### Step 254: Customer Session List and Sign Out Everywhere
+
+Status: complete for the session-list part of the MFA backlog item; not deployed
+
+- `/app/settings/profile` shows the signed-in customer's active database sessions, with browser family, IP, last activity in UTC and a current-session marker. The API returns no session IDs or payloads and only queries the authenticated user. A just-created current session is included before Laravel writes it after the response.
+- `POST /api/v1/auth/sessions/revoke-all` requires the current password and an MFA or recovery code when MFA is enabled. It removes all customer sessions, signs out the current browser (including its remember token) and writes `user.sessions_revoked` in every team audit. Platform staff sessions remain separate.
+- ADR 0021, `spec/panels/CLIENT-PANELS.md`, and `contracts/openapi.yaml` updated. No migration or financial semantics change. Passkeys, trusted devices and a non-blocking team-member MFA warning remain open.
+
+Verification: `AccountApiTest` checks auth, tenant/user isolation, absence of raw session IDs, step-up failure and success, other-user session preservation and audit. `MfaApiTest` verifies an MFA/recovery code is required when enabled. Customer `account.test.ts` checks display and logout flow. Backend SQLite 738 passed + 4 skipped, PostgreSQL 18 742/742; customer frontend 173/173, typecheck and build; Pint, `git diff --check` and static spec validator (254 core operations) passed. No live browser or production deployment was run.
+
+### Step 255: Customer Passkeys / WebAuthn
+
+Status: complete for the passkey part of the MFA backlog item; not deployed — includes a migration
+
+- Customer login accepts a discoverable WebAuthn passkey with local user verification, fresh one-use challenge and server-side origin/RP/signature/counter checks. An enabled user with a team membership gets a normal customer session; platform staff authentication stays separate. Password/TOTP login remains available.
+- The profile lists only the user's passkey names and timestamps. Registration first requires a fresh password and an MFA/recovery code if MFA is enabled, then a WebAuthn ceremony; deletion uses the same step-up. Registration authorization and both challenges expire after five minutes. Register, login and delete write audit events to every team of the user. Privacy anonymization removes unused users' passkeys.
+- Installed `laravel/passkeys` and `@laravel/passkeys`; package routes are disabled in favor of seven project API routes with the existing stateful session, CSRF and throttling. Migration `2026_10_25_120000_create_passkeys_table.php` stores credential material privately, without cascading user deletion. Updated `contracts/openapi.yaml` (seven operations), reference `spec/database/schema.sql`, ADR 0021, customer panel spec and EXT-03 evidence. UI strings ru/en/de.
+- This closes only passkeys. Trusted devices and a non-blocking team-member MFA warning remain open. No live authenticator or production deployment was run; backend and frontend must be released together with the migration and stable `APP_URL`/`APP_KEY` or `PASSKEYS_USER_HANDLE_SECRET`.
+
+Verification: `PasskeyApiTest` exercises a valid WebAuthn attestation for registration, fresh options, user-scoped list/delete with step-up, cryptographically signed assertion login, challenge consumption and stale-signature rejection; customer `account.test.ts` checks the passkey panel. Backend SQLite 742 passed + 4 skipped; customer frontend 175/175, typecheck and build; Pint, `git diff --check` and static spec validator (261 core operations) passed. PostgreSQL 18 746/746.
+
+### Step 256: Optional Trusted Customer Devices
+
+Status: complete for the trusted-device part of the MFA backlog item; not deployed — includes a migration
+
+- Owner corrected the backlog: customer-team MFA is optional. A member without MFA should see a warning and setup link like the organization owner; no team-wide enforcement. The warning is the next separate task.
+- After a successful authenticator/recovery-code login, the user may explicitly trust this browser for 30 days. A later password sign-in on the same browser skips the MFA prompt only for that exact user and only while the device token is valid. Sensitive step-up actions still require password and MFA. Cookie: host-only, HttpOnly, SameSite=Strict, auth-path scoped, Secure in production; database stores only a hash of the 256-bit random token. No IP or raw user-agent binding.
+- Profile lists browser family and expiry without token or raw user agent and allows revocation; issuance, reuse and revocation are audited in every team. Password change/reset, MFA reset/disable/re-enrollment, sign-out-everywhere and privacy anonymization revoke trust. Platform-staff login is unchanged.
+- Migration `2026_10_25_130000_create_trusted_devices_table.php`, two OpenAPI operations plus MFA challenge opt-in, reference SQL, ADR 0021, customer panel spec and EXT-03 evidence updated. Backend and customer frontend must be deployed together after migration. Stripe not touched.
+
+Verification: `TrustedDeviceApiTest` covers opt-in, cookie attributes, hashed token, password sign-in reuse, own-device listing/revocation, other-user isolation, 30-day expiry, password-change/reset and sign-out-everywhere invalidation, continued MFA step-up and audit. Customer `account.test.ts` covers the opt-in and revocation UI. Backend SQLite 747 passed + 4 skipped, PostgreSQL 18 751/751; customer frontend 177/177, typecheck and build; Pint, `git diff --check` and static spec validator (263 core operations, 67 reference tables) passed. No live browser or production deployment was run.
+
+### Step 259: Guarded Service Outbox Retry
+
+Status: complete locally; not deployed
+
+- The owner panel «Сервис» lists the 50 oldest `domain_outbox` dead-letter entries by ID, topic, error code, attempts and time, without payload or tenant identity. A member needs the new assignable `service.manage` capability (which implies `service.read`) to see them or retry one entry.
+- A retry requires a reason and authenticator code. The server locks the row and accepts only `dead_letter`, clears the old lease/error and resets attempts before the existing dispatcher picks it up. A repeated request returns 409. Successful and denied attempts record target, tenant where known, reason, result and sanitized metadata in platform audit. No arbitrary command execution is exposed.
+- ADR 0051 supersedes the earlier deferral of repair actions; ADR 0064, owner panel spec, EXT-23 and `contracts/openapi.yaml` document the capability and two routes. No migration. Other queues retain their own recovery semantics and are not retried by this action.
+
+Verification: `ServiceHealthTest` covers permission, no customer data in the list, code rejection, reason validation, requeue state, duplicate rejection and audit. Control `service.test.ts` covers permission gating and the confirmation form; `staff.test.ts` includes the capability. Backend SQLite 748 passed + 4 skipped; control frontend 79/79, typecheck and build; static spec validator 265 core operations. No production retry or deployment was run.
+
+### Step 260: Complete Admin Menu Badges
+
+Status: complete locally; not deployed
+
+- The remaining «Подписки» and «Организации» badges now show past-due subscriptions and the signed-in staff member's pending support access requests. Both are yellow with a count; the existing contacts, service and refund badges keep their severity rules, and counts above 99 show `99+`. Refund requests are shown only to staff allowed to approve them. Other menu sections have no independent action queue, so no badge is defined for them.
+- All indicators come from one compact `GET /platform-api/v1/attention` response instead of loading three detail endpoints. The backend includes only fields allowed by the staff capabilities and no customer identifiers or payloads; service state is cached for at most 30 seconds. The panel refreshes once a minute in a visible tab and clears badges if the request fails. `contracts/openapi.yaml` and owner panel spec updated; no migration.
+
+Verification: `PlatformAttentionTest` covers counts, the current refund mode, own pending requests, capability omissions and no customer data; `ownerBadges.test.ts` covers levels, 99+, translations and one request. Backend SQLite 750 passed + 4 skipped; control frontend 80/80, typecheck and build; Pint, `git diff --check`, static spec validator (266 core operations) passed. No live deployment was run. Traceability: owner panel §7, ADR 0064, backlog menu-badge item.
+
+### Step 261: Читаемый аудит админки — работа над одним пунктом бэклога
+
+Статус: локально завершён; пункт «Читаемый аудит в админке» отмечен `[x]`, следующий пункт не начинали; не выложен.
+
+- `AuditPresentation` формирует для страницы и CSV локализованные название, описание, строки деталей, ссылку на объект и дополнительные ссылки на организацию/магазин. Имена берутся по ID при чтении и проверяются по возможностям сотрудника; недоступный объект показывается как ограниченный, удалённый — как удалённый. Ответ API больше не содержит сырой `sanitized_changes` и `request_id`; экран не печатает JSON, тип/ID объекта или хэш. CSV содержит читаемое описание вместо JSON и технических идентификаторов.
+- Добавлены отсутствовавшие названия действий ru/en/de и автоматический тест, который собирает коды из PHP-источников и набора действий организации и сверяет копии переводов для CSV. Для обращения показываются адрес получателя и шаблон, для запроса поддержки — номер SUP, магазин, организация, области, срок и причина. Старые записи без прежнего значения показывают только новое, без выдуманного «было».
+- Сохраняются `before`/`after` для изменений обращения, страниц и черновиков, блоков, версий тарифа, скидок, ролей, инцидентов, возвратов, запросов поддержки, outbox, MFA и действий над организацией. Сохранение черновика получило отдельное действие вместо общего `platform.change`. Напоминание теперь сохраняет в platform audit ID адресатов, а приглашение сотрудника и сброс MFA — без дублирования email. Существующие исторические записи не переписывались.
+- Миграций нет. Контракт: `contracts/openapi.yaml` для `/platform-api/v1/audit` и CSV. Трассировка: `spec/panels/OWNER-PANEL.md` §7, OWN-09, OWN-12, EXT-29 и пункт бэклога «Читаемый аудит в админке». Stripe не затронут.
+
+Проверка: backend SQLite 757 пройдено, 4 пропущено; PostgreSQL 18 — 761/761; control `npm run check` (81 тест, типы, сборка); Pint, `spec/validate_spec.py` и `git diff --check` прошли. Отдельные тесты проверяют ограничение прав, удалённый объект, старую запись без `before`, обращение, запрос поддержки, переводы прав/лимитов, HTML без разметки, CSV и защиту от формул.
+
+Ограничения: в старых записях отсутствующее прежнее значение не восстанавливается; живой браузер и выкладка не проверялись. `platform.change` остаётся защитной записью для будущих маршрутов без предметного аудита; текущий маршрут сохранения черновика пишет отдельное действие.

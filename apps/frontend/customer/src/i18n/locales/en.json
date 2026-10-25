@@ -85,6 +85,8 @@
     "remember": "Keep me signed in on this device",
     "submit": "Sign in",
     "submitting": "Signing in…",
+    "passkey_sign_in": "Sign in with a passkey",
+    "passkey_failed": "Passkey sign-in failed. Try again.",
     "failed": "Wrong e-mail or password.",
     "rate_limited": "Too many attempts. Wait a minute and try again.",
     "session_expired": "Your session has ended. Sign in again.",
@@ -94,6 +96,7 @@
       "code": "Code",
       "recovery_hint": "No access to the app? Enter one of your recovery codes — each works once.",
       "submit": "Sign in",
+      "remember_device": "Trust this device for 30 days. The next password sign-in will not ask for an MFA code.",
       "back": "Sign in with another address",
       "expired": "The time to enter the code ran out. Enter your password again.",
       "invalid": "That code did not work. Check the time on your phone and enter a new code."
@@ -1914,6 +1917,34 @@
       "changed": "Password changed.",
       "current_invalid": "The current password is wrong."
     },
+    "passkeys": {
+      "title": "Passkeys",
+      "description": "Sign in without a password using confirmation on your device. To add or delete a passkey, enter your password and MFA code if enabled.",
+      "unsupported": "This browser does not support passkeys.",
+      "empty": "No passkeys yet.",
+      "last_used": "Last used:",
+      "delete": "Delete",
+      "confirm_delete": "Confirm deletion",
+      "cancel": "Cancel",
+      "name": "Device name",
+      "add": "Add passkey"
+    },
+    "trusted_devices": {
+      "title": "Trusted devices",
+      "description": "After the password, these devices can sign in without an MFA code for up to 30 days. Sensitive actions still require a code.",
+      "empty": "No trusted devices.",
+      "current": "this device",
+      "expires": "Trusted until:",
+      "revoke": "Remove trust"
+    },
+    "sessions": {
+      "title": "Sign-in sessions",
+      "description": "Devices signed in to your account, with their last activity and IP address.",
+      "current": "this session",
+      "revoke_description": "End all sessions, including this one. Confirm with your password and an MFA code if MFA is enabled.",
+      "revoke_all": "Sign out everywhere",
+      "device": {"Chrome": "Chrome", "Edge": "Edge", "Firefox": "Firefox", "Safari": "Safari", "other": "Other browser", "unknown": "Unknown device"}
+    },
     "profile": {
       "title": "Profile",
       "name": "Name",
@@ -1946,6 +1977,7 @@
       "off": "off",
       "intro": "Signing in will need a code from an authenticator app (Google Authenticator, 1Password, Microsoft Authenticator, etc.) in addition to your password.",
       "owner_hint": "You own this team: turn on two-factor authentication so a stolen password does not open your stores and reconciliation.",
+      "member_hint": "You are a team member: turn on two-factor authentication so a stolen password does not open the team’s stores and data. This is a recommendation, not a requirement.",
       "remaining": "Unused recovery codes: {count}.",
       "enable": "Turn on",
       "regenerate": "New recovery codes",

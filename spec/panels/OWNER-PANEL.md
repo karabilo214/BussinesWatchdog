@@ -78,9 +78,15 @@ Billing staff может подготовить refund request, но monetary su
 
 Owner service overview: API/DB/Redis health, inbox/outbox ages, billing webhook lag, browser slots/backlog, notification failures, sync lag, deployment versions, entitlement drift. Эти данные не заменяют детализацию /admin. Maintenance windows и worker limits config имеют bounded validation, effective_at, version и change log; не выполнять произвольную shell/SQL из UI.
 
+Восстановление внутренней очереди (Step 259, ADR 0051): отдельное право `service.manage` подразумевает `service.read`. Сотрудник видит служебные метаданные мёртвых записей `domain_outbox` без содержимого и сведений о клиенте; повтор одной записи требует причины и кода аутентификатора, проводится под блокировкой строки, фиксируется в platform audit. Повтор обрабатывает существующий dispatcher; карантин событий, доставки уведомлений и failed jobs сюда не входят.
+
 Staff: invite role, activate/disable, role change, force session revoke, MFA reset через secure recovery. Invitation expires72ч, email verified, platform_owner только owner approval. Last-owner guard и preventing self-lockout обязательны. Нельзя grant platform role через tenant membership endpoint.
 
 Platform audit отдельный от tenant `audit_log`: actor staff, action,target tenant/entity, before/after sanitized, request_id, reason, result, step-up context, time. Filters actor/action/target/date/result. Export audit same role permission. Deleting tenant не удаляет operational deletion journal и minimum retained platform audit по утверждённой policy.
+
+Отображение аудита (Step 261): названия действий и значений ru/en/de, описание с именем объекта и доступными ссылками, прежним и новым значением изменения; имена и адреса разрешаются по ID при чтении с проверкой прав сотрудника. Удалённый объект обозначается словом, старой записи без `before` не приписывается прежнее значение. В списке, деталях и CSV не показываются сырой JSON, ID запросов и хэши; CSV содержит то же читаемое описание. Экспорт экранирует формулы.
+
+Меню owner/admin (Step 260): один ответ `/platform-api/v1/attention` без идентификаторов клиентов даёт счётчики только по правам сотрудника. «Обращения» — новые; «Оплаты» — запрошенные возвраты текущего режима Paddle только для имеющего `refunds.approve`; «Подписки» — `past_due`; «Организации» — собственные ожидающие запросы доступа поддержки; «Сервис» — уровень общей проверки `warn`/`crit`. Другие пункты меню (обзор, тарифы, сайт, публичные проверки, сотрудники, аудит, настройки) не имеют самостоятельного состояния «ждёт действия» и не получают значок. Клиент обновляет ответ раз в минуту только при видимой вкладке. Неудачная проверка не означает норму.
 
 ## 8 Приёмка панели owner
 

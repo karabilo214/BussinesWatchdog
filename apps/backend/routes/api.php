@@ -2,8 +2,11 @@
 
 use App\Http\Controllers\Api\V1\Account\AccountController;
 use App\Http\Controllers\Api\V1\Account\MfaController;
+use App\Http\Controllers\Api\V1\Account\PasskeyController;
+use App\Http\Controllers\Api\V1\Account\SessionController;
 use App\Http\Controllers\Api\V1\Account\SupportGrantController;
 use App\Http\Controllers\Api\V1\Account\TeamController;
+use App\Http\Controllers\Api\V1\Account\TrustedDeviceController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Billing\CheckoutController;
 use App\Http\Controllers\Api\V1\Billing\EntitlementController;
@@ -59,6 +62,8 @@ Route::middleware('stateful.session')->prefix('/v1/auth')->group(function (): vo
     Route::post('/password-reset/request', [AccountController::class, 'requestPasswordReset'])->middleware('throttle:auth-password-reset');
     Route::post('/password-reset/complete', [AccountController::class, 'completePasswordReset'])->middleware('throttle:auth-password-reset-complete');
     Route::post('/mfa/challenge', [MfaController::class, 'challenge'])->middleware(['guest', 'throttle:auth-mfa-challenge']);
+    Route::get('/passkeys/login/options', [PasskeyController::class, 'loginOptions'])->middleware(['guest', 'throttle:auth-mfa-challenge']);
+    Route::post('/passkeys/login', [PasskeyController::class, 'login'])->middleware(['guest', 'throttle:auth-mfa-challenge']);
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
@@ -70,6 +75,15 @@ Route::middleware('stateful.session')->prefix('/v1/auth')->group(function (): vo
         Route::post('/mfa/confirm', [MfaController::class, 'confirm'])->middleware('throttle:auth-step-up');
         Route::post('/mfa/disable', [MfaController::class, 'disable'])->middleware('throttle:auth-step-up');
         Route::post('/mfa/recovery-codes', [MfaController::class, 'regenerateRecoveryCodes'])->middleware('throttle:auth-step-up');
+        Route::get('/passkeys', [PasskeyController::class, 'index']);
+        Route::post('/passkeys/authorize', [PasskeyController::class, 'authorizeRegistration'])->middleware('throttle:auth-step-up');
+        Route::get('/passkeys/register/options', [PasskeyController::class, 'registrationOptions'])->middleware('throttle:auth-step-up');
+        Route::post('/passkeys/register', [PasskeyController::class, 'register'])->middleware('throttle:auth-step-up');
+        Route::delete('/passkeys/{passkey}', [PasskeyController::class, 'destroy'])->middleware('throttle:auth-step-up');
+        Route::get('/sessions', [SessionController::class, 'index']);
+        Route::post('/sessions/revoke-all', [SessionController::class, 'destroyAll'])->middleware('throttle:auth-step-up');
+        Route::get('/trusted-devices', [TrustedDeviceController::class, 'index']);
+        Route::delete('/trusted-devices/{device}', [TrustedDeviceController::class, 'destroy'])->middleware('throttle:auth-step-up');
         Route::post('/logout', [AuthController::class, 'logout']);
     });
 });

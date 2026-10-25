@@ -10,6 +10,7 @@ use App\Support\Account\MfaService;
 use App\Support\Account\Totp;
 use App\Support\Browser\ScenarioDefinition;
 use App\Support\Health\ReadinessChecks;
+use App\Support\Platform\PlatformCapabilities;
 use App\Support\Platform\ServiceHealth;
 use App\Support\Security\Keyring;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -140,12 +141,47 @@ class ServiceHealthTest extends TestCase
         $this->getJson('/platform-api/v1/health')->assertForbidden();
     }
 
+    public function test_dead_outbox_retry_requires_manage_permission_code_and_reason_and_is_audited(): void
+    {
+        $context = $this->context();
+        $context['tenant']->forceFill(['name' => 'Private Customer'])->save();
+        $record = $this->outbox($context, DomainOutbox::STATUS_DEAD_LETTER, now()->subDay());
+        $record->forceFill(['attempts' => 5, 'error_code' => 'worker_failed'])->save();
+
+        $this->signIn(PlatformStaff::ROLE_ADMIN);
+        $path = '/platform-api/v1/health/dead-outbox';
+        $this->getJson($path)->assertForbidden();
+        $this->postJson($path.'/'.$record->id.'/retry', ['reason' => 'Fixed worker', 'confirmation_code' => $this->code()])->assertForbidden();
+
+        PlatformStaff::query()->firstOrFail()->forceFill(['capabilities' => [PlatformCapabilities::SERVICE_MANAGE]])->save();
+        $listed = $this->getJson($path)->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+        $listed->assertJsonPath('data.0.id', $record->id)->assertJsonPath('data.0.error_code', 'worker_failed');
+        $this->assertStringNotContainsString('Private Customer', (string) $listed->getContent());
+        $this->assertStringNotContainsString($context['tenant']->id, (string) $listed->getContent());
+        $this->assertStringNotContainsString('event_inbox_id', (string) $listed->getContent());
+
+        $this->postJson($path.'/'.$record->id.'/retry', ['reason' => 'Fixed worker', 'confirmation_code' => '000000'])->assertForbidden()->assertJsonPath('code', 'step_up_failed');
+        $this->postJson($path.'/'.$record->id.'/retry', ['reason' => '', 'confirmation_code' => $this->code()])->assertUnprocessable();
+        $this->assertSame(DomainOutbox::STATUS_DEAD_LETTER, $record->fresh()->status);
+        $this->postJson($path.'/'.$record->id.'/retry', ['reason' => 'Fixed worker', 'confirmation_code' => $this->code()])->assertOk()->assertJsonPath('status', 'pending');
+        $this->assertSame(0, $record->fresh()->attempts);
+        $this->assertNull($record->fresh()->error_code);
+        $this->assertSame([], $this->getJson($path)->json('data'));
+        $this->postJson($path.'/'.$record->id.'/retry', ['reason' => 'Fixed worker', 'confirmation_code' => $this->code()])->assertStatus(409)->assertJsonPath('code', 'outbox_not_dead');
+
+        $logs = DB::table('platform_audit_log')->where('action', 'service.outbox_retry')->orderBy('created_at')->get();
+        $this->assertCount(3, $logs);
+        $this->assertSame(['denied', 'succeeded', 'denied'], $logs->pluck('result')->all());
+        $this->assertSame($context['tenant']->id, $logs[1]->target_tenant_id);
+        $this->assertSame('Fixed worker', $logs[1]->reason);
+    }
+
     /**
      * @param  array<string, mixed>  $context
      */
-    private function outbox(array $context, string $status, Carbon $createdAt): void
+    private function outbox(array $context, string $status, Carbon $createdAt): DomainOutbox
     {
-        DomainOutbox::query()->create([
+        return DomainOutbox::query()->create([
             'tenant_id' => $context['tenant']->id, 'topic' => DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, 'dedupe_key' => (string) Str::uuid(), 'payload' => ['event_inbox_id' => (string) Str::uuid()],
             'status' => $status, 'attempts' => 0, 'next_attempt_at' => now(), 'created_at' => $createdAt,
         ]);

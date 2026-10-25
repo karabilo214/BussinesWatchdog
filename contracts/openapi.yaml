@@ -1697,6 +1697,28 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/attention:
+    get:
+      tags: [Platform]
+      operationId: platformMenuAttention
+      description: "One compact menu-badge summary refreshed while the owner panel is visible (Step 260). Only fields whose capabilities the current staff member holds are included: tenants.support gets own pending support access requests for non-deleting tenants; billing.read gets past-due subscriptions for non-deleted tenants; refunds.approve gets requested refunds in the current Paddle mode; contacts.read gets new contact requests; service.read gets cached (up to 30 seconds) overall service state. Zero counts are included for permitted fields; unknown service state is never reported as healthy. No customer identifiers, names or record payloads. No-store. Other menu sections have no independent action state and receive no badge."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Permission-filtered attention counts
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  support_requests_pending: {type: integer, minimum: 0}
+                  subscriptions_past_due: {type: integer, minimum: 0}
+                  refunds_requested: {type: integer, minimum: 0}
+                  contacts_new: {type: integer, minimum: 0}
+                  service_state: {type: string, enum: [ok, warn, crit]}
+        "401": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/health:
     get:
       tags: [Platform]
@@ -1712,6 +1734,70 @@ paths:
               schema: {type: object}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/health/dead-outbox:
+    get:
+      tags: [Platform]
+      operationId: platformDeadOutbox
+      description: "Capability service.manage (implies service.read). Up to 50 oldest domain_outbox dead-letter records, ordered by created_at then id. Only id, topic, error_code, attempts and created_at; no tenant identifiers or payloads. No-store. ADR 0051."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Dead-letter entries
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, topic, error_code, attempts, created_at]
+                      properties:
+                        id: {type: string, format: uuid}
+                        topic: {type: string}
+                        error_code: {type: string, nullable: true}
+                        attempts: {type: integer}
+                        created_at: {type: string, format: date-time}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/health/dead-outbox/{message}/retry:
+    post:
+      tags: [Platform]
+      operationId: platformRetryDeadOutbox
+      description: "Capability service.manage. A valid authenticator code and reason requeue exactly one domain_outbox record only if it is still dead_letter; reset attempts to zero, clear lease/error and make it due now. Existing dispatcher processes it asynchronously. Success and denied attempts are audited with the target record and tenant. Repeating the request returns 409 outbox_not_dead. No-store. ADR 0051."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: message, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, confirmation_code]
+              properties:
+                reason: {type: string, minLength: 3, maxLength: 500}
+                confirmation_code: {type: string, maxLength: 32}
+      responses:
+        "200":
+          description: Requeued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id: {type: string, format: uuid}
+                  status: {type: string, enum: [pending]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/staff:
     get:
       tags: [Platform]
@@ -1943,7 +2029,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformListAudit
-      description: "Capability audit.read (owner, admin). Platform audit (ADR 0053), newest first, 50 per page with next_cursor: time, actor (staff name/email or system), action, target type/id, organisation, result, reason, sanitized changes, request id; also the list of actions and staff for filters. Filters by actor, exact action, target, organisation, result and UTC dates (both included)."
+      description: "Capability audit.read (owner, admin). Platform audit (ADR 0053), newest first, 50 per page with next_cursor: time, actor, action, result and a localized presentation (title, human-readable description with capability-scoped reason, named object link, detail lines). Names and links are resolved at read time under the viewer's capabilities; deleted objects show Deleted. Raw sanitized changes, reasons and request IDs are not returned as separate fields. Also includes action and staff filter options. Filters by actor, exact action, target, organisation, result and UTC dates (both included)."
       security:
         - {StaffSession: []}
       parameters:
@@ -1969,7 +2055,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformExportAudit
-      description: "Capability audit.read. CSV of the filtered audit (at most 10 000 newest rows; cells starting with = + - @ are prefixed with a quote), no-store; the export itself is audited as audit.exported with the filters."
+      description: "Capability audit.read. CSV of the filtered audit (at most 10 000 newest rows) with the same localized human-readable description and capability-scoped names as the page; no raw JSON, target IDs, hashes or request IDs. Cells starting with = + - @ are prefixed with a quote; no-store. The export itself is audited as audit.exported with the filters."
       security:
         - {StaffSession: []}
       parameters:
@@ -2807,7 +2893,7 @@ paths:
     post:
       tags: [Auth]
       operationId: login
-      description: Generic failure that does not reveal whether the e-mail exists; 5 per minute per e-mail+IP. With MFA on, a correct password answers {mfa_required true} and no session is signed in until POST /auth/mfa/challenge (ADR 0021).
+      description: Generic failure that does not reveal whether the e-mail exists; 5 per minute per e-mail+IP. With MFA on, a correct password answers {mfa_required true} until POST /auth/mfa/challenge, unless this browser has a valid 30-day trusted-device cookie for this exact user. Sensitive step-up actions still require MFA (ADR 0021).
       requestBody:
         required: true
         content:
@@ -2834,7 +2920,7 @@ paths:
     post:
       tags: [Auth]
       operationId: completeMfaChallenge
-      description: Second sign-in step for the sign-in waiting in this session (5 minutes, 5 attempts) with an authenticator code or an unused recovery code; each code works once. mfa_challenge_expired (401) sends the user back to the password; 10 per minute per IP.
+      description: Second sign-in step for the sign-in waiting in this session (5 minutes, 5 attempts) with an authenticator code or an unused recovery code; each code works once. Optional remember_device issues a 30-day trusted-device cookie after success. mfa_challenge_expired (401) sends the user back to the password; 10 per minute per IP.
       parameters:
         - {$ref: "#/components/parameters/CsrfToken"}
       requestBody:
@@ -2846,6 +2932,7 @@ paths:
               required: [code]
               properties:
                 code: {type: string, maxLength: 32}
+                remember_device: {type: boolean, description: "Explicit 30-day device trust opt-in; password remains required at later sign-ins."}
       responses:
         "200":
           description: Session started
@@ -2976,6 +3063,230 @@ paths:
               schema: {$ref: "#/components/schemas/MfaStateWithCodes"}
         "401": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/passkeys/login/options:
+    get:
+      tags: [Auth]
+      operationId: getPasskeyLoginOptions
+      description: Anonymous WebAuthn challenge; 5-minute server lifetime and IP throttling. Requires a stateful session.
+      responses:
+        "200":
+          description: Discoverable-credential request options
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyOptions"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/passkeys/login:
+    post:
+      tags: [Auth]
+      operationId: loginWithPasskey
+      description: Verifies a fresh, one-use WebAuthn assertion with user verification and returns a customer session. Disabled users and users without a team are refused. Does not bypass platform staff MFA.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential]
+              properties:
+                credential: {type: object, description: Browser WebAuthn assertion JSON}
+                remember: {type: boolean}
+      responses:
+        "200":
+          description: Authenticated customer session
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AuthSession"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/passkeys:
+    get:
+      tags: [Auth]
+      operationId: listAccountPasskeys
+      security:
+        - {UserSession: []}
+      description: Current user's passkey names and times only; credential material is never returned.
+      responses:
+        "200":
+          description: User passkeys
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/AccountPasskey"}
+        "401": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/passkeys/authorize:
+    post:
+      tags: [Auth]
+      operationId: authorizePasskeyRegistration
+      security:
+        - {UserSession: []}
+      description: Current password and MFA/recovery code when enabled authorize registration for five minutes.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/StepUp"}
+      responses:
+        "200": {description: Registration authorized in this session}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/passkeys/register/options:
+    get:
+      tags: [Auth]
+      operationId: getPasskeyRegistrationOptions
+      security:
+        - {UserSession: []}
+      description: Fresh, one-use WebAuthn challenge requiring discoverable credential and user verification.
+      responses:
+        "200":
+          description: Registration options
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyOptions"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/passkeys/register:
+    post:
+      tags: [Auth]
+      operationId: registerAccountPasskey
+      security:
+        - {UserSession: []}
+      description: Verifies origin, RP ID, challenge, user verification and credential uniqueness; consumes registration authorization and audits across the user's teams.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, credential]
+              properties:
+                name: {type: string, maxLength: 255}
+                credential: {type: object, description: Browser WebAuthn attestation JSON}
+      responses:
+        "201":
+          description: Registered passkey
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AccountPasskey"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/passkeys/{passkey}:
+    delete:
+      tags: [Auth]
+      operationId: deleteAccountPasskey
+      security:
+        - {UserSession: []}
+      description: Deletes only the current user's passkey after password and MFA/recovery code when enabled; audits across teams.
+      parameters:
+        - {name: passkey, in: path, required: true, schema: {type: integer}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/StepUp"}
+      responses:
+        "204": {description: Passkey deleted}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/trusted-devices:
+    get:
+      tags: [Auth]
+      operationId: listTrustedDevices
+      security:
+        - {UserSession: []}
+      description: Active trusted devices for this customer user; token hashes and cookies are never returned.
+      responses:
+        "200":
+          description: Trusted device summaries
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/TrustedDevice"}
+        "401": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/trusted-devices/{device}:
+    delete:
+      tags: [Auth]
+      operationId: revokeTrustedDevice
+      security:
+        - {UserSession: []}
+      description: Revoke only the signed-in user's trusted device, without an MFA challenge. Current-device cookie is cleared when applicable. Audited in every team.
+      parameters:
+        - {name: device, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "204": {description: Device trust revoked}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/sessions:
+    get:
+      tags: [Auth]
+      operationId: listAccountSessions
+      security:
+        - {UserSession: []}
+      description: Active customer sessions for the signed-in user only. Session IDs and payloads are never returned.
+      responses:
+        "200":
+          description: Sessions ordered by recent activity
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [current, device, ip_address, last_active_at]
+                      properties:
+                        current: {type: boolean}
+                        device: {type: string, enum: [Chrome, Edge, Firefox, Safari, other, unknown]}
+                        ip_address: {type: [string, "null"]}
+                        last_active_at: {type: string, format: date-time}
+        "401": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/sessions/revoke-all:
+    post:
+      tags: [Auth]
+      operationId: revokeAllAccountSessions
+      security:
+        - {UserSession: []}
+      description: Ends all customer sessions, including the current one, and revokes all trusted devices. Requires current password and an MFA or recovery code when MFA is enabled. Audited in every team.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/StepUp"}
+      responses:
+        "204": {description: All sessions revoked}
+        "401": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
   /api/v1/auth/logout:
@@ -7133,6 +7444,28 @@ components:
                 requested_at: {type: string, format: date-time}
                 purge_after: {type: string, format: date-time}
                 can_cancel: {type: boolean, description: "Owner only, while status is requested (the 30 days)."}
+    PasskeyOptions:
+      type: object
+      required: [options]
+      properties:
+        options: {type: object, description: WebAuthn PublicKeyCredentialCreationOptions or PublicKeyCredentialRequestOptions in browser JSON form}
+    AccountPasskey:
+      type: object
+      required: [id, name, created_at, last_used_at]
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        created_at: {type: [string, "null"], format: date-time}
+        last_used_at: {type: [string, "null"], format: date-time}
+    TrustedDevice:
+      type: object
+      required: [id, device, current, last_used_at, expires_at]
+      properties:
+        id: {type: string, format: uuid}
+        device: {type: string, enum: [Chrome, Edge, Firefox, Safari, other]}
+        current: {type: boolean}
+        last_used_at: {type: [string, "null"], format: date-time}
+        expires_at: {type: string, format: date-time}
     MfaRequired:
       type: object
       required: [mfa_required]

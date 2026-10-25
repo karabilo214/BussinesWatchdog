@@ -396,6 +396,8 @@ class OrganizationPurger
         DB::table('sessions')->where('user_id', $userId)->delete();
         DB::table('personal_access_tokens')->where('tokenable_type', User::class)->where('tokenable_id', $userId)->delete();
         DB::table('mfa_recovery_codes')->where('user_id', $userId)->delete();
+        DB::table('passkeys')->where('user_id', $userId)->delete();
+        DB::table('trusted_devices')->where('user_id', $userId)->delete();
 
         $user->forceFill([
             'email' => 'deleted-'.$userId.'@deleted.invalid',

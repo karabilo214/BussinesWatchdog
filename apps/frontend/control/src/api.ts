@@ -785,6 +785,34 @@ export async function fetchServiceHealth(): Promise<ServiceHealth> {
   return (await request<ServiceHealth>('GET', '/platform-api/v1/health')).data;
 }
 
+export interface OwnerAttention {
+  contacts_new?: number;
+  service_state?: HealthState;
+  refunds_requested?: number;
+  subscriptions_past_due?: number;
+  support_requests_pending?: number;
+}
+
+export async function fetchOwnerAttention(): Promise<OwnerAttention> {
+  return (await request<OwnerAttention>('GET', '/platform-api/v1/attention')).data;
+}
+
+export interface DeadOutboxMessage {
+  id: string;
+  topic: string;
+  error_code: string | null;
+  attempts: number;
+  created_at: string;
+}
+
+export async function fetchDeadOutbox(): Promise<DeadOutboxMessage[]> {
+  return (await request<{ data: DeadOutboxMessage[] }>('GET', '/platform-api/v1/health/dead-outbox')).data.data;
+}
+
+export async function retryDeadOutbox(id: string, reason: string, confirmationCode: string): Promise<void> {
+  await request('POST', `/platform-api/v1/health/dead-outbox/${encodeURIComponent(id)}/retry`, { body: { reason, confirmation_code: confirmationCode } });
+}
+
 export interface StaffMember {
   id: string;
   name: string | null;
@@ -854,16 +882,14 @@ export async function confirmStaffInvitation(input: { token: string; code: strin
 export interface AuditEntry {
   id: string;
   created_at: string;
-  actor: { id: string; name: string | null; email: string | null } | null;
+  actor: { id: string; name: string | null } | null;
   actor_kind: string;
   action: string;
   target_type: string;
   target_id: string;
   tenant: { id: string; name: string | null } | null;
   result: 'requested' | 'succeeded' | 'failed' | 'denied' | 'unknown';
-  reason: string | null;
-  changes: unknown;
-  request_id: string;
+  presentation: { title: string; description: string; result_label: string; object: { label: string; href: string | null }; details: string[]; links: { label: string; href: string }[] };
 }
 
 export interface AuditPage {

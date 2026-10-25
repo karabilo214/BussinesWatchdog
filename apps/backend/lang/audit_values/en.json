@@ -1,0 +1,105 @@
+{
+  "role": {
+    "platform_owner": "service owner",
+    "platform_admin": "administrator",
+    "platform_support": "support",
+    "platform_billing": "finance",
+    "platform_member": "staff member"
+  },
+  "capability": {
+    "tenants_read": {
+      "label": "Customers: view",
+      "hint": "Company cards, stores, their data and teams."
+    },
+    "tenants_manage": {
+      "label": "Customers: change",
+      "hint": "Pause, trial extension, temporary access, reminders, customer team."
+    },
+    "customers_mfa_reset": {
+      "label": "Customers: MFA reset",
+      "hint": "Turn off a customer user's authenticator (with a reason and a code)."
+    },
+    "tenants_support": {
+      "label": "Customers: temporary support access",
+      "hint": "Request a customer-approved grant for store diagnostics, materials or a browser recheck."
+    },
+    "tenants_incident_actions": {
+      "label": "Customers: incident actions",
+      "hint": "Acknowledge or resolve an incident for a customer with a reason, audit and customer notification."
+    },
+    "tenants_delete": {
+      "label": "Customers: delete an organization",
+      "hint": "Delete an organization on the customer's written request, or cancel that within 30 days."
+    },
+    "billing_read": {
+      "label": "Billing: view",
+      "hint": "Overview, subscriptions, payments, invoices and refunds."
+    },
+    "refunds_request": {
+      "label": "Refunds: request",
+      "hint": "Request a refund of a payment; a platform owner approves it."
+    },
+    "refunds_approve": {
+      "label": "Refunds: approve",
+      "hint": "Send a requested refund to Paddle."
+    },
+    "plans_read": {
+      "label": "Plans: view",
+      "hint": "Plans, packages and discounts."
+    },
+    "plans_manage": {
+      "label": "Plans: change",
+      "hint": "Create and publish plans, prices and discounts."
+    },
+    "content_manage": {
+      "label": "Website",
+      "hint": "Pages, block templates and files of the public site."
+    },
+    "contacts_read": {
+      "label": "Contact requests: view",
+      "hint": "Messages from the contact form."
+    },
+    "contacts_manage": {
+      "label": "Contact requests: reply",
+      "hint": "Replies, notes and status of requests."
+    },
+    "service_read": {
+      "label": "Service",
+      "hint": "Service health and the public check history."
+    },
+    "service_manage": {
+      "label": "Service: recovery",
+      "hint": "Retry dead-letter entries in the internal queue with a code and audit record."
+    },
+    "audit_read": {
+      "label": "Audit",
+      "hint": "Journal of staff actions and its export."
+    },
+    "settings_manage": {
+      "label": "Settings",
+      "hint": "Maintenance window and service settings."
+    },
+    "staff_manage": {
+      "label": "Staff",
+      "hint": "Inviting staff and their permissions."
+    }
+  },
+  "feature": {
+    "checkout_monitoring": "Checkout checks in a browser",
+    "payment_attempts_server": "Payment attempt monitoring",
+    "payment_attempts_script": "Monitoring script on the payment page",
+    "money_reconciliation": "Money reconciliation with the payment provider",
+    "order_outcomes": "Fulfilment of paid orders",
+    "notifications_telegram": "Telegram notifications",
+    "agency_workspace": "Agency workspace for several clients"
+  },
+  "limit": {
+    "max_active_stores": "Stores included",
+    "max_extra_stores": "Extra stores that can be bought",
+    "min_check_interval_minutes": "Checks at most every N minutes",
+    "retention_days": "History kept, days",
+    "monthly_event_budget": "Store events per month (soft limit)",
+    "manual_runs_per_day": "Manual checks per day",
+    "max_orders_per_month": "Orders a month per store"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "tenant": {
+    "suspend": "Dienst pausiert",
+    "resume": "Dienst fortgesetzt",
+    "grant_override": "Befristeter Zugang gewährt",
+    "revoke_override": "Befristeter Zugang widerrufen",
+    "extend_trial": "Testphase verlängert",
+    "cancel_subscription": "Kündigung des Abonnements",
+    "refresh_billing": "Aktualisierung aus Paddle",
+    "reminder_sent": "Erinnerung gesendet",
+    "member_invited": "Teammitglied eingeladen",
+    "invitation_revoked": "Einladung widerrufen",
+    "member_password_reset_sent": "Link zum Zurücksetzen des Passworts an Mitglied gesendet",
+    "member_mfa_reset": "Kunden-MFA zurückgesetzt",
+    "store_created": "Shop hinzugefügt",
+    "store_viewed": "Shopdaten geöffnet",
+    "check_rerun": "Prüfung vom Support neu gestartet",
+    "incident_acknowledged": "Vorfall vom Support angenommen",
+    "incident_resolved": "Vorfall vom Support geschlossen",
+    "member_role_changed": "Rolle eines Kundenmitglieds geändert",
+    "member_removed": "Kundenmitglied entfernt",
+    "store_deleted": "Shop gelöscht",
+    "deletion_requested": "Löschung der Organisation beantragt",
+    "deletion_cancelled": "Löschung der Organisation storniert"
+  },
+  "staff": {
+    "login": "Anmeldung",
+    "invited": "Mitarbeitende eingeladen",
+    "invitation_revoked": "Einladung widerrufen",
+    "joined": "Mitarbeitende beigetreten",
+    "updated": "Mitarbeitende geändert",
+    "sessions_revoked": "Sitzungen beendet",
+    "mfa_reset": "Authenticator eines Mitarbeiters zurückgesetzt",
+    "bootstrap_owner": "Erster Inhaber angelegt",
+    "mfa_reenrolled": "Mitarbeiter hat einen neuen Authenticator verbunden",
+    "logout": "Abmeldung eines Mitarbeiters"
+  },
+  "site": {
+    "page": {
+      "created": "Seite angelegt",
+      "updated": "Seiteneinstellungen geändert",
+      "published": "Seite veröffentlicht",
+      "unpublished": "Veröffentlichung zurückgezogen",
+      "archived": "Seite gelöscht",
+      "restored": "Seitenversion wiederhergestellt",
+      "version_deleted": "Seitenversion gelöscht",
+      "draft_discarded": "Entwurf verworfen",
+      "draft_saved": "Seitenentwurf gespeichert"
+    },
+    "block": {
+      "created": "Blockvorlage angelegt",
+      "updated": "Blockvorlage geändert",
+      "archived": "Blockvorlage gelöscht"
+    },
+    "contact": {
+      "updated": "Status der Anfrage geändert",
+      "replied": "Anfrage beantwortet",
+      "noted": "Notiz zur Anfrage",
+      "attachment_downloaded": "Anhang der Anfrage heruntergeladen",
+      "template_saved": "Antwortvorlage gespeichert",
+      "note_edited": "Notiz bearbeitet"
+    },
+    "media": {
+      "uploaded": "Website-Datei hochgeladen",
+      "deleted": "Website-Datei gelöscht"
+    }
+  },
+  "audit": {
+    "exported": "Audit exportiert"
+  },
+  "settings": {
+    "maintenance_scheduled": "Wartung geplant",
+    "maintenance_cancelled": "Wartung abgesagt"
+  },
+  "platform": {
+    "change": "Änderung im Admin-Bereich"
+  },
+  "reminder": {
+    "template_saved": "Erinnerungsvorlage gespeichert"
+  },
+  "service": {
+    "alert_sent": "«Dienst»-Benachrichtigung gesendet",
+    "outbox_retry": "Eintrag der internen Warteschlange erneut eingereiht"
+  },
+  "billing": {
+    "refund_requested": "Erstattung angefordert",
+    "refund_approved": "Erstattung genehmigt",
+    "refund_rejected": "Erstattung abgelehnt",
+    "withdrawal_requested": "Widerruf mit Erstattung angefordert",
+    "plan_change_cancelled": "Tarifwechsel abgebrochen",
+    "subscription_cancel_scheduled": "Kündigung des Abonnements geplant",
+    "subscription_cancelled": "Abonnement gekündigt",
+    "subscription_cancelled_after_refund": "Abonnement nach Erstattung gekündigt",
+    "subscription_cancelled_for_deletion": "Abonnement wegen Löschung der Organisation gekündigt",
+    "subscription_resumed": "Abonnement fortgesetzt"
+  },
+  "discount": {
+    "created": "Rabatt erstellt",
+    "updated": "Rabatt geändert",
+    "archived": "Rabatt archiviert"
+  },
+  "plan": {
+    "created": "Tarif erstellt"
+  },
+  "plan_price": {
+    "added": "Tarifpreis hinzugefügt",
+    "removed": "Tarifpreis entfernt"
+  },
+  "plan_version": {
+    "created": "Tarifversion erstellt",
+    "updated": "Tarifversion geändert",
+    "published": "Tarifversion veröffentlicht",
+    "retired": "Tarifversion eingestellt"
+  },
+  "support_grant": {
+    "cancelled": "Supportzugriffsanfrage storniert",
+    "hidden": "Supportzugriffsanfrage ausgeblendet",
+    "resent": "Supportzugriffsanfrage erneut gesendet",
+    "requested": "Supportzugriff angefordert",
+    "approved": "Supportzugriff genehmigt",
+    "denied": "Supportzugriff abgelehnt",
+    "revoked": "Supportzugriff widerrufen"
+  },
+  "support_access": {
+    "opened": "Support hat Shopdaten geöffnet",
+    "artifact": "Support hat Prüfmaterialien geöffnet"
+  },
+  "user": {
+    "mfa_enabled": "MFA aktiviert",
+    "mfa_disabled": "MFA deaktiviert",
+    "mfa_reset": "MFA zurückgesetzt",
+    "mfa_recovery_code_used": "MFA-Wiederherstellungscode verwendet",
+    "mfa_recovery_codes_regenerated": "Neue MFA-Wiederherstellungscodes erstellt"
+  }
+}

@@ -7,6 +7,7 @@ use App\Models\Invitation;
 use App\Models\Membership;
 use App\Models\PlatformStaff;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Support\Account\AccountRejected;
 use App\Support\Account\MfaService;
 use App\Support\Account\PasswordResetService;
@@ -80,7 +81,7 @@ class TenantTeamController extends Controller
             return $this->rejected($exception);
         }
 
-        $this->audit->record($this->staff($request)->id, 'tenant.invitation_revoked', 'invitation', $revoked->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $revoked->role], trim($validated['reason']), $model->id);
+        $this->audit->record($this->staff($request)->id, 'tenant.invitation_revoked', 'invitation', $revoked->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $revoked->role, 'before' => ['revoked_at' => null], 'after' => ['revoked_at' => $revoked->revoked_at?->toJSON()]], trim($validated['reason']), $model->id);
 
         return response()->json($this->invitation($revoked));
     }
@@ -94,6 +95,7 @@ class TenantTeamController extends Controller
         }
 
         $validated = $request->validate(['role' => ['required', 'string'], 'reason' => ['required', 'string', 'min:3', 'max:500']]);
+        $previousRole = Membership::query()->where('tenant_id', $model->id)->where('user_id', $user)->value('role');
 
         try {
             $member = $this->team->changeRoleForPlatform($model->id, $user, $validated['role'], trim($validated['reason']));
@@ -101,7 +103,7 @@ class TenantTeamController extends Controller
             return $this->rejected($exception);
         }
 
-        $this->audit->record($this->staff($request)->id, 'tenant.member_role_changed', 'user', $user, PlatformAudit::RESULT_SUCCEEDED, ['role' => $member->role], trim($validated['reason']), $model->id);
+        $this->audit->record($this->staff($request)->id, 'tenant.member_role_changed', 'user', $user, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['role' => $previousRole], 'after' => ['role' => $member->role]], trim($validated['reason']), $model->id);
 
         return response()->json(['user_id' => $user, 'role' => $member->role]);
     }
@@ -122,7 +124,7 @@ class TenantTeamController extends Controller
             return $this->rejected($exception);
         }
 
-        $this->audit->record($this->staff($request)->id, 'tenant.member_removed', 'user', $user, PlatformAudit::RESULT_SUCCEEDED, ['role' => $removed->role], trim($validated['reason']), $model->id);
+        $this->audit->record($this->staff($request)->id, 'tenant.member_removed', 'user', $user, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['role' => $removed->role], 'after' => ['role' => null]], trim($validated['reason']), $model->id);
 
         return response()->json(null, 204);
     }
@@ -154,6 +156,9 @@ class TenantTeamController extends Controller
             return response()->json(['code' => 'step_up_failed', 'message' => 'The confirmation code is not valid.'], 403);
         }
 
+        $mfaBefore = User::query()->whereKey($user)->first();
+        $mfaBefore = $mfaBefore === null ? null : $this->mfa->enabled($mfaBefore);
+
         try {
             $target = $this->mfa->resetForAssistance($model->id, $user, null, 'platform_staff', trim($validated['reason']));
         } catch (AccountRejected $exception) {
@@ -162,7 +167,7 @@ class TenantTeamController extends Controller
             return $this->rejected($exception);
         }
 
-        $this->audit->record($staff->id, $action, 'user', $user, PlatformAudit::RESULT_SUCCEEDED, ['sessions_revoked' => true], trim($validated['reason']), $model->id);
+        $this->audit->record($staff->id, $action, 'user', $user, PlatformAudit::RESULT_SUCCEEDED, ['sessions_revoked' => true, 'before' => ['mfa_enabled' => $mfaBefore], 'after' => ['mfa_enabled' => false]], trim($validated['reason']), $model->id);
         $this->mfa->notifyReset($target);
 
         return response()->json(null, 204);

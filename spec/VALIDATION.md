@@ -1,13 +1,13 @@
 # Проверка пакета спецификации
 
-Проверено 23 октября 2026 года для версии1.1. Ниже перечислены фактически выполненные проверки файлов, а не тесты рабочего SaaS.
+Проверено 25 октября 2026 года для версии1.1. Ниже перечислены фактически выполненные проверки файлов, а не тесты рабочего SaaS.
 
-- OpenAPI YAML, internal references, path parameters and unique operation IDs: 252 operations
+- OpenAPI YAML, internal references, path parameters and unique operation IDs: 266 operations
 - Extension OpenAPI: 25 operations, references/paths and positive/negative purchase/action DTO fixtures
 - Positive Woo ingestion fixture conforms to the used JSON Schema subset
 - Negative event schema fixture checks: 6
 - Unique financial case IDs: 24; exact integer arithmetic checked: 22
-- SQL static structural checks: 65 tables, 109 FK targets/unique keys, index columns and balanced field lists
+- SQL static structural checks: 67 tables, 111 FK targets/unique keys, index columns and balanced field lists
 - 43 numbered TZ sections, 50 unique acceptance IDs, all listed deliverables present
 - Extension: five panel specifications, 16 unique billing cases, 29 additional acceptance scenarios
 

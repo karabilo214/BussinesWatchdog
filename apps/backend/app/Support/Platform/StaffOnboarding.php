@@ -137,7 +137,7 @@ class StaffOnboarding
                 }
 
                 $locked->forceFill(['accepted_at' => Carbon::now(), 'accepted_staff_id' => $existing->id])->save();
-                $this->audit->record($existing->id, 'staff.mfa_reenrolled', 'staff', $existing->id, PlatformAudit::RESULT_SUCCEEDED, ['invitation_id' => $locked->id]);
+                $this->audit->record($existing->id, 'staff.mfa_reenrolled', 'staff', $existing->id, PlatformAudit::RESULT_SUCCEEDED, ['invitation_id' => $locked->id, 'before' => ['mfa_enabled' => false], 'after' => ['mfa_enabled' => true]]);
 
                 return $existing;
             }

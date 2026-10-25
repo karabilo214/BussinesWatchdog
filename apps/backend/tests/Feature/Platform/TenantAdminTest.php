@@ -201,7 +201,8 @@ class TenantAdminTest extends TestCase
         $this->assertSame('Abuse report', $audit->reason);
         $changes = json_decode($audit->sanitized_changes, true);
         $this->assertSame(['active', 'paused_manual'], [$changes['access_before'], $changes['access_after']]);
-        $this->assertCount(2, $changes);
+        $this->assertSame(['status' => 'active'], $changes['before']);
+        $this->assertSame(['status' => 'suspended'], $changes['after']);
 
         $this->act($tenantId, 'suspend', ['reason' => 'Again'])->assertStatus(409)->assertJsonPath('code', 'tenant_not_active');
         $this->act($tenantId, 'resume', ['reason' => 'Resolved'])->assertOk()->assertJsonPath('status', 'active')->assertJsonPath('access.state', 'active');
@@ -350,7 +351,8 @@ class TenantAdminTest extends TestCase
         $audit = DB::table('platform_audit_log')->where('action', 'tenant.reminder_sent')->where('target_tenant_id', $tenant)->orderBy('created_at')->get();
         $this->assertCount(2, $audit);
         $changes = json_decode((string) $audit->first()->sanitized_changes, true);
-        $this->assertSame(['admin@kaffee.test', 'jonas@kaffee.test'], $changes['recipients']);
+        $this->assertSame([$admin->id, $jonas->id], $changes['recipient_user_ids']);
+        $this->assertArrayNotHasKey('recipients', $changes);
         $this->assertSame($sent['id'], $changes['reminder_id']);
 
         $empty = Tenant::query()->create(['name' => 'Empty', 'locale' => 'ru', 'timezone' => 'Europe/Berlin']);

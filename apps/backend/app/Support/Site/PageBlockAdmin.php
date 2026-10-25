@@ -48,8 +48,9 @@ class PageBlockAdmin
     public function update(string $staffId, string $blockId, array $input): PageBlock
     {
         $block = $this->find($blockId);
+        $before = $this->summary($block) + ['bodies' => $block->bodies];
         $block->forceFill($this->values($input, $block) + ['updated_by' => $staffId])->save();
-        $this->audit->record($staffId, 'site.block.updated', 'page_block', $block->id, PlatformAudit::RESULT_SUCCEEDED, $this->summary($block));
+        $this->audit->record($staffId, 'site.block.updated', 'page_block', $block->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => $before, 'after' => $this->summary($block) + ['bodies' => $block->bodies]]);
 
         return $block;
     }
@@ -58,7 +59,7 @@ class PageBlockAdmin
     {
         $block = $this->find($blockId);
         $block->forceFill(['archived_at' => Carbon::now(), 'updated_by' => $staffId])->save();
-        $this->audit->record($staffId, 'site.block.archived', 'page_block', $block->id, PlatformAudit::RESULT_SUCCEEDED, ['name' => $block->name], $reason);
+        $this->audit->record($staffId, 'site.block.archived', 'page_block', $block->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['archived_at' => null], 'after' => ['archived_at' => $block->archived_at?->toJSON()]], $reason);
     }
 
     /**

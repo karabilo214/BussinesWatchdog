@@ -166,7 +166,7 @@ class PublicSiteTest extends TestCase
         $this->postJson("/platform-api/v1/pages/{$page['id']}/locales/ru/unpublish", ['reason' => 'Убрали'])->assertOk()->assertJsonPath('content.ru.published', null);
         $this->get('/ru/about')->assertNotFound();
         $this->assertSame(
-            ['site.page.created', 'site.page.published', 'site.page.published', 'site.page.restored', 'site.page.draft_discarded', 'site.page.unpublished'],
+            ['site.page.created', 'site.page.draft_saved', 'site.page.published', 'site.page.draft_saved', 'site.page.published', 'site.page.restored', 'site.page.draft_discarded', 'site.page.unpublished'],
             DB::table('platform_audit_log')->where('target_type', 'public_page')->orderBy('id')->pluck('action')->all(),
         );
         $this->assertSame('Первая версия', DB::table('platform_audit_log')->where('action', 'site.page.published')->orderBy('id')->value('reason'));

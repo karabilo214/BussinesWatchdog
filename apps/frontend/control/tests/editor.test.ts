@@ -1,8 +1,10 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import type { Editor } from '@tiptap/core';
 import { describe, expect, it, vi } from 'vitest';
 import * as api from '@/api';
 import HtmlCodeEditor from '@/components/editor/HtmlCodeEditor.vue';
 import RichEditor from '@/components/editor/RichEditor.vue';
+import { moveBlock } from '@/components/editor/moveBlock';
 import { code, setCode } from './code';
 import { localization } from '@/i18n';
 
@@ -32,6 +34,24 @@ async function mountEditor(value: string) {
 }
 
 describe('visual page editor', () => {
+  it('moves whole page blocks and preserves nested markup and undo', async () => {
+    const wrapper = await mountEditor('<section class="hero" id="intro"><h2>Начало</h2><p><a href="/ru/pricing">Тарифы</a></p></section><section class="band"><p>Далее</p></section>');
+    const editor = (wrapper.vm as unknown as { editor: Editor }).editor;
+    const handle = wrapper.get('.bw-block-drag-handle');
+    expect(handle.attributes('draggable')).toBe('true');
+    expect(handle.attributes('aria-label')).toContain('Alt');
+
+    expect(moveBlock(editor, 0, 1)).toBe(true);
+    expect(editor.getHTML()).toContain('<section class="band"><p>Далее</p></section><section class="hero" id="intro"><h2>Начало</h2><p><a href="/ru/pricing">Тарифы</a></p></section>');
+    expect(wrapper.emitted('update:modelValue')!.at(-1)![0]).toBe(editor.getHTML().replace(/(<p><\/p>)+$/, ''));
+    expect(moveBlock(editor, 0, -1)).toBe(false);
+    expect(moveBlock(editor, editor.state.doc.child(0).nodeSize, 1)).toBe(false);
+    expect(moveBlock(editor, editor.state.doc.child(0).nodeSize, -1)).toBe(true);
+    editor.commands.undo();
+    expect(editor.getHTML()).toContain('<section class="hero" id="intro"><h2>Начало</h2>');
+    wrapper.unmount();
+  });
+
   it('keeps the site layout classes, button links, images and tables of a page', async () => {
     const wrapper = await mountEditor(SITE_HTML);
     const editor = (wrapper.vm as unknown as { editor: { getHTML(): string } }).editor;

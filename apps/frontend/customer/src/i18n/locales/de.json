@@ -85,6 +85,8 @@
     "remember": "Auf diesem Gerät angemeldet bleiben",
     "submit": "Anmelden",
     "submitting": "Anmeldung…",
+    "passkey_sign_in": "Mit Passkey anmelden",
+    "passkey_failed": "Die Anmeldung mit Passkey ist fehlgeschlagen. Versuchen Sie es erneut.",
     "failed": "E-Mail oder Passwort ist falsch.",
     "rate_limited": "Zu viele Versuche. Warten Sie eine Minute und versuchen Sie es erneut.",
     "session_expired": "Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an.",
@@ -94,6 +96,7 @@
       "code": "Code",
       "recovery_hint": "Kein Zugriff auf die App? Geben Sie einen Ihrer Wiederherstellungscodes ein – jeder gilt einmal.",
       "submit": "Anmelden",
+      "remember_device": "Diesem Gerät 30 Tage vertrauen. Bei der nächsten Anmeldung mit Passwort wird kein MFA-Code verlangt.",
       "back": "Mit einer anderen Adresse anmelden",
       "expired": "Die Zeit für die Code-Eingabe ist abgelaufen. Geben Sie Ihr Passwort erneut ein.",
       "invalid": "Der Code passt nicht. Prüfen Sie die Uhrzeit auf Ihrem Telefon und geben Sie einen neuen Code ein."
@@ -1914,6 +1917,34 @@
       "changed": "Passwort geändert.",
       "current_invalid": "Das aktuelle Passwort ist falsch."
     },
+    "passkeys": {
+      "title": "Passkeys",
+      "description": "Ohne Passwort mit Bestätigung auf Ihrem Gerät anmelden. Zum Hinzufügen oder Löschen Passwort und gegebenenfalls MFA-Code eingeben.",
+      "unsupported": "Dieser Browser unterstützt keine Passkeys.",
+      "empty": "Noch keine Passkeys vorhanden.",
+      "last_used": "Zuletzt verwendet:",
+      "delete": "Löschen",
+      "confirm_delete": "Löschen bestätigen",
+      "cancel": "Abbrechen",
+      "name": "Gerätename",
+      "add": "Passkey hinzufügen"
+    },
+    "trusted_devices": {
+      "title": "Vertrauenswürdige Geräte",
+      "description": "Auf diesen Geräten ist nach dem Passwort bis zu 30 Tage lang kein MFA-Code nötig. Für sensible Aktionen ist ein Code weiter erforderlich.",
+      "empty": "Keine vertrauenswürdigen Geräte.",
+      "current": "dieses Gerät",
+      "expires": "Vertrauen bis:",
+      "revoke": "Vertrauen entziehen"
+    },
+    "sessions": {
+      "title": "Anmeldesitzungen",
+      "description": "Geräte mit Zugriff auf Ihr Konto, mit letzter Aktivität und IP-Adresse.",
+      "current": "diese Sitzung",
+      "revoke_description": "Alle Sitzungen einschließlich dieser beenden. Bestätigen Sie mit Ihrem Passwort und bei aktiver MFA mit einem Code.",
+      "revoke_all": "Überall abmelden",
+      "device": {"Chrome": "Chrome", "Edge": "Edge", "Firefox": "Firefox", "Safari": "Safari", "other": "Anderer Browser", "unknown": "Unbekanntes Gerät"}
+    },
     "profile": {
       "title": "Profil",
       "name": "Name",
@@ -1946,6 +1977,7 @@
       "off": "aus",
       "intro": "Bei der Anmeldung brauchen Sie neben dem Passwort einen Code aus einer Authenticator-App (Google Authenticator, 1Password, Microsoft Authenticator u. a.).",
       "owner_hint": "Sie sind Inhaber des Teams: Aktivieren Sie die Zwei-Faktor-Authentifizierung, damit ein gestohlenes Passwort keinen Zugriff auf Shops und Abgleich gibt.",
+      "member_hint": "Sie sind Teammitglied: Aktivieren Sie die Zwei-Faktor-Authentifizierung, damit ein gestohlenes Passwort keinen Zugriff auf Shops und Daten des Teams gibt. Dies ist eine Empfehlung, keine Pflicht.",
       "remaining": "Unbenutzte Wiederherstellungscodes: {count}.",
       "enable": "Aktivieren",
       "regenerate": "Neue Wiederherstellungscodes",

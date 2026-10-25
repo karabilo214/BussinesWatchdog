@@ -125,7 +125,7 @@ class SupportGrants
             abort_unless($locked->state === SupportAccessGrant::PENDING, 409, 'support_grant_not_pending');
             $locked->forceFill(['state' => SupportAccessGrant::CANCELLED, 'revoked_at' => Carbon::now(), 'version' => $locked->version + 1])->save();
             $this->tenantAudit($locked->tenant_id, $locked->store_id, null, 'support_grant.cancelled', $locked->id, ['staff_id' => $staff->id]);
-            $this->audit->record($staff->id, 'support_grant.cancelled', 'support_grant', $locked->id, PlatformAudit::RESULT_SUCCEEDED, ['store_id' => $locked->store_id, 'case_reference' => $locked->case_reference], null, $locked->tenant_id);
+            $this->audit->record($staff->id, 'support_grant.cancelled', 'support_grant', $locked->id, PlatformAudit::RESULT_SUCCEEDED, ['store_id' => $locked->store_id, 'case_reference' => $locked->case_reference, 'before' => ['state' => SupportAccessGrant::PENDING], 'after' => ['state' => $locked->state]], null, $locked->tenant_id);
 
             return $locked->refresh();
         });
@@ -147,7 +147,7 @@ class SupportGrants
             $live = $locked->state === SupportAccessGrant::PENDING || ($locked->state === SupportAccessGrant::APPROVED && $locked->expires_at?->isFuture());
             abort_if($live, 409, 'support_grant_still_open');
             $locked->forceFill(['staff_hidden_at' => Carbon::now()])->save();
-            $this->audit->record($staff->id, 'support_grant.hidden', 'support_grant', $locked->id, PlatformAudit::RESULT_SUCCEEDED, ['store_id' => $locked->store_id, 'case_reference' => $locked->case_reference], null, $locked->tenant_id);
+            $this->audit->record($staff->id, 'support_grant.hidden', 'support_grant', $locked->id, PlatformAudit::RESULT_SUCCEEDED, ['store_id' => $locked->store_id, 'case_reference' => $locked->case_reference, 'before' => ['staff_hidden_at' => null], 'after' => ['staff_hidden_at' => $locked->staff_hidden_at?->toJSON()]], null, $locked->tenant_id);
 
             return $locked->refresh();
         });

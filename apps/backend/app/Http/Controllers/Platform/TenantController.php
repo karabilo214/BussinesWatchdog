@@ -16,6 +16,8 @@ use App\Support\Platform\TenantDirectory;
 use App\Support\Platform\TenantReminders;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -99,6 +101,15 @@ class TenantController extends Controller
         }
 
         $before = $this->directory->access($model->id);
+        $previousStatus = $model->status;
+        $beforeFields = ['status' => $previousStatus];
+        if ($action === TenantActions::EXTEND_TRIAL) {
+            $previousTrialEnd = DB::table('subscriptions')->where('tenant_id', $model->id)->value('trial_ends_at');
+            $beforeFields['trial_ends_at'] = $previousTrialEnd === null ? null : Carbon::parse($previousTrialEnd)->toJSON();
+        }
+        if ($action === TenantActions::REVOKE_OVERRIDE && Str::isUuid((string) ($input['override_id'] ?? ''))) {
+            $beforeFields['revoked_at'] = null;
+        }
 
         try {
             $this->actions->apply($model, $action, $input, $staff->id, trim($validated['reason']));
@@ -109,7 +120,16 @@ class TenantController extends Controller
         }
 
         $after = $this->directory->access($model->id);
-        $this->audit->record($staff->id, $auditAction, 'tenant', $model->id, PlatformAudit::RESULT_SUCCEEDED, $input + ['access_before' => $before['state'], 'access_after' => $after['state']], trim($validated['reason']), $model->id);
+        $afterFields = ['status' => $model->fresh()->status];
+        if ($action === TenantActions::EXTEND_TRIAL) {
+            $newTrialEnd = DB::table('subscriptions')->where('tenant_id', $model->id)->value('trial_ends_at');
+            $afterFields['trial_ends_at'] = $newTrialEnd === null ? null : Carbon::parse($newTrialEnd)->toJSON();
+        }
+        if ($action === TenantActions::REVOKE_OVERRIDE && Str::isUuid((string) ($input['override_id'] ?? ''))) {
+            $revokedAt = DB::table('entitlement_overrides')->where('tenant_id', $model->id)->where('id', $input['override_id'])->value('revoked_at');
+            $afterFields['revoked_at'] = $revokedAt === null ? null : Carbon::parse($revokedAt)->toJSON();
+        }
+        $this->audit->record($staff->id, $auditAction, 'tenant', $model->id, PlatformAudit::RESULT_SUCCEEDED, $input + ['access_before' => $before['state'], 'access_after' => $after['state'], 'before' => $beforeFields, 'after' => $afterFields], trim($validated['reason']), $model->id);
 
         return response()->json($this->directory->tenant($model->id, true, $staff->role === PlatformStaff::ROLE_OWNER));
     }

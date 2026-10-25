@@ -62,7 +62,7 @@ class TenantDeletionController extends Controller
             return response()->json(['code' => $exception->reasonCode, 'message' => 'The deletion request was refused.'], $exception->status);
         }
 
-        $this->audit->record($staff->id, $action, 'tenant', $model->id, PlatformAudit::RESULT_SUCCEEDED, ['request_id' => $deletion->id, 'purge_after' => $deletion->purge_after->toJSON()], $reason, $model->id);
+        $this->audit->record($staff->id, $action, 'tenant', $model->id, PlatformAudit::RESULT_SUCCEEDED, ['request_id' => $deletion->id, 'purge_after' => $deletion->purge_after->toJSON(), 'before' => ['status' => $model->status], 'after' => ['status' => $model->fresh()->status]], $reason, $model->id);
 
         return response()->json($this->directory->tenant($model->id, true, $staff->role === PlatformStaff::ROLE_OWNER));
     }

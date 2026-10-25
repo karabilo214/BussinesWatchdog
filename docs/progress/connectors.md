@@ -619,3 +619,10 @@ Status: complete; deployed 2026-10-22
 - `StripeClient::listCreatedSince()` takes `starting_after` and returns `last_id`.
 
 Verification: `StripeIntegrationTest` new tests — same-second object across the page boundary, a second unfinished window while the first is continued, a vanished cursor, a continuation from the previous release; the first, second and fourth failed before the fix. Backend SQLite 715 passed + 4 skipped, Pint ok. Not checked against the real Stripe API (fixtures only).
+
+### No step number (2026-10-23): WordPress.org Contributor Set
+
+Status: complete; ZIP 0.3.3 built for the WordPress.org submission and handed to the owner
+
+- `readme.txt`: `Contributors: karabin214` (the owner's WordPress.org user name) instead of the placeholder `businesswatchdog`. No code change, version stays 0.3.3.
+- Built with `bin/build-release.sh`: 53 files, PHP 7.4 lint ok, SHA-256 `de08405f1dd63088da5e8774e3a0ada4a54223bb7bad291ee7d915682fb5a941`. Plugin Check not rerun (only `readme.txt` changed since Step 223, 0 errors there). Submission to WordPress.org is done by the owner.

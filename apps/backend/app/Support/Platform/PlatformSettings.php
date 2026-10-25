@@ -122,7 +122,7 @@ class PlatformSettings
         }
 
         $notice->forceFill(['cancelled_at' => Carbon::now(), 'cancelled_by' => $actor->id])->save();
-        $this->audit->record($actor->id, 'settings.maintenance_cancelled', 'maintenance_notice', $notice->id, PlatformAudit::RESULT_SUCCEEDED, ['version' => $notice->version], $reason);
+        $this->audit->record($actor->id, 'settings.maintenance_cancelled', 'maintenance_notice', $notice->id, PlatformAudit::RESULT_SUCCEEDED, ['version' => $notice->version, 'before' => ['cancelled_at' => null], 'after' => ['cancelled_at' => $notice->cancelled_at?->toJSON()]], $reason);
     }
 
     /**

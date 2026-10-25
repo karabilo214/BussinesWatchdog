@@ -16,8 +16,8 @@ vi.mock('@/api', async () => {
 const mocked = vi.mocked(api);
 const PAGE: AuditPage = {
   data: [
-    { id: 'a-2', created_at: '2026-10-20T10:00:00Z', actor: { id: 's-1', name: 'Founder', email: 'f@example.test' }, actor_kind: 'staff', action: 'tenant.suspend', target_type: 'tenant', target_id: 't-1', tenant: { id: 't-1', name: 'Kaffee GmbH' }, result: 'succeeded', reason: 'Abuse report', changes: { access_before: 'active' }, request_id: 'req-1' },
-    { id: 'a-1', created_at: '2026-10-19T10:00:00Z', actor: null, actor_kind: 'system', action: 'staff.mfa_reset', target_type: 'staff', target_id: 's-2', tenant: null, result: 'succeeded', reason: null, changes: [], request_id: 'req-0' },
+    { id: 'a-2', created_at: '2026-10-20T10:00:00Z', actor: { id: 's-1', name: 'Founder' }, actor_kind: 'staff', action: 'tenant.suspend', target_type: 'tenant', target_id: 't-1', tenant: { id: 't-1', name: 'Kaffee GmbH' }, result: 'succeeded', presentation: { title: 'Сервис приостановлен', result_label: 'Успешно', description: 'Сервис приостановлен · Kaffee GmbH · Причина: Abuse report', object: { label: 'Kaffee GmbH', href: '/owner/tenants/t-1?tab=audit' }, details: ['Причина: Abuse report'], links: [] } },
+    { id: 'a-1', created_at: '2026-10-19T10:00:00Z', actor: null, actor_kind: 'system', action: 'staff.mfa_reset', target_type: 'staff', target_id: 's-2', tenant: null, result: 'succeeded', presentation: { title: 'Аутентификатор сотрудника сброшен', result_label: 'Успешно', description: 'Аутентификатор сотрудника сброшен · Удалён', object: { label: 'Удалён', href: null }, details: [], links: [] } },
   ],
   next_cursor: 'a-1',
   actions: ['staff.mfa_reset', 'tenant.suspend'],
@@ -58,7 +58,9 @@ describe('audit', () => {
     expect(suspend.get('a').attributes('href')).toBe('/owner/tenants/t-1?tab=audit');
     expect(wrapper.get('[data-entry="staff.mfa_reset"]').text()).toContain('Система');
     await wrapper.get('[data-toggle="a-2"]').trigger('click');
-    expect(wrapper.get('[data-details]').text()).toContain('access_before');
+    expect(wrapper.get('[data-details]').text()).toContain('Причина: Abuse report');
+    expect(wrapper.text()).not.toContain('req-1');
+    expect(wrapper.text()).not.toContain('access_before');
 
     await wrapper.get('[data-field="action"]').setValue('tenant.suspend');
     await wrapper.get('[data-field="result"]').setValue('denied');

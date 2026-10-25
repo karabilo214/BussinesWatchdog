@@ -84,6 +84,21 @@ class MfaApiTest extends TestCase
         $this->assertSame(9, $this->actingAs($user)->getJson('/api/v1/auth/mfa')->json('recovery_codes_remaining'));
     }
 
+    public function test_sign_out_everywhere_requires_a_second_factor_when_mfa_is_enabled(): void
+    {
+        [$user, , $recovery] = $this->enrolled();
+        DB::table('sessions')->insert(['id' => 'other-device', 'user_id' => $user->id, 'payload' => '', 'last_activity' => time()]);
+
+        $this->actingAs($user)->postJson('/api/v1/auth/sessions/revoke-all', ['current_password' => 'very-secure-password'])
+            ->assertStatus(422)->assertJsonValidationErrors(['code']);
+        $this->assertDatabaseHas('sessions', ['id' => 'other-device']);
+
+        $this->actingAs($user)->postJson('/api/v1/auth/sessions/revoke-all', ['current_password' => 'very-secure-password', 'code' => $recovery[0]])
+            ->assertNoContent();
+        $this->assertDatabaseMissing('sessions', ['id' => 'other-device']);
+        $this->assertSame(9, DB::table('mfa_recovery_codes')->where('user_id', $user->id)->whereNull('used_at')->count());
+    }
+
     public function test_the_second_step_expires_after_five_failures_or_five_minutes(): void
     {
         [$user, $secret] = $this->enrolled();

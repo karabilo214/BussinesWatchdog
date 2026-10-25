@@ -60,6 +60,11 @@ describe('OverviewView', () => {
 
     expect(wrapper.get('[data-mfa-warning]').text()).toContain('MFA не подключена');
     expect(wrapper.get('[data-mfa-warning]').findComponent(RouterLinkStub).props('to')).toEqual({ name: 'profile' });
+    for (const role of ['admin', 'operator', 'viewer'] as const) {
+      session.value = { ...currentSession, memberships: [{ ...currentSession.memberships[0]!, role }] };
+      await flushPromises();
+      expect(wrapper.get('[data-mfa-warning]').text()).toContain('Включить MFA');
+    }
     session.value = { ...currentSession, user: { ...currentSession.user, mfa_enabled: true } };
     await flushPromises();
     expect(wrapper.find('[data-mfa-warning]').exists()).toBe(false);

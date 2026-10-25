@@ -30,7 +30,7 @@ const active = computed<AuditFilters>(() => Object.fromEntries(KEYS.filter((key)
 const exportHref = computed(() => auditExportUrl(active.value));
 
 function action(code: string): string {
-  return te(`audit_action.${code}`) ? t(`audit_action.${code}`) : code;
+  return te(`audit_action.${code}`) ? t(`audit_action.${code}`) : t('audit.unknown_action');
 }
 
 async function load(more = false): Promise<void> {
@@ -81,7 +81,7 @@ onMounted(() => void load());
             <select v-model="filters.actor" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="actor">
               <option value="">{{ $t('audit.any') }}</option>
               <option value="system">{{ $t('audit.system') }}</option>
-              <option v-for="member in meta.staff" :key="member.id" :value="member.id">{{ member.name ?? member.id }}</option>
+              <option v-for="member in meta.staff" :key="member.id" :value="member.id">{{ member.name ?? $t('audit.system') }}</option>
             </select>
           </label>
           <label class="flex flex-col gap-1.5">
@@ -117,17 +117,19 @@ onMounted(() => void load());
         <ul v-else class="flex flex-col gap-2 text-sm">
           <li v-for="entry in entries" :key="entry.id" class="flex flex-col gap-1 rounded-lg border border-border bg-surface px-4 py-3" :data-entry="entry.action">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="font-medium">{{ action(entry.action) }}</span>
+              <span class="font-medium">{{ entry.presentation.title }}</span>
               <StatusBadge :tone="TONES[entry.result]" :label="$t(`audit_result.${entry.result}`, entry.result)" />
               <span class="text-text-muted">{{ entry.actor?.name ?? $t('audit.system') }} · {{ dateTime(entry.created_at) }}</span>
-              <RouterLink v-if="entry.tenant" :to="{ name: 'owner-tenant', params: { id: entry.tenant.id }, query: { tab: 'audit' } }" class="text-primary hover:underline">{{ entry.tenant.name ?? entry.tenant.id }}</RouterLink>
+              <RouterLink v-if="entry.presentation.object.href" :to="entry.presentation.object.href" class="text-primary hover:underline">{{ entry.presentation.object.label }}</RouterLink>
+              <span v-else class="text-text-muted">{{ entry.presentation.object.label }}</span>
               <button type="button" class="ml-auto text-primary hover:underline" :data-toggle="entry.id" @click="open = open === entry.id ? null : entry.id">{{ open === entry.id ? $t('audit.less') : $t('audit.more') }}</button>
             </div>
-            <p v-if="entry.reason" class="text-text-muted">{{ $t('audit.reason') }}: {{ entry.reason }}</p>
-            <div v-if="open === entry.id" class="flex flex-col gap-1 rounded-md bg-surface-muted p-3 font-mono text-[12px]" data-details>
-              <span>{{ entry.target_type }} · {{ entry.target_id }}</span>
-              <span>request {{ entry.request_id }}</span>
-              <pre class="overflow-x-auto whitespace-pre-wrap break-all">{{ JSON.stringify(entry.changes, null, 2) }}</pre>
+            <p class="text-text-muted">{{ entry.presentation.description }}</p>
+            <div v-if="entry.presentation.links.length" class="flex flex-wrap gap-3">
+              <RouterLink v-for="link in entry.presentation.links" :key="link.href" :to="link.href" class="text-primary hover:underline">{{ link.label }}</RouterLink>
+            </div>
+            <div v-if="open === entry.id" class="flex flex-col gap-1 rounded-md bg-surface-muted p-3 text-sm" data-details>
+              <span v-for="detail in entry.presentation.details" :key="detail">{{ detail }}</span>
             </div>
           </li>
         </ul>

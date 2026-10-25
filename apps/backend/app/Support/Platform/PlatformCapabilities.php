@@ -40,6 +40,8 @@ final class PlatformCapabilities
 
     public const SERVICE_READ = 'service.read';
 
+    public const SERVICE_MANAGE = 'service.manage';
+
     public const SETTINGS_MANAGE = 'settings.manage';
 
     /** Every capability of the owner panel, in the order the panel lists them. */
@@ -48,7 +50,7 @@ final class PlatformCapabilities
         self::BILLING_READ, self::REFUNDS_REQUEST, self::REFUNDS_APPROVE,
         self::PLANS_READ, self::PLANS_MANAGE,
         self::CONTENT_MANAGE, self::CONTACTS_READ, self::CONTACTS_MANAGE,
-        self::SERVICE_READ, self::AUDIT_READ, self::SETTINGS_MANAGE, self::STAFF_MANAGE,
+        self::SERVICE_READ, self::SERVICE_MANAGE, self::AUDIT_READ, self::SETTINGS_MANAGE, self::STAFF_MANAGE,
     ];
 
     /**
@@ -66,6 +68,7 @@ final class PlatformCapabilities
         self::REFUNDS_REQUEST => [self::BILLING_READ],
         self::PLANS_MANAGE => [self::PLANS_READ],
         self::CONTACTS_MANAGE => [self::CONTACTS_READ],
+        self::SERVICE_MANAGE => [self::SERVICE_READ],
     ];
 
     /** Starting points for a new member; the former fixed roles. */

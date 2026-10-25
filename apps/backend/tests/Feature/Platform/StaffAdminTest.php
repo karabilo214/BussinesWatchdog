@@ -84,7 +84,8 @@ class StaffAdminTest extends TestCase
         $this->getJson('/platform-api/v1/audit')->assertForbidden();
         $this->assertSame(1, DB::table('platform_audit_log')->where('action', 'staff.joined')->count());
         $this->assertSame('New ops', DB::table('platform_audit_log')->where('action', 'staff.invited')->where('result', 'succeeded')->value('reason'));
-        $this->assertSame('ops@platform.test', json_decode((string) DB::table('platform_audit_log')->where('action', 'staff.invited')->where('result', 'succeeded')->value('sanitized_changes'), true)['email']);
+        $this->assertArrayNotHasKey('email', json_decode((string) DB::table('platform_audit_log')->where('action', 'staff.invited')->where('result', 'succeeded')->value('sanitized_changes'), true));
+        $this->assertSame('ops@platform.test', DB::table('platform_staff_invitations')->value('email'));
         $this->assertSame($owner->id, DB::table('platform_staff_invitations')->value('invited_by'));
     }
 

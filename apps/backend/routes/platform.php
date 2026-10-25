@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Platform\AttentionController;
 use App\Http\Controllers\Platform\AuditController;
 use App\Http\Controllers\Platform\ContactRequestController;
 use App\Http\Controllers\Platform\DiscountController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Platform\PlatformAuthController;
 use App\Http\Controllers\Platform\PublicStorefrontCheckHistoryController;
 use App\Http\Controllers\Platform\RefundController;
 use App\Http\Controllers\Platform\ServiceHealthController;
+use App\Http\Controllers\Platform\ServiceOutboxController;
 use App\Http\Controllers\Platform\SettingsController;
 use App\Http\Controllers\Platform\SiteMediaController;
 use App\Http\Controllers\Platform\StaffController;
@@ -35,6 +37,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff')->group(function (): void {
         Route::get('/me', [PlatformAuthController::class, 'show']);
         Route::post('/auth/logout', [PlatformAuthController::class, 'logout']);
+        Route::get('/attention', [AttentionController::class, 'show']);
     });
 
     Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_READ)->get('/plans', [PlanController::class, 'index']);
@@ -55,6 +58,10 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/payments', [PaymentController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/overview', [OverviewController::class, 'show']);
     Route::middleware('platform.staff:'.PlatformCapabilities::SERVICE_READ)->get('/health', [ServiceHealthController::class, 'show']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::SERVICE_MANAGE)->group(function (): void {
+        Route::get('/health/dead-outbox', [ServiceOutboxController::class, 'index']);
+        Route::post('/health/dead-outbox/{message}/retry', [ServiceOutboxController::class, 'retry'])->whereUuid('message')->middleware('throttle:platform-step-up');
+    });
     Route::middleware('platform.staff:'.PlatformCapabilities::SERVICE_READ)->get('/public-storefront-checks', [PublicStorefrontCheckHistoryController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::SETTINGS_MANAGE)->group(function (): void {
         Route::get('/settings', [SettingsController::class, 'show']);

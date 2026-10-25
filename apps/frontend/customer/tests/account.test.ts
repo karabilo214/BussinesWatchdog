@@ -8,11 +8,16 @@ import type { AuthSession } from '@/api/types';
 import PasswordFields from '@/components/account/PasswordFields.vue';
 import { localization, setLocale } from '@/i18n';
 import MfaPanel from '@/components/account/MfaPanel.vue';
+import SessionsPanel from '@/components/account/SessionsPanel.vue';
+import PasskeysPanel from '@/components/account/PasskeysPanel.vue';
+import TrustedDevicesPanel from '@/components/account/TrustedDevicesPanel.vue';
 import InvitationView from '@/views/InvitationView.vue';
 import LoginView from '@/views/LoginView.vue';
 import TeamView from '@/views/TeamView.vue';
 
 const session = ref<AuthSession | null>(null);
+
+vi.mock('@laravel/passkeys', () => ({ Passkeys: { isSupported: () => true }, UserCancelledError: class UserCancelledError extends Error {} }));
 
 vi.mock('@/api/account', () => ({
   listMembers: vi.fn(),
@@ -34,10 +39,18 @@ vi.mock('@/api/account', () => ({
   confirmMfa: vi.fn(),
   disableMfa: vi.fn(),
   regenerateRecoveryCodes: vi.fn(),
+  listAccountSessions: vi.fn(),
+  revokeAllAccountSessions: vi.fn(),
+  listPasskeys: vi.fn(),
+  registerPasskey: vi.fn(),
+  deletePasskey: vi.fn(),
+  listTrustedDevices: vi.fn(),
+  revokeTrustedDevice: vi.fn(),
 }));
 
 const completeMfa = vi.fn();
 const signIn = vi.fn();
+const signInWithPasskey = vi.fn();
 
 vi.mock('@/composables/useSession', () => ({
   useSession: () => ({
@@ -49,14 +62,18 @@ vi.mock('@/composables/useSession', () => ({
     signOut: vi.fn(async () => {
       session.value = null;
     }),
+    clear: vi.fn(() => {
+      session.value = null;
+    }),
     signIn,
+    signInWithPasskey,
     completeMfa,
   }),
 }));
 
 const mocked = vi.mocked(api);
 
-function sessionFor(role: 'owner' | 'admin' | 'viewer', email = 'me@example.test'): AuthSession {
+function sessionFor(role: 'owner' | 'admin' | 'operator' | 'viewer', email = 'me@example.test'): AuthSession {
   return {
     user: { id: 'u-me', name: 'Me', email, locale: 'ru', email_verified: true, mfa_enabled: false },
     active_tenant_id: 't-1',
@@ -92,6 +109,60 @@ describe('PasswordFields', () => {
     expect(wrapper.emitted('update')!.at(-1)).toEqual(['a-long-enough-password', false]);
     await wrapper.get('#t-confirmation').setValue('a-long-enough-password');
     expect(wrapper.emitted('update')!.at(-1)).toEqual(['a-long-enough-password', true]);
+  });
+});
+
+describe('PasskeysPanel', () => {
+  it('lists key names without credential data and requires step-up to delete', async () => {
+    session.value = sessionFor('owner');
+    mocked.listPasskeys.mockResolvedValue([{ id: 7, name: 'Laptop', created_at: '2026-10-25T09:00:00Z', last_used_at: null }]);
+    mocked.deletePasskey.mockResolvedValue();
+    const wrapper = await mountWith(PasskeysPanel, '/profile');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Laptop');
+    await wrapper.get('button').trigger('click');
+    await wrapper.get('#passkey-password').setValue('very-secure-password');
+    await wrapper.get('button').trigger('click');
+    await flushPromises();
+    expect(mocked.deletePasskey).toHaveBeenCalledWith(7, 'very-secure-password', null);
+  });
+});
+
+describe('TrustedDevicesPanel', () => {
+  it('lists the current device and revokes only the chosen trust', async () => {
+    session.value = sessionFor('owner');
+    mocked.listTrustedDevices.mockResolvedValue([{ id: 'device-1', device: 'Firefox', current: true, last_used_at: null, expires_at: '2026-11-24T09:00:00Z' }]);
+    mocked.revokeTrustedDevice.mockResolvedValue();
+    const wrapper = await mountWith(TrustedDevicesPanel, '/profile');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Firefox');
+    expect(wrapper.text()).toContain('это устройство');
+    await wrapper.get('button').trigger('click');
+    await flushPromises();
+    expect(mocked.revokeTrustedDevice).toHaveBeenCalledWith('device-1');
+  });
+});
+
+describe('SessionsPanel', () => {
+  it('shows only session metadata and signs out after step-up', async () => {
+    session.value = sessionFor('owner');
+    mocked.listAccountSessions.mockResolvedValue([{ current: true, device: 'Firefox', ip_address: '192.0.2.5', last_active_at: '2026-10-25T09:00:00Z' }]);
+    mocked.revokeAllAccountSessions.mockResolvedValue();
+    const wrapper = await mountWith(SessionsPanel, '/profile');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Firefox');
+    expect(wrapper.text()).toContain('192.0.2.5');
+    expect(wrapper.text()).toContain('этот сеанс');
+    expect(wrapper.find('#sessions-code').exists()).toBe(false);
+    await wrapper.get('#sessions-password').setValue('very-secure-password');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.revokeAllAccountSessions).toHaveBeenCalledWith('very-secure-password', null);
+    expect(session.value).toBeNull();
   });
 });
 
@@ -236,6 +307,28 @@ describe('team MFA reset', () => {
 });
 
 describe('MfaPanel', () => {
+  it('recommends MFA to every team role without requiring it', async () => {
+    mocked.fetchMfa.mockResolvedValue({ enabled: false, recovery_codes_remaining: 0 });
+
+    for (const role of ['admin', 'operator', 'viewer'] as const) {
+      session.value = sessionFor(role);
+      const wrapper = await mountWith(MfaPanel, '/profile');
+      await flushPromises();
+
+      expect(wrapper.get('[data-member-hint]').text()).toContain('Это рекомендация, а не условие работы.');
+      expect(wrapper.find('[data-owner-hint]').exists()).toBe(false);
+      expect(wrapper.text()).toContain('Включить');
+      wrapper.unmount();
+    }
+
+    mocked.fetchMfa.mockResolvedValue({ enabled: true, recovery_codes_remaining: 10 });
+    session.value = sessionFor('admin');
+    const protectedPanel = await mountWith(MfaPanel, '/profile');
+    await flushPromises();
+    expect(protectedPanel.find('[data-member-hint]').exists()).toBe(false);
+    protectedPanel.unmount();
+  });
+
   it('enrolls with the password, a QR code and a confirming code, then shows the recovery codes once', async () => {
     session.value = sessionFor('owner');
     mocked.fetchMfa.mockResolvedValue({ enabled: false, recovery_codes_remaining: 0 });
@@ -288,6 +381,32 @@ describe('MfaPanel', () => {
 });
 
 describe('LoginView', () => {
+  it('sends device trust only after the user opts in during the MFA challenge', async () => {
+    session.value = null;
+    signIn.mockResolvedValue('mfa');
+    completeMfa.mockResolvedValue(sessionFor('owner'));
+    const wrapper = await mountWith(LoginView, '/login');
+    await wrapper.get('#login-email').setValue('me@example.test');
+    await wrapper.get('#login-password').setValue('very-secure-password');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    await wrapper.get('#login-code').setValue('123456');
+    await wrapper.get('input[type="checkbox"]').setValue(true);
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(completeMfa).toHaveBeenCalledWith('123456', true);
+  });
+  it('offers passkey sign-in when the browser supports it', async () => {
+    session.value = null;
+    signInWithPasskey.mockResolvedValue(sessionFor('owner'));
+    const wrapper = await mountWith(LoginView, '/login');
+    await flushPromises();
+
+    await wrapper.findAll('button').find((button) => button.text() === 'Войти с ключом доступа')!.trigger('click');
+    await flushPromises();
+    expect(signInWithPasskey).toHaveBeenCalledWith(false);
+  });
+
   it('asks for the second factor after a correct password and returns to the password when it expires', async () => {
     session.value = null;
     signIn.mockResolvedValue('mfa');

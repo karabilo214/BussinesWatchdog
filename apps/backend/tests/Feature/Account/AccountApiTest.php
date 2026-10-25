@@ -120,6 +120,32 @@ class AccountApiTest extends TestCase
         $this->assertDatabaseMissing('sessions', ['id' => 'other-device']);
     }
 
+    public function test_session_list_is_private_and_sign_out_everywhere_requires_step_up(): void
+    {
+        $user = $this->user();
+        $other = User::query()->create(['name' => 'Other', 'email' => 'other@example.test', 'password_hash' => Hash::make('other-secure-password'), 'locale' => 'ru']);
+        DB::table('sessions')->insert([
+            ['id' => 'owners-other-session', 'user_id' => $user->id, 'ip_address' => '192.0.2.5', 'user_agent' => 'Mozilla/5.0 Chrome/120.0', 'payload' => '', 'last_activity' => time()],
+            ['id' => 'another-users-session', 'user_id' => $other->id, 'ip_address' => '192.0.2.6', 'user_agent' => 'Mozilla/5.0 Firefox/120.0', 'payload' => '', 'last_activity' => time()],
+        ]);
+
+        $this->getJson('/api/v1/auth/sessions')->assertUnauthorized();
+        $response = $this->actingAs($user)->getJson('/api/v1/auth/sessions')->assertOk();
+        $this->assertCount(2, $response->json('data'));
+        $this->assertStringNotContainsString('owners-other-session', $response->getContent());
+        $this->assertStringNotContainsString('192.0.2.6', $response->getContent());
+        $response->assertJsonFragment(['device' => 'Chrome', 'ip_address' => '192.0.2.5', 'current' => false]);
+
+        $this->postJson('/api/v1/auth/sessions/revoke-all', ['current_password' => 'wrong-password'])->assertStatus(422);
+        $this->assertDatabaseHas('sessions', ['id' => 'owners-other-session']);
+        $this->postJson('/api/v1/auth/sessions/revoke-all', ['current_password' => 'very-secure-password'])->assertNoContent();
+        $this->assertDatabaseMissing('sessions', ['id' => 'owners-other-session']);
+        $this->assertDatabaseHas('sessions', ['id' => 'another-users-session']);
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $user->memberships()->value('tenant_id'), 'action' => 'user.sessions_revoked']);
+        $this->app['auth']->forgetGuards();
+        $this->getJson('/api/v1/auth/me')->assertUnauthorized();
+    }
+
     private function user(bool $verified = true): User
     {
         $user = User::query()->create(['name' => 'Owner', 'email' => 'owner@example.test', 'password_hash' => Hash::make('very-secure-password'), 'locale' => 'ru']);

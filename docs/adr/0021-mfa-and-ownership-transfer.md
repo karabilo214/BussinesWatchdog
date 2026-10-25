@@ -23,7 +23,7 @@ Spec §2 (auth): MFA is mandatory for system operators and SHOULD for the tenant
 
 ## Not done
 
-WebAuthn/passkeys, a "trusted device" option, a list of sessions per device, forcing MFA per team. Platform-staff authenticator reset remains a separate backlog item (ADR 0052).
+A non-blocking MFA warning for team members remains. Trusted devices were added in Step 256. Customer sessions were added in Step 254; customer passkeys in Step 255. Platform-staff authenticator reset remains a separate backlog item (ADR 0052).
 
 ## Owner decision (2026-10-16)
 
@@ -31,8 +31,28 @@ WebAuthn/passkeys, a "trusted device" option, a list of sessions per device, for
 - Platform staff get a "disable MFA" action for each customer user; the tenant owner gets a "reset MFA" action for any member of their team. Both are audited.
 - After an ownership transfer the previous owner becomes admin (confirmed).
 - The new owner is not required to have MFA, but must be told clearly that MFA is off.
-- Passkeys, trusted devices, a session list and team-wide forced MFA go to the general TODO.
+- Passkeys, trusted devices, a session list and a non-blocking MFA warning for team members go to the general TODO.
 
 ## Amendment 2026-10-25 (Step 253, owner decision)
 
 Switching off a customer member's MFA from the control panel is reserved for the service owner (`platform_owner`), still with a fresh authenticator code and a reason. Other staff get 403 `owner_only` even if they hold `customers.mfa_reset`; the denied attempt is audited. Staff with `tenants.support` can instead send the member the standard password reset e-mail (reason required, audited); they never see or set the password.
+
+## Amendment 2026-10-25 (Step 254, customer sessions)
+
+The profile lists the user's active customer sessions from Laravel's database session store, with only a browser family, IP address, last activity and a current-session marker. Raw session IDs and payloads are not returned. Sessions expired by the configured lifetime are omitted; a new current session is included before Laravel writes it at the end of the request. "Sign out everywhere" requires the current password and, when enabled, an authenticator or recovery code; it removes every customer session, revokes the remember token through logout, ends the current session and audits the action in every tenant the user belongs to. This does not manage separate platform staff sessions.
+
+## Amendment 2026-10-25 (Step 255, customer passkeys)
+
+Customer accounts may register discoverable WebAuthn passkeys after a fresh password and TOTP/recovery-code step-up. Registration authorization and challenges expire after five minutes; challenge data is consumed once. The WebAuthn library checks RP ID, allowed origin, challenge, user verification, signature and signature counter. Passkey login is passwordless and uses the authenticator's local user verification; it creates a customer session only for an enabled user with team membership. The existing password and TOTP path remains available. Keys belong to a user across their teams, are listed without credential material, and require step-up for deletion. Register, login and delete are audited in every team. Laravel Passkeys server and JS client provide the WebAuthn ceremony; package routes are disabled in favor of the project's stateful, throttled API. Production must use a stable APP_URL origin and user-handle secret across key rotation. Platform staff authentication remains separate.
+
+## Amendment 2026-10-25 (owner correction)
+
+Customer-team MFA stays optional. Members without MFA receive a visible recommendation and setup link like the organization owner; sign-in and team work are not blocked. The earlier team-wide forced-MFA backlog wording is superseded.
+
+## Amendment 2026-10-25 (Step 256, trusted customer devices)
+
+After a successful TOTP/recovery challenge, the customer may explicitly trust this browser for 30 days. A 256-bit random token is stored only as a hash on the server and sent in a host-only, HttpOnly, SameSite=Strict cookie scoped to customer auth paths (Secure in production). A later password sign-in skips the TOTP prompt only when the token belongs to that exact user and has not expired. Sensitive account and ownership step-up still requires the factor. The profile lists browser family and expiry, without token or raw user agent, and allows revocation. Password change/reset, MFA reset/disable/re-enrollment, sign-out-everywhere and privacy anonymization revoke all trusts. This applies only to customer login, never platform staff. Trusted-device creation, reuse and revocation are audited in every tenant of the user.
+
+## Amendment 2026-10-25 (Step 257, team-member warning)
+
+The existing overview warning and profile setup link are available to all customer roles without MFA. The profile now gives admins, operators and viewers the same visible recommendation as owners, with explicit wording that enrollment is optional. Both warnings disappear once MFA is enabled. No server policy or sign-in behavior changes.

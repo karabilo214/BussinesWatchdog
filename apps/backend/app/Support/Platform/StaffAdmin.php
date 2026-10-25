@@ -88,7 +88,7 @@ class StaffAdmin
             'hours' => PlatformStaffInvitation::TTL_HOURS,
             'link' => rtrim((string) config('watchdog.site.owner_url'), '/').'/staff-invitation?'.http_build_query(['token' => $token]),
         ]);
-        $this->audit->record($actor->id, 'staff.invited', 'staff_invitation', $invitation->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $role, 'capabilities' => $capabilities, 'email' => $email], $reason);
+        $this->audit->record($actor->id, 'staff.invited', 'staff_invitation', $invitation->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $role, 'capabilities' => $capabilities], $reason);
 
         return $invitation;
     }
@@ -102,7 +102,7 @@ class StaffAdmin
         }
 
         $invitation->forceFill(['revoked_at' => Carbon::now()])->save();
-        $this->audit->record($actor->id, 'staff.invitation_revoked', 'staff_invitation', $invitation->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $invitation->role], $reason);
+        $this->audit->record($actor->id, 'staff.invitation_revoked', 'staff_invitation', $invitation->id, PlatformAudit::RESULT_SUCCEEDED, ['role' => $invitation->role, 'before' => ['revoked_at' => null], 'after' => ['revoked_at' => $invitation->revoked_at?->toJSON()]], $reason);
     }
 
     /**
@@ -175,6 +175,7 @@ class StaffAdmin
                 throw new StaffRejected('owner_mfa_server_only', 409);
             }
 
+            $mfaBefore = $this->mfa->enabled($member->user);
             $this->mfa->disable($member->user);
             $member->forceFill(['permission_version' => $member->permission_version + 1])->save();
             PlatformStaffInvitation::query()->where('staff_id', $member->id)->where('purpose', PlatformStaffInvitation::PURPOSE_MFA_RESET)->whereNull('accepted_at')->whereNull('revoked_at')->update(['revoked_at' => Carbon::now()]);
@@ -188,7 +189,7 @@ class StaffAdmin
                 'invited_by' => $actor->id,
                 'expires_at' => Carbon::now()->addHours(PlatformStaffInvitation::TTL_HOURS),
             ]);
-            $this->audit->record($actor->id, 'staff.mfa_reset', 'staff', $member->id, PlatformAudit::RESULT_SUCCEEDED, ['sessions_revoked' => true, 'link_sent_to' => $member->user->email], $reason);
+            $this->audit->record($actor->id, 'staff.mfa_reset', 'staff', $member->id, PlatformAudit::RESULT_SUCCEEDED, ['sessions_revoked' => true, 'before' => ['mfa_enabled' => $mfaBefore], 'after' => ['mfa_enabled' => false]], $reason);
 
             return $member;
         });

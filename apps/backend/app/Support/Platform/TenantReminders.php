@@ -118,7 +118,7 @@ class TenantReminders
         $this->audit->record($staffId, 'tenant.reminder_sent', 'tenant', $tenant->id, PlatformAudit::RESULT_SUCCEEDED, [
             'reminder_id' => $reminderId,
             'topic' => $topic,
-            'recipients' => array_column($recipients, 'email'),
+            'recipient_user_ids' => array_column($recipients, 'user_id'),
             'subjects' => array_map(fn (array $letter): string => $letter['subject'], $rendered),
         ], null, $tenant->id);
 

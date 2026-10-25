@@ -48,8 +48,15 @@ async function signIn(email: string, password: string, remember: boolean): Promi
   return result;
 }
 
-async function completeMfa(code: string): Promise<AuthSession> {
-  session.value = await auth.completeMfaChallenge(code);
+async function completeMfa(code: string, rememberDevice = false): Promise<AuthSession> {
+  session.value = await auth.completeMfaChallenge(code, rememberDevice);
+  loaded.value = true;
+
+  return session.value;
+}
+
+async function signInWithPasskey(remember: boolean): Promise<AuthSession> {
+  session.value = await auth.loginWithPasskey(remember);
   loaded.value = true;
 
   return session.value;
@@ -75,5 +82,5 @@ function clear(): void {
 }
 
 export function useSession() {
-  return { session: readonly(session), loaded: readonly(loaded), load, signIn, completeMfa, signOut, clear, replace };
+  return { session: readonly(session), loaded: readonly(loaded), load, signIn, signInWithPasskey, completeMfa, signOut, clear, replace };
 }

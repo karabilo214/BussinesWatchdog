@@ -1,17 +1,11 @@
 import { onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
-import { fetchContactRequests, fetchRefunds, fetchServiceHealth, type HealthState } from '@/api';
+import { fetchOwnerAttention, type OwnerAttention } from '@/api';
 
 export type OwnerBadgeLevel = 'crit' | 'warn';
 export interface OwnerBadge {
   text: string;
   level: OwnerBadgeLevel;
   hint: { key: string; n: number };
-}
-
-export interface OwnerAttention {
-  contactsNew?: number;
-  health?: HealthState;
-  refundsRequested?: number;
 }
 
 const REFRESH_MS = 60_000;
@@ -21,28 +15,27 @@ export function ownerBadges(attention: OwnerAttention): Record<string, OwnerBadg
   const badges: Record<string, OwnerBadge> = {};
   const count = (n: number): string => (n > 99 ? '99+' : String(n));
 
-  if ((attention.contactsNew ?? 0) > 0) {
-    badges.contacts = { text: count(attention.contactsNew!), level: 'warn', hint: { key: 'nav_badge.contacts_new', n: attention.contactsNew! } };
+  if ((attention.contacts_new ?? 0) > 0) {
+    badges.contacts = { text: count(attention.contacts_new!), level: 'warn', hint: { key: 'nav_badge.contacts_new', n: attention.contacts_new! } };
   }
 
-  if (attention.health === 'crit' || attention.health === 'warn') {
-    badges.service = { text: '!', level: attention.health, hint: { key: `nav_badge.service_${attention.health}`, n: 1 } };
+  if (attention.service_state === 'crit' || attention.service_state === 'warn') {
+    badges.service = { text: '!', level: attention.service_state, hint: { key: `nav_badge.service_${attention.service_state}`, n: 1 } };
   }
 
-  if ((attention.refundsRequested ?? 0) > 0) {
-    badges.payments = { text: count(attention.refundsRequested!), level: 'warn', hint: { key: 'nav_badge.refunds_requested', n: attention.refundsRequested! } };
+  if ((attention.refunds_requested ?? 0) > 0) {
+    badges.payments = { text: count(attention.refunds_requested!), level: 'warn', hint: { key: 'nav_badge.refunds_requested', n: attention.refunds_requested! } };
+  }
+
+  if ((attention.subscriptions_past_due ?? 0) > 0) {
+    badges.subscriptions = { text: count(attention.subscriptions_past_due!), level: 'warn', hint: { key: 'nav_badge.subscriptions_past_due', n: attention.subscriptions_past_due! } };
+  }
+
+  if ((attention.support_requests_pending ?? 0) > 0) {
+    badges.tenants = { text: count(attention.support_requests_pending!), level: 'warn', hint: { key: 'nav_badge.support_requests_pending', n: attention.support_requests_pending! } };
   }
 
   return badges;
-}
-
-async function settle<T>(enabled: boolean, load: () => Promise<T>): Promise<T | undefined> {
-  if (!enabled) return undefined;
-  try {
-    return await load();
-  } catch {
-    return undefined;
-  }
 }
 
 export function useOwnerBadges(sections: Ref<string[]>) {
@@ -50,13 +43,14 @@ export function useOwnerBadges(sections: Ref<string[]>) {
   let timer: ReturnType<typeof setInterval> | null = null;
 
   async function refresh(): Promise<void> {
-    const allowed = new Set(sections.value);
-    const [contacts, health, refunds] = await Promise.all([
-      settle(allowed.has('contacts'), () => fetchContactRequests({ status: 'new' })),
-      settle(allowed.has('service'), () => fetchServiceHealth()),
-      settle(allowed.has('payments'), () => fetchRefunds({ status: 'requested' })),
-    ]);
-    badges.value = ownerBadges({ contactsNew: contacts?.counts.new, health: health?.state, refundsRequested: refunds?.length });
+    if (sections.value.length === 0) { badges.value = {}; return; }
+    try {
+      const attention = await fetchOwnerAttention();
+      const allowed = new Set(sections.value);
+      badges.value = Object.fromEntries(Object.entries(ownerBadges(attention)).filter(([section]) => allowed.has(section)));
+    } catch {
+      badges.value = {};
+    }
   }
 
   onMounted(() => {

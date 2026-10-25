@@ -2,9 +2,11 @@
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
+import DragHandle from '@tiptap/extension-drag-handle';
 import { deleteSiteMedia, fetchSiteMedia, uploadSiteMedia, type SiteMedia, type SiteMediaLimits } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { CONTAINER_STYLES, LINK_STYLES, TEXT_STYLES, editorExtensions } from './extensions';
+import { moveBlock } from './moveBlock';
 
 export interface InsertableBlock {
   id: string;
@@ -17,11 +19,41 @@ const props = withDefaults(defineProps<{ modelValue: string; label: string; bloc
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 const panel = reactive({ open: null as 'link' | 'image' | 'blocks' | null, href: '', linkStyle: '' as string, src: '', alt: '' });
+const { t } = useI18n();
+let hoveredBlockPos: number | null = null;
+
+const blockDragHandle = DragHandle.configure({
+  render: () => {
+    const handle = document.createElement('div');
+    handle.className = 'bw-block-drag-handle';
+    handle.textContent = '⠿';
+    handle.title = t('editor.drag_block');
+    handle.setAttribute('aria-label', t('editor.drag_block_keyboard'));
+    handle.setAttribute('aria-keyshortcuts', 'Alt+ArrowUp Alt+ArrowDown');
+    handle.setAttribute('role', 'button');
+    handle.tabIndex = 0;
+    handle.addEventListener('keydown', (event) => {
+      if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+      const current = editor.value;
+      if (current && hoveredBlockPos !== null && moveBlock(current, hoveredBlockPos, event.key === 'ArrowUp' ? -1 : 1)) {
+        hoveredBlockPos = null;
+        event.preventDefault();
+      }
+    });
+    return handle;
+  },
+  onNodeChange: ({ node, editor: current }) => {
+    hoveredBlockPos = null;
+    if (node) current.state.doc.forEach((child, offset) => {
+      if (child === node) hoveredBlockPos = offset;
+    });
+  },
+});
 
 const editor = useEditor({
   content: props.modelValue,
-  extensions: editorExtensions(),
-  editorProps: { attributes: { class: 'site-content min-h-80 px-4 py-3 outline-none', 'data-visual': '', 'aria-multiline': 'true', role: 'textbox' } },
+  extensions: [...editorExtensions(), blockDragHandle],
+  editorProps: { attributes: { class: 'site-content min-h-80 pl-12 pr-4 py-3 outline-none', 'data-visual': '', 'aria-multiline': 'true', role: 'textbox' } },
   onUpdate: () => emit('update:modelValue', html()),
 });
 
@@ -102,7 +134,6 @@ function applyLink(): void {
   panel.open = null;
 }
 
-const { t } = useI18n();
 const media = ref<SiteMedia[]>([]);
 const limits = ref<SiteMediaLimits | null>(null);
 const picked = computed(() => media.value.find((item) => item.url === panel.src) ?? null);
@@ -317,6 +348,31 @@ defineExpose({ editor });
       </ul>
     </div>
 
-    <EditorContent :editor="editor" class="max-h-[44rem] overflow-y-auto bg-canvas" />
+    <EditorContent :editor="editor" class="relative max-h-[44rem] overflow-y-auto bg-canvas" />
   </div>
 </template>
+
+<style>
+.bw-block-drag-handle {
+  display: flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0.375rem;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: grab;
+  font-size: 1.25rem;
+  line-height: 1;
+  user-select: none;
+}
+.bw-block-drag-handle:hover,
+.bw-block-drag-handle:focus-visible {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  outline: 2px solid var(--color-primary);
+}
+.bw-block-drag-handle:active { cursor: grabbing; }
+</style>

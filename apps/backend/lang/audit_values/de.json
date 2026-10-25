@@ -1,0 +1,105 @@
+{
+  "role": {
+    "platform_owner": "Inhaber des Dienstes",
+    "platform_admin": "Administrator",
+    "platform_support": "Support",
+    "platform_billing": "Finanzen",
+    "platform_member": "Mitarbeiter"
+  },
+  "capability": {
+    "tenants_read": {
+      "label": "Kunden: ansehen",
+      "hint": "Firmenkarten, Shops, ihre Daten und Teams."
+    },
+    "tenants_manage": {
+      "label": "Kunden: ändern",
+      "hint": "Pause, Testphase verlängern, befristeter Zugang, Erinnerungen, Kundenteam."
+    },
+    "customers_mfa_reset": {
+      "label": "Kunden: MFA zurücksetzen",
+      "hint": "Authenticator eines Kundennutzers abschalten (mit Grund und Code)."
+    },
+    "tenants_support": {
+      "label": "Kunden: befristeter Support-Zugriff",
+      "hint": "Vom Kunden genehmigten Zugriff auf Shop-Diagnose, Materialien oder erneute Prüfung beantragen."
+    },
+    "tenants_incident_actions": {
+      "label": "Kunden: Vorfall-Aktionen",
+      "hint": "Vorfall für Kunden mit Begründung, Protokoll und Benachrichtigung annehmen oder abschließen."
+    },
+    "tenants_delete": {
+      "label": "Kunden: Organisation löschen",
+      "hint": "Eine Organisation auf schriftlichen Wunsch des Kunden löschen oder dies innerhalb von 30 Tagen widerrufen."
+    },
+    "billing_read": {
+      "label": "Zahlungen: ansehen",
+      "hint": "Übersicht, Abonnements, Zahlungen, Rechnungen und Erstattungen."
+    },
+    "refunds_request": {
+      "label": "Erstattungen: anfragen",
+      "hint": "Erstattung einer Zahlung anfragen; ein Plattform-Inhaber genehmigt sie."
+    },
+    "refunds_approve": {
+      "label": "Erstattungen: genehmigen",
+      "hint": "Eine angefragte Erstattung an Paddle senden."
+    },
+    "plans_read": {
+      "label": "Tarife: ansehen",
+      "hint": "Tarife, Pakete und Rabatte."
+    },
+    "plans_manage": {
+      "label": "Tarife: ändern",
+      "hint": "Tarife, Preise und Rabatte anlegen und veröffentlichen."
+    },
+    "content_manage": {
+      "label": "Website",
+      "hint": "Seiten, Blockvorlagen und Dateien der öffentlichen Website."
+    },
+    "contacts_read": {
+      "label": "Anfragen: ansehen",
+      "hint": "Nachrichten aus dem Kontaktformular."
+    },
+    "contacts_manage": {
+      "label": "Anfragen: beantworten",
+      "hint": "Antworten, Notizen und Status von Anfragen."
+    },
+    "service_read": {
+      "label": "Dienst",
+      "hint": "Dienstzustand und Verlauf der öffentlichen Prüfungen."
+    },
+    "service_manage": {
+      "label": "Dienst: Wiederherstellung",
+      "hint": "Dead-Letter-Einträge der internen Warteschlange mit Code und Audit erneut einreihen."
+    },
+    "audit_read": {
+      "label": "Audit",
+      "hint": "Protokoll der Mitarbeiteraktionen und Export."
+    },
+    "settings_manage": {
+      "label": "Einstellungen",
+      "hint": "Wartungsfenster und Diensteinstellungen."
+    },
+    "staff_manage": {
+      "label": "Mitarbeiter",
+      "hint": "Mitarbeiter einladen und ihre Rechte."
+    }
+  },
+  "feature": {
+    "checkout_monitoring": "Checkout-Prüfungen im Browser",
+    "payment_attempts_server": "Überwachung von Zahlungsversuchen",
+    "payment_attempts_script": "Überwachungsskript auf der Zahlungsseite",
+    "money_reconciliation": "Geldabgleich mit dem Zahlungsanbieter",
+    "order_outcomes": "Erfüllung bezahlter Bestellungen",
+    "notifications_telegram": "Telegram-Benachrichtigungen",
+    "agency_workspace": "Agentur-Arbeitsbereich für mehrere Kunden"
+  },
+  "limit": {
+    "max_active_stores": "Enthaltene Shops",
+    "max_extra_stores": "Zukaufbare Shops",
+    "min_check_interval_minutes": "Prüfungen höchstens alle N Minuten",
+    "retention_days": "Verlauf gespeichert, Tage",
+    "monthly_event_budget": "Shop-Ereignisse pro Monat (weiches Limit)",
+    "manual_runs_per_day": "Manuelle Prüfungen pro Tag",
+    "max_orders_per_month": "Bestellungen pro Monat und Shop"
+  }
+}

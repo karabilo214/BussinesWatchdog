@@ -1,0 +1,135 @@
+{
+  "tenant": {
+    "suspend": "Сервис приостановлен",
+    "resume": "Сервис возобновлён",
+    "grant_override": "Выдан временный доступ",
+    "revoke_override": "Отозван временный доступ",
+    "extend_trial": "Продлён пробный период",
+    "cancel_subscription": "Отмена подписки",
+    "refresh_billing": "Обновление из Paddle",
+    "reminder_sent": "Отправлено напоминание",
+    "member_invited": "Приглашён сотрудник",
+    "invitation_revoked": "Приглашение отозвано",
+    "member_password_reset_sent": "Отправлена ссылка смены пароля участнику",
+    "member_mfa_reset": "MFA клиента сброшена",
+    "store_created": "Добавлен магазин",
+    "store_viewed": "Открыты данные магазина",
+    "check_rerun": "Проверка перезапущена поддержкой",
+    "incident_acknowledged": "Инцидент принят поддержкой",
+    "incident_resolved": "Инцидент закрыт поддержкой",
+    "member_role_changed": "Изменена роль участника клиента",
+    "member_removed": "Участник клиента удалён",
+    "store_deleted": "Удалён магазин",
+    "deletion_requested": "Запрошено удаление организации",
+    "deletion_cancelled": "Удаление организации отменено"
+  },
+  "staff": {
+    "login": "Вход сотрудника",
+    "invited": "Приглашён сотрудник",
+    "invitation_revoked": "Приглашение сотрудника отозвано",
+    "joined": "Сотрудник присоединился",
+    "updated": "Изменён сотрудник",
+    "sessions_revoked": "Сессии сотрудника завершены",
+    "mfa_reset": "Аутентификатор сотрудника сброшен",
+    "bootstrap_owner": "Создан первый владелец",
+    "mfa_reenrolled": "Сотрудник подключил новый аутентификатор",
+    "logout": "Выход сотрудника"
+  },
+  "site": {
+    "page": {
+      "created": "Создана страница",
+      "updated": "Изменены настройки страницы",
+      "published": "Опубликована страница",
+      "unpublished": "Страница снята с публикации",
+      "archived": "Страница удалена",
+      "restored": "Версия страницы восстановлена",
+      "version_deleted": "Удалена версия страницы",
+      "draft_discarded": "Черновик удалён",
+      "draft_saved": "Сохранён черновик страницы"
+    },
+    "block": {
+      "created": "Создан шаблон блока",
+      "updated": "Изменён шаблон блока",
+      "archived": "Удалён шаблон блока"
+    },
+    "contact": {
+      "updated": "Изменён статус обращения",
+      "replied": "Ответ на обращение",
+      "noted": "Заметка к обращению",
+      "attachment_downloaded": "Скачано вложение обращения",
+      "template_saved": "Сохранён шаблон ответа",
+      "note_edited": "Изменена заметка"
+    },
+    "media": {
+      "uploaded": "Загружен файл сайта",
+      "deleted": "Удалён файл сайта"
+    }
+  },
+  "audit": {
+    "exported": "Выгружен аудит"
+  },
+  "settings": {
+    "maintenance_scheduled": "Запланированы работы",
+    "maintenance_cancelled": "Работы отменены"
+  },
+  "platform": {
+    "change": "Изменение из админки"
+  },
+  "reminder": {
+    "template_saved": "Сохранён шаблон напоминания"
+  },
+  "service": {
+    "alert_sent": "Отправлено оповещение «Сервиса»",
+    "outbox_retry": "Повторена запись внутренней очереди"
+  },
+  "billing": {
+    "refund_requested": "Запрошен возврат",
+    "refund_approved": "Возврат одобрен",
+    "refund_rejected": "Возврат отклонён",
+    "withdrawal_requested": "Запрошен отказ от договора с возвратом",
+    "plan_change_cancelled": "Смена тарифа отменена",
+    "subscription_cancel_scheduled": "Запланирована отмена подписки",
+    "subscription_cancelled": "Подписка отменена",
+    "subscription_cancelled_after_refund": "Подписка отменена после возврата",
+    "subscription_cancelled_for_deletion": "Подписка отменена из-за удаления организации",
+    "subscription_resumed": "Подписка возобновлена"
+  },
+  "discount": {
+    "created": "Создана скидка",
+    "updated": "Изменена скидка",
+    "archived": "Скидка удалена"
+  },
+  "plan": {
+    "created": "Создан тариф"
+  },
+  "plan_price": {
+    "added": "Добавлена цена тарифа",
+    "removed": "Удалена цена тарифа"
+  },
+  "plan_version": {
+    "created": "Создана версия тарифа",
+    "updated": "Изменена версия тарифа",
+    "published": "Опубликована версия тарифа",
+    "retired": "Версия тарифа снята с продажи"
+  },
+  "support_grant": {
+    "cancelled": "Запрос доступа поддержки отменён",
+    "hidden": "Запрос доступа скрыт",
+    "resent": "Запрос доступа отправлен повторно",
+    "requested": "Запрошен доступ поддержки",
+    "approved": "Доступ поддержки одобрен",
+    "denied": "Доступ поддержки отклонён",
+    "revoked": "Доступ поддержки отозван"
+  },
+  "support_access": {
+    "opened": "Сотрудник поддержки открыл данные магазина",
+    "artifact": "Сотрудник поддержки открыл материалы проверки"
+  },
+  "user": {
+    "mfa_enabled": "Включена MFA",
+    "mfa_disabled": "Отключена MFA",
+    "mfa_reset": "MFA сброшена",
+    "mfa_recovery_code_used": "Использован резервный код MFA",
+    "mfa_recovery_codes_regenerated": "Созданы новые резервные коды MFA"
+  }
+}

@@ -157,8 +157,12 @@ class PlanAdmin
                 $attributes['faster_check_interval_minutes'] = $minutes;
             }
 
+            $before = [];
+            foreach (array_keys($attributes) as $field) {
+                $before[$field] = $version->getAttribute($field);
+            }
             $version->forceFill($attributes)->save();
-            $this->audit->record($staffId, 'plan_version.updated', 'billing_plan_version', $version->id, PlatformAudit::RESULT_SUCCEEDED, ['fields' => array_keys($changes)]);
+            $this->audit->record($staffId, 'plan_version.updated', 'billing_plan_version', $version->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => $before, 'after' => $attributes]);
 
             return $version->refresh();
         });
@@ -235,7 +239,7 @@ class PlanAdmin
             }
 
             $price->delete();
-            $this->audit->record($staffId, 'plan_price.removed', 'billing_price', $priceId, PlatformAudit::RESULT_SUCCEEDED, ['plan_version_id' => $price->plan_version_id]);
+            $this->audit->record($staffId, 'plan_price.removed', 'billing_price', $priceId, PlatformAudit::RESULT_SUCCEEDED, ['plan_version_id' => $price->plan_version_id, 'before' => ['state' => $price->state], 'after' => ['state' => 'deleted']]);
         });
     }
 
@@ -332,7 +336,7 @@ class PlanAdmin
             $version->forceFill(['state' => BillingPlan::STATE_PUBLISHED, 'published_at' => $now])->save();
             BillingPrice::query()->where('plan_version_id', $version->id)->where('state', BillingPlan::STATE_DRAFT)->update(['state' => BillingPlan::STATE_PUBLISHED]);
             BillingPlan::query()->whereKey($version->plan_id)->update(['state' => BillingPlan::STATE_PUBLISHED]);
-            $this->audit->record($staffId, 'plan_version.published', 'billing_plan_version', $version->id, PlatformAudit::RESULT_SUCCEEDED, ['retired_versions' => $previous->all()], $reason);
+            $this->audit->record($staffId, 'plan_version.published', 'billing_plan_version', $version->id, PlatformAudit::RESULT_SUCCEEDED, ['retired_versions' => $previous->all(), 'before' => ['state' => BillingPlan::STATE_DRAFT], 'after' => ['state' => $version->state]], $reason);
 
             return $version->refresh();
         });
@@ -359,7 +363,7 @@ class PlanAdmin
                 BillingPlan::query()->whereKey($version->plan_id)->update(['state' => BillingPlan::STATE_RETIRED]);
             }
 
-            $this->audit->record($staffId, 'plan_version.retired', 'billing_plan_version', $version->id, PlatformAudit::RESULT_SUCCEEDED, [], $reason);
+            $this->audit->record($staffId, 'plan_version.retired', 'billing_plan_version', $version->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['state' => BillingPlan::STATE_PUBLISHED], 'after' => ['state' => $version->state]], $reason);
 
             return $version->refresh();
         });

@@ -59,7 +59,7 @@ class TenantStoreController extends Controller
 
             if ($response->getStatusCode() === 201) {
                 $store = $response->getData(true);
-                $this->audit->record($this->staff($request)->id, 'tenant.store_created', 'store', (string) $store['id'], PlatformAudit::RESULT_SUCCEEDED, ['name' => $store['name'], 'base_url' => $store['base_url'], 'platform' => $store['platform'] ?? null], trim((string) $request->input('reason')), $model->id);
+                $this->audit->record($this->staff($request)->id, 'tenant.store_created', 'store', (string) $store['id'], PlatformAudit::RESULT_SUCCEEDED, ['platform' => $store['platform'] ?? null], trim((string) $request->input('reason')), $model->id);
             }
 
             return $response;
@@ -94,7 +94,7 @@ class TenantStoreController extends Controller
             DB::transaction(function () use ($found, $staff, $model, $validated, $deletion): void {
                 /** @var Store $locked */
                 $locked = Store::query()->where('tenant_id', $model->id)->whereKey($found->id)->lockForUpdate()->firstOrFail();
-                $this->audit->record($staff->id, 'tenant.store_deleted', 'store', $locked->id, PlatformAudit::RESULT_SUCCEEDED, ['name' => $locked->name, 'host' => parse_url($locked->base_url, PHP_URL_HOST)], trim($validated['reason']), $model->id);
+                $this->audit->record($staff->id, 'tenant.store_deleted', 'store', $locked->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['status' => $locked->status], 'after' => ['status' => 'deleted']], trim($validated['reason']), $model->id);
                 $deletion->delete($locked);
             });
 
@@ -271,6 +271,7 @@ class TenantStoreController extends Controller
             $found = $this->find(Incident::class, $model, $incident);
             $reason = trim($reason);
             $beforeRevision = $found->revision;
+            $beforeState = $found->state;
 
             try {
                 $changed = $change($found, ['by' => 'platform', 'reason' => $reason]);
@@ -278,7 +279,7 @@ class TenantStoreController extends Controller
                 return response()->json(['code' => $exception->reasonCode, 'message' => $exception->getMessage()], $exception->httpStatus());
             }
 
-            $this->recordSupport($request, $model, $found->store_id, $platformAction, 'incident', $found->id, ['state' => $changed->state], $tenantAction, $reason);
+            $this->recordSupport($request, $model, $found->store_id, $platformAction, 'incident', $found->id, ['before' => ['state' => $beforeState], 'after' => ['state' => $changed->state]], $tenantAction, $reason);
 
             if ($changed->revision !== $beforeRevision) {
                 $this->notifyIncidentOwners($model, $changed, $platformAction);

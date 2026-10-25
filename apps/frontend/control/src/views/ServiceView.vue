@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { StatusBadge } from '@bw/ui';
-import { fetchServiceHealth, type HealthState, type ServiceHealth } from '@/api';
+import { fetchDeadOutbox, fetchServiceHealth, retryDeadOutbox, type DeadOutboxMessage, type HealthState, type ServiceHealth } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useStaff } from '@/composables/useStaff';
@@ -15,9 +15,13 @@ const { locale } = useI18n();
 const { dateTime } = useFormat();
 const { can } = useStaff();
 const allowed = computed(() => can('service.read'));
+const canManage = computed(() => can('service.manage'));
 const health = ref<ServiceHealth | null>(null);
+const deadOutbox = ref<DeadOutboxMessage[]>([]);
+const retry = reactive({ target: null as DeadOutboxMessage | null, reason: '', code: '' });
 const error = ref<unknown>(null);
 const loading = ref(false);
+const acting = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 
 function age(seconds: number | null): string {
@@ -37,11 +41,30 @@ async function load(): Promise<void> {
 
   try {
     health.value = await fetchServiceHealth();
+    if (canManage.value) deadOutbox.value = await fetchDeadOutbox();
     error.value = null;
   } catch (caught) {
     error.value = caught;
   } finally {
     loading.value = false;
+  }
+}
+
+async function submitRetry(): Promise<void> {
+  if (!retry.target || acting.value) return;
+  acting.value = true;
+  error.value = null;
+
+  try {
+    await retryDeadOutbox(retry.target.id, retry.reason.trim(), retry.code.trim());
+    retry.target = null;
+    retry.reason = '';
+    retry.code = '';
+    await load();
+  } catch (caught) {
+    error.value = caught;
+  } finally {
+    acting.value = false;
   }
 }
 
@@ -118,6 +141,42 @@ onBeforeUnmount(() => {
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section v-if="canManage" class="flex flex-col gap-2" data-section="dead-outbox">
+          <h2 class="text-lg font-semibold">{{ $t('service.repair.title') }}</h2>
+          <p class="text-sm text-text-muted">{{ $t('service.repair.hint') }}</p>
+          <p v-if="deadOutbox.length === 0" class="text-sm text-text-muted">{{ $t('service.repair.empty') }}</p>
+          <div v-else class="overflow-x-auto rounded-xl border border-border bg-surface">
+            <table class="w-full min-w-[40rem] text-sm">
+              <thead class="border-b border-border text-left text-text-muted"><tr>
+                <th class="px-4 py-3 font-medium">{{ $t('service.repair.record') }}</th>
+                <th class="px-4 py-3 font-medium">{{ $t('service.repair.error') }}</th>
+                <th class="px-4 py-3 font-medium">{{ $t('service.repair.attempts') }}</th>
+                <th class="px-4 py-3 font-medium">{{ $t('service.repair.created') }}</th>
+                <th class="px-4 py-3 font-medium">{{ $t('service.repair.action') }}</th>
+              </tr></thead>
+              <tbody class="divide-y divide-border">
+                <tr v-for="message in deadOutbox" :key="message.id" :data-dead-outbox="message.id">
+                  <td class="px-4 py-3"><span class="block">{{ message.topic }}</span><span class="font-mono text-xs text-text-muted">{{ message.id }}</span></td>
+                  <td class="px-4 py-3 font-mono">{{ message.error_code ?? '—' }}</td>
+                  <td class="px-4 py-3 tabular-nums">{{ message.attempts }}</td>
+                  <td class="px-4 py-3">{{ dateTime(message.created_at) }}</td>
+                  <td class="px-4 py-3"><button type="button" class="rounded border border-border-strong px-3 py-1 font-medium text-primary hover:bg-primary-soft" :data-retry="message.id" @click="retry.target = message">{{ $t('service.repair.retry') }}</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-if="deadOutbox.length === 50" class="px-4 py-2 text-xs text-text-muted">{{ $t('service.repair.limit') }}</p>
+          </div>
+          <form v-if="retry.target" class="flex max-w-xl flex-col gap-3 rounded-xl border border-border-strong bg-surface p-4 text-sm" data-retry-form @submit.prevent="submitRetry">
+            <p class="font-semibold">{{ $t('service.repair.confirm', { id: retry.target.id }) }}</p>
+            <label class="flex flex-col gap-1"><span>{{ $t('service.repair.reason') }}</span><input v-model="retry.reason" required minlength="3" maxlength="500" class="rounded border border-border-strong px-3 py-2" data-field="retry-reason" /></label>
+            <label class="flex flex-col gap-1"><span>{{ $t('service.repair.code') }}</span><input v-model="retry.code" required autocomplete="one-time-code" maxlength="32" class="rounded border border-border-strong px-3 py-2 font-mono" data-field="retry-code" /></label>
+            <div class="flex gap-2">
+              <button type="submit" class="rounded bg-primary px-4 py-2 font-semibold text-text-inverse disabled:opacity-50" :disabled="acting || retry.reason.trim().length < 3 || retry.code.trim().length < 6" data-action="retry-confirm">{{ $t('service.repair.retry') }}</button>
+              <button type="button" class="rounded border border-border-strong px-4 py-2" @click="retry.target = null; retry.code = ''">{{ $t('common.cancel') }}</button>
+            </div>
+          </form>
         </section>
 
         <section class="grid gap-3 sm:grid-cols-2">

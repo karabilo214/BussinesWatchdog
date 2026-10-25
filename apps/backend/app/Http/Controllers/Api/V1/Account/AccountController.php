@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\Account\AccountRejected;
 use App\Support\Account\EmailVerificationService;
 use App\Support\Account\PasswordResetService;
+use App\Support\Account\TrustedDevices;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -87,7 +88,7 @@ class AccountController extends Controller
     }
 
     /** Ends every other session of the user; the current one stays signed in with a fresh id. */
-    public function changePassword(Request $request): JsonResponse
+    public function changePassword(Request $request, TrustedDevices $trustedDevices): JsonResponse
     {
         $validated = $request->validate([
             'current_password' => ['required', 'string', 'max:128'],
@@ -104,6 +105,8 @@ class AccountController extends Controller
         $user->forceFill(['password_hash' => Hash::make($validated['password']), 'remember_token' => Str::random(60)])->save();
         $request->session()->regenerate();
         DB::table('sessions')->where('user_id', $user->id)->where('id', '!=', $request->session()->getId())->delete();
+        $trustedDevices->revokeAll($user);
+        $trustedDevices->clearCookie();
 
         return response()->json(null, 204);
     }

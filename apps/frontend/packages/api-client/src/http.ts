@@ -45,7 +45,7 @@ export function configureCsrf(options: { cookie: string; endpoint: string }): vo
 }
 
 /** The CSRF cookie must exist before the first state-changing request. */
-async function ensureCsrfCookie(): Promise<string> {
+export async function ensureCsrfCookie(): Promise<string> {
   let token = readCookie(csrf.cookie);
 
   if (token === null) {

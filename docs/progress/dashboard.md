@@ -301,3 +301,21 @@ Status: complete (customer frontend only)
 - Not done from the backlog item: «Уведомления» (undelivered / unconfirmed channel) and «Настройки» (pending support request, unpaid subscription, owner without MFA) — they need data the overview does not have.
 
 Verification: `tests/navBadges.test.ts` (no badges when calm, severity colours and explanations, unknown-amount discrepancies, latest run per scenario, paused stores, texts in three languages). Customer frontend 172/172, typecheck and build ok; backend SQLite suite green. No API or DB change.
+
+### Step 257: Optional MFA Warning for Team Members
+
+Status: complete (customer frontend only; not deployed)
+
+- The existing red MFA warning on «Overview» already applied to all roles. In the profile, `MfaPanel` previously showed the extra recommendation only to an organization owner; admins, operators and viewers now receive a similarly visible message, explicitly saying MFA is recommended rather than required. The «Включить» action remains available to every role. Warnings disappear after enrollment.
+- The MFA backlog item was split into four checkboxes so completed passkeys (Step 255), trusted devices (Step 256), sessions/sign-out-everywhere (Step 254), and this warning can each be marked `[x]`. ADR 0021, client-panel spec and EXT-03 evidence updated. No migration or API contract change; Stripe untouched.
+
+Verification: `account.test.ts` checks the profile recommendation for admin, operator and viewer and its absence after MFA enrollment; `overview.test.ts` confirms the warning and profile link for all three member roles. Customer frontend 178/178, typecheck and build passed; `git diff --check` and static spec validator passed. No live browser or production deployment was run.
+
+### Step 258: Drag and Drop Page Blocks
+
+Status: complete locally (control frontend; not deployed)
+
+- The visual page editor shows a drag handle beside each top-level block. TipTap's drag-handle extension moves a section and all of its nested content together. The handle is focusable; Alt + Up/Down moves a block without a mouse. Undo remains available. The UI labels are translated in ru/en/de.
+- Stored content remains HTML. The page API, preview, versions and server-side sanitizer are unchanged. ADR 0045 records the later owner backlog request after the earlier deferral. The backlog has one completed checkbox for this item.
+
+Verification: `editor.test.ts` checks handle presence, whole-section reordering, preserved nested classes/IDs/links, emitted HTML, boundaries and undo. Control frontend check: 78/78 tests, typecheck and production build passed. Chromium smoke on an isolated page confirmed dragging the first section after the second and keyboard Alt + Down moving the whole section. Deployment was not run. No migration or API contract change. Traceability: ADR 0045, public content editing in `spec/panels/PUBLIC-SUBSCRIPTION-FRONTEND.md` §P1 and the HTML sanitizer acceptance noted in `spec/PANELS-ACCEPTANCE.md`.

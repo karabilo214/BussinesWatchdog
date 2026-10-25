@@ -14,6 +14,7 @@ use App\Support\Account\EmailVerificationService;
 use App\Support\Account\MfaService;
 use App\Support\Account\Registration;
 use App\Support\Account\TeamService;
+use App\Support\Account\TrustedDevices;
 use App\Support\Site\PolicyAcceptanceRequired;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -89,7 +90,7 @@ class AuthController extends Controller
     }
 
     /** With MFA on, a correct password only opens the second step; the session stays unauthenticated until a code arrives. */
-    public function login(LoginRequest $request, MfaService $mfa): JsonResponse
+    public function login(LoginRequest $request, MfaService $mfa, TrustedDevices $trustedDevices): JsonResponse
     {
         $validated = $request->validated();
         $credentials = ['email' => $validated['email'], 'password' => $validated['password']];
@@ -105,7 +106,7 @@ class AuthController extends Controller
         /** @var User $user */
         $user = $guard->getProvider()->retrieveByCredentials($credentials);
 
-        if ($mfa->enabled($user)) {
+        if ($mfa->enabled($user) && ! $trustedDevices->recognize($request, $user)) {
             $request->session()->regenerate();
             $request->session()->put(MfaController::PENDING_LOGIN, [
                 'user_id' => $user->id,

@@ -129,6 +129,7 @@ onMounted(load);
 
       <template v-if="stage === 'idle'">
         <p v-if="!state.enabled && role === 'owner'" class="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm" data-owner-hint>{{ $t('account.mfa.owner_hint') }}</p>
+        <p v-else-if="!state.enabled && role" class="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-sm" data-member-hint>{{ $t('account.mfa.member_hint') }}</p>
         <p v-if="state.enabled" class="text-sm" :class="state.recovery_codes_remaining <= 3 ? 'text-warn' : ''">
           {{ $t('account.mfa.remaining', { count: state.recovery_codes_remaining }) }}
         </p>

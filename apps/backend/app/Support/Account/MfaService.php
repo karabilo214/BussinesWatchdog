@@ -93,6 +93,7 @@ class MfaService
             }
 
             $locked->forceFill(['mfa_confirmed_at' => Carbon::now(), 'mfa_last_used_step' => $step])->save();
+            DB::table('trusted_devices')->where('user_id', $locked->id)->delete();
             $codes = $this->replaceRecoveryCodes($locked);
             $this->audit($locked, 'user.mfa_enabled');
             $user->setRawAttributes($locked->getAttributes(), true);
@@ -151,6 +152,7 @@ class MfaService
                 'mfa_last_used_step' => null,
             ])->save();
             MfaRecoveryCode::query()->where('user_id', $user->id)->delete();
+            DB::table('trusted_devices')->where('user_id', $user->id)->delete();
             $this->audit($user, 'user.mfa_disabled');
         });
     }
@@ -183,6 +185,7 @@ class MfaService
                 'remember_token' => Str::random(60),
             ])->save();
             MfaRecoveryCode::query()->where('user_id', $target->id)->delete();
+            DB::table('trusted_devices')->where('user_id', $target->id)->delete();
             DB::table('sessions')->where('user_id', $target->id)->delete();
 
             $requestId = (string) Str::uuid();

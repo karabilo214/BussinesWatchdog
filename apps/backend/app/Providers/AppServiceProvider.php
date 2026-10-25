@@ -20,6 +20,7 @@ use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passkeys\Passkeys;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        Passkeys::ignoreRoutes();
         $this->app->scoped(TenantContext::class);
         $this->app->bind(DnsClient::class, SystemDnsClient::class);
         $this->app->singleton(NotificationSenderRegistry::class, fn ($app): NotificationSenderRegistry => new NotificationSenderRegistry([

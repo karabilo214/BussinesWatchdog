@@ -25,7 +25,7 @@ vi.mock('@/api', () => ({
 
 const mocked = vi.mocked(api);
 
-const CAPABILITIES = ['tenants.read', 'tenants.manage', 'customers.mfa_reset', 'billing.read', 'refunds.request', 'refunds.approve', 'plans.read', 'plans.manage', 'content.manage', 'contacts.read', 'contacts.manage', 'service.read', 'audit.read', 'settings.manage', 'staff.manage'];
+const CAPABILITIES = ['tenants.read', 'tenants.manage', 'customers.mfa_reset', 'billing.read', 'refunds.request', 'refunds.approve', 'plans.read', 'plans.manage', 'content.manage', 'contacts.read', 'contacts.manage', 'service.read', 'service.manage', 'audit.read', 'settings.manage', 'staff.manage'];
 
 const CATALOG: StaffCatalog = {
   staff: [
