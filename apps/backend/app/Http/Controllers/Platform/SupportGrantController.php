@@ -45,6 +45,25 @@ class SupportGrantController extends Controller
         return response()->json($this->dto($grant), 201);
     }
 
+    public function cancel(Request $request, string $grant): JsonResponse
+    {
+        return response()->json($this->dto($this->grants->cancel($this->own($request, $grant), $this->staff($request))));
+    }
+
+    public function resend(Request $request, string $grant): JsonResponse
+    {
+        $model = $this->own($request, $grant);
+        abort_if(Tenant::query()->whereKey($model->tenant_id)->whereIn('status', ['deleting', 'deleted'])->exists(), 404);
+        $result = $this->grants->resend($model, $this->staff($request));
+
+        return response()->json($this->dto($result), $result->id === $model->id ? 200 : 201);
+    }
+
+    private function own(Request $request, string $grant): SupportAccessGrant
+    {
+        return SupportAccessGrant::query()->whereKey($grant)->where('staff_id', $this->staff($request)->id)->firstOrFail();
+    }
+
     /** @return array<string, mixed> */
     private function dto(SupportAccessGrant $grant): array
     {

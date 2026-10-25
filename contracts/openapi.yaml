@@ -6516,6 +6516,27 @@ paths:
             schema: {type: object, required: [tenant_id, store_id, scopes, reason]}
       responses:
         "201": {description: Pending grant, content: {application/json: {schema: {type: object}}}}
+  /platform-api/v1/support-grants/{grant}/cancel:
+    post:
+      tags: [Platform]
+      operationId: runtimePlatformCancelSupportGrant
+      description: "Requires tenants.support. The requesting employee cancels their own pending request (state cancelled); the owner can no longer approve it. Repeating is idempotent; a decided request answers 409."
+      security: [{StaffSession: []}]
+      parameters:
+        - {name: grant, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Cancelled grant, content: {application/json: {schema: {type: object}}}}
+  /platform-api/v1/support-grants/{grant}/resend:
+    post:
+      tags: [Platform]
+      operationId: runtimePlatformResendSupportGrant
+      description: "Requires tenants.support, own request only. Pending: the owners get the request e-mail again (200, same grant). Denied, revoked, expired or cancelled: a new pending request with the same store, scopes, duration and reason and a new case number (201)."
+      security: [{StaffSession: []}]
+      parameters:
+        - {name: grant, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200": {description: Request e-mail sent again, content: {application/json: {schema: {type: object}}}}
+        "201": {description: New pending grant, content: {application/json: {schema: {type: object}}}}
   /api/v1/support-grants:
     get:
       tags: [Account]

@@ -1763,8 +1763,14 @@
       "approved": "Active",
       "denied": "Denied",
       "revoked": "Revoked",
-      "expired": "Expired"
+      "expired": "Expired",
+      "cancelled": "Cancelled"
     },
+    "cancel": "Cancel",
+    "resend": "Send again",
+    "cancelled_done": "Request cancelled.",
+    "resent_done": "Request sent to the owner again.",
+    "recreated_done": "New request {case} created.",
     "until": "Until",
     "open_store": "Open store details"
   }

@@ -9,7 +9,7 @@ export interface PlatformSupportGrant {
   store_id: string;
   staff_id: string;
   scopes: SupportGrantScope[];
-  state: 'pending' | 'approved' | 'denied' | 'revoked' | 'expired';
+  state: 'pending' | 'approved' | 'denied' | 'revoked' | 'expired' | 'cancelled';
   reason: string;
   case_reference: string;
   duration_hours: number;
@@ -20,6 +20,14 @@ export interface PlatformSupportGrant {
 
 export async function listPlatformSupportGrants(tenantId: string): Promise<PlatformSupportGrant[]> {
   return (await request<{ data: PlatformSupportGrant[] }>('GET', '/platform-api/v1/support-grants', { query: { tenant_id: tenantId } })).data.data;
+}
+
+export async function cancelPlatformSupportGrant(id: string): Promise<PlatformSupportGrant> {
+  return (await request<PlatformSupportGrant>('POST', `/platform-api/v1/support-grants/${encodeURIComponent(id)}/cancel`)).data;
+}
+
+export async function resendPlatformSupportGrant(id: string): Promise<PlatformSupportGrant> {
+  return (await request<PlatformSupportGrant>('POST', `/platform-api/v1/support-grants/${encodeURIComponent(id)}/resend`)).data;
 }
 
 export async function requestPlatformSupportGrant(input: { tenant_id: string; store_id: string; scopes: SupportGrantScope[]; duration_hours: number; reason: string }): Promise<PlatformSupportGrant> {

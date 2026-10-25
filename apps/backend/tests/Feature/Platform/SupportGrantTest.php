@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Feature\Notifications\NotificationTestContext;
 use Tests\TestCase;
 
@@ -109,6 +110,46 @@ class SupportGrantTest extends TestCase
         $this->actingAs($customer['user'])->withSession(['active_tenant_id' => $tenant])->postJson("/api/v1/support-grants/{$grantId}/approve")->assertOk();
         $this->assertDatabaseHas('support_access_grants', ['id' => $grantId, 'requested_by_user_id' => $customer['user']->id, 'approved_by' => $customer['user']->id]);
         $this->assertSame(1, DB::table('audit_log')->where('action', 'support_grant.approved')->where('entity_id', $grantId)->count());
+    }
+
+    public function test_staff_cancels_a_pending_request_and_sends_any_request_again(): void
+    {
+        $customer = $this->context();
+        $staff = $this->signInStaff();
+        Mail::fake();
+        $tenant = $customer['tenant']->id;
+        $request = ['tenant_id' => $tenant, 'store_id' => $customer['store']->id, 'scopes' => ['read_diagnostics', 'read_artifacts'], 'duration_hours' => 48, 'reason' => 'Investigate case 77'];
+        $grantId = $this->postJson('/platform-api/v1/support-grants', $request)->assertCreated()->json('id');
+        Mail::assertSent(NotificationMessageMail::class, 1);
+
+        $this->postJson("/platform-api/v1/support-grants/{$grantId}/resend")->assertOk()->assertJsonPath('id', $grantId)->assertJsonPath('state', 'pending');
+        Mail::assertSent(NotificationMessageMail::class, 2);
+        $this->assertSame(1, SupportAccessGrant::query()->count());
+
+        $this->postJson("/platform-api/v1/support-grants/{$grantId}/cancel")->assertOk()->assertJsonPath('state', 'cancelled');
+        $this->postJson("/platform-api/v1/support-grants/{$grantId}/cancel")->assertOk()->assertJsonPath('state', 'cancelled');
+        $this->assertSame(1, DB::table('audit_log')->where('action', 'support_grant.cancelled')->where('entity_id', $grantId)->count());
+        $this->assertDatabaseHas('platform_audit_log', ['actor_staff_id' => $staff->id, 'action' => 'support_grant.cancelled', 'target_tenant_id' => $tenant]);
+        try {
+            app(SupportGrants::class)->decide(SupportAccessGrant::query()->findOrFail($grantId), $customer['user'], true);
+            $this->fail('A cancelled request must not be approvable.');
+        } catch (HttpException $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+        }
+        $this->assertNull(app(SupportGrants::class)->active($staff, $tenant, $customer['store']->id, SupportAccessGrant::READ_DIAGNOSTICS));
+
+        $again = $this->postJson("/platform-api/v1/support-grants/{$grantId}/resend")->assertCreated()->assertJsonPath('state', 'pending')
+            ->assertJsonPath('case_reference', 'SUP-000002')->assertJsonPath('scopes', ['read_diagnostics', 'read_artifacts'])->assertJsonPath('duration_hours', 48)->assertJsonPath('reason', 'Investigate case 77')->json('id');
+        $this->assertNotSame($grantId, $again);
+        Mail::assertSent(NotificationMessageMail::class, 3);
+        app(SupportGrants::class)->decide(SupportAccessGrant::query()->findOrFail($again), $customer['user'], true);
+        $this->postJson("/platform-api/v1/support-grants/{$again}/cancel")->assertStatus(409);
+
+        $otherUser = User::query()->create(['name' => 'Other Agent', 'email' => 'other@platform.test', 'password_hash' => Hash::make('other-password-1234'), 'locale' => 'en']);
+        $other = PlatformStaff::query()->create(['user_id' => $otherUser->id, 'role' => PlatformStaff::ROLE_SUPPORT, 'capabilities' => $staff->capabilities, 'state' => PlatformStaff::STATE_ACTIVE]);
+        $foreign = app(SupportGrants::class)->request($tenant, $customer['store']->id, $other, ['read_diagnostics'], 24, 'Somebody else asks', null);
+        $this->postJson("/platform-api/v1/support-grants/{$foreign->id}/cancel")->assertNotFound();
+        $this->postJson("/platform-api/v1/support-grants/{$foreign->id}/resend")->assertNotFound();
     }
 
     private function signInStaff(): PlatformStaff

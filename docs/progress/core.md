@@ -1060,3 +1060,14 @@ Status: complete (control panel frontend only)
 - Not done from the backlog item: «Подписки» (past due) and «Организации» (pending support requests) — no cheap existing source.
 
 Verification: `tests/ownerBadges.test.ts` (no badges when calm, counts, service colours, 99+, texts in three languages); `service.test.ts` stubs the menu badges so it still counts only the page's own health requests. Control 75/75, typecheck and build ok; backend SQLite suite green. No API or DB change.
+
+### Step 251: Staff Cancel and Resend Support Access Requests
+
+Status: complete — contains a migration
+
+- Owner request: in the admin customer card → «Доступ поддержки», «Отменить» for a request still waiting for the owner and «Отправить повторно» for any request, including revoked ones.
+- New state `cancelled` (migration `2026_10_25_100000_add_cancelled_state_to_support_access_grants` widens the PostgreSQL state check; `spec/database/platform-billing-extension.sql` updated). `POST /platform-api/v1/support-grants/{grant}/cancel` — own pending request only, idempotent, 409 once decided; the owner can no longer approve it and it never gives access. `POST /platform-api/v1/support-grants/{grant}/resend` — pending: the owner e-mail is sent again (200, same request); denied/revoked/expired/cancelled: a new pending request with the same store, scopes, duration and reason and the next `SUP-…` number (201). Another employee's request answers 404. Both require `tenants.support` and step-up throttling; both are written to the platform audit, cancel also to the customer audit (`support_grant.cancelled`).
+- Admin card shows the buttons and a confirmation line; both cabinets name the new state («Отменён» / «Отменён сотрудником»), ru/en/de. ADR 0078 amended, `docs/ops/support-access.md`, `contracts/openapi.yaml` (two operations), `spec/VALIDATION.md` (250 operations).
+- Not done from the backlog item: «Удалить» (hide a history entry without deleting it).
+
+Verification: `SupportGrantTest` new case (resend of a pending request e-mails again without a new request; cancel twice; customer audit and platform audit; cancelled request cannot be approved and gives no access; resend of a cancelled request creates SUP-000002 with the same parameters; an approved request cannot be cancelled; another employee's request is 404). Backend SQLite 735 passed + 4 skipped, PostgreSQL 18 739/739, Pint ok; control 76/76 (new card test), customer 172/172, both builds ok; spec validator passes.

@@ -19,6 +19,8 @@ class SupportAccessGrant extends Model
 
     public const EXPIRED = 'expired';
 
+    public const CANCELLED = 'cancelled';
+
     public const READ_DIAGNOSTICS = 'read_diagnostics';
 
     public const READ_ARTIFACTS = 'read_artifacts';

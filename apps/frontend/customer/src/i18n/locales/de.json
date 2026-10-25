@@ -2415,7 +2415,7 @@
     "request": "Anfrage erstellen",
     "requests": "Anfragen und aktiver Zugriff",
     "empty": "Noch keine Anfragen.",
-    "state": { "pending": "Wartet auf Ihre Genehmigung", "approved": "Aktiv", "denied": "Abgelehnt", "revoked": "Widerrufen", "expired": "Abgelaufen" },
+    "state": { "pending": "Wartet auf Ihre Genehmigung", "approved": "Aktiv", "denied": "Abgelehnt", "revoked": "Widerrufen", "expired": "Abgelaufen", "cancelled": "Vom Mitarbeitenden zurückgezogen" },
     "requested_at": "Beantragt",
     "until": "Bis",
     "approve": "Genehmigen",

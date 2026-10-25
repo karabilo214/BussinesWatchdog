@@ -46,6 +46,8 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_SUPPORT)->group(function (): void {
         Route::get('/support-grants', [SupportGrantController::class, 'index']);
         Route::post('/support-grants', [SupportGrantController::class, 'store'])->middleware('throttle:platform-step-up');
+        Route::post('/support-grants/{grant}/cancel', [SupportGrantController::class, 'cancel'])->whereUuid('grant')->middleware('throttle:platform-step-up');
+        Route::post('/support-grants/{grant}/resend', [SupportGrantController::class, 'resend'])->whereUuid('grant')->middleware('throttle:platform-step-up');
     });
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/{tenant}/reminders', [TenantController::class, 'reminders'])->whereUuid('tenant');
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/subscriptions', [TenantController::class, 'subscriptions']);

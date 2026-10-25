@@ -112,6 +112,41 @@ class SupportGrants
         });
     }
 
+    /** The requesting employee withdraws a request the owner has not decided yet; the e-mail link stops working. */
+    public function cancel(SupportAccessGrant $grant, PlatformStaff $staff): SupportAccessGrant
+    {
+        return DB::transaction(function () use ($grant, $staff): SupportAccessGrant {
+            $locked = SupportAccessGrant::query()->whereKey($grant->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->state === SupportAccessGrant::CANCELLED) {
+                return $locked;
+            }
+
+            abort_unless($locked->state === SupportAccessGrant::PENDING, 409, 'support_grant_not_pending');
+            $locked->forceFill(['state' => SupportAccessGrant::CANCELLED, 'revoked_at' => Carbon::now(), 'version' => $locked->version + 1])->save();
+            $this->tenantAudit($locked->tenant_id, $locked->store_id, null, 'support_grant.cancelled', $locked->id, ['staff_id' => $staff->id]);
+            $this->audit->record($staff->id, 'support_grant.cancelled', 'support_grant', $locked->id, PlatformAudit::RESULT_SUCCEEDED, ['store_id' => $locked->store_id, 'case_reference' => $locked->case_reference], null, $locked->tenant_id);
+
+            return $locked->refresh();
+        });
+    }
+
+    /**
+     * «Send again»: a request still waiting gets its e-mail to the owners once more; any decided, revoked, expired or
+     * cancelled request is asked again as a new request with the same store, scopes, duration and reason.
+     */
+    public function resend(SupportAccessGrant $grant, PlatformStaff $staff): SupportAccessGrant
+    {
+        if ($grant->state === SupportAccessGrant::PENDING) {
+            $this->audit->record($staff->id, 'support_grant.resent', 'support_grant', $grant->id, PlatformAudit::RESULT_SUCCEEDED, ['store_id' => $grant->store_id, 'case_reference' => $grant->case_reference], null, $grant->tenant_id);
+            $this->notifyOwners($grant, $staff);
+
+            return $grant;
+        }
+
+        return $this->request($grant->tenant_id, $grant->store_id, $staff, $grant->scopes, $grant->duration_hours, $grant->reason, null);
+    }
+
     public function active(PlatformStaff $staff, string $tenantId, string $storeId, string $scope): ?SupportAccessGrant
     {
         if (! $staff->active() || ! PlatformCapabilities::allows($staff, PlatformCapabilities::TENANTS_SUPPORT)) {

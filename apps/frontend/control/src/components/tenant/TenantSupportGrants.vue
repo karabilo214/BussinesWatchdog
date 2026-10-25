@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { listPlatformSupportGrants, requestPlatformSupportGrant, type PlatformSupportGrant, type SupportGrantScope, type TenantCard } from '@/api';
+import { cancelPlatformSupportGrant, listPlatformSupportGrants, requestPlatformSupportGrant, resendPlatformSupportGrant, type PlatformSupportGrant, type SupportGrantScope, type TenantCard } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 
@@ -12,6 +12,7 @@ const grants = ref<PlatformSupportGrant[]>([]);
 const loading = ref(true);
 const busy = ref(false);
 const error = ref<unknown>(null);
+const done = ref<string | null>(null);
 const form = reactive({ store_id: props.card.stores[0]?.id ?? '', scopes: ['read_diagnostics'] as SupportGrantScope[], duration_hours: 24, reason: '' });
 const scopes: SupportGrantScope[] = ['read_diagnostics', 'read_artifacts', 'request_recheck'];
 
@@ -35,6 +36,18 @@ async function submit(): Promise<void> {
   } catch (caught) { error.value = caught; } finally { busy.value = false; }
 }
 
+async function act(grant: PlatformSupportGrant, action: 'cancel' | 'resend'): Promise<void> {
+  if (busy.value) return;
+  busy.value = true;
+  error.value = null;
+  done.value = null;
+  try {
+    const result = action === 'cancel' ? await cancelPlatformSupportGrant(grant.id) : await resendPlatformSupportGrant(grant.id);
+    done.value = action === 'cancel' ? t('support_grants.cancelled_done') : result.id === grant.id ? t('support_grants.resent_done') : t('support_grants.recreated_done', { case: result.case_reference });
+    grants.value = await listPlatformSupportGrants(props.card.id);
+  } catch (caught) { error.value = caught; } finally { busy.value = false; }
+}
+
 function active(grant: PlatformSupportGrant): boolean {
   return grant.state === 'approved' && grant.expires_at !== null && Date.parse(grant.expires_at) > Date.now();
 }
@@ -53,6 +66,7 @@ function active(grant: PlatformSupportGrant): boolean {
       <label class="flex flex-col gap-1"><span>{{ t('support_grants.reason') }}</span><textarea v-model="form.reason" required minlength="5" maxlength="500" class="rounded-md border border-border-strong bg-surface p-2" /></label>
       <button type="submit" :disabled="busy || !form.store_id || !form.scopes.length || form.reason.trim().length < 5" class="self-start rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse disabled:opacity-60">{{ t('support_grants.request') }}</button>
     </form>
+    <p v-if="done" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-grant-done>{{ done }}</p>
     <p v-if="loading">{{ t('common.loading') }}</p>
     <p v-else-if="!grants.length">{{ t('support_grants.empty') }}</p>
     <article v-for="grant in grants" :key="grant.id" class="flex flex-col gap-1 rounded-xl border border-border bg-surface p-4 text-sm">
@@ -61,6 +75,10 @@ function active(grant: PlatformSupportGrant): boolean {
       <p>{{ grant.reason }}</p>
       <p class="text-text-muted">{{ dateTime(grant.created_at) }}<span v-if="grant.expires_at"> · {{ t('support_grants.until') }} {{ dateTime(grant.expires_at) }}</span></p>
       <RouterLink v-if="active(grant) && grant.scopes.includes('read_diagnostics')" :to="{ name: 'owner-tenant-store', params: { id: card.id, storeId: grant.store_id } }" class="self-start text-primary underline">{{ t('support_grants.open_store') }}</RouterLink>
+      <div class="flex flex-wrap gap-2 pt-1">
+        <button v-if="grant.state === 'pending'" type="button" :disabled="busy" class="rounded-md border border-border-strong px-3 py-1.5 font-medium hover:bg-surface-muted disabled:opacity-60" :data-action="`cancel-${grant.id}`" @click="act(grant, 'cancel')">{{ t('support_grants.cancel') }}</button>
+        <button type="button" :disabled="busy" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :data-action="`resend-${grant.id}`" @click="act(grant, 'resend')">{{ t('support_grants.resend') }}</button>
+      </div>
     </article>
   </section>
 </template>

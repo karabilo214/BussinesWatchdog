@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '@/api';
 import type { StaffMe, TenantCard, TenantRow } from '@/api';
 import App from '@/App.vue';
+import TenantSupportGrants from '@/components/tenant/TenantSupportGrants.vue';
 import { useStaff } from '@/composables/useStaff';
 import { localization } from '@/i18n';
 import { buildRouter } from '@/router';
@@ -36,6 +37,8 @@ vi.mock('@/api', () => ({
   fetchCustomerCheck: vi.fn(),
   fetchCustomerArtifactUrl: vi.fn(),
   listPlatformSupportGrants: vi.fn(),
+  cancelPlatformSupportGrant: vi.fn(),
+  resendPlatformSupportGrant: vi.fn(),
   fetchTenantInvitations: vi.fn(),
   inviteTenantMember: vi.fn(),
   revokeTenantInvitation: vi.fn(),
@@ -520,5 +523,30 @@ describe('tenants', () => {
     const row = wrapper.get('[data-subscription="Kaffee Lindner GmbH"]');
     expect(row.text()).toContain('sub_1 · test');
     expect(row.text()).toContain('start + 1');
+  });
+});
+
+describe('support grants in the customer card', () => {
+  it('cancels a pending request and sends a cancelled one again as a new request', async () => {
+    const base = { tenant_id: 't-1', store_id: 's-1', staff_id: 'st-1', scopes: ['read_diagnostics'], reason: 'Investigate', duration_hours: 24, created_at: '2026-10-25T10:00:00Z', approved_at: null, expires_at: null } as const;
+    mocked.listPlatformSupportGrants.mockResolvedValue([{ ...base, id: 'g-1', state: 'pending', case_reference: 'SUP-000001' }] as never);
+    mocked.cancelPlatformSupportGrant.mockResolvedValue({ ...base, id: 'g-1', state: 'cancelled', case_reference: 'SUP-000001' } as never);
+    mocked.resendPlatformSupportGrant.mockResolvedValue({ ...base, id: 'g-2', state: 'pending', case_reference: 'SUP-000002' } as never);
+    const wrapper = mount(TenantSupportGrants, { props: { card: card() }, global: { plugins: [localization], stubs: { RouterLink: true } } });
+    await flushPromises();
+
+    expect(wrapper.find('[data-action="cancel-g-1"]').exists()).toBe(true);
+    mocked.listPlatformSupportGrants.mockResolvedValue([{ ...base, id: 'g-1', state: 'cancelled', case_reference: 'SUP-000001' }] as never);
+    await wrapper.get('[data-action="cancel-g-1"]').trigger('click');
+    await flushPromises();
+    expect(mocked.cancelPlatformSupportGrant).toHaveBeenCalledWith('g-1');
+    expect(wrapper.get('[data-grant-done]').text()).toBe('Запрос отменён.');
+    expect(wrapper.text()).toContain('Отменён');
+    expect(wrapper.find('[data-action="cancel-g-1"]').exists()).toBe(false);
+
+    await wrapper.get('[data-action="resend-g-1"]').trigger('click');
+    await flushPromises();
+    expect(mocked.resendPlatformSupportGrant).toHaveBeenCalledWith('g-1');
+    expect(wrapper.get('[data-grant-done]').text()).toBe('Создан новый запрос SUP-000002.');
   });
 });

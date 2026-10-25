@@ -2415,7 +2415,7 @@
     "request": "Create request",
     "requests": "Requests and active access",
     "empty": "No requests yet.",
-    "state": { "pending": "Waiting for your approval", "approved": "Active", "denied": "Denied", "revoked": "Revoked", "expired": "Expired" },
+    "state": { "pending": "Waiting for your approval", "approved": "Active", "denied": "Denied", "revoked": "Revoked", "expired": "Expired", "cancelled": "Cancelled by staff" },
     "requested_at": "Requested",
     "until": "Until",
     "approve": "Approve",

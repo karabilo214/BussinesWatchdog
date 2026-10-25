@@ -1,7 +1,7 @@
 import { request } from '@bw/api-client';
 
 export type GrantScope = 'read_diagnostics' | 'read_artifacts' | 'request_recheck';
-export type GrantState = 'pending' | 'approved' | 'denied' | 'revoked' | 'expired';
+export type GrantState = 'pending' | 'approved' | 'denied' | 'revoked' | 'expired' | 'cancelled';
 
 export interface SupportGrant {
   id: string;
