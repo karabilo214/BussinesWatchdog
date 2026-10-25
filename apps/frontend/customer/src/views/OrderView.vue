@@ -12,7 +12,7 @@ import { linkableRefundAmount } from '@/components/reconciliation/linking';
 import { useFormat } from '@/composables/useFormat';
 import { useRole } from '@/composables/useRole';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { StatusBadge } from '@bw/ui';
+import { StatusBadge, paymentMethodLabelKey } from '@bw/ui';
 import { useBackLink } from '@/composables/useBackLink';
 
 const props = defineProps<{ id: string }>();
@@ -190,7 +190,7 @@ watch(
           </div>
           <dl class="grid gap-x-6 gap-y-1 border-t border-border pt-3 text-[13px] sm:col-span-2 sm:grid-cols-2 lg:col-span-4">
             <div class="flex gap-2"><dt class="text-text-muted">{{ $t('order.paid_marked') }}</dt><dd>{{ order.paid_marked_at ? dateTime(order.paid_marked_at) : $t('order.not_marked') }}</dd></div>
-            <div class="flex gap-2"><dt class="text-text-muted">{{ $t('order.gateway') }}</dt><dd>{{ order.gateway ?? '—' }}</dd></div>
+            <div class="flex gap-2"><dt class="text-text-muted">{{ $t('order.gateway') }}</dt><dd :title="order.gateway ?? undefined" :data-gateway="order.gateway ?? ''">{{ paymentMethodLabelKey(order.gateway) ? $t(paymentMethodLabelKey(order.gateway)!) : '—' }}</dd></div>
             <div class="flex gap-2"><dt class="text-text-muted">{{ $t('order.transaction_ref') }}</dt><dd class="break-all font-mono">{{ order.transaction_ref ?? '—' }}</dd></div>
             <div class="flex gap-2"><dt class="text-text-muted">{{ $t('order.support') }}</dt><dd>{{ $t(`order.financial_support.${order.financial_support}`) }}</dd></div>
           </dl>

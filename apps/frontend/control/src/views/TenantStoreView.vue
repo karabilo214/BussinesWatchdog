@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { ApiError } from '@bw/api-client';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { StatusBadge, formatMinor } from '@bw/ui';
+import { StatusBadge, formatMinor, paymentMethodLabelKey } from '@bw/ui';
 import {
   changeStoreIncident,
   fetchCustomerArtifactUrl,
@@ -341,7 +341,7 @@ watch(tab, () => void loadTab());
                 <td class="px-4 py-3">{{ orderStatus(row.status) }}</td>
                 <td class="px-4 py-3" :data-payment-state="row.payment_state ?? ''">{{ paymentState(row) }}</td>
                 <td class="px-4 py-3 tabular-nums">{{ money(row.total_minor, row.currency, row.currency_exponent) }}</td>
-                <td class="px-4 py-3">{{ row.gateway ?? '—' }}</td>
+                <td class="px-4 py-3" :title="row.gateway ?? undefined" :data-gateway="row.gateway ?? ''">{{ paymentMethodLabelKey(row.gateway) ? $t(paymentMethodLabelKey(row.gateway)!) : '—' }}</td>
                 <td class="px-4 py-3 whitespace-nowrap">{{ dateTime(row.paid_marked_at) }}</td>
               </tr>
             </tbody>

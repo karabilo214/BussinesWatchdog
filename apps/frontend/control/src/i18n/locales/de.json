@@ -1,4 +1,24 @@
 {
+  "payment_method_kind": {
+    "apple_pay": "Apple Pay",
+    "google_pay": "Google Pay",
+    "sepa_debit": "SEPA-Lastschrift",
+    "klarna": "Klarna",
+    "giropay": "giropay",
+    "sofort": "Sofort",
+    "ideal": "iDEAL",
+    "bancontact": "Bancontact",
+    "eps": "EPS",
+    "paypal": "PayPal",
+    "invoice": "Rechnung",
+    "prepayment": "Vorkasse",
+    "bank_transfer": "Banküberweisung",
+    "cash_on_delivery": "Nachnahme",
+    "cash": "Barzahlung",
+    "cheque": "Scheck",
+    "card": "Kreditkarte",
+    "other": "Andere Zahlungsart"
+  },
   "app": {
     "name": "Business Watchdog Verwaltung"
   },

@@ -280,3 +280,14 @@ Status: complete (customer frontend only)
 - Not done from the backlog item: connected providers and notification channels counts, organisation creation date, language and time zone (not in any customer endpoint yet).
 
 Verification: `organization.test.ts` — summary content (plan name, «2 из 3», paused store, team names without e-mail, invitations), summary above deletion, subscription/team sections hidden on 403; existing deletion tests unchanged. Customer frontend 165/165, typecheck and build ok; backend SQLite suite green. No API or DB change.
+
+### Step 247: Readable Payment Method Names
+
+Status: complete (frontend only)
+
+- Reported: admin «Магазины клиента» → «Заказы» showed raw store codes such as `stripe_shopware_payment_payment_handler_card`.
+- New shared `paymentMethodKind` / `paymentMethodLabelKey` in `@bw/ui` (`packages/ui/src/paymentMethods.ts`): ordered rules map WooCommerce gateway ids and Shopware technical names to a kind — card, PayPal, SEPA direct debit, Klarna, Apple/Google Pay, giropay, Sofort, iDEAL, Bancontact, EPS, invoice, prepayment, bank transfer, cash on delivery, cash, cheque; anything else is «Другой способ оплаты». Labels `payment_method_kind.*` in ru/en/de in both panels.
+- Used in the admin orders table (raw code kept in the cell tooltip and `data-gateway`), the customer order card, and the «серия отказов способа оплаты» incident evidence (the code is added in brackets only for an unrecognised method, so the owner can find it in the shop).
+- Display only: reconciliation, payment attempt monitoring and stored data still use the code. Still open in the backlog item: storing the shop's own method title (Shopware `translated.name`, WooCommerce `payment_method_title`) for methods the rules do not recognise.
+
+Verification: `customer/tests/paymentMethods.test.ts` (real WooCommerce/Shopware codes, fallback, labels in three languages); incident evidence expectation updated to «Банковская карта». Customer 168/168, control 72/72, both typechecks and builds ok; backend SQLite suite green. No API or DB change.

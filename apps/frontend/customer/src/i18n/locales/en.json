@@ -1,4 +1,24 @@
 {
+  "payment_method_kind": {
+    "apple_pay": "Apple Pay",
+    "google_pay": "Google Pay",
+    "sepa_debit": "SEPA Direct Debit",
+    "klarna": "Klarna",
+    "giropay": "giropay",
+    "sofort": "Sofort",
+    "ideal": "iDEAL",
+    "bancontact": "Bancontact",
+    "eps": "EPS",
+    "paypal": "PayPal",
+    "invoice": "Invoice",
+    "prepayment": "Prepayment",
+    "bank_transfer": "Bank transfer",
+    "cash_on_delivery": "Cash on delivery",
+    "cash": "Cash",
+    "cheque": "Cheque",
+    "card": "Card",
+    "other": "Other payment method"
+  },
   "app": {
     "name": "Business Watchdog",
     "tagline": "Monitoring for store sales and payments"

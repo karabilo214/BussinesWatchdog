@@ -1,4 +1,24 @@
 {
+  "payment_method_kind": {
+    "apple_pay": "Apple Pay",
+    "google_pay": "Google Pay",
+    "sepa_debit": "SEPA-списание",
+    "klarna": "Klarna",
+    "giropay": "giropay",
+    "sofort": "Sofort",
+    "ideal": "iDEAL",
+    "bancontact": "Bancontact",
+    "eps": "EPS",
+    "paypal": "PayPal",
+    "invoice": "Счёт (оплата по счёту)",
+    "prepayment": "Предоплата",
+    "bank_transfer": "Банковский перевод",
+    "cash_on_delivery": "Наложенный платёж",
+    "cash": "Наличные",
+    "cheque": "Чек",
+    "card": "Банковская карта",
+    "other": "Другой способ оплаты"
+  },
   "app": {
     "name": "Business Watchdog",
     "tagline": "Контроль продаж и платежей магазина"

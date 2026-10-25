@@ -370,7 +370,7 @@ describe('IncidentEvidence', () => {
       global,
     });
 
-    expect(wrapper.text()).toContain('Способ оплаты «stripe»: 4 неудачных попыток подряд (порог 3).');
+    expect(wrapper.text()).toContain('Способ оплаты «Банковская карта»: 4 неудачных попыток подряд (порог 3).');
     expect(wrapper.text()).toContain('Последняя успешная оплата: ещё не было.');
   });
 });
