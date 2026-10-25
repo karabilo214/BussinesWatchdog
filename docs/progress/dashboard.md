@@ -227,3 +227,13 @@ Status: complete (frontend only)
 - Remaining parts of the backlog item (store selector visibility, scroll position) stay open.
 
 Verification: `tests/backLink.test.ts` (exact list page kept; direct open and other pages fall back); customer frontend 160/160, typecheck and build ok; backend SQLite suite green. No API or DB change.
+
+### Step 241: Support Access History Names the Opened Object
+
+Status: complete (customer frontend only)
+
+- `/app/settings/support` → «История»: an entry showed the raw target type and internal UUID (`· order 01a1…`). It now shows what was opened by name — store data, order, check, check material, incident (`support_grants.target.*`, ru/en/de; types are the ones `RequireSupportGrant` records). Event names were already translated.
+- New `tests/supportHistory.test.ts`: every event and target type is named in all three languages; the view no longer prints the id.
+- Still open in the backlog item: which staff member (name), which store, scopes, duration and reason in each line.
+
+Verification: customer frontend 162/162, typecheck and build ok; backend SQLite suite green. No API or DB change.

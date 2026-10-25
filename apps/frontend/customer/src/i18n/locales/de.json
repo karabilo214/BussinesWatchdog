@@ -2378,6 +2378,7 @@
     "activity": "Aktivität",
     "no_activity": "Noch keine Aktivität erfasst.",
     "event": { "support_grant.requested": "Zugriff beantragt", "support_grant.approved": "Zugriff genehmigt", "support_grant.denied": "Anfrage abgelehnt", "support_grant.revoked": "Zugriff widerrufen", "support_access.opened": "Detaildaten geöffnet", "support_access.artifact": "Material heruntergeladen", "check_run.support_started": "Neue Prüfung gestartet" },
+    "target": { "store": "Shopdaten", "order": "Bestellung", "check": "Prüfung", "artifact": "Prüfmaterial", "incident": "Vorfall" },
     "warning": "Ein Widerruf sperrt neue Anfragen und Links sofort. Bereits gesehene oder gespeicherte Informationen können dadurch nicht gelöscht werden."
   }
 }

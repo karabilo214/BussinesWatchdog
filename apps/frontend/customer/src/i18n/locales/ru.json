@@ -2378,6 +2378,7 @@
     "activity": "История",
     "no_activity": "Действий пока нет.",
     "event": { "support_grant.requested": "Доступ запрошен", "support_grant.approved": "Доступ разрешён", "support_grant.denied": "Запрос отклонён", "support_grant.revoked": "Доступ отозван", "support_access.opened": "Открыты подробные данные", "support_access.artifact": "Скачан материал", "check_run.support_started": "Запущена новая проверка" },
+    "target": { "store": "данные магазина", "order": "заказ", "check": "проверка", "artifact": "материал проверки", "incident": "инцидент" },
     "warning": "Отзыв сразу остановит новые запросы и ссылки. Он не удалит сведения, которые сотрудник уже увидел или сохранил."
   }
 }

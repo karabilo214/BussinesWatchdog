@@ -2378,6 +2378,7 @@
     "activity": "Activity",
     "no_activity": "No activity recorded.",
     "event": { "support_grant.requested": "Access requested", "support_grant.approved": "Access approved", "support_grant.denied": "Access denied", "support_grant.revoked": "Access revoked", "support_access.opened": "Detailed data opened", "support_access.artifact": "Material downloaded", "check_run.support_started": "New check started" },
+    "target": { "store": "store data", "order": "order", "check": "check", "artifact": "check material", "incident": "incident" },
     "warning": "Revoking access stops new requests and links immediately. It cannot erase information the employee has already seen or saved."
   }
 }
