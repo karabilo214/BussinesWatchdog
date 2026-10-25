@@ -116,7 +116,7 @@ class SupportGrantController extends Controller
         return [
             'id' => $grant->id, 'tenant_id' => $grant->tenant_id, 'store_id' => $grant->store_id, 'store_name' => $storeName,
             'staff_id' => $grant->staff_id,
-            'staff' => $staff === null ? null : ['id' => $staff->id, 'name' => $staff->user?->name, 'email' => $staff->user?->email],
+            'staff' => $staff === null ? null : ['id' => $staff->id, 'name' => $staff->user?->name],
             'scopes' => $grant->scopes, 'state' => $grant->state === SupportAccessGrant::APPROVED && $grant->expires_at?->isPast() ? SupportAccessGrant::EXPIRED : $grant->state,
             'reason' => $grant->reason, 'case_reference' => $grant->case_reference,
             'duration_hours' => $grant->duration_hours, 'version' => $grant->version,

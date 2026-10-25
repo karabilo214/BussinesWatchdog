@@ -247,3 +247,13 @@ Status: complete
 - Contract: the activity operation description lists the entry fields. Remaining in the backlog item: store, scopes, duration and reason in the line.
 
 Verification: `SupportGrantTest` asserts `staff_name`; backend SQLite 734 passed + 4 skipped, PostgreSQL 18 738/738, Pint ok; customer frontend 162/162, typecheck and build ok. Spec validator not run locally (PyYAML missing on this machine, also before the change); CI runs it.
+
+### Step 243: Customer Cabinet No Longer Shows Support Staff E-mail
+
+Status: complete
+
+- The customer grant response (`/api/v1/support-grants` list, create, approve/deny/revoke) returned `staff.email`, and the grant card showed «name (e-mail)». The owner decided the cabinet shows support staff by name only; `staff` is now `{id, name}` and the card shows the name.
+- The request form still takes the employee's work e-mail as input (`staff_email`) until the backlog item «выбор сотрудника из списка» replaces it with a select.
+- With Steps 241–242 the support access history item is closed: store, scopes, duration and reason were already on the grant card the history opens under; the history lines now name the event, employee and object.
+
+Verification: `SupportGrantTest` asserts the customer response has `staff.name` and no `staff.email`; backend SQLite 734 passed + 4 skipped, PostgreSQL 18 738/738, Pint ok; customer frontend 162/162, typecheck and build ok.

@@ -101,7 +101,7 @@ async function showActivity(id: string): Promise<void> {
       <section class="flex flex-col gap-3"><h2 class="text-lg font-semibold">{{ t('support_grants.requests') }}</h2>
         <p v-if="!grants.length" class="text-text-muted">{{ t('support_grants.empty') }}</p>
         <article v-for="grant in grants" :key="grant.id" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 text-sm">
-          <div class="flex flex-wrap justify-between gap-2"><strong>{{ grant.case_reference }} · {{ grant.store_name }} · {{ grant.staff?.name }} ({{ grant.staff?.email }})</strong><span>{{ t(`support_grants.state.${grant.state}`) }}</span></div>
+          <div class="flex flex-wrap justify-between gap-2"><strong>{{ grant.case_reference }} · {{ grant.store_name }} · {{ grant.staff?.name }}</strong><span>{{ t(`support_grants.state.${grant.state}`) }}</span></div>
           <p>{{ grant.scopes.map((scope) => t(`support_grants.scope.${scope}`)).join(', ') }}</p>
           <p>{{ t('support_grants.reason') }}: {{ grant.reason }}</p>
           <p class="text-text-muted">{{ t('support_grants.requested_at') }}: {{ dateTime(grant.created_at) }} · {{ t('support_grants.hours') }}: {{ grant.duration_hours }}<span v-if="grant.expires_at"> · {{ t('support_grants.until') }}: {{ dateTime(grant.expires_at) }}</span></p>

@@ -7,7 +7,7 @@ export interface SupportGrant {
   id: string;
   store_id: string;
   store_name: string | null;
-  staff: { id: string; name: string; email: string } | null;
+  staff: { id: string; name: string } | null;
   scopes: GrantScope[];
   state: GrantState;
   reason: string;
