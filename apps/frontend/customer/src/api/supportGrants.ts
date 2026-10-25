@@ -34,7 +34,16 @@ export async function listSupportGrants(): Promise<SupportGrant[]> {
   return (await request<{ data: SupportGrant[] }>('GET', '/api/v1/support-grants')).data.data;
 }
 
-export async function requestSupportGrant(input: { store_id: string; staff_email: string; scopes: GrantScope[]; duration_hours: number; reason: string }): Promise<SupportGrant> {
+export interface SupportStaff {
+  id: string;
+  name: string;
+}
+
+export async function listSupportStaff(): Promise<SupportStaff[]> {
+  return (await request<{ data: SupportStaff[] }>('GET', '/api/v1/support-staff')).data.data;
+}
+
+export async function requestSupportGrant(input: { store_id: string; staff_id: string; scopes: GrantScope[]; duration_hours: number; reason: string }): Promise<SupportGrant> {
   return (await request<SupportGrant>('POST', '/api/v1/support-grants', { body: input })).data;
 }
 

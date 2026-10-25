@@ -8,7 +8,6 @@ use App\Models\Membership;
 use App\Models\PlatformStaff;
 use App\Models\Store;
 use App\Models\SupportAccessGrant;
-use App\Models\User;
 use App\Support\Auth\TenantRoles;
 use App\Support\Platform\PlatformCapabilities;
 use App\Support\Platform\SupportGrants;
@@ -31,20 +30,35 @@ class SupportGrantController extends Controller
         return response()->json(['data' => $grants->map(fn (SupportAccessGrant $grant): array => $this->dto($grant, $staff->get($grant->staff_id), $stores->get($grant->store_id)))->all()]);
     }
 
+    /**
+     * Support employees the owner can choose for a request: active and allowed to work with support access. Names
+     * only; staff e-mail addresses stay inside the platform.
+     */
+    public function staff(Request $request): JsonResponse
+    {
+        $this->ownerTenant($request);
+        $staff = PlatformStaff::query()->with('user')->where('state', PlatformStaff::STATE_ACTIVE)->get()
+            ->filter(fn (PlatformStaff $member): bool => PlatformCapabilities::allows($member, PlatformCapabilities::TENANTS_SUPPORT) && $member->user !== null)
+            ->sortBy(fn (PlatformStaff $member): string => mb_strtolower((string) $member->user->name))
+            ->map(fn (PlatformStaff $member): array => ['id' => $member->id, 'name' => $member->user->name])
+            ->values();
+
+        return response()->json(['data' => $staff->all()]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $tenantId = $this->ownerTenant($request);
         $validated = $request->validate([
             'store_id' => ['required', 'uuid'],
-            'staff_email' => ['required', 'email', 'max:255'],
+            'staff_id' => ['required', 'uuid'],
             'scopes' => ['required', 'array', 'min:1', 'max:3'],
             'scopes.*' => ['required', 'string', Rule::in(SupportAccessGrant::SCOPES)],
             'duration_hours' => ['sometimes', 'integer', 'between:1,72'],
             'reason' => ['required', 'string', 'min:5', 'max:500'],
             'case_reference' => ['prohibited'],
         ]);
-        $email = mb_strtolower(trim($validated['staff_email']));
-        $staff = PlatformStaff::query()->whereIn('user_id', User::query()->whereRaw('lower(email) = ?', [$email])->select('id'))->first();
+        $staff = PlatformStaff::query()->find($validated['staff_id']);
         abort_unless($staff !== null && $staff->active() && PlatformCapabilities::allows($staff, PlatformCapabilities::TENANTS_SUPPORT), 422, 'support_staff_not_found');
         $grant = $this->grants->request($tenantId, $validated['store_id'], $staff, array_values($validated['scopes']), (int) ($validated['duration_hours'] ?? 24), trim($validated['reason']), $request->user());
 

@@ -6527,15 +6527,23 @@ paths:
     post:
       tags: [Account]
       operationId: runtimeCustomerRequestSupportGrant
-      description: "Tenant owner requests a grant for one store and an active employee identified by work e-mail. Case reference and reason required."
+      description: "Tenant owner requests a grant for one store and an active support employee chosen from /api/v1/support-staff (staff_id). The case reference is assigned by the server; reason required."
       security: [{CustomerSession: []}]
       requestBody:
         required: true
         content:
           application/json:
-            schema: {type: object, required: [store_id, staff_email, scopes, reason]}
+            schema: {type: object, required: [store_id, staff_id, scopes, reason]}
       responses:
         "201": {description: Pending grant, content: {application/json: {schema: {type: object}}}}
+  /api/v1/support-staff:
+    get:
+      tags: [Account]
+      operationId: runtimeCustomerListSupportStaff
+      description: "Tenant owner lists active support employees allowed to work with support access, as {id, name} sorted by name; no e-mail addresses."
+      security: [{CustomerSession: []}]
+      responses:
+        "200": {description: Support employees, content: {application/json: {schema: {type: object}}}}
   /api/v1/support-grants/{grant}/approve:
     post:
       tags: [Account]

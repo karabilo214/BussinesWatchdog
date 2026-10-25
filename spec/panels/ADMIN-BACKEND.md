@@ -115,7 +115,7 @@ Staff audit records read of detailed customer evidence, secret rotations metadat
 | POST /platform-api/v1/public-content | slug,locale,title,body | sanitized draft |
 | POST /platform-api/v1/public-content/{id}/publish | reason/version | content action |
 
-Customer support endpoints `/api/v1/support-grants`: tenant_owner lists, creates for an active staff work e-mail, approves/denies/revokes and views access activity for its tenant. Only tenant_owner decides. All platform staff, including platform_owner, need a grant for detailed diagnostics and artifacts. Granted scope, expiry, tenant and store are checked per request; artifact content is served through a guarded app route, and API never accepts staff asserted «has_grant=true». Incident acknowledge/resolve uses `tenants.incident_actions`, reason, audit and customer notification separately from grant.
+Customer support endpoints `/api/v1/support-grants`: tenant_owner lists, lists support staff by name (`/api/v1/support-staff`, no e-mail) and creates for a chosen `staff_id`, approves/denies/revokes and views access activity for its tenant. Only tenant_owner decides. All platform staff, including platform_owner, need a grant for detailed diagnostics and artifacts. Granted scope, expiry, tenant and store are checked per request; artifact content is served through a guarded app route, and API never accepts staff asserted «has_grant=true». Incident acknowledge/resolve uses `tenants.incident_actions`, reason, audit and customer notification separately from grant.
 
 ### DTO fields
 

@@ -257,3 +257,15 @@ Status: complete
 - With Steps 241–242 the support access history item is closed: store, scopes, duration and reason were already on the grant card the history opens under; the history lines now name the event, employee and object.
 
 Verification: `SupportGrantTest` asserts the customer response has `staff.name` and no `staff.email`; backend SQLite 734 passed + 4 skipped, PostgreSQL 18 738/738, Pint ok; customer frontend 162/162, typecheck and build ok.
+
+### Step 244: Customer Chooses the Support Employee from a List
+
+Status: complete
+
+- Owner decision (2026-10-24): in «Запросить доступ для поддержки» the customer picks the employee by name; staff e-mail addresses are never shown to customers.
+- New `GET /api/v1/support-staff` (tenant_owner only): active platform staff allowed `tenants.support` (platform_owner included), `{id, name}` sorted by name, no e-mail. `POST /api/v1/support-grants` takes `staff_id` instead of `staff_email`; a disabled employee or one without `tenants.support` is rejected with 422 `support_staff_not_found` as before.
+- `/app/settings/support`: the e-mail input is a select «Сотрудник поддержки» filled from the list (ru/en/de).
+- ADR 0078 amended (point 1), `spec/panels/ADMIN-PANEL.md`, `ADMIN-BACKEND.md`, `CLIENT-PANELS.md`, `docs/ops/support-access.md`, `contracts/openapi.yaml` (new operation `runtimeCustomerListSupportStaff`, request requires `staff_id`), `spec/VALIDATION.md` regenerated (248 operations).
+- Backend and customer frontend must be deployed together (the old form sends `staff_email`).
+
+Verification: `SupportGrantTest` — list only for the owner, only the active support employee, no `@` in the response; disabled and non-support staff rejected; `staff_email` no longer accepted. Backend SQLite 734 passed + 4 skipped, PostgreSQL 18 738/738, Pint ok; customer frontend 163/163, typecheck and build ok; `spec/validate_spec.py` passes (PyYAML 6.0.2 in a temporary venv).

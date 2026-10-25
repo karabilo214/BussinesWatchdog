@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { decideSupportGrant, listSupportActivity, listSupportGrants, requestSupportGrant, type GrantActivity, type GrantScope, type SupportGrant } from '@/api/supportGrants';
+import { decideSupportGrant, listSupportActivity, listSupportGrants, listSupportStaff, requestSupportGrant, type GrantActivity, type GrantScope, type SupportGrant, type SupportStaff } from '@/api/supportGrants';
 import { listStores } from '@/api/stores';
 import type { Store } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
@@ -18,12 +18,13 @@ const openedActivity = ref<string | null>(null);
 const loading = ref(true);
 const busy = ref(false);
 const error = ref<unknown>(null);
-const form = reactive({ store_id: '', staff_email: '', scopes: ['read_diagnostics'] as GrantScope[], duration_hours: 24, reason: '' });
+const supportStaff = ref<SupportStaff[]>([]);
+const form = reactive({ store_id: '', staff_id: '', scopes: ['read_diagnostics'] as GrantScope[], duration_hours: 24, reason: '' });
 const allScopes: GrantScope[] = ['read_diagnostics', 'read_artifacts', 'request_recheck'];
 
 async function load(): Promise<void> {
   try {
-    [stores.value, grants.value] = await Promise.all([listStores(), listSupportGrants()]);
+    [stores.value, grants.value, supportStaff.value] = await Promise.all([listStores(), listSupportGrants(), listSupportStaff()]);
     form.store_id ||= stores.value[0]?.id ?? '';
   } catch (caught) {
     error.value = caught;
@@ -43,7 +44,7 @@ async function create(): Promise<void> {
   busy.value = true;
   error.value = null;
   try {
-    await requestSupportGrant({ ...form, staff_email: form.staff_email.trim(), reason: form.reason.trim() });
+    await requestSupportGrant({ ...form, reason: form.reason.trim() });
     grants.value = await listSupportGrants();
     form.reason = '';
   } catch (caught) {
@@ -91,7 +92,7 @@ async function showActivity(id: string): Promise<void> {
         <h2 class="font-semibold">{{ t('support_grants.new') }}</h2>
         <p class="text-sm text-text-muted">{{ t('support_grants.number_after_create') }}</p>
         <label class="flex flex-col gap-1"><span>{{ t('support_grants.store') }}</span><select v-model="form.store_id" class="rounded-md border border-border-strong bg-surface p-2"><option v-for="store in stores" :key="store.id" :value="store.id">{{ store.name }}</option></select></label>
-        <label class="flex flex-col gap-1"><span>{{ t('support_grants.staff_email') }}</span><input v-model="form.staff_email" type="email" required maxlength="255" class="rounded-md border border-border-strong bg-surface p-2" /></label>
+        <label class="flex flex-col gap-1"><span>{{ t('support_grants.staff') }}</span><select v-model="form.staff_id" required class="rounded-md border border-border-strong bg-surface p-2"><option value="" disabled>{{ t('support_grants.staff_choose') }}</option><option v-for="member in supportStaff" :key="member.id" :value="member.id">{{ member.name }}</option></select></label>
         <fieldset class="flex flex-wrap gap-4"><legend class="font-medium">{{ t('support_grants.scopes') }}</legend><label v-for="scope in allScopes" :key="scope" class="flex items-center gap-2"><input type="checkbox" :checked="form.scopes.includes(scope)" @change="toggle(scope)" />{{ t(`support_grants.scope.${scope}`) }}</label></fieldset>
         <label class="flex flex-col gap-1"><span>{{ t('support_grants.hours') }}</span><input v-model.number="form.duration_hours" type="number" min="1" max="72" required class="w-28 rounded-md border border-border-strong bg-surface p-2" /></label>
         <label class="flex flex-col gap-1"><span>{{ t('support_grants.reason') }}</span><textarea v-model="form.reason" required minlength="5" maxlength="500" class="rounded-md border border-border-strong bg-surface p-2" /></label>

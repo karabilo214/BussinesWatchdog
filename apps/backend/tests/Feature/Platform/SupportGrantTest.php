@@ -79,20 +79,29 @@ class SupportGrantTest extends TestCase
         $this->postJson("/api/v1/support-grants/{$grantId}/revoke")->assertOk()->assertJsonPath('state', 'revoked');
     }
 
-    public function test_customer_can_request_by_staff_email_but_only_the_owner_can_approve_and_duration_is_bounded(): void
+    public function test_customer_chooses_staff_from_the_list_but_only_the_owner_can_approve_and_duration_is_bounded(): void
     {
         $customer = $this->context();
         $member = $this->context('admin', $customer['tenant'], $customer['store'], $customer['integration']);
         $staff = $this->signInStaff();
         $tenant = $customer['tenant']->id;
         $input = [
-            'store_id' => $customer['store']->id, 'staff_email' => $staff->user->email,
+            'store_id' => $customer['store']->id, 'staff_id' => $staff->id,
             'scopes' => ['read_diagnostics', 'read_artifacts'], 'duration_hours' => 72,
             'reason' => 'Please inspect case 17',
         ];
 
         $this->actingAs($member['user'])->withSession(['active_tenant_id' => $tenant])->postJson('/api/v1/support-grants', $input)->assertForbidden();
+        $disabled = PlatformStaff::query()->create(['user_id' => User::query()->create(['name' => 'Former Agent', 'email' => 'former@platform.test', 'password_hash' => Hash::make('former-password-1234'), 'locale' => 'en'])->id, 'role' => PlatformStaff::ROLE_SUPPORT, 'capabilities' => $staff->capabilities, 'state' => PlatformStaff::STATE_DISABLED]);
+        $noSupport = PlatformStaff::query()->create(['user_id' => User::query()->create(['name' => 'Billing Clerk', 'email' => 'billing@platform.test', 'password_hash' => Hash::make('billing-password-1234'), 'locale' => 'en'])->id, 'role' => PlatformStaff::ROLE_MEMBER, 'capabilities' => [], 'state' => PlatformStaff::STATE_ACTIVE]);
+
+        $this->actingAs($member['user'])->withSession(['active_tenant_id' => $tenant])->getJson('/api/v1/support-staff')->assertForbidden();
         $this->actingAs($customer['user'])->withSession(['active_tenant_id' => $tenant]);
+        $list = $this->getJson('/api/v1/support-staff')->assertOk()->assertExactJson(['data' => [['id' => $staff->id, 'name' => 'Support Agent']]]);
+        $this->assertStringNotContainsString('@', (string) $list->getContent());
+        $this->postJson('/api/v1/support-grants', [...$input, 'staff_id' => $disabled->id])->assertStatus(422);
+        $this->postJson('/api/v1/support-grants', [...$input, 'staff_id' => $noSupport->id])->assertStatus(422);
+        $this->postJson('/api/v1/support-grants', [...$input, 'staff_email' => $staff->user->email, 'staff_id' => null])->assertStatus(422);
         $this->postJson('/api/v1/support-grants', [...$input, 'case_reference' => 'MANUAL-17'])->assertStatus(422)->assertJsonValidationErrors('case_reference');
         $this->postJson('/api/v1/support-grants', [...$input, 'duration_hours' => 73])->assertStatus(422);
         $grantId = $this->postJson('/api/v1/support-grants', $input)->assertCreated()->assertJsonPath('state', 'pending')->assertJsonPath('case_reference', 'SUP-000001')->assertJsonPath('staff.name', $staff->user->name)->assertJsonMissingPath('staff.email')->json('id');

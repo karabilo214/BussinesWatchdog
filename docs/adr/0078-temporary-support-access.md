@@ -10,7 +10,7 @@ The platform already has separate staff accounts, capabilities and audited actio
 
 ## Decisions
 
-1. A platform employee with `tenants.support`, or the organisation owner, may request access for one store. A customer request identifies an active employee by work e-mail. Only `tenant_owner` approves, denies and revokes. The platform owner has no exception.
+1. A platform employee with `tenants.support`, or the organisation owner, may request access for one store. A customer request names an active employee chosen from a list of support employees by name (amended 2026-10-25, Step 244: the owner decided staff e-mail addresses are not shown to customers; the list holds only active staff allowed `tenants.support`). Only `tenant_owner` approves, denies and revokes. The platform owner has no exception.
 2. Every request requires a support case reference and a written reason. Duration is 24 hours by default and at most 72 hours. The clock starts on approval. A pending request grants nothing. The approved scopes cannot be enlarged; a new request and approval are required.
    A new request sends an e-mail to every organisation owner with a link to the decision screen. Repeating the same pending request does not send another e-mail.
    Amendment 2026-10-23: the service assigns a single global sequential reference (`SUP-000001`, `SUP-000002`, …) when the request is created. Neither staff nor customers supply or edit it. The written reason remains mandatory. A retry of an identical pending request retains its reference and does not consume another number.

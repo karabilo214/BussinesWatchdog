@@ -22,4 +22,16 @@ describe('support access history', () => {
     expect(view).toContain('support_grants.target.');
     expect(view).not.toContain('entry.target_id');
   });
+
+  it('asks for a support employee by name from the list, never for an e-mail', () => {
+    const view = readFileSync(resolve(__dirname, '../src/views/SupportGrantsView.vue'), 'utf8');
+    expect(view).toContain('listSupportStaff()');
+    expect(view).toContain('v-model="form.staff_id"');
+    expect(view).not.toMatch(/staff_email|type="email"|staff\?\.email/);
+    for (const locale of [ru, en, de]) {
+      const texts = locale.support_grants as Record<string, unknown>;
+      expect(texts.staff).toBeTruthy();
+      expect(texts.staff_choose).toBeTruthy();
+    }
+  });
 });

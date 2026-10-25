@@ -116,6 +116,7 @@ Route::middleware('stateful.session')->prefix('/v1/invitations')->group(function
 Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefix('/v1')->group(function (): void {
     Route::get('/support-grants', [SupportGrantController::class, 'index']);
     Route::post('/support-grants', [SupportGrantController::class, 'store']);
+    Route::get('/support-staff', [SupportGrantController::class, 'staff']);
     Route::post('/support-grants/{grant}/approve', [SupportGrantController::class, 'approve'])->whereUuid('grant');
     Route::post('/support-grants/{grant}/deny', [SupportGrantController::class, 'deny'])->whereUuid('grant');
     Route::post('/support-grants/{grant}/revoke', [SupportGrantController::class, 'revoke'])->whereUuid('grant');
