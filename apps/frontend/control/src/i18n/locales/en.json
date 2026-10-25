@@ -92,7 +92,17 @@
     "worker": "Check browser",
     "result": "Result",
     "more": "Show more",
-    "status": {"queued": "Queued", "running": "Running", "passed": "Passed", "failed": "Site failure", "inconclusive": "Inconclusive", "blocked": "Blocked", "unsupported": "Unsupported", "cancelled": "Cancelled", "expired": "Expired"}
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "passed": "Passed",
+      "failed": "Site failure",
+      "inconclusive": "Inconclusive",
+      "blocked": "Blocked",
+      "unsupported": "Unsupported",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    }
   },
   "common": {
     "loading": "Loading…",
@@ -702,7 +712,8 @@
       "incident_acknowledged": "Incident acknowledged by support",
       "incident_resolved": "Incident resolved by support",
       "member_role_changed": "Customer member role changed",
-      "member_removed": "Customer member removed"
+      "member_removed": "Customer member removed",
+      "store_deleted": "Store deleted"
     },
     "staff": {
       "login": "Staff sign-in",
@@ -713,7 +724,8 @@
       "sessions_revoked": "Staff sessions ended",
       "mfa_reset": "Staff authenticator reset",
       "bootstrap_owner": "First owner created",
-      "mfa_reenrolled": "Staff member connected a new authenticator"
+      "mfa_reenrolled": "Staff member connected a new authenticator",
+      "logout": "Staff sign-out"
     },
     "site": {
       "page": {
@@ -757,10 +769,60 @@
     },
     "service": {
       "alert_sent": "«Service» alert sent"
+    },
+    "billing": {
+      "refund_requested": "Refund requested",
+      "refund_approved": "Refund approved",
+      "refund_rejected": "Refund rejected",
+      "withdrawal_requested": "Withdrawal with refund requested",
+      "plan_change_cancelled": "Plan change cancelled",
+      "subscription_cancel_scheduled": "Subscription cancellation scheduled",
+      "subscription_cancelled": "Subscription cancelled",
+      "subscription_cancelled_after_refund": "Subscription cancelled after refund",
+      "subscription_cancelled_for_deletion": "Subscription cancelled for organisation deletion",
+      "subscription_resumed": "Subscription resumed"
+    },
+    "discount": {
+      "created": "Discount created",
+      "updated": "Discount updated",
+      "archived": "Discount archived"
+    },
+    "plan": {
+      "created": "Plan created"
+    },
+    "plan_price": {
+      "added": "Plan price added",
+      "removed": "Plan price removed"
+    },
+    "plan_version": {
+      "created": "Plan version created",
+      "updated": "Plan version updated",
+      "published": "Plan version published",
+      "retired": "Plan version retired"
+    },
+    "support_grant": {
+      "requested": "Support access requested",
+      "approved": "Support access approved",
+      "denied": "Support access denied",
+      "revoked": "Support access revoked"
+    },
+    "support_access": {
+      "opened": "Support opened store data",
+      "artifact": "Support opened check materials"
+    },
+    "user": {
+      "mfa_enabled": "MFA enabled",
+      "mfa_disabled": "MFA disabled",
+      "mfa_reset": "MFA reset",
+      "mfa_recovery_code_used": "MFA recovery code used",
+      "mfa_recovery_codes_regenerated": "MFA recovery codes regenerated"
     }
   },
   "site": {
-    "tabs": {"pages": "Pages", "blocks": "Block templates"},
+    "tabs": {
+      "pages": "Pages",
+      "blocks": "Block templates"
+    },
     "hint": "Pages of the public website. Every page has its own address and a separate text per language: draft → preview → publish. Published versions never change and stay in the history.",
     "col": {
       "page": "Page",
@@ -1102,8 +1164,30 @@
     "unsaved_leave": "Unsaved changes will be lost. Leave the page?"
   },
   "store_data": {
-    "order_status": {"open": "Open", "in_progress": "In progress", "completed": "Completed", "cancelled": "Cancelled", "pending": "Pending payment", "processing": "Processing", "on-hold": "On hold", "refunded": "Refunded", "failed": "Failed", "checkout-draft": "Draft"},
-    "payment_state": {"open": "Open", "pending": "In progress", "authorized": "Authorized", "paid": "Paid", "partially_paid": "Partially paid", "refunded": "Refunded", "partially_refunded": "Partially refunded", "failed": "Failed", "cancelled": "Cancelled", "chargeback": "Chargeback"},
+    "order_status": {
+      "open": "Open",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "pending": "Pending payment",
+      "processing": "Processing",
+      "on-hold": "On hold",
+      "refunded": "Refunded",
+      "failed": "Failed",
+      "checkout-draft": "Draft"
+    },
+    "payment_state": {
+      "open": "Open",
+      "pending": "In progress",
+      "authorized": "Authorized",
+      "paid": "Paid",
+      "partially_paid": "Partially paid",
+      "refunded": "Refunded",
+      "partially_refunded": "Partially refunded",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "chargeback": "Chargeback"
+    },
     "payment_marked": "marked as paid",
     "open": "Store data",
     "back": "Customer stores",

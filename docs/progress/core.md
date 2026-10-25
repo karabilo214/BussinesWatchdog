@@ -1030,3 +1030,13 @@ Status: complete
 - `ServiceHealth` now judges pushed order sources (`OrderSources::PROVIDERS` minus `POLLED`, i.e. the WooCommerce plugin) by `last_heartbeat_at` and everything else by `last_successful_sync_at`, both against the same 24 h. Stores paused for capacity or in organisation deletion (`StoreCapacity::pausedStoreIds()`) are not counted as stale, since nothing syncs them; they still count as active. No API shape or contract change.
 
 Verification: new `ServiceHealthTest` case (fresh plugin, silent plugin with a recent API sync value, synced provider, paused store); backend SQLite 734 passed + 4 skipped, PostgreSQL 18 738/738, Pint ok.
+
+### Step 240: Names for Every Recorded Admin Audit Action
+
+Status: complete (control panel frontend only)
+
+- Reported: the admin audit showed raw codes such as `support_grant.requested` — `AuditView` falls back to the code when `audit_action.<code>` has no translation.
+- Added ru/en/de names for the 33 recorded actions that had none: refunds and withdrawal, subscription cancel/resume, plan change cancel, discounts, plans, plan prices and versions, staff logout, support grant requested/approved/denied/revoked, support access opened (data, check materials), store created/deleted, reminder sent, check rerun, incident acknowledged/resolved, member MFA reset, customer MFA enabled/disabled/reset and recovery codes. Existing texts unchanged (verified key by key).
+- New `tests/auditActions.test.ts`: every action in its list is named in all three languages, and ru/en/de have the same code set. The list is maintained by hand (codes are scattered in the backend); readable descriptions, before/after values and removing JSON remain in the backlog item «Читаемый аудит в админке».
+
+Verification: control frontend 72/72, typecheck and build ok; backend SQLite suite green. No API or DB change.

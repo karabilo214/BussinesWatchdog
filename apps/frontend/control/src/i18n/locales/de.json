@@ -92,7 +92,17 @@
     "worker": "Prüfbrowser",
     "result": "Ergebnis",
     "more": "Mehr anzeigen",
-    "status": {"queued": "Wartend", "running": "Läuft", "passed": "Erfolgreich", "failed": "Websitefehler", "inconclusive": "Unklar", "blocked": "Blockiert", "unsupported": "Nicht unterstützt", "cancelled": "Abgebrochen", "expired": "Abgelaufen"}
+    "status": {
+      "queued": "Wartend",
+      "running": "Läuft",
+      "passed": "Erfolgreich",
+      "failed": "Websitefehler",
+      "inconclusive": "Unklar",
+      "blocked": "Blockiert",
+      "unsupported": "Nicht unterstützt",
+      "cancelled": "Abgebrochen",
+      "expired": "Abgelaufen"
+    }
   },
   "common": {
     "loading": "Wird geladen…",
@@ -702,7 +712,8 @@
       "incident_acknowledged": "Vorfall vom Support angenommen",
       "incident_resolved": "Vorfall vom Support geschlossen",
       "member_role_changed": "Rolle eines Kundenmitglieds geändert",
-      "member_removed": "Kundenmitglied entfernt"
+      "member_removed": "Kundenmitglied entfernt",
+      "store_deleted": "Shop gelöscht"
     },
     "staff": {
       "login": "Anmeldung",
@@ -713,7 +724,8 @@
       "sessions_revoked": "Sitzungen beendet",
       "mfa_reset": "Authenticator eines Mitarbeiters zurückgesetzt",
       "bootstrap_owner": "Erster Inhaber angelegt",
-      "mfa_reenrolled": "Mitarbeiter hat einen neuen Authenticator verbunden"
+      "mfa_reenrolled": "Mitarbeiter hat einen neuen Authenticator verbunden",
+      "logout": "Abmeldung eines Mitarbeiters"
     },
     "site": {
       "page": {
@@ -757,10 +769,60 @@
     },
     "service": {
       "alert_sent": "«Dienst»-Benachrichtigung gesendet"
+    },
+    "billing": {
+      "refund_requested": "Erstattung angefordert",
+      "refund_approved": "Erstattung genehmigt",
+      "refund_rejected": "Erstattung abgelehnt",
+      "withdrawal_requested": "Widerruf mit Erstattung angefordert",
+      "plan_change_cancelled": "Tarifwechsel abgebrochen",
+      "subscription_cancel_scheduled": "Kündigung des Abonnements geplant",
+      "subscription_cancelled": "Abonnement gekündigt",
+      "subscription_cancelled_after_refund": "Abonnement nach Erstattung gekündigt",
+      "subscription_cancelled_for_deletion": "Abonnement wegen Löschung der Organisation gekündigt",
+      "subscription_resumed": "Abonnement fortgesetzt"
+    },
+    "discount": {
+      "created": "Rabatt erstellt",
+      "updated": "Rabatt geändert",
+      "archived": "Rabatt archiviert"
+    },
+    "plan": {
+      "created": "Tarif erstellt"
+    },
+    "plan_price": {
+      "added": "Tarifpreis hinzugefügt",
+      "removed": "Tarifpreis entfernt"
+    },
+    "plan_version": {
+      "created": "Tarifversion erstellt",
+      "updated": "Tarifversion geändert",
+      "published": "Tarifversion veröffentlicht",
+      "retired": "Tarifversion eingestellt"
+    },
+    "support_grant": {
+      "requested": "Supportzugriff angefordert",
+      "approved": "Supportzugriff genehmigt",
+      "denied": "Supportzugriff abgelehnt",
+      "revoked": "Supportzugriff widerrufen"
+    },
+    "support_access": {
+      "opened": "Support hat Shopdaten geöffnet",
+      "artifact": "Support hat Prüfmaterialien geöffnet"
+    },
+    "user": {
+      "mfa_enabled": "MFA aktiviert",
+      "mfa_disabled": "MFA deaktiviert",
+      "mfa_reset": "MFA zurückgesetzt",
+      "mfa_recovery_code_used": "MFA-Wiederherstellungscode verwendet",
+      "mfa_recovery_codes_regenerated": "Neue MFA-Wiederherstellungscodes erstellt"
     }
   },
   "site": {
-    "tabs": {"pages": "Seiten", "blocks": "Blockvorlagen"},
+    "tabs": {
+      "pages": "Seiten",
+      "blocks": "Blockvorlagen"
+    },
     "hint": "Seiten der öffentlichen Website. Jede Seite hat eine eigene Adresse und je Sprache einen eigenen Text: Entwurf → Vorschau → Veröffentlichung. Veröffentlichte Versionen ändern sich nie und bleiben im Verlauf.",
     "col": {
       "page": "Seite",
@@ -1102,8 +1164,30 @@
     "unsaved_leave": "Ungespeicherte Änderungen gehen verloren. Seite verlassen?"
   },
   "store_data": {
-    "order_status": {"open": "Offen", "in_progress": "In Bearbeitung", "completed": "Abgeschlossen", "cancelled": "Storniert", "pending": "Zahlung ausstehend", "processing": "In Bearbeitung", "on-hold": "In Wartestellung", "refunded": "Erstattet", "failed": "Fehlgeschlagen", "checkout-draft": "Entwurf"},
-    "payment_state": {"open": "Offen", "pending": "In Bearbeitung", "authorized": "Autorisiert", "paid": "Bezahlt", "partially_paid": "Teilweise bezahlt", "refunded": "Erstattet", "partially_refunded": "Teilweise erstattet", "failed": "Fehlgeschlagen", "cancelled": "Storniert", "chargeback": "Rückbuchung"},
+    "order_status": {
+      "open": "Offen",
+      "in_progress": "In Bearbeitung",
+      "completed": "Abgeschlossen",
+      "cancelled": "Storniert",
+      "pending": "Zahlung ausstehend",
+      "processing": "In Bearbeitung",
+      "on-hold": "In Wartestellung",
+      "refunded": "Erstattet",
+      "failed": "Fehlgeschlagen",
+      "checkout-draft": "Entwurf"
+    },
+    "payment_state": {
+      "open": "Offen",
+      "pending": "In Bearbeitung",
+      "authorized": "Autorisiert",
+      "paid": "Bezahlt",
+      "partially_paid": "Teilweise bezahlt",
+      "refunded": "Erstattet",
+      "partially_refunded": "Teilweise erstattet",
+      "failed": "Fehlgeschlagen",
+      "cancelled": "Storniert",
+      "chargeback": "Rückbuchung"
+    },
     "payment_marked": "als bezahlt markiert",
     "open": "Shopdaten",
     "back": "Shops des Kunden",

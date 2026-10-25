@@ -92,7 +92,17 @@
     "worker": "Браузер проверки",
     "result": "Результат",
     "more": "Показать ещё",
-    "status": {"queued": "В очереди", "running": "Выполняется", "passed": "Успешно", "failed": "Ошибка сайта", "inconclusive": "Неопределённо", "blocked": "Заблокировано", "unsupported": "Не поддерживается", "cancelled": "Отменено", "expired": "Истекло"}
+    "status": {
+      "queued": "В очереди",
+      "running": "Выполняется",
+      "passed": "Успешно",
+      "failed": "Ошибка сайта",
+      "inconclusive": "Неопределённо",
+      "blocked": "Заблокировано",
+      "unsupported": "Не поддерживается",
+      "cancelled": "Отменено",
+      "expired": "Истекло"
+    }
   },
   "common": {
     "loading": "Загружаем…",
@@ -702,7 +712,8 @@
       "incident_acknowledged": "Инцидент принят поддержкой",
       "incident_resolved": "Инцидент закрыт поддержкой",
       "member_role_changed": "Изменена роль участника клиента",
-      "member_removed": "Участник клиента удалён"
+      "member_removed": "Участник клиента удалён",
+      "store_deleted": "Удалён магазин"
     },
     "staff": {
       "login": "Вход сотрудника",
@@ -713,7 +724,8 @@
       "sessions_revoked": "Сессии сотрудника завершены",
       "mfa_reset": "Аутентификатор сотрудника сброшен",
       "bootstrap_owner": "Создан первый владелец",
-      "mfa_reenrolled": "Сотрудник подключил новый аутентификатор"
+      "mfa_reenrolled": "Сотрудник подключил новый аутентификатор",
+      "logout": "Выход сотрудника"
     },
     "site": {
       "page": {
@@ -757,10 +769,60 @@
     },
     "service": {
       "alert_sent": "Отправлено оповещение «Сервиса»"
+    },
+    "billing": {
+      "refund_requested": "Запрошен возврат",
+      "refund_approved": "Возврат одобрен",
+      "refund_rejected": "Возврат отклонён",
+      "withdrawal_requested": "Запрошен отказ от договора с возвратом",
+      "plan_change_cancelled": "Смена тарифа отменена",
+      "subscription_cancel_scheduled": "Запланирована отмена подписки",
+      "subscription_cancelled": "Подписка отменена",
+      "subscription_cancelled_after_refund": "Подписка отменена после возврата",
+      "subscription_cancelled_for_deletion": "Подписка отменена из-за удаления организации",
+      "subscription_resumed": "Подписка возобновлена"
+    },
+    "discount": {
+      "created": "Создана скидка",
+      "updated": "Изменена скидка",
+      "archived": "Скидка удалена"
+    },
+    "plan": {
+      "created": "Создан тариф"
+    },
+    "plan_price": {
+      "added": "Добавлена цена тарифа",
+      "removed": "Удалена цена тарифа"
+    },
+    "plan_version": {
+      "created": "Создана версия тарифа",
+      "updated": "Изменена версия тарифа",
+      "published": "Опубликована версия тарифа",
+      "retired": "Версия тарифа снята с продажи"
+    },
+    "support_grant": {
+      "requested": "Запрошен доступ поддержки",
+      "approved": "Доступ поддержки одобрен",
+      "denied": "Доступ поддержки отклонён",
+      "revoked": "Доступ поддержки отозван"
+    },
+    "support_access": {
+      "opened": "Сотрудник поддержки открыл данные магазина",
+      "artifact": "Сотрудник поддержки открыл материалы проверки"
+    },
+    "user": {
+      "mfa_enabled": "Включена MFA",
+      "mfa_disabled": "Отключена MFA",
+      "mfa_reset": "MFA сброшена",
+      "mfa_recovery_code_used": "Использован резервный код MFA",
+      "mfa_recovery_codes_regenerated": "Созданы новые резервные коды MFA"
     }
   },
   "site": {
-    "tabs": {"pages": "Страницы", "blocks": "Шаблоны блоков"},
+    "tabs": {
+      "pages": "Страницы",
+      "blocks": "Шаблоны блоков"
+    },
     "hint": "Страницы публичного сайта. У каждой страницы свой адрес и отдельный текст на каждом языке: черновик → предпросмотр → публикация. Опубликованные версии не меняются и остаются в истории.",
     "col": {
       "page": "Страница",
@@ -1102,8 +1164,30 @@
     "unsaved_leave": "Несохранённые изменения пропадут. Уйти со страницы?"
   },
   "store_data": {
-    "order_status": {"open": "Открыт", "in_progress": "В работе", "completed": "Выполнен", "cancelled": "Отменён", "pending": "Ожидает оплаты", "processing": "В обработке", "on-hold": "На удержании", "refunded": "Возвращён", "failed": "Не оплачен", "checkout-draft": "Черновик"},
-    "payment_state": {"open": "Открыта", "pending": "В процессе", "authorized": "Авторизована", "paid": "Оплачен", "partially_paid": "Оплачен частично", "refunded": "Возвращена", "partially_refunded": "Возвращена частично", "failed": "Не прошла", "cancelled": "Отменена", "chargeback": "Чарджбэк"},
+    "order_status": {
+      "open": "Открыт",
+      "in_progress": "В работе",
+      "completed": "Выполнен",
+      "cancelled": "Отменён",
+      "pending": "Ожидает оплаты",
+      "processing": "В обработке",
+      "on-hold": "На удержании",
+      "refunded": "Возвращён",
+      "failed": "Не оплачен",
+      "checkout-draft": "Черновик"
+    },
+    "payment_state": {
+      "open": "Открыта",
+      "pending": "В процессе",
+      "authorized": "Авторизована",
+      "paid": "Оплачен",
+      "partially_paid": "Оплачен частично",
+      "refunded": "Возвращена",
+      "partially_refunded": "Возвращена частично",
+      "failed": "Не прошла",
+      "cancelled": "Отменена",
+      "chargeback": "Чарджбэк"
+    },
     "payment_marked": "отмечен оплаченным",
     "open": "Данные магазина",
     "back": "Магазины клиента",
