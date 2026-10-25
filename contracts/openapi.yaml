@@ -6516,6 +6516,16 @@ paths:
             schema: {type: object, required: [tenant_id, store_id, scopes, reason]}
       responses:
         "201": {description: Pending grant, content: {application/json: {schema: {type: object}}}}
+  /platform-api/v1/support-grants/{grant}:
+    delete:
+      tags: [Platform]
+      operationId: runtimePlatformHideSupportGrant
+      description: "Requires tenants.support, own request only. Hides a finished request (denied, revoked, expired, cancelled) from the employee's history; nothing is deleted and the customer's history and both audits keep it. A pending or still active request answers 409 — cancel or have it revoked first. Idempotent."
+      security: [{StaffSession: []}]
+      parameters:
+        - {name: grant, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "204": {description: Hidden from the staff history}
   /platform-api/v1/support-grants/{grant}/cancel:
     post:
       tags: [Platform]

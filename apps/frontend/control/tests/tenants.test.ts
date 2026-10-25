@@ -39,6 +39,7 @@ vi.mock('@/api', () => ({
   listPlatformSupportGrants: vi.fn(),
   cancelPlatformSupportGrant: vi.fn(),
   resendPlatformSupportGrant: vi.fn(),
+  hidePlatformSupportGrant: vi.fn(),
   fetchTenantInvitations: vi.fn(),
   inviteTenantMember: vi.fn(),
   revokeTenantInvitation: vi.fn(),
@@ -536,6 +537,7 @@ describe('support grants in the customer card', () => {
     await flushPromises();
 
     expect(wrapper.find('[data-action="cancel-g-1"]').exists()).toBe(true);
+    expect(wrapper.find('[data-action="hide-g-1"]').exists()).toBe(false);
     mocked.listPlatformSupportGrants.mockResolvedValue([{ ...base, id: 'g-1', state: 'cancelled', case_reference: 'SUP-000001' }] as never);
     await wrapper.get('[data-action="cancel-g-1"]').trigger('click');
     await flushPromises();
@@ -548,5 +550,12 @@ describe('support grants in the customer card', () => {
     await flushPromises();
     expect(mocked.resendPlatformSupportGrant).toHaveBeenCalledWith('g-1');
     expect(wrapper.get('[data-grant-done]').text()).toBe('Создан новый запрос SUP-000002.');
+
+    expect(wrapper.find('[data-action="hide-g-1"]').exists()).toBe(true);
+    mocked.listPlatformSupportGrants.mockResolvedValue([] as never);
+    await wrapper.get('[data-action="hide-g-1"]').trigger('click');
+    await flushPromises();
+    expect(mocked.hidePlatformSupportGrant).toHaveBeenCalledWith('g-1');
+    expect(wrapper.get('[data-grant-done]').text()).toContain('Запись скрыта');
   });
 });

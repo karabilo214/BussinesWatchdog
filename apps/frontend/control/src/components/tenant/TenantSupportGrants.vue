@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { cancelPlatformSupportGrant, listPlatformSupportGrants, requestPlatformSupportGrant, resendPlatformSupportGrant, type PlatformSupportGrant, type SupportGrantScope, type TenantCard } from '@/api';
+import { cancelPlatformSupportGrant, hidePlatformSupportGrant, listPlatformSupportGrants, requestPlatformSupportGrant, resendPlatformSupportGrant, type PlatformSupportGrant, type SupportGrantScope, type TenantCard } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 
@@ -36,14 +36,19 @@ async function submit(): Promise<void> {
   } catch (caught) { error.value = caught; } finally { busy.value = false; }
 }
 
-async function act(grant: PlatformSupportGrant, action: 'cancel' | 'resend'): Promise<void> {
+async function act(grant: PlatformSupportGrant, action: 'cancel' | 'resend' | 'hide'): Promise<void> {
   if (busy.value) return;
   busy.value = true;
   error.value = null;
   done.value = null;
   try {
-    const result = action === 'cancel' ? await cancelPlatformSupportGrant(grant.id) : await resendPlatformSupportGrant(grant.id);
-    done.value = action === 'cancel' ? t('support_grants.cancelled_done') : result.id === grant.id ? t('support_grants.resent_done') : t('support_grants.recreated_done', { case: result.case_reference });
+    if (action === 'hide') {
+      await hidePlatformSupportGrant(grant.id);
+      done.value = t('support_grants.hidden_done');
+    } else {
+      const result = action === 'cancel' ? await cancelPlatformSupportGrant(grant.id) : await resendPlatformSupportGrant(grant.id);
+      done.value = action === 'cancel' ? t('support_grants.cancelled_done') : result.id === grant.id ? t('support_grants.resent_done') : t('support_grants.recreated_done', { case: result.case_reference });
+    }
     grants.value = await listPlatformSupportGrants(props.card.id);
   } catch (caught) { error.value = caught; } finally { busy.value = false; }
 }
@@ -78,6 +83,7 @@ function active(grant: PlatformSupportGrant): boolean {
       <div class="flex flex-wrap gap-2 pt-1">
         <button v-if="grant.state === 'pending'" type="button" :disabled="busy" class="rounded-md border border-border-strong px-3 py-1.5 font-medium hover:bg-surface-muted disabled:opacity-60" :data-action="`cancel-${grant.id}`" @click="act(grant, 'cancel')">{{ t('support_grants.cancel') }}</button>
         <button type="button" :disabled="busy" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :data-action="`resend-${grant.id}`" @click="act(grant, 'resend')">{{ t('support_grants.resend') }}</button>
+        <button v-if="grant.state !== 'pending' && !active(grant)" type="button" :disabled="busy" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-crit hover:bg-crit-soft disabled:opacity-60" :data-action="`hide-${grant.id}`" :title="t('support_grants.hide_hint')" @click="act(grant, 'hide')">{{ t('support_grants.hide') }}</button>
       </div>
     </article>
   </section>

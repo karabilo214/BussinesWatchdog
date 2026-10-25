@@ -1071,3 +1071,14 @@ Status: complete — contains a migration
 - Not done from the backlog item: «Удалить» (hide a history entry without deleting it).
 
 Verification: `SupportGrantTest` new case (resend of a pending request e-mails again without a new request; cancel twice; customer audit and platform audit; cancelled request cannot be approved and gives no access; resend of a cancelled request creates SUP-000002 with the same parameters; an approved request cannot be cancelled; another employee's request is 404). Backend SQLite 735 passed + 4 skipped, PostgreSQL 18 739/739, Pint ok; control 76/76 (new card test), customer 172/172, both builds ok; spec validator passes.
+
+### Step 252: Staff Hide Finished Support Access Requests
+
+Status: complete — contains a migration
+
+- Owner request: «Удалить» for any history entry, without real deletion. `DELETE /platform-api/v1/support-grants/{grant}` sets `staff_hidden_at` (migration `2026_10_25_110000_add_staff_hidden_to_support_access_grants`, spec SQL updated); the staff list no longer shows it. Nothing else changes: the request row, the customer's history and both audit journals keep it; the hide itself is in the platform audit (`support_grant.hidden`). A pending or still active request answers 409 (cancel or have it revoked first, so hiding never looks like ending access). Own requests only (404 otherwise), idempotent, step-up throttled. «Отправить повторно» still works for a hidden request.
+- Admin card: «Удалить» (red) on finished requests with an explanatory tooltip and confirmation line, ru/en/de. ADR 0078, `docs/ops/support-access.md`, `contracts/openapi.yaml`, `spec/VALIDATION.md` (251 operations).
+- This closes the support history part of the backlog item.
+- Note: `control/tests/site.test.ts` failed once and passed in three following full runs — a flaky timing test, unrelated to this change.
+
+Verification: `SupportGrantTest` — pending and active requests cannot be hidden; a cancelled one is hidden twice without error, disappears from the staff list while the active one stays, row and audit kept; another employee's request is 404 (test clock moved past the step-up limit). Backend SQLite 735 passed + 4 skipped, PostgreSQL 18 739/739, Pint ok; control 76/76, typecheck and build ok; spec validator passes.

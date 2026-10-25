@@ -55,6 +55,7 @@ CREATE TABLE support_access_grants (
  reason text NOT NULL,
  case_reference text NOT NULL,
  state text NOT NULL CHECK (state IN ('pending','approved','denied','revoked','expired','cancelled')),
+ staff_hidden_at timestamptz,
  duration_hours smallint NOT NULL DEFAULT 24 CHECK (duration_hours BETWEEN 1 AND 72),
  version bigint NOT NULL DEFAULT 1 CHECK (version>0),
  expires_at timestamptz,

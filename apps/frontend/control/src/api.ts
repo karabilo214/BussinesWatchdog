@@ -26,6 +26,10 @@ export async function cancelPlatformSupportGrant(id: string): Promise<PlatformSu
   return (await request<PlatformSupportGrant>('POST', `/platform-api/v1/support-grants/${encodeURIComponent(id)}/cancel`)).data;
 }
 
+export async function hidePlatformSupportGrant(id: string): Promise<void> {
+  await request('DELETE', `/platform-api/v1/support-grants/${encodeURIComponent(id)}`);
+}
+
 export async function resendPlatformSupportGrant(id: string): Promise<PlatformSupportGrant> {
   return (await request<PlatformSupportGrant>('POST', `/platform-api/v1/support-grants/${encodeURIComponent(id)}/resend`)).data;
 }

@@ -44,6 +44,7 @@ class SupportAccessGrant extends Model
             'expires_at' => 'datetime',
             'approved_at' => 'datetime',
             'revoked_at' => 'datetime',
+            'staff_hidden_at' => 'datetime',
         ];
     }
 }

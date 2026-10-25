@@ -19,7 +19,7 @@ class SupportGrantController extends Controller
     {
         $validated = $request->validate(['tenant_id' => ['required', 'uuid'], 'store_id' => ['sometimes', 'uuid']]);
         $tenant = Tenant::query()->whereKey($validated['tenant_id'])->whereNotIn('status', ['deleting', 'deleted'])->firstOrFail();
-        $query = SupportAccessGrant::query()->where('tenant_id', $tenant->id)->where('staff_id', $this->staff($request)->id);
+        $query = SupportAccessGrant::query()->where('tenant_id', $tenant->id)->where('staff_id', $this->staff($request)->id)->whereNull('staff_hidden_at');
 
         if (isset($validated['store_id'])) {
             $query->where('store_id', $validated['store_id']);
@@ -57,6 +57,13 @@ class SupportGrantController extends Controller
         $result = $this->grants->resend($model, $this->staff($request));
 
         return response()->json($this->dto($result), $result->id === $model->id ? 200 : 201);
+    }
+
+    public function hide(Request $request, string $grant): JsonResponse
+    {
+        $this->grants->hide($this->own($request, $grant), $this->staff($request));
+
+        return response()->json(null, 204);
     }
 
     private function own(Request $request, string $grant): SupportAccessGrant

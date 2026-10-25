@@ -126,6 +126,7 @@ class SupportGrantTest extends TestCase
         Mail::assertSent(NotificationMessageMail::class, 2);
         $this->assertSame(1, SupportAccessGrant::query()->count());
 
+        $this->deleteJson("/platform-api/v1/support-grants/{$grantId}")->assertStatus(409);
         $this->postJson("/platform-api/v1/support-grants/{$grantId}/cancel")->assertOk()->assertJsonPath('state', 'cancelled');
         $this->postJson("/platform-api/v1/support-grants/{$grantId}/cancel")->assertOk()->assertJsonPath('state', 'cancelled');
         $this->assertSame(1, DB::table('audit_log')->where('action', 'support_grant.cancelled')->where('entity_id', $grantId)->count());
@@ -144,12 +145,23 @@ class SupportGrantTest extends TestCase
         Mail::assertSent(NotificationMessageMail::class, 3);
         app(SupportGrants::class)->decide(SupportAccessGrant::query()->findOrFail($again), $customer['user'], true);
         $this->postJson("/platform-api/v1/support-grants/{$again}/cancel")->assertStatus(409);
+        $this->deleteJson("/platform-api/v1/support-grants/{$again}")->assertStatus(409);
 
+        $this->deleteJson("/platform-api/v1/support-grants/{$grantId}")->assertNoContent();
+        $this->deleteJson("/platform-api/v1/support-grants/{$grantId}")->assertNoContent();
+        $listed = collect($this->getJson("/platform-api/v1/support-grants?tenant_id={$tenant}")->assertOk()->json('data'))->pluck('id');
+        $this->assertFalse($listed->contains($grantId));
+        $this->assertTrue($listed->contains($again));
+        $this->assertDatabaseHas('support_access_grants', ['id' => $grantId, 'state' => 'cancelled']);
+        $this->assertDatabaseHas('platform_audit_log', ['actor_staff_id' => $staff->id, 'action' => 'support_grant.hidden', 'target_id' => $grantId]);
+
+        Carbon::setTestNow(Carbon::now()->addMinutes(2));
         $otherUser = User::query()->create(['name' => 'Other Agent', 'email' => 'other@platform.test', 'password_hash' => Hash::make('other-password-1234'), 'locale' => 'en']);
         $other = PlatformStaff::query()->create(['user_id' => $otherUser->id, 'role' => PlatformStaff::ROLE_SUPPORT, 'capabilities' => $staff->capabilities, 'state' => PlatformStaff::STATE_ACTIVE]);
         $foreign = app(SupportGrants::class)->request($tenant, $customer['store']->id, $other, ['read_diagnostics'], 24, 'Somebody else asks', null);
         $this->postJson("/platform-api/v1/support-grants/{$foreign->id}/cancel")->assertNotFound();
         $this->postJson("/platform-api/v1/support-grants/{$foreign->id}/resend")->assertNotFound();
+        $this->deleteJson("/platform-api/v1/support-grants/{$foreign->id}")->assertNotFound();
     }
 
     private function signInStaff(): PlatformStaff

@@ -1771,6 +1771,9 @@
     "cancelled_done": "Request cancelled.",
     "resent_done": "Request sent to the owner again.",
     "recreated_done": "New request {case} created.",
+    "hide": "Delete",
+    "hidden_done": "Hidden from your history. The audit and the customer keep it.",
+    "hide_hint": "Hide from your history; the request, the audit and the customer history are kept",
     "until": "Until",
     "open_store": "Open store details"
   }

@@ -1771,6 +1771,9 @@
     "cancelled_done": "Anfrage zurückgezogen.",
     "resent_done": "Anfrage erneut an den Inhaber gesendet.",
     "recreated_done": "Neue Anfrage {case} erstellt.",
+    "hide": "Löschen",
+    "hidden_done": "Aus Ihrem Verlauf ausgeblendet. Audit und Kunde behalten den Eintrag.",
+    "hide_hint": "Aus Ihrem Verlauf ausblenden; Anfrage, Audit und Kundenverlauf bleiben erhalten",
     "until": "Bis",
     "open_store": "Shop-Details öffnen"
   }

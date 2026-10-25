@@ -132,6 +132,28 @@ class SupportGrants
     }
 
     /**
+     * Hides a finished request from the employee's own history. Nothing is deleted: the request, the customer's view and
+     * both audit journals stay. A request still waiting or still giving access must be cancelled or revoked first.
+     */
+    public function hide(SupportAccessGrant $grant, PlatformStaff $staff): SupportAccessGrant
+    {
+        return DB::transaction(function () use ($grant, $staff): SupportAccessGrant {
+            $locked = SupportAccessGrant::query()->whereKey($grant->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->staff_hidden_at !== null) {
+                return $locked;
+            }
+
+            $live = $locked->state === SupportAccessGrant::PENDING || ($locked->state === SupportAccessGrant::APPROVED && $locked->expires_at?->isFuture());
+            abort_if($live, 409, 'support_grant_still_open');
+            $locked->forceFill(['staff_hidden_at' => Carbon::now()])->save();
+            $this->audit->record($staff->id, 'support_grant.hidden', 'support_grant', $locked->id, PlatformAudit::RESULT_SUCCEEDED, ['store_id' => $locked->store_id, 'case_reference' => $locked->case_reference], null, $locked->tenant_id);
+
+            return $locked->refresh();
+        });
+    }
+
+    /**
      * «Send again»: a request still waiting gets its e-mail to the owners once more; any decided, revoked, expired or
      * cancelled request is asked again as a new request with the same store, scopes, duration and reason.
      */
