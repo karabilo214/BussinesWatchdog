@@ -399,6 +399,17 @@ describe('tenants', () => {
     expect(mocked.fetchCustomerOrder).toHaveBeenCalledWith('t-1', 'o-1');
     expect(wrapper.get('[data-detail="order"]').text()).toContain('Заказ #15238');
     expect(wrapper.get('[data-detail="order"]').text()).toContain('succeeded');
+    const orderDialog = wrapper.get('[data-detail="order"]');
+    expect(orderDialog.element.tagName).toBe('DIALOG');
+    expect(orderDialog.attributes('open')).toBeDefined();
+    await orderDialog.trigger('cancel');
+    await flushPromises();
+    expect(wrapper.get('[data-detail="order"]').text()).not.toContain('Заказ #15238');
+    await wrapper.get('[data-order="o-1"] button').trigger('click');
+    await flushPromises();
+    await wrapper.get('[data-detail="order"] [data-action="close-detail"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-detail="order"]').attributes('open')).toBeUndefined();
 
     await router.replace({ query: { tab: 'checks' } });
     await flushPromises();

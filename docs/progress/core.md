@@ -1040,3 +1040,13 @@ Status: complete (control panel frontend only)
 - New `tests/auditActions.test.ts`: every action in its list is named in all three languages, and ru/en/de have the same code set. The list is maintained by hand (codes are scattered in the backend); readable descriptions, before/after values and removing JSON remain in the backlog item «Читаемый аудит в админке».
 
 Verification: control frontend 72/72, typecheck and build ok; backend SQLite suite green. No API or DB change.
+
+### Step 248: Admin Store Details Open in a Dialog
+
+Status: complete (control panel frontend only)
+
+- Admin «Магазины клиента»: clicking an order number («Заказы»), a check date («Проверки и скриншоты») or an incident («Инциденты») used to unfold the details under the table. They now open in one shared modal `DetailDialog` (native `<dialog>` with `showModal`: focus stays inside, Esc and a click outside close it, long content scrolls inside, the «Закрыть» button kept).
+- The support confirmation (acknowledge/resolve with a reason) for an incident is shown inside the incident dialog, so it is not hidden behind the modal; the rerun confirmation stays on the page.
+- Not done from the backlog item: a link in the address bar that opens the dialog directly and closes it with the browser «Back».
+
+Verification: `tenants.test.ts` — the order detail is a `<dialog>`, opens, closes on Esc (`cancel`) and on «Закрыть»; check, screenshot, incident and support action tests unchanged and green. Control 72/72, typecheck and build ok; backend SQLite suite green. No API or DB change.

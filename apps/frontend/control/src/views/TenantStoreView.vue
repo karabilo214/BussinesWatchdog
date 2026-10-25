@@ -25,6 +25,7 @@ import {
   type StoreOrder,
   type StoreOrderDetail,
 } from '@/api';
+import DetailDialog from '@/components/DetailDialog.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useStaff } from '@/composables/useStaff';
@@ -280,7 +281,7 @@ watch(tab, () => void loadTab());
 
         <p v-if="support.done" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-support-done>{{ $t(support.done) }}</p>
         <button v-if="canRecheck && tab === 'checks' && scenarioToRerun" type="button" class="self-start rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft" data-action="support-rerun" @click="askSupport('rerun')">{{ $t('store_data.support.rerun') }}</button>
-        <form v-if="support.kind" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-4 text-sm" :data-form="`support-${support.kind}`" @submit.prevent="confirmSupport">
+        <form v-if="support.kind === 'rerun'" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-4 text-sm" :data-form="`support-${support.kind}`" @submit.prevent="confirmSupport">
           <p class="font-medium">{{ $t(`store_data.support.confirm.${support.kind}`) }}</p>
           <label class="flex flex-col gap-1.5">
             <span class="font-medium">{{ $t('tenant.actions.reason') }}</span>
@@ -391,76 +392,83 @@ watch(tab, () => void loadTab());
 
         <button v-if="cursor" type="button" class="self-start rounded-md border border-border-strong px-4 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="load-more" @click="loadTab(true)">{{ $t('store_data.load_more') }}</button>
 
-        <section v-if="order" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 text-sm" data-detail="order">
-          <div class="flex items-start justify-between gap-3">
-            <h2 class="text-lg font-semibold">{{ $t('store_data.order.title', { number: order.display_number ?? order.id }) }}</h2>
-            <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium hover:bg-surface-muted" @click="order = null">{{ $t('store_data.close') }}</button>
-          </div>
-          <dl class="grid gap-3 sm:grid-cols-3">
-            <div><dt class="text-text-muted">{{ $t('store_data.col.total') }}</dt><dd class="tabular-nums">{{ money(order.total_minor, order.currency, order.currency_exponent) }}</dd></div>
-            <div><dt class="text-text-muted">{{ $t('store_data.col.state') }}</dt><dd>{{ orderStatus(order.status) }}</dd></div>
-            <div><dt class="text-text-muted">{{ $t('store_data.col.payment_state') }}</dt><dd>{{ paymentState(order) }}</dd></div>
-            <div><dt class="text-text-muted">{{ $t('store_data.col.paid') }}</dt><dd>{{ dateTime(order.paid_marked_at) }}</dd></div>
-          </dl>
-          <div class="flex flex-col gap-1">
-            <h3 class="font-semibold">{{ $t('store_data.order.findings') }}</h3>
-            <p v-if="order.findings.length === 0" class="text-text-muted">{{ $t('store_data.empty') }}</p>
-            <p v-for="row in order.findings" :key="row.id">{{ label('rule', row.rule_code) }} — {{ label('finding_status', row.status) }}<span v-if="row.difference_minor"> · {{ money(row.difference_minor, row.currency, row.currency_exponent) }}</span></p>
-          </div>
-          <div class="flex flex-col gap-1">
-            <h3 class="font-semibold">{{ $t('store_data.order.captures') }}</h3>
-            <p v-if="order.captures.length === 0" class="text-text-muted">{{ $t('store_data.empty') }}</p>
-            <p v-for="row in order.captures" :key="row.id" class="tabular-nums">{{ dateTime(row.occurred_at) }} · {{ row.kind }} · {{ row.status }} · {{ money(row.amount_minor, row.currency, row.currency_exponent) }}</p>
-          </div>
-          <div class="flex flex-col gap-1">
-            <h3 class="font-semibold">{{ $t('store_data.order.refunds') }}</h3>
-            <p v-if="order.refunds.length === 0" class="text-text-muted">{{ $t('store_data.empty') }}</p>
-            <p v-for="row in order.refunds" :key="row.id" class="tabular-nums">{{ dateTime(row.occurred_at) }} · {{ row.status }} · {{ money(row.amount_minor, row.currency, row.currency_exponent) }}</p>
-          </div>
-          <p class="text-text-muted">{{ $t('store_data.order.revisions', { n: order.revisions.length }) }}</p>
-        </section>
-
-        <section v-if="check" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 text-sm" data-detail="check">
-          <div class="flex items-start justify-between gap-3">
-            <h2 class="text-lg font-semibold">{{ dateTime(check.finished_at ?? check.scheduled_at) }} · {{ label('check_status', check.status) }}</h2>
-            <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium hover:bg-surface-muted" @click="check = null">{{ $t('store_data.close') }}</button>
-          </div>
-          <article v-for="attempt in check.attempts" :key="attempt.id" class="flex flex-col gap-3 rounded-lg border border-border p-4" :data-attempt="attempt.attempt_number">
-            <p class="font-medium">{{ $t('store_data.check.attempt', { n: attempt.attempt_number }) }} · {{ label('attempt_status', attempt.status) }}<span v-if="attempt.error_code"> · {{ label('check_error', attempt.error_code) }}</span></p>
-            <div>
-              <h3 class="font-semibold">{{ $t('store_data.check.steps') }}</h3>
-              <ol class="mt-1 list-decimal pl-5">
-                <li v-for="step in attempt.steps" :key="step.index">{{ step.code }} — {{ label('step_status', step.status) }}<span v-if="step.error_code"> ({{ step.error_code }})</span><template v-if="step.status === 'skipped'"><span v-for="assertion in (step.assertions ?? []).filter((item) => $te(`store_data.check.skip_reason.${item.code}`))" :key="assertion.code"> — {{ $t(`store_data.check.skip_reason.${assertion.code}`) }}</span></template></li>
-              </ol>
+        <DetailDialog :open="order !== null" :title="order ? $t('store_data.order.title', { number: order.display_number ?? order.id }) : ''" data-detail="order" @close="order = null">
+          <template v-if="order">
+            <dl class="grid gap-3 sm:grid-cols-3">
+              <div><dt class="text-text-muted">{{ $t('store_data.col.total') }}</dt><dd class="tabular-nums">{{ money(order.total_minor, order.currency, order.currency_exponent) }}</dd></div>
+              <div><dt class="text-text-muted">{{ $t('store_data.col.state') }}</dt><dd>{{ orderStatus(order.status) }}</dd></div>
+              <div><dt class="text-text-muted">{{ $t('store_data.col.payment_state') }}</dt><dd>{{ paymentState(order) }}</dd></div>
+              <div><dt class="text-text-muted">{{ $t('store_data.col.paid') }}</dt><dd>{{ dateTime(order.paid_marked_at) }}</dd></div>
+            </dl>
+            <div class="flex flex-col gap-1">
+              <h3 class="font-semibold">{{ $t('store_data.order.findings') }}</h3>
+              <p v-if="order.findings.length === 0" class="text-text-muted">{{ $t('store_data.empty') }}</p>
+              <p v-for="row in order.findings" :key="row.id">{{ label('rule', row.rule_code) }} — {{ label('finding_status', row.status) }}<span v-if="row.difference_minor"> · {{ money(row.difference_minor, row.currency, row.currency_exponent) }}</span></p>
             </div>
-            <div class="flex flex-col gap-2">
-              <h3 class="font-semibold">{{ $t('store_data.check.screenshots') }}</h3>
-              <p v-if="attempt.artifacts.length === 0" class="text-text-muted">{{ $t('store_data.check.no_screenshots') }}</p>
-              <div v-for="artifact in attempt.artifacts" :key="artifact.id" class="flex flex-col gap-2" :data-artifact="artifact.id">
-                <img v-if="screenshots[artifact.id]" :src="screenshots[artifact.id]" :alt="$t('store_data.check.screenshot_alt')" class="max-w-full rounded-md border border-border" />
-                <button v-else-if="canArtifacts" type="button" class="self-start rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="show-screenshot" @click="showScreenshot(artifact.id)">{{ $t('store_data.check.show') }} ({{ Math.ceil(artifact.size_bytes / 1024) }} KB)</button>
+            <div class="flex flex-col gap-1">
+              <h3 class="font-semibold">{{ $t('store_data.order.captures') }}</h3>
+              <p v-if="order.captures.length === 0" class="text-text-muted">{{ $t('store_data.empty') }}</p>
+              <p v-for="row in order.captures" :key="row.id" class="tabular-nums">{{ dateTime(row.occurred_at) }} · {{ row.kind }} · {{ row.status }} · {{ money(row.amount_minor, row.currency, row.currency_exponent) }}</p>
+            </div>
+            <div class="flex flex-col gap-1">
+              <h3 class="font-semibold">{{ $t('store_data.order.refunds') }}</h3>
+              <p v-if="order.refunds.length === 0" class="text-text-muted">{{ $t('store_data.empty') }}</p>
+              <p v-for="row in order.refunds" :key="row.id" class="tabular-nums">{{ dateTime(row.occurred_at) }} · {{ row.status }} · {{ money(row.amount_minor, row.currency, row.currency_exponent) }}</p>
+            </div>
+            <p class="text-text-muted">{{ $t('store_data.order.revisions', { n: order.revisions.length }) }}</p>
+          </template>
+        </DetailDialog>
+
+        <DetailDialog :open="check !== null" :title="check ? `${dateTime(check.finished_at ?? check.scheduled_at)} · ${label('check_status', check.status)}` : ''" data-detail="check" @close="check = null">
+          <template v-if="check">
+            <article v-for="attempt in check.attempts" :key="attempt.id" class="flex flex-col gap-3 rounded-lg border border-border p-4" :data-attempt="attempt.attempt_number">
+              <p class="font-medium">{{ $t('store_data.check.attempt', { n: attempt.attempt_number }) }} · {{ label('attempt_status', attempt.status) }}<span v-if="attempt.error_code"> · {{ label('check_error', attempt.error_code) }}</span></p>
+              <div>
+                <h3 class="font-semibold">{{ $t('store_data.check.steps') }}</h3>
+                <ol class="mt-1 list-decimal pl-5">
+                  <li v-for="step in attempt.steps" :key="step.index">{{ step.code }} — {{ label('step_status', step.status) }}<span v-if="step.error_code"> ({{ step.error_code }})</span><template v-if="step.status === 'skipped'"><span v-for="assertion in (step.assertions ?? []).filter((item) => $te(`store_data.check.skip_reason.${item.code}`))" :key="assertion.code"> — {{ $t(`store_data.check.skip_reason.${assertion.code}`) }}</span></template></li>
+                </ol>
               </div>
-            </div>
-          </article>
-        </section>
+              <div class="flex flex-col gap-2">
+                <h3 class="font-semibold">{{ $t('store_data.check.screenshots') }}</h3>
+                <p v-if="attempt.artifacts.length === 0" class="text-text-muted">{{ $t('store_data.check.no_screenshots') }}</p>
+                <div v-for="artifact in attempt.artifacts" :key="artifact.id" class="flex flex-col gap-2" :data-artifact="artifact.id">
+                  <img v-if="screenshots[artifact.id]" :src="screenshots[artifact.id]" :alt="$t('store_data.check.screenshot_alt')" class="max-w-full rounded-md border border-border" />
+                  <button v-else-if="canArtifacts" type="button" class="self-start rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="show-screenshot" @click="showScreenshot(artifact.id)">{{ $t('store_data.check.show') }} ({{ Math.ceil(artifact.size_bytes / 1024) }} KB)</button>
+                </div>
+              </div>
+            </article>
+          </template>
+        </DetailDialog>
 
-        <section v-if="incident" class="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 text-sm" data-detail="incident">
-          <div class="flex items-start justify-between gap-3">
-            <h2 class="text-lg font-semibold">{{ label('incident_title', incident.title_code) }}</h2>
-            <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium hover:bg-surface-muted" @click="incident = null">{{ $t('store_data.close') }}</button>
-          </div>
-          <dl class="grid gap-3 sm:grid-cols-4">
-            <div><dt class="text-text-muted">{{ $t('store_data.col.severity') }}</dt><dd>{{ label('incident_severity', incident.severity) }}</dd></div>
-            <div><dt class="text-text-muted">{{ $t('store_data.incident.first_seen') }}</dt><dd>{{ dateTime(incident.first_seen_at) }}</dd></div>
-            <div><dt class="text-text-muted">{{ $t('store_data.col.last_seen') }}</dt><dd>{{ dateTime(incident.last_seen_at) }}</dd></div>
-            <div><dt class="text-text-muted">{{ $t('store_data.incident.discrepancy') }}</dt><dd class="tabular-nums">{{ money(incident.verified_discrepancy_minor, incident.currency, incident.currency_exponent) }}</dd></div>
-          </dl>
-          <p v-if="incident.resolved_at">{{ $t('store_data.incident.resolved') }}: {{ dateTime(incident.resolved_at) }}</p>
-          <div v-if="canIncidentAction && incident.state !== 'resolved'" class="flex flex-wrap gap-2">
-            <button v-if="incident.state === 'open'" type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="support-acknowledge" @click="askSupport('acknowledge')">{{ $t('store_data.support.acknowledge') }}</button>
-            <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="support-resolve" @click="askSupport('resolve')">{{ $t('store_data.support.resolve') }}</button>
-          </div>
-        </section>
+        <DetailDialog :open="incident !== null" :title="incident ? label('incident_title', incident.title_code) : ''" data-detail="incident" @close="incident = null">
+          <template v-if="incident">
+            <dl class="grid gap-3 sm:grid-cols-4">
+              <div><dt class="text-text-muted">{{ $t('store_data.col.severity') }}</dt><dd>{{ label('incident_severity', incident.severity) }}</dd></div>
+              <div><dt class="text-text-muted">{{ $t('store_data.incident.first_seen') }}</dt><dd>{{ dateTime(incident.first_seen_at) }}</dd></div>
+              <div><dt class="text-text-muted">{{ $t('store_data.col.last_seen') }}</dt><dd>{{ dateTime(incident.last_seen_at) }}</dd></div>
+              <div><dt class="text-text-muted">{{ $t('store_data.incident.discrepancy') }}</dt><dd class="tabular-nums">{{ money(incident.verified_discrepancy_minor, incident.currency, incident.currency_exponent) }}</dd></div>
+            </dl>
+            <p v-if="incident.resolved_at">{{ $t('store_data.incident.resolved') }}: {{ dateTime(incident.resolved_at) }}</p>
+            <div v-if="canIncidentAction && incident.state !== 'resolved'" class="flex flex-wrap gap-2">
+              <button v-if="incident.state === 'open'" type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="support-acknowledge" @click="askSupport('acknowledge')">{{ $t('store_data.support.acknowledge') }}</button>
+              <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 font-medium text-primary hover:bg-primary-soft" data-action="support-resolve" @click="askSupport('resolve')">{{ $t('store_data.support.resolve') }}</button>
+            </div>
+            <form v-if="support.kind && support.kind !== 'rerun'" class="flex flex-col gap-3 rounded-xl border border-note-border bg-note-soft p-4 text-sm" :data-form="`support-${support.kind}`" @submit.prevent="confirmSupport">
+              <p class="font-medium">{{ $t(`store_data.support.confirm.${support.kind}`) }}</p>
+              <label class="flex flex-col gap-1.5">
+                <span class="font-medium">{{ $t('tenant.actions.reason') }}</span>
+                <textarea v-model="support.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="support-reason" />
+              </label>
+              <ErrorNotice v-if="support.error" :error="support.error" />
+              <div class="flex flex-wrap gap-2">
+                <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="support.busy || support.reason.trim().length < 3" data-action="support-confirm">{{ $t('staff.apply') }}</button>
+                <button type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted" @click="support.kind = null">{{ $t('common.cancel') }}</button>
+              </div>
+            </form>
+            <p v-if="support.done" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok">{{ $t(support.done) }}</p>
+          </template>
+        </DetailDialog>
       </template>
     </div>
   </OwnerLayout>
