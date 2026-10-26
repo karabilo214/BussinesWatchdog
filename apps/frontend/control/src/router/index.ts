@@ -41,6 +41,8 @@ export function buildRouter(): Router {
       { path: '/owner/public-checks', name: 'owner-public_checks', component: () => import('@/views/PublicChecksView.vue') },
       { path: '/owner/staff', name: 'owner-staff', component: () => import('@/views/StaffView.vue') },
       { path: '/owner/staff-invitation', name: 'staff-invitation', component: () => import('@/views/StaffInvitationView.vue'), meta: { public: true } },
+      { path: '/owner/reset-password', name: 'reset-password', component: () => import('@/views/ResetPasswordView.vue'), meta: { public: true } },
+      { path: '/owner/profile', name: 'owner-profile', component: () => import('@/views/ProfileView.vue') },
       { path: '/owner/audit', name: 'owner-audit', component: () => import('@/views/AuditView.vue') },
       { path: '/owner/settings', name: 'owner-settings', component: () => import('@/views/SettingsView.vue') },
       { path: '/owner/tenants', name: 'owner-tenants', component: () => import('@/views/TenantsView.vue') },

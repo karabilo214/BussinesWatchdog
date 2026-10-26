@@ -134,7 +134,9 @@
   },
   "common": {
     "loading": "Wird geladen…",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "close": "Schließen"
   },
   "errors": {
     "generic": "Die Aktion ist fehlgeschlagen. Versuchen Sie es erneut.",
@@ -254,7 +256,11 @@
     "note_not_yours": "Sie können nur Ihre eigenen Notizen bearbeiten.",
     "note_not_found": "Die Notiz wurde nicht gefunden.",
     "template_text_invalid": "Betreff 3–200 Zeichen, Text nicht leer.",
-    "owner_mfa_server_only": "Der Authenticator eines Plattform-Inhabers wird nur mit dem Serverbefehl platform:reset-mfa zurückgesetzt."
+    "owner_mfa_server_only": "Der Authenticator eines Plattform-Inhabers wird nur mit dem Serverbefehl platform:reset-mfa zurückgesetzt.",
+    "staff_profile_forbidden": "Dieses Profil dürfen Sie nicht ändern.",
+    "use_own_password_change": "Ihr eigenes Passwort ändern Sie unter „Mein Profil“.",
+    "current_password_invalid": "Das aktuelle Passwort ist falsch.",
+    "password_reset_invalid": "Der Link ist ungültig oder abgelaufen."
   },
   "period": {
     "per": {
@@ -762,7 +768,12 @@
       "mfa_reset": "Authenticator eines Mitarbeiters zurückgesetzt",
       "bootstrap_owner": "Erster Inhaber angelegt",
       "mfa_reenrolled": "Mitarbeiter hat einen neuen Authenticator verbunden",
-      "logout": "Abmeldung eines Mitarbeiters"
+      "logout": "Abmeldung eines Mitarbeiters",
+      "profile_updated": "Mitarbeiterprofil geändert",
+      "photo_updated": "Mitarbeiterfoto geändert",
+      "photo_removed": "Mitarbeiterfoto entfernt",
+      "password_changed": "Mitarbeiter hat das Passwort geändert",
+      "password_link_sent": "Link zur Passwortänderung an Mitarbeiter gesendet"
     },
     "site": {
       "page": {
@@ -1561,6 +1572,7 @@
     },
     "later": "Wartungsfenster und Worker-Limits werden später unter „Einstellungen“ konfiguriert."
   },
+  "profile": {"title": "Mein Profil", "edit": "Profil", "of": "Profil: {name}", "photo": "Foto", "choose_file": "Datei wählen", "selfie": "Selfie aufnehmen", "remove_photo": "Foto entfernen", "photo_hint": "JPG, PNG oder WebP bis 5 MB. Das Foto wird quadratisch zugeschnitten; Kamera- und Ortsdaten werden entfernt.", "name": "Name", "first_name": "Vorname", "last_name": "Nachname", "password": "Passwort", "current_password": "Aktuelles Passwort", "new_password": "Neues Passwort", "repeat_password": "Neues Passwort wiederholen", "passwords_differ": "Die Passwörter stimmen nicht überein.", "password_hint": "Mindestens 12 Zeichen. Andere Sitzungen enden nach der Änderung.", "change_password": "Passwort ändern", "link_hint": "Niemand legt für andere ein Passwort fest: Der Mitarbeiter erhält einen einmaligen Link (60 Minuten gültig) und setzt es selbst. Bestätigen Sie mit dem Code aus Ihrer App.", "send_link": "Link zur Passwortänderung senden", "saved": "Gespeichert.", "photo_saved": "Foto gespeichert.", "photo_removed": "Foto entfernt.", "password_saved": "Passwort geändert, andere Sitzungen beendet.", "link_sent": "Der Link wurde gesendet.", "camera": {"capture": "Aufnehmen", "retake": "Neu aufnehmen", "save": "Speichern", "unsupported": "Die Kamera ist in diesem Browser oder ohne sichere Verbindung nicht verfügbar. Wählen Sie eine Datei.", "denied": "Der Kamerazugriff ist gesperrt. Erlauben Sie ihn in den Browsereinstellungen oder wählen Sie eine Datei.", "no_camera": "Keine Kamera gefunden. Wählen Sie eine Datei.", "failed": "Die Kamera konnte nicht gestartet werden. Wählen Sie eine Datei."}, "reset": {"title": "Neues Passwort", "subtitle": "Legen Sie ein neues Passwort für {email} fest. Danach enden alle Sitzungen.", "submit": "Passwort speichern", "done": "Passwort geändert. Melden Sie sich mit dem neuen Passwort an.", "invalid": "Der Link ist ungültig oder abgelaufen. Bitten Sie um einen neuen.", "broken": "Der Link ist unvollständig. Öffnen Sie ihn vollständig aus der E-Mail."}},
   "staff": {
     "hint": "Mitarbeiter der Plattform und ihre Rechte: Ein Inhaber darf alles, bei allen anderen haken Sie an, was sie dürfen. Eine Einladung gilt 72 Stunden; das neue Mitglied legt ein Passwort fest und verbindet eine Authenticator-App. Zugangsänderungen und Deaktivierung brauchen einen Code aus der App; sich selbst und den letzten Inhaber können Sie nicht ändern.",
     "forbidden": "Dieser Bereich steht dem Inhaber des Dienstes zur Verfügung.",

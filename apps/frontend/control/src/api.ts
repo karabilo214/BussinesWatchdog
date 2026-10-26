@@ -59,6 +59,9 @@ export async function fetchPublicStorefrontChecks(cursor?: string): Promise<{ da
 export interface StaffMe {
   staff_id: string;
   name: string;
+  first_name: string | null;
+  last_name: string | null;
+  photo_url: string | null;
   email: string;
   locale: string;
   role: StaffRole;
@@ -816,6 +819,9 @@ export async function retryDeadOutbox(id: string, reason: string, confirmationCo
 export interface StaffMember {
   id: string;
   name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  photo_url: string | null;
   email: string | null;
   role: StaffRole;
   capabilities: string[];
@@ -841,6 +847,43 @@ export interface StaffCatalog {
   capability_catalog: { code: string; owner_only: boolean }[];
   presets: Record<string, string[]>;
   implies: Record<string, string[]>;
+}
+
+/** Step 268: name, photo and password of staff; the server decides who may edit whom. */
+export interface StaffProfile {
+  id: string;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  photo_url: string | null;
+  can_edit: boolean;
+}
+
+export async function updateStaffProfile(id: string, input: { first_name: string | null; last_name: string }): Promise<StaffProfile> {
+  return (await request<StaffProfile>('PATCH', `/platform-api/v1/staff/${encodeURIComponent(id)}/profile`, { body: input })).data;
+}
+
+export async function uploadStaffPhoto(id: string, photo: Blob, name = 'photo.jpg'): Promise<StaffProfile> {
+  const body = new FormData();
+  body.append('photo', photo, name);
+
+  return (await request<StaffProfile>('POST', `/platform-api/v1/staff/${encodeURIComponent(id)}/photo`, { body })).data;
+}
+
+export async function removeStaffPhoto(id: string): Promise<StaffProfile> {
+  return (await request<StaffProfile>('DELETE', `/platform-api/v1/staff/${encodeURIComponent(id)}/photo`)).data;
+}
+
+export async function changeOwnPassword(input: { current_password: string; password: string; confirmation_code: string }): Promise<void> {
+  await request<null>('POST', '/platform-api/v1/me/password', { body: { ...input, password_confirmation: input.password } });
+}
+
+export async function sendStaffPasswordLink(id: string, confirmationCode: string): Promise<void> {
+  await request<null>('POST', `/platform-api/v1/staff/${encodeURIComponent(id)}/password-link`, { body: { confirmation_code: confirmationCode } });
+}
+
+export async function completeStaffPasswordReset(email: string, token: string, password: string): Promise<void> {
+  await request<null>('POST', '/platform-api/v1/password-reset/complete', { body: { email, token, password, password_confirmation: password } });
 }
 
 export async function fetchStaff(): Promise<StaffCatalog> {
@@ -882,7 +925,7 @@ export async function confirmStaffInvitation(input: { token: string; code: strin
 export interface AuditEntry {
   id: string;
   created_at: string;
-  actor: { id: string; name: string | null } | null;
+  actor: { id: string; name: string | null; photo_url?: string | null } | null;
   actor_kind: string;
   action: string;
   target_type: string;

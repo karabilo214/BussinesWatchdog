@@ -8,6 +8,7 @@ import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useStaff } from '@/composables/useStaff';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
+import StaffAvatar from '@/components/StaffAvatar.vue';
 
 const KEYS = ['actor', 'action', 'result', 'tenant', 'from', 'to'] as const;
 const TONES = { succeeded: 'ok', denied: 'crit', failed: 'crit', requested: 'note', unknown: 'warn' } as const;
@@ -119,7 +120,7 @@ onMounted(() => void load());
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-medium">{{ entry.presentation.title }}</span>
               <StatusBadge :tone="TONES[entry.result]" :label="$t(`audit_result.${entry.result}`, entry.result)" />
-              <span class="text-text-muted">{{ entry.actor?.name ?? $t('audit.system') }} · {{ dateTime(entry.created_at) }}</span>
+              <span class="flex items-center gap-1.5 text-text-muted"><StaffAvatar v-if="entry.actor" :name="entry.actor.name" :photo-url="entry.actor.photo_url ?? null" />{{ entry.actor?.name ?? $t('audit.system') }} · {{ dateTime(entry.created_at) }}</span>
               <RouterLink v-if="entry.presentation.object.href" :to="entry.presentation.object.href" class="text-primary hover:underline">{{ entry.presentation.object.label }}</RouterLink>
               <span v-else class="text-text-muted">{{ entry.presentation.object.label }}</span>
               <button type="button" class="ml-auto text-primary hover:underline" :data-toggle="entry.id" @click="open = open === entry.id ? null : entry.id">{{ open === entry.id ? $t('audit.less') : $t('audit.more') }}</button>

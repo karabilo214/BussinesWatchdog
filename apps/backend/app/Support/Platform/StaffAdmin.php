@@ -33,6 +33,9 @@ class StaffAdmin
             'staff' => $staff->map(fn (PlatformStaff $member): array => [
                 'id' => $member->id,
                 'name' => $member->user?->name,
+                'first_name' => $member->user?->first_name,
+                'last_name' => $member->user?->last_name,
+                'photo_url' => $member->photoUrl(),
                 'email' => $member->user?->email,
                 'role' => $member->role,
                 'capabilities' => PlatformCapabilities::forStaff($member),

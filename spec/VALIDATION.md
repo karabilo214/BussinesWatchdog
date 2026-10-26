@@ -2,7 +2,7 @@
 
 Проверено 25 октября 2026 года для версии1.1. Ниже перечислены фактически выполненные проверки файлов, а не тесты рабочего SaaS.
 
-- OpenAPI YAML, internal references, path parameters and unique operation IDs: 273 operations
+- OpenAPI YAML, internal references, path parameters and unique operation IDs: 280 operations
 - Extension OpenAPI: 25 operations, references/paths and positive/negative purchase/action DTO fixtures
 - Positive Woo ingestion fixture conforms to the used JSON Schema subset
 - Negative event schema fixture checks: 6

@@ -19,6 +19,9 @@ const mocked = vi.mocked(api);
 const OWNER: StaffMe = {
   staff_id: 's-1',
   name: 'Founder',
+  first_name: null,
+  last_name: 'Founder',
+  photo_url: null,
   email: 'founder@example.test',
   locale: 'ru',
   role: 'platform_owner',

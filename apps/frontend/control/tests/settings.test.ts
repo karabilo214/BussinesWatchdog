@@ -25,7 +25,7 @@ const SETTINGS: PlatformSettingsView = {
 };
 
 function staff(capabilities: string[]): StaffMe {
-  return { staff_id: 's-1', name: 'Founder', email: 'f@example.test', locale: 'ru', role: 'platform_owner', mfa_enabled: true, capabilities, billing_mode: 'live', session: { idle_minutes: 30, absolute_hours: 8 } };
+  return { staff_id: 's-1', name: 'Founder', first_name: null, last_name: 'Founder', photo_url: null, email: 'f@example.test', locale: 'ru', role: 'platform_owner', mfa_enabled: true, capabilities, billing_mode: 'live', session: { idle_minutes: 30, absolute_hours: 8 } };
 }
 
 async function open(capabilities: string[]) {

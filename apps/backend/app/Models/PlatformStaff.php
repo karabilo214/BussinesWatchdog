@@ -32,7 +32,7 @@ class PlatformStaff extends Model
 
     protected $table = 'platform_staff';
 
-    protected $fillable = ['user_id', 'role', 'capabilities', 'state', 'mfa_required', 'permission_version', 'disabled_at'];
+    protected $fillable = ['user_id', 'role', 'capabilities', 'state', 'mfa_required', 'permission_version', 'disabled_at', 'photo_key', 'photo_updated_at'];
 
     protected static function booted(): void
     {
@@ -62,12 +62,19 @@ class PlatformStaff extends Model
             'permission_version' => 'integer',
             'created_at' => 'datetime',
             'disabled_at' => 'datetime',
+            'photo_updated_at' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Cache-busting address of the staff photo; null without one. */
+    public function photoUrl(): ?string
+    {
+        return $this->photo_key === null ? null : '/platform-api/v1/staff/'.$this->id.'/photo?v='.$this->photo_updated_at?->getTimestamp();
     }
 
     public function active(): bool

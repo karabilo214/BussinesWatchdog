@@ -18,6 +18,7 @@ use App\Http\Controllers\Platform\SettingsController;
 use App\Http\Controllers\Platform\SiteMediaController;
 use App\Http\Controllers\Platform\StaffController;
 use App\Http\Controllers\Platform\StaffInvitationController;
+use App\Http\Controllers\Platform\StaffProfileController;
 use App\Http\Controllers\Platform\SupportGrantController;
 use App\Http\Controllers\Platform\TenantController;
 use App\Http\Controllers\Platform\TenantDeletionController;
@@ -33,11 +34,18 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::get('/staff-invitations/lookup', [StaffInvitationController::class, 'lookup'])->middleware('throttle:platform-invitation');
     Route::post('/staff-invitations/start', [StaffInvitationController::class, 'start'])->middleware('throttle:platform-invitation');
     Route::post('/staff-invitations/confirm', [StaffInvitationController::class, 'confirm'])->middleware('throttle:platform-mfa');
+    Route::post('/password-reset/complete', [StaffProfileController::class, 'completePasswordReset'])->middleware('throttle:auth-password-reset-complete');
 
     Route::middleware('platform.staff')->group(function (): void {
         Route::get('/me', [PlatformAuthController::class, 'show']);
         Route::post('/auth/logout', [PlatformAuthController::class, 'logout']);
         Route::get('/attention', [AttentionController::class, 'show']);
+        Route::post('/me/password', [StaffProfileController::class, 'changePassword'])->middleware('throttle:platform-step-up');
+        Route::get('/staff/{staff}/photo', [StaffProfileController::class, 'photo'])->whereUuid('staff');
+        Route::patch('/staff/{staff}/profile', [StaffProfileController::class, 'update'])->whereUuid('staff');
+        Route::post('/staff/{staff}/photo', [StaffProfileController::class, 'storePhoto'])->whereUuid('staff')->middleware('throttle:platform-step-up');
+        Route::delete('/staff/{staff}/photo', [StaffProfileController::class, 'destroyPhoto'])->whereUuid('staff');
+        Route::post('/staff/{staff}/password-link', [StaffProfileController::class, 'sendPasswordLink'])->whereUuid('staff')->middleware('throttle:platform-step-up');
     });
 
     Route::middleware('platform.staff:'.PlatformCapabilities::PLANS_READ)->get('/plans', [PlanController::class, 'index']);

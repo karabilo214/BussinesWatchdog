@@ -1962,6 +1962,164 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/staff/{staff}/profile:
+    patch:
+      tags: [Platform]
+      operationId: platformUpdateStaffProfile
+      description: "Step 268. The platform owner edits anyone; a member with staff.manage edits themselves and other members; everyone else only themselves (403 staff_profile_forbidden, audited as denied). Changes first and last name (only the last name is required); the audit keeps before and after."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: staff, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [last_name]
+              properties:
+                first_name: {type: [string, "null"], maxLength: 100}
+                last_name: {type: string, minLength: 1, maxLength: 100}
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/StaffProfile"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/staff/{staff}/photo:
+    get:
+      tags: [Platform]
+      operationId: platformStaffPhoto
+      description: Any signed-in staff member sees colleagues' photos (staff list, header, audit). 404 without a photo.
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: staff, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: JPEG, 512×512
+          content:
+            image/jpeg:
+              schema: {type: string, format: binary}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Platform]
+      operationId: platformUploadStaffPhoto
+      description: "Step 268. The platform owner edits anyone; a member with staff.manage edits themselves and other members; everyone else only themselves (403 staff_profile_forbidden, audited as denied). JPEG/PNG/WebP up to 5 MB recognised by content, decoded and encoded again without metadata, cut to a centred 512×512 JPEG. A selfie from the camera uses the same path. The audit keeps only the fact."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: staff, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo]
+              properties:
+                photo: {type: string, format: binary}
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/StaffProfile"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "503": {$ref: "#/components/responses/Problem"}
+    delete:
+      tags: [Platform]
+      operationId: platformRemoveStaffPhoto
+      description: "Step 268. The platform owner edits anyone; a member with staff.manage edits themselves and other members; everyone else only themselves (403 staff_profile_forbidden, audited as denied). Removes the photo; audited as a fact."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: staff, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/StaffProfile"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/staff/{staff}/password-link:
+    post:
+      tags: [Platform]
+      operationId: platformSendStaffPasswordLink
+      description: "Step 268. The platform owner edits anyone; a member with staff.manage edits themselves and other members; everyone else only themselves (403 staff_profile_forbidden, audited as denied). Another person's password is never set for them (owner's decision 2026-10-26): they get a one-time link (60 min) to /owner/reset-password; the actor confirms with their authenticator code (403 step_up_failed). For oneself — 422 use_own_password_change."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: staff, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmation_code]
+              properties:
+                confirmation_code: {type: string, maxLength: 32}
+      responses:
+        "204": {description: Sent}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/me/password:
+    post:
+      tags: [Platform]
+      operationId: platformChangeOwnPassword
+      description: "Step 268: own password with the current one and the authenticator code (422 current_password_invalid, 403 step_up_failed); at least 12 characters. Other sessions and trusted devices end; this session stays. Audited as a fact."
+      security:
+        - {StaffSession: []}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, password, password_confirmation, confirmation_code]
+              properties:
+                current_password: {type: string, maxLength: 128}
+                password: {type: string, minLength: 12, maxLength: 128}
+                password_confirmation: {type: string}
+                confirmation_code: {type: string, maxLength: 32}
+      responses:
+        "204": {description: Changed}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/password-reset/complete:
+    post:
+      tags: [Platform]
+      operationId: platformCompletePasswordReset
+      description: "Step 268: the one-time link a staff member received; sets their password, ends every session of the person, also in the owner panel. 422 password_reset_invalid."
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, token, password, password_confirmation]
+              properties:
+                email: {type: string, maxLength: 255}
+                token: {type: string, maxLength: 128}
+                password: {type: string, minLength: 12, maxLength: 128}
+                password_confirmation: {type: string}
+      responses:
+        "204": {description: Password set}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/staff-invitations/lookup:
     get:
       tags: [Platform]
@@ -8105,6 +8263,16 @@ components:
               currency: {type: string, pattern: "^[A-Z]{3}$"}
               currency_exponent: {type: integer}
               mode: {type: [string, "null"]}
+    StaffProfile:
+      type: object
+      required: [id, name, first_name, last_name, photo_url, can_edit]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: [string, "null"]}
+        first_name: {type: [string, "null"]}
+        last_name: {type: [string, "null"]}
+        photo_url: {type: [string, "null"]}
+        can_edit: {type: boolean}
     PendingEmailChange:
       type: object
       required: [email, expires_at]

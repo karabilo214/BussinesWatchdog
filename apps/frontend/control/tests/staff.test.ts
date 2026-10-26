@@ -29,8 +29,8 @@ const CAPABILITIES = ['tenants.read', 'tenants.manage', 'customers.mfa_reset', '
 
 const CATALOG: StaffCatalog = {
   staff: [
-    { id: 's-1', name: 'Founder', email: 'f@example.test', role: 'platform_owner', capabilities: CAPABILITIES, state: 'active', mfa_enabled: true, created_at: null, disabled_at: null, last_login_at: '2026-10-20T09:00:00Z' },
-    { id: 's-2', name: 'Ops', email: 'ops@example.test', role: 'platform_member', capabilities: ['tenants.read', 'service.read'], state: 'active', mfa_enabled: true, created_at: null, disabled_at: null, last_login_at: null },
+    { id: 's-1', name: 'Founder', first_name: null, last_name: 'Founder', photo_url: null, email: 'f@example.test', role: 'platform_owner', capabilities: CAPABILITIES, state: 'active', mfa_enabled: true, created_at: null, disabled_at: null, last_login_at: '2026-10-20T09:00:00Z' },
+    { id: 's-2', name: 'Ops', first_name: null, last_name: 'Ops', photo_url: null, email: 'ops@example.test', role: 'platform_member', capabilities: ['tenants.read', 'service.read'], state: 'active', mfa_enabled: true, created_at: null, disabled_at: null, last_login_at: null },
   ],
   invitations: [{ id: 'i-1', email: 'new@example.test', role: 'platform_member', capabilities: ['contacts.read', 'contacts.manage'], expires_at: '2026-10-23T10:00:00Z', created_at: null }],
   capability_catalog: CAPABILITIES.map((code) => ({ code, owner_only: code === 'staff.manage' || code === 'refunds.approve' })),
@@ -39,7 +39,7 @@ const CATALOG: StaffCatalog = {
 };
 
 function staff(capabilities: string[]): StaffMe {
-  return { staff_id: 's-1', name: 'Founder', email: 'f@example.test', locale: 'ru', role: 'platform_owner', mfa_enabled: true, capabilities, billing_mode: 'live', session: { idle_minutes: 30, absolute_hours: 8 } };
+  return { staff_id: 's-1', name: 'Founder', first_name: null, last_name: 'Founder', photo_url: null, email: 'f@example.test', locale: 'ru', role: 'platform_owner', mfa_enabled: true, capabilities, billing_mode: 'live', session: { idle_minutes: 30, absolute_hours: 8 } };
 }
 
 async function open(path: string, capabilities: string[] | null) {

@@ -134,7 +134,9 @@
   },
   "common": {
     "loading": "Loading…",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close"
   },
   "errors": {
     "generic": "The action failed. Try again.",
@@ -254,7 +256,11 @@
     "note_not_yours": "You can only edit your own notes.",
     "note_not_found": "The note was not found.",
     "template_text_invalid": "Subject 3–200 characters, text not empty.",
-    "owner_mfa_server_only": "A platform owner's authenticator is reset only with the server command platform:reset-mfa."
+    "owner_mfa_server_only": "A platform owner's authenticator is reset only with the server command platform:reset-mfa.",
+    "staff_profile_forbidden": "You may not change this profile.",
+    "use_own_password_change": "Change your own password in “My profile”.",
+    "current_password_invalid": "The current password is wrong.",
+    "password_reset_invalid": "The link is invalid or expired."
   },
   "period": {
     "per": {
@@ -762,7 +768,12 @@
       "mfa_reset": "Staff authenticator reset",
       "bootstrap_owner": "First owner created",
       "mfa_reenrolled": "Staff member connected a new authenticator",
-      "logout": "Staff sign-out"
+      "logout": "Staff sign-out",
+      "profile_updated": "Staff profile changed",
+      "photo_updated": "Staff photo changed",
+      "photo_removed": "Staff photo removed",
+      "password_changed": "Staff member changed their password",
+      "password_link_sent": "Password change link sent to a staff member"
     },
     "site": {
       "page": {
@@ -1561,6 +1572,7 @@
     },
     "later": "Maintenance windows and worker limits will be configured later in «Settings»."
   },
+  "profile": {"title": "My profile", "edit": "Profile", "of": "Profile: {name}", "photo": "Photo", "choose_file": "Choose file", "selfie": "Take a selfie", "remove_photo": "Remove photo", "photo_hint": "JPG, PNG or WebP up to 5 MB. The photo is cut to a square; camera and location data are removed.", "name": "Name", "first_name": "First name", "last_name": "Last name", "password": "Password", "current_password": "Current password", "new_password": "New password", "repeat_password": "Repeat the new password", "passwords_differ": "The passwords do not match.", "password_hint": "At least 12 characters. Other sessions end after the change.", "change_password": "Change password", "link_hint": "Nobody sets a password for someone else: the staff member gets a one-time link (valid 60 minutes) and sets it themselves. Confirm with the code from your app.", "send_link": "Send a password change link", "saved": "Saved.", "photo_saved": "Photo saved.", "photo_removed": "Photo removed.", "password_saved": "Password changed; other sessions ended.", "link_sent": "The link was sent.", "camera": {"capture": "Take", "retake": "Retake", "save": "Save", "unsupported": "The camera is not available in this browser or without a secure connection. Choose a file.", "denied": "Camera access is blocked. Allow it in the browser settings or choose a file.", "no_camera": "No camera found. Choose a file.", "failed": "The camera could not be started. Choose a file."}, "reset": {"title": "New password", "subtitle": "Set a new password for {email}. Every session ends afterwards.", "submit": "Save password", "done": "Password changed. Sign in with the new password.", "invalid": "The link is invalid or expired. Ask for a new one.", "broken": "The link is incomplete. Open it from the email in full."}},
   "staff": {
     "hint": "Platform staff and their permissions: an owner can do everything, for everyone else you tick what they may do. An invitation is valid for 72 hours; the new member sets a password and connects an authenticator app. Changing access and disabling need a code from the app; you cannot change yourself or the last owner.",
     "forbidden": "This section is available to the service owner.",

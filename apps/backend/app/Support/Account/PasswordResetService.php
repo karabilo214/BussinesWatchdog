@@ -26,6 +26,12 @@ class PasswordResetService
             return;
         }
 
+        $this->sendTo($user, '/app/reset-password');
+    }
+
+    /** The same one-time link, opened in the given app (the customer cabinet or the owner panel). */
+    public function sendTo(User $user, string $path): void
+    {
         $token = Str::random(64);
 
         DB::table('password_reset_tokens')->updateOrInsert(
@@ -34,7 +40,7 @@ class PasswordResetService
         );
 
         $this->mailer->send($user->email, $user->locale, 'password_reset', [
-            'link' => $this->mailer->link('/app/reset-password?'.http_build_query(['token' => $token, 'email' => $user->email])),
+            'link' => $this->mailer->link($path.'?'.http_build_query(['token' => $token, 'email' => $user->email])),
             'minutes' => self::TTL_MINUTES,
         ]);
     }

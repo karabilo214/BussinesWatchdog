@@ -64,7 +64,7 @@ class AuditJournal
             ->when(isset($filters['result']), fn (Builder $query) => $query->where('platform_audit_log.result', $filters['result']))
             ->when(isset($filters['from']), fn (Builder $query) => $query->where('platform_audit_log.created_at', '>=', Carbon::createFromFormat('Y-m-d', $filters['from'], 'UTC')->startOfDay()))
             ->when(isset($filters['to']), fn (Builder $query) => $query->where('platform_audit_log.created_at', '<', Carbon::createFromFormat('Y-m-d', $filters['to'], 'UTC')->startOfDay()->addDay()))
-            ->select(['platform_audit_log.*', 'users.name as actor_name', 'tenants.name as tenant_name', 'tenants.status as tenant_status']);
+            ->select(['platform_audit_log.*', 'users.name as actor_name', 'platform_staff.photo_key as actor_photo_key', 'platform_staff.photo_updated_at as actor_photo_updated_at', 'tenants.name as tenant_name', 'tenants.status as tenant_status']);
     }
 
     /**
@@ -77,7 +77,7 @@ class AuditJournal
             'created_at' => Carbon::parse($row->created_at)->toJSON(),
             'actor' => $row->actor_staff_id === null ? null : ['id' => (string) $row->actor_staff_id, 'name' => $row->actor_name ?? match ($locale) {
                 'ru' => 'Удалён', 'de' => 'Gelöscht', default => 'Deleted'
-            }],
+            }, 'photo_url' => $row->actor_photo_key === null ? null : '/platform-api/v1/staff/'.$row->actor_staff_id.'/photo?v='.Carbon::parse($row->actor_photo_updated_at)->getTimestamp()],
             'actor_kind' => $row->actor_kind,
             'action' => $row->action,
             'target_type' => $row->target_type,

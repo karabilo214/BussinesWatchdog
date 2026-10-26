@@ -33,7 +33,12 @@
     "mfa_reset": "Staff authenticator reset",
     "bootstrap_owner": "First owner created",
     "mfa_reenrolled": "Staff member connected a new authenticator",
-    "logout": "Staff sign-out"
+    "logout": "Staff sign-out",
+    "profile_updated": "Staff profile changed",
+    "photo_updated": "Staff photo changed",
+    "photo_removed": "Staff photo removed",
+    "password_changed": "Staff member changed their password",
+    "password_link_sent": "Password change link sent to a staff member"
   },
   "site": {
     "page": {

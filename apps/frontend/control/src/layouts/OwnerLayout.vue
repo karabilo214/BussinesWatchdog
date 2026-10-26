@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n';
 import { useOwnerBadges } from '@/composables/useOwnerBadges';
 import { useStaff } from '@/composables/useStaff';
 import { allowedSections } from '@/router';
+import StaffAvatar from '@/components/StaffAvatar.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -47,7 +48,7 @@ watch(() => route.fullPath, () => {
           {{ $t('nav.menu') }}
         </button>
         <div class="hidden items-center gap-3 md:ml-auto md:flex">
-          <span v-if="me" class="text-sm text-brand-200" data-staff>{{ me.name }} · {{ $t(`role.${me.role}`) }}</span>
+          <RouterLink v-if="me" :to="{ name: 'owner-profile' }" class="flex items-center gap-2 text-sm text-brand-200 hover:text-white" :title="$t('profile.title')" data-staff><StaffAvatar :name="me.name" :photo-url="me.photo_url" />{{ me.name }} · {{ $t(`role.${me.role}`) }}</RouterLink>
           <LocaleSwitch />
           <button type="button" class="rounded-md border border-brand-700 px-3 py-1.5 text-sm font-medium text-brand-200 hover:text-white" @click="leave">
             {{ $t('auth.sign_out') }}
@@ -87,7 +88,7 @@ watch(() => route.fullPath, () => {
           </li>
         </ul>
         <div class="mt-4 flex flex-col gap-3 border-t border-border pt-4 md:hidden">
-          <span v-if="me" class="text-sm text-text-muted">{{ me.name }} · {{ $t(`role.${me.role}`) }}</span>
+          <RouterLink v-if="me" :to="{ name: 'owner-profile' }" class="flex items-center gap-2 text-sm text-text-muted hover:text-primary"><StaffAvatar :name="me.name" :photo-url="me.photo_url" />{{ me.name }} · {{ $t(`role.${me.role}`) }}</RouterLink>
           <LocaleSwitch />
           <button type="button" class="self-start rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium text-primary" @click="leave">{{ $t('auth.sign_out') }}</button>
         </div>

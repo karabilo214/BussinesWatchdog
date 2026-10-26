@@ -5,6 +5,8 @@ import { StatusBadge } from '@bw/ui';
 import { fetchStaff, inviteStaff, resetStaffMfa, revokeStaffInvitation, revokeStaffSessions, updateStaff, type StaffCatalog, type StaffMember, type StaffRole } from '@/api';
 import CapabilityPicker from '@/components/CapabilityPicker.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import StaffAvatar from '@/components/StaffAvatar.vue';
+import StaffProfileEditor from '@/components/StaffProfileEditor.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useStaff } from '@/composables/useStaff';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -98,6 +100,13 @@ function self(member: StaffMember): boolean {
   return member.id === me.value?.staff_id;
 }
 
+const editing = ref<string | null>(null);
+
+/** Mirrors StaffProfiles::canEdit on the server, which decides. */
+function canEditProfile(member: StaffMember): boolean {
+  return me.value?.role === 'platform_owner' || self(member) || (can('staff.manage') && member.role !== 'platform_owner');
+}
+
 onMounted(load);
 </script>
 
@@ -162,9 +171,14 @@ onMounted(load);
             <tbody class="divide-y divide-border">
               <tr v-for="member in catalog.staff" :key="member.id" :data-staff="member.email">
                 <td class="px-4 py-3">
-                  <span class="font-medium">{{ member.name ?? '—' }}</span>
-                  <span v-if="self(member)" class="ml-1 text-text-muted">({{ $t('staff.you') }})</span>
-                  <span class="block text-[13px] text-text-muted">{{ member.email }}</span>
+                  <div class="flex items-center gap-3">
+                    <StaffAvatar :name="member.name" :photo-url="member.photo_url" size="md" />
+                    <div>
+                      <span class="font-medium">{{ member.name ?? '—' }}</span>
+                      <span v-if="self(member)" class="ml-1 text-text-muted">({{ $t('staff.you') }})</span>
+                      <span class="block text-[13px] text-text-muted">{{ member.email }}</span>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-4 py-3">
                   <span>{{ $t(`role.${member.role}`) }}</span>
@@ -178,6 +192,10 @@ onMounted(load);
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">{{ dateTime(member.last_login_at) }}</td>
                 <td class="px-4 py-3">
+                  <div class="mb-1.5 flex justify-end">
+                    <RouterLink v-if="self(member)" :to="{ name: 'owner-profile' }" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft">{{ $t('profile.title') }}</RouterLink>
+                    <button v-else-if="canEditProfile(member)" type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="profile" @click="editing = editing === member.id ? null : member.id">{{ $t('profile.edit') }}</button>
+                  </div>
                   <div v-if="!self(member)" class="flex flex-wrap justify-end gap-1.5">
                     <button type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="role" @click="ask('role', member.id, member)">{{ $t('staff.change_role') }}</button>
                     <button v-if="member.state === 'active'" type="button" class="rounded-md border border-border-strong px-2.5 py-1 font-medium text-primary hover:bg-primary-soft" data-action="sessions" @click="ask('sessions', member.id)">{{ $t('staff.sign_out') }}</button>
@@ -190,6 +208,14 @@ onMounted(load);
             </tbody>
           </table>
         </div>
+
+        <section v-for="member in catalog.staff.filter((item) => item.id === editing)" :key="`profile-${member.id}`" class="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5" data-staff-profile>
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold">{{ $t('profile.of', { name: member.name ?? member.email }) }}</h2>
+            <button type="button" class="rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-muted" @click="editing = null">{{ $t('common.close') }}</button>
+          </div>
+          <StaffProfileEditor :staff-id="member.id" :first-name="member.first_name" :last-name="member.last_name" :name="member.name" :photo-url="member.photo_url" :self="false" @changed="load" />
+        </section>
 
         <section v-if="catalog.invitations.length > 0" class="flex flex-col gap-2">
           <h2 class="text-lg font-semibold">{{ $t('staff.pending') }}</h2>

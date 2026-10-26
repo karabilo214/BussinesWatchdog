@@ -21,3 +21,10 @@ Status: accepted for now (owner's backlog item 2026-10-13: the «Сотрудн�
 - Per-member permissions implemented in Step 173 (ADR 0064).
 - Implemented in Step 180: the platform owner resets the authenticator of a member (not an owner, not oneself) from «Сотрудники» with a reason and their code; the old one stops working, sessions end, and an e-mailed one-time link (72 h, an invitation with purpose `mfa_reset`) lets the member connect a new one with their password. An owner's authenticator stays server-only. `staff.invited` now stores the invited address in clear text.
 
+## Staff profiles (Step 268)
+
+- **Who edits whom:** the platform owner edits any staff member; a member with `staff.manage` edits themselves and other members (today `staff.manage` is owner-only by ADR 0064, so in practice members edit only themselves); everyone else only themselves. Checked on the server on every change; refusals are audited as denied.
+- **Name and photo:** first and last name (last name required), audited before → after. Photo JPG/PNG/WebP up to 5 MB, recognised by content, decoded and encoded again without metadata (Step 225 rules), cut to a centred 512×512 JPEG; a selfie from the browser camera uses the same path. Shown in the staff list, the header and the audit; can be removed. Audit keeps only the fact for photos.
+- **Password:** one's own with the current password and the authenticator code; other sessions and trusted devices end, the current one stays. Another person's password is never set for them (owner's decision 2026-10-26): they get a one-time link (60 min) to `/owner/reset-password`, the actor confirms with their code; using the link ends every session of that person, also in the owner panel.
+- **No date of birth** is collected (owner's decision 2026-10-26: no purpose, data minimisation).
+- `Permissions-Policy: camera=(self), microphone=(), geolocation=()` on the main domain.

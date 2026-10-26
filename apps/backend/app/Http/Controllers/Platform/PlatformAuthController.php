@@ -122,6 +122,9 @@ class PlatformAuthController extends Controller
         return [
             'staff_id' => $staff->id,
             'name' => $staff->user->name,
+            'first_name' => $staff->user->first_name,
+            'last_name' => $staff->user->last_name,
+            'photo_url' => $staff->photoUrl(),
             'email' => $staff->user->email,
             'locale' => $staff->user->locale,
             'role' => $staff->role,

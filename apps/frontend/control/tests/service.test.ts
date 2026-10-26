@@ -27,7 +27,7 @@ const HEALTH: ServiceHealth = {
 };
 
 function staff(capabilities: string[]): StaffMe {
-  return { staff_id: 's-1', name: 'Ops', email: 'ops@example.test', locale: 'ru', role: 'platform_member', mfa_enabled: true, capabilities, billing_mode: 'live', session: { idle_minutes: 30, absolute_hours: 8 } };
+  return { staff_id: 's-1', name: 'Ops', first_name: null, last_name: 'Ops', photo_url: null, email: 'ops@example.test', locale: 'ru', role: 'platform_member', mfa_enabled: true, capabilities, billing_mode: 'live', session: { idle_minutes: 30, absolute_hours: 8 } };
 }
 
 async function open(capabilities: string[]) {

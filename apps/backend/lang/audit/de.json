@@ -33,7 +33,12 @@
     "mfa_reset": "Authenticator eines Mitarbeiters zurückgesetzt",
     "bootstrap_owner": "Erster Inhaber angelegt",
     "mfa_reenrolled": "Mitarbeiter hat einen neuen Authenticator verbunden",
-    "logout": "Abmeldung eines Mitarbeiters"
+    "logout": "Abmeldung eines Mitarbeiters",
+    "profile_updated": "Mitarbeiterprofil geändert",
+    "photo_updated": "Mitarbeiterfoto geändert",
+    "photo_removed": "Mitarbeiterfoto entfernt",
+    "password_changed": "Mitarbeiter hat das Passwort geändert",
+    "password_link_sent": "Link zur Passwortänderung an Mitarbeiter gesendet"
   },
   "site": {
     "page": {
