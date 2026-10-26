@@ -21,6 +21,7 @@ vi.mock('@/api/account', () => ({
   resendEmailVerification: vi.fn(),
   listMembers: vi.fn(async () => ({ data: [], assignable_roles: [] })),
   listInvitations: vi.fn(async () => []),
+  getOrganizationFacts: vi.fn(async () => ({ name: 'Kaffee Rösterei', created_at: null, locale: null, timezone: null, owner_name: null, payment_providers: [], notification_channels: null })),
 }));
 vi.mock('@/api/stores', () => ({ listStores: vi.fn(async () => []) }));
 vi.mock('@/api/billing', () => ({ fetchSubscription: vi.fn(async () => null), fetchPlans: vi.fn(async () => ({ data: [] })) }));
@@ -79,9 +80,21 @@ describe('organization summary', () => {
     mocked.listInvitations.mockResolvedValue([{ id: 'i-1', email: 'x@example.test', role: 'admin', permissions: permissionsFor('admin'), state: 'pending', invited_by: null, expires_at: '2026-10-30T00:00:00Z', created_at: null }]);
     vi.mocked(billing.fetchSubscription).mockResolvedValue({ plan_code: 'start', plan_version_id: 'v-start', status: 'active', paid_until: '2026-11-20T00:00:00Z', trial_ends_at: null, capacity: { limit: 3, stores: 2, paused: 1, choice_required: false } } as never);
     vi.mocked(billing.fetchPlans).mockResolvedValue({ data: [{ plan_version_id: 'v-start', plan_code: 'start', name: { ru: 'Старт', en: 'Start' } }] } as never);
+    mocked.getOrganizationFacts.mockResolvedValue({
+      name: 'Kaffee Rösterei', created_at: '2026-10-01T10:00:00Z', locale: 'de', timezone: 'Europe/Berlin', owner_name: 'Anna Müller',
+      payment_providers: [{ provider: 'stripe', stores: 2, attention: 1 }], notification_channels: { enabled: 2, unverified: 1, failing: 0 },
+    });
     const { wrapper } = await mountView();
 
     const summary = wrapper.get('[data-panel="organization-summary"]');
+    const facts = summary.get('[data-summary="facts"]').text();
+    expect(facts).toContain('Anna Müller');
+    expect(facts).toContain('Deutsch');
+    expect(facts).toContain('Europe/Berlin');
+    expect(summary.get('[data-summary-provider="stripe"]').text()).toContain('Stripe');
+    expect(summary.get('[data-summary-provider="stripe"]').text()).toContain('требует внимания: 1');
+    expect(summary.get('[data-summary="channels"]').text()).toContain('Каналы уведомлений: 2');
+    expect(summary.get('[data-summary="channels"]').text()).toContain('не подтверждено: 1');
     expect(summary.text()).toContain('Kaffee Rösterei');
     expect(summary.get('[data-summary="subscription"]').text()).toContain('Старт · Оплачена');
     expect(summary.get('[data-summary="stores"]').text()).toContain('Магазины: 2 из 3');
@@ -94,7 +107,10 @@ describe('organization summary', () => {
 
     vi.mocked(billing.fetchSubscription).mockRejectedValue(new ApiError(403, 'forbidden'));
     mocked.listMembers.mockRejectedValue(new ApiError(403, 'forbidden'));
+    mocked.getOrganizationFacts.mockResolvedValue({ name: 'Kaffee Rösterei', created_at: null, locale: null, timezone: null, owner_name: null, payment_providers: [], notification_channels: null });
     const second = await mountView();
+    expect(second.wrapper.find('[data-summary="channels"]').exists()).toBe(false);
+    expect(second.wrapper.get('[data-summary="providers"]').text()).toContain('не подключены');
     expect(second.wrapper.find('[data-summary="subscription"]').exists()).toBe(false);
     expect(second.wrapper.find('[data-summary="team"]').exists()).toBe(false);
     expect(second.wrapper.find('[data-summary="stores"]').exists()).toBe(true);

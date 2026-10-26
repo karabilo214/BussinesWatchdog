@@ -368,3 +368,13 @@ Status: complete locally (customer frontend only; not deployed; no migration, no
 - Texts ru/en/de.
 
 Verification: `storeSwitcher.test.ts` (no silent first store, the only store, carrying the choice between pages and ignoring an unknown id, buttons with platform logos and the prompt, list for six stores), `backLink.test.ts` (origin and label for list, store and checks, fallback for direct and unrelated origins, history back vs. fallback push, new-tab clicks untouched). Customer frontend 189/189, typecheck and build; `git diff --check`. Live check in Chromium (Playwright) against the local backend at 390 px and 1280 px with a temporary owner and three stores (WooCommerce/Shopware): no store shown until chosen, no horizontal scroll on the phone, the choice lands in the address and carries from "Reconciliation" to "Checks"; the temporary data was removed afterwards. Not deployed.
+
+### Step 266: "My Organization" — Owner, Dates, Providers and Notification Channels
+
+Status: complete locally (backend and customer frontend; not deployed; no migration)
+
+- `GET /api/v1/organization` (base permission `stores.read`, `Cache-Control: private, no-store`): name, creation date, language, time zone, owner's display name; independent payment provider connections per provider — in how many stores (deleted/deleting stores excluded) and how many need attention (pending or degraded; revoked/disabled not counted); notification channels (enabled, unconfirmed, failing) only with `notifications.manage`, otherwise `null`. Read-only; editing stays in each section.
+- `OrganizationSummary`: owner, created, language and time zone; "Payment providers" (Stripe/PayPal with store count and an attention badge, or "not connected — money is not reconciled"); "Notification channels" with failing/unconfirmed/all confirmed and a link to "Notifications". Texts ru/en/de. With Step 246 the backlog item is closed.
+- `contracts/openapi.yaml` (`getOrganizationSummary`), `spec/VALIDATION.md` (268 operations).
+
+Verification: `OrganizationSummaryTest` (facts, providers grouped per provider and per store, revoked and deleted-store connections ignored, another organisation's connection ignored, channels for the owner, `null` for a viewer); `organization.test.ts` (facts, provider attention, channels, channels hidden and "not connected" text for a member without them). Backend SQLite 775 passed + 4 skipped, PostgreSQL 18 779/779; customer frontend 189/189, typecheck and build; Pint, `git diff --check` and `spec/validate_spec.py` passed. Not deployed.

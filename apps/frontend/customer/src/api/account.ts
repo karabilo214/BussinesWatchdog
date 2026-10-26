@@ -93,6 +93,21 @@ export async function getMoneyVisibility(): Promise<MoneyVisibility> {
   return (await request<MoneyVisibility>('GET', '/api/v1/money-visibility')).data;
 }
 
+export interface OrganizationFacts {
+  name: string;
+  created_at: string | null;
+  locale: string | null;
+  timezone: string | null;
+  owner_name: string | null;
+  payment_providers: { provider: string; stores: number; attention: number }[];
+  /** Null without notifications.manage. */
+  notification_channels: { enabled: number; unverified: number; failing: number } | null;
+}
+
+export async function getOrganizationFacts(): Promise<OrganizationFacts> {
+  return (await request<OrganizationFacts>('GET', '/api/v1/organization')).data;
+}
+
 export async function changeMemberPermissions(userId: string, permissions: TenantPermission[]): Promise<TeamMember> {
   return (await request<TeamMember>('PATCH', `/api/v1/memberships/${encodeURIComponent(userId)}`, { body: { permissions } })).data;
 }

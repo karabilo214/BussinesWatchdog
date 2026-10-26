@@ -2413,7 +2413,22 @@
       "team": "Team: {n}",
       "no_name": "Ohne Namen",
       "invitations": "Offene Einladungen: {n}",
-      "open_team": "Team öffnen"
+      "open_team": "Team öffnen",
+      "owner": "Inhaber",
+      "created": "Erstellt",
+      "language": "Sprache",
+      "timezone": "Zeitzone",
+      "providers": "Zahlungsanbieter",
+      "no_providers": "Kein Zahlungsanbieter verbunden – Geld wird nicht abgeglichen.",
+      "provider_stores": "Shops: {n}",
+      "provider_attention": "braucht Aufmerksamkeit: {n}",
+      "providers_hint": "Verbunden und geprüft auf der Seite des jeweiligen Shops.",
+      "channels": "Benachrichtigungskanäle: {n}",
+      "no_channels": "Keine aktiven Kanäle – Benachrichtigungen erreichen niemanden.",
+      "channels_failing": "mit Zustellfehler: {n}",
+      "channels_unverified": "unbestätigt: {n}",
+      "channels_ok": "alle bestätigt",
+      "open_notifications": "„Benachrichtigungen“ öffnen"
     },
     "delete": {
       "title": "Organisation löschen",

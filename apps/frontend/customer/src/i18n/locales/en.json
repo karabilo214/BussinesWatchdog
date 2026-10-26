@@ -2413,7 +2413,22 @@
       "team": "Team: {n}",
       "no_name": "No name",
       "invitations": "Pending invitations: {n}",
-      "open_team": "Open Team"
+      "open_team": "Open Team",
+      "owner": "Owner",
+      "created": "Created",
+      "language": "Language",
+      "timezone": "Time zone",
+      "providers": "Payment providers",
+      "no_providers": "No payment provider connected — money is not reconciled.",
+      "provider_stores": "stores: {n}",
+      "provider_attention": "needs attention: {n}",
+      "providers_hint": "Connected and checked on each store’s page.",
+      "channels": "Notification channels: {n}",
+      "no_channels": "No enabled channels — notifications reach nobody.",
+      "channels_failing": "failing to deliver: {n}",
+      "channels_unverified": "unconfirmed: {n}",
+      "channels_ok": "all confirmed",
+      "open_notifications": "Open “Notifications”"
     },
     "delete": {
       "title": "Delete the organization",

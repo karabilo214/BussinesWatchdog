@@ -3561,6 +3561,47 @@ paths:
                       presets: {type: object, additionalProperties: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}}, description: "admin/operator/viewer without money.view; seeing amounts is chosen separately."}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
+  /api/v1/organization:
+    get:
+      tags: [Tenancy]
+      operationId: getOrganizationSummary
+      description: "Read-only facts for the \"My organization\" block (Step 266): creation date, language, time zone, owner name, independent payment provider connections per provider (stores connected, how many need attention: pending or degraded) and — with notifications.manage only — notification channel counts. Editing stays in each section."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Organization summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name, created_at, locale, timezone, owner_name, payment_providers, notification_channels]
+                properties:
+                  name: {type: string}
+                  created_at: {type: [string, "null"], format: date-time}
+                  locale: {type: [string, "null"]}
+                  timezone: {type: [string, "null"]}
+                  owner_name: {type: [string, "null"]}
+                  payment_providers:
+                    type: array
+                    items:
+                      type: object
+                      required: [provider, stores, attention]
+                      properties:
+                        provider: {type: string, description: "stripe, paypal, …"}
+                        stores: {type: integer}
+                        attention: {type: integer, description: Connections that are pending or degraded.}
+                  notification_channels:
+                    oneOf:
+                      - {type: "null"}
+                      - type: object
+                        required: [enabled, unverified, failing]
+                        properties:
+                          enabled: {type: integer}
+                          unverified: {type: integer}
+                          failing: {type: integer}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
   /api/v1/attention:
     get:
       tags: [Tenancy]

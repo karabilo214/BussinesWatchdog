@@ -53,6 +53,7 @@ use App\Http\Controllers\Api\V1\Stores\StoreController;
 use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
 use App\Http\Controllers\Api\V1\Tenancy\AttentionController;
 use App\Http\Controllers\Api\V1\Tenancy\MoneyVisibilityController;
+use App\Http\Controllers\Api\V1\Tenancy\OrganizationController;
 use App\Http\Controllers\Api\V1\Tenancy\TenantController;
 use App\Support\Auth\TenantPermissions;
 use Illuminate\Support\Facades\Route;
@@ -302,6 +303,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::get('/overview', [OverviewController::class, 'show'])
         ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/money-visibility', [MoneyVisibilityController::class, 'show'])
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
+    Route::get('/organization', [OrganizationController::class, 'show'])
         ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/attention', [AttentionController::class, 'show'])
         ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
