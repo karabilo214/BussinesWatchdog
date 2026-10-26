@@ -21,10 +21,21 @@ x-backend: &backend
   networks:
     - internal
 
+x-fpm: &fpm
+  <<: *backend
+  stop_grace_period: 30s
+  healthcheck:
+    test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"]
+    interval: 5s
+    timeout: 3s
+    start_period: 10s
+    retries: 3
+
 x-cli: &cli
   <<: *backend
   user: www-data
   working_dir: /var/www/html
+  stop_grace_period: 120s
 
 services:
   postgres:
@@ -61,15 +72,19 @@ services:
       - internal
 
   app:
-    <<: *backend
+    <<: *fpm
     build:
       context: ../..
       dockerfile: infra/docker/backend/Dockerfile
       target: production
 
+  app-b:
+    <<: *fpm
+
   scheduler:
     <<: *cli
     command: ["php", "artisan", "schedule:work"]
+    stop_grace_period: 60s
 
   sync-worker:
     <<: *cli
@@ -135,11 +150,7 @@ services:
       - internal
 
   web:
-    image: business-watchdog/web:${RELEASE:-latest}
-    build:
-      context: ../..
-      dockerfile: infra/docker/backend/Dockerfile
-      target: web
+    image: caddy:2.10.2-alpine
     restart: unless-stopped
     logging: *logging
     environment:
@@ -149,14 +160,31 @@ services:
       - "443:443"
       - "443:443/udp"
     volumes:
+      - ./caddy:/etc/caddy:ro
+      - web-root:/srv/web:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
       - app
+      - app-b
     networks:
       - internal
       - browser-api
       - test-shops
+
+  web-static:
+    image: business-watchdog/web-static:${RELEASE:-latest}
+    build:
+      context: ../..
+      dockerfile: infra/docker/backend/Dockerfile
+      target: web-static
+    profiles:
+      - tools
+    environment:
+      RELEASE: ${RELEASE:-latest}
+    volumes:
+      - web-root:/srv/web
+    network_mode: none
 
   browser-worker:
     image: business-watchdog/browser-worker:${RELEASE:-latest}
@@ -225,6 +253,7 @@ volumes:
   postgres-data:
   redis-data:
   storage:
+  web-root:
   caddy-data:
   caddy-config:
   mail-queue:

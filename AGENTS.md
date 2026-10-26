@@ -20,6 +20,7 @@ Core invariants:
 - Duplicate and out-of-order events must be safe.
 - Screenshots and traces must not contain secrets or real PII.
 - AI is not part of the current implementation.
+- Migrations must work with the code of the previous release (expand/contract, ADR 0080): no rename or drop of anything the previous release still uses.
 
 First implementation path:
 

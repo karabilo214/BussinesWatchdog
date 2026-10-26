@@ -71,6 +71,7 @@ RUN apt-get update \
     && rm -rf /tmp/phpredis.tar.gz /var/lib/apt/lists/*
 
 COPY infra/docker/backend/php-uploads.ini /usr/local/etc/php/conf.d/zz-watchdog-uploads.ini
+COPY infra/docker/backend/php-fpm-graceful.conf /usr/local/etc/php-fpm.d/zz-watchdog-graceful.conf
 
 WORKDIR /var/www/html
 
@@ -97,9 +98,12 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
     && mkdir -p storage/app/private storage/app/public storage/app/plugins storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
-FROM caddy:2.10-alpine AS web
+FROM alpine:3.22.2 AS web-static
 
-COPY --from=production /var/www/html/public /var/www/html/public
-COPY --from=frontend /build/apps/frontend/customer/dist /srv/customer
-COPY --from=frontend /build/apps/frontend/control/dist /srv/control
-COPY infra/production/Caddyfile /etc/caddy/Caddyfile
+RUN apk add --no-cache coreutils
+COPY --from=production /var/www/html/public /dist/public
+COPY --from=frontend /build/apps/frontend/customer/dist /dist/customer
+COPY --from=frontend /build/apps/frontend/control/dist /dist/control
+COPY infra/docker/web-static/publish.sh /usr/local/bin/publish
+RUN chmod 755 /usr/local/bin/publish
+ENTRYPOINT ["/usr/local/bin/publish"]
