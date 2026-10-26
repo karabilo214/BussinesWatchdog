@@ -25,6 +25,7 @@ services:
       WORDPRESS_DEBUG: 1
       WORDPRESS_CONFIG_EXTRA: |
         define('BW_ALLOW_INSECURE_ENDPOINT', true);
+        define('BUSINESS_WATCHDOG_ALLOW_INSECURE_ENDPOINT', true);
         define('WP_ENVIRONMENT_TYPE', 'local');
         define('WP_DEBUG_LOG', '/tmp/wp-debug.log');
         define('WP_DEBUG_DISPLAY', false);

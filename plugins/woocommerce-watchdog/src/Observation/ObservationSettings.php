@@ -8,7 +8,7 @@ namespace BusinessWatchdog\WooCommerce\Observation;
  */
 final class ObservationSettings
 {
-    public const OPTION = 'bw_checkout_observation';
+    public const OPTION = 'business_watchdog_checkout_observation';
 
     public static function enabled(): bool
     {

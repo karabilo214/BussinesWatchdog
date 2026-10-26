@@ -8,7 +8,7 @@ final class SyntheticRequest
 {
     public const HEADER = 'HTTP_X_BW_SYNTHETIC';
 
-    public const META_KEY = '_bw_synthetic_run';
+    public const META_KEY = '_business_watchdog_synthetic_run';
 
     private const PURPOSE = 'bw-synthetic-v1';
 

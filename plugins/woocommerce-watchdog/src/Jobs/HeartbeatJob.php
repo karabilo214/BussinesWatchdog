@@ -12,7 +12,7 @@ use BusinessWatchdog\WooCommerce\Storage\State;
 
 final class HeartbeatJob
 {
-    public const HOOK = 'bw_heartbeat';
+    public const HOOK = 'business_watchdog_heartbeat';
 
     public const INTERVAL_SECONDS = 300;
 
@@ -36,7 +36,7 @@ final class HeartbeatJob
         $response = (new SignedClient($connection))->post('/api/v1/ingest/heartbeat', [
             'backlog_count' => OutboxStats::backlogCount(),
             'oldest_pending_at' => OutboxStats::oldestPendingAt(),
-            'plugin_version' => BW_PLUGIN_VERSION,
+            'plugin_version' => BUSINESS_WATCHDOG_VERSION,
             'outbox_full' => Outbox::full(),
             'skipped_events' => (int) (Outbox::fullState()['skipped'] ?? 0),
         ]);
@@ -81,7 +81,7 @@ final class HeartbeatJob
         $connection->replaceKey((string) $response->json['key_id'], (string) $response->json['secret']);
         $confirmation = (new SignedClient($connection))->post('/api/v1/ingest/heartbeat', [
             'backlog_count' => OutboxStats::backlogCount(),
-            'plugin_version' => BW_PLUGIN_VERSION,
+            'plugin_version' => BUSINESS_WATCHDOG_VERSION,
             'outbox_full' => Outbox::full(),
             'skipped_events' => (int) (Outbox::fullState()['skipped'] ?? 0),
         ]);

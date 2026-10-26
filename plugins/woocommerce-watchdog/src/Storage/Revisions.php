@@ -12,7 +12,7 @@ final class Revisions
 
         $now = gmdate('Y-m-d H:i:s');
         $affected = $wpdb->query($wpdb->prepare(
-            "INSERT INTO {$wpdb->prefix}bw_revisions (aggregate_key, parent_key, revision, snapshot_hash, last_data, updated_at) VALUES (%s, %s, 1, %s, %s, %s)"
+            "INSERT INTO {$wpdb->prefix}business_watchdog_revisions (aggregate_key, parent_key, revision, snapshot_hash, last_data, updated_at) VALUES (%s, %s, 1, %s, %s, %s)"
             . ' ON DUPLICATE KEY UPDATE'
             . ' revision = IF(snapshot_hash = VALUES(snapshot_hash), revision, revision + 1),'
             . ' parent_key = IF(snapshot_hash = VALUES(snapshot_hash), parent_key, VALUES(parent_key)),'
@@ -30,14 +30,14 @@ final class Revisions
             return null;
         }
 
-        return (int) $wpdb->get_var($wpdb->prepare("SELECT revision FROM {$wpdb->prefix}bw_revisions WHERE aggregate_key = %s", $aggregateKey));
+        return (int) $wpdb->get_var($wpdb->prepare("SELECT revision FROM {$wpdb->prefix}business_watchdog_revisions WHERE aggregate_key = %s", $aggregateKey));
     }
 
     public static function find(string $aggregateKey): ?array
     {
         global $wpdb;
 
-        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}bw_revisions WHERE aggregate_key = %s", $aggregateKey), ARRAY_A);
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}business_watchdog_revisions WHERE aggregate_key = %s", $aggregateKey), ARRAY_A);
 
         return is_array($row) ? $row : null;
     }
@@ -47,7 +47,7 @@ final class Revisions
         global $wpdb;
 
         $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT aggregate_key, last_data FROM {$wpdb->prefix}bw_revisions WHERE parent_key = %s AND snapshot_hash <> %s",
+            "SELECT aggregate_key, last_data FROM {$wpdb->prefix}business_watchdog_revisions WHERE parent_key = %s AND snapshot_hash <> %s",
             $parentKey,
             self::DELETED_HASH
         ), ARRAY_A);

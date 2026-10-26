@@ -13,7 +13,7 @@ use BusinessWatchdog\WooCommerce\Storage\State;
  */
 final class ObservationReportJob
 {
-    public const HOOK = 'bw_checkout_observation';
+    public const HOOK = 'business_watchdog_checkout_observation';
 
     public const INTERVAL_SECONDS = 60;
 

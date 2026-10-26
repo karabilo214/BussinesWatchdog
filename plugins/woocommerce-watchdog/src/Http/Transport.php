@@ -18,7 +18,7 @@ final class Transport
             return true;
         }
 
-        return ($parts['scheme'] ?? '') === 'http' && defined('BW_ALLOW_INSECURE_ENDPOINT') && BW_ALLOW_INSECURE_ENDPOINT;
+        return ($parts['scheme'] ?? '') === 'http' && defined('BUSINESS_WATCHDOG_ALLOW_INSECURE_ENDPOINT') && BUSINESS_WATCHDOG_ALLOW_INSECURE_ENDPOINT;
     }
 
     public static function postJson(string $url, string $body, array $headers = []): Response
@@ -29,7 +29,7 @@ final class Transport
             'headers' => array_merge([
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-                'User-Agent' => 'BusinessWatchdog-WooCommerce/' . BW_PLUGIN_VERSION,
+                'User-Agent' => 'BusinessWatchdog-WooCommerce/' . BUSINESS_WATCHDOG_VERSION,
             ], $headers),
             'body' => $body,
             'data_format' => 'body',

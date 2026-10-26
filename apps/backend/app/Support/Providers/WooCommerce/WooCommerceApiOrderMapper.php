@@ -221,7 +221,7 @@ class WooCommerceApiOrderMapper
      */
     private function mode(string $gateway, array $meta): ?string
     {
-        $recorded = $meta['_bw_payment_mode'] ?? null;
+        $recorded = $meta['_business_watchdog_payment_mode'] ?? $meta['_bw_payment_mode'] ?? null;
 
         if ($recorded === 'live' || $recorded === 'test') {
             return $recorded;
@@ -245,7 +245,7 @@ class WooCommerceApiOrderMapper
      */
     private function meta(mixed $meta): array
     {
-        $wanted = ['_bw_payment_mode', '_ppcp_paypal_payment_mode', ...self::PROVIDER_REFUND_ID_META];
+        $wanted = ['_business_watchdog_payment_mode', '_bw_payment_mode', '_ppcp_paypal_payment_mode', ...self::PROVIDER_REFUND_ID_META];
         $out = [];
 
         foreach (is_array($meta) ? $meta : [] as $item) {

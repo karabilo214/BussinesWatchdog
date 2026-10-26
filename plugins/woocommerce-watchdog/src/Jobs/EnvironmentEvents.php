@@ -88,7 +88,7 @@ final class EnvironmentEvents
         $plugins = get_plugins();
 
         foreach ((array) get_option('active_plugins', []) as $file) {
-            if (isset($plugins[$file]) && $file !== plugin_basename(BW_PLUGIN_FILE)) {
+            if (isset($plugins[$file]) && $file !== plugin_basename(BUSINESS_WATCHDOG_FILE)) {
                 $versions['plugin:' . $file] = ['component' => 'plugin', 'id' => (string) $file, 'version' => (string) $plugins[$file]['Version']];
             }
         }

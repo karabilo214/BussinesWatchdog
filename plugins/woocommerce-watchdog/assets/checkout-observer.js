@@ -15,7 +15,7 @@
         window.addEventListener('unhandledrejection', function () { errors++; });
     } catch (e) { /* never break the page */ }
 
-    var config = window.BW_CHECKOUT_OBSERVER || null;
+    var config = window.BUSINESS_WATCHDOG_CHECKOUT_OBSERVER || null;
     var current = document.currentScript;
     var altered = !current || current.defer || current.async || !/checkout-observer\.js/.test(current.src || '');
 

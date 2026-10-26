@@ -4,7 +4,7 @@ Tags: woocommerce, payments, monitoring, checkout, reconciliation
 Requires at least: 5.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.4
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -81,6 +81,10 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 
 == Changelog ==
 
+= 0.4.0 =
+* All tables, options, scheduled actions, order meta and constants of the plugin use the `business_watchdog_` prefix. Existing data is moved after the update by the next admin page, scheduled task or WP-CLI command. Going back to a version before 0.4.0 afterwards needs a new pairing.
+* Admin notices of the plugin appear only on the Plugins screen and on its own settings page.
+
 = 0.3.4 =
 * Sends the store's payment method name with order changes so custom methods have a readable label in Business Watchdog.
 
@@ -97,6 +101,9 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 * Optional checkout observation.
 
 == Upgrade Notice ==
+
+= 0.4.0 =
+The plugin moves its data to new names after the update. Do not downgrade to 0.3.x afterwards; that version would need a new pairing.
 
 = 0.3.4 =
 Custom payment methods can show their store name in Business Watchdog after the next order sync.

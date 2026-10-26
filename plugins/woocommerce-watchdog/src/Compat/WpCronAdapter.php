@@ -4,7 +4,7 @@ namespace BusinessWatchdog\WooCommerce\Compat;
 
 final class WpCronAdapter implements Scheduler
 {
-    public const SCHEDULE_PREFIX = 'bw_every_';
+    public const SCHEDULE_PREFIX = 'business_watchdog_every_';
 
     public static function registerSchedules(array $schedules): array
     {

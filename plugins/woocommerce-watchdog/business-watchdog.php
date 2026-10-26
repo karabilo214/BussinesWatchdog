@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Business Watchdog for WooCommerce
  * Description: Sends order and refund snapshots to Business Watchdog for payment reconciliation and checkout monitoring.
- * Version: 0.3.4
+ * Version: 0.4.0
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -17,14 +17,20 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('BW_PLUGIN_VERSION', '0.3.4');
-define('BW_PLUGIN_FILE', __FILE__);
-define('BW_PLUGIN_DIR', __DIR__);
-define('BW_MIN_PHP', '7.4');
-define('BW_MIN_WC', '6.0');
+define('BUSINESS_WATCHDOG_VERSION', '0.4.0');
+define('BUSINESS_WATCHDOG_FILE', __FILE__);
+define('BUSINESS_WATCHDOG_DIR', __DIR__);
+define('BUSINESS_WATCHDOG_MIN_PHP', '7.4');
+define('BUSINESS_WATCHDOG_MIN_WC', '6.0');
 
-if (version_compare(PHP_VERSION, BW_MIN_PHP, '<')) {
+if (version_compare(PHP_VERSION, BUSINESS_WATCHDOG_MIN_PHP, '<')) {
     add_action('admin_notices', static function () {
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+
+        if ($screen === null || $screen->id !== 'plugins') {
+            return;
+        }
+
         echo '<div class="notice notice-error"><p>'
             . esc_html__('Business Watchdog requires PHP 7.4 or newer. The plugin is inactive.', 'business-watchdog')
             . '</p></div>';
@@ -35,6 +41,12 @@ if (version_compare(PHP_VERSION, BW_MIN_PHP, '<')) {
 
 if (defined('BUSINESS_WATCHDOG_DISABLED') && BUSINESS_WATCHDOG_DISABLED) {
     add_action('admin_notices', static function () {
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+
+        if ($screen === null || $screen->id !== 'plugins') {
+            return;
+        }
+
         echo '<div class="notice notice-warning"><p>'
             . esc_html__('Business Watchdog is switched off by BUSINESS_WATCHDOG_DISABLED in wp-config.php. Nothing is recorded or sent; the store works as usual.', 'business-watchdog')
             . '</p></div>';

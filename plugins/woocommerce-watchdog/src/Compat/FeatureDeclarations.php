@@ -10,7 +10,7 @@ final class FeatureDeclarations
             return;
         }
 
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', BW_PLUGIN_FILE, true);
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('cart_checkout_blocks', BW_PLUGIN_FILE, true);
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', BUSINESS_WATCHDOG_FILE, true);
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('cart_checkout_blocks', BUSINESS_WATCHDOG_FILE, true);
     }
 }

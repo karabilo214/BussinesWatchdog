@@ -8,7 +8,7 @@ use BusinessWatchdog\WooCommerce\Storage\State;
 
 final class RescanJob
 {
-    public const HOOK = 'bw_rescan_recent';
+    public const HOOK = 'business_watchdog_rescan_recent';
 
     public const INTERVAL_SECONDS = 900;
 

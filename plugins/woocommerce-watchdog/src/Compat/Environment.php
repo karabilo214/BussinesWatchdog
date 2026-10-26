@@ -34,7 +34,7 @@ final class Environment
     {
         $version = self::wooCommerceVersion();
 
-        return self::wooCommerceActive() && $version !== null && version_compare($version, BW_MIN_WC, '>=');
+        return self::wooCommerceActive() && $version !== null && version_compare($version, BUSINESS_WATCHDOG_MIN_WC, '>=');
     }
 
     public static function orderStorage(): string
@@ -95,7 +95,7 @@ final class Environment
         global $wp_version;
 
         return [
-            'plugin_version' => BW_PLUGIN_VERSION,
+            'plugin_version' => BUSINESS_WATCHDOG_VERSION,
             'php_version' => PHP_VERSION,
             'wordpress_version' => isset($wp_version) ? (string) $wp_version : null,
             'woocommerce_version' => self::wooCommerceVersion(),

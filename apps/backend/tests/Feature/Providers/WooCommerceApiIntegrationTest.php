@@ -147,7 +147,8 @@ class WooCommerceApiIntegrationTest extends TestCase
 
     public function test_orders_and_refunds_become_the_same_events_the_plugin_sends_without_personal_data(): void
     {
-        $this->wcOrder(41, ['payment_method' => 'stripe', 'transaction_id' => 'ch_3Abc', 'total' => '184.000000', 'meta' => ['_bw_payment_mode' => 'test']]);
+        $this->wcOrder(41, ['payment_method' => 'stripe', 'transaction_id' => 'ch_3Abc', 'total' => '184.000000', 'meta' => ['_business_watchdog_payment_mode' => 'test']]);
+        $this->wcOrder(45, ['payment_method' => 'stripe', 'transaction_id' => 'ch_3Old', 'total' => '20.000000', 'meta' => ['_bw_payment_mode' => 'test']]);
         $this->wcRefund(41, 51, '30.000000', ['_stripe_refund_id' => 're_3Abc'], true);
         $this->wcOrder(42, ['payment_method' => 'ppcp-gateway', 'transaction_id' => '5TR80192ED162870P', 'currency' => 'USD', 'total' => '10.000000', 'meta' => ['_ppcp_paypal_payment_mode' => 'sandbox', '_ppcp_paypal_payer_email' => 'buyer@example.test']]);
         $this->wcOrder(43, ['payment_method' => 'merchant_special', 'payment_method_title' => ' <b>Pay at pickup</b> ', 'currency' => 'JPY', 'total' => '1500.000000', 'status' => 'on-hold', 'date_paid_gmt' => null]);
@@ -163,6 +164,7 @@ class WooCommerceApiIntegrationTest extends TestCase
         $refund = Refund::query()->where('external_id', '51')->firstOrFail();
         $this->assertSame([3000, 're_3Abc', true, $stripe->id], [(int) $refund->amount_minor, $refund->provider_ref, (bool) $refund->external_required, $refund->order_id]);
         $this->assertSame('test', Order::query()->where('external_id', '42')->value('mode'));
+        $this->assertSame('test', Order::query()->where('external_id', '45')->value('mode'), 'plugins before 0.4.0 recorded the mode under the short name');
         $this->assertSame(1500, (int) Order::query()->where('external_id', '43')->value('total_minor'));
         $this->assertSame('Pay at pickup', Order::query()->where('external_id', '43')->firstOrFail()->metadata['gateway_name']);
         $this->assertSame('merchant_special', Order::query()->where('external_id', '43')->value('gateway'));

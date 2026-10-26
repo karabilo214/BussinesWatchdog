@@ -3,7 +3,8 @@
 global $wpdb;
 
 $action = getenv('BW_PROBE');
-$table = $wpdb->prefix . 'bw_outbox';
+$prefix = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->prefix . 'business_watchdog_state')) !== null ? 'business_watchdog_' : 'bw_';
+$table = $wpdb->prefix . $prefix . 'outbox';
 $count = static function () use ($wpdb, $table): int {
     return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table ? (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}") : -1;
 };
@@ -36,16 +37,17 @@ if ($action === 'uninstall-twice') {
     $out['uninstalled_twice'] = true;
 }
 
-$hook = 'bw_heartbeat';
+$hook = $prefix . 'heartbeat';
 $out += [
-    'version' => defined('BW_PLUGIN_VERSION') ? BW_PLUGIN_VERSION : null,
+    'version' => defined('BUSINESS_WATCHDOG_VERSION') ? BUSINESS_WATCHDOG_VERSION : (defined('BW_PLUGIN_VERSION') ? BW_PLUGIN_VERSION : null),
+    'prefix' => $prefix,
     'loaded' => class_exists('\BusinessWatchdog\WooCommerce\Plugin', false),
     'schema_current' => class_exists('\BusinessWatchdog\WooCommerce\Storage\Schema') ? \BusinessWatchdog\WooCommerce\Storage\Schema::isCurrent() : null,
     'outbox_rows' => $count(),
     'heartbeat_scheduled' => (function_exists('as_next_scheduled_action') && as_next_scheduled_action($hook, [], 'business-watchdog') !== false) || wp_next_scheduled($hook) !== false,
-    'stopped' => is_array(get_option('bw_monitoring_stopped', null)),
-    'connection' => $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->prefix . 'bw_state')) === $wpdb->prefix . 'bw_state'
-        ? $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}bw_state WHERE name = 'connection'") === '1' : null,
+    'stopped' => is_array(get_option($prefix . 'monitoring_stopped', null)),
+    'connection' => $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->prefix . $prefix . 'state')) === $wpdb->prefix . $prefix . 'state'
+        ? $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}{$prefix}state WHERE name = 'connection'") === '1' : null,
     'integration_id' => class_exists('\\BusinessWatchdog\\WooCommerce\\Connection\\Connection')
         ? \BusinessWatchdog\WooCommerce\Connection\Connection::current()?->integrationId() : null,
 ];

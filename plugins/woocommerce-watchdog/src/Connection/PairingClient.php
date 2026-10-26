@@ -29,7 +29,7 @@ final class PairingClient
             'pairing_code' => trim($pairingCode),
             'install_id' => State::installId(),
             'connector_code' => self::CONNECTOR_CODE,
-            'plugin_version' => BW_PLUGIN_VERSION,
+            'plugin_version' => BUSINESS_WATCHDOG_VERSION,
             'base_url' => self::siteBaseUrl(),
         ]));
 

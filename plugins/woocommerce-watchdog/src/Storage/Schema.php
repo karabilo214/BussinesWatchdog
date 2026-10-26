@@ -6,41 +6,41 @@ final class Schema
 {
     public const VERSION = 4;
 
-    public const OPTION = 'bw_schema_version';
+    public const OPTION = 'business_watchdog_schema_version';
 
     public static function outboxTable(): string
     {
         global $wpdb;
 
-        return $wpdb->prefix . 'bw_outbox';
+        return $wpdb->prefix . 'business_watchdog_outbox';
     }
 
     public static function revisionsTable(): string
     {
         global $wpdb;
 
-        return $wpdb->prefix . 'bw_revisions';
+        return $wpdb->prefix . 'business_watchdog_revisions';
     }
 
     public static function stateTable(): string
     {
         global $wpdb;
 
-        return $wpdb->prefix . 'bw_state';
+        return $wpdb->prefix . 'business_watchdog_state';
     }
 
     public static function attemptsTable(): string
     {
         global $wpdb;
 
-        return $wpdb->prefix . 'bw_payment_attempts';
+        return $wpdb->prefix . 'business_watchdog_payment_attempts';
     }
 
     public static function observationTable(): string
     {
         global $wpdb;
 
-        return $wpdb->prefix . 'bw_checkout_observation';
+        return $wpdb->prefix . 'business_watchdog_checkout_observation';
     }
 
     public static function isCurrent(): bool

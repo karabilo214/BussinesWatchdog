@@ -7,7 +7,7 @@ Supported floor: PHP 7.4+, WordPress 5.9+, WooCommerce 6.0+ (see `docs/compatibi
 ## Implemented (Step 45)
 
 - Feature-detected environment (`src/Compat`): order storage, checkout mode, Action Scheduler vs WP-Cron.
-- Local tables `{prefix}bw_outbox`, `{prefix}bw_revisions`, `{prefix}bw_state` via `dbDelta` with a schema version.
+- Local tables `{prefix}business_watchdog_outbox`, `{prefix}business_watchdog_revisions`, `{prefix}business_watchdog_state` via `dbDelta` with a schema version.
 - Pairing with a one-time code (admin page under WooCommerce, REST `POST /wp-json/business-watchdog/v1/pair`, `wp business-watchdog pair`).
 - HMAC-signed client, heartbeat every 5 minutes, credential rotation on request, suspension on revoked credentials.
 - Public `GET /wp-json/business-watchdog/v1/challenge/{id}` returning only the pending store-verification challenge as plain text.
@@ -15,7 +15,7 @@ Supported floor: PHP 7.4+, WordPress 5.9+, WooCommerce 6.0+ (see `docs/compatibi
 
 ## Implemented (Step 46)
 
-- Order and refund snapshots into `{prefix}bw_outbox` with per-aggregate revisions in `{prefix}bw_revisions` (new revision only when the snapshot hash changes).
+- Order and refund snapshots into `{prefix}business_watchdog_outbox` with per-aggregate revisions in `{prefix}business_watchdog_revisions` (new revision only when the snapshot hash changes).
 - Hooks are only a trigger: orders are collected during the request and captured once on `shutdown` (no HTTP in checkout).
 - Money as minor-unit strings with ISO 4217 exponents; amounts that do not fit the currency exponent are not sent and are reported in diagnostics.
 - Deleted refunds are detected by comparing current refunds with previously sent ones (works on every version, including WC 7.9 HPOS which fires no hook); order deletion → `order.deleted`; trash → snapshot with status `trash`; Blocks drafts skipped.
@@ -23,7 +23,7 @@ Supported floor: PHP 7.4+, WordPress 5.9+, WooCommerce 6.0+ (see `docs/compatibi
 
 ## Implemented (Step 47)
 
-- Delivery every minute and right after new events (async): batches of ≤100 events / 1 MiB, signed; `accepted`/`duplicate` removed, `quarantined`/`invalid`/`conflict` moved to dead letter, 401 credential_revoked / signature_invalid / 403 suspend the connection (backlog kept), 429 honours `Retry-After`, other failures back off 30 s → 2 min → 10 min → 1 h → 6 h (±20 %). Atomic run lock in `bw_state`.
+- Delivery every minute and right after new events (async): batches of ≤100 events / 1 MiB, signed; `accepted`/`duplicate` removed, `quarantined`/`invalid`/`conflict` moved to dead letter, 401 credential_revoked / signature_invalid / 403 suspend the connection (backlog kept), 429 honours `Retry-After`, other failures back off 30 s → 2 min → 10 min → 1 h → 6 h (±20 %). Atomic run lock in `business_watchdog_state`.
 - Capture only while a connection exists; history is covered by the backfill.
 - Rescan of orders modified in the last 48 h every 15 min (also catches refund deletions on WooCommerce versions that fire no hook).
 - Backfill of the last 90 days after pairing and as a daily audit: resumable page cursor, ≤1 page/s.
@@ -43,7 +43,7 @@ Not yet (at Step 47): browser-check support (test product, synthetic marker), te
 
 - While the service answers the heartbeat with `checkout_observation.observe = true`, the checkout and order-received pages get `assets/checkout-observer.js` (no dependencies, in the page head, kept out of WP Rocket, Autoptimize, LiteSpeed Cache and SiteGround Optimizer; marked `data-no-optimize`, `data-no-defer`, `data-cfasync="false"`).
 - It counts checkout stages only (page loaded, payment form ready, order sent, error shown, stalled 60 s, order-received page) and sends them with `sendBeacon` to this site's `POST /wp-json/business-watchdog/v1/observe` with a short-lived token (page kind and expiry only). No cookies or storage, no form values, no visitor identifiers.
-- The plugin counts the pages it renders itself (and a `noscript` beacon) in `wp_bw_checkout_observation`, 5-minute windows, and sends closed windows as `checkout.observation` through the outbox (`bw_checkout_observation` every minute; `wp business-watchdog checkout-observation --advance=N` runs it now). Pages rendered for a verified browser check are not counted and the script sends nothing there.
+- The plugin counts the pages it renders itself (and a `noscript` beacon) in `wp_business_watchdog_checkout_observation`, 5-minute windows, and sends closed windows as `checkout.observation` through the outbox (`business_watchdog_checkout_observation` every minute; `wp business-watchdog checkout-observation --advance=N` runs it now). Pages rendered for a verified browser check are not counted and the script sends nothing there.
 
 ## Store paused by the plan (0.3.1, ADR 0037 point 7)
 
@@ -79,4 +79,4 @@ tests/matrix/e2e.sh              # pairing/heartbeat/challenge/rotation + backen
 tests/lint-php74.sh              # syntax check of the plugin under PHP 7.4
 ```
 
-Local development only: `define('BW_ALLOW_INSECURE_ENDPOINT', true);` allows an `http://` service URL.
+Local development only: `define('BUSINESS_WATCHDOG_ALLOW_INSECURE_ENDPOINT', true);` allows an `http://` service URL.

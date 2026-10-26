@@ -6,7 +6,7 @@ use BusinessWatchdog\WooCommerce\Plugin;
 
 final class MonitoringSwitch
 {
-    public const OPTION = 'bw_monitoring_stopped';
+    public const OPTION = 'business_watchdog_monitoring_stopped';
 
     public static function stopped(): bool
     {

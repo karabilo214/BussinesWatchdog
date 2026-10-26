@@ -63,15 +63,21 @@ check "upgrade keeps the connection" "$(field "$after" connection)" "true"
 check "upgrade keeps the same integration ID" "$(field "$after" integration_id)" "$integration_before"
 check "schema is current after upgrade" "$(field "$after" schema_current)" "true"
 
-wp plugin install "$OLD" --force >/dev/null 2>&1
-back=$(probe order)
-check "rollback to the previous package keeps working" "$(field "$back" order_saved)" "true"
-check "rollback keeps the queued events" "$([ "$(field "$back" outbox_rows)" -ge "$rows_before" ] && echo yes)" "yes"
-check "rollback keeps the same integration ID" "$(field "$back" integration_id)" "$integration_before"
-wp plugin install "$NEW" --force >/dev/null 2>&1
-forward=$(probe state)
-check "upgrade again after rollback" "$(field "$forward" version)" "$EXPECTED_VERSION"
-check "second upgrade keeps the same integration ID" "$(field "$forward" integration_id)" "$integration_before"
+check "upgrade moves the data to the current names" "$(field "$after" prefix)" '"business_watchdog_"'
+
+if [ "$(field "$before" prefix)" = "$(field "$after" prefix)" ]; then
+    wp plugin install "$OLD" --force >/dev/null 2>&1
+    back=$(probe order)
+    check "rollback to the previous package keeps working" "$(field "$back" order_saved)" "true"
+    check "rollback keeps the queued events" "$([ "$(field "$back" outbox_rows)" -ge "$rows_before" ] && echo yes)" "yes"
+    check "rollback keeps the same integration ID" "$(field "$back" integration_id)" "$integration_before"
+    wp plugin install "$NEW" --force >/dev/null 2>&1
+    forward=$(probe state)
+    check "upgrade again after rollback" "$(field "$forward" version)" "$EXPECTED_VERSION"
+    check "second upgrade keeps the same integration ID" "$(field "$forward" integration_id)" "$integration_before"
+else
+    RESULTS="${RESULTS}SKIP rollback: the previous package uses the names before 0.4.0, a downgrade needs a new pairing\n"
+fi
 
 setup=$(wp eval-file /bw-matrix/checkout-setup.php | sed -n 's/^BW_SETUP=//p')
 product=$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['product_id'])" "$setup")

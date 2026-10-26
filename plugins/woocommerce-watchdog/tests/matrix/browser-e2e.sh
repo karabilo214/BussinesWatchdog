@@ -55,7 +55,7 @@ for target in $TARGETS; do
     $W business-watchdog pair --endpoint="http://host.docker.internal:${PORT}" --code="$(json "$bsetup" "['pairing_code']")" >/dev/null || result="pair_failed"
     $W option update home "$ORIGIN" >/dev/null
     $W option update siteurl "$ORIGIN" >/dev/null
-    drafts='$all = wc_get_orders(["type" => "shop_order", "status" => ["checkout-draft"], "limit" => -1]); $marked = 0; foreach ($all as $o) { if ($o->get_meta("_bw_synthetic_run") !== "") { $marked++; } } echo count($all) . "/" . $marked;'
+    drafts='$all = wc_get_orders(["type" => "shop_order", "status" => ["checkout-draft"], "limit" => -1]); $marked = 0; foreach ($all as $o) { if ($o->get_meta("_business_watchdog_synthetic_run") !== "") { $marked++; } } echo count($all) . "/" . $marked;'
     customer_draft=$($W eval 'if (! array_key_exists("wc-checkout-draft", wc_get_order_statuses())) { echo 0; return; } $o = wc_create_order(); $o->set_status("checkout-draft"); $o->set_date_created(time() - 3600); $o->save(); echo $o->get_id();')
 
     run_worker() {

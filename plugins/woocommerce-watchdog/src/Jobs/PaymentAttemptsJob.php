@@ -10,7 +10,7 @@ use BusinessWatchdog\WooCommerce\Storage\State;
 
 final class PaymentAttemptsJob
 {
-    public const HOOK = 'bw_payment_attempts';
+    public const HOOK = 'business_watchdog_payment_attempts';
 
     public const INTERVAL_SECONDS = 60;
 

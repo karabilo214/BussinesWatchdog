@@ -9,7 +9,7 @@ use BusinessWatchdog\WooCommerce\Storage\State;
 
 final class DeliveryJob
 {
-    public const HOOK = 'bw_deliver_outbox';
+    public const HOOK = 'business_watchdog_deliver_outbox';
 
     public const INTERVAL_SECONDS = 60;
 

@@ -12,14 +12,14 @@ use BusinessWatchdog\WooCommerce\Safety\Guard;
  */
 final class CheckoutObservation
 {
-    public const HANDLE = 'bw-checkout-observer';
+    public const HANDLE = 'business-watchdog-checkout-observer';
 
     public const PAGES = ['checkout', 'finish'];
 
-    public const ALTERED_OPTION = 'bw_checkout_script_altered_at';
+    public const ALTERED_OPTION = 'business_watchdog_checkout_script_altered_at';
 
     /** Optimiser exclusion patterns: the script file and its inline configuration. */
-    private const PATTERNS = ['business-watchdog/assets/checkout-observer', 'BW_CHECKOUT_OBSERVER'];
+    private const PATTERNS = ['business-watchdog/assets/checkout-observer', 'BUSINESS_WATCHDOG_CHECKOUT_OBSERVER'];
 
     private static $page = false;
 
@@ -73,8 +73,8 @@ final class CheckoutObservation
             return;
         }
 
-        wp_enqueue_script(self::HANDLE, plugins_url('assets/checkout-observer.js', BW_PLUGIN_FILE), [], BW_PLUGIN_VERSION, false);
-        wp_add_inline_script(self::HANDLE, 'window.BW_CHECKOUT_OBSERVER = ' . wp_json_encode([
+        wp_enqueue_script(self::HANDLE, plugins_url('assets/checkout-observer.js', BUSINESS_WATCHDOG_FILE), [], BUSINESS_WATCHDOG_VERSION, false);
+        wp_add_inline_script(self::HANDLE, 'window.BUSINESS_WATCHDOG_CHECKOUT_OBSERVER = ' . wp_json_encode([
             'endpoint' => rest_url('business-watchdog/v1/observe'),
             'token' => $token,
             'page' => $page,

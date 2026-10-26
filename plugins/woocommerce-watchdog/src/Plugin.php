@@ -20,6 +20,7 @@ use BusinessWatchdog\WooCommerce\Jobs\RescanJob;
 use BusinessWatchdog\WooCommerce\Rest\RestController;
 use BusinessWatchdog\WooCommerce\Safety\MonitoringSwitch;
 use BusinessWatchdog\WooCommerce\Safety\Guard;
+use BusinessWatchdog\WooCommerce\Storage\LegacyNames;
 use BusinessWatchdog\WooCommerce\Storage\Schema;
 use BusinessWatchdog\WooCommerce\Synthetic\SyntheticOrders;
 use BusinessWatchdog\WooCommerce\Storage\State;
@@ -39,6 +40,7 @@ final class Plugin
 
     public static function activate(): void
     {
+        LegacyNames::migrate();
         Schema::install();
         State::installId();
     }
@@ -60,6 +62,10 @@ final class Plugin
     {
         add_filter('cron_schedules', Guard::filter([WpCronAdapter::class, 'registerSchedules'], 'cron_schedules'));
 
+        if ((is_admin() || (function_exists('wp_doing_cron') && wp_doing_cron()) || (defined('WP_CLI') && WP_CLI)) && LegacyNames::pending()) {
+            LegacyNames::migrate();
+        }
+
         if (MonitoringSwitch::stopped()) {
             add_action('admin_notices', Guard::action([self::class, 'stoppedNotice'], 'stopped_notice'));
 
@@ -80,9 +86,7 @@ final class Plugin
 
         if (! Schema::isCurrent()) {
             // Never run dbDelta in a shopper's request, especially during checkout.
-            if (! is_admin()
-                || (function_exists('wp_doing_ajax') && wp_doing_ajax())
-                || (function_exists('wp_doing_cron') && wp_doing_cron())) {
+            if (! self::maintenanceRequest()) {
                 return;
             }
 
@@ -224,20 +228,42 @@ final class Plugin
         EnvironmentEvents::deployments();
     }
 
+    private static function maintenanceRequest(): bool
+    {
+        return is_admin()
+            && ! (function_exists('wp_doing_ajax') && wp_doing_ajax())
+            && ! (function_exists('wp_doing_cron') && wp_doing_cron());
+    }
+
+    private static function noticeScreen(): bool
+    {
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+
+        return $screen !== null && in_array($screen->id, ['plugins', 'woocommerce_page_' . SettingsPage::SLUG], true);
+    }
+
     public static function stoppedNotice(): void
     {
+        if (! self::noticeScreen()) {
+            return;
+        }
+
         echo '<div class="notice notice-warning"><p>' . esc_html__('Business Watchdog monitoring is stopped on this site. Orders and checkout work as usual; nothing is recorded or sent until monitoring is resumed.', 'business-watchdog') . '</p></div>';
     }
 
     public static function unsupportedNotice(): void
     {
+        if (! self::noticeScreen()) {
+            return;
+        }
+
         $version = Environment::wooCommerceVersion();
         $message = $version === null
             ? __('Business Watchdog requires WooCommerce to be installed and active.', 'business-watchdog')
             : sprintf(
                 /* translators: 1: minimum supported WooCommerce version, 2: installed WooCommerce version. */
                 __('Business Watchdog requires WooCommerce %1$s or newer (found %2$s).', 'business-watchdog'),
-                BW_MIN_WC,
+                BUSINESS_WATCHDOG_MIN_WC,
                 $version
             );
 
@@ -246,6 +272,10 @@ final class Plugin
 
     public static function schemaNotice(): void
     {
+        if (! self::noticeScreen()) {
+            return;
+        }
+
         echo '<div class="notice notice-error"><p>' . esc_html__('Business Watchdog could not prepare its own tables. Monitoring is inactive; orders and checkout remain available.', 'business-watchdog') . '</p></div>';
     }
 }

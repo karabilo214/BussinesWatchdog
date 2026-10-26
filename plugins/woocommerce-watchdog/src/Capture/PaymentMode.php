@@ -3,6 +3,7 @@
 namespace BusinessWatchdog\WooCommerce\Capture;
 
 use BusinessWatchdog\WooCommerce\Safety\Guard;
+use BusinessWatchdog\WooCommerce\Storage\LegacyNames;
 
 /**
  * Whether a payment of an order happened in the provider's test or live mode. For Stripe it is recorded once, when the
@@ -12,7 +13,7 @@ use BusinessWatchdog\WooCommerce\Safety\Guard;
  */
 final class PaymentMode
 {
-    public const META = '_bw_payment_mode';
+    public const META = '_business_watchdog_payment_mode';
 
     private const PAYPAL_META = '_ppcp_paypal_payment_mode';
 
@@ -38,10 +39,12 @@ final class PaymentMode
 
     public static function forOrder(\WC_Order $order)
     {
-        $mode = (string) $order->get_meta(self::META, true, 'edit');
+        foreach ([self::META, LegacyNames::PAYMENT_MODE_META] as $key) {
+            $mode = (string) $order->get_meta($key, true, 'edit');
 
-        if (in_array($mode, ['live', 'test'], true)) {
-            return $mode;
+            if (in_array($mode, ['live', 'test'], true)) {
+                return $mode;
+            }
         }
 
         if (strpos((string) $order->get_payment_method('edit'), 'ppcp-') === 0) {

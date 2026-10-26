@@ -23,7 +23,7 @@ services:
       WORDPRESS_DB_PASSWORD: wordpress
       WORDPRESS_DB_NAME: wordpress
       WORDPRESS_CONFIG_EXTRA: |
-        define('BW_ALLOW_INSECURE_ENDPOINT', true);
+        define('BUSINESS_WATCHDOG_ALLOW_INSECURE_ENDPOINT', true);
         define('WP_ENVIRONMENT_TYPE', 'local');
     extra_hosts:
       - "host.docker.internal:host-gateway"

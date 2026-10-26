@@ -54,7 +54,7 @@ final class AttemptLog
         global $wpdb;
 
         return (int) $wpdb->query($wpdb->prepare(
-            "UPDATE {$wpdb->prefix}bw_payment_attempts SET outcome = %s, failure_class = %s, resolved_at = %s WHERE order_id = %d AND outcome IS NULL",
+            "UPDATE {$wpdb->prefix}business_watchdog_payment_attempts SET outcome = %s, failure_class = %s, resolved_at = %s WHERE order_id = %d AND outcome IS NULL",
             $outcome,
             $class === null ? '' : self::failureClass($class),
             self::now(),
@@ -71,7 +71,7 @@ final class AttemptLog
         }
 
         $wpdb->query($wpdb->prepare(
-            "UPDATE {$wpdb->prefix}bw_payment_attempts SET outcome = %s, failure_class = '', resolved_at = %s, reported = 0 WHERE order_id = %d AND outcome = %s",
+            "UPDATE {$wpdb->prefix}business_watchdog_payment_attempts SET outcome = %s, failure_class = '', resolved_at = %s, reported = 0 WHERE order_id = %d AND outcome = %s",
             self::LATE_SUCCESS,
             self::now(),
             $orderId,
@@ -84,7 +84,7 @@ final class AttemptLog
         global $wpdb;
 
         return (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}bw_payment_attempts WHERE order_id = %d AND outcome IS NULL",
+            "SELECT COUNT(*) FROM {$wpdb->prefix}business_watchdog_payment_attempts WHERE order_id = %d AND outcome IS NULL",
             $orderId
         )) > 0;
     }
@@ -94,7 +94,7 @@ final class AttemptLog
         global $wpdb;
 
         return (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT id, order_id, attempted_at FROM {$wpdb->prefix}bw_payment_attempts WHERE outcome IS NULL AND attempted_at <= %s ORDER BY id LIMIT %d",
+            "SELECT id, order_id, attempted_at FROM {$wpdb->prefix}business_watchdog_payment_attempts WHERE outcome IS NULL AND attempted_at <= %s ORDER BY id LIMIT %d",
             gmdate('Y-m-d H:i:s', $timestamp),
             $limit
         ), ARRAY_A);
@@ -105,7 +105,7 @@ final class AttemptLog
         global $wpdb;
 
         return (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT id, payment_method, outcome, failure_class, resolved_at FROM {$wpdb->prefix}bw_payment_attempts WHERE reported = 0 AND outcome IS NOT NULL AND resolved_at < %s ORDER BY resolved_at, id LIMIT %d",
+            "SELECT id, payment_method, outcome, failure_class, resolved_at FROM {$wpdb->prefix}business_watchdog_payment_attempts WHERE reported = 0 AND outcome IS NOT NULL AND resolved_at < %s ORDER BY resolved_at, id LIMIT %d",
             $before,
             $limit
         ), ARRAY_A);
@@ -122,7 +122,7 @@ final class AttemptLog
         }
 
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}bw_payment_attempts SET reported = 1 WHERE id IN ({$placeholders})", $ids));
+        $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}business_watchdog_payment_attempts SET reported = 1 WHERE id IN ({$placeholders})", $ids));
     }
 
     public static function prune(int $days): void
@@ -131,7 +131,7 @@ final class AttemptLog
 
         $before = gmdate('Y-m-d H:i:s', time() - $days * 86400);
         $wpdb->query($wpdb->prepare(
-            "DELETE FROM {$wpdb->prefix}bw_payment_attempts WHERE attempted_at < %s AND (reported = 1 OR outcome IS NULL)",
+            "DELETE FROM {$wpdb->prefix}business_watchdog_payment_attempts WHERE attempted_at < %s AND (reported = 1 OR outcome IS NULL)",
             $before
         ));
     }

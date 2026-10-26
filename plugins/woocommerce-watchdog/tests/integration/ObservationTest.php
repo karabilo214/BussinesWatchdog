@@ -136,8 +136,8 @@ bw_test('observation: the script tag is kept out of optimisers', function () {
     bw_assert(CheckoutObservation::tag('<script src="x"></script>', 'jquery') === '<script src="x"></script>', 'other scripts untouched');
     bw_assert(in_array('business-watchdog/assets/checkout-observer', CheckoutObservation::excludePatterns(['other']), true), 'WP Rocket / LiteSpeed patterns');
     bw_assert(in_array(CheckoutObservation::HANDLE, CheckoutObservation::excludeHandle([]), true), 'SiteGround handles');
-    bw_assert(strpos(CheckoutObservation::excludeAutoptimize('a.js'), 'BW_CHECKOUT_OBSERVER') !== false, 'Autoptimize list');
-    $source = (string) file_get_contents(BW_PLUGIN_DIR . '/assets/checkout-observer.js');
+    bw_assert(strpos(CheckoutObservation::excludeAutoptimize('a.js'), 'BUSINESS_WATCHDOG_CHECKOUT_OBSERVER') !== false, 'Autoptimize list');
+    $source = (string) file_get_contents(BUSINESS_WATCHDOG_DIR . '/assets/checkout-observer.js');
     foreach (['localStorage', 'sessionStorage', 'document.cookie', '.value'] as $forbidden) {
         bw_assert(strpos($source, $forbidden) === false, "the script must not use {$forbidden}");
     }

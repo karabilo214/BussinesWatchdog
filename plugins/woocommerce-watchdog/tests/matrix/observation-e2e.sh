@@ -47,7 +47,7 @@ for target in $TARGETS; do
     $W option update home "$ORIGIN" >/dev/null
     $W option update siteurl "$ORIGIN" >/dev/null
     $W business-watchdog heartbeat >/dev/null
-    flag=$($W option get bw_checkout_observation --format=json 2>/dev/null || echo null)
+    flag=$($W option get business_watchdog_checkout_observation --format=json 2>/dev/null || echo null)
 
     customer() { docker run --rm --network "$network" -v "$(pwd)":/app/e2e:ro --entrypoint node bw-browser-worker:e2e /app/e2e/observation-customer.mjs "$1" "$ORIGIN" "$product" "$checkout" "$blocks" 2>&1 | sed -n 's/^BW_CUSTOMER=//p'; }
     report() { $W business-watchdog payment-attempts --advance=2000 >/dev/null; $W business-watchdog checkout-observation --advance=400 >/dev/null; $W business-watchdog deliver >/dev/null; }

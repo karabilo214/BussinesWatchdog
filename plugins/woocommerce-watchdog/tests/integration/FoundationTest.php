@@ -4,7 +4,10 @@ use BusinessWatchdog\WooCommerce\Compat\Environment;
 use BusinessWatchdog\WooCommerce\Compat\SchedulerFactory;
 use BusinessWatchdog\WooCommerce\Jobs\HeartbeatJob;
 use BusinessWatchdog\WooCommerce\Security\SecretBox;
+use BusinessWatchdog\WooCommerce\Capture\PaymentMode;
+use BusinessWatchdog\WooCommerce\Storage\LegacyNames;
 use BusinessWatchdog\WooCommerce\Storage\Schema;
+use BusinessWatchdog\WooCommerce\Synthetic\SyntheticOrders;
 use BusinessWatchdog\WooCommerce\Storage\State;
 
 bw_test('woocommerce is detected as supported', function () {
@@ -70,4 +73,46 @@ bw_test('admin routes require manage_woocommerce', function () {
     wp_set_current_user(0);
     $response = rest_do_request(new WP_REST_Request('GET', '/business-watchdog/v1/diagnostics'));
     bw_assert(in_array($response->get_status(), [401, 403], true), 'Diagnostics open to anonymous users: ' . $response->get_status());
+});
+
+bw_test('names from before 0.4.0 are moved with their data', function () {
+    global $wpdb;
+
+    $integrationId = \BusinessWatchdog\WooCommerce\Connection\Connection::current()->integrationId();
+    $tables = ['outbox', 'revisions', 'state', 'payment_attempts', 'checkout_observation'];
+
+    foreach ($tables as $name) {
+        $wpdb->query("RENAME TABLE `{$wpdb->prefix}business_watchdog_{$name}` TO `{$wpdb->prefix}bw_{$name}`");
+    }
+
+    update_option('bw_schema_version', get_option(Schema::OPTION), false);
+    delete_option(Schema::OPTION);
+    update_option('bw_purge_history_on_uninstall', 'no', false);
+    wp_schedule_single_event(time() + 3600, 'bw_heartbeat');
+
+    bw_assert(LegacyNames::pending(), 'Legacy names not detected');
+    LegacyNames::migrate();
+
+    foreach ($tables as $name) {
+        $current = $wpdb->prefix . 'business_watchdog_' . $name;
+        bw_assert($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $current)) === $current, 'Table not moved: ' . $name);
+        bw_assert($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->prefix . 'bw_' . $name)) === null, 'Legacy table left: ' . $name);
+    }
+
+    bw_assert(Schema::isCurrent(), 'Schema version not moved');
+    bw_assert(get_option('business_watchdog_purge_history_on_uninstall') === 'no', 'Option not moved');
+    bw_assert(get_option('bw_schema_version', null) === null && get_option('bw_purge_history_on_uninstall', null) === null, 'Legacy options left');
+    bw_assert(wp_next_scheduled('bw_heartbeat') === false, 'Legacy schedule left');
+    bw_assert(\BusinessWatchdog\WooCommerce\Connection\Connection::current()->integrationId() === $integrationId, 'Connection lost');
+    bw_assert(! LegacyNames::pending(), 'Migration not finished');
+    delete_option('business_watchdog_purge_history_on_uninstall');
+
+    $order = wc_create_order();
+    $order->set_payment_method('stripe');
+    $order->update_meta_data(LegacyNames::PAYMENT_MODE_META, 'test');
+    $order->update_meta_data(LegacyNames::SYNTHETIC_META, wp_generate_uuid4());
+    $order->save();
+    bw_assert(PaymentMode::forOrder($order) === 'test', 'Legacy payment mode not read');
+    bw_assert(SyntheticOrders::isSynthetic($order), 'Legacy synthetic marker not read');
+    $order->delete(true);
 });

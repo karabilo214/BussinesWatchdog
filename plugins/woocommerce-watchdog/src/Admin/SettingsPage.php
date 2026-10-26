@@ -17,10 +17,10 @@ final class SettingsPage
     public static function register(): void
     {
         add_action('admin_menu', Guard::action([self::class, 'menu'], 'admin_menu'));
-        add_action('admin_post_bw_pair', Guard::action([self::class, 'handlePair'], 'admin_pair'));
-        add_action('admin_post_bw_disconnect', Guard::action([self::class, 'handleDisconnect'], 'admin_disconnect'));
-        add_action('admin_post_bw_stop', Guard::action([self::class, 'handleStop'], 'admin_stop'));
-        add_action('admin_post_bw_resume', Guard::action([self::class, 'handleResume'], 'admin_resume'));
+        add_action('admin_post_business_watchdog_pair', Guard::action([self::class, 'handlePair'], 'admin_pair'));
+        add_action('admin_post_business_watchdog_disconnect', Guard::action([self::class, 'handleDisconnect'], 'admin_disconnect'));
+        add_action('admin_post_business_watchdog_stop', Guard::action([self::class, 'handleStop'], 'admin_stop'));
+        add_action('admin_post_business_watchdog_resume', Guard::action([self::class, 'handleResume'], 'admin_resume'));
     }
 
     public static function menu(): void
@@ -30,11 +30,11 @@ final class SettingsPage
 
     public static function handlePair(): void
     {
-        self::guard('bw_pair');
+        self::guard('business_watchdog_pair');
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() ran check_admin_referer('bw_pair') above.
-        $endpoint = isset($_POST['bw_endpoint']) ? esc_url_raw(wp_unslash((string) $_POST['bw_endpoint'])) : '';
-        $code = isset($_POST['bw_pairing_code']) ? sanitize_text_field(wp_unslash((string) $_POST['bw_pairing_code'])) : '';
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() ran check_admin_referer('business_watchdog_pair') above.
+        $endpoint = isset($_POST['business_watchdog_endpoint']) ? esc_url_raw(wp_unslash((string) $_POST['business_watchdog_endpoint'])) : '';
+        $code = isset($_POST['business_watchdog_pairing_code']) ? sanitize_text_field(wp_unslash((string) $_POST['business_watchdog_pairing_code'])) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         $result = PairingClient::pair($endpoint, $code);
 
@@ -47,7 +47,7 @@ final class SettingsPage
 
     public static function handleDisconnect(): void
     {
-        self::guard('bw_disconnect');
+        self::guard('business_watchdog_disconnect');
         Connection::forget();
         State::delete(HeartbeatJob::STATE_PENDING_CHALLENGE);
         self::redirect('disconnected');
@@ -55,14 +55,14 @@ final class SettingsPage
 
     public static function handleStop(): void
     {
-        self::guard('bw_stop');
+        self::guard('business_watchdog_stop');
         MonitoringSwitch::stop('admin');
         self::redirect('stopped');
     }
 
     public static function handleResume(): void
     {
-        self::guard('bw_resume');
+        self::guard('business_watchdog_resume');
         MonitoringSwitch::resume();
         self::redirect('resumed');
     }
@@ -75,7 +75,7 @@ final class SettingsPage
 
         $diagnostics = RestController::diagnosticsPayload();
         $connection = $diagnostics['connection'];
-        $notice = isset($_GET['bw_notice']) ? sanitize_key((string) $_GET['bw_notice']) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only selects which notice to show after a redirect.
+        $notice = isset($_GET['business_watchdog_notice']) ? sanitize_key((string) $_GET['business_watchdog_notice']) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only selects which notice to show after a redirect.
 
         echo '<div class="wrap"><h1>Business Watchdog</h1>';
 
@@ -92,8 +92,8 @@ final class SettingsPage
 
         $stopped = MonitoringSwitch::stopped();
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-        wp_nonce_field($stopped ? 'bw_resume' : 'bw_stop');
-        echo '<input type="hidden" name="action" value="' . ($stopped ? 'bw_resume' : 'bw_stop') . '" />';
+        wp_nonce_field($stopped ? 'business_watchdog_resume' : 'business_watchdog_stop');
+        echo '<input type="hidden" name="action" value="' . ($stopped ? 'business_watchdog_resume' : 'business_watchdog_stop') . '" />';
         echo '<p>' . esc_html($stopped
             ? __('Monitoring is stopped. Orders and checkout are not affected.', 'business-watchdog')
             : __('Emergency stop: halts all Business Watchdog work on this site at once. Orders and checkout are not affected.', 'business-watchdog')) . '</p>';
@@ -108,20 +108,20 @@ final class SettingsPage
 
         if ($connection === null) {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-            wp_nonce_field('bw_pair');
-            echo '<input type="hidden" name="action" value="bw_pair" />';
-            echo '<table class="form-table"><tr><th><label for="bw_endpoint">' . esc_html__('Service URL', 'business-watchdog') . '</label></th>';
-            echo '<td><input class="regular-text" type="url" id="bw_endpoint" name="bw_endpoint" required /></td></tr>';
-            echo '<tr><th><label for="bw_pairing_code">' . esc_html__('Pairing code', 'business-watchdog') . '</label></th>';
-            echo '<td><input class="regular-text" type="text" id="bw_pairing_code" name="bw_pairing_code" autocomplete="off" required /></td></tr></table>';
+            wp_nonce_field('business_watchdog_pair');
+            echo '<input type="hidden" name="action" value="business_watchdog_pair" />';
+            echo '<table class="form-table"><tr><th><label for="business_watchdog_endpoint">' . esc_html__('Service URL', 'business-watchdog') . '</label></th>';
+            echo '<td><input class="regular-text" type="url" id="business_watchdog_endpoint" name="business_watchdog_endpoint" required /></td></tr>';
+            echo '<tr><th><label for="business_watchdog_pairing_code">' . esc_html__('Pairing code', 'business-watchdog') . '</label></th>';
+            echo '<td><input class="regular-text" type="text" id="business_watchdog_pairing_code" name="business_watchdog_pairing_code" autocomplete="off" required /></td></tr></table>';
             submit_button(__('Connect', 'business-watchdog'));
             echo '</form>';
         } else {
             /* translators: %s: connection status. */
             echo '<p>' . esc_html(sprintf(__('Status: %s', 'business-watchdog'), $connection['status'])) . '</p>';
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-            wp_nonce_field('bw_disconnect');
-            echo '<input type="hidden" name="action" value="bw_disconnect" />';
+            wp_nonce_field('business_watchdog_disconnect');
+            echo '<input type="hidden" name="action" value="business_watchdog_disconnect" />';
             submit_button(__('Disconnect', 'business-watchdog'), 'secondary');
             echo '</form>';
         }
@@ -141,7 +141,7 @@ final class SettingsPage
 
     private static function redirect(string $notice): void
     {
-        wp_safe_redirect(add_query_arg(['page' => self::SLUG, 'bw_notice' => $notice], admin_url('admin.php')));
+        wp_safe_redirect(add_query_arg(['page' => self::SLUG, 'business_watchdog_notice' => $notice], admin_url('admin.php')));
         exit;
     }
 }

@@ -8,9 +8,9 @@ use BusinessWatchdog\WooCommerce\Storage\State;
 
 final class BackfillJob
 {
-    public const HOOK = 'bw_backfill';
+    public const HOOK = 'business_watchdog_backfill';
 
-    public const AUDIT_HOOK = 'bw_daily_audit';
+    public const AUDIT_HOOK = 'business_watchdog_daily_audit';
 
     public const INTERVAL_SECONDS = 60;
 

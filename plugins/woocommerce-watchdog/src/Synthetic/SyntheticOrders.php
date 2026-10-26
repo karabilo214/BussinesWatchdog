@@ -2,12 +2,13 @@
 
 namespace BusinessWatchdog\WooCommerce\Synthetic;
 
+use BusinessWatchdog\WooCommerce\Storage\LegacyNames;
 use BusinessWatchdog\WooCommerce\Storage\State;
 use BusinessWatchdog\WooCommerce\Safety\Guard;
 
 final class SyntheticOrders
 {
-    public const CLEANUP_HOOK = 'bw_synthetic_cleanup';
+    public const CLEANUP_HOOK = 'business_watchdog_synthetic_cleanup';
 
     public const CLEANUP_INTERVAL_SECONDS = 900;
 
@@ -48,7 +49,7 @@ final class SyntheticOrders
 
         $order = wc_get_order((int) $orderId);
 
-        if (! $order instanceof \WC_Order || $order instanceof \WC_Order_Refund || $order->get_meta(SyntheticRequest::META_KEY) !== '') {
+        if (! $order instanceof \WC_Order || $order instanceof \WC_Order_Refund || self::isSynthetic($order)) {
             return;
         }
 
@@ -58,7 +59,7 @@ final class SyntheticOrders
 
     public static function isSynthetic(\WC_Order $order): bool
     {
-        return $order->get_meta(SyntheticRequest::META_KEY) !== '';
+        return $order->get_meta(SyntheticRequest::META_KEY) !== '' || $order->get_meta(LegacyNames::SYNTHETIC_META) !== '';
     }
 
     /**
