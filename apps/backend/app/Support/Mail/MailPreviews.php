@@ -121,7 +121,7 @@ final class MailPreviews
             'possible_start_to' => '2026-10-26T08:40:00Z',
             'recovered_at' => null,
             'source' => 'reconciliation',
-            'first_step' => 'find_capture_in_provider',
+            'first_step' => 'open_payment_by_reference',
             'first_step_params' => ['provider' => 'stripe', 'reference' => 'pi_3PreviewExample'],
             'checked_steps' => ['store_order_data', 'provider_transactions', 'payment_allocations'],
             'link' => $this->app('/app/incidents/01900000-0000-7000-8000-000000000002'),
