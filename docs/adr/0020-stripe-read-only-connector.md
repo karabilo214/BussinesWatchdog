@@ -76,7 +76,7 @@ Test-mode payments created by the owner in the Stripe Dashboard: a 5.00 EUR card
 
 ## Not done
 
-Disputes and fees (informational signals), multicapture (a growing `amount_captured` would be a conflict), Stripe Connect / OAuth, PayPal (§10.2), the dashboard screen (Step 66).
+Disputes (done in ADR 0081, Step 276) and fees (informational signals), multicapture (a growing `amount_captured` would be a conflict), Stripe Connect / OAuth, PayPal (§10.2), the dashboard screen (Step 66).
 
 ## Owner decision (2026-10-16)
 

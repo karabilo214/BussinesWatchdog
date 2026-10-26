@@ -12,4 +12,9 @@ export const AUTO_RESOLUTIONS = [
   'auto_resolved_scheduled_checks_passed',
   'auto_resolved_check_passed',
   'auto_resolved_connector_fresh',
+  'auto_resolved_script_reported',
+  'auto_resolved_order_placed',
+  'auto_resolved_dispute_won',
+  'auto_resolved_dispute_lost',
+  'auto_resolved_dispute_closed',
 ];

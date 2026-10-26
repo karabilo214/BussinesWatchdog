@@ -5,6 +5,7 @@ namespace App\Support\Ingest;
 use App\Models\EventInbox;
 use App\Support\Payments\ExactReferenceMatcher;
 use App\Support\Projections\CheckoutObservationProjector;
+use App\Support\Projections\DisputeSnapshotProjector;
 use App\Support\Projections\FinancialTransactionProjector;
 use App\Support\Projections\OrderDeletedProjector;
 use App\Support\Projections\OrderSnapshotProjector;
@@ -26,6 +27,7 @@ class EventInboxProcessor
         private readonly FinancialTransactionProjector $financialTransactionProjector,
         private readonly PaymentAttemptsProjector $paymentAttemptsProjector,
         private readonly CheckoutObservationProjector $checkoutObservationProjector,
+        private readonly DisputeSnapshotProjector $disputeSnapshotProjector,
         private readonly EventDirtyMarker $dirtyMarker,
         private readonly ExactReferenceMatcher $matcher,
     ) {}
@@ -78,6 +80,10 @@ class EventInboxProcessor
             }
 
             if (! $this->recordProjectionResult($this->checkoutObservationProjector->project($event))) {
+                return false;
+            }
+
+            if (! $this->recordProjectionResult($this->disputeSnapshotProjector->project($event))) {
                 return false;
             }
 

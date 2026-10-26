@@ -5885,6 +5885,10 @@ paths:
                       revisions:
                         type: array
                         items: {$ref: "#/components/schemas/OrderRevision"}
+                      disputes:
+                        type: array
+                        description: Disputes (chargebacks) reported by the payment provider for the payments allocated to the order (ADR 0081). Informational; they do not change the reconciliation.
+                        items: {$ref: "#/components/schemas/Dispute"}
         "401": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
   /api/v1/payments/{payment_id}:
@@ -5922,6 +5926,10 @@ paths:
                       refund_allocations:
                         type: array
                         items: {$ref: "#/components/schemas/RefundAllocation"}
+                      disputes:
+                        type: array
+                        description: Disputes (chargebacks) of this payment reported by the provider (ADR 0081).
+                        items: {$ref: "#/components/schemas/Dispute"}
         "401": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
   /api/v1/payment-allocations:
@@ -8395,6 +8403,30 @@ components:
         - type: object
           properties:
             webhook_url: {type: string, format: uri, description: Endpoint to register in the Stripe Dashboard.}
+    Dispute:
+      type: object
+      description: A dispute (chargeback) reported by an independent payment provider (ADR 0081). Informational signal, never part of the money reconciliation.
+      required: [id, external_id, payment_id, provider, mode, status, open, reason, currency, currency_exponent, amount_minor, money_amounts_hidden, evidence_due_by, opened_at, closed_at]
+      properties:
+        id: {type: string, format: uuid}
+        external_id: {type: string, description: "Provider dispute id (Stripe du_…)."}
+        payment_id: {type: [string, "null"], format: uuid}
+        provider: {type: [string, "null"]}
+        mode: {enum: [live, test]}
+        status: {enum: [needs_response, under_review, won, lost, warning_needs_response, warning_under_review, warning_closed, prevented]}
+        open: {type: boolean}
+        reason: {type: [string, "null"], description: Provider reason code; the UI translates it.}
+        currency: {type: string, pattern: "^[A-Z]{3}$"}
+        currency_exponent: {type: integer, minimum: 0, maximum: 6}
+        amount_minor:
+          oneOf:
+            - {$ref: "#/components/schemas/MoneyMinor"}
+            - {type: "null"}
+          description: Null without money.view.
+        money_amounts_hidden: {type: boolean}
+        evidence_due_by: {type: [string, "null"], format: date-time, description: Deadline to answer at the provider.}
+        opened_at: {type: string, format: date-time}
+        closed_at: {type: [string, "null"], format: date-time}
     Incident:
       type: object
       required:
@@ -8411,7 +8443,7 @@ components:
       properties:
         id: {type: string, format: uuid}
         store_id: {type: string, format: uuid}
-        family: {enum: [money, checkout, checkout_payment, integration]}
+        family: {enum: [money, checkout, checkout_payment, checkout_observation, integration, dispute]}
         component: {type: string}
         state: {enum: [open, acknowledged, resolved]}
         severity: {enum: [info, warning, critical]}
@@ -8426,6 +8458,11 @@ components:
             - {$ref: "#/components/schemas/MoneyMinor"}
             - {type: "null"}
         money_amounts_hidden: {type: boolean}
+        dispute:
+          oneOf:
+            - {$ref: "#/components/schemas/Dispute"}
+            - {type: "null"}
+          description: The provider dispute of a dispute incident (family dispute); null otherwise.
         first_seen_at: {type: string, format: date-time}
         last_seen_at: {type: string, format: date-time}
         last_good_at: {type: [string, "null"], format: date-time}

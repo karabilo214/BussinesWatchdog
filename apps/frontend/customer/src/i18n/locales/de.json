@@ -799,7 +799,9 @@
       "money": "Geld",
       "checkout": "Weg zur Zahlung",
       "checkout_payment": "Zahlungsversuche",
-      "integration": "Shop-Plugin"
+      "integration": "Shop-Plugin",
+      "checkout_observation": "Checkout-Beobachtung",
+      "dispute": "Rückbuchungen"
     },
     "title_with_order": "{title} — Bestellung {order}",
     "title": {
@@ -826,7 +828,9 @@
       "unknown": "Vorfall {code}",
       "CHECKOUT_TEST_ACCOUNT_REJECTED": "Der Shop akzeptiert die Anmeldung des Testkunden nicht",
       "CHECKOUT_SCRIPT_SILENT": "Checkout-Beobachtung erhält keine Daten",
-      "CHECKOUT_SUBMIT_FAILING": "Kunden schicken die Bestellung ab, aber es entsteht keine Bestellung"
+      "CHECKOUT_SUBMIT_FAILING": "Kunden schicken die Bestellung ab, aber es entsteht keine Bestellung",
+      "DISPUTE_OPEN": "Die Bank des Kunden hat eine Rückbuchung eröffnet",
+      "DISPUTE_INQUIRY": "Die Bank des Kunden hat eine Anfrage zur Zahlung gestellt"
     },
     "advice_title": "Was prüfen",
     "advice": {
@@ -853,7 +857,9 @@
       "unknown": "Öffnen Sie die Details unten und prüfen Sie den betroffenen Bereich des Shops.",
       "CHECKOUT_TEST_ACCOUNT_REJECTED": "Prüfen Sie, dass das Testkunden-Konto im Shop existiert und aktiv ist, und aktualisieren Sie E-Mail und Passwort in den Prüfeinstellungen. Das ist kein Shop-Fehler; solange die Anmeldung nicht funktioniert, werden Zahlungsarten nicht geprüft.",
       "CHECKOUT_SCRIPT_SILENT": "Die Checkout-Seite wird angezeigt, aber das Beobachtungsskript schweigt. Prüfen Sie die Browser-Konsole auf der Checkout-Seite, dass das Business-Watchdog-Plugin oder die App aktiv ist und Optimierungs-Plugins oder die CSP es nicht blockieren. Das beweist nicht, dass Kunden nicht bezahlen können.",
-      "CHECKOUT_SUBMIT_FAILING": "Führen Sie eine Testbestellung bis zum Ende durch und prüfen Sie Fehler auf der Seite und in den Logs des Shops und der Zahlungs-Plugins: «Zahlungspflichtig bestellen» wird abgeschickt, aber es folgen keine neuen Bestellungen und keine Danke-Seite."
+      "CHECKOUT_SUBMIT_FAILING": "Führen Sie eine Testbestellung bis zum Ende durch und prüfen Sie Fehler auf der Seite und in den Logs des Shops und der Zahlungs-Plugins: «Zahlungspflichtig bestellen» wird abgeschickt, aber es folgen keine neuen Bestellungen und keine Danke-Seite.",
+      "DISPUTE_OPEN": "Öffnen Sie die Rückbuchung im Dashboard des Zahlungsanbieters, prüfen Sie die Bestellung und reichen Sie Nachweise (Rechnung, Zustellnachweis, Korrespondenz) vor Fristende ein. Erstatten Sie nicht zusätzlich, solange die Rückbuchung offen ist — sonst kann der Betrag doppelt verloren gehen.",
+      "DISPUTE_INQUIRY": "Beantworten Sie die Anfrage im Dashboard des Zahlungsanbieters vor Fristende — sonst kann die Bank eine Rückbuchung eröffnen. Erstatten Sie währenddessen nur, wenn nötig."
     },
     "discrepancy_short": "Abweichung {amount}",
     "last_seen": "zuletzt {time}",
@@ -863,7 +869,12 @@
       "auto_resolved_successful_payment": "eine Zahlung war erfolgreich",
       "auto_resolved_scheduled_checks_passed": "geplante Prüfungen laufen wieder durch",
       "auto_resolved_check_passed": "die Prüfung war erfolgreich",
-      "auto_resolved_connector_fresh": "das Plugin meldet sich wieder"
+      "auto_resolved_connector_fresh": "das Plugin meldet sich wieder",
+      "auto_resolved_dispute_won": "Rückbuchung gewonnen",
+      "auto_resolved_dispute_lost": "Rückbuchung verloren",
+      "auto_resolved_dispute_closed": "Rückbuchung oder Anfrage geschlossen",
+      "auto_resolved_script_reported": "das Beobachtungsskript meldet wieder",
+      "auto_resolved_order_placed": "Kunden bestellen wieder"
     },
     "fields": {
       "last_good": "Zuletzt in Ordnung",
@@ -938,7 +949,9 @@
       "reconciliation_finding": "Geldabgleich",
       "payment_attempts": "Zahlungsversuche",
       "connector_freshness": "Verbindung zum Plugin",
-      "browser_check": "Prüfung des Wegs zur Zahlung"
+      "browser_check": "Prüfung des Wegs zur Zahlung",
+      "dispute": "Rückbuchung beim Zahlungsanbieter",
+      "checkout_observation": "Checkout-Beobachtung"
     },
     "confidence": {
       "observed": "beobachtet",
@@ -983,7 +996,8 @@
         "sign_in": "Anmeldung des Testkunden",
         "guest_details": "Gastdaten"
       },
-      "attempts": "Versuche: {n}."
+      "attempts": "Versuche: {n}.",
+      "dispute_status": "Status der Rückbuchung: {status}."
     },
     "timeline": {
       "title": "Verlauf",
@@ -2097,7 +2111,7 @@
     },
     "why": "Verbinden Sie Stripe mit einem Schlüssel nur zum Lesen. Der Schlüssel wird hier eingegeben, nicht in WordPress — so erreichen uns Gelddaten am Shop vorbei.",
     "step_dashboard": "Öffnen Sie in Stripe Developers → API keys → „Create restricted key“.",
-    "step_permissions": "Vergeben Sie Read für Payment Intents, Charges und Refunds (optional Account). Schreibrechte sind nicht nötig.",
+    "step_permissions": "Vergeben Sie Read für Payment Intents, Charges und Refunds sowie für Disputes, um Rückbuchungen zu sehen (optional Account). Schreibrechte sind nicht nötig.",
     "step_paste": "Kopieren Sie den Schlüssel (rk_live_… oder rk_test_…) und fügen Sie ihn unten ein.",
     "key_label": "Eingeschränkter Stripe-Schlüssel",
     "key_hint": "Der Schlüssel wird auf Lesezugriff geprüft und verschlüsselt gespeichert; danach zeigen wir nur die letzten 4 Zeichen.",
@@ -2151,7 +2165,8 @@
       "stripe_request_rejected": "Stripe hat die Anfrage abgelehnt.",
       "stripe_invalid_response": "Stripe hat eine unerwartete Antwort geliefert.",
       "integration_not_active": "Nur eine aktive Verbindung kann synchronisiert werden."
-    }
+    },
+    "disputes_permission_missing": "Rückbuchungen sind nicht sichtbar: Dem Schlüssel fehlt die Berechtigung Disputes: Read. Ergänzen Sie sie im eingeschränkten Schlüssel in Stripe — der übrige Abgleich funktioniert wie bisher."
   },
   "paypal": {
     "official_docs_image": "Aufnahme der offiziellen PayPal-Anleitung für Client ID und Secret",
@@ -2514,5 +2529,45 @@
     "event": { "support_grant.requested": "Zugriff beantragt", "support_grant.approved": "Zugriff genehmigt", "support_grant.denied": "Anfrage abgelehnt", "support_grant.revoked": "Zugriff widerrufen", "support_access.opened": "Detaildaten geöffnet", "support_access.artifact": "Material heruntergeladen", "check_run.support_started": "Neue Prüfung gestartet", "store.support_renamed": "Shopname vom Support geändert" },
     "target": { "store": "Shopdaten", "order": "Bestellung", "check": "Prüfung", "artifact": "Prüfmaterial", "incident": "Vorfall" },
     "warning": "Ein Widerruf sperrt neue Anfragen und Links sofort. Bereits gesehene oder gespeicherte Informationen können dadurch nicht gelöscht werden."
+  },
+  "dispute": {
+    "title": "Rückbuchung (Chargeback)",
+    "inquiry": "Anfrage der Bank (noch keine Rückbuchung)",
+    "section_title": "Rückbuchung zur Zahlung",
+    "reason_label": "Grund",
+    "amount": "Betrag der Rückbuchung",
+    "opened_at": "Eröffnet",
+    "due_by": "Antwort bis",
+    "closed_at": "Abgeschlossen",
+    "note": "Eine Rückbuchung ist ein Hinweis: Sie ändert den Geldabgleich der Bestellung nicht. Beantworten Sie sie im Dashboard des Zahlungsanbieters.",
+    "open_order": "Bestellung {order} öffnen",
+    "status": {
+      "needs_response": "Antwort nötig",
+      "under_review": "in Prüfung",
+      "won": "gewonnen",
+      "lost": "verloren",
+      "warning_needs_response": "Anfrage: Antwort nötig",
+      "warning_under_review": "Anfrage in Prüfung",
+      "warning_closed": "Anfrage geschlossen",
+      "prevented": "verhindert"
+    },
+    "reason": {
+      "fraudulent": "der Kunde erkennt die Zahlung nicht an (Betrug)",
+      "product_not_received": "Ware nicht erhalten",
+      "product_unacceptable": "Ware nicht wie beschrieben",
+      "duplicate": "doppelte Abbuchung",
+      "subscription_canceled": "das Abonnement wurde gekündigt",
+      "credit_not_processed": "der Kunde hat eine zugesagte Erstattung nicht erhalten",
+      "unrecognized": "der Kunde erkennt die Zahlung nicht",
+      "general": "allgemein",
+      "bank_cannot_process": "die Bank kann die Zahlung nicht verarbeiten",
+      "check_returned": "Scheck zurückgegeben",
+      "customer_initiated": "vom Kunden veranlasst",
+      "debit_not_authorized": "die Abbuchung war nicht autorisiert",
+      "incorrect_account_details": "falsche Kontodaten",
+      "insufficient_funds": "keine ausreichende Deckung",
+      "noncompliant": "Regeln des Kartennetzes nicht eingehalten",
+      "other": "nicht angegeben"
+    }
   }
 }

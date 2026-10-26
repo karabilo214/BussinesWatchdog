@@ -52,6 +52,7 @@ class NotificationDelivery extends Model
         self::KIND_INCIDENT_OPENED,
         self::KIND_INCIDENT_REOPENED,
         self::KIND_INCIDENT_RECOVERED,
+        self::KIND_INCIDENT_REMINDER,
     ];
 
     public $timestamps = false;

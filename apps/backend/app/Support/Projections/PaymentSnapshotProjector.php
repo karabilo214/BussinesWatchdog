@@ -5,6 +5,7 @@ namespace App\Support\Projections;
 use App\Models\EventInbox;
 use App\Models\FinancialTransaction;
 use App\Models\Payment;
+use App\Models\ProviderDispute;
 use App\Support\Ingest\EventProjectionResult;
 
 class PaymentSnapshotProjector
@@ -59,7 +60,7 @@ class PaymentSnapshotProjector
     /**
      * @param  array<string, mixed>  $data
      */
-    /** Operations can arrive before their payment; they are attached once the payment exists. */
+    /** Operations and disputes can arrive before their payment; they are attached once the payment exists. */
     private function linkEarlierTransactions(Payment $payment): void
     {
         FinancialTransaction::query()
@@ -67,6 +68,13 @@ class PaymentSnapshotProjector
             ->where('integration_id', $payment->integration_id)
             ->whereNull('payment_id')
             ->where('metadata->payment_external_id', $payment->external_id)
+            ->update(['payment_id' => $payment->id]);
+
+        ProviderDispute::query()
+            ->where('tenant_id', $payment->tenant_id)
+            ->where('integration_id', $payment->integration_id)
+            ->whereNull('payment_id')
+            ->where('payment_external_id', $payment->external_id)
             ->update(['payment_id' => $payment->id]);
     }
 

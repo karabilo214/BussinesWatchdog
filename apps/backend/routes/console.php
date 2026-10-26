@@ -86,6 +86,11 @@ Schedule::command('stripe:sync')
     ->withoutOverlapping(30)
     ->onOneServer();
 
+Schedule::command('disputes:remind')
+    ->hourlyAt(35)
+    ->withoutOverlapping(30)
+    ->onOneServer();
+
 Schedule::command('woocommerce-api:sync')
     ->everyFiveMinutes()
     ->withoutOverlapping(15)

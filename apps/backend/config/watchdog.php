@@ -72,6 +72,7 @@ return [
         'max_pages_per_run' => 20,
         'delta_overlap_minutes' => 60,
         'audit_days' => (int) env('WATCHDOG_STRIPE_AUDIT_DAYS', 90),
+        'dispute_days' => (int) env('WATCHDOG_STRIPE_DISPUTE_DAYS', 120),
         'webhook_tolerance_seconds' => 300,
     ],
 

@@ -18,11 +18,11 @@ use UnexpectedValueException;
 
 /**
  * Stripe → us. The signature is checked by the official library over the unmodified raw body; only payment intent,
- * charge and refund objects are taken in, through the same change-detecting path as polling.
+ * charge, refund and dispute objects are taken in, through the same change-detecting path as polling.
  */
 class StripeWebhookController extends Controller
 {
-    private const OBJECTS = ['payment_intent', 'charge', 'refund'];
+    private const OBJECTS = ['payment_intent', 'charge', 'refund', 'dispute'];
 
     public function __construct(
         private readonly StripeConnector $connector,

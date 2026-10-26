@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Orders;
 
 use App\Http\Controllers\Controller;
+use App\Http\Dto\Disputes\DisputeDto;
 use App\Http\Dto\Orders\OrderDto;
 use App\Http\Dto\Orders\OrderRevisionDto;
 use App\Http\Dto\Orders\RefundDto;
@@ -15,6 +16,7 @@ use App\Models\Integration;
 use App\Models\Order;
 use App\Models\OrderRevision;
 use App\Models\PaymentAllocation;
+use App\Models\ProviderDispute;
 use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationSubjectState;
 use App\Models\Refund;
@@ -103,6 +105,13 @@ class OrderController extends Controller
             'allocations' => $allocations->map(fn (PaymentAllocation $a): array => $this->paymentAllocationDto->toArray($a))->all(),
             'refund_allocations' => $refundAllocations->map(fn (RefundAllocation $a): array => $this->refundAllocationDto->toArray($a))->all(),
             'revisions' => $revisions->map(fn (OrderRevision $r): array => $this->revisionDto->toArray($r))->all(),
+            'disputes' => ProviderDispute::query()
+                ->where('tenant_id', $tenantId)
+                ->whereIn('payment_id', $allocations->whereNull('revoked_at')->pluck('payment_id')->unique()->values())
+                ->orderBy('opened_at')
+                ->get()
+                ->map(fn (ProviderDispute $dispute): array => app(DisputeDto::class)->toArray($dispute, app(MoneyAmountVisibility::class)->allows($request, $tenantId)))
+                ->all(),
         ]));
     }
 }

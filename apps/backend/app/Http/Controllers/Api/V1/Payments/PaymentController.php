@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Payments;
 
 use App\Http\Controllers\Controller;
+use App\Http\Dto\Disputes\DisputeDto;
 use App\Http\Dto\Payments\FinancialTransactionDto;
 use App\Http\Dto\Payments\PaymentAllocationDto;
 use App\Http\Dto\Payments\PaymentDto;
@@ -11,6 +12,7 @@ use App\Http\Dto\Reconciliation\ReconciliationFindingDto;
 use App\Models\FinancialTransaction;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
+use App\Models\ProviderDispute;
 use App\Models\ReconciliationFinding;
 use App\Models\RefundAllocation;
 use App\Support\Auth\TenantPermissions;
@@ -66,6 +68,13 @@ class PaymentController extends Controller
             'transactions' => $transactions->map(fn (FinancialTransaction $t): array => $this->transactionDto->toArray($t))->all(),
             'allocations' => $allocations->map(fn (PaymentAllocation $a): array => $this->paymentAllocationDto->toArray($a))->all(),
             'refund_allocations' => $refundAllocations->map(fn (RefundAllocation $a): array => $this->refundAllocationDto->toArray($a))->all(),
+            'disputes' => ProviderDispute::query()
+                ->where('tenant_id', $tenantId)
+                ->where('payment_id', $payment->id)
+                ->orderBy('opened_at')
+                ->get()
+                ->map(fn (ProviderDispute $dispute): array => app(DisputeDto::class)->toArray($dispute, app(MoneyAmountVisibility::class)->allows($request, $tenantId)))
+                ->all(),
         ]));
     }
 }

@@ -12,6 +12,8 @@ use App\Models\Store;
 use App\Support\Browser\CheckOutcomeEvaluator;
 use App\Support\Checkout\CheckoutObservationEvaluator;
 use App\Support\Checkout\PaymentAttemptMonitor;
+use App\Support\Disputes\DisputeIncidents;
+use App\Support\Disputes\DisputeOrders;
 use App\Support\Incidents\IncidentExplainer;
 use App\Support\Integrations\ConnectorFreshness;
 
@@ -21,7 +23,10 @@ class IncidentNotificationContentBuilder
 
     public const TEST_TEMPLATE_VERSION = 'test.v1';
 
-    public function __construct(private readonly IncidentExplainer $explainer) {}
+    public function __construct(
+        private readonly IncidentExplainer $explainer,
+        private readonly DisputeOrders $disputeOrders,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -42,6 +47,10 @@ class IncidentNotificationContentBuilder
 
         if ($incident->family === CheckoutObservationEvaluator::FAMILY) {
             return $this->forCheckoutObservation($incident, $store, $kind, $preferences);
+        }
+
+        if ($incident->family === DisputeIncidents::FAMILY) {
+            return $this->forDispute($incident, $store, $kind, $preferences);
         }
 
         $finding = $this->latestMismatchFinding($incident);
@@ -127,6 +136,47 @@ class IncidentNotificationContentBuilder
                 : null,
             'source' => 'payment_attempts',
             'checked_steps' => ['store_checkout_attempts'],
+            'link' => $this->incidentLink($incident),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function forDispute(Incident $incident, Store $store, string $kind, NotificationPreferences $preferences): array
+    {
+        $dispute = $this->disputeOrders->forIncident($incident->tenant_id, $incident->store_id, $incident->fingerprint);
+        $order = $dispute === null ? null : $this->disputeOrders->order($dispute);
+        $locale = $preferences->locale;
+        $reason = $dispute?->reason;
+
+        return [
+            'kind' => $kind,
+            'locale' => $locale,
+            'timezone' => $preferences->timezone,
+            'store_name' => $store->name,
+            'severity' => $incident->severity,
+            'family' => $incident->family,
+            'component' => $incident->component,
+            'rule_code' => $incident->title_code,
+            'order_number' => $order?->display_number,
+            'currency' => $dispute?->currency,
+            'amount_minor' => $dispute?->amount_minor,
+            'currency_exponent' => $dispute?->currency_exponent,
+            'fact_params' => [
+                'reason' => $reason !== null && trans('notifications.dispute.reason.'.$reason, [], $locale) !== 'notifications.dispute.reason.'.$reason
+                    ? trans('notifications.dispute.reason.'.$reason, [], $locale)
+                    : trans('notifications.dispute.reason.other', [], $locale),
+                'due_at' => $dispute?->evidence_due_by?->toJSON(),
+                'outcome' => trans('notifications.dispute.outcome.'.($dispute?->status ?? 'unknown'), [], $locale),
+            ],
+            'possible_start_from' => null,
+            'possible_start_to' => ($dispute?->opened_at ?? $incident->first_bad_at ?? $incident->first_seen_at)?->toJSON(),
+            'recovered_at' => $kind === NotificationDelivery::KIND_INCIDENT_RECOVERED
+                ? $incident->resolved_at?->toJSON()
+                : null,
+            'source' => 'provider_dispute',
+            'checked_steps' => ['provider_disputes'],
             'link' => $this->incidentLink($incident),
         ];
     }

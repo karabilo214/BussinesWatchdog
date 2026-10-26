@@ -36,7 +36,8 @@
         "deployment.observed",
         "funnel.observed",
         "checkout.payment_attempts",
-        "checkout.observation"
+        "checkout.observation",
+        "dispute.snapshot"
       ]
     },
     "aggregate_type": {
@@ -48,7 +49,8 @@
         "integration",
         "deployment",
         "session",
-        "checkout"
+        "checkout",
+        "dispute"
       ]
     },
     "aggregate_id": {
@@ -758,6 +760,92 @@
           "maximum": 10000
         }
       }
+    },
+    "dispute": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A dispute (chargeback) the payment provider reports for a payment. An informational signal: it never enters the money reconciliation (spec §12, ADR 0081). Independent providers only.",
+      "required": [
+        "payment_external_id",
+        "mode",
+        "currency",
+        "currency_exponent",
+        "amount_minor",
+        "status",
+        "opened_at",
+        "source_authority"
+      ],
+      "properties": {
+        "payment_external_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "aggregate_id of the payment.snapshot this dispute belongs to (Stripe: PaymentIntent id, or the charge id without one)."
+        },
+        "charge_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        },
+        "mode": {
+          "enum": [
+            "live",
+            "test"
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "currency_exponent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "amount_minor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Disputed amount in minor units."
+        },
+        "status": {
+          "enum": [
+            "needs_response",
+            "under_review",
+            "won",
+            "lost",
+            "warning_needs_response",
+            "warning_under_review",
+            "warning_closed",
+            "prevented"
+          ],
+          "description": "Stripe dispute status; warning_* are inquiries that may become a dispute."
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "description": "Provider reason code (Stripe: fraudulent, product_not_received, …)."
+        },
+        "evidence_due_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "Deadline to answer the dispute at the provider; null once it is no longer possible."
+        },
+        "opened_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_authority": {
+          "const": "independent_provider"
+        }
+      }
     }
   },
   "allOf": [
@@ -1015,6 +1103,31 @@
           },
           "data": {
             "$ref": "#/$defs/checkout_observation"
+          }
+        },
+        "required": [
+          "aggregate_revision"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "dispute.snapshot"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "aggregate_type": {
+            "const": "dispute"
+          },
+          "data": {
+            "$ref": "#/$defs/dispute"
           }
         },
         "required": [

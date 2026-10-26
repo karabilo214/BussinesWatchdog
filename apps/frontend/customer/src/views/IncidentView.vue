@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { getIncident } from '@/api/incidents';
 import { getStore } from '@/api/stores';
 import type { IncidentDetail, Store } from '@/api/types';
+import DisputeCard from '@/components/disputes/DisputeCard.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import IncidentActions from '@/components/incidents/IncidentActions.vue';
 import IncidentEvidence from '@/components/incidents/IncidentEvidence.vue';
@@ -108,6 +109,14 @@ watch(
             {{ $t('incident.fields.resolved', { time: dateTime(incident.resolved_at) }) }}
             <template v-if="resolution(incident.resolution_reason)"> — {{ resolution(incident.resolution_reason) }}</template>
           </p>
+        </section>
+
+        <section v-if="incident.dispute" class="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5" aria-labelledby="incident-dispute" data-panel="incident-dispute">
+          <h2 id="incident-dispute" class="text-lg font-semibold">{{ $t('dispute.section_title') }}</h2>
+          <DisputeCard :dispute="incident.dispute" />
+          <RouterLink v-if="incident.order_id" :to="{ name: 'order', params: { id: incident.order_id } }" class="self-start text-sm text-primary hover:underline">
+            {{ $t('dispute.open_order', { order: incident.order_display_number ?? '' }) }}
+          </RouterLink>
         </section>
 
         <IncidentExplanation v-if="incident.explanation?.scenario" :explanation="incident.explanation" />

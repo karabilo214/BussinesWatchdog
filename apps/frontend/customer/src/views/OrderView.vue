@@ -4,6 +4,7 @@ import { recheckMoney } from '@/api/incidents';
 import { allocateRefund, getOrder, revokePaymentAllocation, revokeRefundAllocation } from '@/api/reconciliation';
 import { getStore } from '@/api/stores';
 import type { FinancialTransaction, OrderDetail, Store } from '@/api/types';
+import DisputeCard from '@/components/disputes/DisputeCard.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import ReasonAction from '@/components/ReasonAction.vue';
 import { useIncidentText } from '@/components/incidents/useIncidentText';
@@ -214,6 +215,11 @@ watch(
           <ErrorNotice v-if="recheckError" :error="recheckError" />
           <FindingsTable v-if="order.findings.length > 0" :findings="order.findings" :show-order="false" />
           <p v-else class="text-sm text-text-muted">{{ $t('order.no_findings') }}</p>
+        </section>
+
+        <section v-if="order.disputes && order.disputes.length > 0" class="flex flex-col gap-3 rounded-xl border border-warn-border bg-surface p-5" aria-labelledby="order-disputes" data-panel="order-disputes">
+          <h2 id="order-disputes" class="text-lg font-semibold">{{ $t('dispute.section_title') }}</h2>
+          <DisputeCard v-for="dispute in order.disputes" :key="dispute.id" :dispute="dispute" />
         </section>
 
         <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="order-captures" data-panel="order-captures">

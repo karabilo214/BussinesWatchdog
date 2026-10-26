@@ -93,6 +93,7 @@ class StripeSync
                 $current['backlogs'] = $remaining;
                 $resources[$resource] = $current;
             }
+            $disputes = $this->disputes($integration, $apiKey, $now, $totals);
         } catch (StripeRequestFailed $failure) {
             return $this->fail($integration, $failure);
         }
@@ -107,11 +108,35 @@ class StripeSync
                 'unchanged' => $totals['unchanged'],
                 'skipped' => $totals['skipped'],
                 'complete' => $complete,
+                'disputes' => $disputes,
             ],
             'last_error' => null,
         ], ['last_successful_sync_at' => $now]);
 
         return ['status' => 'ok', 'emitted' => $totals['emitted'], 'unchanged' => $totals['unchanged'], 'complete' => $complete];
+    }
+
+    /**
+     * @param  array{emitted: int, unchanged: int, skipped: array<string, int>}  $totals
+     * @return array{state: string, checked_at: string, complete?: bool}
+     */
+    private function disputes(Integration $integration, string $apiKey, Carbon $now, array &$totals): array
+    {
+        $from = $now->copy()->subDays((int) config('watchdog.stripe.dispute_days'))->getTimestamp();
+
+        try {
+            $page = $this->client->listCreatedSince($apiKey, '/v1/disputes', $from, ['created[lte]' => $now->getTimestamp()]);
+        } catch (StripeRequestFailed $failure) {
+            if ($failure->reasonCode === 'stripe_permission_missing') {
+                return ['state' => 'permission_missing', 'checked_at' => $now->toJSON()];
+            }
+
+            throw $failure;
+        }
+
+        $this->add($totals, $this->ingestor->ingest($integration, $page['objects']));
+
+        return ['state' => 'ok', 'checked_at' => $now->toJSON(), 'complete' => $page['complete']];
     }
 
     /**

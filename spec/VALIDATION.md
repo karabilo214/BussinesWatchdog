@@ -7,7 +7,7 @@
 - Positive Woo ingestion fixture conforms to the used JSON Schema subset
 - Negative event schema fixture checks: 6
 - Unique financial case IDs: 24; exact integer arithmetic checked: 22
-- SQL static structural checks: 67 tables, 111 FK targets/unique keys, index columns and balanced field lists
+- SQL static structural checks: 68 tables, 114 FK targets/unique keys, index columns and balanced field lists
 - 43 numbered TZ sections, 50 unique acceptance IDs, all listed deliverables present
 - Extension: five panel specifications, 16 unique billing cases, 29 additional acceptance scenarios
 

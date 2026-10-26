@@ -4,6 +4,7 @@ namespace App\Support\Ingest;
 
 use App\Models\EventInbox;
 use App\Models\Order;
+use App\Models\ProviderDispute;
 use Illuminate\Support\Str;
 
 class EventPayloadValidator
@@ -187,6 +188,20 @@ class EventPayloadValidator
             EventInbox::EVENT_CHECKOUT_OBSERVATION => $event['aggregate_type'] === EventInbox::AGGREGATE_CHECKOUT
                 && array_key_exists('aggregate_revision', $event)
                 && $this->isCheckoutObservationData($event['aggregate_id'], $data),
+            EventInbox::EVENT_DISPUTE_SNAPSHOT => $event['aggregate_type'] === EventInbox::AGGREGATE_DISPUTE
+                && array_key_exists('aggregate_revision', $event)
+                && $this->hasOnlyKeys($data, ['payment_external_id', 'charge_ref', 'mode', 'currency', 'currency_exponent', 'amount_minor', 'status', 'reason', 'evidence_due_by', 'opened_at', 'source_authority'])
+                && $this->isRequiredString($data, 'payment_external_id')
+                && $this->isOptionalString($data, 'charge_ref', nullable: true)
+                && $this->isRequiredEnum($data, 'mode', ['live', 'test'])
+                && $this->isCurrencyData($data)
+                && $this->isMinorUnits($data['amount_minor'] ?? null)
+                && $this->isRequiredEnum($data, 'status', ProviderDispute::STATUSES)
+                && (($data['reason'] ?? null) === null || (is_string($data['reason']) && preg_match('/^[a-z][a-z0-9_]{0,63}$/', $data['reason']) === 1))
+                && $this->isOptionalDateTime($data, 'evidence_due_by', nullable: true)
+                && is_string($data['opened_at'] ?? null)
+                && $this->isDateTime($data['opened_at'])
+                && $this->isRequiredEnum($data, 'source_authority', ['independent_provider']),
             default => false,
         };
     }

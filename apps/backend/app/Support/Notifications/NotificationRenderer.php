@@ -59,7 +59,7 @@ class NotificationRenderer
         ];
 
         if ($content['amount_minor'] !== null && $content['currency'] !== null && $content['currency_exponent'] !== null) {
-            $lines[] = $this->t('amount', [
+            $lines[] = $this->familyText($content, 'amount', [
                 'amount' => MinorUnits::format((string) $content['amount_minor'], (int) $content['currency_exponent']),
                 'currency' => $content['currency'],
             ], $locale);
@@ -271,7 +271,7 @@ class NotificationRenderer
         $to = $this->time($content['possible_start_to'], $content['timezone']);
 
         if ($content['possible_start_from'] === null) {
-            return $this->t('possible_start.not_later_than', ['to' => $to], $locale);
+            return $this->familyText($content, 'possible_start.not_later_than', ['to' => $to], $locale);
         }
 
         return $this->t('possible_start.between', [

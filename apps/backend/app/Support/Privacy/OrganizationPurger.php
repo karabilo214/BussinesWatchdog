@@ -53,6 +53,7 @@ class OrganizationPurger
         'refund_allocations',
         'payment_allocations',
         'refunds',
+        'provider_disputes',
         'financial_transactions',
         'payments',
         'order_revisions',

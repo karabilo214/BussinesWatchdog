@@ -799,7 +799,9 @@
       "money": "Money",
       "checkout": "Path to payment",
       "checkout_payment": "Payment attempts",
-      "integration": "Store plugin"
+      "integration": "Store plugin",
+      "checkout_observation": "Checkout observation",
+      "dispute": "Payment disputes"
     },
     "title_with_order": "{title} — order {order}",
     "title": {
@@ -826,7 +828,9 @@
       "unknown": "Incident {code}",
       "CHECKOUT_TEST_ACCOUNT_REJECTED": "The shop does not accept the test customer sign-in",
       "CHECKOUT_SCRIPT_SILENT": "Checkout observation receives no data",
-      "CHECKOUT_SUBMIT_FAILING": "Customers submit the order, but no order is created"
+      "CHECKOUT_SUBMIT_FAILING": "Customers submit the order, but no order is created",
+      "DISPUTE_OPEN": "The customer's bank opened a payment dispute",
+      "DISPUTE_INQUIRY": "The customer's bank asked about a payment"
     },
     "advice_title": "What to check",
     "advice": {
@@ -853,7 +857,9 @@
       "unknown": "Open the details below and check the affected part of the store.",
       "CHECKOUT_TEST_ACCOUNT_REJECTED": "Check that the test customer account exists in the shop and is active, and update the e-mail and password in the check settings. This is not a shop failure; until signing in works, payment methods are not checked.",
       "CHECKOUT_SCRIPT_SILENT": "The checkout page is shown, but the observation script is silent. Check the browser console on the checkout page, that the Business Watchdog plugin or app is active and that optimisation plugins or the CSP do not block it. This does not prove that customers cannot pay.",
-      "CHECKOUT_SUBMIT_FAILING": "Place a test order to the end and look at errors on the page and in the logs of the shop and its payment plugins: «Submit order» is sent, but no new orders and no «Thank you» page follow."
+      "CHECKOUT_SUBMIT_FAILING": "Place a test order to the end and look at errors on the page and in the logs of the shop and its payment plugins: «Submit order» is sent, but no new orders and no «Thank you» page follow.",
+      "DISPUTE_OPEN": "Open the dispute in the payment provider's dashboard, check the order and submit evidence (invoice, proof of delivery, correspondence) before the deadline. While the dispute is open, do not refund separately — that can cost the amount twice.",
+      "DISPUTE_INQUIRY": "Answer the inquiry in the payment provider's dashboard before the deadline — otherwise the bank may open a dispute. While it is open, avoid a separate refund unless needed."
     },
     "discrepancy_short": "discrepancy {amount}",
     "last_seen": "last seen {time}",
@@ -863,7 +869,12 @@
       "auto_resolved_successful_payment": "a payment succeeded",
       "auto_resolved_scheduled_checks_passed": "scheduled checks pass again",
       "auto_resolved_check_passed": "the check passed",
-      "auto_resolved_connector_fresh": "the plugin is reporting again"
+      "auto_resolved_connector_fresh": "the plugin is reporting again",
+      "auto_resolved_dispute_won": "the dispute was won",
+      "auto_resolved_dispute_lost": "the dispute was lost",
+      "auto_resolved_dispute_closed": "the dispute or inquiry was closed",
+      "auto_resolved_script_reported": "the observation script reports again",
+      "auto_resolved_order_placed": "customers place orders again"
     },
     "fields": {
       "last_good": "Last known good",
@@ -938,7 +949,9 @@
       "reconciliation_finding": "Money reconciliation",
       "payment_attempts": "Payment attempts",
       "connector_freshness": "Plugin connection",
-      "browser_check": "Path-to-payment check"
+      "browser_check": "Path-to-payment check",
+      "dispute": "Dispute at the payment provider",
+      "checkout_observation": "Checkout observation"
     },
     "confidence": {
       "observed": "observed",
@@ -983,7 +996,8 @@
         "sign_in": "test customer sign-in",
         "guest_details": "guest details"
       },
-      "attempts": "Attempts: {n}."
+      "attempts": "Attempts: {n}.",
+      "dispute_status": "Dispute status: {status}."
     },
     "timeline": {
       "title": "Timeline",
@@ -2097,7 +2111,7 @@
     },
     "why": "Connect Stripe with a read-only key. The key is entered here, not in WordPress, so money data reaches us without passing through the store.",
     "step_dashboard": "In Stripe open Developers → API keys → “Create restricted key”.",
-    "step_permissions": "Grant Read on Payment Intents, Charges and Refunds (optionally Account). No write access is needed.",
+    "step_permissions": "Grant Read on Payment Intents, Charges and Refunds, and on Disputes to see disputes (optionally Account). No write access is needed.",
     "step_paste": "Copy the key (rk_live_… or rk_test_…) and paste it below.",
     "key_label": "Stripe restricted key",
     "key_hint": "The key is checked for read access and stored encrypted; afterwards we only show its last 4 characters.",
@@ -2151,7 +2165,8 @@
       "stripe_request_rejected": "Stripe rejected the request.",
       "stripe_invalid_response": "Stripe returned an unexpected response.",
       "integration_not_active": "Only an active connection can be synchronised."
-    }
+    },
+    "disputes_permission_missing": "Disputes are not visible: the key has no Disputes: Read permission. Add it to the restricted key in Stripe — the rest of the reconciliation works as before."
   },
   "paypal": {
     "official_docs_image": "Screenshot of the official PayPal guide to finding Client ID and Secret",
@@ -2514,5 +2529,45 @@
     "event": { "support_grant.requested": "Access requested", "support_grant.approved": "Access approved", "support_grant.denied": "Access denied", "support_grant.revoked": "Access revoked", "support_access.opened": "Detailed data opened", "support_access.artifact": "Material downloaded", "check_run.support_started": "New check started", "store.support_renamed": "Store name changed by support" },
     "target": { "store": "store data", "order": "order", "check": "check", "artifact": "check material", "incident": "incident" },
     "warning": "Revoking access stops new requests and links immediately. It cannot erase information the employee has already seen or saved."
+  },
+  "dispute": {
+    "title": "Dispute (chargeback)",
+    "inquiry": "Bank inquiry (not a dispute yet)",
+    "section_title": "Payment dispute",
+    "reason_label": "Reason",
+    "amount": "Disputed amount",
+    "opened_at": "Opened",
+    "due_by": "Answer by",
+    "closed_at": "Closed",
+    "note": "A dispute is an informational signal: it does not change the money reconciliation of the order. Answer it in the payment provider's dashboard.",
+    "open_order": "Open order {order}",
+    "status": {
+      "needs_response": "needs response",
+      "under_review": "under review",
+      "won": "won",
+      "lost": "lost",
+      "warning_needs_response": "inquiry: needs response",
+      "warning_under_review": "inquiry under review",
+      "warning_closed": "inquiry closed",
+      "prevented": "prevented"
+    },
+    "reason": {
+      "fraudulent": "the customer does not recognise the payment (fraud)",
+      "product_not_received": "product not received",
+      "product_unacceptable": "product not as described",
+      "duplicate": "duplicate charge",
+      "subscription_canceled": "the subscription was cancelled",
+      "credit_not_processed": "the customer did not receive a promised refund",
+      "unrecognized": "the customer does not recognise the payment",
+      "general": "general",
+      "bank_cannot_process": "the bank cannot process the payment",
+      "check_returned": "the check was returned",
+      "customer_initiated": "initiated by the customer",
+      "debit_not_authorized": "the debit was not authorized",
+      "incorrect_account_details": "incorrect account details",
+      "insufficient_funds": "insufficient funds",
+      "noncompliant": "the payment network's rules were not followed",
+      "other": "not given"
+    }
   }
 }

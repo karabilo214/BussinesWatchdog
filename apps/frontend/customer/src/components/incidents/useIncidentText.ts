@@ -14,7 +14,7 @@ export function useIncidentText() {
   function incidentTitle(incident: Pick<Incident, 'title_code' | 'family' | 'order_display_number'>): string {
     const base = title(incident.title_code);
 
-    return incident.family === 'money' && incident.order_display_number ? t('incident.title_with_order', { title: base, order: incident.order_display_number }) : base;
+    return (incident.family === 'money' || incident.family === 'dispute') && incident.order_display_number ? t('incident.title_with_order', { title: base, order: incident.order_display_number }) : base;
   }
 
   function advice(code: string): string {

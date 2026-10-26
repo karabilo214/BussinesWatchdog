@@ -38,6 +38,8 @@ return [
         'CHECKOUT_TEST_ACCOUNT_REJECTED' => 'Der Shop hat die Anmeldung des Testkunden-Kontos aus den Prüfeinstellungen nicht akzeptiert (falsche E-Mail oder falsches Passwort, oder das Konto ist deaktiviert oder gelöscht). Solange die Anmeldung nicht funktioniert, werden die Zahlungsarten nicht geprüft. Das bedeutet nicht, dass der Shop defekt ist.',
         'CHECKOUT_SCRIPT_SILENT' => 'In den letzten :hours Std. wurde die Checkout- oder Bestellbestätigungsseite :pages Mal angezeigt, aber das Beobachtungsskript von Business Watchdog hat sich kein einziges Mal gemeldet. Möglicherweise ist JavaScript auf der Checkout-Seite defekt oder das Skript blockiert oder entfernt. Das beweist nicht, dass Kunden nicht bezahlen können.',
         'CHECKOUT_SUBMIT_FAILING' => 'In den letzten :hours Std. haben Kunden die Bestellung :sends Mal mit «Zahlungspflichtig bestellen» abgeschickt, aber es ist keine neue Bestellung mit Zahlung entstanden und die Danke-Seite wurde nie geöffnet (hängende Absendungen: :stalled, mit Fehler zurück: :returned_with_error). Der Checkout auf der Website ist wahrscheinlich defekt.',
+        'DISPUTE_OPEN' => 'Die Bank des Kunden hat für die Zahlung der Bestellung :order eine Rückbuchung (Chargeback) eröffnet. Grund: :reason. Antworten Sie beim Zahlungsanbieter bis :due_at.',
+        'DISPUTE_INQUIRY' => 'Die Bank des Kunden hat zur Zahlung der Bestellung :order eine Anfrage gestellt — noch keine Rückbuchung, sie kann aber daraus werden. Grund: :reason. Antworten Sie bis :due_at.',
         'default' => 'Für Bestellung :order wurde eine Abweichung in den Zahlungsdaten festgestellt.',
     ],
     'amount' => 'Abweichung: :amount :currency.',
@@ -51,6 +53,7 @@ return [
         'connector_heartbeat' => 'Quelle: Heartbeats und Sendewarteschlange des Shop-Plugins.',
         'browser_check' => 'Quelle: synthetische Browserprüfung des Kundenwegs, ohne Bestellung.',
         'checkout_observation' => 'Quelle: Beobachtung der Checkout-Seite in den Browsern der Kunden (nur Zähler der Schritte, keine Kundendaten).',
+        'provider_dispute' => 'Quelle: Rückbuchungen beim verbundenen Zahlungsanbieter. Eine Rückbuchung ändert den Geldabgleich der Bestellung nicht.',
     ],
     'checked_steps' => 'Geprüft: :steps.',
     'step' => [
@@ -58,6 +61,7 @@ return [
         'provider_transactions' => 'Transaktionen des Zahlungsanbieters',
         'payment_allocations' => 'Zuordnungen von Zahlungen zu Bestellungen',
         'store_checkout_attempts' => 'Zahlungsversuche im Checkout',
+        'provider_disputes' => 'Rückbuchungen beim Zahlungsanbieter',
         'checkout_script' => 'Checkout-Seite',
         'connector_heartbeat' => 'Heartbeat des Shop-Plugins',
         'connector_delivery' => 'Datenübertragung des Shop-Plugins',
@@ -90,6 +94,7 @@ return [
         'check_scheduler' => 'Zuerst: prüfen Sie, dass geplante Aufgaben auf der Seite laufen (WP-Cron oder Action Scheduler).',
     ],
     'what_to_check' => [
+        'dispute' => 'Öffnen Sie die Rückbuchung im Dashboard des Zahlungsanbieters, prüfen Sie die Bestellung und reichen Sie Nachweise (Rechnung, Zustellnachweis, Korrespondenz) vor Fristende ein. Erstatten Sie nicht zusätzlich, solange die Rückbuchung offen ist — sonst kann der Betrag doppelt verloren gehen.',
         'capture' => 'Bitte prüfen: die Transaktion beim Zahlungsanbieter und den Zahlungsstatus der Bestellung.',
         'refund' => 'Bitte prüfen: die Erstattung beim Zahlungsanbieter und im Shop.',
         'payment_without_order' => 'Bitte prüfen: zu welcher Bestellung die Zahlung gehört, und sie bei Bedarf manuell zuordnen.',
@@ -112,6 +117,22 @@ return [
         'restored' => 'Wiederhergestellt: Abgleich der Bestellung mit dem Zahlungsanbieter.',
     ],
     'family' => [
+        'dispute' => [
+            'subject' => [
+                'opened' => '[:store] Rückbuchung zu einer Bestellung',
+                'reopened' => '[:store] Rückbuchung erneut eröffnet',
+                'reminder' => '[:store] Frist zur Antwort auf eine Rückbuchung läuft bald ab',
+                'recovered' => '[:store] Rückbuchung abgeschlossen',
+            ],
+            'amount' => 'Betrag der Rückbuchung: :amount :currency.',
+            'possible_start' => [
+                'not_later_than' => 'Eröffnet: :to.',
+            ],
+            'recovery' => [
+                'fact' => 'Die Rückbuchung zur Bestellung :order ist abgeschlossen: :outcome.',
+                'restored' => 'Details finden Sie im Vorfall und im Dashboard des Zahlungsanbieters.',
+            ],
+        ],
         'checkout' => [
             'subject' => [
                 'opened' => '[:store] :severity: Checkout-Prüfung schlägt fehl',
@@ -299,5 +320,32 @@ return [
     'verification' => [
         'subject' => 'Business Watchdog: Bestätigungscode',
         'body' => 'Bestätigungscode für den Benachrichtigungskanal: :code. Der Code ist :minutes Minuten gültig.',
+    ],
+    'dispute' => [
+        'outcome' => [
+            'won' => 'gewonnen, der Betrag wurde dem Shop zurückgebucht',
+            'lost' => 'verloren, der Betrag ging an den Kunden zurück',
+            'warning_closed' => 'die Anfrage wurde ohne Rückbuchung geschlossen',
+            'prevented' => 'die Rückbuchung wurde verhindert',
+            'unknown' => 'Ausgang unbekannt',
+        ],
+        'reason' => [
+            'bank_cannot_process' => 'die Bank kann die Zahlung nicht verarbeiten',
+            'check_returned' => 'Scheck zurückgegeben',
+            'credit_not_processed' => 'der Kunde hat eine zugesagte Erstattung nicht erhalten',
+            'customer_initiated' => 'vom Kunden veranlasst',
+            'debit_not_authorized' => 'die Abbuchung war nicht autorisiert',
+            'duplicate' => 'doppelte Abbuchung',
+            'fraudulent' => 'der Kunde erkennt die Zahlung nicht an (Betrug)',
+            'general' => 'allgemein',
+            'incorrect_account_details' => 'falsche Kontodaten',
+            'insufficient_funds' => 'keine ausreichende Deckung',
+            'noncompliant' => 'Regeln des Kartennetzes nicht eingehalten',
+            'product_not_received' => 'Ware nicht erhalten',
+            'product_unacceptable' => 'Ware nicht wie beschrieben',
+            'subscription_canceled' => 'das Abonnement wurde gekündigt',
+            'unrecognized' => 'der Kunde erkennt die Zahlung nicht',
+            'other' => 'nicht angegeben',
+        ],
     ],
 ];

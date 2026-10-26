@@ -63,6 +63,10 @@ function facts(signal: Signal): string[] {
     }
   }
 
+  if (signal.signal_type === 'dispute') {
+    lines.push(t('incident.facts.dispute_status', { status: translated('dispute.status', evidence.status) ?? text(evidence.status) ?? '—' }));
+  }
+
   if (signal.signal_type === 'browser_check') {
     lines.push(translated('incident.facts.check_error', evidence.error_code) ?? t('incident.facts.check_status', { status: text(evidence.run_status) ?? '—' }));
 

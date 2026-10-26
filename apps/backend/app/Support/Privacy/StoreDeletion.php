@@ -18,7 +18,7 @@ class StoreDeletion
         'check_steps', 'artifacts', 'check_attempts', 'check_runs', 'check_scenarios',
         'incident_signals', 'incident_activity', 'suppressions', 'incidents', 'signals',
         'reconciliation_subject_states', 'reconciliation_findings', 'reconciliation_runs', 'reconciliation_dirty_subjects',
-        'refund_allocations', 'payment_allocations', 'refunds', 'financial_transactions', 'payments', 'order_revisions', 'orders',
+        'refund_allocations', 'payment_allocations', 'refunds', 'provider_disputes', 'financial_transactions', 'payments', 'order_revisions', 'orders',
         'payment_attempt_windows', 'observed_payment_attempts', 'checkout_observation_windows', 'checkout_observation_collected_reports',
         'provider_object_states', 'event_inbox', 'integration_credentials', 'integrations', 'pairing_codes', 'store_verifications',
         'store_order_volumes', 'exports', 'audit_log',

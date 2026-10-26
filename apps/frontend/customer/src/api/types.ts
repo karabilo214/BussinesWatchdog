@@ -210,6 +210,7 @@ export interface ProviderSyncHealth {
   skipped?: Record<string, number>;
   complete?: boolean;
   search_refreshed_at?: string | null;
+  disputes?: { state: 'ok' | 'permission_missing'; checked_at: string; complete?: boolean };
 }
 
 export interface Integration {
@@ -246,7 +247,26 @@ export interface Integration {
 
 export type IncidentState = 'open' | 'acknowledged' | 'resolved';
 export type IncidentSeverity = 'info' | 'warning' | 'critical';
-export type IncidentFamily = 'money' | 'checkout' | 'checkout_payment' | 'integration';
+export type IncidentFamily = 'money' | 'checkout' | 'checkout_payment' | 'checkout_observation' | 'integration' | 'dispute';
+
+export interface Dispute {
+  id: string;
+  external_id: string;
+  payment_id: string | null;
+  provider: string | null;
+  mode: 'live' | 'test';
+  status: 'needs_response' | 'under_review' | 'won' | 'lost' | 'warning_needs_response' | 'warning_under_review' | 'warning_closed' | 'prevented';
+  open: boolean;
+  reason: string | null;
+  currency: string;
+  currency_exponent: number;
+  /** Null without money.view. */
+  amount_minor: string | null;
+  money_amounts_hidden: boolean;
+  evidence_due_by: string | null;
+  opened_at: string;
+  closed_at: string | null;
+}
 
 export interface Incident {
   id: string;
@@ -263,6 +283,7 @@ export interface Incident {
   currency_exponent: number | null;
   verified_discrepancy_minor: string | null;
   money_amounts_hidden?: boolean;
+  dispute?: Dispute | null;
   first_seen_at: string;
   last_seen_at: string;
   last_good_at: string | null;
@@ -278,7 +299,7 @@ export interface Incident {
 
 export interface Signal {
   id: string;
-  signal_type: 'reconciliation_finding' | 'payment_attempts' | 'connector_freshness' | 'browser_check';
+  signal_type: 'reconciliation_finding' | 'payment_attempts' | 'connector_freshness' | 'browser_check' | 'checkout_observation' | 'dispute';
   family: string;
   component: string;
   severity: IncidentSeverity;
@@ -478,6 +499,7 @@ export interface OrderDetail extends Order {
   allocations: PaymentAllocation[];
   refund_allocations: RefundAllocation[];
   revisions: OrderRevision[];
+  disputes?: Dispute[];
 }
 
 export interface UnmatchedCandidate {

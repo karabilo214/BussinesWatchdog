@@ -38,6 +38,8 @@ return [
         'CHECKOUT_TEST_ACCOUNT_REJECTED' => 'The shop did not accept the sign-in of the test customer account set in the check settings (wrong e-mail or password, or the account is disabled or deleted). Until signing in works, payment methods are not checked. This does not mean the shop is broken.',
         'CHECKOUT_SCRIPT_SILENT' => 'In the last :hours h the checkout or order confirmation page was shown :pages times, but the Business Watchdog observation script never reported. JavaScript on the checkout page may be broken, or the script blocked or removed. This does not prove that customers cannot pay.',
         'CHECKOUT_SUBMIT_FAILING' => 'In the last :hours h customers sent the order with «Submit order» :sends times, but no new order with a payment appeared and the «Thank you» page never opened (stalled sends: :stalled, returned with an error: :returned_with_error). The checkout on the site is probably broken.',
+        'DISPUTE_OPEN' => 'The customer\'s bank opened a dispute (chargeback) for the payment of order :order. Reason: :reason. Answer it at the payment provider by :due_at.',
+        'DISPUTE_INQUIRY' => 'The customer\'s bank asked about the payment of order :order — not a dispute yet, but it may become one. Reason: :reason. Answer by :due_at.',
         'default' => 'A payment data discrepancy was found for order :order.',
     ],
     'amount' => 'Discrepancy: :amount :currency.',
@@ -51,6 +53,7 @@ return [
         'connector_heartbeat' => 'Source: heartbeats and the delivery queue of the store plugin.',
         'browser_check' => 'Source: synthetic browser check of the customer path, without placing an order.',
         'checkout_observation' => 'Source: observation of the checkout page in shoppers\' browsers (stage counters only, no shopper data).',
+        'provider_dispute' => 'Source: disputes in the connected payment provider. A dispute does not change the money reconciliation of the order.',
     ],
     'checked_steps' => 'Checked: :steps.',
     'step' => [
@@ -58,6 +61,7 @@ return [
         'provider_transactions' => 'payment provider transactions',
         'payment_allocations' => 'payment-to-order links',
         'store_checkout_attempts' => 'payment attempts at checkout',
+        'provider_disputes' => 'payment provider disputes',
         'checkout_script' => 'checkout page',
         'connector_heartbeat' => 'store plugin heartbeat',
         'connector_delivery' => 'store plugin data delivery',
@@ -90,6 +94,7 @@ return [
         'check_scheduler' => 'Start here: check that scheduled tasks run on the site (WP-Cron or Action Scheduler).',
     ],
     'what_to_check' => [
+        'dispute' => 'Open the dispute in the payment provider\'s dashboard, check the order and submit evidence (invoice, proof of delivery, correspondence) before the deadline. While the dispute is open, do not refund separately — that can cost the amount twice.',
         'capture' => 'What to check: the transaction in the payment provider and the order payment status.',
         'refund' => 'What to check: the refund in the payment provider and in the store.',
         'payment_without_order' => 'What to check: which order the payment belongs to, and link it manually if needed.',
@@ -112,6 +117,22 @@ return [
         'restored' => 'Restored: order reconciliation against the payment provider.',
     ],
     'family' => [
+        'dispute' => [
+            'subject' => [
+                'opened' => '[:store] Payment dispute for an order',
+                'reopened' => '[:store] Payment dispute reopened',
+                'reminder' => '[:store] The answer to a payment dispute is due soon',
+                'recovered' => '[:store] Payment dispute closed',
+            ],
+            'amount' => 'Disputed amount: :amount :currency.',
+            'possible_start' => [
+                'not_later_than' => 'Opened: :to.',
+            ],
+            'recovery' => [
+                'fact' => 'The payment dispute for order :order is closed: :outcome.',
+                'restored' => 'Details are in the incident and in the payment provider\'s dashboard.',
+            ],
+        ],
         'checkout' => [
             'subject' => [
                 'opened' => '[:store] :severity: checkout check failing',
@@ -299,5 +320,32 @@ return [
     'verification' => [
         'subject' => 'Business Watchdog: verification code',
         'body' => 'Notification channel verification code: :code. The code is valid for :minutes minutes.',
+    ],
+    'dispute' => [
+        'outcome' => [
+            'won' => 'won, the amount was returned to the store',
+            'lost' => 'lost, the amount went back to the customer',
+            'warning_closed' => 'the inquiry was closed without a dispute',
+            'prevented' => 'the dispute was prevented',
+            'unknown' => 'outcome unknown',
+        ],
+        'reason' => [
+            'bank_cannot_process' => 'the bank cannot process the payment',
+            'check_returned' => 'the check was returned',
+            'credit_not_processed' => 'the customer did not receive a promised refund',
+            'customer_initiated' => 'initiated by the customer',
+            'debit_not_authorized' => 'the debit was not authorized',
+            'duplicate' => 'duplicate charge',
+            'fraudulent' => 'the customer does not recognise the payment (fraud)',
+            'general' => 'general',
+            'incorrect_account_details' => 'incorrect account details',
+            'insufficient_funds' => 'insufficient funds',
+            'noncompliant' => 'the payment network\'s rules were not followed',
+            'product_not_received' => 'product not received',
+            'product_unacceptable' => 'product not as described',
+            'subscription_canceled' => 'the subscription was cancelled',
+            'unrecognized' => 'the customer does not recognise the payment',
+            'other' => 'not given',
+        ],
     ],
 ];

@@ -3,12 +3,14 @@
 namespace App\Support\Providers\Stripe;
 
 use App\Models\Integration;
+use App\Models\ProviderDispute;
 use App\Support\Payments\StoreOrigin;
+use Illuminate\Support\Carbon;
 
 /**
  * Stripe objects → normalized event bodies (without event id and timestamps). Payment status comes from the
  * PaymentIntent, so a failed retry never overrides a successful charge; a charge becomes a capture operation only
- * once it is captured; refunds are separate operations. Objects of the other mode (test/live) are ignored.
+ * once it is captured; refunds are separate operations; disputes are informational snapshots (ADR 0081). Objects of the other mode (test/live) are ignored.
  *
  * @phpstan-type Draft array{type: string, aggregate_type: string, aggregate_id: string, created: int, data: array<string, mixed>}
  */
@@ -40,6 +42,7 @@ class StripeEventMapper
             'payment_intent' => [$this->intentSnapshot($integration, $object, $exponent)],
             'charge' => $this->charge($integration, $object, $exponent),
             'refund' => array_values(array_filter([$this->refund($integration, $object, $exponent)])),
+            'dispute' => array_values(array_filter([$this->dispute($integration, $object, $exponent)])),
             default => [],
         };
 
@@ -116,6 +119,47 @@ class StripeEventMapper
         };
 
         return $this->transactionDraft($integration, (string) $refund['id'], 'refund', $status, $paymentId, $amount, $refund, $exponent);
+    }
+
+    /**
+     * @param  array<string, mixed>  $dispute
+     * @return array<string, mixed>|null
+     */
+    private function dispute(Integration $integration, array $dispute, int $exponent): ?array
+    {
+        $chargeId = $this->id($dispute['charge'] ?? null);
+        $paymentId = $this->id($dispute['payment_intent'] ?? null) ?? $chargeId;
+        $amount = $dispute['amount'] ?? null;
+        $status = $dispute['status'] ?? null;
+
+        if ($paymentId === null || ! is_int($amount) || $amount < 0 || ! in_array($status, ProviderDispute::STATUSES, true)) {
+            return null;
+        }
+
+        $reason = is_string($dispute['reason'] ?? null) && preg_match('/^[a-z][a-z0-9_]{0,63}$/', $dispute['reason']) === 1 ? $dispute['reason'] : null;
+        $dueBy = $dispute['evidence_details']['due_by'] ?? null;
+        $created = (int) ($dispute['created'] ?? time());
+
+        return [
+            'type' => 'dispute.snapshot',
+            'aggregate_type' => 'dispute',
+            'aggregate_id' => (string) $dispute['id'],
+            'created' => $created,
+            'revisioned' => true,
+            'data' => [
+                'payment_external_id' => $paymentId,
+                'charge_ref' => $chargeId,
+                'mode' => $integration->mode,
+                'currency' => strtoupper((string) $dispute['currency']),
+                'currency_exponent' => $exponent,
+                'amount_minor' => (string) $amount,
+                'status' => $status,
+                'reason' => $reason,
+                'evidence_due_by' => is_int($dueBy) ? Carbon::createFromTimestampUTC($dueBy)->toJSON() : null,
+                'opened_at' => Carbon::createFromTimestampUTC($created)->toJSON(),
+                'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+            ],
+        ];
     }
 
     /**

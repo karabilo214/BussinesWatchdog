@@ -398,6 +398,41 @@ CREATE TABLE financial_transactions (
 CREATE INDEX transactions_window_idx ON financial_transactions(tenant_id,store_id,occurred_at);
 CREATE INDEX transactions_payment_idx ON financial_transactions(payment_id,kind,status);
 
+-- Disputes (chargebacks) reported by an independent provider: an informational signal, never part of the money
+-- reconciliation (spec §12, ADR 0081).
+CREATE TABLE provider_disputes (
+ id uuid PRIMARY KEY,
+ tenant_id uuid NOT NULL,
+ store_id uuid NOT NULL,
+ integration_id uuid NOT NULL,
+ payment_id uuid,
+ external_id varchar(255) NOT NULL,
+ payment_external_id varchar(255) NOT NULL,
+ charge_ref varchar(255),
+ mode varchar(8) NOT NULL CHECK (mode IN ('live','test')),
+ currency varchar(3) NOT NULL,
+ currency_exponent smallint NOT NULL,
+ amount_minor bigint NOT NULL CHECK (amount_minor>=0),
+ status varchar(32) NOT NULL CHECK (status IN ('needs_response','under_review','won','lost','warning_needs_response','warning_under_review','warning_closed','prevented')),
+ reason varchar(64),
+ evidence_due_by timestamptz,
+ opened_at timestamptz NOT NULL,
+ closed_at timestamptz,
+ reminded_at timestamptz,
+ incident_fingerprint char(64) NOT NULL,
+ source_revision bigint NOT NULL,
+ source_event_id uuid,
+ created_at timestamptz NOT NULL,
+ updated_at timestamptz NOT NULL,
+ UNIQUE (integration_id,external_id),
+ FOREIGN KEY (tenant_id,store_id) REFERENCES stores(tenant_id,id),
+ FOREIGN KEY (tenant_id,store_id,integration_id) REFERENCES integrations(tenant_id,store_id,id),
+ FOREIGN KEY (tenant_id,store_id,payment_id) REFERENCES payments(tenant_id,store_id,id)
+);
+CREATE INDEX provider_disputes_store_status_idx ON provider_disputes(tenant_id,store_id,status);
+CREATE INDEX provider_disputes_payment_idx ON provider_disputes(payment_id);
+CREATE INDEX provider_disputes_fingerprint_idx ON provider_disputes(tenant_id,incident_fingerprint);
+
 CREATE TABLE payment_allocations (
  id uuid PRIMARY KEY,
  tenant_id uuid NOT NULL,

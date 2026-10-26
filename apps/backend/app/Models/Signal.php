@@ -34,6 +34,8 @@ class Signal extends Model
 
     public const TYPE_CHECKOUT_OBSERVATION = 'checkout_observation';
 
+    public const TYPE_DISPUTE = 'dispute';
+
     public $timestamps = false;
 
     protected $fillable = [

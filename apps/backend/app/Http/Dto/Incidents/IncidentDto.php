@@ -2,11 +2,14 @@
 
 namespace App\Http\Dto\Incidents;
 
+use App\Http\Dto\Disputes\DisputeDto;
 use App\Models\Incident;
 use App\Models\IncidentSignal;
 use App\Models\Order;
 use App\Models\ReconciliationFinding;
 use App\Models\Signal;
+use App\Support\Disputes\DisputeIncidents;
+use App\Support\Disputes\DisputeOrders;
 use Illuminate\Support\Collection;
 
 class IncidentDto
@@ -17,6 +20,14 @@ class IncidentDto
     public function toArray(Incident $incident, ?array $facts = null, bool $showMoneyAmounts = true): array
     {
         $facts ??= $this->findingFacts(collect([$incident]))[$incident->id] ?? [];
+        $dispute = $incident->family === DisputeIncidents::FAMILY
+            ? app(DisputeOrders::class)->forIncident($incident->tenant_id, $incident->store_id, $incident->fingerprint)
+            : null;
+
+        if ($dispute !== null) {
+            $order = app(DisputeOrders::class)->order($dispute);
+            $facts += array_filter(['order_id' => $order?->id, 'order_display_number' => $order?->display_number], fn (mixed $value): bool => $value !== null);
+        }
 
         return [
             'id' => $incident->id,
@@ -34,7 +45,8 @@ class IncidentDto
             'verified_discrepancy_minor' => ! $showMoneyAmounts || $incident->verified_discrepancy_minor === null
                 ? null
                 : (string) $incident->verified_discrepancy_minor,
-            'money_amounts_hidden' => ! $showMoneyAmounts && $incident->family === 'money',
+            'money_amounts_hidden' => ! $showMoneyAmounts && in_array($incident->family, ['money', DisputeIncidents::FAMILY], true),
+            'dispute' => $dispute === null ? null : app(DisputeDto::class)->toArray($dispute, $showMoneyAmounts),
             'first_seen_at' => $incident->first_seen_at?->toJSON(),
             'last_seen_at' => $incident->last_seen_at?->toJSON(),
             'last_good_at' => $incident->last_good_at?->toJSON(),
