@@ -567,6 +567,8 @@
     }
   },
   "errors": {
+    "email_unchanged": "This is already your address.",
+    "email_change_not_pending": "There is no pending address change.",
     "permission_not_assignable": "You cannot give this permission: you do not have it or only the owner does.",
     "platform_change_only": "Change the platform separately from other settings.",
     "woocommerce_challenge": "The WooCommerce API returned a protection page. Allow this service to access /wp-json/ without CAPTCHA or browser challenges, then try again.",
@@ -1958,6 +1960,7 @@
       "revoke_all": "Sign out everywhere",
       "device": {"Chrome": "Chrome", "Edge": "Edge", "Firefox": "Firefox", "Safari": "Safari", "other": "Other browser", "unknown": "Unknown device"}
     },
+    "email_change": {"open": "Change e-mail", "explain": "The address changes only after it is confirmed with the link sent to the new address. The current address is notified at once. Addresses of notification channels and at Paddle do not change.", "new_email": "New e-mail", "submit": "Send the link", "pending": "Waiting for confirmation: {email} (link valid until {time}).", "pending_hint": "Open the link sent to the new address. Until it is confirmed, sign in with the current address.", "resend": "Send again", "resent": "Email sent.", "cancel": "Cancel the change", "changed": "Your e-mail address was changed. Sign in with the new address.", "stopped": "The address change was stopped and every session ended. We recommend changing your password with “Forgot your password?”.", "link_invalid": "The link is invalid or expired. Request the address change again in your profile."},
     "profile": {
       "title": "Profile",
       "salutation": "Salutation",

@@ -13,6 +13,11 @@ export interface PersonalName {
   company_name: string | null;
 }
 
+export interface PendingEmailChange {
+  email: string;
+  expires_at: string;
+}
+
 export interface User extends PersonalName {
   id: string;
   name: string;
@@ -20,6 +25,8 @@ export interface User extends PersonalName {
   locale: Locale;
   email_verified: boolean;
   mfa_enabled: boolean;
+  /** Step 267: the new address waiting for its confirmation link; sign-in still uses `email`. */
+  pending_email_change: PendingEmailChange | null;
 }
 
 export interface Membership {

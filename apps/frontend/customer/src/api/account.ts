@@ -1,6 +1,6 @@
 import { ensureCsrfCookie, request } from '@bw/api-client';
 import { Passkeys } from '@laravel/passkeys';
-import type { AuthSession, InvitationLookup, Locale, PermissionCatalog, PersonalName, MfaSetup, MfaState, OrganizationDeletionState, PresetRole, TeamInvitation, TeamMember, TenantPermission } from './types';
+import type { AuthSession, InvitationLookup, Locale, PendingEmailChange, PermissionCatalog, PersonalName, MfaSetup, MfaState, OrganizationDeletionState, PresetRole, TeamInvitation, TeamMember, TenantPermission } from './types';
 
 export async function requestPasswordReset(email: string): Promise<void> {
   await request('POST', '/api/v1/auth/password-reset/request', { body: { email } });
@@ -16,6 +16,18 @@ export async function resendEmailVerification(): Promise<void> {
 
 export async function updateProfile(changes: Partial<PersonalName> & { locale?: Locale }): Promise<AuthSession> {
   return (await request<AuthSession>('PATCH', '/api/v1/auth/me', { body: changes })).data;
+}
+
+export async function requestEmailChange(email: string, currentPassword: string, code: string | null): Promise<PendingEmailChange> {
+  return (await request<PendingEmailChange>('POST', '/api/v1/auth/email-change', { body: { email, current_password: currentPassword, code } })).data;
+}
+
+export async function resendEmailChange(): Promise<PendingEmailChange> {
+  return (await request<PendingEmailChange>('POST', '/api/v1/auth/email-change/resend')).data;
+}
+
+export async function cancelEmailChange(): Promise<void> {
+  await request('POST', '/api/v1/auth/email-change/cancel');
 }
 
 export async function changePassword(currentPassword: string, password: string): Promise<void> {

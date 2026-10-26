@@ -11,7 +11,7 @@ import NotificationsView from '@/views/NotificationsView.vue';
 import { permissionsFor } from './permissions';
 
 const session = ref<unknown>({
-  user: { id: 'u-1', name: 'Me', email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: false },
+  user: { id: 'u-1', name: 'Me', email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: false, pending_email_change: null },
   active_tenant_id: 't-1',
   memberships: [{ tenant_id: 't-1', role: 'owner', permissions: permissionsFor('owner'), created_at: '2026-10-01T00:00:00Z' }],
 });

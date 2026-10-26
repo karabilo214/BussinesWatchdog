@@ -10,6 +10,7 @@ use App\Models\BillingPrice;
 use App\Models\BillingSubscriptionContract;
 use App\Models\BillingTransaction;
 use App\Models\DataDeletionRequest;
+use App\Models\EmailChangeRequest;
 use App\Models\Integration;
 use App\Models\Membership;
 use App\Models\PlatformStaff;
@@ -133,6 +134,7 @@ class OrganizationDeletionTest extends TestCase
         $tenant = $context['tenant'];
         $onlyHere = $context['user'];
         $onlyHere->forceFill(['salutation' => 'ms', 'first_name' => 'Anna', 'company_name' => 'Anna Shop GmbH'])->save();
+        EmailChangeRequest::query()->create(['user_id' => $onlyHere->id, 'new_email' => 'anna.new@example.test', 'cancel_token_hash' => str_repeat('d', 64), 'expires_at' => now()->addDays(40)]);
         $shared = $this->context('admin', $tenant)['user'];
         $other = $this->context();
         Membership::query()->create(['tenant_id' => $other['tenant']->id, 'user_id' => $shared->id, 'role' => 'viewer']);
@@ -178,6 +180,7 @@ class OrganizationDeletionTest extends TestCase
         $this->assertSame('deleted-'.$onlyHere->id.'@deleted.invalid', $anonymized->email);
         $this->assertSame('Deleted user', $anonymized->name);
         $this->assertSame([null, null, 'Deleted user', null], [$anonymized->salutation, $anonymized->first_name, $anonymized->last_name, $anonymized->company_name]);
+        $this->assertSame(0, EmailChangeRequest::query()->where('user_id', $onlyHere->id)->count());
         $this->assertNotNull($anonymized->disabled_at);
         $this->assertSame($shared->email, $shared->fresh()->email);
 

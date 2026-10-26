@@ -567,6 +567,8 @@
     }
   },
   "errors": {
+    "email_unchanged": "Das ist bereits Ihre Adresse.",
+    "email_change_not_pending": "Es gibt keine ausstehende Adressänderung.",
     "permission_not_assignable": "Dieses Recht können Sie nicht vergeben: Sie haben es nicht oder nur der Inhaber hat es.",
     "platform_change_only": "Ändern Sie die Plattform getrennt von anderen Einstellungen.",
     "woocommerce_challenge": "Die WooCommerce-API zeigt eine Schutzseite. Erlauben Sie dem Dienst den Zugriff auf /wp-json/ ohne CAPTCHA oder Browserprüfung und versuchen Sie es erneut.",
@@ -1958,6 +1960,7 @@
       "revoke_all": "Überall abmelden",
       "device": {"Chrome": "Chrome", "Edge": "Edge", "Firefox": "Firefox", "Safari": "Safari", "other": "Anderer Browser", "unknown": "Unbekanntes Gerät"}
     },
+    "email_change": {"open": "E-Mail ändern", "explain": "Die Adresse ändert sich erst nach Bestätigung über den Link an die neue Adresse. Die bisherige Adresse wird sofort benachrichtigt. Adressen von Benachrichtigungskanälen und bei Paddle ändern sich nicht.", "new_email": "Neue E-Mail", "submit": "Link senden", "pending": "Wartet auf Bestätigung: {email} (Link gültig bis {time}).", "pending_hint": "Öffnen Sie den Link an die neue Adresse. Bis zur Bestätigung melden Sie sich mit der bisherigen Adresse an.", "resend": "Erneut senden", "resent": "E-Mail gesendet.", "cancel": "Änderung abbrechen", "changed": "Ihre E-Mail-Adresse wurde geändert. Melden Sie sich mit der neuen Adresse an.", "stopped": "Die Adressänderung wurde abgebrochen, alle Sitzungen wurden beendet. Ändern Sie am besten Ihr Passwort über „Passwort vergessen?“.", "link_invalid": "Der Link ist ungültig oder abgelaufen. Fordern Sie die Adressänderung im Profil erneut an."},
     "profile": {
       "title": "Profil",
       "salutation": "Anrede",

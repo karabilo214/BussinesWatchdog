@@ -9,7 +9,7 @@ import CheckRunView from '@/views/CheckRunView.vue';
 import { permissionsFor } from './permissions';
 
 const session = ref<AuthSession | null>({
-  user: { id: 'u-1', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: true },
+  user: { id: 'u-1', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: true, pending_email_change: null },
   active_tenant_id: 't-1',
   memberships: [{ tenant_id: 't-1', role: 'owner', permissions: permissionsFor('owner'), created_at: '2026-10-01T00:00:00Z' }],
 });

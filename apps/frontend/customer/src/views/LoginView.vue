@@ -18,8 +18,15 @@ const code = ref('');
 const rememberDevice = ref(false);
 const codeInput = ref<HTMLInputElement | null>(null);
 const submitting = ref(false);
-const errorKey = ref<string | null>(route.query.expired === '1' ? 'auth.session_expired' : null);
-const infoKey = route.query.reset === '1' ? 'account.reset.done' : null;
+const EMAIL_LINK_FAILED = route.query.email_changed === '0' || route.query.email_change_cancelled === '0';
+const errorKey = ref<string | null>(route.query.expired === '1' ? 'auth.session_expired' : EMAIL_LINK_FAILED ? 'account.email_change.link_invalid' : null);
+const infoKey = route.query.reset === '1'
+  ? 'account.reset.done'
+  : route.query.email_changed === '1'
+    ? 'account.email_change.changed'
+    : route.query.email_change_cancelled === '1'
+      ? 'account.email_change.stopped'
+      : null;
 
 onMounted(() => {
   passkeySupported.value = Passkeys.isSupported();

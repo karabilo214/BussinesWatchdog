@@ -4,6 +4,7 @@ import { LOCALE_NAMES, LOCALES, SET_LOCALE } from '@bw/i18n';
 import { changePassword, resendEmailVerification, updateProfile } from '@/api/account';
 import type { Locale, PersonalName } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import EmailChangePanel from '@/components/account/EmailChangePanel.vue';
 import { fieldErrorsOf } from '@/composables/errors';
 import MfaPanel from '@/components/account/MfaPanel.vue';
 import SessionsPanel from '@/components/account/SessionsPanel.vue';
@@ -107,6 +108,7 @@ async function savePassword(): Promise<void> {
           <span v-if="resendState === 'sent'" class="text-ok" role="status">{{ $t('account.verify.sent') }}</span>
         </div>
         <ErrorNotice v-if="resendError" :error="resendError" />
+        <EmailChangePanel />
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="saveProfile">
           <PersonalNameFields v-model="personal" id-prefix="profile" />
           <div class="flex flex-col gap-1.5">

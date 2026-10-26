@@ -146,4 +146,20 @@ return [
         'body' => "Hallo,\n\nIhre Rechte im Business-Watchdog-Konto von „:tenant“ wurden geändert. Die Änderung gilt bereits.\n\nHinzugefügt:\n:added\n\nEntfernt:\n:removed\n\nMitglieder und Rechte: :link\n\nFalls Sie das nicht erwartet haben, wenden Sie sich an den Inhaber der Organisation.",
         'none' => '— keine',
     ],
+    'email_change_requested' => [
+        'subject' => 'Business Watchdog: Änderung der E-Mail-Adresse angefordert',
+        'body' => "Hallo,\n\nFür Ihr Business-Watchdog-Konto wurde die Änderung der Anmeldeadresse auf :email angefordert. Die Adresse ändert sich erst, wenn sie über den Link an die neue Adresse bestätigt wird; bis dahin melden Sie sich mit dieser Adresse an.\n\nWenn Sie das nicht waren, öffnen Sie den Link – die Änderung wird abgebrochen und alle Sitzungen enden:\n:link\n\nÄndern Sie danach am besten Ihr Passwort über „Passwort vergessen?“ auf der Anmeldeseite.",
+    ],
+    'email_change_confirm' => [
+        'subject' => 'Business Watchdog: Neue E-Mail-Adresse bestätigen',
+        'body' => "Hallo,\n\nDiese Adresse wurde als neue Anmeldeadresse für Business Watchdog angegeben. Zum Bestätigen öffnen Sie den Link (gültig :hours Stunden):\n:link\n\nNach der Bestätigung enden alle Sitzungen – melden Sie sich mit dieser Adresse neu an. Wenn Sie keine Änderung angefordert haben, ignorieren Sie diese E-Mail einfach.",
+    ],
+    'email_change_address_taken' => [
+        'subject' => 'Business Watchdog: Diese Adresse wird bereits verwendet',
+        'body' => "Hallo,\n\nJemand wollte diese Adresse als Anmeldeadresse eines anderen Business-Watchdog-Kontos verwenden, doch sie gehört bereits zu einem Konto – die Änderung ist nicht möglich. Es hat sich nichts geändert.\n\nWenn es Ihr Konto ist und Sie das Passwort vergessen haben, setzen Sie es zurück:\n:link\n\nWenn Sie nichts angefordert haben, ignorieren Sie diese E-Mail einfach.",
+    ],
+    'email_changed' => [
+        'subject' => 'Business Watchdog: E-Mail-Adresse geändert',
+        'body' => "Hallo,\n\nDie Anmeldeadresse Ihres Business-Watchdog-Kontos wurde auf :email geändert. Alle Sitzungen wurden beendet. Kontobezogene E-Mails gehen jetzt an die neue Adresse.\n\nWenn Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail an den Support.",
+    ],
 ];

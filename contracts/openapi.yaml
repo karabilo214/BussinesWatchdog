@@ -3406,6 +3406,88 @@ paths:
       responses:
         "302": {description: Redirect to the dashboard with the result}
         "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/email-change:
+    post:
+      tags: [Auth]
+      operationId: requestEmailChange
+      security:
+        - {UserSession: []}
+      description: "Step 267: the user changes only their own sign-in address. Needs the current password and, with MFA on, a code (422 current_password / code). The old address is warned at once with a cancel link (the new address masked); the new address gets a one-time confirmation link valid 24 h; a new request replaces the previous one. Nothing changes until the link is opened. The answer is the same when another account already uses the address — that address only gets a letter saying so, and the change cannot be confirmed. 422 email_unchanged; 5 requests per hour. Paddle and notification channels keep their own addresses."
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, current_password]
+              properties:
+                email: {type: string, format: email, maxLength: 255}
+                current_password: {type: string, maxLength: 128}
+                code: {type: [string, "null"], maxLength: 32}
+      responses:
+        "202":
+          description: Pending until confirmed
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PendingEmailChange"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/email-change/resend:
+    post:
+      tags: [Auth]
+      operationId: resendEmailChange
+      security:
+        - {UserSession: []}
+      description: A fresh confirmation link to the new address (the previous link stops working); once a minute. 404 email_change_not_pending.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "202":
+          description: Sent
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PendingEmailChange"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/email-change/cancel:
+    post:
+      tags: [Auth]
+      operationId: cancelEmailChange
+      security:
+        - {UserSession: []}
+      description: Withdraws the pending change. 404 email_change_not_pending.
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "204": {description: Cancelled}
+        "401": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/email-change/{request_id}/confirm/{token}:
+    get:
+      tags: [Auth]
+      operationId: confirmEmailChange
+      description: "Link from the new address; works without a session. On success the address changes and is confirmed, every session ends, the old address is told; redirects to /app/login?email_changed=1, otherwise ?email_changed=0 (unknown, used, expired, replaced, cancelled or the address became taken)."
+      parameters:
+        - {name: request_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: token, in: path, required: true, schema: {type: string}}
+      responses:
+        "302": {description: Redirect to sign-in with the result}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/email-change/{request_id}/cancel/{token}:
+    get:
+      tags: [Auth]
+      operationId: cancelEmailChangeFromOldAddress
+      description: "\"This was not me\" link from the old address; works without a session. Stops the change and ends every session and trusted device; redirects to /app/login?email_change_cancelled=1|0."
+      parameters:
+        - {name: request_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: token, in: path, required: true, schema: {type: string}}
+      responses:
+        "302": {description: Redirect to sign-in with the result}
+        "429": {$ref: "#/components/responses/Problem"}
   /api/v1/auth/email-verification/resend:
     post:
       tags: [Auth]
@@ -7503,7 +7585,7 @@ components:
               code: {type: string}
     User:
       type: object
-      required: [id, name, salutation, first_name, last_name, company_name, email, locale, email_verified, mfa_enabled]
+      required: [id, name, salutation, first_name, last_name, company_name, email, locale, email_verified, mfa_enabled, pending_email_change]
       properties:
         id: {type: string, format: uuid}
         name: {type: string, description: "Display name, \"first last\"."}
@@ -7511,6 +7593,10 @@ components:
         first_name: {type: [string, "null"]}
         last_name: {type: string}
         company_name: {type: [string, "null"]}
+        pending_email_change:
+          oneOf:
+            - {type: "null"}
+            - {$ref: "#/components/schemas/PendingEmailChange"}
         email: {type: string, format: email}
         locale: {enum: [ru, en, de]}
         email_verified: {type: boolean}
@@ -8019,6 +8105,12 @@ components:
               currency: {type: string, pattern: "^[A-Z]{3}$"}
               currency_exponent: {type: integer}
               mode: {type: [string, "null"]}
+    PendingEmailChange:
+      type: object
+      required: [email, expires_at]
+      properties:
+        email: {type: string, format: email}
+        expires_at: {type: string, format: date-time}
     AttentionSection:
       type: object
       required: [count, level, parts]

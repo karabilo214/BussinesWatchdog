@@ -146,4 +146,20 @@ return [
         'body' => "Hello,\n\nYour permissions in the Business Watchdog account of “:tenant” were changed. The change is already in effect.\n\nAdded:\n:added\n\nRemoved:\n:removed\n\nMembers and permissions: :link\n\nIf you did not expect this, contact the organization owner.",
         'none' => '— none',
     ],
+    'email_change_requested' => [
+        'subject' => 'Business Watchdog: change of e-mail address requested',
+        'body' => "Hello,\n\nA change of the sign-in address of your Business Watchdog account to :email was requested. The address changes only after it is confirmed with the link sent to the new address; until then, sign in with this address.\n\nIf this was not you, open the link — the change is cancelled and every session ends:\n:link\n\nWe then recommend changing your password with “Forgot your password?” on the sign-in page.",
+    ],
+    'email_change_confirm' => [
+        'subject' => 'Business Watchdog: confirm your new e-mail address',
+        'body' => "Hello,\n\nThis address was entered as the new sign-in address for Business Watchdog. To confirm the change, open the link (valid for :hours hours):\n:link\n\nAfter confirming, every session ends — sign in again with this address. If you did not request a change, simply ignore this email.",
+    ],
+    'email_change_address_taken' => [
+        'subject' => 'Business Watchdog: this address is already in use',
+        'body' => "Hello,\n\nSomeone wanted to use this address as the sign-in address of another Business Watchdog account, but an account already uses it, so the change is not possible. Nothing changed.\n\nIf this is your account and you forgot the password, reset it:\n:link\n\nIf you did not request anything, simply ignore this email.",
+    ],
+    'email_changed' => [
+        'subject' => 'Business Watchdog: e-mail address changed',
+        'body' => "Hello,\n\nThe sign-in address of your Business Watchdog account was changed to :email. Every session has ended. Account emails now go to the new address.\n\nIf this was not you, contact support at once by replying to this email.",
+    ],
 ];

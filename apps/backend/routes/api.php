@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Account\AccountController;
+use App\Http\Controllers\Api\V1\Account\EmailChangeController;
 use App\Http\Controllers\Api\V1\Account\MfaController;
 use App\Http\Controllers\Api\V1\Account\PasskeyController;
 use App\Http\Controllers\Api\V1\Account\SessionController;
@@ -72,6 +73,9 @@ Route::middleware('stateful.session')->prefix('/v1/auth')->group(function (): vo
         Route::patch('/me', [AccountController::class, 'updateProfile']);
         Route::post('/password', [AccountController::class, 'changePassword'])->middleware('throttle:auth-login');
         Route::post('/email-verification/resend', [AccountController::class, 'resendVerification'])->middleware('throttle:auth-email-verification');
+        Route::post('/email-change', [EmailChangeController::class, 'store'])->middleware(['throttle:auth-step-up', 'throttle:auth-email-change']);
+        Route::post('/email-change/resend', [EmailChangeController::class, 'resend'])->middleware(['throttle:auth-email-verification', 'throttle:auth-email-change']);
+        Route::post('/email-change/cancel', [EmailChangeController::class, 'cancel']);
         Route::get('/mfa', [MfaController::class, 'show']);
         Route::post('/mfa/setup', [MfaController::class, 'setup'])->middleware('throttle:auth-step-up');
         Route::post('/mfa/confirm', [MfaController::class, 'confirm'])->middleware('throttle:auth-step-up');
@@ -118,6 +122,12 @@ Route::post('/v1/webhooks/telegram/bind', [NotificationChannelController::class,
     ->middleware('throttle:provider-webhook');
 Route::post('/v1/webhooks/telegram/updates', [NotificationChannelController::class, 'telegramUpdate'])
     ->middleware('throttle:provider-webhook');
+
+// Opened from an email: the one-time token in the link is the only credential (Step 267).
+Route::get('/v1/auth/email-change/{request}/confirm/{token}', [EmailChangeController::class, 'confirm'])
+    ->whereUuid('request')->middleware('throttle:auth-password-reset-complete');
+Route::get('/v1/auth/email-change/{request}/cancel/{token}', [EmailChangeController::class, 'cancelFromOldAddress'])
+    ->whereUuid('request')->middleware('throttle:auth-password-reset-complete');
 
 // Opened from an email: no Origin/Referer, so no SPA session; the signed URL is the only credential.
 Route::get('/v1/auth/email-verification/{user}/{hash}', [AccountController::class, 'verifyEmail'])

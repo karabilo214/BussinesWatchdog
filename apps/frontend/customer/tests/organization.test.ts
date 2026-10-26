@@ -34,7 +34,7 @@ const mocked = vi.mocked(api);
 
 function sessionFor(role: 'owner' | 'admin', mfa = false): AuthSession {
   return {
-    user: { id: 'u-me', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: mfa },
+    user: { id: 'u-me', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: mfa, pending_email_change: null },
     active_tenant_id: 't-1',
     memberships: [{ tenant_id: 't-1', role, permissions: permissionsFor(role), created_at: '2026-10-01T00:00:00Z' }],
   };

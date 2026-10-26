@@ -5,6 +5,7 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import { ApiError } from '@bw/api-client';
 import * as api from '@/api/account';
 import type { AuthSession, TeamMember, TeamRole, TenantPermission } from '@/api/types';
+import EmailChangePanel from '@/components/account/EmailChangePanel.vue';
 import PasswordFields from '@/components/account/PasswordFields.vue';
 import { localization, setLocale } from '@/i18n';
 import MfaPanel from '@/components/account/MfaPanel.vue';
@@ -25,6 +26,9 @@ vi.mock('@/api/account', () => ({
   getMoneyVisibility: vi.fn(),
   listInvitations: vi.fn(),
   changeMemberPermissions: vi.fn(),
+  requestEmailChange: vi.fn(),
+  resendEmailChange: vi.fn(),
+  cancelEmailChange: vi.fn(),
   changeInvitationPermissions: vi.fn(),
   removeMember: vi.fn(),
   inviteMember: vi.fn(),
@@ -76,7 +80,7 @@ const mocked = vi.mocked(api);
 
 function sessionFor(role: 'owner' | 'admin' | 'operator' | 'viewer', email = 'me@example.test'): AuthSession {
   return {
-    user: { id: 'u-me', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email, locale: 'ru', email_verified: true, mfa_enabled: false },
+    user: { id: 'u-me', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email, locale: 'ru', email_verified: true, mfa_enabled: false, pending_email_change: null },
     active_tenant_id: 't-1',
     memberships: [{ tenant_id: 't-1', role, permissions: permissionsFor(role), created_at: '2026-10-01T00:00:00Z' }],
   };
@@ -410,6 +414,50 @@ describe('MfaPanel', () => {
     await flushPromises();
     expect(mocked.disableMfa).toHaveBeenLastCalledWith('very-secure-password', 'abcde-fghjk');
     expect(wrapper.text()).toContain('выключена');
+  });
+});
+
+describe('EmailChangePanel', () => {
+  it('asks for the password and, with MFA, a code, then shows the pending address with resend and cancel', async () => {
+    session.value = { ...sessionFor('owner'), user: { ...sessionFor('owner').user, mfa_enabled: true } };
+    mocked.requestEmailChange.mockImplementation(async () => {
+      session.value = { ...session.value!, user: { ...session.value!.user, pending_email_change: { email: 'new@example.test', expires_at: '2026-10-27T10:00:00Z' } } };
+
+      return { email: 'new@example.test', expires_at: '2026-10-27T10:00:00Z' };
+    });
+    mocked.resendEmailChange.mockResolvedValue({ email: 'new@example.test', expires_at: '2026-10-27T10:00:00Z' });
+    mocked.cancelEmailChange.mockImplementation(async () => {
+      session.value = { ...session.value!, user: { ...session.value!.user, pending_email_change: null } };
+    });
+    const wrapper = await mountWith(EmailChangePanel, '/profile');
+
+    await wrapper.get('[data-email-change-open]').trigger('click');
+    const form = wrapper.get('[data-email-change-form]');
+    expect(form.text()).toContain('каналах уведомлений и у Paddle не меняются');
+    const [email, password, code] = form.findAll('input');
+    await email!.setValue(' new@example.test ');
+    await password!.setValue('very-secure-password');
+    expect(form.get('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await code!.setValue('123456');
+    await form.trigger('submit');
+    await flushPromises();
+
+    expect(mocked.requestEmailChange).toHaveBeenCalledWith('new@example.test', 'very-secure-password', '123456');
+    expect(wrapper.get('[data-email-change-pending]').text()).toContain('Ожидает подтверждения: new@example.test');
+    await wrapper.get('[data-email-change-resend]').trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Письмо отправлено.');
+    await wrapper.get('[data-email-change-cancel]').trigger('click');
+    await flushPromises();
+    expect(mocked.cancelEmailChange).toHaveBeenCalledOnce();
+    expect(wrapper.find('[data-email-change-pending]').exists()).toBe(false);
+  });
+
+  it('explains the result of the links from the old and the new address on the sign-in page', async () => {
+    session.value = null;
+    expect((await mountWith(LoginView, '/login?email_changed=1')).text()).toContain('Адрес e-mail изменён');
+    expect((await mountWith(LoginView, '/login?email_change_cancelled=1')).text()).toContain('Смена адреса отменена');
+    expect((await mountWith(LoginView, '/login?email_changed=0')).text()).toContain('Ссылка недействительна или устарела');
   });
 });
 

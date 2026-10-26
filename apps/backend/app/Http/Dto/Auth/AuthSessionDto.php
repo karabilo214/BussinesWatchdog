@@ -3,13 +3,15 @@
 namespace App\Http\Dto\Auth;
 
 use App\Models\DataDeletionRequest;
+use App\Models\EmailChangeRequest;
 use App\Models\User;
 use App\Support\Auth\TenantPermissions;
+use Illuminate\Support\Carbon;
 
 class AuthSessionDto
 {
     /**
-     * @return array{user: array{id: string, name: string, salutation: string|null, first_name: string|null, last_name: string, company_name: string|null, email: string, locale: string, email_verified: bool, mfa_enabled: bool}, active_tenant_id: string|null, memberships: array<int, array{tenant_id: string, role: string, permissions: list<string>, created_at: string|null}>}
+     * @return array{user: array{id: string, name: string, salutation: string|null, first_name: string|null, last_name: string, company_name: string|null, email: string, locale: string, email_verified: bool, mfa_enabled: bool, pending_email_change: array{email: string, expires_at: string}|null}, active_tenant_id: string|null, memberships: array<int, array{tenant_id: string, role: string, permissions: list<string>, created_at: string|null}>}
      */
     public function toArray(User $user, ?string $activeTenantId): array
     {
@@ -21,7 +23,7 @@ class AuthSessionDto
     }
 
     /**
-     * @return array{id: string, name: string, salutation: string|null, first_name: string|null, last_name: string, company_name: string|null, email: string, locale: string, email_verified: bool, mfa_enabled: bool}
+     * @return array{id: string, name: string, salutation: string|null, first_name: string|null, last_name: string, company_name: string|null, email: string, locale: string, email_verified: bool, mfa_enabled: bool, pending_email_change: array{email: string, expires_at: string}|null}
      */
     private function user(User $user): array
     {
@@ -36,7 +38,18 @@ class AuthSessionDto
             'locale' => $user->locale,
             'email_verified' => $user->email_verified_at !== null,
             'mfa_enabled' => $user->mfa_confirmed_at !== null,
+            'pending_email_change' => $this->pendingEmailChange($user),
         ];
+    }
+
+    /**
+     * @return array{email: string, expires_at: string}|null
+     */
+    private function pendingEmailChange(User $user): ?array
+    {
+        $pending = EmailChangeRequest::query()->where('user_id', $user->id)->whereNull('confirmed_at')->whereNull('cancelled_at')->where('expires_at', '>', Carbon::now())->latest('created_at')->first();
+
+        return $pending === null ? null : ['email' => $pending->new_email, 'expires_at' => $pending->expires_at->toJSON()];
     }
 
     /**
