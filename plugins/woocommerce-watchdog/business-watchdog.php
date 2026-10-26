@@ -1,6 +1,7 @@
 <?php
 /**
  * Plugin Name: Business Watchdog for WooCommerce
+ * Plugin URI: https://business-watchdog.com/en
  * Description: Sends order and refund snapshots to Business Watchdog for payment reconciliation and checkout monitoring.
  * Version: 0.4.0
  * Requires at least: 5.9
@@ -9,6 +10,7 @@
  * WC requires at least: 6.0
  * WC tested up to: 11.2
  * Author: Business Watchdog
+ * Author URI: https://business-watchdog.com
  * License: GPL-2.0-or-later
  * Text Domain: business-watchdog
  */
