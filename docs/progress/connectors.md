@@ -635,7 +635,7 @@ Status: complete; ZIP 0.3.3 built for the WordPress.org submission and handed to
 
 ### Step 274: WordPress.org Review — Plugin Prefixes and Admin Notices (2026-10-26)
 
-Status: complete; plugin 0.4.0 built, not submitted to WordPress.org, not approved for customer download
+Status: complete; backend part deployed 2026-10-26 (`7be8672`); plugin 0.4.0 uploaded to the WordPress.org review by the owner, not approved for customer download
 
 - Owner's WordPress.org review mail (2026-10-26, automated pre-review of 0.3.3) asked for: prefixes of at least 4 characters for declarations, globals and stored data; admin notices limited in scope (Guideline 11); proof that the submitter owns the name "Business Watchdog".
 - Plugin 0.4.0: every table (`{prefix}business_watchdog_outbox|revisions|state|payment_attempts|checkout_observation`), option, scheduled hook, cron schedule (`business_watchdog_every_N`), nonce/`admin_post` action, form field, order meta (`_business_watchdog_payment_mode`, `_business_watchdog_synthetic_run`), script handle and constant (`BUSINESS_WATCHDOG_VERSION|FILE|DIR|MIN_PHP|MIN_WC|ALLOW_INSECURE_ENDPOINT`, JS `BUSINESS_WATCHDOG_CHECKOUT_OBSERVER`) uses the `business_watchdog_` prefix. The HMAC purposes `bw-synthetic-v1`/`bw-observe-v1` and the `X-BW-Synthetic` header are shared with the backend and unchanged.

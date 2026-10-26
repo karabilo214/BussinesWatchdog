@@ -1186,7 +1186,7 @@ One concurrent test/build run failed to await code-editor initialization in two 
 
 ### Step 275: Zero-Downtime Deploy (2026-10-26)
 
-Status: complete; not deployed (the first deploy of this layout recreates `web` and `app` once)
+Status: complete; deployed 2026-10-26 (`7be8672`, the transition from the old layout)
 
 - ADR 0080. `infra/production/rollout.sh` (called by `deploy.sh`): build, migrations against the previous code, `web-static stage`, `app-b` then `app` one at a time (`up -d --no-deps --wait`; FPM healthcheck on port 9000), `web-static switch`, `caddy reload`, then the workers and the scheduler.
 - `docker-compose.yml`: second FPM `app-b` (anchor `x-fpm`, `stop_grace_period: 30s`); workers 120 s, scheduler 60 s; `web` = `caddy:2.10.2-alpine` with `./caddy:/etc/caddy:ro` and the volume `web-root`; new tool service `web-static` (profile `tools`, `network_mode: none`).
@@ -1197,3 +1197,5 @@ Status: complete; not deployed (the first deploy of this layout recreates `web` 
 - Migration rule (expand/contract) in ADR 0080, `docs/ops/production-server.md` and `AGENTS.md`.
 
 Verification: the production compose stack built and run locally (`SITE_DOMAIN=localhost`, ports and journald overridden only for the test). First rollout from scratch, then a second rollout (new release tag, all containers replaced except Caddy) while `probe.sh` ran for 300 s from inside the Docker network against `http://web:8080`: `/health/ready` 2290, `/app/` 2762, `/owner/` 2761, `/en` 2253 requests, **0 answers other than 200**; Caddy not recreated. `publish.sh` tested separately: new assets visible before the switch, old ones kept and dropped after 14 days, 3 releases kept, invalid release name rejected. Not checked: the transition from the current production layout (one interruption expected) and HTTPS on the real domain.
+
+Production 2026-10-26, transition deploy `7be8672` (old `web` image and single `app` → new layout), `probe.sh https://business-watchdog.com 900` from the owner's machine: as expected one short interruption — about 2 s of 502 while `app` was recreated behind the old Caddy (`/health/ready` 21, `/en` 20 of ~1700 requests) and about 1.5 s without connections while `web` was recreated (`/app/` 15 × `000`); nothing else. Checked afterwards: all pages and hashed assets 200, `/health/ready` ok, certificate kept (valid to 2027-01-17), FPM `process_control_timeout = 25s`, static release `7be8672` current, no errors in web/app/worker logs, browser worker started with the sandbox.
