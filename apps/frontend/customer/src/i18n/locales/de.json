@@ -2173,7 +2173,7 @@
     "official_docs_caption": "Quelle:",
     "why": "PayPal wird mit den Zugangsdaten einer eigenen REST-App in Ihrem PayPal-Konto verbunden. Sie werden hier eingegeben, nicht in WordPress, damit Gelddaten am Shop vorbei zum Dienst gelangen.",
     "step_app": "Öffnen Sie developer.paypal.com → Apps & Credentials, wählen Sie Live (oder Sandbox zum Testen) und legen Sie eine App „Business Watchdog“ an (Typ Merchant).",
-    "step_features": "Entfernen Sie in den App-Einstellungen alle Häkchen und aktivieren Sie nur Transaction Search — sie wird für die Zahlungsliste gebraucht.",
+    "step_features": "Entfernen Sie in den App-Einstellungen alle Häkchen und aktivieren Sie nur Transaction Search — sie wird für die Zahlungsliste gebraucht. Optional auch Disputes aktivieren, um Konflikte von Kunden zu sehen (die Funktion erlaubt der App auch, auf Konflikte zu antworten; der Dienst nutzt das nie).",
     "step_copy": "Kopieren Sie Client ID und Secret der App und fügen Sie sie unten ein.",
     "environment": "PayPal-Umgebung",
     "environments": {
@@ -2203,14 +2203,15 @@
     "polling_note": "Die Synchronisierung läuft alle 15 Minuten über PayPals Transaktionsliste und liest einmal täglich 90 Tage neu; ein Webhook meldet Zahlungen und Erstattungen sofort.",
     "webhook_id": "Webhook",
     "webhook_step_add": "Öffnen Sie in der PayPal-App Webhooks → „Add Webhook“ und tragen Sie die Adresse unten ein.",
-    "webhook_step_events": "Wählen Sie die Ereignisse Payment capture completed, pending, denied, refunded, reversed und Checkout order completed.",
+    "webhook_step_events": "Wählen Sie die Ereignisse Payment capture completed, pending, denied, refunded, reversed und Checkout order completed. Damit Konflikte sofort ankommen, ergänzen Sie Customer dispute created, updated und resolved.",
     "webhook_step_id": "Kopieren Sie die Webhook ID des neuen Webhooks und fügen Sie sie hier ein.",
     "webhook_saved": "Webhook ID gespeichert.",
     "revoke_warning": "Die PayPal-Zugangsdaten werden nicht mehr genutzt; der Geldabgleich von PayPal-Bestellungen kehrt zu „unbekannt“ zurück. Löschen Sie die App auch in PayPal.",
     "revoke_confirm": "PayPal trennen",
     "revoked": "PayPal getrennt.",
     "credentials_rejected": "PayPal hat die App-Zugangsdaten abgelehnt oder der App fehlt Transaction Search — Aufrufe an PayPal sind gestoppt, der Geldabgleich zeigt „unbekannt“. Trennen und verbinden Sie PayPal neu.",
-    "matching_note": "Zuordnung über Metadaten wird für PayPal nicht unterstützt: Zahlungen werden Bestellungen nur über die Transaktions-ID zugeordnet, die das PayPal-Plugin in die Bestellung schreibt."
+    "matching_note": "Zuordnung über Metadaten wird für PayPal nicht unterstützt: Zahlungen werden Bestellungen nur über die Transaktions-ID zugeordnet, die das PayPal-Plugin in die Bestellung schreibt.",
+    "disputes_permission_missing": "Rückbuchungen sind nicht sichtbar: Die PayPal-App hat keinen Zugriff auf Konflikte. Aktivieren Sie in den App-Einstellungen die Funktion Disputes — der übrige Abgleich funktioniert wie bisher."
   },
   "billing": {
     "selected_from_site": "Auf der Website gewählt",
@@ -2549,7 +2550,8 @@
       "warning_needs_response": "Anfrage: Antwort nötig",
       "warning_under_review": "Anfrage in Prüfung",
       "warning_closed": "Anfrage geschlossen",
-      "prevented": "verhindert"
+      "prevented": "verhindert",
+      "closed": "abgeschlossen"
     },
     "reason": {
       "fraudulent": "der Kunde erkennt die Zahlung nicht an (Betrug)",
@@ -2567,7 +2569,15 @@
       "incorrect_account_details": "falsche Kontodaten",
       "insufficient_funds": "keine ausreichende Deckung",
       "noncompliant": "Regeln des Kartennetzes nicht eingehalten",
-      "other": "nicht angegeben"
+      "other": "nicht angegeben",
+      "merchandise_or_service_not_received": "Ware oder Leistung nicht erhalten",
+      "merchandise_or_service_not_as_described": "Ware oder Leistung nicht wie beschrieben",
+      "unauthorised": "die Zahlung war nicht autorisiert",
+      "duplicate_transaction": "doppelte Zahlung",
+      "incorrect_amount": "falscher Betrag",
+      "payment_by_other_means": "anders bezahlt",
+      "canceled_recurring_billing": "wiederkehrende Zahlung wurde gekündigt",
+      "problem_with_remittance": "Problem bei der Überweisung"
     }
   }
 }

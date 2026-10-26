@@ -9,7 +9,7 @@ class ProviderDispute extends Model
 {
     use HasUuids;
 
-    public const STATUSES = ['needs_response', 'under_review', 'won', 'lost', 'warning_needs_response', 'warning_under_review', 'warning_closed', 'prevented'];
+    public const STATUSES = ['needs_response', 'under_review', 'won', 'lost', 'warning_needs_response', 'warning_under_review', 'warning_closed', 'prevented', 'closed'];
 
     public const OPEN_STATUSES = ['needs_response', 'under_review', 'warning_needs_response', 'warning_under_review'];
 

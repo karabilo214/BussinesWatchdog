@@ -2173,7 +2173,7 @@
     "official_docs_caption": "Источник:",
     "why": "PayPal подключается данными отдельного REST-приложения в вашем аккаунте PayPal. Они вводятся здесь, а не в WordPress: так данные о деньгах приходят мимо магазина.",
     "step_app": "Откройте developer.paypal.com → Apps & Credentials, выберите Live (или Sandbox для теста) и создайте приложение «Business Watchdog» (тип Merchant).",
-    "step_features": "В настройках приложения снимите все галочки и включите только Transaction Search — он нужен для списка платежей.",
+    "step_features": "В настройках приложения снимите все галочки и включите только Transaction Search — он нужен для списка платежей. По желанию включите и Disputes — чтобы видеть споры покупателей (функция даёт приложению и право отвечать на споры; сервис этим правом не пользуется).",
     "step_copy": "Скопируйте Client ID и Secret этого приложения и вставьте ниже.",
     "environment": "Среда PayPal",
     "environments": {
@@ -2203,14 +2203,15 @@
     "polling_note": "Синхронизация идёт каждые 15 минут по списку транзакций PayPal и раз в сутки перечитывает 90 дней; webhook сообщает об оплатах и возвратах сразу.",
     "webhook_id": "Webhook",
     "webhook_step_add": "В приложении PayPal откройте Webhooks → «Add Webhook» и укажите адрес ниже.",
-    "webhook_step_events": "Выберите события Payment capture completed, pending, denied, refunded, reversed и Checkout order completed.",
+    "webhook_step_events": "Выберите события Payment capture completed, pending, denied, refunded, reversed и Checkout order completed. Чтобы споры приходили сразу, добавьте Customer dispute created, updated и resolved.",
     "webhook_step_id": "Скопируйте Webhook ID созданного webhook и вставьте сюда.",
     "webhook_saved": "Webhook ID сохранён.",
     "revoke_warning": "Данные PayPal перестанут использоваться, сверка денег по заказам PayPal вернётся в «неизвестно». Удалите приложение и в самом PayPal.",
     "revoke_confirm": "Отключить PayPal",
     "revoked": "PayPal отключён.",
     "credentials_rejected": "PayPal отклонил данные приложения или у него нет Transaction Search — обращения к PayPal остановлены, сверка денег показывает «неизвестно». Отключите это подключение и подключите PayPal заново.",
-    "matching_note": "Сопоставление по metadata для PayPal не поддерживается: платежи связываются с заказами только по номеру транзакции, который плагин PayPal записывает в заказ."
+    "matching_note": "Сопоставление по metadata для PayPal не поддерживается: платежи связываются с заказами только по номеру транзакции, который плагин PayPal записывает в заказ.",
+    "disputes_permission_missing": "Споры не видны: у приложения PayPal нет доступа к спорам. Включите в настройках приложения функцию Disputes — остальная сверка работает как раньше."
   },
   "billing": {
     "selected_from_site": "Выбрано на сайте",
@@ -2549,7 +2550,8 @@
       "warning_needs_response": "запрос: нужен ответ",
       "warning_under_review": "запрос на рассмотрении",
       "warning_closed": "запрос закрыт",
-      "prevented": "предотвращён"
+      "prevented": "предотвращён",
+      "closed": "закрыт"
     },
     "reason": {
       "fraudulent": "покупатель не узнаёт платёж (мошенничество)",
@@ -2567,7 +2569,15 @@
       "incorrect_account_details": "неверные реквизиты счёта",
       "insufficient_funds": "недостаточно средств",
       "noncompliant": "нарушение правил платёжной сети",
-      "other": "не указана"
+      "other": "не указана",
+      "merchandise_or_service_not_received": "товар или услуга не получены",
+      "merchandise_or_service_not_as_described": "товар или услуга не соответствуют описанию",
+      "unauthorised": "платёж не был разрешён",
+      "duplicate_transaction": "двойной платёж",
+      "incorrect_amount": "неверная сумма",
+      "payment_by_other_means": "оплачено другим способом",
+      "canceled_recurring_billing": "регулярный платёж был отменён",
+      "problem_with_remittance": "проблема с переводом"
     }
   }
 }

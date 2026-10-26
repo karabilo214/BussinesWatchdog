@@ -136,6 +136,7 @@ void load();
       <p v-if="integration.health?.last_error && !credentialsRejected" class="text-sm text-warn" data-last-error>
         {{ $t('provider.last_error', { time: dateTime(integration.health.last_error.at) }) }} {{ $te(`errors.${integration.health.last_error.code}`) ? $t(`errors.${integration.health.last_error.code}`) : integration.health.last_error.code }}
       </p>
+      <p v-if="sync?.disputes?.state === 'permission_missing'" class="text-sm text-warn" data-disputes-permission>{{ $t('paypal.disputes_permission_missing') }}</p>
       <p class="text-[13px] text-text-muted">{{ $t('paypal.polling_note') }}</p>
       <p class="text-[13px] text-text-muted" data-matching-note>{{ $t('paypal.matching_note') }}</p>
 

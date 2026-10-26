@@ -20,6 +20,8 @@ class PayPalClient
         '#^/v2/payments/captures/[A-Z0-9]{1,36}$#',
         '#^/v2/payments/refunds/[A-Z0-9]{1,36}$#',
         '#^/v2/payments/authorizations/[A-Z0-9]{1,36}$#',
+        '#^/v1/customer/disputes$#',
+        '#^/v1/customer/disputes/[A-Z0-9-]{1,64}$#',
     ];
 
     public const TOKEN_PATH = '/v1/oauth2/token';

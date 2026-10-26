@@ -210,7 +210,7 @@ export interface ProviderSyncHealth {
   skipped?: Record<string, number>;
   complete?: boolean;
   search_refreshed_at?: string | null;
-  disputes?: { state: 'ok' | 'permission_missing'; checked_at: string; complete?: boolean };
+  disputes?: { state: 'ok' | 'permission_missing' | 'unavailable'; checked_at: string; complete?: boolean };
 }
 
 export interface Integration {
@@ -255,7 +255,7 @@ export interface Dispute {
   payment_id: string | null;
   provider: string | null;
   mode: 'live' | 'test';
-  status: 'needs_response' | 'under_review' | 'won' | 'lost' | 'warning_needs_response' | 'warning_under_review' | 'warning_closed' | 'prevented';
+  status: 'needs_response' | 'under_review' | 'won' | 'lost' | 'warning_needs_response' | 'warning_under_review' | 'warning_closed' | 'prevented' | 'closed';
   open: boolean;
   reason: string | null;
   currency: string;

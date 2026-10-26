@@ -39,6 +39,7 @@ class PayPalSync
         private readonly PayPalClient $client,
         private readonly PayPalConnector $connector,
         private readonly PayPalOrderMapper $mapper,
+        private readonly PayPalDisputeMapper $disputeMapper,
         private readonly ProviderEventEmitter $emitter,
         private readonly StoreReconciliationRequeue $requeue,
     ) {}
@@ -93,11 +94,12 @@ class PayPalSync
                     break;
                 }
             }
+            $disputes = $this->disputes($integration, $token, $now, is_array($state['disputes'] ?? null) ? $state['disputes'] : [], $totals);
         } catch (PayPalRequestFailed $failure) {
             return $this->fail($integration, $failure);
         }
 
-        $next = $state;
+        $next = [...$state, 'disputes' => $disputes];
 
         if ($mode === self::MODE_AUDIT) {
             $next['audit_cursor'] = $complete && $covered->greaterThanOrEqualTo($now->copy()->subDay()) ? null : $covered->toJSON();
@@ -205,6 +207,107 @@ class PayPalSync
     public function orderOfCapture(Integration $integration, string $captureId): ?string
     {
         return $this->captureOrder($integration, $this->token($integration), $captureId);
+    }
+
+    /**
+     * @return array{emitted: int, unchanged: int, skipped: ?string}
+     */
+    public function syncDispute(Integration $integration, string $disputeId): array
+    {
+        $this->budget = max($this->budget, 2);
+
+        return $this->ingestDispute($integration, $this->token($integration), $disputeId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $previous
+     * @param  array{emitted: int, unchanged: int, skipped: array<string, int>}  $totals
+     * @return array<string, mixed>
+     */
+    private function disputes(Integration $integration, string $token, Carbon $now, array $previous, array &$totals): array
+    {
+        $since = isset($previous['watermark'])
+            ? Carbon::parse($previous['watermark'])->subMinutes((int) config('watchdog.paypal.delta_overlap_minutes'))
+            : $now->copy()->subDays((int) config('watchdog.paypal.dispute_days'));
+        $this->budget = (int) config('watchdog.paypal.max_disputes_per_run');
+        $query = ['update_time_after' => $since->format('Y-m-d\TH:i:s.000\Z'), 'page_size' => 50];
+
+        try {
+            for ($page = 0; $page < (int) config('watchdog.paypal.max_dispute_pages_per_run'); $page++) {
+                $result = $this->client->get($integration->mode, $token, '/v1/customer/disputes', $query);
+
+                foreach (is_array($result['items'] ?? null) ? $result['items'] : [] as $item) {
+                    $id = is_array($item) ? ($item['dispute_id'] ?? null) : null;
+
+                    if (! is_string($id) || preg_match('/^[A-Z0-9-]{1,64}$/', $id) !== 1) {
+                        continue;
+                    }
+
+                    if ($this->budget <= 0) {
+                        return ['state' => 'ok', 'checked_at' => $now->toJSON(), 'complete' => false, 'watermark' => $previous['watermark'] ?? null];
+                    }
+
+                    $summary = $this->ingestDispute($integration, $token, $id);
+                    $totals['emitted'] += $summary['emitted'];
+                    $totals['unchanged'] += $summary['unchanged'];
+
+                    if ($summary['skipped'] !== null) {
+                        $totals['skipped'][$summary['skipped']] = ($totals['skipped'][$summary['skipped']] ?? 0) + 1;
+                    }
+                }
+
+                $next = $this->nextPage($result);
+
+                if ($next === null) {
+                    return ['state' => 'ok', 'checked_at' => $now->toJSON(), 'complete' => true, 'watermark' => $now->toJSON()];
+                }
+
+                $query = $next;
+            }
+        } catch (PayPalRequestFailed $failure) {
+            if ($failure->credentialsUnusable()) {
+                throw $failure;
+            }
+
+            return ['state' => $failure->reasonCode === 'paypal_permission_missing' ? 'permission_missing' : 'unavailable', 'checked_at' => $now->toJSON(), 'watermark' => $previous['watermark'] ?? null];
+        }
+
+        return ['state' => 'ok', 'checked_at' => $now->toJSON(), 'complete' => false, 'watermark' => $previous['watermark'] ?? null];
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, string>|null
+     */
+    private function nextPage(array $result): ?array
+    {
+        foreach (is_array($result['links'] ?? null) ? $result['links'] : [] as $link) {
+            if (($link['rel'] ?? null) === 'next' && is_string($link['href'] ?? null)) {
+                parse_str((string) parse_url($link['href'], PHP_URL_QUERY), $query);
+
+                return array_map('strval', array_filter($query, 'is_scalar'));
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{emitted: int, unchanged: int, skipped: ?string}
+     */
+    private function ingestDispute(Integration $integration, string $token, string $disputeId): array
+    {
+        $this->budget--;
+        $dispute = $this->client->get($integration->mode, $token, '/v1/customer/disputes/'.$disputeId);
+        $capture = PayPalDisputeMapper::captureId($dispute);
+        $orderId = $capture === null ? null : $this->captureOrder($integration, $token, $capture);
+        $mapped = $this->disputeMapper->map($integration, $dispute, $orderId);
+
+        if ($mapped['draft'] === null) {
+            return ['emitted' => 0, 'unchanged' => 0, 'skipped' => $mapped['skipped']];
+        }
+
+        return [...$this->emitter->emit($integration, [$mapped['draft']]), 'skipped' => null];
     }
 
     /**

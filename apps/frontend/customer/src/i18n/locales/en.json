@@ -2173,7 +2173,7 @@
     "official_docs_caption": "Source:",
     "why": "PayPal is connected with the credentials of a separate REST app in your PayPal account. They are entered here, not in WordPress, so money data reaches the service around the store.",
     "step_app": "Open developer.paypal.com → Apps & Credentials, choose Live (or Sandbox for testing) and create an app “Business Watchdog” (type Merchant).",
-    "step_features": "In the app settings untick everything and enable only Transaction Search — it is needed to list payments.",
+    "step_features": "In the app settings untick everything and enable only Transaction Search — it is needed to list payments. Optionally enable Disputes too, to see customer disputes (it also lets the app answer disputes; the service never uses that).",
     "step_copy": "Copy the app’s Client ID and Secret and paste them below.",
     "environment": "PayPal environment",
     "environments": {
@@ -2203,14 +2203,15 @@
     "polling_note": "Sync runs every 15 minutes over PayPal’s transaction list and re-reads 90 days once a day; a webhook reports payments and refunds right away.",
     "webhook_id": "Webhook",
     "webhook_step_add": "In the PayPal app open Webhooks → “Add Webhook” and enter the address below.",
-    "webhook_step_events": "Select the events Payment capture completed, pending, denied, refunded, reversed and Checkout order completed.",
+    "webhook_step_events": "Select the events Payment capture completed, pending, denied, refunded, reversed and Checkout order completed. To get disputes at once, add Customer dispute created, updated and resolved.",
     "webhook_step_id": "Copy the Webhook ID of the new webhook and paste it here.",
     "webhook_saved": "Webhook ID saved.",
     "revoke_warning": "The PayPal credentials stop being used; money reconciliation of PayPal orders returns to “unknown”. Delete the app in PayPal as well.",
     "revoke_confirm": "Disconnect PayPal",
     "revoked": "PayPal disconnected.",
     "credentials_rejected": "PayPal rejected the app credentials or the app lacks Transaction Search — calls to PayPal are stopped and money reconciliation shows “unknown”. Disconnect and connect PayPal again.",
-    "matching_note": "Metadata matching is not supported for PayPal: payments are linked to orders only by the transaction id the PayPal plugin writes to the order."
+    "matching_note": "Metadata matching is not supported for PayPal: payments are linked to orders only by the transaction id the PayPal plugin writes to the order.",
+    "disputes_permission_missing": "Disputes are not visible: the PayPal app has no access to disputes. Enable the Disputes feature in the app settings — the rest of the reconciliation works as before."
   },
   "billing": {
     "selected_from_site": "Selected on the site",
@@ -2549,7 +2550,8 @@
       "warning_needs_response": "inquiry: needs response",
       "warning_under_review": "inquiry under review",
       "warning_closed": "inquiry closed",
-      "prevented": "prevented"
+      "prevented": "prevented",
+      "closed": "closed"
     },
     "reason": {
       "fraudulent": "the customer does not recognise the payment (fraud)",
@@ -2567,7 +2569,15 @@
       "incorrect_account_details": "incorrect account details",
       "insufficient_funds": "insufficient funds",
       "noncompliant": "the payment network's rules were not followed",
-      "other": "not given"
+      "other": "not given",
+      "merchandise_or_service_not_received": "goods or service not received",
+      "merchandise_or_service_not_as_described": "goods or service not as described",
+      "unauthorised": "the payment was not authorised",
+      "duplicate_transaction": "duplicate payment",
+      "incorrect_amount": "incorrect amount",
+      "payment_by_other_means": "paid by other means",
+      "canceled_recurring_billing": "recurring billing was cancelled",
+      "problem_with_remittance": "problem with the remittance"
     }
   }
 }

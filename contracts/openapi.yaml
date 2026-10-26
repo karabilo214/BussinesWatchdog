@@ -8413,7 +8413,7 @@ components:
         payment_id: {type: [string, "null"], format: uuid}
         provider: {type: [string, "null"]}
         mode: {enum: [live, test]}
-        status: {enum: [needs_response, under_review, won, lost, warning_needs_response, warning_under_review, warning_closed, prevented]}
+        status: {enum: [needs_response, under_review, won, lost, warning_needs_response, warning_under_review, warning_closed, prevented, closed]}
         open: {type: boolean}
         reason: {type: [string, "null"], description: Provider reason code; the UI translates it.}
         currency: {type: string, pattern: "^[A-Z]{3}$"}

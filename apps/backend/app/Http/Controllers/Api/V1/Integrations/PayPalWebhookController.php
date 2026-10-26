@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 
 /**
  * PayPal → us. PayPal verifies its own signature (verify-webhook-signature with the stored webhook id); the event
- * body is then only a hint: the affected PayPal order is read through the API and mapped like a poll, so nothing
+ * body is then only a hint: the affected PayPal order (or dispute) is read through the API and mapped like a poll, so nothing
  * from the webhook body (payer data included) is stored.
  */
 class PayPalWebhookController extends Controller
@@ -85,6 +85,24 @@ class PayPalWebhookController extends Controller
         }
 
         $type = (string) ($event['event_type'] ?? '');
+
+        if (str_starts_with($type, 'CUSTOMER.DISPUTE.')) {
+            $disputeId = $event['resource']['dispute_id'] ?? null;
+
+            if (! is_string($disputeId) || preg_match('/^[A-Z0-9-]{1,64}$/', $disputeId) !== 1) {
+                return response()->json(['received' => true, 'ignored' => 'event_not_used']);
+            }
+
+            try {
+                $summary = $this->sync->syncDispute($target, $disputeId);
+            } catch (PayPalRequestFailed) {
+                return response()->json(['code' => 'provider_unavailable'], 503);
+            }
+
+            $target->forceFill(['health' => array_merge($target->health ?? [], ['webhook' => ['last_received_at' => Carbon::now()->toJSON(), 'last_type' => $type]])])->save();
+
+            return response()->json(['received' => true, 'emitted' => $summary['emitted']]);
+        }
 
         try {
             $orderId = $this->orderId($target, $type, is_array($event['resource'] ?? null) ? $event['resource'] : []);

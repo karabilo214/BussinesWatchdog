@@ -2,7 +2,7 @@
 
 Date: 2026-10-26
 
-Status: accepted (owner's decisions 2026-10-26; implemented in Step 276)
+Status: accepted (owner's decisions 2026-10-26; Stripe in Step 276, PayPal in Step 277)
 
 ## Context
 
@@ -34,6 +34,13 @@ Spec §12 lists `dispute_debit` and `dispute_credit` as financial operations and
    - the daily digest counts the incidents like any other.
 6. **Amounts follow `money.view`.** The dispute block of the incident API and the `disputes` lists of the order and payment cards return `amount_minor: null` without `money.view`. Signal evidence holds no amounts.
 7. **Deletion.** `provider_disputes` is purged with the store (`StoreDeletion`) and the organisation (`OrganizationPurger`).
+
+8. **PayPal (Step 277).** Same event, table, incident and notifications. Differences:
+   - the list (`GET /v1/customer/disputes`, `update_time_after` = watermark minus the PayPal overlap, first run `WATCHDOG_PAYPAL_DISPUTE_DAYS`, default 180) only names disputes; every listed dispute is read by id (`GET /v1/customer/disputes/{id}`, at most 50 per run, 5 list pages). The webhook `CUSTOMER.DISPUTE.*` is only a hint: the dispute is read through the API, nothing from the body is stored;
+   - the dispute names the capture (`disputed_transactions[].seller_transaction_id`); it is linked to the PayPal order through the existing capture → order lookup, so `payment_external_id` is the PayPal order id like the payment; without it the capture id is kept;
+   - status mapping: `WAITING_FOR_SELLER_RESPONSE` → `needs_response` (`warning_needs_response` in the `INQUIRY` stage), other open states → `under_review` (`warning_under_review`); `RESOLVED` with `RESOLVED_BUYER_FAVOUR` or `ACCEPTED` → `lost`; in the inquiry stage otherwise → `warning_closed`; `RESOLVED_SELLER_FAVOUR`, `RESOLVED_WITH_PAYOUT` (PayPal paid the buyer itself) or `DENIED` → `won`; an unknown outcome → the new status `closed` (resolved, outcome not given);
+   - the deadline is `seller_response_due_date`, only while the seller must answer; the reason is PayPal's code in lower case (translated in the cabinet and the letters); buyer data, messages and evidence are never read;
+   - access: the app's Disputes feature is optional. Without it PayPal answers 403, the health shows `permission_missing` and the PayPal panel shows a hint. Any other error of the dispute calls (`unavailable`) never fails the payment sync. Enabling Disputes also grants the write scope `disputes/update-seller`, which the service lists among the app's write scopes and never uses.
 
 ## Consequences
 

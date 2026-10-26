@@ -413,7 +413,7 @@ CREATE TABLE provider_disputes (
  currency varchar(3) NOT NULL,
  currency_exponent smallint NOT NULL,
  amount_minor bigint NOT NULL CHECK (amount_minor>=0),
- status varchar(32) NOT NULL CHECK (status IN ('needs_response','under_review','won','lost','warning_needs_response','warning_under_review','warning_closed','prevented')),
+ status varchar(32) NOT NULL CHECK (status IN ('needs_response','under_review','won','lost','warning_needs_response','warning_under_review','warning_closed','prevented','closed')),
  reason varchar(64),
  evidence_due_by timestamptz,
  opened_at timestamptz NOT NULL,

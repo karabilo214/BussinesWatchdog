@@ -818,9 +818,10 @@
             "warning_needs_response",
             "warning_under_review",
             "warning_closed",
-            "prevented"
+            "prevented",
+            "closed"
           ],
-          "description": "Stripe dispute status; warning_* are inquiries that may become a dispute."
+          "description": "Normalized dispute status (Stripe's statuses; warning_* are inquiries that may become a dispute; closed = resolved with an unknown outcome)."
         },
         "reason": {
           "type": [
