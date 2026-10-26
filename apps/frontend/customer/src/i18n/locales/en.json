@@ -1947,7 +1947,12 @@
     },
     "profile": {
       "title": "Profile",
-      "name": "Name",
+      "salutation": "Salutation",
+      "salutations": {"none": "No salutation", "mr": "Mr", "ms": "Ms", "diverse": "Diverse"},
+      "first_name": "First name",
+      "last_name": "Last name",
+      "company_name": "Company",
+      "company_hint": "Optional. Does not change the organization name or the billing details.",
       "locale": "Language of the interface and emails",
       "email_verified": "address confirmed",
       "email_unverified": "address not confirmed"

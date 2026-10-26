@@ -21,10 +21,20 @@
             <input type="hidden" name="plan" value="{{ $plan }}">
             <input type="hidden" name="price" value="{{ $price }}">
             <input type="hidden" name="stores" value="{{ $stores }}">
-            @foreach ([['name', 'text', 'name', 100], ['organization_name', 'text', 'organization', 100], ['email', 'email', 'email', 255]] as [$field, $type, $autocomplete, $max])
+            <div class="site-field">
+                <label for="signup-salutation">{{ __('site.signup.salutation') }} <span class="site-muted">({{ __('site.signup.optional') }})</span></label>
+                <select id="signup-salutation" name="salutation" autocomplete="honorific-prefix" @error('salutation') aria-invalid="true" aria-describedby="signup-salutation-error" @enderror>
+                    <option value="" @selected((string) old('salutation') === '')>{{ __('site.signup.salutations.none') }}</option>
+                    @foreach (\App\Models\User::SALUTATIONS as $salutation)
+                        <option value="{{ $salutation }}" @selected(old('salutation') === $salutation)>{{ __('site.signup.salutations.'.$salutation) }}</option>
+                    @endforeach
+                </select>
+                @error('salutation')<p class="site-field-error" id="signup-salutation-error">{{ $message }}</p>@enderror
+            </div>
+            @foreach ([['first_name', 'text', 'given-name', 100, false], ['last_name', 'text', 'family-name', 100, true], ['company_name', 'text', 'organization', 150, false], ['organization_name', 'text', 'off', 100, true], ['email', 'email', 'email', 255, true]] as [$field, $type, $autocomplete, $max, $required])
                 <div class="site-field">
-                    <label for="signup-{{ $field }}">{{ __('site.signup.'.($field === 'organization_name' ? 'organization' : $field)) }}</label>
-                    <input id="signup-{{ $field }}" name="{{ $field }}" type="{{ $type }}" autocomplete="{{ $autocomplete }}" maxlength="{{ $max }}" required value="{{ old($field) }}" @error($field) aria-invalid="true" aria-describedby="signup-{{ $field }}-error" @enderror>
+                    <label for="signup-{{ $field }}">{{ __('site.signup.'.($field === 'organization_name' ? 'organization' : $field)) }}@unless ($required) <span class="site-muted">({{ __('site.signup.optional') }})</span>@endunless</label>
+                    <input id="signup-{{ $field }}" name="{{ $field }}" type="{{ $type }}" autocomplete="{{ $autocomplete }}" maxlength="{{ $max }}" @if ($required) required @endif value="{{ old($field) }}" @error($field) aria-invalid="true" aria-describedby="signup-{{ $field }}-error" @enderror>
                     @error($field)<p class="site-field-error" id="signup-{{ $field }}-error">{{ $message }}</p>@enderror
                 </div>
             @endforeach

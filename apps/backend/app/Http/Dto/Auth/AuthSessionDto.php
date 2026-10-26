@@ -8,7 +8,7 @@ use App\Models\User;
 class AuthSessionDto
 {
     /**
-     * @return array{user: array{id: string, name: string, email: string, locale: string, email_verified: bool, mfa_enabled: bool}, active_tenant_id: string|null, memberships: array<int, array{tenant_id: string, role: string, created_at: string|null}>}
+     * @return array{user: array{id: string, name: string, salutation: string|null, first_name: string|null, last_name: string, company_name: string|null, email: string, locale: string, email_verified: bool, mfa_enabled: bool}, active_tenant_id: string|null, memberships: array<int, array{tenant_id: string, role: string, created_at: string|null}>}
      */
     public function toArray(User $user, ?string $activeTenantId): array
     {
@@ -20,13 +20,17 @@ class AuthSessionDto
     }
 
     /**
-     * @return array{id: string, name: string, email: string, locale: string, email_verified: bool, mfa_enabled: bool}
+     * @return array{id: string, name: string, salutation: string|null, first_name: string|null, last_name: string, company_name: string|null, email: string, locale: string, email_verified: bool, mfa_enabled: bool}
      */
     private function user(User $user): array
     {
         return [
             'id' => $user->id,
             'name' => $user->name,
+            'salutation' => $user->salutation,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'company_name' => $user->company_name,
             'email' => $user->email,
             'locale' => $user->locale,
             'email_verified' => $user->email_verified_at !== null,

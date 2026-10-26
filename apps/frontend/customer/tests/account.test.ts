@@ -75,7 +75,7 @@ const mocked = vi.mocked(api);
 
 function sessionFor(role: 'owner' | 'admin' | 'operator' | 'viewer', email = 'me@example.test'): AuthSession {
   return {
-    user: { id: 'u-me', name: 'Me', email, locale: 'ru', email_verified: true, mfa_enabled: false },
+    user: { id: 'u-me', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email, locale: 'ru', email_verified: true, mfa_enabled: false },
     active_tenant_id: 't-1',
     memberships: [{ tenant_id: 't-1', role, created_at: '2026-10-01T00:00:00Z' }],
   };
@@ -168,10 +168,10 @@ describe('SessionsPanel', () => {
 
 describe('TeamView', () => {
   const members = [
-    { user_id: 'u-owner', tenant_id: 't-1', name: 'Olga', email: 'olga@example.test', role: 'owner' as const, mfa_enabled: false, is_you: false, created_at: null },
-    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', email: 'me@example.test', role: 'admin' as const, mfa_enabled: false, is_you: true, created_at: null },
-    { user_id: 'u-admin2', tenant_id: 't-1', name: 'Anna', email: 'anna@example.test', role: 'admin' as const, mfa_enabled: true, is_you: false, created_at: null },
-    { user_id: 'u-op', tenant_id: 't-1', name: 'Oleg', email: 'oleg@example.test', role: 'operator' as const, mfa_enabled: false, is_you: false, created_at: null },
+    { user_id: 'u-owner', tenant_id: 't-1', name: 'Olga', salutation: null, first_name: null, last_name: 'Olga', company_name: null, email: 'olga@example.test', role: 'owner' as const, mfa_enabled: false, is_you: false, created_at: null },
+    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', role: 'admin' as const, mfa_enabled: false, is_you: true, created_at: null },
+    { user_id: 'u-admin2', tenant_id: 't-1', name: 'Anna', salutation: null, first_name: null, last_name: 'Anna', company_name: null, email: 'anna@example.test', role: 'admin' as const, mfa_enabled: true, is_you: false, created_at: null },
+    { user_id: 'u-op', tenant_id: 't-1', name: 'Oleg', salutation: null, first_name: null, last_name: 'Oleg', company_name: null, email: 'oleg@example.test', role: 'operator' as const, mfa_enabled: false, is_you: false, created_at: null },
   ];
 
   it('lets an admin manage only operators and viewers and invite with those roles', async () => {
@@ -233,9 +233,9 @@ describe('TeamView', () => {
 
 describe('ownership transfer', () => {
   const team = [
-    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', email: 'me@example.test', email_verified: true, mfa_enabled: true, role: 'owner' as const, is_you: true, created_at: null },
-    { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', email: 'anna@example.test', email_verified: true, mfa_enabled: true, role: 'admin' as const, is_you: false, created_at: null },
-    { user_id: 'u-new', tenant_id: 't-1', name: 'Neu', email: 'new@example.test', email_verified: false, mfa_enabled: false, role: 'viewer' as const, is_you: false, created_at: null },
+    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', email_verified: true, mfa_enabled: true, role: 'owner' as const, is_you: true, created_at: null },
+    { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', salutation: null, first_name: null, last_name: 'Anna', company_name: null, email: 'anna@example.test', email_verified: true, mfa_enabled: true, role: 'admin' as const, is_you: false, created_at: null },
+    { user_id: 'u-new', tenant_id: 't-1', name: 'Neu', salutation: null, first_name: null, last_name: 'Neu', company_name: null, email: 'new@example.test', email_verified: false, mfa_enabled: false, role: 'viewer' as const, is_you: false, created_at: null },
   ];
 
   it('is offered only to the owner and asks for the password and, with MFA on, a code', async () => {
@@ -283,7 +283,7 @@ describe('ownership transfer', () => {
 describe('team MFA reset', () => {
   it('lets the owner reset a member with a reason and step-up, then refreshes the team', async () => {
     session.value = { ...sessionFor('owner'), user: { ...sessionFor('owner').user, mfa_enabled: true } };
-    const member = { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', email: 'anna@example.test', role: 'admin' as const, mfa_enabled: true, is_you: false, created_at: null };
+    const member = { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', salutation: null, first_name: null, last_name: 'Anna', company_name: null, email: 'anna@example.test', role: 'admin' as const, mfa_enabled: true, is_you: false, created_at: null };
     mocked.listMembers.mockResolvedValueOnce({ data: [member], assignable_roles: ['admin', 'operator', 'viewer'] })
       .mockResolvedValueOnce({ data: [{ ...member, mfa_enabled: false }], assignable_roles: ['admin', 'operator', 'viewer'] });
     mocked.listInvitations.mockResolvedValue([]);
@@ -443,13 +443,17 @@ describe('InvitationView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('«Kaffee GmbH» с ролью «оператор»');
-    await wrapper.get('#invite-name').setValue('Neu');
+    expect(wrapper.get('#invite-salutation').findAll('option').map((option) => option.text())).toEqual(['Без обращения', 'Господин', 'Госпожа', 'Другое']);
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('#invite-salutation').setValue('ms');
+    await wrapper.get('#invite-first-name').setValue('Nina');
+    await wrapper.get('#invite-last-name').setValue(' Neu ');
     await wrapper.get('#invite-password').setValue('a-long-enough-password');
     await wrapper.get('#invite-confirmation').setValue('a-long-enough-password');
     await wrapper.get('form').trigger('submit');
     await flushPromises();
 
-    expect(mocked.registerWithInvitation).toHaveBeenCalledWith({ token: 'abc', name: 'Neu', email: 'new@example.test', password: 'a-long-enough-password', locale: 'ru' });
+    expect(mocked.registerWithInvitation).toHaveBeenCalledWith({ salutation: 'ms', first_name: 'Nina', last_name: 'Neu', company_name: null, token: 'abc', email: 'new@example.test', password: 'a-long-enough-password', locale: 'ru' });
   });
 
   it('asks an existing account to sign in, and warns when signed in with another address', async () => {

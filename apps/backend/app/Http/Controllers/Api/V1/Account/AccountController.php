@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\Account\AccountRejected;
 use App\Support\Account\EmailVerificationService;
 use App\Support\Account\PasswordResetService;
+use App\Support\Account\PersonalName;
 use App\Support\Account\TrustedDevices;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -75,8 +76,8 @@ class AccountController extends Controller
 
     public function updateProfile(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'min:1', 'max:100'],
+        $request->replace(PersonalName::normalize($request->all()));
+        $validated = $request->validate(PersonalName::rules(partial: true) + [
             'locale' => ['sometimes', 'string', 'in:ru,en,de'],
         ]);
 

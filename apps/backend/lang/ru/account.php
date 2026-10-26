@@ -114,4 +114,9 @@ return [
         'owner' => 'владелец организации',
         'platform' => 'поддержка Business Watchdog по вашей просьбе',
     ],
+    'greeting' => [
+        'mr' => 'Уважаемый господин :last_name!',
+        'ms' => 'Уважаемая госпожа :last_name!',
+        'neutral' => 'Здравствуйте, :name!',
+    ],
 ];

@@ -130,6 +130,7 @@ class OrganizationDeletionTest extends TestCase
         $context = $this->context();
         $tenant = $context['tenant'];
         $onlyHere = $context['user'];
+        $onlyHere->forceFill(['salutation' => 'ms', 'first_name' => 'Anna', 'company_name' => 'Anna Shop GmbH'])->save();
         $shared = $this->context('admin', $tenant)['user'];
         $other = $this->context();
         Membership::query()->create(['tenant_id' => $other['tenant']->id, 'user_id' => $shared->id, 'role' => 'viewer']);
@@ -174,6 +175,7 @@ class OrganizationDeletionTest extends TestCase
         $anonymized = $onlyHere->fresh();
         $this->assertSame('deleted-'.$onlyHere->id.'@deleted.invalid', $anonymized->email);
         $this->assertSame('Deleted user', $anonymized->name);
+        $this->assertSame([null, null, 'Deleted user', null], [$anonymized->salutation, $anonymized->first_name, $anonymized->last_name, $anonymized->company_name]);
         $this->assertNotNull($anonymized->disabled_at);
         $this->assertSame($shared->email, $shared->fresh()->email);
 

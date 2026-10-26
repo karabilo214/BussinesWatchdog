@@ -4,7 +4,16 @@ import type { Locale } from '@bw/i18n';
 
 export type { Locale };
 
-export interface User {
+export type Salutation = 'mr' | 'ms' | 'diverse';
+
+export interface PersonalName {
+  salutation: Salutation | null;
+  first_name: string | null;
+  last_name: string;
+  company_name: string | null;
+}
+
+export interface User extends PersonalName {
   id: string;
   name: string;
   email: string;

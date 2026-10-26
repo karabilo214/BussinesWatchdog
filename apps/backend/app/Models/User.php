@@ -14,12 +14,34 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 use Laravel\Passkeys\PasskeyAuthenticatable;
 
-#[Fillable(['name', 'email', 'password_hash', 'locale'])]
+#[Fillable(['name', 'salutation', 'first_name', 'last_name', 'company_name', 'email', 'password_hash', 'locale'])]
 #[Hidden(['password_hash', 'remember_token', 'mfa_secret_ciphertext'])]
 class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasUuids, Notifiable, PasskeyAuthenticatable;
+
+    public const SALUTATIONS = ['mr', 'ms', 'diverse'];
+
+    /**
+     * `name` is the display name, always "first last"; writers that still pass only `name` get it as the last name,
+     * never split into parts.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (User $user): void {
+            if (trim((string) $user->last_name) === '' && trim((string) $user->name) !== '') {
+                $user->last_name = trim((string) $user->name);
+            }
+
+            $user->name = self::displayName($user->first_name, (string) $user->last_name);
+        });
+    }
+
+    public static function displayName(?string $firstName, string $lastName): string
+    {
+        return trim(trim((string) $firstName).' '.trim($lastName));
+    }
 
     public function getAuthPassword(): string
     {

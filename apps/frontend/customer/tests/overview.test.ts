@@ -47,7 +47,7 @@ describe('OverviewView', () => {
   it('warns a user without MFA even before a store is added and hides the warning after enrollment', async () => {
     setLocale('ru');
     const currentSession: AuthSession = {
-      user: { id: 'u-1', name: 'Owner', email: 'owner@example.test', locale: 'ru', email_verified: true, mfa_enabled: false },
+      user: { id: 'u-1', name: 'Owner', salutation: null, first_name: null, last_name: 'Owner', company_name: null, email: 'owner@example.test', locale: 'ru', email_verified: true, mfa_enabled: false },
       active_tenant_id: 't-1',
       memberships: [{ tenant_id: 't-1', role: 'owner', created_at: '2026-10-01T00:00:00Z' }],
     };

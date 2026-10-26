@@ -2,7 +2,7 @@
 import { computed, inject, reactive, ref, watch } from 'vue';
 import { LOCALE_NAMES, LOCALES, SET_LOCALE } from '@bw/i18n';
 import { changePassword, resendEmailVerification, updateProfile } from '@/api/account';
-import type { Locale } from '@/api/types';
+import type { Locale, PersonalName } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { fieldErrorsOf } from '@/composables/errors';
 import MfaPanel from '@/components/account/MfaPanel.vue';
@@ -10,6 +10,7 @@ import SessionsPanel from '@/components/account/SessionsPanel.vue';
 import TrustedDevicesPanel from '@/components/account/TrustedDevicesPanel.vue';
 import PasskeysPanel from '@/components/account/PasskeysPanel.vue';
 import PasswordFields from '@/components/account/PasswordFields.vue';
+import PersonalNameFields from '@/components/account/PersonalNameFields.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
 import { useSession } from '@/composables/useSession';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -18,7 +19,8 @@ import { StatusBadge } from '@bw/ui';
 const { session, replace } = useSession();
 const setLocale = inject(SET_LOCALE, null);
 
-const profile = reactive({ name: '', locale: 'ru' as Locale });
+const personal = ref<PersonalName>({ salutation: null, first_name: null, last_name: '', company_name: null });
+const profile = reactive({ locale: 'ru' as Locale });
 const profileSaving = ref(false);
 const profileSaved = ref(false);
 const profileError = ref<unknown>(null);
@@ -37,7 +39,7 @@ watch(
   () => session.value?.user,
   (user) => {
     if (user) {
-      profile.name = user.name;
+      personal.value = { salutation: user.salutation, first_name: user.first_name, last_name: user.last_name, company_name: user.company_name };
       profile.locale = user.locale;
     }
   },
@@ -50,7 +52,7 @@ async function saveProfile(): Promise<void> {
   profileSaved.value = false;
 
   try {
-    replace(await updateProfile({ name: profile.name.trim(), locale: profile.locale }));
+    replace(await updateProfile({ ...personal.value, last_name: personal.value.last_name.trim(), locale: profile.locale }));
     setLocale?.(profile.locale);
     profileSaved.value = true;
   } catch (caught) {
@@ -106,10 +108,7 @@ async function savePassword(): Promise<void> {
         </div>
         <ErrorNotice v-if="resendError" :error="resendError" />
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="saveProfile">
-          <div class="flex flex-col gap-1.5">
-            <label for="profile-name" class="text-sm font-medium">{{ $t('account.profile.name') }}</label>
-            <input id="profile-name" v-model="profile.name" maxlength="100" autocomplete="name" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base" />
-          </div>
+          <PersonalNameFields v-model="personal" id-prefix="profile" />
           <div class="flex flex-col gap-1.5">
             <label for="profile-locale" class="text-sm font-medium">{{ $t('account.profile.locale') }}</label>
             <select id="profile-locale" v-model="profile.locale" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base">
@@ -117,7 +116,7 @@ async function savePassword(): Promise<void> {
             </select>
           </div>
           <div class="flex flex-wrap items-center gap-3 sm:col-span-2">
-            <button type="submit" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="profileSaving || profile.name.trim() === ''">{{ $t('common.save') }}</button>
+            <button type="submit" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="profileSaving || personal.last_name.trim() === ''">{{ $t('common.save') }}</button>
             <span v-if="profileSaved" class="text-sm text-ok" role="status">{{ $t('common.saved') }}</span>
           </div>
         </form>

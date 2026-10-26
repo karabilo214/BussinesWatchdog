@@ -40,7 +40,7 @@ const api = vi.mocked(billing);
 
 function sessionFor(role: 'owner' | 'admin' | 'viewer'): AuthSession {
   return {
-    user: { id: 'u-me', name: 'Me', email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: false },
+    user: { id: 'u-me', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: false },
     active_tenant_id: 't-1',
     memberships: [{ tenant_id: 't-1', role, created_at: '2026-10-01T00:00:00Z' }],
   };

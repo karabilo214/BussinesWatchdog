@@ -1,6 +1,6 @@
 import { ensureCsrfCookie, request } from '@bw/api-client';
 import { Passkeys } from '@laravel/passkeys';
-import type { AuthSession, InvitationLookup, Locale, MfaSetup, MfaState, OrganizationDeletionState, TeamInvitation, TeamMember, TeamRole } from './types';
+import type { AuthSession, InvitationLookup, Locale, PersonalName, MfaSetup, MfaState, OrganizationDeletionState, TeamInvitation, TeamMember, TeamRole } from './types';
 
 export async function requestPasswordReset(email: string): Promise<void> {
   await request('POST', '/api/v1/auth/password-reset/request', { body: { email } });
@@ -14,7 +14,7 @@ export async function resendEmailVerification(): Promise<void> {
   await request('POST', '/api/v1/auth/email-verification/resend');
 }
 
-export async function updateProfile(changes: { name?: string; locale?: Locale }): Promise<AuthSession> {
+export async function updateProfile(changes: Partial<PersonalName> & { locale?: Locale }): Promise<AuthSession> {
   return (await request<AuthSession>('PATCH', '/api/v1/auth/me', { body: changes })).data;
 }
 
@@ -119,10 +119,10 @@ export async function acceptInvitation(token: string): Promise<TeamMember> {
   return (await request<TeamMember>('POST', '/api/v1/invitations/accept', { body: { token } })).data;
 }
 
-export async function registerWithInvitation(input: { token: string; name: string; email: string; password: string; locale: Locale }): Promise<AuthSession> {
+export async function registerWithInvitation(input: PersonalName & { token: string; email: string; password: string; locale: Locale }): Promise<AuthSession> {
   return (
     await request<AuthSession>('POST', '/api/v1/auth/register', {
-      body: { name: input.name, email: input.email, password: input.password, password_confirmation: input.password, locale: input.locale, invitation_token: input.token },
+      body: { salutation: input.salutation, first_name: input.first_name, last_name: input.last_name, company_name: input.company_name, email: input.email, password: input.password, password_confirmation: input.password, locale: input.locale, invitation_token: input.token },
     })
   ).data;
 }

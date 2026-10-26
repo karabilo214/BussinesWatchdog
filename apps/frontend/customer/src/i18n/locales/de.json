@@ -1947,7 +1947,12 @@
     },
     "profile": {
       "title": "Profil",
-      "name": "Name",
+      "salutation": "Anrede",
+      "salutations": {"none": "Keine Anrede", "mr": "Herr", "ms": "Frau", "diverse": "Divers"},
+      "first_name": "Vorname",
+      "last_name": "Nachname",
+      "company_name": "Firma",
+      "company_hint": "Optional. Ändert weder den Namen der Organisation noch die Rechnungsdaten.",
       "locale": "Sprache der Oberfläche und E-Mails",
       "email_verified": "Adresse bestätigt",
       "email_unverified": "Adresse nicht bestätigt"

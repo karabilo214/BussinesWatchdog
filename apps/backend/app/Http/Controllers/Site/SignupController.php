@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Site;
 use App\Http\Controllers\Controller;
 use App\Models\PublicPage;
 use App\Support\Account\EmailVerificationService;
+use App\Support\Account\PersonalName;
 use App\Support\Account\Registration;
 use App\Support\Site\Policies;
 use App\Support\Site\PolicyAcceptanceRequired;
@@ -74,10 +75,10 @@ class SignupController extends Controller
         }
 
         $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+        $request->replace(PersonalName::normalize($request->all()));
         $documents = $this->policies->required(Policies::PURPOSE_SIGNUP, $locale);
         $labels = fn (string $field): string => trans("site.signup.{$field}", [], $locale);
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
+        $validated = $request->validate(PersonalName::rules() + [
             'organization_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'confirmed', 'max:128', Password::min(12)],
@@ -92,7 +93,10 @@ class SignupController extends Controller
             'email.unique' => trans('site.signup.email_taken', ['login' => '/app/login'], $locale),
             'accept.accepted' => trans('site.signup.accept_required', [], $locale),
         ], [
-            'name' => $labels('name'),
+            'salutation' => $labels('salutation'),
+            'first_name' => $labels('first_name'),
+            'last_name' => $labels('last_name'),
+            'company_name' => $labels('company_name'),
             'organization_name' => $labels('organization'),
             'email' => $labels('email'),
             'password' => $labels('password'),

@@ -157,7 +157,12 @@ return [
     'signup' => [
         'title' => 'Registrieren',
         'lead' => 'Erstellen Sie Konto und Organisation — Testphase oder Tarifkauf im Konto. Shops werden nach der Registrierung verbunden.',
-        'name' => 'Ihr Name',
+        'salutation' => 'Anrede',
+        'salutations' => ['none' => 'Keine Anrede', 'mr' => 'Herr', 'ms' => 'Frau', 'diverse' => 'Divers'],
+        'first_name' => 'Vorname',
+        'last_name' => 'Nachname',
+        'company_name' => 'Firma',
+        'optional' => 'optional',
         'organization' => 'Name der Organisation oder des Shops',
         'email' => 'E-Mail',
         'password' => 'Passwort',

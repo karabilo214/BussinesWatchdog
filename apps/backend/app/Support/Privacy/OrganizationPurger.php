@@ -401,7 +401,10 @@ class OrganizationPurger
 
         $user->forceFill([
             'email' => 'deleted-'.$userId.'@deleted.invalid',
-            'name' => 'Deleted user',
+            'salutation' => null,
+            'first_name' => null,
+            'last_name' => 'Deleted user',
+            'company_name' => null,
             'password_hash' => Hash::make(Str::random(64)),
             'email_verified_at' => null,
             'disabled_at' => Carbon::now(),

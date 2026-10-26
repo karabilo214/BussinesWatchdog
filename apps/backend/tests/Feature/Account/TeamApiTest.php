@@ -107,9 +107,12 @@ class TeamApiTest extends TestCase
         $this->postJson('/api/v1/auth/register', ['name' => 'New', 'email' => 'other@example.test', 'password' => 'very-secure-password', 'password_confirmation' => 'very-secure-password', 'invitation_token' => $token])
             ->assertStatus(422)->assertJsonPath('code', 'invitation_email_mismatch');
 
-        $this->postJson('/api/v1/auth/register', ['name' => 'New', 'email' => 'new@example.test', 'password' => 'very-secure-password', 'password_confirmation' => 'very-secure-password', 'invitation_token' => $token])
+        $this->postJson('/api/v1/auth/register', ['salutation' => 'ms', 'first_name' => 'Nina', 'last_name' => 'Neu', 'company_name' => 'Agentur Neu', 'email' => 'new@example.test', 'password' => 'very-secure-password', 'password_confirmation' => 'very-secure-password', 'invitation_token' => $token])
             ->assertCreated()
             ->assertJsonPath('active_tenant_id', $this->tenant->id)
+            ->assertJsonPath('user.name', 'Nina Neu')
+            ->assertJsonPath('user.salutation', 'ms')
+            ->assertJsonPath('user.company_name', 'Agentur Neu')
             ->assertJsonPath('user.email_verified', true)
             ->assertJsonPath('memberships.0.role', 'admin');
 

@@ -114,4 +114,9 @@ return [
         'owner' => 'the organization owner',
         'platform' => 'Business Watchdog support at your request',
     ],
+    'greeting' => [
+        'mr' => 'Dear Mr :last_name,',
+        'ms' => 'Dear Ms :last_name,',
+        'neutral' => 'Hello :name,',
+    ],
 ];

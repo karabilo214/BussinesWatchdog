@@ -17,15 +17,14 @@ class Registration
     public function __construct(private readonly Policies $policies) {}
 
     /**
-     * @param  array{name: string, email: string, password: string, organization_name: string, timezone: string, locale: string}  $input
+     * @param  array{salutation?: string|null, first_name?: string|null, last_name: string, company_name?: string|null, email: string, password: string, organization_name: string, timezone: string, locale: string}  $input
      * @param  list<string>  $policyVersionIds
      * @return array{0: User, 1: Tenant}
      */
     public function register(array $input, array $policyVersionIds): array
     {
         return DB::transaction(function () use ($input, $policyVersionIds): array {
-            $user = User::query()->create([
-                'name' => $input['name'],
+            $user = User::query()->create(PersonalName::only($input) + [
                 'email' => $input['email'],
                 'password_hash' => Hash::make($input['password']),
                 'locale' => $input['locale'],

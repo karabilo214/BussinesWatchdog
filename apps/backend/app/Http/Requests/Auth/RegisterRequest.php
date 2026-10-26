@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\Account\PersonalName;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -18,8 +19,7 @@ class RegisterRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'name' => ['required', 'string', 'min:1', 'max:100'],
+        return PersonalName::rules() + [
             'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'confirmed', 'max:128', Password::min(12)],
             'organization_name' => ['required_without:invitation_token', 'string', 'min:1', 'max:100'],
@@ -33,6 +33,8 @@ class RegisterRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->replace(PersonalName::normalize($this->all()));
+
         if ($this->has('email')) {
             $this->merge([
                 'email' => mb_strtolower(trim((string) $this->input('email'))),

@@ -32,7 +32,7 @@ const mocked = vi.mocked(api);
 
 function sessionFor(role: 'owner' | 'admin', mfa = false): AuthSession {
   return {
-    user: { id: 'u-me', name: 'Me', email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: mfa },
+    user: { id: 'u-me', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: mfa },
     active_tenant_id: 't-1',
     memberships: [{ tenant_id: 't-1', role, created_at: '2026-10-01T00:00:00Z' }],
   };
@@ -72,8 +72,8 @@ describe('organization summary', () => {
       { id: 's-2', name: 'Outlet', platform: 'woocommerce', status: 'paused', capacity_paused_at: '2026-10-20T00:00:00Z' },
     ] as never);
     mocked.listMembers.mockResolvedValue({ data: [
-      { user_id: 'u-me', tenant_id: 't-1', name: 'Me', email: 'me@example.test', mfa_enabled: true, role: 'owner', is_you: true },
-      { user_id: 'u-2', tenant_id: 't-1', name: 'Anna Berg', email: 'anna@example.test', mfa_enabled: false, role: 'viewer', is_you: false },
+      { user_id: 'u-me', tenant_id: 't-1', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', mfa_enabled: true, role: 'owner', is_you: true },
+      { user_id: 'u-2', tenant_id: 't-1', name: 'Anna Berg', salutation: null, first_name: null, last_name: 'Anna Berg', company_name: null, email: 'anna@example.test', mfa_enabled: false, role: 'viewer', is_you: false },
     ], assignable_roles: [] } as never);
     mocked.listInvitations.mockResolvedValue([{ id: 'i-1', email: 'x@example.test', role: 'admin', state: 'pending', invited_by: null, expires_at: '2026-10-30T00:00:00Z', created_at: null }]);
     vi.mocked(billing.fetchSubscription).mockResolvedValue({ plan_code: 'start', plan_version_id: 'v-start', status: 'active', paid_until: '2026-11-20T00:00:00Z', trial_ends_at: null, capacity: { limit: 3, stores: 2, paused: 1, choice_required: false } } as never);

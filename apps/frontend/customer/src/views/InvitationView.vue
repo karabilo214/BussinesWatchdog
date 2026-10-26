@@ -4,9 +4,10 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { ApiError } from '@bw/api-client';
 import { acceptInvitation, lookupInvitation, registerWithInvitation } from '@/api/account';
-import type { InvitationLookup, Locale } from '@/api/types';
+import type { InvitationLookup, Locale, PersonalName } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import PasswordFields from '@/components/account/PasswordFields.vue';
+import PersonalNameFields from '@/components/account/PersonalNameFields.vue';
 import { useSession } from '@/composables/useSession';
 import { useFormat } from '@/composables/useFormat';
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -23,7 +24,7 @@ const loading = ref(true);
 const lookupError = ref<unknown>(null);
 const busy = ref(false);
 const error = ref<unknown>(null);
-const name = ref('');
+const personal = ref<PersonalName>({ salutation: null, first_name: null, last_name: '', company_name: null });
 const password = ref('');
 const passwordValid = ref(false);
 
@@ -53,7 +54,7 @@ async function register(): Promise<void> {
   error.value = null;
 
   try {
-    replace(await registerWithInvitation({ token, name: name.value.trim(), email: invitation.value.email, password: password.value, locale: locale.value as Locale }));
+    replace(await registerWithInvitation({ ...personal.value, last_name: personal.value.last_name.trim(), token, email: invitation.value.email, password: password.value, locale: locale.value as Locale }));
     await router.replace({ name: 'overview' });
   } catch (caught) {
     error.value = caught;
@@ -114,12 +115,9 @@ onMounted(async () => {
 
         <form v-else class="flex flex-col gap-4" novalidate @submit.prevent="register">
           <p class="text-sm">{{ $t('account.invitation.create_account') }}</p>
-          <div class="flex flex-col gap-1.5">
-            <label for="invite-name" class="text-sm font-medium">{{ $t('account.profile.name') }}</label>
-            <input id="invite-name" v-model="name" maxlength="100" autocomplete="name" class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base" />
-          </div>
+          <PersonalNameFields v-model="personal" id-prefix="invite" />
           <PasswordFields id-prefix="invite" @update="(value, ok) => { password = value; passwordValid = ok; }" />
-          <button type="submit" class="rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || name.trim() === '' || !passwordValid">
+          <button type="submit" class="rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || personal.last_name.trim() === '' || !passwordValid">
             {{ $t('account.invitation.join') }}
           </button>
         </form>

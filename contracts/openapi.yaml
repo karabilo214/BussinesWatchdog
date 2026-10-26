@@ -84,10 +84,14 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, email, password, password_confirmation]
-              description: "organization_name and timezone are required unless invitation_token is given; with a token the account joins the inviting team (the email must be the invited one) and no tenant is created."
+              required: [last_name, email, password, password_confirmation]
+              description: "organization_name and timezone are required unless invitation_token is given; with a token the account joins the inviting team (the email must be the invited one) and no tenant is created. Only the last name is required; an older client's single `name` (without first_name/last_name) is taken as the last name as typed."
               properties:
-                name: {type: string, minLength: 1, maxLength: 100}
+                salutation: {type: [string, "null"], enum: [mr, ms, diverse, null], description: "Herr/Frau/Divers; null — no salutation (letters greet by full name)."}
+                first_name: {type: [string, "null"], maxLength: 100}
+                last_name: {type: string, minLength: 1, maxLength: 100}
+                company_name: {type: [string, "null"], maxLength: 150, description: "The person's own company; not linked to the organization name or the Paddle payer."}
+                name: {type: string, maxLength: 100, deprecated: true, description: "Older clients only; becomes last_name."}
                 email: {type: string, format: email, maxLength: 255}
                 password: {type: string, minLength: 12, maxLength: 128}
                 password_confirmation: {type: string}
@@ -3326,8 +3330,13 @@ paths:
           application/json:
             schema:
               type: object
+              description: "Only the fields sent are changed; an empty optional field is stored as null. An older client's single `name` (without first_name/last_name) is taken as the last name."
               properties:
-                name: {type: string, minLength: 1, maxLength: 100}
+                salutation: {type: [string, "null"], enum: [mr, ms, diverse, null]}
+                first_name: {type: [string, "null"], maxLength: 100}
+                last_name: {type: string, minLength: 1, maxLength: 100}
+                company_name: {type: [string, "null"], maxLength: 150}
+                name: {type: string, maxLength: 100, deprecated: true}
                 locale: {enum: [ru, en, de]}
       responses:
         "200":
@@ -7408,10 +7417,14 @@ components:
               code: {type: string}
     User:
       type: object
-      required: [id, name, email, locale, email_verified, mfa_enabled]
+      required: [id, name, salutation, first_name, last_name, company_name, email, locale, email_verified, mfa_enabled]
       properties:
         id: {type: string, format: uuid}
-        name: {type: string}
+        name: {type: string, description: "Display name, \"first last\"."}
+        salutation: {type: [string, "null"], enum: [mr, ms, diverse, null]}
+        first_name: {type: [string, "null"]}
+        last_name: {type: string}
+        company_name: {type: [string, "null"]}
         email: {type: string, format: email}
         locale: {enum: [ru, en, de]}
         email_verified: {type: boolean}

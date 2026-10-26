@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Account\AccountRejected;
 use App\Support\Account\EmailVerificationService;
 use App\Support\Account\MfaService;
+use App\Support\Account\PersonalName;
 use App\Support\Account\Registration;
 use App\Support\Account\TeamService;
 use App\Support\Account\TrustedDevices;
@@ -69,8 +70,7 @@ class AuthController extends Controller
             }
 
             [$user, $membership] = DB::transaction(function () use ($validated, $team): array {
-                $user = User::query()->create([
-                    'name' => $validated['name'],
+                $user = User::query()->create(PersonalName::only($validated) + [
                     'email' => $validated['email'],
                     'password_hash' => Hash::make($validated['password']),
                     'locale' => $validated['locale'],

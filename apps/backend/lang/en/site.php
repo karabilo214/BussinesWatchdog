@@ -157,7 +157,12 @@ return [
     'signup' => [
         'title' => 'Sign up',
         'lead' => 'Create your account and organisation — start a trial or buy a plan in your account. Stores are connected after signing up.',
-        'name' => 'Your name',
+        'salutation' => 'Salutation',
+        'salutations' => ['none' => 'No salutation', 'mr' => 'Mr', 'ms' => 'Ms', 'diverse' => 'Diverse'],
+        'first_name' => 'First name',
+        'last_name' => 'Last name',
+        'company_name' => 'Company',
+        'optional' => 'optional',
         'organization' => 'Organisation or store name',
         'email' => 'Email',
         'password' => 'Password',
