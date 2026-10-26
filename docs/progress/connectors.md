@@ -664,7 +664,7 @@ Production 2026-10-26 (`189aec7`): migration applied (187 ms); deploy without do
 
 ### Step 277: PayPal Disputes (2026-10-26)
 
-Status: complete; not deployed (migration `allow_closed_provider_disputes`, PostgreSQL CHECK only)
+Status: complete; deployed 2026-10-26 (`33fa2cd`, migration `allow_closed_provider_disputes`)
 
 - Backlog «Споры PayPal так же, как Stripe». ADR 0081 decision 8. Same `dispute.snapshot` event, `provider_disputes`, incidents, reminders and cabinet as Step 276.
 - `PayPalClient` allowlist: `GET /v1/customer/disputes` and `/v1/customer/disputes/{id}` (read only). `PayPalSync::disputes()` after the transaction windows: list by `update_time_after` (watermark − overlap; first run `WATCHDOG_PAYPAL_DISPUTE_DAYS` = 180), each listed dispute read by id (≤ 50 per run, ≤ 5 pages, `next` links), `health.sync.disputes` = `ok` (with `watermark`, `complete`) / `permission_missing` (403) / `unavailable` (any other error); only rejected credentials fail the sync. `syncDispute()` for webhooks.
@@ -674,3 +674,5 @@ Status: complete; not deployed (migration `allow_closed_provider_disputes`, Post
 - Cabinet: hint `paypal.disputes_permission_missing` on the PayPal panel; setup steps mention the optional Disputes feature and the dispute webhook events.
 
 Verification: `PayPalDisputeTest` (4): a chargeback waiting for the seller → dispute linked to the PayPal order payment and the store order, warning incident, order API, watermark, no buyer e-mail stored; mapping of under review, inquiry, won, closed and inquiry closed with the matching auto resolutions; 403 on disputes keeps the payment sync and the integration active; webhook reads the dispute from the API and ignores an invalid id. Existing PayPal tests 12/12 unchanged. Backend SQLite 809 passed + 4 skipped, Pint; cabinet typecheck, 196 tests, build. JSON fixtures of the PayPal API only, not tested against a real PayPal account; the list filter `update_time_after` follows PayPal's documented parameters and is not confirmed on the sandbox yet.
+
+Production 2026-10-26 (`33fa2cd`): migration applied (48 ms); deploy without downtime (`probe.sh` 480 s, ~4800 requests, 0 answers other than 200). `paypal:sync --inline` on the three active sandbox apps: payments sync `ok`, integrations stay active, no `last_error`; disputes `permission_missing` on all three (the apps have no Disputes feature; their write scopes are capture, payments_v1, refund), so the hint shows on the PayPal panels. The `update_time_after` list filter is still unconfirmed against PayPal: it needs an app with Disputes enabled. No errors in app or worker logs.
