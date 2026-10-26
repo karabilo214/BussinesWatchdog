@@ -648,7 +648,7 @@ Verification: plugin integration tests floor and latest 59/59 (new test: data un
 
 ### Step 276: Stripe Disputes as an Informational Signal (2026-10-26)
 
-Status: complete; not deployed (migration `create_provider_disputes_table`)
+Status: complete; deployed 2026-10-26 (`189aec7`, migration `create_provider_disputes_table`)
 
 - Backlog «Споры (chargebacks) как информационный сигнал». ADR 0081, owner's decisions: one incident per dispute (warning), notify at once, remind 3 days before the answer is due, outcome in the digest; a soft hint when the key lacks `Disputes: Read`; PayPal later (new backlog item).
 - Contract: event `dispute.snapshot` (aggregate `dispute`, `aggregate_revision` required, `$defs/dispute`) in `contracts/event.schema.json` and the runtime copy; OpenAPI: schema `Dispute`, `dispute` on `Incident`, `disputes` on the order and payment cards, incident families `checkout_observation` and `dispute` added to the enum.
@@ -659,3 +659,5 @@ Status: complete; not deployed (migration `create_provider_disputes_table`)
 - Cabinet: `DisputeCard` (status, reason, amount or «hidden», deadline, closed), dispute panel on the incident with a link to the order, «Payment dispute» section on the order card, dispute fact in the evidence, hint `provider.disputes_permission_missing` on the Stripe panel, `Disputes` in the key instruction; incident family labels for `dispute` and the previously missing `checkout_observation`, auto-resolution labels for disputes and checkout observation; titles with the order number for dispute incidents.
 
 Verification: `StripeDisputeTest` (6): sync → dispute linked to payment and order, warning incident and notification request, no money operation and no mismatch, incident/order APIs, German letter text; outcome «lost» resolves the incident and an older revision changes nothing; a dispute already closed opens no incident; 403 on disputes keeps the sync ok with `permission_missing`; reminder requested exactly once and amounts hidden without `money.view`; webhook `charge.dispute.created` feeds the same path; no customer e-mail from metadata stored. Cabinet `tests/disputes.test.ts` (2). Backend SQLite 805 passed + 4 skipped, PostgreSQL 18 809/809, Pint; cabinet typecheck, 196 tests, build. Tested with JSON fixtures of the Stripe API only, not against a real Stripe account.
+
+Production 2026-10-26 (`189aec7`): migration applied (187 ms); deploy without downtime (`probe.sh` 480 s on `/health/ready`, `/app/`, `/owner/`, `/en` — 0 answers other than 200); `disputes:remind` scheduled hourly at :35. `stripe:sync --inline` on the three active Stripe test-mode connections: all `ok`, `health.sync.disputes.state = ok` (the existing restricted keys can read disputes), 0 disputes in these accounts. The incident list of 24 real incidents serializes with the new DTO; no errors in app or worker logs. A real dispute was not observed yet (none in the test accounts).
