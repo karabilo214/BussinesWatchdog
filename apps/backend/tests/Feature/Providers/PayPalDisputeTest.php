@@ -89,6 +89,7 @@ class PayPalDisputeTest extends TestCase
 
     public function test_a_chargeback_waiting_for_the_seller_opens_an_incident_on_the_paypal_order(): void
     {
+        config(['watchdog.paypal.dispute_days' => 365]);
         $order = $this->storeOrder();
         $due = now()->addDays(8)->startOfSecond();
         $this->dispute('PP-D-1001', 'WAITING_FOR_SELLER_RESPONSE', 'CHARGEBACK', 'MERCHANDISE_OR_SERVICE_NOT_RECEIVED', $due->toIso8601ZuluString());
@@ -104,7 +105,7 @@ class PayPalDisputeTest extends TestCase
         $health = $integration->refresh()->health['sync']['disputes'];
         $this->assertSame(['ok', true], [$health['state'], $health['complete']]);
         $this->assertNotNull($health['watermark']);
-        $this->assertArrayHasKey('update_time_after', $this->listQueries[0]);
+        $this->assertGreaterThan(now()->subDays(180)->getTimestamp(), strtotime($this->listQueries[0]['update_time_after']));
 
         $incident = Incident::query()->where('family', DisputeIncidents::FAMILY)->firstOrFail();
         $this->assertSame([Incident::SEVERITY_WARNING, DisputeIncidents::RULE_OPEN], [$incident->severity, $incident->title_code]);
@@ -172,6 +173,10 @@ class PayPalDisputeTest extends TestCase
     private function listDisputes(array $query): PromiseInterface
     {
         $this->listQueries[] = $query;
+
+        if (strtotime((string) ($query['update_time_after'] ?? '')) < now()->subDays(180)->getTimestamp()) {
+            return Http::response(['name' => 'INVALID_REQUEST', 'details' => [['field' => 'update_time_after', 'issue' => 'INVALID_DATE_RANGE']]], 400);
+        }
 
         if ($this->disputesStatus !== 200) {
             return Http::response(['name' => 'NOT_AUTHORIZED'], $this->disputesStatus);

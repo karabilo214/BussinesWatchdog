@@ -86,7 +86,7 @@ return [
         'search_window_days' => 31,
         'delta_overlap_minutes' => 180,
         'audit_days' => (int) env('WATCHDOG_PAYPAL_AUDIT_DAYS', 90),
-        'dispute_days' => (int) env('WATCHDOG_PAYPAL_DISPUTE_DAYS', 180),
+        'dispute_days' => (int) env('WATCHDOG_PAYPAL_DISPUTE_DAYS', 179),
         'max_disputes_per_run' => 50,
         'max_dispute_pages_per_run' => 5,
         'webhook_tolerance_seconds' => 600,

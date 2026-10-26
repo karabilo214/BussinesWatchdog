@@ -33,6 +33,8 @@ class PayPalSync
 
     public const MODE_POINTERS = 'pointers';
 
+    public const DISPUTE_MAX_DAYS = 179;
+
     private int $budget = 0;
 
     public function __construct(
@@ -226,9 +228,10 @@ class PayPalSync
      */
     private function disputes(Integration $integration, string $token, Carbon $now, array $previous, array &$totals): array
     {
+        $oldest = $now->copy()->subDays(min(self::DISPUTE_MAX_DAYS, (int) config('watchdog.paypal.dispute_days')));
         $since = isset($previous['watermark'])
-            ? Carbon::parse($previous['watermark'])->subMinutes((int) config('watchdog.paypal.delta_overlap_minutes'))
-            : $now->copy()->subDays((int) config('watchdog.paypal.dispute_days'));
+            ? Carbon::parse($previous['watermark'])->subMinutes((int) config('watchdog.paypal.delta_overlap_minutes'))->max($oldest)
+            : $oldest;
         $this->budget = (int) config('watchdog.paypal.max_disputes_per_run');
         $query = ['update_time_after' => $since->format('Y-m-d\TH:i:s.000\Z'), 'page_size' => 50];
 
