@@ -20,6 +20,7 @@ class NotificationRenderer
             return new RenderedNotification(
                 $this->t('test.subject', [], $locale),
                 $this->t('test.body', ['label' => (string) ($content['channel_label'] ?? '')], $locale),
+                $locale,
             );
         }
 
@@ -39,6 +40,7 @@ class NotificationRenderer
         return new RenderedNotification(
             $this->t('verification.subject', [], $locale),
             $this->t('verification.body', ['code' => $code, 'minutes' => 15], $locale),
+            $locale,
         );
     }
 
@@ -85,6 +87,7 @@ class NotificationRenderer
         return new RenderedNotification(
             $this->familyText($content, $subjectKey, $subjectReplace, $locale),
             implode("\n", $lines),
+            $locale,
         );
     }
 
@@ -112,6 +115,7 @@ class NotificationRenderer
         return new RenderedNotification(
             $this->familyText($content, 'subject.recovered', ['store' => $content['store_name']], $locale),
             implode("\n", $lines),
+            $locale,
         );
     }
 
@@ -207,6 +211,7 @@ class NotificationRenderer
         return new RenderedNotification(
             $this->t('digest.subject.'.$content['verdict'], [], $locale),
             implode("\n", $lines),
+            $locale,
         );
     }
 

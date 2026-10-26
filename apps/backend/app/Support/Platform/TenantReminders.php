@@ -101,7 +101,7 @@ class TenantReminders
 
         foreach ($recipients as $recipient) {
             $letter = $rendered[$recipient['locale']];
-            $this->mailer->deliver($recipient['email'], $letter['subject'], $letter['body']);
+            $this->mailer->deliver($recipient['email'], $letter['subject'], $letter['body'], $recipient['locale']);
             DB::table('tenant_reminder_messages')->insert([
                 'id' => (string) Str::uuid7(),
                 'reminder_id' => $reminderId,

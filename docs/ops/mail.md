@@ -19,6 +19,18 @@ php artisan mail:auth-check --strict   # SPF, DKIM (ключ читается и
 
 В `production` команда без `--strict` тоже завершается ошибкой, если что-то не настроено.
 
+## Оформление писем и предпросмотр
+
+Все письма сервиса уходят в одном макете (HTML + текстовая версия): `resources/views/mail/layout.blade.php`, `layout-text.blade.php`, тексты подвала — `lang/*/mail.php`. Логотип берётся по адресу `APP_URL/mail-logo.png`, ссылки и кнопки строятся только на адреса `APP_URL` и `WATCHDOG_SITE_OWNER_URL`. В подвале — `WATCHDOG_PROVIDER_NAME` и `WATCHDOG_PROVIDER_ADDRESS`; пока они пусты, строки поставщика нет.
+
+```sh
+php artisan mail:preview --out=/tmp/bw-mails                  # все письма с тестовыми данными: <имя>.<язык>.html/.txt и index.html
+php artisan mail:preview --to=preview@example.test            # отправить все письма через настроенный почтовый сервер (локально — Mailpit, http://localhost:8025)
+php artisan mail:preview --to=<адрес> --locale=de --only=password_reset   # только выбранные письма/языки
+```
+
+Локально в контейнере: `docker compose exec backend php artisan mail:preview --to=preview@example.test`. После выпуска изменений макета на боевом: `ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose exec -T app php artisan mail:preview --to=<адрес mail-tester.com> --only=password_reset --locale=de'` — проверить балл на mail-tester.com (SpamAssassin, DKIM/SPF/DMARC, вёрстка) и сравнить с прежними письмами. Команда базу не использует; данные в письмах вымышленные.
+
 ## Почтовый сервер на боевом сервере
 
 **Почта** (`mail.business-watchdog.com`) — свой почтовый сервер в контейнерах `mail` (Postfix + Dovecot) и `rspamd` (фильтр спама):

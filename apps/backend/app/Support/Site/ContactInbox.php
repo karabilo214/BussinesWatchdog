@@ -301,7 +301,7 @@ class ContactInbox
         }
 
         try {
-            Mail::to($request->email)->send(new NotificationMessageMail($subject, $this->letter($request, $body)));
+            Mail::to($request->email)->send(new NotificationMessageMail($subject, $this->letter($request, $body), (string) $request->locale, NotificationMessageMail::AUDIENCE_VISITOR));
         } catch (Throwable $exception) {
             Log::warning('site.contact_reply_failed', ['contact_request_id' => $request->id, 'exception' => $exception::class]);
 
@@ -418,6 +418,8 @@ class ContactInbox
                         'attachment' => $request->attachment_name === null ? '—' : $request->attachment_name.' ('.max(1, (int) ceil($request->attachment_bytes / 1024)).' KB)',
                         'link' => rtrim((string) config('watchdog.site.owner_url'), '/').'/contact-requests/'.$request->id,
                     ], 'ru'),
+                    'ru',
+                    NotificationMessageMail::AUDIENCE_STAFF,
                 ));
                 $result['sent']++;
             } catch (Throwable $exception) {

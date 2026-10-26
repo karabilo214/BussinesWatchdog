@@ -4,42 +4,52 @@ return [
     'support_access_requested' => [
         'subject' => 'Business Watchdog: Anfrage auf Support-Zugriff',
         'body' => "Mitarbeiter :staff hat für Vorgang :case Zugriff auf den Shop :store der Organisation :tenant angefragt. Vor Ihrer Freigabe sind die Shop-Daten nicht zugänglich. Anfrage prüfen:\n:link\n\nFalls Sie diese Anfrage nicht erwartet haben, lehnen Sie sie im Kundenkonto ab.",
+        'action' => 'Anfrage ansehen',
     ],
     'support_incident_acknowledged' => [
         'subject' => 'Business Watchdog: Support hat einen Vorfall übernommen',
         'body' => "Der Support hat den Vorfall :incident für „:tenant“ übernommen. Die Aktion wurde im Organisationsprotokoll festgehalten. Details:\n:link",
+        'action' => 'Vorfall öffnen',
     ],
     'support_incident_resolved' => [
         'subject' => 'Business Watchdog: Support hat einen Vorfall abgeschlossen',
         'body' => "Der Support hat den Vorfall :incident für „:tenant“ als gelöst markiert. Die Aktion wurde im Organisationsprotokoll festgehalten. Details:\n:link",
+        'action' => 'Vorfall öffnen',
     ],
     'password_reset' => [
         'subject' => 'Business Watchdog: Passwort zurücksetzen',
         'body' => "Jemand hat das Zurücksetzen des Passworts für Ihr Business-Watchdog-Konto angefordert.\n\nUm ein neues Passwort festzulegen, öffnen Sie diesen Link (gültig :minutes Min.):\n:link\n\nFalls Sie das nicht angefordert haben, ignorieren Sie diese E-Mail – Ihr Passwort bleibt unverändert.",
+        'action' => 'Neues Passwort festlegen',
     ],
     'email_verification' => [
         'subject' => 'Business Watchdog: Adresse bestätigen',
         'body' => "Bestätigen Sie die E-Mail-Adresse Ihres Business-Watchdog-Kontos, indem Sie diesen Link öffnen (gültig :hours Std.):\n:link\n\nFalls Sie sich nicht registriert haben, ignorieren Sie diese E-Mail.",
+        'action' => 'Adresse bestätigen',
     ],
     'invitation' => [
         'subject' => 'Business Watchdog: Einladung in das Team „:tenant“',
         'body' => ":inviter lädt Sie in das Team „:tenant“ bei Business Watchdog mit der Rolle „:role“ ein.\n\nZum Annehmen öffnen Sie diesen Link (gültig bis :expires):\n:link\n\nFalls Sie keine Einladung erwartet haben, ignorieren Sie diese E-Mail.",
+        'action' => 'Einladung annehmen',
     ],
     'new_owner_mfa_warning' => [
         'subject' => 'Business Watchdog: Aktivieren Sie MFA zum Schutz Ihres Kontos',
         'body' => "Sie sind jetzt Inhaber des Teams „:tenant“. MFA ist nicht aktiv – Ihr Konto ist stark gefährdet, da zur Anmeldung derzeit Ihr Passwort genügt. Richten Sie eine Authenticator-App in Ihren Profileinstellungen ein:\n:link",
+        'action' => 'MFA einrichten',
     ],
     'mfa_reset' => [
         'subject' => 'Business Watchdog: Zwei-Faktor-Authentifizierung zurückgesetzt',
         'body' => "Die Zwei-Faktor-Authentifizierung Ihres Business-Watchdog-Kontos wurde zurückgesetzt. Alle aktiven Sitzungen wurden beendet. Melden Sie sich erneut an und richten Sie eine Authenticator-App in Ihren Profileinstellungen ein:\n:link\n\nFalls Sie dies nicht angefordert haben, wenden Sie sich sofort an den Support und ändern Sie Ihr Passwort.",
+        'action' => 'Anmelden',
     ],
     'order_volume_over' => [
         'subject' => 'Business Watchdog: Shop „:store“ ist aus seinem Paket herausgewachsen',
         'body' => "Der Shop „:store“ hatte in den letzten drei Monaten durchschnittlich :average Bestellungen im Monat; Ihr Paket umfasst bis zu :limit Bestellungen im Monat pro Shop.\n\nDer Schutz läuft unverändert weiter; nichts wird abgeschaltet und nichts zusätzlich berechnet. Bitte wählen Sie bis zum :date im Konto ein passendes Paket:\n:link\n\nWar es eine einmalige Spitze und liegt das Volumen wieder im Paket, ist nichts zu tun.",
+        'action' => 'Paket wählen',
     ],
     'order_volume_paused' => [
         'subject' => 'Business Watchdog: Dienst pausiert — Bestellvolumen über dem Paket',
         'body' => "Die Kulanzzeit ist abgelaufen und das Bestellvolumen des Shops :stores liegt weiter über Ihrem Paket (bis :limit Bestellungen im Monat pro Shop). Der Dienst der Organisation ist daher pausiert: Prüfungen, Abgleich und Benachrichtigungen ruhen. Shop-Daten werden weiter empfangen, nichts geht verloren.\n\nSobald ein passendes Paket gekauft ist, geht es sofort weiter:\n:link",
+        'action' => 'Paket wählen',
     ],
     'reminder_subscription' => [
         'subject' => 'Business Watchdog: Erinnerung an das Abonnement von „:tenant“',
@@ -57,10 +67,12 @@ return [
     'staff_invitation' => [
         'subject' => 'Business Watchdog: Einladung ins Team des Dienstes',
         'body' => ":inviter lädt Sie in die Verwaltung von Business Watchdog mit der Rolle „:role“ ein.\n\nZum Annehmen öffnen Sie den Link (gültig :hours h), legen ein Passwort fest und verbinden eine Authenticator-App:\n:link\n\nWenn Sie diese Einladung nicht erwartet haben, ignorieren Sie diese E-Mail.",
+        'action' => 'Einladung annehmen',
     ],
     'staff_mfa_reset' => [
         'subject' => 'Business Watchdog: neuen Authenticator verbinden',
         'body' => "Ein Plattform-Inhaber hat Ihre Authenticator-App für die Verwaltung von Business Watchdog zurückgesetzt: Alte Codes funktionieren nicht mehr, alle Sitzungen sind beendet.\n\nUm sich wieder anzumelden, öffnen Sie den Link (gültig :hours h), geben Ihr Passwort ein und verbinden eine neue Authenticator-App:\n:link\n\nWenn Sie das nicht angefordert haben, informieren Sie einen Plattform-Inhaber.",
+        'action' => 'Authenticator einrichten',
     ],
     'service_alert' => [
         'problem' => [
@@ -102,10 +114,12 @@ return [
     'organization_deletion_requested' => [
         'subject' => 'Business Watchdog: die Organisation „:tenant“ wird am :date gelöscht',
         'body' => "Die Löschung der Organisation „:tenant“ wurde beantragt (:by). Die Überwachung ihrer Shops ist gestoppt, ein kostenpflichtiges Abonnement ist, falls vorhanden, gekündigt.\n\nAm :date werden alle Daten der Organisation endgültig gelöscht: Shops, Bestellungen, Abgleich, Vorfälle, Prüfungen, Screenshots, Benachrichtigungen und das Team. Es bleiben nur anonymisierte Abrechnungsdaten, die wir aufbewahren müssen.\n\nBis dahin kann der Inhaber die Löschung im Dashboard widerrufen:\n:link\n\nWenn Sie das nicht beantragt haben, widerrufen Sie es sofort und ändern Sie Ihr Passwort.",
+        'action' => 'Kundenbereich öffnen',
     ],
     'organization_deletion_cancelled' => [
         'subject' => 'Business Watchdog: Löschung der Organisation „:tenant“ widerrufen',
         'body' => "Die Löschung der Organisation „:tenant“ wurde widerrufen (:by). Die Überwachung läuft wieder, die Daten des pausierten Zeitraums werden nachgeladen. Das gekündigte Abonnement wird nicht wiederhergestellt: schließen Sie es bei Bedarf unter „Abonnement“ neu ab.\n:link",
+        'action' => 'Kundenbereich öffnen',
     ],
     'organization_deletion_completed' => [
         'subject' => 'Business Watchdog: die Organisation „:tenant“ wurde gelöscht',
@@ -119,6 +133,7 @@ return [
         'mr' => 'Sehr geehrter Herr :last_name,',
         'ms' => 'Sehr geehrte Frau :last_name,',
         'neutral' => 'Guten Tag :name,',
+        'anonymous' => 'Guten Tag,',
     ],
     'permissions' => [
         'stores_read' => 'Shops, Bestellungen, Zahlungen und Prüfungen ansehen',
@@ -143,23 +158,26 @@ return [
     ],
     'permissions_changed' => [
         'subject' => 'Business Watchdog: Ihre Rechte in „:tenant“ wurden geändert',
-        'body' => "Hallo,\n\nIhre Rechte im Business-Watchdog-Konto von „:tenant“ wurden geändert. Die Änderung gilt bereits.\n\nHinzugefügt:\n:added\n\nEntfernt:\n:removed\n\nMitglieder und Rechte: :link\n\nFalls Sie das nicht erwartet haben, wenden Sie sich an den Inhaber der Organisation.",
+        'body' => "Ihre Rechte im Business-Watchdog-Konto von „:tenant“ wurden geändert. Die Änderung gilt bereits.\n\nHinzugefügt:\n:added\n\nEntfernt:\n:removed\n\nMitglieder und Rechte: :link\n\nFalls Sie das nicht erwartet haben, wenden Sie sich an den Inhaber der Organisation.",
         'none' => '— keine',
     ],
     'email_change_requested' => [
         'subject' => 'Business Watchdog: Änderung der E-Mail-Adresse angefordert',
-        'body' => "Hallo,\n\nFür Ihr Business-Watchdog-Konto wurde die Änderung der Anmeldeadresse auf :email angefordert. Die Adresse ändert sich erst, wenn sie über den Link an die neue Adresse bestätigt wird; bis dahin melden Sie sich mit dieser Adresse an.\n\nWenn Sie das nicht waren, öffnen Sie den Link – die Änderung wird abgebrochen und alle Sitzungen enden:\n:link\n\nÄndern Sie danach am besten Ihr Passwort über „Passwort vergessen?“ auf der Anmeldeseite.",
+        'body' => "Für Ihr Business-Watchdog-Konto wurde die Änderung der Anmeldeadresse auf :email angefordert. Die Adresse ändert sich erst, wenn sie über den Link an die neue Adresse bestätigt wird; bis dahin melden Sie sich mit dieser Adresse an.\n\nWenn Sie das nicht waren, öffnen Sie den Link – die Änderung wird abgebrochen und alle Sitzungen enden:\n:link\n\nÄndern Sie danach am besten Ihr Passwort über „Passwort vergessen?“ auf der Anmeldeseite.",
+        'action' => 'Änderung abbrechen',
     ],
     'email_change_confirm' => [
         'subject' => 'Business Watchdog: Neue E-Mail-Adresse bestätigen',
-        'body' => "Hallo,\n\nDiese Adresse wurde als neue Anmeldeadresse für Business Watchdog angegeben. Zum Bestätigen öffnen Sie den Link (gültig :hours Stunden):\n:link\n\nNach der Bestätigung enden alle Sitzungen – melden Sie sich mit dieser Adresse neu an. Wenn Sie keine Änderung angefordert haben, ignorieren Sie diese E-Mail einfach.",
+        'body' => "Diese Adresse wurde als neue Anmeldeadresse für Business Watchdog angegeben. Zum Bestätigen öffnen Sie den Link (gültig :hours Stunden):\n:link\n\nNach der Bestätigung enden alle Sitzungen – melden Sie sich mit dieser Adresse neu an. Wenn Sie keine Änderung angefordert haben, ignorieren Sie diese E-Mail einfach.",
+        'action' => 'Neue Adresse bestätigen',
     ],
     'email_change_address_taken' => [
         'subject' => 'Business Watchdog: Diese Adresse wird bereits verwendet',
-        'body' => "Hallo,\n\nJemand wollte diese Adresse als Anmeldeadresse eines anderen Business-Watchdog-Kontos verwenden, doch sie gehört bereits zu einem Konto – die Änderung ist nicht möglich. Es hat sich nichts geändert.\n\nWenn es Ihr Konto ist und Sie das Passwort vergessen haben, setzen Sie es zurück:\n:link\n\nWenn Sie nichts angefordert haben, ignorieren Sie diese E-Mail einfach.",
+        'body' => "Jemand wollte diese Adresse als Anmeldeadresse eines anderen Business-Watchdog-Kontos verwenden, doch sie gehört bereits zu einem Konto – die Änderung ist nicht möglich. Es hat sich nichts geändert.\n\nWenn es Ihr Konto ist und Sie das Passwort vergessen haben, setzen Sie es zurück:\n:link\n\nWenn Sie nichts angefordert haben, ignorieren Sie diese E-Mail einfach.",
+        'action' => 'Passwort zurücksetzen',
     ],
     'email_changed' => [
         'subject' => 'Business Watchdog: E-Mail-Adresse geändert',
-        'body' => "Hallo,\n\nDie Anmeldeadresse Ihres Business-Watchdog-Kontos wurde auf :email geändert. Alle Sitzungen wurden beendet. Kontobezogene E-Mails gehen jetzt an die neue Adresse.\n\nWenn Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail an den Support.",
+        'body' => "Die Anmeldeadresse Ihres Business-Watchdog-Kontos wurde auf :email geändert. Alle Sitzungen wurden beendet. Kontobezogene E-Mails gehen jetzt an die neue Adresse.\n\nWenn Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail an den Support.",
     ],
 ];

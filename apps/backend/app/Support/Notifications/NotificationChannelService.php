@@ -498,7 +498,7 @@ class NotificationChannelService
         $preferences = NotificationPreferences::fromArray($channel->preferences ?? [], (string) $tenant->locale, (string) $tenant->timezone);
         $message = $this->renderer->renderVerification($code, $preferences->locale);
 
-        Mail::to($email)->send(new NotificationMessageMail($message->subject, $message->body));
+        Mail::to($email)->send(new NotificationMessageMail($message->subject, $message->body, $message->locale, NotificationMessageMail::AUDIENCE_NOTIFICATIONS));
     }
 
     private function hashCode(string $code): string

@@ -3,6 +3,7 @@
 namespace App\Support\Account;
 
 use App\Mail\NotificationMessageMail;
+use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 
 class AccountMailer
@@ -14,17 +15,30 @@ class AccountMailer
      */
     public function send(string $email, string $locale, string $template, array $replace): void
     {
-        $locale = in_array($locale, self::LOCALES, true) ? $locale : 'en';
-
-        Mail::to($email)->send(new NotificationMessageMail(
-            trans("account.{$template}.subject", $replace, $locale),
-            trans("account.{$template}.body", $replace, $locale),
-        ));
+        Mail::to($email)->send($this->letter($email, $locale, $template, $replace));
     }
 
-    public function deliver(string $email, string $subject, string $body): void
+    /**
+     * @param  array<string, string|int>  $replace
+     */
+    public function letter(string $email, string $locale, string $template, array $replace, ?string $greeting = null): NotificationMessageMail
     {
-        Mail::to($email)->send(new NotificationMessageMail($subject, $body));
+        $locale = in_array($locale, self::LOCALES, true) ? $locale : 'en';
+        $user = $greeting === null ? User::query()->where('email', mb_strtolower(trim($email)))->first() : null;
+
+        return new NotificationMessageMail(
+            trans("account.{$template}.subject", $replace, $locale),
+            trans("account.{$template}.body", $replace, $locale),
+            $locale,
+            str_starts_with($template, 'staff_') ? NotificationMessageMail::AUDIENCE_STAFF : NotificationMessageMail::AUDIENCE_CUSTOMER,
+            $greeting ?? ($user !== null ? PersonalName::greeting($user, $locale) : trans('account.greeting.anonymous', [], $locale)),
+            trans()->has("account.{$template}.action", $locale) ? trans("account.{$template}.action", $replace, $locale) : null,
+        );
+    }
+
+    public function deliver(string $email, string $subject, string $body, string $locale = 'en', string $audience = NotificationMessageMail::AUDIENCE_CUSTOMER): void
+    {
+        Mail::to($email)->send(new NotificationMessageMail($subject, $body, $locale, $audience));
     }
 
     /** Absolute link into the customer app; relative `$path` starts with "/app/" or "/api/". */

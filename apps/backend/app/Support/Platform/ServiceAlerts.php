@@ -2,6 +2,7 @@
 
 namespace App\Support\Platform;
 
+use App\Mail\NotificationMessageMail;
 use App\Support\Account\AccountMailer;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +50,7 @@ class ServiceAlerts
 
         try {
             foreach ($recipients as $email) {
-                $this->mailer->deliver($email, trans("account.service_alert.{$kind}.subject", $replace, $locale), trans("account.service_alert.{$kind}.body", $replace, $locale));
+                $this->mailer->deliver($email, trans("account.service_alert.{$kind}.subject", $replace, $locale), trans("account.service_alert.{$kind}.body", $replace, $locale), $locale, NotificationMessageMail::AUDIENCE_STAFF);
             }
         } catch (Throwable $exception) {
             report($exception);

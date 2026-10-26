@@ -18,7 +18,7 @@ class EmailNotificationSender implements NotificationChannelSender
     public function send(string $destination, RenderedNotification $message): SendResult
     {
         try {
-            $sent = Mail::to($destination)->send(new NotificationMessageMail($message->subject, $message->body));
+            $sent = Mail::to($destination)->send(new NotificationMessageMail($message->subject, $message->body, $message->locale, NotificationMessageMail::AUDIENCE_NOTIFICATIONS));
         } catch (TransportExceptionInterface $exception) {
             if (str_contains(mb_strtolower($exception->getMessage()), 'timed out')
                 || str_contains(mb_strtolower($exception->getMessage()), 'timeout')) {
