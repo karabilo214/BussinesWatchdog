@@ -1,4 +1,5 @@
 {
+  "store_switcher": {"label": "Store:", "choose": "Choose a store", "required": "Choose a store — data is shown for one store at a time."},
   "nav_badge": {
     "critical": "critical: {n}",
     "warning": "warnings: {n}",
@@ -50,7 +51,8 @@
     "checks": "Checks",
     "notifications": "Notifications",
     "menu": "Menu",
-    "settings": "Settings"
+    "settings": "Settings",
+    "back": {"store": "Store", "incident": "Incident", "order": "Order", "check_run": "Check run"}
   },
   "common": {
     "loading": "Loading…",

@@ -24,7 +24,7 @@ const order = ref<OrderDetail | null>(null);
 const store = ref<Store | null>(null);
 const loading = ref(true);
 const error = ref<unknown>(null);
-const backLink = useBackLink('reconciliation', () => ({ name: 'reconciliation', query: order.value ? { store: order.value.store_id } : {} }));
+const { href: backHref, label: backLabel, go: goBack } = useBackLink('reconciliation', () => ({ name: 'reconciliation', query: order.value ? { store: order.value.store_id } : {} }));
 const rechecking = ref(false);
 const recheckError = ref<unknown>(null);
 const recheckDone = ref(false);
@@ -150,7 +150,7 @@ watch(
 <template>
   <AppLayout>
     <div class="flex flex-col gap-6">
-      <RouterLink :to="backLink" class="text-sm text-primary hover:underline">← {{ $t('nav.reconciliation') }}</RouterLink>
+      <a :href="backHref" class="text-sm text-primary hover:underline" data-back-link @click="goBack">← {{ $t(backLabel) }}</a>
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
 

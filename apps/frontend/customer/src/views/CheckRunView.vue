@@ -21,7 +21,7 @@ const { dateTime } = useFormat();
 const run = ref<CheckRunDetail | null>(null);
 const loading = ref(true);
 const error = ref<unknown>(null);
-const backLink = useBackLink('checks', () => ({ name: 'checks', query: run.value ? { store: run.value.store_id } : {} }));
+const { href: backHref, label: backLabel, go: goBack } = useBackLink('checks', () => ({ name: 'checks', query: run.value ? { store: run.value.store_id } : {} }));
 const screenshots = ref<Record<string, string>>({});
 const screenshotError = ref<unknown>(null);
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -83,7 +83,7 @@ onBeforeUnmount(() => {
 <template>
   <AppLayout>
     <div class="flex flex-col gap-6">
-      <RouterLink :to="backLink" class="text-sm text-primary hover:underline">← {{ $t('nav.checks') }}</RouterLink>
+      <a :href="backHref" class="text-sm text-primary hover:underline" data-back-link @click="goBack">← {{ $t(backLabel) }}</a>
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
       <ErrorNotice v-else-if="error && !run" :error="error">

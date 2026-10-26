@@ -25,7 +25,7 @@ const incident = ref<IncidentDetail | null>(null);
 const store = ref<Store | null>(null);
 const loading = ref(true);
 const error = ref<unknown>(null);
-const backLink = useBackLink('incidents', () => ({ name: 'incidents', query: incident.value?.store_id ? { store: incident.value.store_id } : {} }));
+const { href: backHref, label: backLabel, go: goBack } = useBackLink('incidents', () => ({ name: 'incidents', query: incident.value?.store_id ? { store: incident.value.store_id } : {} }));
 
 const amount = computed(() => (incident.value ? discrepancy(incident.value) : null));
 
@@ -59,7 +59,7 @@ watch(
 <template>
   <AppLayout>
     <div class="flex flex-col gap-6">
-      <RouterLink :to="backLink" class="text-sm text-primary hover:underline">← {{ $t('nav.incidents') }}</RouterLink>
+      <a :href="backHref" class="text-sm text-primary hover:underline" data-back-link @click="goBack">← {{ $t(backLabel) }}</a>
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
 

@@ -1,4 +1,5 @@
 {
+  "store_switcher": {"label": "Shop:", "choose": "Shop wählen", "required": "Wählen Sie einen Shop – Daten werden je Shop angezeigt."},
   "nav_badge": {
     "critical": "kritisch: {n}",
     "warning": "Warnungen: {n}",
@@ -50,7 +51,8 @@
     "checks": "Prüfungen",
     "notifications": "Benachrichtigungen",
     "menu": "Menü",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "back": {"store": "Shop", "incident": "Vorfall", "order": "Bestellung", "check_run": "Prüflauf"}
   },
   "common": {
     "loading": "Wird geladen…",

@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { ApiError } from '@bw/api-client';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { listScenarios } from '@/api/checks';
 import { getStore, listStores, updateStore } from '@/api/stores';
 import type { CheckScenario, Store } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import StoreSwitcher from '@/components/StoreSwitcher.vue';
 import RunsList from '@/components/checks/RunsList.vue';
 import ScenarioPanel from '@/components/checks/ScenarioPanel.vue';
 import { useRole } from '@/composables/useRole';
+import { useStoreChoice } from '@/composables/useStoreChoice';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { StatusBadge } from '@bw/ui';
 
-const route = useRoute();
 const router = useRouter();
 const { canManageStores, canRunChecks } = useRole();
 
@@ -25,7 +26,7 @@ const scenarioError = ref<unknown>(null);
 const toggling = ref(false);
 const toggleError = ref<unknown>(null);
 
-const storeId = computed(() => (typeof route.query.store === 'string' ? route.query.store : '') || stores.value[0]?.id || '');
+const { storeId } = useStoreChoice(stores);
 const store = computed(() => stores.value.find((item) => item.id === storeId.value) ?? null);
 
 interface Condition {
@@ -123,13 +124,8 @@ watch(storeId, () => loadScenario(), { immediate: true });
           <h1 class="text-2xl font-semibold">{{ $t('checks.title') }}</h1>
           <p class="max-w-3xl text-sm text-text-muted">{{ $t('checks.subtitle') }}</p>
         </div>
-        <label v-if="stores.length > 1" class="flex flex-col gap-1 text-sm font-medium">
-          {{ $t('incidents.filter.store') }}
-          <select :value="storeId" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-normal" @change="router.replace({ query: { store: ($event.target as HTMLSelectElement).value } })">
-            <option v-for="item in stores" :key="item.id" :value="item.id">{{ item.name }}</option>
-          </select>
-        </label>
       </div>
+      <StoreSwitcher v-if="stores.length > 1" :stores="stores" :model-value="storeId" @select="router.replace({ query: { store: $event } })" />
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
       <ErrorNotice v-else-if="error" :error="error" />

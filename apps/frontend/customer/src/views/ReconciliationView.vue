@@ -9,11 +9,13 @@ import { listStores } from '@/api/stores';
 import type { Finding, FindingStatus, Store } from '@/api/types';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import PauseDeviationNotice from '@/components/PauseDeviationNotice.vue';
+import StoreSwitcher from '@/components/StoreSwitcher.vue';
 import FindingsTable from '@/components/reconciliation/FindingsTable.vue';
 import { FINDING_STATUSES, RULE_CODES } from '@/components/reconciliation/tones';
 import UnmatchedPayments from '@/components/reconciliation/UnmatchedPayments.vue';
 import { currencies } from '@/components/storeOptions';
 import { useRole } from '@/composables/useRole';
+import { useStoreChoice } from '@/composables/useStoreChoice';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 type Tab = 'findings' | 'unmatched';
@@ -42,7 +44,7 @@ function param(name: string): string {
   return typeof route.query[name] === 'string' ? (route.query[name] as string) : '';
 }
 
-const storeId = computed(() => param('store') || stores.value[0]?.id || '');
+const { storeId } = useStoreChoice(stores);
 const store = computed(() => stores.value.find((item) => item.id === storeId.value) ?? null);
 const tab = computed<Tab>(() => (param('tab') === 'unmatched' ? 'unmatched' : 'findings'));
 const history = computed(() => param('view') === 'history');
@@ -207,13 +209,8 @@ watch([storeId, tab, history, status, rule, currency, from, to], () => loadFindi
           <h1 class="text-2xl font-semibold">{{ $t('reconciliation.title') }}</h1>
           <p class="max-w-3xl text-sm text-text-muted">{{ $t('reconciliation.subtitle') }}</p>
         </div>
-        <label v-if="stores.length > 1" class="flex flex-col gap-1 text-sm font-medium">
-          {{ $t('incidents.filter.store') }}
-          <select :value="storeId" class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-normal" @change="setQuery({ store: ($event.target as HTMLSelectElement).value })">
-            <option v-for="item in stores" :key="item.id" :value="item.id">{{ item.name }}</option>
-          </select>
-        </label>
       </div>
+      <StoreSwitcher v-if="stores.length > 1" :stores="stores" :model-value="storeId" @select="setQuery({ store: $event })" />
 
       <p v-if="storesLoading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
       <ErrorNotice v-else-if="storesError" :error="storesError" />

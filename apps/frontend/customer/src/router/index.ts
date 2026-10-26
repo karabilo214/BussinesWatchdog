@@ -9,9 +9,30 @@ declare module 'vue-router' {
   }
 }
 
+/** Back in history the list loads asynchronously: wait (up to a second) until the page is tall enough to scroll to. */
+function restoreWhenRendered(saved: { left: number; top: number }): Promise<{ left: number; top: number }> {
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const check = () => {
+      const tallEnough = document.documentElement.scrollHeight >= saved.top + window.innerHeight;
+
+      if (tallEnough || Date.now() - started > 1000) resolve(saved);
+      else setTimeout(check, 50);
+    };
+
+    check();
+  });
+}
+
 export function buildRouter(): Router {
   const router = createRouter({
     history: createWebHistory('/app/'),
+    scrollBehavior: (to, from, saved) => {
+      if (saved) return restoreWhenRendered(saved);
+      if (to.hash) return { el: to.hash };
+
+      return to.path === from.path ? false : { top: 0 };
+    },
     routes: [
       { path: '/', redirect: { name: 'overview' } },
       { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
