@@ -6,7 +6,12 @@
     "discrepancies": "open discrepancies: {n}",
     "checks_failed": "failed checks: {n}",
     "checks_unsure": "checks without result: {n}",
-    "paused_stores": "stores paused by plan limit: {n}"
+    "paused_stores": "stores paused by plan limit: {n}",
+    "channels_failing": "channels failing to deliver: {n}",
+    "channels_unverified": "unconfirmed channels: {n}",
+    "subscription_past_due": "subscription not paid",
+    "support_requests_pending": "support access requests awaiting a decision: {n}",
+    "owner_mfa_off": "MFA is off"
   },
   "payment_method_kind": {
     "apple_pay": "Apple Pay",

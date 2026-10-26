@@ -6,7 +6,12 @@
     "discrepancies": "открытых расхождений: {n}",
     "checks_failed": "проверок с ошибкой: {n}",
     "checks_unsure": "проверок без результата: {n}",
-    "paused_stores": "магазинов приостановлено по лимиту: {n}"
+    "paused_stores": "магазинов приостановлено по лимиту: {n}",
+    "channels_failing": "каналов с ошибкой доставки: {n}",
+    "channels_unverified": "каналов не подтверждено: {n}",
+    "subscription_past_due": "подписка не оплачена",
+    "support_requests_pending": "запросов доступа поддержки ждут решения: {n}",
+    "owner_mfa_off": "MFA не включена"
   },
   "payment_method_kind": {
     "apple_pay": "Apple Pay",

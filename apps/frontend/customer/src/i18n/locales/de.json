@@ -6,7 +6,12 @@
     "discrepancies": "offene Abweichungen: {n}",
     "checks_failed": "fehlgeschlagene Prüfungen: {n}",
     "checks_unsure": "Prüfungen ohne Ergebnis: {n}",
-    "paused_stores": "wegen Tariflimit pausierte Shops: {n}"
+    "paused_stores": "wegen Tariflimit pausierte Shops: {n}",
+    "channels_failing": "Kanäle mit Zustellfehler: {n}",
+    "channels_unverified": "unbestätigte Kanäle: {n}",
+    "subscription_past_due": "Abonnement nicht bezahlt",
+    "support_requests_pending": "Support-Zugriffsanfragen warten auf Entscheidung: {n}",
+    "owner_mfa_off": "MFA ist aus"
   },
   "payment_method_kind": {
     "apple_pay": "Apple Pay",

@@ -657,6 +657,20 @@ export interface Overview {
   recent_checks: CheckRunSummary[];
 }
 
+export type AttentionCode = 'channels_failing' | 'channels_unverified' | 'subscription_past_due' | 'support_requests_pending' | 'owner_mfa_off';
+
+export interface AttentionSection {
+  count: number;
+  level: 'crit' | 'warn' | 'note';
+  parts: { code: AttentionCode; n: number; level: 'crit' | 'warn' | 'note' }[];
+}
+
+/** Menu counters the overview does not carry (Step 264); null when nothing needs attention or the member may not open it. */
+export interface Attention {
+  notifications: AttentionSection | null;
+  settings: AttentionSection | null;
+}
+
 export type TeamRole = 'owner' | 'admin' | 'operator' | 'viewer' | 'custom';
 
 export type PresetRole = 'admin' | 'operator' | 'viewer';

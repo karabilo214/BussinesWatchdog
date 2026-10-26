@@ -8,6 +8,9 @@ import ErrorNotice from '@/components/ErrorNotice.vue';
 import SettingsTabs from '@/components/account/SettingsTabs.vue';
 import { useFormat } from '@/composables/useFormat';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { useNavBadgeState } from '@/composables/useNavBadges';
+
+const { refresh: refreshBadges } = useNavBadgeState();
 
 const { t } = useI18n();
 const { dateTime } = useFormat();
@@ -61,6 +64,7 @@ async function decide(grant: SupportGrant, action: 'approve' | 'deny' | 'revoke'
   try {
     const updated = await decideSupportGrant(grant.id, action);
     grants.value = grants.value.map((item) => item.id === updated.id ? updated : item);
+    void refreshBadges(true);
   } catch (caught) {
     error.value = caught;
   } finally {

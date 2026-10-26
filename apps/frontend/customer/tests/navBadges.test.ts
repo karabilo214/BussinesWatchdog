@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Overview } from '@/api/types';
-import { navBadges } from '@/composables/useNavBadges';
+import { attentionBadges, navBadges } from '@/composables/useNavBadges';
 import de from '@/i18n/locales/de.json';
 import en from '@/i18n/locales/en.json';
 import ru from '@/i18n/locales/ru.json';
@@ -43,8 +43,19 @@ describe('menu badges', () => {
     expect(badges.overview).toMatchObject({ count: 1, level: 'warn' });
   });
 
+  it('takes notification and settings counters with their level from the server and omits empty sections', () => {
+    expect(attentionBadges({ notifications: null, settings: null })).toEqual({});
+
+    const badges = attentionBadges({
+      notifications: { count: 2, level: 'crit', parts: [{ code: 'channels_failing', n: 1, level: 'crit' }, { code: 'channels_unverified', n: 1, level: 'warn' }] },
+      settings: { count: 1, level: 'warn', parts: [{ code: 'owner_mfa_off', n: 1, level: 'warn' }] },
+    });
+    expect(badges.notifications).toEqual({ count: 2, level: 'crit', parts: [{ key: 'nav_badge.channels_failing', n: 1, code: 'channels_failing', level: 'crit' }, { key: 'nav_badge.channels_unverified', n: 1, code: 'channels_unverified', level: 'warn' }] });
+    expect(badges.settings).toMatchObject({ count: 1, level: 'warn' });
+  });
+
   it('has the explanation texts in ru, en and de', () => {
-    const keys = ['critical', 'warning', 'info', 'discrepancies', 'checks_failed', 'checks_unsure', 'paused_stores'];
+    const keys = ['critical', 'warning', 'info', 'discrepancies', 'checks_failed', 'checks_unsure', 'paused_stores', 'channels_failing', 'channels_unverified', 'subscription_past_due', 'support_requests_pending', 'owner_mfa_off'];
     for (const locale of [ru, en, de]) {
       expect(keys.filter((key) => !(locale.nav_badge as Record<string, string>)[key])).toEqual([]);
     }

@@ -7,12 +7,13 @@ import * as storesApi from '@/api/stores';
 import type { AuthSession, Store } from '@/api/types';
 import { lastSuccessfulCheck, verdict } from '@/components/overview/verdict';
 import { localization, setLocale } from '@/i18n';
+import { useNavBadgeState } from '@/composables/useNavBadges';
 import AppLayout from '@/layouts/AppLayout.vue';
 import OverviewView from '@/views/OverviewView.vue';
 import { makeStore } from './fixtures';
 import { permissionsFor } from './permissions';
 
-vi.mock('@/api/overview', () => ({ getOverview: vi.fn() }));
+vi.mock('@/api/overview', () => ({ getOverview: vi.fn(), getAttention: vi.fn(async () => ({ notifications: null, settings: null })) }));
 vi.mock('@/api/stores', () => ({ listStores: vi.fn() }));
 const session = ref<AuthSession | null>(null);
 vi.mock('@/composables/useSession', () => ({ useSession: () => ({ session, load: vi.fn(async () => session.value) }) }));
@@ -150,6 +151,30 @@ describe('AppLayout mobile menu', () => {
     const labels = wrapper.findAll('nav[aria-label] a').map((link) => link.text());
     expect(labels).toContain('Инциденты');
     expect(labels).not.toContain('Сверка');
+  });
+
+  it('shows the server counters for notifications and settings with their explanation', async () => {
+    setLocale('ru');
+    session.value = sessionWith(['stores.read', 'notifications.manage']);
+    vi.mocked(overviewApi.getOverview).mockRejectedValueOnce(new Error('offline'));
+    vi.mocked(overviewApi.getAttention).mockResolvedValueOnce({
+      notifications: { count: 1, level: 'warn', parts: [{ code: 'channels_unverified', n: 1, level: 'warn' }] },
+      settings: { count: 1, level: 'warn', parts: [{ code: 'owner_mfa_off', n: 1, level: 'warn' }] },
+    });
+    const router = createRouter({
+      history: createMemoryHistory('/app/'),
+      routes: ['overview', 'incidents', 'reconciliation', 'checks', 'notifications', 'login', 'profile'].map((name) => ({ path: `/${name}`, name, component: { template: '<div />' } })),
+    });
+    await router.push('/overview');
+    const wrapper = mount(AppLayout, { global: { plugins: [localization, router] } });
+    await useNavBadgeState().refresh(true);
+    await flushPromises();
+
+    const notifications = wrapper.get('[data-nav-badge="notifications"]');
+    expect(notifications.text()).toBe('1');
+    expect(notifications.attributes('data-level')).toBe('warn');
+    expect(notifications.attributes('aria-label')).toBe('каналов не подтверждено: 1');
+    expect(wrapper.get('[data-nav-badge="settings"]').attributes('aria-label')).toBe('MFA не включена');
   });
 
   it('opens the menu, marks the current section and closes after navigation', async () => {

@@ -8,6 +8,9 @@ import { stepUpErrorKey } from '@/composables/errors';
 import { useRole } from '@/composables/useRole';
 import { useSession } from '@/composables/useSession';
 import { StatusBadge } from '@bw/ui';
+import { useNavBadgeState } from '@/composables/useNavBadges';
+
+const { refresh: refreshBadges } = useNavBadgeState();
 
 type Stage = 'idle' | 'password' | 'scan' | 'codes' | 'disable' | 'regenerate';
 
@@ -51,6 +54,7 @@ async function run(action: () => Promise<void>): Promise<void> {
 
   try {
     await action();
+    void refreshBadges(true);
   } catch (caught) {
     error.value = caught;
   } finally {

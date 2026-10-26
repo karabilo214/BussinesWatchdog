@@ -3561,6 +3561,34 @@ paths:
                       presets: {type: object, additionalProperties: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}}, description: "admin/operator/viewer without money.view; seeing amounts is chosen separately."}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
+  /api/v1/attention:
+    get:
+      tags: [Tenancy]
+      operationId: getAttention
+      description: "Menu counters of the customer cabinet that the overview does not carry (Step 264). Only counts and codes, only for what the member may open (ADR 0079); a section without anything to do is null. The level is the most urgent part: crit, then warn, then note."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Counters
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [notifications, settings]
+                properties:
+                  notifications:
+                    description: "With notifications.manage: enabled channels whose deliveries fail (crit) and unconfirmed channels (warn)."
+                    oneOf:
+                      - {type: "null"}
+                      - {$ref: "#/components/schemas/AttentionSection"}
+                  settings:
+                    description: "Owner only: subscription past due (crit), pending support access requests (warn), the owner's own MFA off (warn)."
+                    oneOf:
+                      - {type: "null"}
+                      - {$ref: "#/components/schemas/AttentionSection"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
   /api/v1/money-visibility:
     get:
       tags: [Team]
@@ -7950,6 +7978,21 @@ components:
               currency: {type: string, pattern: "^[A-Z]{3}$"}
               currency_exponent: {type: integer}
               mode: {type: [string, "null"]}
+    AttentionSection:
+      type: object
+      required: [count, level, parts]
+      properties:
+        count: {type: integer, minimum: 1}
+        level: {enum: [crit, warn, note]}
+        parts:
+          type: array
+          items:
+            type: object
+            required: [code, n, level]
+            properties:
+              code: {enum: [channels_failing, channels_unverified, subscription_past_due, support_requests_pending, owner_mfa_off]}
+              n: {type: integer, minimum: 1}
+              level: {enum: [crit, warn, note]}
     MoneyVisibility:
       type: object
       required: [can_view_money_amounts]

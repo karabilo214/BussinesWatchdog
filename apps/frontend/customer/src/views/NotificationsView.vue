@@ -13,6 +13,9 @@ import { telegramBotHandle } from '@/components/notifications/telegramBot';
 import { browserTimezone } from '@/components/storeOptions';
 import { useRole } from '@/composables/useRole';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { useNavBadgeState } from '@/composables/useNavBadges';
+
+const { refresh: refreshBadges } = useNavBadgeState();
 
 const { locale } = useI18n();
 const { role, canManageNotifications } = useRole();
@@ -62,6 +65,7 @@ async function load(): Promise<void> {
 function replace(updated: NotificationChannel): void {
   channels.value = channels.value.map((channel) => (channel.id === updated.id ? updated : channel));
   refreshKey.value++;
+  void refreshBadges(true);
 }
 
 async function create(): Promise<void> {

@@ -118,7 +118,15 @@ watch(() => route.fullPath, () => {
         </nav>
 
         <div class="ml-auto hidden items-center gap-3 md:flex">
-          <RouterLink :to="{ name: 'profile' }" class="max-w-[12rem] truncate text-sm text-text-muted hover:text-primary hover:underline" :title="$t('nav.settings')">{{ session?.user.name }}</RouterLink>
+          <RouterLink :to="{ name: 'profile' }" class="flex max-w-[14rem] items-center text-sm text-text-muted hover:text-primary hover:underline" :title="$t('nav.settings')"><span class="truncate">{{ session?.user.name }}</span><span
+              v-if="badgeFor('settings')"
+              class="ml-1.5 inline-flex min-w-5 shrink-0 items-center justify-center rounded-full border px-1.5 text-xs font-semibold tabular-nums"
+              :class="SOLID_TONE_CLASSES[badgeFor('settings')!.level]"
+              :title="badgeText('settings')"
+              :aria-label="badgeText('settings')"
+              data-nav-badge="settings"
+              :data-level="badgeFor('settings')!.level"
+            >{{ badgeFor('settings')!.count }}</span></RouterLink>
           <LocaleSwitch />
           <button
             type="button"
@@ -166,7 +174,13 @@ watch(() => route.fullPath, () => {
           </RouterLink>
         </nav>
         <div class="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
-          <RouterLink :to="{ name: 'profile' }" class="text-sm font-medium text-primary hover:underline">{{ $t('nav.settings') }} · {{ session?.user.name }}</RouterLink>
+          <RouterLink :to="{ name: 'profile' }" class="text-sm font-medium text-primary hover:underline">{{ $t('nav.settings') }} · {{ session?.user.name }}<span
+              v-if="badgeFor('settings')"
+              class="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full border px-1.5 text-xs font-semibold tabular-nums"
+              :class="SOLID_TONE_CLASSES[badgeFor('settings')!.level]"
+              :aria-label="badgeText('settings')"
+              data-nav-badge="settings-mobile"
+            >{{ badgeFor('settings')!.count }}</span></RouterLink>
           <div class="flex items-center gap-3">
             <LocaleSwitch id="locale-switch-mobile" />
             <button

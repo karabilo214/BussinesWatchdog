@@ -1,13 +1,13 @@
-import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { getOverview } from '@/api/overview';
-import type { CheckRunSummary, Overview } from '@/api/types';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { getAttention, getOverview } from '@/api/overview';
+import type { Attention, AttentionCode, AttentionSection, CheckRunSummary, Overview } from '@/api/types';
 
 export type BadgeLevel = 'crit' | 'warn' | 'note';
-export type NavSection = 'overview' | 'incidents' | 'reconciliation' | 'checks';
+export type NavSection = 'overview' | 'incidents' | 'reconciliation' | 'checks' | 'notifications' | 'settings';
 export interface NavBadge {
   count: number;
   level: BadgeLevel;
-  parts: { key: string; n: number }[];
+  parts: { key: string; n: number; code?: AttentionCode; level?: BadgeLevel }[];
 }
 
 const REFRESH_MS = 60_000;
@@ -59,15 +59,36 @@ export function navBadges(overview: Overview): Partial<Record<NavSection, NavBad
   return badges;
 }
 
-const badges = ref<Partial<Record<NavSection, NavBadge>>>({});
+function fromAttention(section: AttentionSection | null): NavBadge | undefined {
+  if (section === null) return undefined;
+
+  return { count: section.count, level: section.level, parts: section.parts.map((part) => ({ key: `nav_badge.${part.code}`, n: part.n, code: part.code, level: part.level })) };
+}
+
+/** Notifications and settings come from the server already counted and levelled for this member. */
+export function attentionBadges(attention: Attention): Partial<Record<NavSection, NavBadge>> {
+  const badges: Partial<Record<NavSection, NavBadge>> = {};
+  const notifications = fromAttention(attention.notifications);
+  const settings = fromAttention(attention.settings);
+
+  if (notifications) badges.notifications = notifications;
+  if (settings) badges.settings = settings;
+
+  return badges;
+}
+
+const fromOverview = ref<Partial<Record<NavSection, NavBadge>>>({});
+const fromServer = ref<Partial<Record<NavSection, NavBadge>>>({});
+const badges = computed(() => ({ ...fromOverview.value, ...fromServer.value }));
 let loadedAt = 0;
 let pending: Promise<void> | null = null;
 
 async function refresh(force = false): Promise<void> {
   if (pending !== null || (!force && Date.now() - loadedAt < REFRESH_MS)) return pending ?? undefined;
-  pending = getOverview()
-    .then((overview) => {
-      badges.value = navBadges(overview);
+  pending = Promise.allSettled([getOverview(), getAttention()])
+    .then(([overview, attention]) => {
+      if (overview.status === 'fulfilled') fromOverview.value = navBadges(overview.value);
+      if (attention.status === 'fulfilled') fromServer.value = attentionBadges(attention.value);
       loadedAt = Date.now();
     })
     .catch(() => undefined)
@@ -76,6 +97,11 @@ async function refresh(force = false): Promise<void> {
     });
 
   return pending;
+}
+
+/** The current counters without starting another refresh timer (the layout owns it). */
+export function useNavBadgeState() {
+  return { badges, refresh };
 }
 
 export function useNavBadges() {
