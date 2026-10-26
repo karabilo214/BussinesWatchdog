@@ -17,7 +17,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { StatusBadge } from '@bw/ui';
 
 const props = defineProps<{ id: string }>();
-const { canManageStores, canHandleIncidents } = useRole();
+const { canHandleIncidents, canRunReconciliation, canRunChecks, canSnoozeIncidents } = useRole();
 const { dateTime } = useFormat();
 const { incidentTitle, advice, discrepancy, resolution } = useIncidentText();
 
@@ -123,7 +123,7 @@ watch(
             <IncidentTimeline :incident-id="incident.id" :activity="incident.activity" :can-comment="canHandleIncidents" @commented="load" />
           </div>
           <div class="flex flex-col gap-6">
-            <IncidentActions :incident="incident" :can-handle="canHandleIncidents" :can-manage="canManageStores" @changed="load" />
+            <IncidentActions :incident="incident" :can-handle="canHandleIncidents" :can-recheck-money="canRunReconciliation" :can-run-checks="canRunChecks" :can-snooze="canSnoozeIncidents" @changed="load" />
           </div>
         </div>
       </template>

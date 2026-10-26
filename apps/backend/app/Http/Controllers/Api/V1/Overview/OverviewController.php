@@ -9,7 +9,9 @@ use App\Models\CheckRun;
 use App\Models\Incident;
 use App\Models\ReconciliationFinding;
 use App\Models\Store;
+use App\Support\Auth\TenantPermissions;
 use App\Support\Tenancy\MoneyAmountVisibility;
+use App\Support\Tenancy\TenantAccess;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,16 +27,18 @@ class OverviewController extends Controller
         private readonly CheckDto $checkDto,
     ) {}
 
-    public function show(Request $request, TenantContext $tenantContext, MoneyAmountVisibility $visibility): JsonResponse
+    public function show(Request $request, TenantContext $tenantContext, MoneyAmountVisibility $visibility, TenantAccess $access): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('read overview');
         $showMoneyAmounts = $visibility->allows($request, $tenantId);
+        $incidentsVisible = $access->allows($request, $tenantId, TenantPermissions::INCIDENTS_READ);
+        $discrepanciesVisible = $access->allows($request, $tenantId, TenantPermissions::RECONCILIATION_READ);
 
         $active = Incident::query()->where('tenant_id', $tenantId)->whereIn('state', self::ACTIVE_STATES);
         $bySeverity = (clone $active)->selectRaw('severity, COUNT(*) AS total')->groupBy('severity')->pluck('total', 'severity');
 
         return response()->json([
-            'incidents' => [
+            'incidents' => ! $incidentsVisible ? null : [
                 'active' => (int) $bySeverity->sum(),
                 'by_severity' => [
                     Incident::SEVERITY_CRITICAL => (int) ($bySeverity[Incident::SEVERITY_CRITICAL] ?? 0),
@@ -46,7 +50,7 @@ class OverviewController extends Controller
                     $showMoneyAmounts,
                 ),
             ],
-            ...$this->discrepancies($tenantId, $showMoneyAmounts),
+            ...($discrepanciesVisible ? $this->discrepancies($tenantId, $showMoneyAmounts) : ['discrepancies' => null, 'unknown_amount_incidents' => null]),
             'money_amounts_hidden' => ! $showMoneyAmounts,
             'capacity_paused_stores' => Store::query()
                 ->where('tenant_id', $tenantId)

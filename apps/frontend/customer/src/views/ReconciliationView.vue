@@ -20,7 +20,7 @@ type Tab = 'findings' | 'unmatched';
 
 const route = useRoute();
 const router = useRouter();
-const { canManageStores, canHandleIncidents } = useRole();
+const { canAllocate, canRunReconciliation } = useRole();
 
 const stores = ref<Store[]>([]);
 const storesLoading = ref(true);
@@ -262,7 +262,7 @@ watch([storeId, tab, history, status, rule, currency, from, to], () => loadFindi
               {{ $t('reconciliation.export_transactions') }}
             </button>
             <button
-              v-if="canHandleIncidents && moneyCovered"
+              v-if="canRunReconciliation && moneyCovered"
               type="button"
               class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
               :disabled="scanning"
@@ -335,7 +335,7 @@ watch([storeId, tab, history, status, rule, currency, from, to], () => loadFindi
           </div>
         </template>
 
-        <UnmatchedPayments v-else :key="`${storeId}-${unmatchedKey}`" :store-id="storeId" :can-allocate="canManageStores" />
+        <UnmatchedPayments v-else :key="`${storeId}-${unmatchedKey}`" :store-id="storeId" :can-allocate="canAllocate" />
       </template>
     </div>
   </AppLayout>

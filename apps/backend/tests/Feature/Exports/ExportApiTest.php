@@ -14,6 +14,8 @@ use App\Models\ReconciliationRun;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Auth\TenantPermissions;
+use App\Support\Auth\TenantRoles;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -78,7 +80,8 @@ class ExportApiTest extends TestCase
             'format' => ExportFile::FORMAT_CSV,
         ])->assertAccepted()->json('id');
 
-        $context['tenant']->forceFill(['show_money_amounts_to_team' => false])->save();
+        Membership::query()->where('tenant_id', $context['tenant']->id)->where('user_id', $context['user']->id)
+            ->update(['permissions' => json_encode(TenantPermissions::preset(TenantRoles::VIEWER, false))]);
 
         $request->getJson("/api/v1/exports/{$exportId}")->assertForbidden();
         $request->get("/api/v1/exports/{$exportId}/download")->assertForbidden();

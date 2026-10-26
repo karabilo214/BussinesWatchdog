@@ -17,14 +17,12 @@ class Tenant extends Model
         'locale',
         'timezone',
         'config_version',
-        'show_money_amounts_to_team',
     ];
 
     protected function casts(): array
     {
         return [
             'config_version' => 'integer',
-            'show_money_amounts_to_team' => 'boolean',
             'trial_consumed_at' => 'datetime',
             'order_volume_paused_at' => 'datetime',
         ];

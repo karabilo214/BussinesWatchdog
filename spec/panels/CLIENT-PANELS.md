@@ -47,7 +47,7 @@ Onboarding resumable server state; закрытие browser не теряет pa
 
 ## 4 Team и полномочия
 
-Tenant_owner: все tenant functions, subscription/payment documents, manage owner transfer, privacy export/delete organization. Tenant_admin: monitoring/configuration, invitations admin/operator/viewer; не может создать owner, изменить владельца, изменить billing subscription, delete tenant. Operator/viewer — existing matrix.
+Tenant_owner: все tenant functions, subscription/payment documents, manage owner transfer, privacy export/delete organization. Tenant_admin: monitoring/configuration, invitations admin/operator/viewer; не может создать owner, изменить владельца, изменить billing subscription, delete tenant. Operator/viewer — existing matrix. С Step 263 роли admin/operator/viewer — готовые наборы разрешений участника, которые владелец (или участник с правом «Команда» в пределах своих прав) правит флажками по разделам; права владельца не выдаются (ADR 0079).
 
 Admin не понижает/удаляет tenant_owner, не повышает себя до owner. Owner transfer target — existing verified member, step-up, atomically preserve at least one owner. Invitations TTL72ч, token hash, email bound. Removed member session loses tenant scope immediately. Не позволять читать organization billing по известному invoice UUID, даже если /billing скрыт.
 

@@ -28,3 +28,5 @@ Spec §24: the overview shows active incidents, source coverage, the last succes
 - Totals logic (active incidents only, per currency and per component, labelled "verified discrepancy", unknown amounts counted separately) and the overall state rules are confirmed.
 - Visibility of money amounts to non-owner roles becomes a company setting controlled by the tenant owner (implemented in Step 161).
 - Test-mode and live incidents must not be combined in totals (implemented in Step 162).
+
+Step 263 (ADR 0079): the organisation switch `show_money_amounts_to_team` is replaced by the per-member permission `money.view`; amounts stay masked exactly as before for members without it.

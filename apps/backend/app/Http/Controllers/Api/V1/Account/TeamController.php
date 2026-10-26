@@ -11,6 +11,8 @@ use App\Support\Account\AccountRejected;
 use App\Support\Account\MfaService;
 use App\Support\Account\StepUp;
 use App\Support\Account\TeamService;
+use App\Support\Auth\TenantPermissions;
+use App\Support\Auth\TenantRoles;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,25 +28,38 @@ class TeamController extends Controller
     public function members(Request $request, TenantContext $tenantContext): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('list members');
-        $actorRole = (string) $this->team->roleOf($tenantId, $request->user()->id);
+        $actor = $this->team->membership($tenantId, $request->user()->id);
+        $assignable = $this->team->assignablePermissionsBy($actor);
 
         return response()->json([
-            'data' => $this->team->members($tenantId)->map(fn (Membership $membership): array => $this->member($membership, $request->user()))->values()->all(),
-            'assignable_roles' => $this->team->assignableBy($actorRole),
+            'data' => $this->team->members($tenantId)->map(fn (Membership $membership): array => $this->member($membership, $request->user(), $assignable))->values()->all(),
+            'assignable_roles' => $this->team->assignableBy($actor),
+            'assignable_permissions' => $assignable,
+            'permission_catalog' => [
+                'sections' => TenantPermissions::SECTIONS,
+                'owner_only' => TenantPermissions::OWNER_ONLY,
+                'base' => TenantPermissions::BASE,
+                'implies' => TenantPermissions::IMPLIES,
+                'presets' => array_map(fn (array $preset): array => TenantPermissions::normalize($preset), TenantPermissions::PRESETS),
+            ],
         ]);
     }
 
+    /** Either a preset `role` (keeps the member's choice about amounts) or an exact `permissions` list (ADR 0079). */
     public function updateMember(Request $request, string $user, TenantContext $tenantContext): JsonResponse
     {
-        $validated = $request->validate(['role' => ['required', Rule::in(TeamService::ASSIGNABLE)]]);
+        $validated = $request->validate($this->permissionRules());
+        $tenantId = $tenantContext->requireTenantId('change member permissions');
 
         try {
-            $membership = $this->team->changeRole($tenantContext->requireTenantId('change member role'), $request->user(), $user, $validated['role']);
+            $membership = isset($validated['permissions'])
+                ? $this->team->changePermissions($tenantId, $request->user(), $user, $validated['permissions'])
+                : $this->team->changeRole($tenantId, $request->user(), $user, $validated['role']);
         } catch (AccountRejected $exception) {
             return $this->rejected($exception);
         }
 
-        return response()->json($this->member($membership, $request->user()));
+        return response()->json($this->member($membership, $request->user(), $this->team->assignablePermissionsBy($this->team->membership($tenantId, $request->user()->id))));
     }
 
     public function transferOwnership(Request $request, TenantContext $tenantContext, StepUp $stepUp): JsonResponse
@@ -119,20 +134,46 @@ class TeamController extends Controller
     public function invite(Request $request, TenantContext $tenantContext): JsonResponse
     {
         $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
-        $validated = $request->validate([
-            'email' => ['required', 'email:rfc', 'max:255'],
-            'role' => ['required', Rule::in(TeamService::ASSIGNABLE)],
-        ]);
+        $validated = $request->validate(['email' => ['required', 'email:rfc', 'max:255'], ...$this->permissionRules()]);
         /** @var Tenant $tenant */
         $tenant = Tenant::query()->findOrFail($tenantContext->requireTenantId('invite member'));
 
         try {
-            $invitation = $this->team->invite($tenant, $request->user(), $validated['email'], $validated['role']);
+            $invitation = $this->team->invite($tenant, $request->user(), $validated['email'], $validated['permissions'] ?? TenantPermissions::preset($validated['role'], true));
         } catch (AccountRejected $exception) {
             return $this->rejected($exception);
         }
 
         return response()->json($this->invitation($invitation), 201);
+    }
+
+    public function updateInvitation(Request $request, string $invitation, TenantContext $tenantContext): JsonResponse
+    {
+        $validated = $request->validate($this->permissionRules());
+        $tenantId = $tenantContext->requireTenantId('change invitation permissions');
+        $current = Invitation::query()->where('tenant_id', $tenantId)->whereKey($invitation)->first();
+        $permissions = $validated['permissions']
+            ?? TenantPermissions::preset($validated['role'], in_array(TenantPermissions::MONEY_VIEW, (array) $current?->permissions, true));
+
+        try {
+            $updated = $this->team->updateInvitation($tenantId, $request->user(), $invitation, $permissions);
+        } catch (AccountRejected $exception) {
+            return $this->rejected($exception);
+        }
+
+        return response()->json($this->invitation($updated));
+    }
+
+    /**
+     * @return array<string, list<mixed>>
+     */
+    private function permissionRules(): array
+    {
+        return [
+            'role' => ['required_without:permissions', Rule::in(TeamService::ASSIGNABLE)],
+            'permissions' => ['required_without:role', 'array', 'max:'.count(TenantPermissions::all())],
+            'permissions.*' => ['string', 'distinct', Rule::in(TenantPermissions::all())],
+        ];
     }
 
     public function revoke(Request $request, string $invitation, TenantContext $tenantContext): JsonResponse
@@ -161,6 +202,7 @@ class TeamController extends Controller
             'tenant_name' => $invitation->tenant->name,
             'email' => $invitation->email,
             'role' => $invitation->role,
+            'permissions' => TenantPermissions::normalize((array) $invitation->permissions),
             'expires_at' => $invitation->expires_at->toJSON(),
             'account_exists' => User::query()->where('email', $invitation->email)->exists(),
         ]);
@@ -178,14 +220,17 @@ class TeamController extends Controller
 
         $request->session()->put('active_tenant_id', $membership->tenant_id);
 
-        return response()->json($this->member($membership, $request->user()));
+        return response()->json($this->member($membership, $request->user(), []));
     }
 
     /**
+     * @param  list<string>  $assignable
      * @return array<string, mixed>
      */
-    private function member(Membership $membership, User $viewer): array
+    private function member(Membership $membership, User $viewer, array $assignable): array
     {
+        $permissions = TenantPermissions::forMembership($membership);
+
         return [
             'user_id' => $membership->user_id,
             'tenant_id' => $membership->tenant_id,
@@ -194,6 +239,9 @@ class TeamController extends Controller
             'email_verified' => $membership->user?->email_verified_at !== null,
             'mfa_enabled' => $membership->user?->mfa_confirmed_at !== null,
             'role' => $membership->role,
+            'permissions' => $permissions,
+            'can_edit' => $membership->role !== TenantRoles::OWNER && $membership->user_id !== $viewer->id
+                && $assignable !== [] && array_diff($permissions, $assignable) === [],
             'is_you' => $membership->user_id === $viewer->id,
             'created_at' => $membership->created_at?->toJSON(),
         ];
@@ -208,6 +256,7 @@ class TeamController extends Controller
             'id' => $invitation->id,
             'email' => $invitation->email,
             'role' => $invitation->role,
+            'permissions' => TenantPermissions::normalize((array) $invitation->permissions),
             'state' => match (true) {
                 $invitation->accepted_at !== null => 'accepted',
                 $invitation->revoked_at !== null => 'revoked',

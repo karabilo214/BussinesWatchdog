@@ -24,7 +24,8 @@ export interface User extends PersonalName {
 
 export interface Membership {
   tenant_id: string;
-  role: 'owner' | 'admin' | 'operator' | 'viewer';
+  role: TeamRole;
+  permissions: TenantPermission[];
   created_at: string;
   tenant_status?: 'active' | 'suspended' | 'deleting' | 'deleted' | null;
   deletion_purge_after?: string | null;
@@ -461,7 +462,8 @@ export interface OrderRevision {
 }
 
 export interface OrderDetail extends Order {
-  findings: Finding[];
+  /** Null without reconciliation.read (ADR 0079): hidden, not "no findings". */
+  findings: Finding[] | null;
   captures: FinancialTransaction[];
   refunds: StoreRefund[];
   refund_transactions: FinancialTransaction[];
@@ -646,15 +648,47 @@ export interface NotificationDelivery {
 }
 
 export interface Overview {
-  incidents: { active: number; by_severity: Record<IncidentSeverity, number>; latest: Incident[] };
-  discrepancies: { mode: 'live' | 'test' | null; currency: string; currency_exponent: number | null; component: string; total_minor: string | null; incident_count: number }[];
-  unknown_amount_incidents: number;
+  /** Null without incidents.read; discrepancies and unknown_amount_incidents are null without reconciliation.read (ADR 0079). */
+  incidents: { active: number; by_severity: Record<IncidentSeverity, number>; latest: Incident[] } | null;
+  discrepancies: { mode: 'live' | 'test' | null; currency: string; currency_exponent: number | null; component: string; total_minor: string | null; incident_count: number }[] | null;
+  unknown_amount_incidents: number | null;
   capacity_paused_stores?: number;
   money_amounts_hidden?: boolean;
   recent_checks: CheckRunSummary[];
 }
 
-export type TeamRole = 'owner' | 'admin' | 'operator' | 'viewer';
+export type TeamRole = 'owner' | 'admin' | 'operator' | 'viewer' | 'custom';
+
+export type PresetRole = 'admin' | 'operator' | 'viewer';
+
+export type TenantPermission =
+  | 'stores.read'
+  | 'stores.manage'
+  | 'integrations.manage'
+  | 'checks.run'
+  | 'reconciliation.read'
+  | 'reconciliation.run'
+  | 'allocations.manage'
+  | 'incidents.read'
+  | 'incidents.manage'
+  | 'incidents.snooze'
+  | 'notifications.manage'
+  | 'team.manage'
+  | 'money.view'
+  | 'billing.manage'
+  | 'stores.delete'
+  | 'ownership.transfer'
+  | 'members.mfa_reset'
+  | 'support.access'
+  | 'organization.delete';
+
+export interface PermissionCatalog {
+  sections: Record<string, TenantPermission[]>;
+  owner_only: TenantPermission[];
+  base: TenantPermission[];
+  implies: Partial<Record<TenantPermission, TenantPermission[]>>;
+  presets: Record<PresetRole, TenantPermission[]>;
+}
 
 export interface TeamMember {
   user_id: string;
@@ -664,6 +698,8 @@ export interface TeamMember {
   email_verified?: boolean;
   mfa_enabled: boolean;
   role: TeamRole;
+  permissions: TenantPermission[];
+  can_edit: boolean;
   is_you: boolean;
   created_at: string | null;
 }
@@ -672,6 +708,7 @@ export interface TeamInvitation {
   id: string;
   email: string;
   role: Exclude<TeamRole, 'owner'>;
+  permissions: TenantPermission[];
   state: 'pending' | 'accepted' | 'revoked' | 'expired';
   invited_by: string | null;
   expires_at: string;
@@ -682,6 +719,7 @@ export interface InvitationLookup {
   tenant_name: string;
   email: string;
   role: Exclude<TeamRole, 'owner'>;
+  permissions: TenantPermission[];
   expires_at: string;
   account_exists: boolean;
 }

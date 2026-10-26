@@ -1,6 +1,6 @@
 import { ensureCsrfCookie, request } from '@bw/api-client';
 import { Passkeys } from '@laravel/passkeys';
-import type { AuthSession, InvitationLookup, Locale, PersonalName, MfaSetup, MfaState, OrganizationDeletionState, TeamInvitation, TeamMember, TeamRole } from './types';
+import type { AuthSession, InvitationLookup, Locale, PermissionCatalog, PersonalName, MfaSetup, MfaState, OrganizationDeletionState, PresetRole, TeamInvitation, TeamMember, TenantPermission } from './types';
 
 export async function requestPasswordReset(email: string): Promise<void> {
   await request('POST', '/api/v1/auth/password-reset/request', { body: { email } });
@@ -74,12 +74,18 @@ export async function deletePasskey(id: number, currentPassword: string, code: s
   await request('DELETE', `/api/v1/auth/passkeys/${id}`, { body: { current_password: currentPassword, code } });
 }
 
-export async function listMembers(): Promise<{ data: TeamMember[]; assignable_roles: Exclude<TeamRole, 'owner'>[] }> {
-  return (await request<{ data: TeamMember[]; assignable_roles: Exclude<TeamRole, 'owner'>[] }>('GET', '/api/v1/memberships')).data;
+export interface TeamList {
+  data: TeamMember[];
+  assignable_roles: PresetRole[];
+  assignable_permissions: TenantPermission[];
+  permission_catalog: PermissionCatalog;
+}
+
+export async function listMembers(): Promise<TeamList> {
+  return (await request<TeamList>('GET', '/api/v1/memberships')).data;
 }
 
 export interface MoneyVisibility {
-  show_money_amounts_to_team: boolean;
   can_view_money_amounts: boolean;
 }
 
@@ -87,12 +93,12 @@ export async function getMoneyVisibility(): Promise<MoneyVisibility> {
   return (await request<MoneyVisibility>('GET', '/api/v1/money-visibility')).data;
 }
 
-export async function updateMoneyVisibility(enabled: boolean): Promise<MoneyVisibility> {
-  return (await request<MoneyVisibility>('PATCH', '/api/v1/money-visibility', { body: { show_money_amounts_to_team: enabled } })).data;
+export async function changeMemberPermissions(userId: string, permissions: TenantPermission[]): Promise<TeamMember> {
+  return (await request<TeamMember>('PATCH', `/api/v1/memberships/${encodeURIComponent(userId)}`, { body: { permissions } })).data;
 }
 
-export async function changeMemberRole(userId: string, role: Exclude<TeamRole, 'owner'>): Promise<TeamMember> {
-  return (await request<TeamMember>('PATCH', `/api/v1/memberships/${encodeURIComponent(userId)}`, { body: { role } })).data;
+export async function changeInvitationPermissions(id: string, permissions: TenantPermission[]): Promise<TeamInvitation> {
+  return (await request<TeamInvitation>('PATCH', `/api/v1/invitations/${encodeURIComponent(id)}`, { body: { permissions } })).data;
 }
 
 export async function removeMember(userId: string): Promise<void> {
@@ -103,8 +109,8 @@ export async function listInvitations(): Promise<TeamInvitation[]> {
   return (await request<{ data: TeamInvitation[] }>('GET', '/api/v1/invitations')).data.data;
 }
 
-export async function inviteMember(email: string, role: Exclude<TeamRole, 'owner'>): Promise<TeamInvitation> {
-  return (await request<TeamInvitation>('POST', '/api/v1/invitations', { body: { email, role } })).data;
+export async function inviteMember(email: string, permissions: TenantPermission[]): Promise<TeamInvitation> {
+  return (await request<TeamInvitation>('POST', '/api/v1/invitations', { body: { email, permissions } })).data;
 }
 
 export async function revokeInvitation(id: string): Promise<TeamInvitation> {

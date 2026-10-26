@@ -45,15 +45,15 @@ class TeamApiTest extends TestCase
         $otherAdmin = $this->member('admin', 'admin2@example.test');
 
         $this->as($admin)->patchJson("/api/v1/memberships/{$operator->id}", ['role' => 'viewer'])->assertOk()->assertJsonPath('role', 'viewer');
-        $this->as($admin)->patchJson("/api/v1/memberships/{$operator->id}", ['role' => 'admin'])->assertStatus(422)->assertJsonPath('code', 'role_not_assignable');
-        $this->as($admin)->patchJson("/api/v1/memberships/{$otherAdmin->id}", ['role' => 'viewer'])->assertForbidden()->assertJsonPath('code', 'team_forbidden');
+        $this->as($admin)->patchJson("/api/v1/memberships/{$otherAdmin->id}", ['role' => 'viewer'])->assertOk()->assertJsonPath('role', 'viewer');
+        $this->as($admin)->patchJson("/api/v1/memberships/{$operator->id}", ['permissions' => ['billing.manage']])->assertStatus(422)->assertJsonPath('code', 'permission_not_assignable');
         $this->as($admin)->patchJson("/api/v1/memberships/{$owner->id}", ['role' => 'viewer'])->assertForbidden();
         $this->as($admin)->patchJson("/api/v1/memberships/{$admin->id}", ['role' => 'viewer'])->assertStatus(422)->assertJsonPath('code', 'cannot_change_own_role');
         $this->as($owner)->patchJson("/api/v1/memberships/{$otherAdmin->id}", ['role' => 'operator'])->assertOk();
         $this->as($owner)->patchJson("/api/v1/memberships/{$operator->id}", ['role' => 'owner'])->assertUnprocessable();
         $this->as($operator)->patchJson("/api/v1/memberships/{$owner->id}", ['role' => 'viewer'])->assertForbidden();
 
-        $this->assertDatabaseHas('audit_log', ['tenant_id' => $this->tenant->id, 'action' => 'membership.role_changed', 'entity_id' => $operator->id]);
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $this->tenant->id, 'action' => 'membership.permissions_changed', 'entity_id' => $operator->id]);
     }
 
     public function test_removal_and_leaving(): void
@@ -119,12 +119,12 @@ class TeamApiTest extends TestCase
         $this->assertSame(1, Tenant::query()->count());
     }
 
-    public function test_admins_invite_only_operators_and_viewers_and_invitations_expire(): void
+    public function test_admins_invite_only_with_their_own_permissions_and_invitations_expire(): void
     {
         $this->member('owner');
         $admin = $this->member('admin', 'admin@example.test');
 
-        $this->as($admin)->postJson('/api/v1/invitations', ['email' => 'x@example.test', 'role' => 'admin'])->assertStatus(422)->assertJsonPath('code', 'role_not_assignable');
+        $this->as($admin)->postJson('/api/v1/invitations', ['email' => 'x@example.test', 'permissions' => ['billing.manage']])->assertStatus(422)->assertJsonPath('code', 'permission_not_assignable');
         $this->as($admin)->postJson('/api/v1/invitations', ['email' => 'x@example.test', 'role' => 'operator'])->assertCreated();
         $token = $this->tokenFor('x@example.test');
         $this->travel(8)->days();

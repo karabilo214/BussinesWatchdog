@@ -140,6 +140,11 @@
         "title": "No problems detected",
         "body": "All data sources are fresh, reconciliation is running and checkout checks pass."
       },
+      "restricted": {
+        "badge": "limited access",
+        "title": "No overall verdict",
+        "body": "Incidents are not open to you, so the service does not say there are no problems. Below are your stores and checks; ask the organization owner for access."
+      },
       "no_stores": {
         "badge": "no stores",
         "title": "No stores yet",
@@ -555,6 +560,7 @@
     }
   },
   "errors": {
+    "permission_not_assignable": "You cannot give this permission: you do not have it or only the owner does.",
     "platform_change_only": "Change the platform separately from other settings.",
     "woocommerce_challenge": "The WooCommerce API returned a protection page. Allow this service to access /wp-json/ without CAPTCHA or browser challenges, then try again.",
     "woocommerce_basic_auth": "The WooCommerce API requires an extra Basic Auth login. Allow API-key access to /wp-json/ without that login, then try again.",
@@ -2005,21 +2011,42 @@
     }
   },
   "money_visibility": {
-    "title": "Money amounts",
-    "description": "Choose whether other team members can see discrepancy amounts in the overview, incidents and findings.",
-    "show_to_team": "Show discrepancy amounts to the team",
-    "hidden_amount": "Hidden by the team owner"
+    "hidden_amount": "Hidden: no “See amounts” permission"
+
   },
   "team": {
     "members": "Members",
-    "roles_hint": "The owner and admins manage the team; operators handle incidents and reconciliation; viewers only look.",
+    "roles_hint": "The owner can do everything. Other members get permissions per cabinet section; a role is a ready-made set, after manual changes it becomes “custom”. Changes apply at once.",
+    "permissions": {"preset": "Set:", "edit": "Change permissions", "edit_for": "Change permissions: {name}", "saved": "Permissions saved.", "applies_now": "Changes apply at once, also in the member’s open cabinet; the member gets an email.", "base": "every member has it", "owner_only": "owner only", "not_yours": "you do not have it, so you cannot give it", "no_amounts": "no amounts"},
+    "section": {"stores": "Stores", "checks": "Checks", "reconciliation": "Reconciliation", "incidents": "Incidents", "notifications": "Notifications", "money": "Amounts", "settings": "Settings"},
+    "permission": {
+        "stores_read": {"label": "View stores", "hint": "Stores, orders, payments, checks and notification history."},
+        "stores_manage": {"label": "Configure stores", "hint": "Add stores, change settings and checkout pages, verify ownership."},
+        "integrations_manage": {"label": "Connections", "hint": "Connect the store and payment providers, change and revoke keys."},
+        "checks_run": {"label": "Run checks", "hint": "Start and cancel checkout checks, edit the scenario."},
+        "reconciliation_read": {"label": "View reconciliation", "hint": "Discrepancies, payments without an order and CSV exports."},
+        "reconciliation_run": {"label": "Run reconciliation", "hint": "Recheck money for a store or an order."},
+        "allocations_manage": {"label": "Manual linking", "hint": "Link payments and refunds to orders and unlink them."},
+        "incidents_read": {"label": "View incidents", "hint": "Incident list and details, incident exports."},
+        "incidents_manage": {"label": "Handle incidents", "hint": "Acknowledge, resolve and comment."},
+        "incidents_snooze": {"label": "Snooze incidents", "hint": "Snooze incidents and bring them back."},
+        "notifications_manage": {"label": "Notification channels", "hint": "Add email and Telegram, change settings and send a test."},
+        "team_manage": {"label": "Team", "hint": "Invite members and change their permissions — only within your own."},
+        "money_view": {"label": "See amounts", "hint": "Discrepancy amounts in the overview, incidents, reconciliation and exports."},
+        "billing_manage": {"label": "Subscription and invoices", "hint": "Plan, payment, invoices and cancellation."},
+        "stores_delete": {"label": "Delete a store", "hint": "Delete a store with all its data."},
+        "ownership_transfer": {"label": "Transfer ownership", "hint": "Make another member the owner."},
+        "members_mfa_reset": {"label": "Reset a member’s MFA", "hint": "Reset the second factor when a member lost their phone."},
+        "support_access": {"label": "Support access", "hint": "Grant and revoke temporary access for support."},
+        "organization_delete": {"label": "Delete the organization", "hint": "Delete the organization and all its data."}
+    },
     "you": "you",
-    "role_for": "Role: {name}",
     "role": {
       "owner": "owner",
       "admin": "admin",
       "operator": "operator",
-      "viewer": "viewer"
+      "viewer": "viewer",
+      "custom": "custom"
     },
     "remove": "Remove",
     "leave": "Leave team",
@@ -2027,7 +2054,6 @@
     "leave_warning": "You lose access to this team immediately.",
     "invite": {
       "title": "Invite to the team",
-      "role": "Role",
       "submit": "Send invitation",
       "sent": "Invitation sent to {email}.",
       "pending": "Awaiting answer",

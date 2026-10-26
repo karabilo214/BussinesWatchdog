@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Auth\TenantPermissions;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ class Invitation extends Model
         'tenant_id',
         'email',
         'role',
+        'permissions',
         'token_hash',
         'invited_by',
         'expires_at',
@@ -23,9 +25,17 @@ class Invitation extends Model
         'revoked_at',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (Invitation $invitation): void {
+            $invitation->permissions ??= TenantPermissions::preset((string) $invitation->role, true);
+        });
+    }
+
     protected function casts(): array
     {
         return [
+            'permissions' => 'array',
             'expires_at' => 'datetime',
             'accepted_at' => 'datetime',
             'revoked_at' => 'datetime',

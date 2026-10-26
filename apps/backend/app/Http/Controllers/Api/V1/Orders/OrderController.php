@@ -19,9 +19,11 @@ use App\Models\ReconciliationFinding;
 use App\Models\ReconciliationSubjectState;
 use App\Models\Refund;
 use App\Models\RefundAllocation;
+use App\Support\Auth\TenantPermissions;
 use App\Support\Billing\HistoryWindow;
 use App\Support\Reconciliation\ReconciliationResultRecorder;
 use App\Support\Tenancy\MoneyAmountVisibility;
+use App\Support\Tenancy\TenantAccess;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -92,7 +94,9 @@ class OrderController extends Controller
             ->get();
 
         return response()->json(array_merge($this->orderDto->toArray($order), [
-            'findings' => $this->findingDto->collection($latestFindings, app(MoneyAmountVisibility::class)->allows($request, $tenantId)),
+            'findings' => app(TenantAccess::class)->allows($request, $tenantId, TenantPermissions::RECONCILIATION_READ)
+                ? $this->findingDto->collection($latestFindings, app(MoneyAmountVisibility::class)->allows($request, $tenantId))
+                : null,
             'captures' => $captures->map(fn (FinancialTransaction $t): array => $this->transactionDto->toArray($t))->all(),
             'refunds' => $refunds->map(fn (Refund $r): array => $this->refundDto->toArray($r))->all(),
             'refund_transactions' => $refundTransactions->map(fn (FinancialTransaction $t): array => $this->transactionDto->toArray($t))->all(),

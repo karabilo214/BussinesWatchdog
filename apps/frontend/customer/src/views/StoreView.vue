@@ -15,7 +15,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { StatusBadge } from '@bw/ui';
 
 const props = defineProps<{ id: string }>();
-const { canManageStores } = useRole();
+const { canManageStores, canManageIntegrations } = useRole();
 const logoBase = `${import.meta.env.BASE_URL}onboarding/`;
 
 const store = ref<Store | null>(null);
@@ -100,8 +100,8 @@ watch(
             <li><a href="#browser-checks" class="text-primary hover:underline">{{ $t('store.more.browser') }}</a></li>
           </ul>
         </section>
-        <div id="order-source"><OrderSource :store-id="store.id" :can-manage="canManageStores" :platform="store.platform" :base-url="store.base_url" @changed="load" /></div>
-        <div id="payment-providers"><PaymentProviders :store-id="store.id" :can-manage="canManageStores" @changed="load" /></div>
+        <div id="order-source"><OrderSource :store-id="store.id" :can-manage="canManageIntegrations" :platform="store.platform" :base-url="store.base_url" @changed="load" /></div>
+        <div id="payment-providers"><PaymentProviders :store-id="store.id" :can-manage="canManageIntegrations" @changed="load" /></div>
         <div id="browser-checks"><VerificationPanel :key="store.verified_at ?? 'unverified'" :store="store" :can-manage="canManageStores" @verified="load" /></div>
         <StoreSettings :store="store" :can-manage="canManageStores" @updated="store = $event" @stale="load" />
         <CheckoutLayoutSettings :store="store" :can-manage="canManageStores" @updated="store = $event" />

@@ -53,7 +53,7 @@ use App\Http\Controllers\Api\V1\Stores\StoreController;
 use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
 use App\Http\Controllers\Api\V1\Tenancy\MoneyVisibilityController;
 use App\Http\Controllers\Api\V1\Tenancy\TenantController;
-use App\Support\Auth\TenantRoles;
+use App\Support\Auth\TenantPermissions;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('stateful.session')->prefix('/v1/auth')->group(function (): void {
@@ -128,211 +128,211 @@ Route::middleware('stateful.session')->prefix('/v1/invitations')->group(function
 });
 
 Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefix('/v1')->group(function (): void {
-    Route::get('/support-grants', [SupportGrantController::class, 'index']);
-    Route::post('/support-grants', [SupportGrantController::class, 'store']);
-    Route::get('/support-staff', [SupportGrantController::class, 'staff']);
-    Route::post('/support-grants/{grant}/approve', [SupportGrantController::class, 'approve'])->whereUuid('grant');
-    Route::post('/support-grants/{grant}/deny', [SupportGrantController::class, 'deny'])->whereUuid('grant');
-    Route::post('/support-grants/{grant}/revoke', [SupportGrantController::class, 'revoke'])->whereUuid('grant');
-    Route::get('/support-grants/{grant}/activity', [SupportGrantController::class, 'activity'])->whereUuid('grant');
+    Route::get('/support-grants', [SupportGrantController::class, 'index'])->middleware('tenant.can:'.TenantPermissions::SUPPORT_ACCESS);
+    Route::post('/support-grants', [SupportGrantController::class, 'store'])->middleware('tenant.can:'.TenantPermissions::SUPPORT_ACCESS);
+    Route::get('/support-staff', [SupportGrantController::class, 'staff'])->middleware('tenant.can:'.TenantPermissions::SUPPORT_ACCESS);
+    Route::post('/support-grants/{grant}/approve', [SupportGrantController::class, 'approve'])->whereUuid('grant')->middleware('tenant.can:'.TenantPermissions::SUPPORT_ACCESS);
+    Route::post('/support-grants/{grant}/deny', [SupportGrantController::class, 'deny'])->whereUuid('grant')->middleware('tenant.can:'.TenantPermissions::SUPPORT_ACCESS);
+    Route::post('/support-grants/{grant}/revoke', [SupportGrantController::class, 'revoke'])->whereUuid('grant')->middleware('tenant.can:'.TenantPermissions::SUPPORT_ACCESS);
+    Route::get('/support-grants/{grant}/activity', [SupportGrantController::class, 'activity'])->whereUuid('grant')->middleware('tenant.can:'.TenantPermissions::SUPPORT_ACCESS);
     Route::post('/tenants/{tenant}/activate', [TenantController::class, 'activate']);
     Route::get('/tenants/context', [TenantController::class, 'context']);
 
     Route::get('/stores', [StoreController::class, 'index'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::post('/stores', [StoreController::class, 'store'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_MANAGE);
     Route::post('/stores/detect-platform', [StoreController::class, 'detectPlatform'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::storeManage()), 'throttle:20,1']);
+        ->middleware(['tenant.can:'.TenantPermissions::STORES_MANAGE, 'throttle:20,1']);
     Route::get('/stores/{store}', [StoreController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::patch('/stores/{store}', [StoreController::class, 'update'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_MANAGE);
     Route::put('/stores/{store}/checkout-layout', [StoreCheckoutLayoutController::class, 'update'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_MANAGE);
     Route::post('/stores/{store}/delete', [StoreController::class, 'destroy'])
-        ->middleware('tenant.role:'.TenantRoles::OWNER);
+        ->middleware('tenant.can:'.TenantPermissions::STORES_DELETE);
     Route::post('/stores/{store}/verify', [StoreVerificationController::class, 'store'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_MANAGE);
     Route::get('/stores/{store}/verification', [StoreVerificationController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::post('/stores/{store}/verification/check', [StoreVerificationController::class, 'check'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::storeManage()), 'throttle:store-verification-check']);
+        ->middleware(['tenant.can:'.TenantPermissions::STORES_MANAGE, 'throttle:store-verification-check']);
     Route::post('/stores/{store}/pairing-codes', [PairingCodeController::class, 'store'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/stores/{store}/integrations/stripe', [StripeIntegrationController::class, 'connect'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::put('/integrations/{integration}/webhook-secret', [StripeIntegrationController::class, 'webhookSecret'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/integrations/{integration}/woocommerce-webhook', [WooCommerceWebhookController::class, 'setUp'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/stores/{store}/integrations/paypal', [PayPalIntegrationController::class, 'connect'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/stores/{store}/integrations/woocommerce-api', [WooCommerceApiIntegrationController::class, 'connect'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/stores/{store}/integrations/shopware', [ShopwareIntegrationController::class, 'connect'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/stores/{store}/integrations/shopware-app', [ShopwareAppController::class, 'package'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/stores/{store}/integrations/shopware-app/update', [ShopwareAppController::class, 'update'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::put('/integrations/{integration}/webhook-id', [PayPalIntegrationController::class, 'webhookId'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/integrations/{integration}/sync', [ProviderSyncController::class, 'sync'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationManage()), 'throttle:provider-sync']);
+        ->middleware(['tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE, 'throttle:provider-sync']);
     Route::post('/billing/checkout', [CheckoutController::class, 'checkout'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+        ->middleware('tenant.can:'.TenantPermissions::BILLING_MANAGE);
     Route::post('/billing/trial', [PlanCatalogController::class, 'trial'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::BILLING_MANAGE, 'idempotency']);
     Route::get('/billing/checkouts/{checkout}', [CheckoutController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+        ->middleware('tenant.can:'.TenantPermissions::BILLING_MANAGE);
     Route::get('/billing/discounts/check', [CheckoutController::class, 'checkDiscount'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'throttle:discount-check']);
+        ->middleware(['tenant.can:'.TenantPermissions::BILLING_MANAGE, 'throttle:discount-check']);
     Route::get('/billing/plans', [PlanCatalogController::class, 'plans'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/billing/subscription', [SubscriptionController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+        ->middleware('tenant.can:'.TenantPermissions::BILLING_MANAGE);
     Route::get('/billing/invoices', [InvoiceController::class, 'index'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+        ->middleware('tenant.can:'.TenantPermissions::BILLING_MANAGE);
     Route::get('/billing/invoices/{invoice}/download', [InvoiceController::class, 'download'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'throttle:artifact-url']);
+        ->middleware(['tenant.can:'.TenantPermissions::BILLING_MANAGE, 'throttle:artifact-url']);
     Route::post('/billing/payment-method', [InvoiceController::class, 'paymentMethod'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::BILLING_MANAGE, 'idempotency']);
     Route::post('/billing/plan-change-preview', [SubscriptionController::class, 'previewPlanChange'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'throttle:plan-change-preview']);
+        ->middleware(['tenant.can:'.TenantPermissions::BILLING_MANAGE, 'throttle:plan-change-preview']);
     Route::post('/billing/plan-change', [SubscriptionController::class, 'changePlan'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+        ->middleware('tenant.can:'.TenantPermissions::BILLING_MANAGE);
     Route::post('/billing/plan-change/cancel', [SubscriptionController::class, 'cancelPlanChange'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::BILLING_MANAGE, 'idempotency']);
     Route::post('/billing/cancel', [SubscriptionController::class, 'cancel'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::BILLING_MANAGE, 'idempotency']);
     Route::post('/billing/resume', [SubscriptionController::class, 'resume'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::billingManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::BILLING_MANAGE, 'idempotency']);
     Route::put('/billing/retained-stores', [SubscriptionController::class, 'retainStores'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::billingManage()));
+        ->middleware('tenant.can:'.TenantPermissions::BILLING_MANAGE);
     Route::get('/entitlements', [EntitlementController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/integrations', [IntegrationController::class, 'index'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/integrations/{integration}', [IntegrationController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::post('/integrations/{integration}/revoke', [IntegrationController::class, 'revoke'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/integrations/{integration}/rotate', [IntegrationController::class, 'rotate'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE, 'idempotency']);
 
     Route::get('/stores/{store}/scenarios', [CheckScenarioController::class, 'index'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::post('/stores/{store}/scenarios', [CheckScenarioController::class, 'store'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+        ->middleware('tenant.can:'.TenantPermissions::CHECKS_RUN);
     Route::get('/scenarios/{scenario}', [CheckScenarioController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::patch('/scenarios/{scenario}', [CheckScenarioController::class, 'update'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+        ->middleware('tenant.can:'.TenantPermissions::CHECKS_RUN);
     Route::get('/stores/{store}/checks', [CheckRunController::class, 'index'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::post('/stores/{store}/checks', [CheckRunController::class, 'store'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::storeManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::CHECKS_RUN, 'idempotency']);
     Route::get('/checks/{checkRun}', [CheckRunController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::post('/checks/{checkRun}/cancel', [CheckRunController::class, 'cancel'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeManage()));
+        ->middleware('tenant.can:'.TenantPermissions::CHECKS_RUN);
     Route::get('/artifacts/{artifact}/download', [CheckRunController::class, 'download'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::storeRead()), 'throttle:artifact-url']);
+        ->middleware(['tenant.can:'.TenantPermissions::STORES_READ, 'throttle:artifact-url']);
     Route::get('/stores/{store}/integrations', [IntegrationController::class, 'forStore'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/downloads/woocommerce-plugin', [PluginDownloadController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/downloads/woocommerce-plugin/file', [PluginDownloadController::class, 'download'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::integrationRead()), 'throttle:artifact-url']);
+        ->middleware(['tenant.can:'.TenantPermissions::STORES_READ, 'throttle:artifact-url']);
     Route::get('/downloads/shopware-app', [ShopwareAppInstallationController::class, 'download'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/downloads/observation-texts', [ObservationTextsController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::integrationRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
 
     Route::post('/payment-allocations', [PaymentAllocationController::class, 'store'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::allocationManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::ALLOCATIONS_MANAGE, 'idempotency']);
     Route::post('/payment-allocations/{paymentAllocation}/revoke', [PaymentAllocationController::class, 'revoke'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::allocationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::ALLOCATIONS_MANAGE);
     Route::post('/refund-allocations', [RefundAllocationController::class, 'store'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::allocationManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::ALLOCATIONS_MANAGE, 'idempotency']);
     Route::post('/refund-allocations/{refundAllocation}/revoke', [RefundAllocationController::class, 'revoke'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::allocationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::ALLOCATIONS_MANAGE);
 
     Route::post('/stores/{store}/reconciliations', [ReconciliationController::class, 'store'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::reconciliationTrigger()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::RECONCILIATION_RUN, 'idempotency']);
     Route::get('/stores/{store}/findings', [ReconciliationController::class, 'findings'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
+        ->middleware('tenant.can:'.TenantPermissions::RECONCILIATION_READ);
     Route::get('/stores/{store}/unmatched-payments', [UnmatchedPaymentController::class, 'index'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
+        ->middleware('tenant.can:'.TenantPermissions::RECONCILIATION_READ);
     Route::post('/stores/{store}/exports', [ExportController::class, 'store'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::findingsRead()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::STORES_READ, 'idempotency']);
     Route::get('/exports/{export}', [ExportController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/exports/{export}/download', [ExportController::class, 'download'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::findingsRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
 
     Route::get('/orders/{order}', [OrderController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
 
     Route::get('/memberships', [TeamController::class, 'members'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::patch('/memberships/{user}', [TeamController::class, 'updateMember'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::teamManage()));
+        ->middleware('tenant.can:'.TenantPermissions::TEAM_MANAGE);
     Route::delete('/memberships/{user}', [TeamController::class, 'removeMember'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/invitations', [TeamController::class, 'invitations'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::teamManage()));
+        ->middleware('tenant.can:'.TenantPermissions::TEAM_MANAGE);
     Route::post('/invitations', [TeamController::class, 'invite'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::teamManage()), 'throttle:invitations']);
+        ->middleware(['tenant.can:'.TenantPermissions::TEAM_MANAGE, 'throttle:invitations']);
     Route::post('/ownership-transfer', [TeamController::class, 'transferOwnership'])
-        ->middleware(['tenant.role:'.TenantRoles::OWNER, 'throttle:auth-step-up']);
+        ->middleware(['tenant.can:'.TenantPermissions::OWNERSHIP_TRANSFER, 'throttle:auth-step-up']);
     Route::post('/memberships/{user}/mfa/reset', [TeamController::class, 'resetMemberMfa'])
-        ->whereUuid('user')->middleware(['tenant.role:'.TenantRoles::OWNER, 'throttle:auth-step-up']);
+        ->whereUuid('user')->middleware(['tenant.can:'.TenantPermissions::MEMBERS_MFA_RESET, 'throttle:auth-step-up']);
     Route::get('/organization-deletion', [OrganizationDeletionController::class, 'show']);
     Route::post('/organization-deletion', [OrganizationDeletionController::class, 'store'])->middleware('throttle:auth-step-up');
     Route::post('/organization-deletion/cancel', [OrganizationDeletionController::class, 'cancel'])->middleware('throttle:auth-step-up');
+    Route::patch('/invitations/{invitation}', [TeamController::class, 'updateInvitation'])
+        ->whereUuid('invitation')->middleware('tenant.can:'.TenantPermissions::TEAM_MANAGE);
     Route::post('/invitations/{invitation}/revoke', [TeamController::class, 'revoke'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::teamManage()));
+        ->middleware('tenant.can:'.TenantPermissions::TEAM_MANAGE);
     Route::get('/overview', [OverviewController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/money-visibility', [MoneyVisibilityController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
-    Route::patch('/money-visibility', [MoneyVisibilityController::class, 'update'])
-        ->middleware('tenant.role:'.TenantRoles::OWNER);
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/maintenance', [MaintenanceController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::storeRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::get('/incidents', [IncidentController::class, 'index'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentRead()));
+        ->middleware('tenant.can:'.TenantPermissions::INCIDENTS_READ);
     Route::get('/incidents/{incident}', [IncidentController::class, 'show'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentRead()));
+        ->middleware('tenant.can:'.TenantPermissions::INCIDENTS_READ);
     Route::post('/incidents/{incident}/acknowledge', [IncidentController::class, 'acknowledge'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INCIDENTS_MANAGE);
     Route::post('/incidents/{incident}/resolve', [IncidentController::class, 'resolve'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INCIDENTS_MANAGE);
     Route::post('/incidents/{incident}/comments', [IncidentController::class, 'comment'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentManage()));
+        ->middleware('tenant.can:'.TenantPermissions::INCIDENTS_MANAGE);
     Route::post('/incidents/{incident}/snooze', [IncidentController::class, 'snooze'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentSnooze()));
+        ->middleware('tenant.can:'.TenantPermissions::INCIDENTS_SNOOZE);
     Route::post('/suppressions/{suppression}/revoke', [SuppressionController::class, 'revoke'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::incidentSnooze()));
+        ->middleware('tenant.can:'.TenantPermissions::INCIDENTS_SNOOZE);
 
     Route::get('/notification-channels', [NotificationChannelController::class, 'index'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::NOTIFICATIONS_MANAGE);
     Route::post('/notification-channels', [NotificationChannelController::class, 'store'])
-        ->middleware(['tenant.role:'.implode(',', TenantRoles::notificationManage()), 'idempotency']);
+        ->middleware(['tenant.can:'.TenantPermissions::NOTIFICATIONS_MANAGE, 'idempotency']);
     Route::patch('/notification-channels/{notificationChannel}', [NotificationChannelController::class, 'update'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::NOTIFICATIONS_MANAGE);
     Route::post('/notification-channels/{notificationChannel}/verify', [NotificationChannelController::class, 'verify'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::NOTIFICATIONS_MANAGE);
     Route::post('/notification-channels/{notificationChannel}/verification-code', [NotificationChannelController::class, 'resendVerification'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::NOTIFICATIONS_MANAGE);
     Route::post('/notification-channels/{notificationChannel}/test', [NotificationChannelController::class, 'test'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationManage()));
+        ->middleware('tenant.can:'.TenantPermissions::NOTIFICATIONS_MANAGE);
     Route::get('/notification-deliveries', [NotificationDeliveryController::class, 'index'])
-        ->middleware('tenant.role:'.implode(',', TenantRoles::notificationDeliveryRead()));
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
 });
 
 Route::post('/v1/pairing/exchange', [PairingExchangeController::class, 'store'])

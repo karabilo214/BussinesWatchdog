@@ -7,6 +7,7 @@ use App\Models\Invitation;
 use App\Models\Membership;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Auth\TenantPermissions;
 use App\Support\Auth\TenantRoles;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -14,8 +15,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Team rules (ADR 0019): owners and admins manage the team; an admin manages only operators and viewers;
- * nobody changes their own role; the owner role is never assigned here and the owner cannot leave.
+ * Team rules (ADR 0019, ADR 0079): the owner has every permission and manages everyone else; a member with
+ * `team.manage` manages only members whose permissions they have themselves and gives only those; nobody changes
+ * their own permissions; the owner role is never assigned here and the owner cannot leave.
  */
 class TeamService
 {
@@ -28,20 +30,45 @@ class TeamService
     ) {}
 
     /**
+     * Presets the actor may apply in full.
+     *
      * @return list<string>
      */
-    public function assignableBy(string $actorRole): array
+    public function assignableBy(?Membership $actor): array
     {
-        return match ($actorRole) {
-            TenantRoles::OWNER => self::ASSIGNABLE,
-            TenantRoles::ADMIN => [TenantRoles::OPERATOR, TenantRoles::VIEWER],
-            default => [],
-        };
+        $permissions = $this->assignablePermissionsBy($actor);
+
+        return array_values(array_filter(self::ASSIGNABLE, fn (string $role): bool => array_diff(TenantPermissions::preset($role, false), $permissions) === []));
+    }
+
+    /**
+     * Permissions the actor may give: the owner every assignable one, a team manager only their own.
+     *
+     * @return list<string>
+     */
+    public function assignablePermissionsBy(?Membership $actor): array
+    {
+        if ($actor === null) {
+            return [];
+        }
+
+        if ($actor->role === TenantRoles::OWNER) {
+            return TenantPermissions::assignable();
+        }
+
+        $own = TenantPermissions::forMembership($actor);
+
+        return in_array(TenantPermissions::TEAM_MANAGE, $own, true) ? $own : [];
+    }
+
+    public function membership(string $tenantId, string $userId): ?Membership
+    {
+        return Membership::query()->where('tenant_id', $tenantId)->where('user_id', $userId)->first();
     }
 
     public function roleOf(string $tenantId, string $userId): ?string
     {
-        return Membership::query()->where('tenant_id', $tenantId)->where('user_id', $userId)->value('role');
+        return $this->membership($tenantId, $userId)?->role;
     }
 
     /**
@@ -52,40 +79,59 @@ class TeamService
         return Membership::query()->where('tenant_id', $tenantId)->with('user')->orderBy('created_at')->get();
     }
 
+    /** A preset keeps the member's choice about amounts. */
     public function changeRole(string $tenantId, User $actor, string $targetUserId, string $role): Membership
     {
-        return DB::transaction(function () use ($tenantId, $actor, $targetUserId, $role): Membership {
-            [$actorRole, $target] = $this->lockPair($tenantId, $actor, $targetUserId);
+        $current = $this->membership($tenantId, $targetUserId);
+
+        return $this->changePermissions($tenantId, $actor, $targetUserId, TenantPermissions::preset($role, TenantPermissions::allows($current, TenantPermissions::MONEY_VIEW)));
+    }
+
+    /**
+     * Takes effect on the member's next request, also in open sessions, because every check reads the stored list.
+     *
+     * @param  list<string>  $permissions
+     */
+    public function changePermissions(string $tenantId, User $actor, string $targetUserId, array $permissions): Membership
+    {
+        [$membership, $before, $after] = DB::transaction(function () use ($tenantId, $actor, $targetUserId, $permissions): array {
+            [$actorMembership, $target] = $this->lockPair($tenantId, $actor, $targetUserId);
 
             if ($target->user_id === $actor->id) {
                 throw new AccountRejected('cannot_change_own_role');
             }
 
-            $this->assertManages($actorRole, $target->role);
+            $this->assertManages($actorMembership, $target);
+            $next = $this->grantable($actorMembership, $permissions);
+            $before = ['role' => $target->role, 'permissions' => TenantPermissions::forMembership($target)];
+            $after = ['role' => TenantPermissions::roleFor($next), 'permissions' => $next];
 
-            if (! in_array($role, $this->assignableBy($actorRole), true)) {
-                throw new AccountRejected('role_not_assignable');
+            if ($before !== $after) {
+                $this->storePermissions($tenantId, $targetUserId, $next);
+                $this->audit($tenantId, $actor->id, 'membership.permissions_changed', 'membership', $targetUserId, ['before' => $before, 'after' => $after]);
             }
 
-            $previous = $target->role;
-            Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->update(['role' => $role]);
-            $this->audit($tenantId, $actor->id, 'membership.role_changed', 'membership', $targetUserId, ['role' => ['from' => $previous, 'to' => $role]]);
-
-            return Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->with('user')->firstOrFail();
+            return [Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->with('user')->firstOrFail(), $before, $after];
         });
+
+        if ($before !== $after) {
+            $this->notifyPermissionsChanged($membership, $before['permissions'], $after['permissions']);
+        }
+
+        return $membership;
     }
 
     public function remove(string $tenantId, User $actor, string $targetUserId): void
     {
         DB::transaction(function () use ($tenantId, $actor, $targetUserId): void {
-            [$actorRole, $target] = $this->lockPair($tenantId, $actor, $targetUserId);
+            [$actorMembership, $target] = $this->lockPair($tenantId, $actor, $targetUserId);
 
             if ($target->role === TenantRoles::OWNER) {
                 throw new AccountRejected($target->user_id === $actor->id ? 'owner_cannot_leave' : 'team_forbidden', $target->user_id === $actor->id ? 422 : 403);
             }
 
             if ($target->user_id !== $actor->id) {
-                $this->assertManages($actorRole, $target->role);
+                $this->assertManages($actorMembership, $target);
             }
 
             Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->delete();
@@ -110,9 +156,15 @@ class TeamService
                 throw new AccountRejected('role_not_assignable');
             }
 
-            $previous = $target->role;
-            Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->update(['role' => $role]);
-            $this->audit($tenantId, null, 'membership.role_changed', 'membership', $targetUserId, ['role' => ['from' => $previous, 'to' => $role], 'by' => 'platform', 'reason' => $reason]);
+            $before = ['role' => $target->role, 'permissions' => TenantPermissions::forMembership($target)];
+            $next = TenantPermissions::preset($role, TenantPermissions::allows($target, TenantPermissions::MONEY_VIEW));
+            $this->storePermissions($tenantId, $targetUserId, $next);
+            $this->audit($tenantId, null, 'membership.permissions_changed', 'membership', $targetUserId, [
+                'before' => $before,
+                'after' => ['role' => TenantPermissions::roleFor($next), 'permissions' => $next],
+                'by' => 'platform',
+                'reason' => $reason,
+            ]);
 
             return Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->with('user')->firstOrFail();
         });
@@ -141,9 +193,9 @@ class TeamService
     public function transferOwnership(string $tenantId, User $actor, string $targetUserId): Membership
     {
         $newOwner = DB::transaction(function () use ($tenantId, $actor, $targetUserId): Membership {
-            [$actorRole, $target] = $this->lockPair($tenantId, $actor, $targetUserId);
+            [$actorMembership, $target] = $this->lockPair($tenantId, $actor, $targetUserId);
 
-            if ($actorRole !== TenantRoles::OWNER) {
+            if ($actorMembership->role !== TenantRoles::OWNER) {
                 throw new AccountRejected('team_forbidden', 403);
             }
 
@@ -162,8 +214,8 @@ class TeamService
                 throw new AccountRejected('target_email_unverified');
             }
 
-            Membership::query()->where('tenant_id', $tenantId)->where('user_id', $actor->id)->update(['role' => TenantRoles::ADMIN]);
-            Membership::query()->where('tenant_id', $tenantId)->where('user_id', $target->user_id)->update(['role' => TenantRoles::OWNER]);
+            $this->storePermissions($tenantId, $actor->id, TenantPermissions::preset(TenantRoles::ADMIN, true));
+            Membership::query()->where('tenant_id', $tenantId)->where('user_id', $target->user_id)->update(['role' => TenantRoles::OWNER, 'permissions' => null]);
             $this->audit($tenantId, $actor->id, 'membership.ownership_transferred', 'membership', $target->user_id, [
                 'owner' => ['from' => $actor->id, 'to' => $target->user_id],
                 'previous_owner_role' => TenantRoles::ADMIN,
@@ -203,13 +255,48 @@ class TeamService
             ->get();
     }
 
-    public function invite(Tenant $tenant, User $actor, string $email, string $role): Invitation
+    /**
+     * @param  list<string>  $permissions
+     */
+    public function invite(Tenant $tenant, User $actor, string $email, array $permissions): Invitation
     {
-        if (! in_array($role, $this->assignableBy((string) $this->roleOf($tenant->id, $actor->id)), true)) {
-            throw new AccountRejected('role_not_assignable');
-        }
+        $granted = $this->grantable($this->membership($tenant->id, $actor->id), $permissions);
 
-        return $this->issue($tenant, $actor, $actor->name, $actor->locale, $email, $role, true);
+        return $this->issue($tenant, $actor, $actor->name, $actor->locale, $email, $granted, true);
+    }
+
+    /**
+     * A pending invitation can be corrected until it is accepted; the link stays the same.
+     *
+     * @param  list<string>  $permissions
+     */
+    public function updateInvitation(string $tenantId, User $actor, string $invitationId, array $permissions): Invitation
+    {
+        return DB::transaction(function () use ($tenantId, $actor, $invitationId, $permissions): Invitation {
+            /** @var Invitation|null $invitation */
+            $invitation = Invitation::query()->where('tenant_id', $tenantId)->whereKey($invitationId)->lockForUpdate()->first();
+
+            if ($invitation === null) {
+                throw new AccountRejected('invitation_not_found', 404);
+            }
+
+            if ($invitation->accepted_at !== null || $invitation->revoked_at !== null || $invitation->expires_at->isPast()) {
+                throw new AccountRejected('invitation_invalid');
+            }
+
+            $actorMembership = $this->membership($tenantId, $actor->id);
+            $this->assertManagesPermissions($actorMembership, (array) $invitation->permissions);
+            $next = $this->grantable($actorMembership, $permissions);
+            $before = ['role' => $invitation->role, 'permissions' => TenantPermissions::normalize((array) $invitation->permissions)];
+            $after = ['role' => TenantPermissions::roleFor($next), 'permissions' => $next];
+
+            if ($before !== $after) {
+                $invitation->forceFill(['role' => $after['role'], 'permissions' => $next])->save();
+                $this->audit($tenantId, $actor->id, 'invitation.permissions_changed', 'invitation', $invitation->id, ['before' => $before, 'after' => $after]);
+            }
+
+            return $invitation->refresh()->load('inviter');
+        });
     }
 
     /** Platform staff invite on the organisation's behalf: any assignable role, the letter names the service, not a person. */
@@ -221,7 +308,7 @@ class TeamService
 
         $locale = (string) ($tenant->locale ?? $staffUser->locale);
 
-        return $this->issue($tenant, $staffUser, trans('account.platform_inviter', [], in_array($locale, AccountMailer::LOCALES, true) ? $locale : 'en'), $staffUser->locale, $email, $role, false);
+        return $this->issue($tenant, $staffUser, trans('account.platform_inviter', [], in_array($locale, AccountMailer::LOCALES, true) ? $locale : 'en'), $staffUser->locale, $email, TenantPermissions::preset($role, true), false);
     }
 
     public function revokeForPlatform(string $tenantId, string $invitationId): Invitation
@@ -243,11 +330,15 @@ class TeamService
         });
     }
 
-    private function issue(Tenant $tenant, User $actor, string $inviterName, ?string $actorLocale, string $email, string $role, bool $byMember): Invitation
+    /**
+     * @param  list<string>  $permissions
+     */
+    private function issue(Tenant $tenant, User $actor, string $inviterName, ?string $actorLocale, string $email, array $permissions, bool $byMember): Invitation
     {
         $token = Str::random(48);
+        $role = TenantPermissions::roleFor($permissions);
 
-        $invitation = DB::transaction(function () use ($tenant, $actor, $email, $role, $token, $byMember): Invitation {
+        $invitation = DB::transaction(function () use ($tenant, $actor, $email, $role, $permissions, $token, $byMember): Invitation {
 
             $alreadyMember = Membership::query()
                 ->where('tenant_id', $tenant->id)
@@ -269,11 +360,12 @@ class TeamService
                 'tenant_id' => $tenant->id,
                 'email' => $email,
                 'role' => $role,
+                'permissions' => $permissions,
                 'token_hash' => hash('sha256', $token),
                 'invited_by' => $actor->id,
                 'expires_at' => Carbon::now()->addDays(self::INVITATION_TTL_DAYS),
             ]);
-            $this->audit($tenant->id, $byMember ? $actor->id : null, 'invitation.created', 'invitation', $invitation->id, $byMember ? ['role' => $role] : ['role' => $role, 'by' => 'platform']);
+            $this->audit($tenant->id, $byMember ? $actor->id : null, 'invitation.created', 'invitation', $invitation->id, $byMember ? ['role' => $role, 'permissions' => $permissions] : ['role' => $role, 'permissions' => $permissions, 'by' => 'platform']);
 
             return $invitation;
         });
@@ -300,7 +392,7 @@ class TeamService
                 throw new AccountRejected('invitation_not_found', 404);
             }
 
-            $this->assertManages((string) $this->roleOf($tenantId, $actor->id), $invitation->role);
+            $this->assertManagesPermissions($this->membership($tenantId, $actor->id), (array) $invitation->permissions);
 
             if ($invitation->accepted_at === null && $invitation->revoked_at === null) {
                 $invitation->forceFill(['revoked_at' => Carbon::now()])->save();
@@ -343,22 +435,19 @@ class TeamService
                 throw new AccountRejected('already_member', 409);
             }
 
-            Membership::query()->create(['tenant_id' => $invitation->tenant_id, 'user_id' => $user->id, 'role' => $invitation->role]);
+            Membership::query()->create(['tenant_id' => $invitation->tenant_id, 'user_id' => $user->id, 'role' => $invitation->role, 'permissions' => TenantPermissions::normalize((array) $invitation->permissions)]);
             $invitation->forceFill(['accepted_at' => Carbon::now()])->save();
 
             if ($user->email_verified_at === null) {
                 $user->forceFill(['email_verified_at' => Carbon::now()])->save();
             }
 
-            $this->audit($invitation->tenant_id, $user->id, 'invitation.accepted', 'invitation', $invitation->id, ['role' => $invitation->role]);
+            $this->audit($invitation->tenant_id, $user->id, 'invitation.accepted', 'invitation', $invitation->id, ['role' => $invitation->role, 'permissions' => TenantPermissions::normalize((array) $invitation->permissions)]);
 
             return Membership::query()->where('tenant_id', $invitation->tenant_id)->where('user_id', $user->id)->with('user')->firstOrFail();
         });
     }
 
-    /**
-     * @return array{0: string, 1: Membership}
-     */
     private function lockedMember(string $tenantId, string $userId): Membership
     {
         /** @var Membership|null $member */
@@ -367,29 +456,102 @@ class TeamService
         return $member ?? throw new AccountRejected('member_not_found', 404);
     }
 
+    /**
+     * @return array{0: Membership, 1: Membership}
+     */
     private function lockPair(string $tenantId, User $actor, string $targetUserId): array
     {
-        $actorRole = Membership::query()->where('tenant_id', $tenantId)->where('user_id', $actor->id)->lockForUpdate()->value('role');
+        /** @var Membership|null $actorMembership */
+        $actorMembership = Membership::query()->where('tenant_id', $tenantId)->where('user_id', $actor->id)->lockForUpdate()->first();
         /** @var Membership|null $target */
         $target = Membership::query()->where('tenant_id', $tenantId)->where('user_id', $targetUserId)->lockForUpdate()->first();
 
-        if ($actorRole === null || $target === null) {
+        if ($actorMembership === null || $target === null) {
             throw new AccountRejected('member_not_found', 404);
         }
 
-        return [$actorRole, $target];
+        return [$actorMembership, $target];
     }
 
-    private function assertManages(string $actorRole, string $targetRole): void
+    /** The owner is never managed; a team manager manages only members who have nothing the manager lacks. */
+    private function assertManages(Membership $actor, Membership $target): void
     {
-        $manages = match ($actorRole) {
-            TenantRoles::OWNER => $targetRole !== TenantRoles::OWNER,
-            TenantRoles::ADMIN => in_array($targetRole, [TenantRoles::OPERATOR, TenantRoles::VIEWER], true),
-            default => false,
-        };
-
-        if (! $manages) {
+        if ($target->role === TenantRoles::OWNER) {
             throw new AccountRejected('team_forbidden', 403);
+        }
+
+        $this->assertManagesPermissions($actor, TenantPermissions::forMembership($target));
+    }
+
+    /**
+     * @param  array<int, mixed>  $targetPermissions
+     */
+    private function assertManagesPermissions(?Membership $actor, array $targetPermissions): void
+    {
+        $assignable = $this->assignablePermissionsBy($actor);
+
+        if ($assignable === [] || array_diff(TenantPermissions::normalize($targetPermissions), $assignable) !== []) {
+            throw new AccountRejected('team_forbidden', 403);
+        }
+    }
+
+    /**
+     * @param  array<int, mixed>  $requested
+     * @return list<string>
+     */
+    private function grantable(?Membership $actor, array $requested): array
+    {
+        $assignable = $this->assignablePermissionsBy($actor);
+
+        if ($assignable === []) {
+            throw new AccountRejected('team_forbidden', 403);
+        }
+
+        $unknown = array_diff(array_filter($requested, 'is_string'), TenantPermissions::assignable());
+        $next = TenantPermissions::normalize($requested);
+
+        if ($unknown !== [] || array_diff($next, $assignable) !== []) {
+            throw new AccountRejected('permission_not_assignable');
+        }
+
+        return $next;
+    }
+
+    /**
+     * @param  list<string>  $permissions
+     */
+    private function storePermissions(string $tenantId, string $userId, array $permissions): void
+    {
+        Membership::query()->where('tenant_id', $tenantId)->where('user_id', $userId)
+            ->update(['role' => TenantPermissions::roleFor($permissions), 'permissions' => json_encode($permissions)]);
+    }
+
+    /**
+     * @param  list<string>  $before
+     * @param  list<string>  $after
+     */
+    private function notifyPermissionsChanged(Membership $membership, array $before, array $after): void
+    {
+        $user = $membership->user;
+
+        if ($user === null) {
+            return;
+        }
+
+        $locale = in_array($user->locale, AccountMailer::LOCALES, true) ? $user->locale : 'en';
+        $names = fn (array $permissions): string => $permissions === []
+            ? trans('account.permissions_changed.none', [], $locale)
+            : implode("\n", array_map(fn (string $permission): string => '— '.trans('account.permissions.'.str_replace('.', '_', $permission), [], $locale), $permissions));
+
+        try {
+            $this->mailer->send($user->email, $locale, 'permissions_changed', [
+                'tenant' => Tenant::query()->whereKey($membership->tenant_id)->value('name') ?? '',
+                'added' => $names(array_values(array_diff($after, $before))),
+                'removed' => $names(array_values(array_diff($before, $after))),
+                'link' => $this->mailer->link('/app/settings/team'),
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
         }
     }
 

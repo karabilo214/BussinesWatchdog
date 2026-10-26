@@ -539,7 +539,8 @@
     "owner": "Inhaber",
     "admin": "Administrator",
     "operator": "Operator",
-    "viewer": "Betrachter"
+    "viewer": "Betrachter",
+    "custom": "Individuell"
   },
   "audit_result": {
     "succeeded": "Erledigt",

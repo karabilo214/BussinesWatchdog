@@ -1,6 +1,6 @@
 import type { Store } from '@/api/types';
 
-export type Verdict = 'no_stores' | 'problems' | 'incomplete' | 'all_clear';
+export type Verdict = 'no_stores' | 'problems' | 'incomplete' | 'all_clear' | 'restricted';
 
 /** A store is fully covered only when every source is fresh and its checkout check passes (spec §24, ADR 0018). */
 export function storeFullyCovered(store: Store): boolean {
@@ -14,8 +14,10 @@ export function storeFullyCovered(store: Store): boolean {
   );
 }
 
-export function verdict(stores: Store[], activeIncidents: number): Verdict {
+/** Without incident access (null) the overall verdict is not shown: hidden incidents are not "no problems". */
+export function verdict(stores: Store[], activeIncidents: number | null): Verdict {
   if (stores.length === 0) return 'no_stores';
+  if (activeIncidents === null) return 'restricted';
   if (activeIncidents > 0) return 'problems';
 
   return stores.every(storeFullyCovered) ? 'all_clear' : 'incomplete';

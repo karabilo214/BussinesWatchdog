@@ -140,6 +140,11 @@
         "title": "Keine Probleme festgestellt",
         "body": "Alle Datenquellen sind aktuell, der Abgleich läuft und Checkout-Prüfungen sind erfolgreich."
       },
+      "restricted": {
+        "badge": "eingeschränkter Zugriff",
+        "title": "Keine Gesamtbewertung",
+        "body": "Vorfälle sind für Sie nicht freigegeben, daher sagt der Dienst nicht, dass es keine Probleme gibt. Unten sehen Sie Shops und Prüfungen; Zugriff erteilt der Inhaber der Organisation."
+      },
       "no_stores": {
         "badge": "keine Shops",
         "title": "Noch keine Shops",
@@ -555,6 +560,7 @@
     }
   },
   "errors": {
+    "permission_not_assignable": "Dieses Recht können Sie nicht vergeben: Sie haben es nicht oder nur der Inhaber hat es.",
     "platform_change_only": "Ändern Sie die Plattform getrennt von anderen Einstellungen.",
     "woocommerce_challenge": "Die WooCommerce-API zeigt eine Schutzseite. Erlauben Sie dem Dienst den Zugriff auf /wp-json/ ohne CAPTCHA oder Browserprüfung und versuchen Sie es erneut.",
     "woocommerce_basic_auth": "Die WooCommerce-API verlangt zusätzlich Basic Auth. Erlauben Sie den Zugriff per API-Schlüssel auf /wp-json/ ohne diese Anmeldung und versuchen Sie es erneut.",
@@ -2005,21 +2011,42 @@
     }
   },
   "money_visibility": {
-    "title": "Geldbeträge",
-    "description": "Legen Sie fest, ob andere Teammitglieder Abweichungsbeträge in der Übersicht, bei Vorfällen und Feststellungen sehen können.",
-    "show_to_team": "Abweichungsbeträge für das Team anzeigen",
-    "hidden_amount": "Vom Inhaber des Unternehmens ausgeblendet"
+    "hidden_amount": "Ausgeblendet: kein Recht „Beträge sehen“"
+
   },
   "team": {
     "members": "Mitglieder",
-    "roles_hint": "Inhaber und Administratoren verwalten das Team; Operatoren bearbeiten Vorfälle und Abgleich; Betrachter sehen nur zu.",
+    "roles_hint": "Der Inhaber darf alles. Andere Mitglieder erhalten Rechte je Bereich des Kundenkontos; eine Rolle ist ein fertiges Set, nach manueller Änderung „individuell“. Änderungen gelten sofort.",
+    "permissions": {"preset": "Set:", "edit": "Rechte ändern", "edit_for": "Rechte ändern: {name}", "saved": "Rechte gespeichert.", "applies_now": "Änderungen gelten sofort, auch im bereits geöffneten Konto des Mitglieds; das Mitglied erhält eine E-Mail.", "base": "hat jedes Mitglied", "owner_only": "nur Inhaber", "not_yours": "haben Sie selbst nicht – nicht vergebbar", "no_amounts": "ohne Beträge"},
+    "section": {"stores": "Shops", "checks": "Prüfungen", "reconciliation": "Abgleich", "incidents": "Vorfälle", "notifications": "Benachrichtigungen", "money": "Beträge", "settings": "Einstellungen"},
+    "permission": {
+        "stores_read": {"label": "Shops ansehen", "hint": "Shops, Bestellungen, Zahlungen, Prüfungen und Benachrichtigungsverlauf."},
+        "stores_manage": {"label": "Shops einstellen", "hint": "Shops hinzufügen, Einstellungen und Checkout-Seiten ändern, Inhaberschaft bestätigen."},
+        "integrations_manage": {"label": "Verbindungen", "hint": "Shop und Zahlungsanbieter verbinden, Schlüssel ändern und widerrufen."},
+        "checks_run": {"label": "Prüfungen starten", "hint": "Checkout-Prüfungen starten und abbrechen, Szenario bearbeiten."},
+        "reconciliation_read": {"label": "Abgleich ansehen", "hint": "Abweichungen, Zahlungen ohne Bestellung und CSV-Export."},
+        "reconciliation_run": {"label": "Abgleich starten", "hint": "Geld für Shop oder Bestellung erneut prüfen."},
+        "allocations_manage": {"label": "Manuelle Zuordnung", "hint": "Zahlungen und Erstattungen Bestellungen zuordnen und lösen."},
+        "incidents_read": {"label": "Vorfälle ansehen", "hint": "Liste und Details der Vorfälle, Export der Vorfälle."},
+        "incidents_manage": {"label": "Vorfälle bearbeiten", "hint": "Bestätigen, schließen und kommentieren."},
+        "incidents_snooze": {"label": "Vorfälle zurückstellen", "hint": "Vorfälle zurückstellen und zurückholen."},
+        "notifications_manage": {"label": "Benachrichtigungskanäle", "hint": "E-Mail und Telegram hinzufügen, Einstellungen ändern, Test senden."},
+        "team_manage": {"label": "Team", "hint": "Mitglieder einladen und ihre Rechte ändern – nur im Rahmen der eigenen."},
+        "money_view": {"label": "Beträge sehen", "hint": "Abweichungsbeträge in Übersicht, Vorfällen, Abgleich und Exporten."},
+        "billing_manage": {"label": "Abonnement und Rechnungen", "hint": "Tarif, Zahlung, Rechnungen und Kündigung."},
+        "stores_delete": {"label": "Shop löschen", "hint": "Einen Shop mit allen Daten löschen."},
+        "ownership_transfer": {"label": "Inhaberschaft übertragen", "hint": "Ein anderes Mitglied zum Inhaber machen."},
+        "members_mfa_reset": {"label": "MFA eines Mitglieds zurücksetzen", "hint": "Zweiten Faktor zurücksetzen, wenn ein Mitglied sein Telefon verloren hat."},
+        "support_access": {"label": "Support-Zugriff", "hint": "Dem Support befristeten Zugriff geben und widerrufen."},
+        "organization_delete": {"label": "Organisation löschen", "hint": "Die Organisation mit allen Daten löschen."}
+    },
     "you": "Sie",
-    "role_for": "Rolle: {name}",
     "role": {
       "owner": "Inhaber",
       "admin": "Administrator",
       "operator": "Operator",
-      "viewer": "Betrachter"
+      "viewer": "Betrachter",
+      "custom": "individuell"
     },
     "remove": "Entfernen",
     "leave": "Team verlassen",
@@ -2027,7 +2054,6 @@
     "leave_warning": "Sie verlieren sofort den Zugriff auf dieses Team.",
     "invite": {
       "title": "Ins Team einladen",
-      "role": "Rolle",
       "submit": "Einladung senden",
       "sent": "Einladung an {email} gesendet.",
       "pending": "Warten auf Antwort",

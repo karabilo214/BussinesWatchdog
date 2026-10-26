@@ -8,11 +8,12 @@ import * as notifications from '@/api/notifications';
 import * as stores from '@/api/stores';
 import { localization, setLocale } from '@/i18n';
 import NotificationsView from '@/views/NotificationsView.vue';
+import { permissionsFor } from './permissions';
 
 const session = ref<unknown>({
   user: { id: 'u-1', name: 'Me', email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: false },
   active_tenant_id: 't-1',
-  memberships: [{ tenant_id: 't-1', role: 'owner', created_at: '2026-10-01T00:00:00Z' }],
+  memberships: [{ tenant_id: 't-1', role: 'owner', permissions: permissionsFor('owner'), created_at: '2026-10-01T00:00:00Z' }],
 });
 
 vi.mock('@/composables/useSession', () => ({ useSession: () => ({ session, load: vi.fn(async () => session.value), signOut: vi.fn() }) }));

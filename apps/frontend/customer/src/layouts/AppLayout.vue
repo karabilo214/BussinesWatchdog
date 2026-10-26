@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { LocaleSwitch } from '@bw/i18n';
@@ -7,7 +7,9 @@ import { resendEmailVerification } from '@/api/account';
 import { getMaintenance, type MaintenanceNotice } from '@/api/maintenance';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
+import type { TenantPermission } from '@/api/types';
 import { useNavBadges, type NavSection } from '@/composables/useNavBadges';
+import { useRole } from '@/composables/useRole';
 import { useSession } from '@/composables/useSession';
 import { SOLID_TONE_CLASSES } from '@bw/ui';
 
@@ -22,6 +24,7 @@ const verifiedNotice = ref<'1' | '0' | null>(null);
 const maintenance = ref<MaintenanceNotice | null>(null);
 const { dateTime } = useFormat();
 const { badges } = useNavBadges();
+const { can } = useRole();
 
 function badgeFor(name: string) {
   return badges.value[name as NavSection] ?? null;
@@ -62,16 +65,19 @@ async function resendVerification(): Promise<void> {
 }
 
 /** Main sections; `also` lists child pages that keep the section highlighted. */
-const NAV = [
+const NAV_ITEMS: { name: string; label: string; also: string[]; permission?: TenantPermission }[] = [
   { name: 'overview', label: 'nav.overview', also: ['store', 'store-create'] },
-  { name: 'incidents', label: 'nav.incidents', also: ['incident'] },
-  { name: 'reconciliation', label: 'nav.reconciliation', also: ['order'] },
+  { name: 'incidents', label: 'nav.incidents', also: ['incident'], permission: 'incidents.read' },
+  { name: 'reconciliation', label: 'nav.reconciliation', also: ['order'], permission: 'reconciliation.read' },
   { name: 'checks', label: 'nav.checks', also: ['check-run'] },
   { name: 'notifications', label: 'nav.notifications', also: [] },
-] as const;
+];
 
-function active(item: (typeof NAV)[number]): boolean {
-  return route.name === item.name || (item.also as readonly string[]).includes(String(route.name));
+/** Only the sections the member may open (ADR 0079). */
+const NAV = computed(() => NAV_ITEMS.filter((item) => item.permission === undefined || can(item.permission)));
+
+function active(item: (typeof NAV_ITEMS)[number]): boolean {
+  return route.name === item.name || item.also.includes(String(route.name));
 }
 
 async function leave(): Promise<void> {

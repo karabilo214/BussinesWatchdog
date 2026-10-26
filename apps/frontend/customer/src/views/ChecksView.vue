@@ -14,7 +14,7 @@ import { StatusBadge } from '@bw/ui';
 
 const route = useRoute();
 const router = useRouter();
-const { canManageStores } = useRole();
+const { canManageStores, canRunChecks } = useRole();
 
 const stores = ref<Store[]>([]);
 const loading = ref(true);
@@ -168,8 +168,8 @@ watch(storeId, () => loadScenario(), { immediate: true });
         <p v-if="scenarioLoading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
         <ErrorNotice v-else-if="scenarioError" :error="scenarioError" />
         <template v-else>
-          <ScenarioPanel :key="store.id" :store="store" :scenario="scenario" :can-manage="canManageStores" @saved="onScenarioSaved" @stale="loadScenario" />
-          <RunsList :key="`runs-${store.id}`" :store-id="store.id" :scenario="scenario" :can-run="canManageStores" :ready="ready" @finished="refreshStore" />
+          <ScenarioPanel :key="store.id" :store="store" :scenario="scenario" :can-manage="canRunChecks" @saved="onScenarioSaved" @stale="loadScenario" />
+          <RunsList :key="`runs-${store.id}`" :store-id="store.id" :scenario="scenario" :can-run="canRunChecks" :ready="ready" @finished="refreshStore" />
         </template>
       </template>
     </div>

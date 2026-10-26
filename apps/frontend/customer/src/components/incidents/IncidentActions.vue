@@ -8,7 +8,7 @@ import { useFormat } from '@/composables/useFormat';
 
 const SNOOZE_HOURS = [1, 4, 24, 72, 168];
 
-const props = defineProps<{ incident: IncidentDetail; canHandle: boolean; canManage: boolean }>();
+const props = defineProps<{ incident: IncidentDetail; canHandle: boolean; canRecheckMoney: boolean; canRunChecks: boolean; canSnooze: boolean }>();
 const emit = defineEmits<{ changed: [] }>();
 const { dateTime } = useFormat();
 
@@ -28,8 +28,8 @@ const checkRunId = computed(() => {
   return typeof id === 'string' ? id : null;
 });
 const recheck = computed<'money' | 'checkout' | null>(() => {
-  if (props.incident.family === 'money' && props.canHandle) return 'money';
-  if (props.incident.family === 'checkout' && checkRunId.value !== null && props.canManage) return 'checkout';
+  if (props.incident.family === 'money' && props.canRecheckMoney) return 'money';
+  if (props.incident.family === 'checkout' && checkRunId.value !== null && props.canRunChecks) return 'checkout';
 
   return null;
 });
@@ -101,7 +101,7 @@ function startRecheck(): Promise<void> {
 
     <div v-if="incident.active_suppression" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-note-border bg-note-soft px-3 py-2 text-sm" data-suppression>
       <span>{{ $t('incident.actions.snoozed_until', { time: dateTime(incident.active_suppression.ends_at) }) }}</span>
-      <button v-if="canManage" type="button" class="font-medium text-primary hover:underline disabled:opacity-60" :disabled="busy" @click="unsnooze">
+      <button v-if="canSnooze" type="button" class="font-medium text-primary hover:underline disabled:opacity-60" :disabled="busy" @click="unsnooze">
         {{ $t('incident.actions.unsnooze') }}
       </button>
     </div>
@@ -128,7 +128,7 @@ function startRecheck(): Promise<void> {
         {{ $t('incident.actions.resolve') }}
       </button>
       <button
-        v-if="active && canManage && !incident.active_suppression"
+        v-if="active && canSnooze && !incident.active_suppression"
         type="button"
         class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
         :aria-expanded="mode === 'snooze'"

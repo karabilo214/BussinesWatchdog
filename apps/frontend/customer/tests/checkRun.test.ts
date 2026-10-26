@@ -6,11 +6,12 @@ import * as checks from '@/api/checks';
 import type { AuthSession, CheckRunDetail } from '@/api/types';
 import { localization, setLocale } from '@/i18n';
 import CheckRunView from '@/views/CheckRunView.vue';
+import { permissionsFor } from './permissions';
 
 const session = ref<AuthSession | null>({
   user: { id: 'u-1', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', locale: 'ru', email_verified: true, mfa_enabled: true },
   active_tenant_id: 't-1',
-  memberships: [{ tenant_id: 't-1', role: 'owner', created_at: '2026-10-01T00:00:00Z' }],
+  memberships: [{ tenant_id: 't-1', role: 'owner', permissions: permissionsFor('owner'), created_at: '2026-10-01T00:00:00Z' }],
 });
 
 vi.mock('@/api/checks', () => ({ getRun: vi.fn(), cancelRun: vi.fn() }));

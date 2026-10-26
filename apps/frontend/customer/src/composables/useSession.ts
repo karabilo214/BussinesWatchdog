@@ -6,12 +6,24 @@ import type { AuthSession } from '@/api/types';
 const session = ref<AuthSession | null>(null);
 const loaded = ref(false);
 let pending: Promise<AuthSession | null> | null = null;
+let loadedAt = 0;
+
+/** Permissions can change while the tab is open (ADR 0079); an older session is re-read in the background. */
+const REFRESH_MS = 60_000;
 
 async function load(force = false): Promise<AuthSession | null> {
   if (loaded.value && !force) {
+    if (session.value !== null && pending === null && Date.now() - loadedAt > REFRESH_MS) {
+      void fetchInto().catch(() => undefined);
+    }
+
     return session.value;
   }
 
+  return fetchInto();
+}
+
+function fetchInto(): Promise<AuthSession | null> {
   pending ??= auth.fetchSession()
     .then((value) => value)
     .catch((error: unknown) => {
@@ -24,6 +36,7 @@ async function load(force = false): Promise<AuthSession | null> {
     .then((value) => {
       session.value = value;
       loaded.value = true;
+      loadedAt = Date.now();
 
       return value;
     })

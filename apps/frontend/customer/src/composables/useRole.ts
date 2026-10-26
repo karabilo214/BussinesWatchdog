@@ -1,24 +1,38 @@
 import { computed } from 'vue';
+import type { TenantPermission } from '@/api/types';
 import { useSession } from './useSession';
 
-/** Mirrors TenantRoles::storeManage() on the backend; the backend still enforces it. */
-const STORE_MANAGERS = ['owner', 'admin'];
-
-/** TenantRoles::incidentManage() and reconciliationTrigger(). */
-const INCIDENT_HANDLERS = ['owner', 'admin', 'operator'];
-
+/** The active member's role and permissions from the session (ADR 0079); the backend enforces them on every request. */
 export function useRole() {
   const { session } = useSession();
 
-  const role = computed(() => {
+  const membership = computed(() => {
     const current = session.value;
 
-    return current?.memberships.find((membership) => membership.tenant_id === current.active_tenant_id)?.role ?? null;
+    return current?.memberships.find((item) => item.tenant_id === current.active_tenant_id) ?? null;
   });
 
-  const canManageStores = computed(() => role.value !== null && STORE_MANAGERS.includes(role.value));
+  const role = computed(() => membership.value?.role ?? null);
+  const permissions = computed((): readonly TenantPermission[] => membership.value?.permissions ?? []);
 
-  const canHandleIncidents = computed(() => role.value !== null && INCIDENT_HANDLERS.includes(role.value));
+  function can(permission: TenantPermission): boolean {
+    return permissions.value.includes(permission);
+  }
 
-  return { role, canManageStores, canHandleIncidents };
+  return {
+    role,
+    permissions,
+    can,
+    canManageStores: computed(() => can('stores.manage')),
+    canManageIntegrations: computed(() => can('integrations.manage')),
+    canRunChecks: computed(() => can('checks.run')),
+    canReadReconciliation: computed(() => can('reconciliation.read')),
+    canRunReconciliation: computed(() => can('reconciliation.run')),
+    canAllocate: computed(() => can('allocations.manage')),
+    canReadIncidents: computed(() => can('incidents.read')),
+    canHandleIncidents: computed(() => can('incidents.manage')),
+    canSnoozeIncidents: computed(() => can('incidents.snooze')),
+    canManageNotifications: computed(() => can('notifications.manage')),
+    canManageTeam: computed(() => can('team.manage')),
+  };
 }

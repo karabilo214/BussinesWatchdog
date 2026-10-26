@@ -65,7 +65,7 @@ describe('FindingsTable', () => {
       global,
     });
 
-    expect(wrapper.get('[data-finding-id="f-1"]').text()).toContain('Скрыто владельцем компании');
+    expect(wrapper.get('[data-finding-id="f-1"]').text()).toContain('Скрыто: нет разрешения «Видеть суммы»');
     expect(wrapper.get('[data-finding-id="f-1"]').text()).not.toContain('неизвестно');
   });
 

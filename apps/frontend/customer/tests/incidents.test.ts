@@ -275,7 +275,7 @@ describe('IncidentActions', () => {
   it('acknowledges with the revision the user saw', async () => {
     mocked.acknowledgeIncident.mockResolvedValue({} as never);
     const value = incident();
-    const wrapper = mount(IncidentActions, { props: { incident: value, canHandle: true, canManage: true }, global });
+    const wrapper = mount(IncidentActions, { props: { incident: value, canHandle: true, canRecheckMoney: true, canRunChecks: true, canSnooze: true }, global });
 
     await wrapper.findAll('button').find((button) => button.text() === 'Подтвердить')!.trigger('click');
     await flushPromises();
@@ -287,7 +287,7 @@ describe('IncidentActions', () => {
   it('requires a reason before resolving', async () => {
     mocked.resolveIncident.mockResolvedValue({} as never);
     const value = incident();
-    const wrapper = mount(IncidentActions, { props: { incident: value, canHandle: true, canManage: false }, global });
+    const wrapper = mount(IncidentActions, { props: { incident: value, canHandle: true, canRecheckMoney: true, canRunChecks: false, canSnooze: false }, global });
 
     await wrapper.findAll('button').find((button) => button.text() === 'Закрыть')!.trigger('click');
     const submit = wrapper.findAll('button').find((button) => button.text() === 'Закрыть инцидент')!;
@@ -303,7 +303,7 @@ describe('IncidentActions', () => {
 
   it('rechecks the orders behind a money incident', async () => {
     mocked.recheckMoney.mockResolvedValue();
-    const wrapper = mount(IncidentActions, { props: { incident: incident(), canHandle: true, canManage: false }, global });
+    const wrapper = mount(IncidentActions, { props: { incident: incident(), canHandle: true, canRecheckMoney: true, canRunChecks: false, canSnooze: false }, global });
 
     await wrapper.findAll('button').find((button) => button.text() === 'Пересверить сейчас')!.trigger('click');
     await flushPromises();
@@ -321,7 +321,7 @@ describe('IncidentActions', () => {
       findings: [],
       signals: [{ id: 'sig-1', signal_type: 'browser_check', family: 'checkout', component: 'payment_form', severity: 'warning', confidence: 'observed', currency: null, finding_id: null, evidence: { check_run_id: 'run-1' }, detected_at: '2026-10-09T10:00:00Z' }],
     });
-    const wrapper = mount(IncidentActions, { props: { incident: value, canHandle: true, canManage: true }, global });
+    const wrapper = mount(IncidentActions, { props: { incident: value, canHandle: true, canRecheckMoney: true, canRunChecks: true, canSnooze: true }, global });
 
     await wrapper.findAll('button').find((button) => button.text() === 'Запустить проверку')!.trigger('click');
     await flushPromises();
@@ -334,7 +334,9 @@ describe('IncidentActions', () => {
       props: {
         incident: incident({ active_suppression: { id: 'sup-1', incident_id: 'inc-1', reason: 'known', created_by: null, starts_at: '2026-10-09T10:00:00Z', ends_at: '2026-10-10T10:00:00Z', revoked_at: null, created_at: '2026-10-09T10:00:00Z' } }),
         canHandle: false,
-        canManage: false,
+        canRecheckMoney: false,
+        canRunChecks: false,
+        canSnooze: false,
       },
       global,
     });

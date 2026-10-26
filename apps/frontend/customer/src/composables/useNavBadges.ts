@@ -17,9 +17,9 @@ const UNSURE: CheckRunSummary['status'][] = ['blocked', 'inconclusive'];
 /** Counts of what needs attention per menu section, from the overview the server already scopes to the member. */
 export function navBadges(overview: Overview): Partial<Record<NavSection, NavBadge>> {
   const badges: Partial<Record<NavSection, NavBadge>> = {};
-  const severity = overview.incidents.by_severity;
+  const severity = overview.incidents?.by_severity;
 
-  if (overview.incidents.active > 0) {
+  if (overview.incidents && severity && overview.incidents.active > 0) {
     badges.incidents = {
       count: overview.incidents.active,
       level: severity.critical > 0 ? 'crit' : severity.warning > 0 ? 'warn' : 'note',
@@ -31,7 +31,7 @@ export function navBadges(overview: Overview): Partial<Record<NavSection, NavBad
     };
   }
 
-  const discrepancies = overview.discrepancies.reduce((sum, row) => sum + row.incident_count, 0) + overview.unknown_amount_incidents;
+  const discrepancies = (overview.discrepancies ?? []).reduce((sum, row) => sum + row.incident_count, 0) + (overview.unknown_amount_incidents ?? 0);
   if (discrepancies > 0) {
     badges.reconciliation = { count: discrepancies, level: 'warn', parts: [{ key: 'nav_badge.discrepancies', n: discrepancies }] };
   }

@@ -16,7 +16,7 @@ import { StatusBadge, paymentMethodLabelKey } from '@bw/ui';
 import { useBackLink } from '@/composables/useBackLink';
 
 const props = defineProps<{ id: string }>();
-const { canManageStores, canHandleIncidents } = useRole();
+const { canAllocate, canRunReconciliation } = useRole();
 const { dateTime } = useFormat();
 const { amount } = useIncidentText();
 
@@ -48,7 +48,7 @@ function transactionMoney(transaction: FinancialTransaction): string {
 
 /** G/C/RW/RP of the latest run, taken from the first finding that carries them. */
 const totals = computed(() => {
-  const finding = order.value?.findings.find((item) => item.gross_minor !== undefined && item.gross_minor !== null) ?? null;
+  const finding = order.value?.findings?.find((item) => item.gross_minor !== undefined && item.gross_minor !== null) ?? null;
 
   return {
     gross: finding?.gross_minor ?? null,
@@ -63,7 +63,7 @@ const transactions = computed(() => new Map([...(order.value?.captures ?? []), .
 const activeAllocations = computed(() => (order.value?.allocations ?? []).filter((item) => item.revoked_at === null));
 const linkableRefunds = computed(() => (order.value?.refunds ?? []).filter((item) => item.status === 'recorded' || item.status === 'requested'));
 const linkableTransactions = computed(() => (order.value?.refund_transactions ?? []).filter((item) => item.status === 'succeeded'));
-const canLinkRefund = computed(() => canManageStores.value && activeAllocations.value.length > 0 && linkableRefunds.value.length > 0 && linkableTransactions.value.length > 0);
+const canLinkRefund = computed(() => canAllocate.value && activeAllocations.value.length > 0 && linkableRefunds.value.length > 0 && linkableTransactions.value.length > 0);
 
 const refundAmount = computed(() => (order.value === null ? null : linkableRefundAmount(order.value, refundForm.refund, refundForm.transaction)));
 
@@ -197,11 +197,11 @@ watch(
           <p class="text-[13px] text-text-muted sm:col-span-2 lg:col-span-4">{{ $t('order.paid_marker_note') }}</p>
         </section>
 
-        <section class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="order-findings">
+        <section v-if="order.findings !== null" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" aria-labelledby="order-findings">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 id="order-findings" class="text-lg font-semibold">{{ $t('order.findings_title') }}</h2>
             <button
-              v-if="canHandleIncidents"
+              v-if="canRunReconciliation"
               type="button"
               class="rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60"
               :disabled="rechecking"
@@ -229,7 +229,7 @@ watch(
               <p class="break-all font-mono text-[13px] text-text-muted">{{ transactions.get(allocation.capture_transaction_id)?.external_operation_id ?? allocation.capture_transaction_id }}</p>
               <p class="text-[13px] text-text-muted">{{ $t('order.linked_at', { time: dateTime(allocation.created_at) }) }}</p>
               <ReasonAction
-                v-if="canManageStores && allocation.revoked_at === null"
+                v-if="canAllocate && allocation.revoked_at === null"
                 :id="`revoke-${allocation.id}`"
                 :label="$t('order.revoke')"
                 :confirm-label="$t('order.revoke_confirm')"
@@ -281,7 +281,7 @@ watch(
                 </div>
                 <p class="break-all font-mono text-[13px] text-text-muted">{{ transactions.get(link.refund_transaction_id)?.external_operation_id ?? link.refund_transaction_id }}</p>
                 <ReasonAction
-                  v-if="canManageStores && link.revoked_at === null"
+                  v-if="canAllocate && link.revoked_at === null"
                   :id="`revoke-refund-${link.id}`"
                   :label="$t('order.revoke')"
                   :confirm-label="$t('order.revoke_confirm')"

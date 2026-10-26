@@ -19,7 +19,7 @@ use App\Http\Middleware\Platform\RequirePlatformStaff;
 use App\Http\Middleware\Platform\RequireSupportGrant;
 use App\Http\Middleware\Platform\UsePlatformSession;
 use App\Http\Middleware\Platform\ValidatePlatformCsrfToken;
-use App\Http\Middleware\Tenancy\RequireTenantRole;
+use App\Http\Middleware\Tenancy\RequireTenantPermission;
 use App\Http\Middleware\Tenancy\SetTenantContextFromSession;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -80,7 +80,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'idempotency' => EnsureIdempotencyKey::class,
             'stateful.session' => RequireStatefulSession::class,
             'integration.hmac' => AuthenticateIntegrationHmac::class,
-            'tenant.role' => RequireTenantRole::class,
+            'tenant.can' => RequireTenantPermission::class,
             'tenant.session' => SetTenantContextFromSession::class,
         ]);
     })

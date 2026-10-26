@@ -4,7 +4,7 @@ import { ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { ApiError } from '@bw/api-client';
 import * as api from '@/api/account';
-import type { AuthSession } from '@/api/types';
+import type { AuthSession, TeamMember, TeamRole, TenantPermission } from '@/api/types';
 import PasswordFields from '@/components/account/PasswordFields.vue';
 import { localization, setLocale } from '@/i18n';
 import MfaPanel from '@/components/account/MfaPanel.vue';
@@ -14,6 +14,7 @@ import TrustedDevicesPanel from '@/components/account/TrustedDevicesPanel.vue';
 import InvitationView from '@/views/InvitationView.vue';
 import LoginView from '@/views/LoginView.vue';
 import TeamView from '@/views/TeamView.vue';
+import { assignableFor, CATALOG, permissionsFor } from './permissions';
 
 const session = ref<AuthSession | null>(null);
 
@@ -22,9 +23,9 @@ vi.mock('@laravel/passkeys', () => ({ Passkeys: { isSupported: () => true }, Use
 vi.mock('@/api/account', () => ({
   listMembers: vi.fn(),
   getMoneyVisibility: vi.fn(),
-  updateMoneyVisibility: vi.fn(),
   listInvitations: vi.fn(),
-  changeMemberRole: vi.fn(),
+  changeMemberPermissions: vi.fn(),
+  changeInvitationPermissions: vi.fn(),
   removeMember: vi.fn(),
   inviteMember: vi.fn(),
   revokeInvitation: vi.fn(),
@@ -77,7 +78,7 @@ function sessionFor(role: 'owner' | 'admin' | 'operator' | 'viewer', email = 'me
   return {
     user: { id: 'u-me', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email, locale: 'ru', email_verified: true, mfa_enabled: false },
     active_tenant_id: 't-1',
-    memberships: [{ tenant_id: 't-1', role, created_at: '2026-10-01T00:00:00Z' }],
+    memberships: [{ tenant_id: 't-1', role, permissions: permissionsFor(role), created_at: '2026-10-01T00:00:00Z' }],
   };
 }
 
@@ -93,7 +94,7 @@ async function mountWith(component: object, path: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocked.getMoneyVisibility.mockResolvedValue({ show_money_amounts_to_team: true, can_view_money_amounts: true });
+  mocked.getMoneyVisibility.mockResolvedValue({ can_view_money_amounts: true });
   setLocale('ru');
 });
 
@@ -166,39 +167,89 @@ describe('SessionsPanel', () => {
   });
 });
 
+function member(id: string, name: string, role: TeamMember['role'], extra: Partial<TeamMember> = {}): TeamMember {
+  return { user_id: id, tenant_id: 't-1', name, email: `${name.toLowerCase()}@example.test`, role, permissions: permissionsFor(role), can_edit: false, mfa_enabled: false, is_you: false, created_at: null, ...extra };
+}
+
+/** The member list as the server returns it to a viewer with `role`. */
+function team(data: Partial<TeamMember>[], role: TeamRole) {
+  return {
+    data: data.map((item) => ({ permissions: permissionsFor(item.role ?? 'viewer'), can_edit: role === 'owner' && item.role !== 'owner' && !item.is_you, ...item }) as TeamMember),
+    assignable_roles: (['admin', 'operator', 'viewer'] as const).filter((preset) => CATALOG.presets[preset].every((permission) => assignableFor(role).includes(permission))),
+    assignable_permissions: assignableFor(role),
+    permission_catalog: CATALOG,
+  };
+}
+
 describe('TeamView', () => {
   const members = [
-    { user_id: 'u-owner', tenant_id: 't-1', name: 'Olga', salutation: null, first_name: null, last_name: 'Olga', company_name: null, email: 'olga@example.test', role: 'owner' as const, mfa_enabled: false, is_you: false, created_at: null },
-    { user_id: 'u-me', tenant_id: 't-1', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', role: 'admin' as const, mfa_enabled: false, is_you: true, created_at: null },
-    { user_id: 'u-admin2', tenant_id: 't-1', name: 'Anna', salutation: null, first_name: null, last_name: 'Anna', company_name: null, email: 'anna@example.test', role: 'admin' as const, mfa_enabled: true, is_you: false, created_at: null },
-    { user_id: 'u-op', tenant_id: 't-1', name: 'Oleg', salutation: null, first_name: null, last_name: 'Oleg', company_name: null, email: 'oleg@example.test', role: 'operator' as const, mfa_enabled: false, is_you: false, created_at: null },
+    member('u-owner', 'Olga', 'owner'),
+    member('u-me', 'Me', 'admin', { is_you: true }),
+    member('u-admin2', 'Anna', 'admin', { mfa_enabled: true, can_edit: true }),
+    member('u-op', 'Oleg', 'operator', { can_edit: true, permissions: permissionsFor('operator', false) }),
   ];
 
-  it('lets an admin manage only operators and viewers and invite with those roles', async () => {
+  it('offers permission changes only where the server allows them and saves the chosen set', async () => {
     session.value = sessionFor('admin');
-    mocked.listMembers.mockResolvedValue({ data: members, assignable_roles: ['operator', 'viewer'] });
+    mocked.listMembers.mockResolvedValue(team(members, 'admin'));
     mocked.listInvitations.mockResolvedValue([]);
-    mocked.changeMemberRole.mockResolvedValue(members[3]!);
+    mocked.changeMemberPermissions.mockResolvedValue(members[3]!);
     const wrapper = await mountWith(TeamView, '/team');
     await flushPromises();
 
-    expect(wrapper.find('[data-member="olga@example.test"] select').exists()).toBe(false);
-    expect(wrapper.find('[data-member="anna@example.test"] select').exists()).toBe(false);
-    expect(wrapper.find('[data-member="me@example.test"] select').exists()).toBe(false);
+    expect(wrapper.find('[data-member="olga@example.test"] [data-edit-permissions]').exists()).toBe(false);
+    expect(wrapper.find('[data-member="me@example.test"] [data-edit-permissions]').exists()).toBe(false);
     expect(wrapper.get('[data-member="me@example.test"]').text()).toContain('Выйти из команды');
     expect(wrapper.get('[data-member="olga@example.test"]').text()).not.toContain('Удалить');
+    expect(wrapper.get('[data-member="oleg@example.test"]').text()).toContain('без сумм');
+    expect(wrapper.get('[data-member="oleg@example.test"]').text()).toContain('оператор');
 
-    await wrapper.get('[data-member="oleg@example.test"] select').setValue('viewer');
+    await wrapper.get('[data-member="oleg@example.test"] [data-edit-permissions]').trigger('click');
+    const picker = wrapper.get('[data-member-permissions]');
+    expect(picker.get('[data-preset="operator"]').attributes('aria-pressed')).toBe('true');
+    expect(picker.get('[data-permission="billing.manage"]').attributes('disabled')).toBeDefined();
+    expect(picker.get('[data-permission="stores.read"]').attributes('disabled')).toBeDefined();
+    await picker.get('[data-permission="incidents.read"]').setValue(false);
+    expect((picker.get('[data-permission="incidents.manage"]').element as HTMLInputElement).checked).toBe(false);
+    expect(picker.get('[data-preset="custom"]').text()).toBe('своя настройка');
+    await picker.get('[data-permission="incidents.snooze"]').setValue(true);
+    await picker.get('[data-permission="money.view"]').setValue(true);
+    await picker.trigger('submit');
     await flushPromises();
-    expect(mocked.changeMemberRole).toHaveBeenCalledWith('u-op', 'viewer');
 
-    const roles = wrapper.findAll('[data-panel="invite"] option').map((option) => option.attributes('value'));
-    expect(roles).toEqual(['operator', 'viewer']);
+    expect(mocked.changeMemberPermissions).toHaveBeenCalledWith('u-op', ['stores.read', 'reconciliation.read', 'reconciliation.run', 'incidents.read', 'incidents.snooze', 'money.view']);
+    expect(wrapper.text()).toContain('Разрешения сохранены.');
+  });
+
+  it('lets a limited team manager give only what they have and edit only invitations within it', async () => {
+    const manager: TenantPermission[] = ['stores.read', 'incidents.read', 'team.manage'];
+    session.value = { ...sessionFor('viewer'), memberships: [{ tenant_id: 't-1', role: 'custom', permissions: manager, created_at: '2026-10-01T00:00:00Z' }] };
+    mocked.listMembers.mockResolvedValue({ ...team(members, 'viewer'), assignable_roles: [], assignable_permissions: manager });
+    mocked.listInvitations.mockResolvedValue([
+      { id: 'i-small', email: 'small@example.test', role: 'custom', permissions: ['stores.read', 'incidents.read'], state: 'pending', invited_by: null, expires_at: '2026-10-30T00:00:00Z', created_at: null },
+      { id: 'i-big', email: 'big@example.test', role: 'viewer', permissions: permissionsFor('viewer'), state: 'pending', invited_by: null, expires_at: '2026-10-30T00:00:00Z', created_at: null },
+    ]);
+    mocked.inviteMember.mockResolvedValue({ id: 'i-new', email: 'new@example.test', role: 'custom', permissions: ['stores.read'], state: 'pending', invited_by: null, expires_at: '2026-10-30T00:00:00Z', created_at: null });
+    const wrapper = await mountWith(TeamView, '/team');
+    await flushPromises();
+
+    const picker = wrapper.get('[data-permission-picker="invite"]');
+    expect(picker.findAll('[data-preset]').map((button) => button.attributes('data-preset'))).toEqual(['custom']);
+    expect(picker.get('[data-permission="reconciliation.read"]').attributes('disabled')).toBeDefined();
+    expect(picker.get('[data-permission="incidents.read"]').attributes('disabled')).toBeUndefined();
+    expect(wrapper.find('[data-invitation="small@example.test"] [data-edit-invitation]').exists()).toBe(true);
+    expect(wrapper.find('[data-invitation="big@example.test"] [data-edit-invitation]').exists()).toBe(false);
+
+    await picker.get('[data-permission="incidents.read"]').setValue(true);
+    await wrapper.get('[data-panel="invite"] input[type="email"]').setValue('new@example.test');
+    await wrapper.get('[data-panel="invite"] form').trigger('submit');
+    await flushPromises();
+    expect(mocked.inviteMember).toHaveBeenCalledWith('new@example.test', ['stores.read', 'incidents.read']);
   });
 
   it('removes a member only after confirmation', async () => {
     session.value = sessionFor('owner');
-    mocked.listMembers.mockResolvedValue({ data: members, assignable_roles: ['admin', 'operator', 'viewer'] });
+    mocked.listMembers.mockResolvedValue(team(members, 'owner'));
     mocked.listInvitations.mockResolvedValue([]);
     mocked.removeMember.mockResolvedValue();
     const wrapper = await mountWith(TeamView, '/team');
@@ -211,28 +262,10 @@ describe('TeamView', () => {
     await flushPromises();
     expect(mocked.removeMember).toHaveBeenCalledWith('u-op');
   });
-
-  it('lets only the owner change whether the team sees discrepancy amounts', async () => {
-    session.value = sessionFor('owner');
-    mocked.listMembers.mockResolvedValue({ data: members, assignable_roles: ['admin', 'operator', 'viewer'] });
-    mocked.listInvitations.mockResolvedValue([]);
-    mocked.updateMoneyVisibility.mockResolvedValue({ show_money_amounts_to_team: false, can_view_money_amounts: true });
-    const wrapper = await mountWith(TeamView, '/team');
-    await flushPromises();
-
-    await wrapper.get('[data-panel="money-visibility"] input').setValue(false);
-    await flushPromises();
-    expect(mocked.updateMoneyVisibility).toHaveBeenCalledWith(false);
-
-    session.value = sessionFor('admin');
-    const admin = await mountWith(TeamView, '/team');
-    await flushPromises();
-    expect(admin.find('[data-panel="money-visibility"]').exists()).toBe(false);
-  });
 });
 
 describe('ownership transfer', () => {
-  const team = [
+  const owners = [
     { user_id: 'u-me', tenant_id: 't-1', name: 'Me', salutation: null, first_name: null, last_name: 'Me', company_name: null, email: 'me@example.test', email_verified: true, mfa_enabled: true, role: 'owner' as const, is_you: true, created_at: null },
     { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', salutation: null, first_name: null, last_name: 'Anna', company_name: null, email: 'anna@example.test', email_verified: true, mfa_enabled: true, role: 'admin' as const, is_you: false, created_at: null },
     { user_id: 'u-new', tenant_id: 't-1', name: 'Neu', salutation: null, first_name: null, last_name: 'Neu', company_name: null, email: 'new@example.test', email_verified: false, mfa_enabled: false, role: 'viewer' as const, is_you: false, created_at: null },
@@ -240,7 +273,7 @@ describe('ownership transfer', () => {
 
   it('is offered only to the owner and asks for the password and, with MFA on, a code', async () => {
     session.value = { ...sessionFor('owner'), user: { ...sessionFor('owner').user, mfa_enabled: true } };
-    mocked.listMembers.mockResolvedValue({ data: team, assignable_roles: ['admin', 'operator', 'viewer'] });
+    mocked.listMembers.mockResolvedValue(team(owners, 'owner'));
     mocked.listInvitations.mockResolvedValue([]);
     mocked.transferOwnership.mockRejectedValueOnce(new ApiError(422, 'validation_failed', { code: ['mfa_code_invalid'] })).mockResolvedValueOnce();
     const wrapper = await mountWith(TeamView, '/team');
@@ -271,7 +304,7 @@ describe('ownership transfer', () => {
 
   it('is not offered to an admin', async () => {
     session.value = sessionFor('admin');
-    mocked.listMembers.mockResolvedValue({ data: team.map((member) => ({ ...member, is_you: member.user_id === 'u-anna', role: member.user_id === 'u-me' ? ('owner' as const) : member.role })), assignable_roles: ['operator', 'viewer'] });
+    mocked.listMembers.mockResolvedValue(team(owners.map((item) => ({ ...item, is_you: item.user_id === 'u-anna' })), 'admin'));
     mocked.listInvitations.mockResolvedValue([]);
     const wrapper = await mountWith(TeamView, '/team');
     await flushPromises();
@@ -283,15 +316,15 @@ describe('ownership transfer', () => {
 describe('team MFA reset', () => {
   it('lets the owner reset a member with a reason and step-up, then refreshes the team', async () => {
     session.value = { ...sessionFor('owner'), user: { ...sessionFor('owner').user, mfa_enabled: true } };
-    const member = { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', salutation: null, first_name: null, last_name: 'Anna', company_name: null, email: 'anna@example.test', role: 'admin' as const, mfa_enabled: true, is_you: false, created_at: null };
-    mocked.listMembers.mockResolvedValueOnce({ data: [member], assignable_roles: ['admin', 'operator', 'viewer'] })
-      .mockResolvedValueOnce({ data: [{ ...member, mfa_enabled: false }], assignable_roles: ['admin', 'operator', 'viewer'] });
+    const anna = { user_id: 'u-anna', tenant_id: 't-1', name: 'Anna', salutation: null, first_name: null, last_name: 'Anna', company_name: null, email: 'anna@example.test', role: 'admin' as const, mfa_enabled: true, is_you: false, created_at: null };
+    mocked.listMembers.mockResolvedValueOnce(team([anna], 'owner'))
+      .mockResolvedValueOnce(team([{ ...anna, mfa_enabled: false }], 'owner'));
     mocked.listInvitations.mockResolvedValue([]);
     mocked.resetMemberMfa.mockResolvedValue();
     const wrapper = await mountWith(TeamView, '/team');
     await flushPromises();
 
-    await wrapper.get('[data-member="anna@example.test"] button').trigger('click');
+    await wrapper.get('[data-member="anna@example.test"]').findAll('button').find((button) => button.text() === 'Сбросить MFA')!.trigger('click');
     const form = wrapper.get('[data-mfa-reset]');
     const inputs = form.findAll('input');
     await inputs[0]!.setValue('Lost phone');
@@ -433,7 +466,7 @@ describe('LoginView', () => {
 });
 
 describe('InvitationView', () => {
-  const lookup = { tenant_name: 'Kaffee GmbH', email: 'new@example.test', role: 'operator' as const, expires_at: '2026-10-17T10:00:00Z', account_exists: false };
+  const lookup = { tenant_name: 'Kaffee GmbH', email: 'new@example.test', role: 'operator' as const, permissions: permissionsFor('operator'), expires_at: '2026-10-17T10:00:00Z', account_exists: false };
 
   it('lets a new person create an account for the invited address', async () => {
     session.value = null;

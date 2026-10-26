@@ -13,6 +13,8 @@ use App\Models\Signal;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Auth\TenantPermissions;
+use App\Support\Auth\TenantRoles;
 use App\Support\Incidents\IncidentExplainer;
 use App\Support\Incidents\IncidentRecorder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -491,21 +493,22 @@ class IncidentApiTest extends TestCase
         $this->assertNull($groups['unknown/USD/capture']['currency_exponent']);
     }
 
-    public function test_owner_can_hide_discrepancy_amounts_from_other_team_roles_at_the_api_boundary(): void
+    public function test_owner_can_hide_discrepancy_amounts_from_a_member_at_the_api_boundary(): void
     {
         $owner = $this->context('owner');
         $admin = $this->context('admin', $owner['tenant'], $owner['store'], $owner['integration']);
         $incidentId = $this->triggerIncident($owner);
         $finding = ReconciliationFinding::query()->where('tenant_id', $owner['tenant']->id)->whereNotNull('expected_minor')->firstOrFail();
         $this->assertSame('18400', (string) $finding->expected_minor);
+        $withoutAmounts = TenantPermissions::preset(TenantRoles::ADMIN, false);
 
         $this->actingAs($admin['user'])->withSession(['active_tenant_id' => $owner['tenant']->id])
-            ->patchJson('/api/v1/money-visibility', ['show_money_amounts_to_team' => false])->assertForbidden();
+            ->patchJson("/api/v1/memberships/{$owner['user']->id}", ['permissions' => $withoutAmounts])->assertForbidden();
 
         $this->actingAs($owner['user'])->withSession(['active_tenant_id' => $owner['tenant']->id])
-            ->patchJson('/api/v1/money-visibility', ['show_money_amounts_to_team' => false])
-            ->assertOk()->assertJsonPath('show_money_amounts_to_team', false);
-        $this->assertDatabaseHas('audit_log', ['tenant_id' => $owner['tenant']->id, 'action' => 'tenant.money_visibility_updated']);
+            ->patchJson("/api/v1/memberships/{$admin['user']->id}", ['permissions' => $withoutAmounts])
+            ->assertOk()->assertJsonPath('role', 'admin')->assertJsonPath('permissions', $withoutAmounts);
+        $this->assertDatabaseHas('audit_log', ['tenant_id' => $owner['tenant']->id, 'action' => 'membership.permissions_changed', 'entity_id' => $admin['user']->id]);
 
         $this->actingAs($admin['user'])->withSession(['active_tenant_id' => $owner['tenant']->id])
             ->getJson('/api/v1/money-visibility')->assertOk()->assertJsonPath('can_view_money_amounts', false);
@@ -530,7 +533,7 @@ class IncidentApiTest extends TestCase
             ->getJson("/api/v1/incidents/{$incidentId}")->assertOk()
             ->assertJsonPath('findings.0.expected_minor', '18400');
 
-        $this->patchJson('/api/v1/money-visibility', ['show_money_amounts_to_team' => true])->assertOk();
+        $this->patchJson("/api/v1/memberships/{$admin['user']->id}", ['permissions' => [...$withoutAmounts, TenantPermissions::MONEY_VIEW]])->assertOk();
         $this->actingAs($admin['user'])->withSession(['active_tenant_id' => $owner['tenant']->id])
             ->getJson("/api/v1/incidents/{$incidentId}")->assertOk()
             ->assertJsonPath('findings.0.expected_minor', '18400');

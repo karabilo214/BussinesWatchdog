@@ -539,7 +539,8 @@
     "owner": "Owner",
     "admin": "Administrator",
     "operator": "Operator",
-    "viewer": "Viewer"
+    "viewer": "Viewer",
+    "custom": "Custom"
   },
   "audit_result": {
     "succeeded": "Done",

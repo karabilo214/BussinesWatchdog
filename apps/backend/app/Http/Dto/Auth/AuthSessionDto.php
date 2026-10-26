@@ -4,11 +4,12 @@ namespace App\Http\Dto\Auth;
 
 use App\Models\DataDeletionRequest;
 use App\Models\User;
+use App\Support\Auth\TenantPermissions;
 
 class AuthSessionDto
 {
     /**
-     * @return array{user: array{id: string, name: string, salutation: string|null, first_name: string|null, last_name: string, company_name: string|null, email: string, locale: string, email_verified: bool, mfa_enabled: bool}, active_tenant_id: string|null, memberships: array<int, array{tenant_id: string, role: string, created_at: string|null}>}
+     * @return array{user: array{id: string, name: string, salutation: string|null, first_name: string|null, last_name: string, company_name: string|null, email: string, locale: string, email_verified: bool, mfa_enabled: bool}, active_tenant_id: string|null, memberships: array<int, array{tenant_id: string, role: string, permissions: list<string>, created_at: string|null}>}
      */
     public function toArray(User $user, ?string $activeTenantId): array
     {
@@ -39,11 +40,11 @@ class AuthSessionDto
     }
 
     /**
-     * @return array<int, array{tenant_id: string, role: string, created_at: string|null, tenant_status: string|null, deletion_purge_after: string|null}>
+     * @return array<int, array{tenant_id: string, role: string, permissions: list<string>, created_at: string|null, tenant_status: string|null, deletion_purge_after: string|null}>
      */
     private function memberships(User $user): array
     {
-        $memberships = $user->memberships()->with('tenant:id,status')->orderBy('created_at')->get(['tenant_id', 'role', 'created_at']);
+        $memberships = $user->memberships()->with('tenant:id,status')->orderBy('created_at')->get(['tenant_id', 'role', 'permissions', 'created_at']);
         $deletions = DataDeletionRequest::query()
             ->whereIn('tenant_id', $memberships->pluck('tenant_id'))
             ->whereIn('status', DataDeletionRequest::OPEN_STATUSES)
@@ -54,6 +55,7 @@ class AuthSessionDto
             ->map(fn ($membership): array => [
                 'tenant_id' => $membership->tenant_id,
                 'role' => $membership->role,
+                'permissions' => TenantPermissions::forMembership($membership),
                 'created_at' => $membership->created_at?->toJSON(),
                 'tenant_status' => $membership->tenant?->status,
                 'deletion_purge_after' => $deletions->get($membership->tenant_id)?->purge_after?->toJSON(),

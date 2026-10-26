@@ -3490,11 +3490,12 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [tenant_name, email, role, expires_at, account_exists]
+                required: [tenant_name, email, role, permissions, expires_at, account_exists]
                 properties:
                   tenant_name: {type: string}
                   email: {type: string}
-                  role: {enum: [admin, operator, viewer]}
+                  role: {enum: [admin, operator, viewer, custom]}
+                  permissions: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}}
                   expires_at: {type: string, format: date-time}
                   account_exists: {type: boolean}
         "422": {$ref: "#/components/responses/Problem"}
@@ -3531,26 +3532,40 @@ paths:
         - {UserSession: []}
       responses:
         "200":
-          description: Members of the active team and the roles the viewer may assign
+          description: "Members of the active team, what the viewer may give (ADR 0079) and the permission catalog for the picker."
           content:
             application/json:
               schema:
                 type: object
-                required: [data, assignable_roles]
+                required: [data, assignable_roles, assignable_permissions, permission_catalog]
                 properties:
                   data:
                     type: array
                     items: {$ref: "#/components/schemas/TeamMember"}
                   assignable_roles:
                     type: array
+                    description: Presets the viewer may apply in full.
                     items: {enum: [admin, operator, viewer]}
+                  assignable_permissions:
+                    type: array
+                    description: "The owner: every assignable permission; a member with team.manage: only their own; others: none."
+                    items: {$ref: "#/components/schemas/TenantPermission"}
+                  permission_catalog:
+                    type: object
+                    required: [sections, owner_only, base, implies, presets]
+                    properties:
+                      sections: {type: object, additionalProperties: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}}, description: "Cabinet section → its permissions, in display order."}
+                      owner_only: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}, description: Shown but never given.}
+                      base: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}, description: Every member has these.}
+                      implies: {type: object, additionalProperties: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}}}
+                      presets: {type: object, additionalProperties: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}}, description: "admin/operator/viewer without money.view; seeing amounts is chosen separately."}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
   /api/v1/money-visibility:
     get:
       tags: [Team]
       operationId: getMoneyVisibility
-      description: "ADR 0018: current team setting and effective visibility for this member. Owner always sees discrepancy amounts."
+      description: "ADR 0018, ADR 0079: whether this member sees discrepancy amounts — the owner always, others with the money.view permission."
       security:
         - {UserSession: []}
       responses:
@@ -3561,38 +3576,13 @@ paths:
               schema: {$ref: "#/components/schemas/MoneyVisibility"}
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
-    patch:
-      tags: [Team]
-      operationId: updateMoneyVisibility
-      description: "Tenant owner only. Audited; existing exports are checked again at download time."
-      security:
-        - {UserSession: []}
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [show_money_amounts_to_team]
-              properties:
-                show_money_amounts_to_team: {type: boolean}
-      responses:
-        "200":
-          description: Updated setting
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/MoneyVisibility"}
-        "401": {$ref: "#/components/responses/Problem"}
-        "403": {$ref: "#/components/responses/Problem"}
-        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/memberships/{user_id}:
     patch:
       tags: [Team]
       operationId: changeMemberRole
       security:
         - {UserSession: []}
-      description: "ADR 0019: owner assigns admin/operator/viewer; admin manages only operators and viewers; nobody changes their own role; the owner role is not assignable."
+      description: "ADR 0019, ADR 0079: either a preset `role` (keeps the member's money.view) or the exact `permissions` list. The owner manages everyone else; a member with team.manage manages only members whose permissions they have and gives only those (403 team_forbidden, 422 permission_not_assignable). Nobody changes their own permissions; the owner is never changed here. Applies on the member's next request; the member gets an email and the audit keeps before/after."
       parameters:
         - {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}
         - {$ref: "#/components/parameters/CsrfToken"}
@@ -3600,7 +3590,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {type: object, required: [role], properties: {role: {enum: [admin, operator, viewer]}}}
+            schema: {$ref: "#/components/schemas/PermissionChange"}
       responses:
         "200":
           description: Changed
@@ -3760,11 +3750,12 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [email, role]
-              properties:
-                email: {type: string, format: email, maxLength: 255}
-                role: {enum: [admin, operator, viewer]}
+              allOf:
+                - {$ref: "#/components/schemas/PermissionChange"}
+                - type: object
+                  required: [email]
+                  properties:
+                    email: {type: string, format: email, maxLength: 255}
       responses:
         "201":
           description: Invited
@@ -3776,6 +3767,31 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/invitations/{invitation_id}:
+    patch:
+      tags: [Team]
+      operationId: updateInvitation
+      security:
+        - {UserSession: []}
+      description: "ADR 0079: corrects a pending invitation's permissions before it is accepted; the link stays the same. Same rules as changing a member; a role keeps the invitation's money.view. Not pending → 422 invitation_invalid."
+      parameters:
+        - {name: invitation_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PermissionChange"}
+      responses:
+        "200":
+          description: Changed
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Invitation"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/invitations/{invitation_id}/revoke:
     post:
       tags: [Team]
@@ -5486,8 +5502,8 @@ paths:
                     required: [findings, captures, refunds, refund_transactions, allocations, refund_allocations, revisions]
                     properties:
                       findings:
-                        type: array
-                        description: Findings of the latest reconciliation run of the order.
+                        type: [array, "null"]
+                        description: Findings of the latest reconciliation run of the order; null without reconciliation.read (ADR 0079).
                         items: {$ref: "#/components/schemas/Finding"}
                       captures:
                         type: array
@@ -5533,7 +5549,8 @@ paths:
                     required: [findings, transactions, allocations, refund_allocations]
                     properties:
                       findings:
-                        type: array
+                        type: [array, "null"]
+                        description: Null without reconciliation.read (ADR 0079).
                         items: {$ref: "#/components/schemas/Finding"}
                       transactions:
                         type: array
@@ -5761,7 +5778,7 @@ paths:
     get:
       tags: [Incidents]
       operationId: getOverview
-      description: "Tenant summary for the dashboard (ADR 0018). Discrepancies are verified amounts of active money incidents, summed per currency and component only; incidents without a verified amount are counted separately. Not a loss figure. When the owner hides amounts from the team, total_minor is null."
+      description: "Tenant summary for the dashboard (ADR 0018). Discrepancies are verified amounts of active money incidents, summed per currency and component only; incidents without a verified amount are counted separately. Not a loss figure. Without money.view total_minor is null. Without incidents.read `incidents` is null, without reconciliation.read `discrepancies` and `unknown_amount_incidents` are null (ADR 0079) — hidden, not zero."
       security:
         - {UserSession: []}
       responses:
@@ -5774,7 +5791,7 @@ paths:
                 required: [incidents, discrepancies, unknown_amount_incidents, money_amounts_hidden, recent_checks]
                 properties:
                   incidents:
-                    type: object
+                    type: [object, "null"]
                     required: [active, by_severity, latest]
                     properties:
                       active: {type: integer}
@@ -5790,7 +5807,7 @@ paths:
                         maxItems: 5
                         items: {$ref: "#/components/schemas/Incident"}
                   discrepancies:
-                    type: array
+                    type: [array, "null"]
                     items:
                       type: object
                       required: [mode, currency, component, total_minor, incident_count]
@@ -5804,7 +5821,7 @@ paths:
                             - {$ref: "#/components/schemas/MoneyMinor"}
                             - {type: "null"}
                         incident_count: {type: integer}
-                  unknown_amount_incidents: {type: integer}
+                  unknown_amount_incidents: {type: [integer, "null"]}
                   capacity_paused_stores: {type: integer, description: "Stores paused by the plan (ADR 0037 point 7): nothing is received or reconciled for them, so their money results are unknown — not zero and not healthy."}
                   money_amounts_hidden: {type: boolean}
                   recent_checks:
@@ -7431,10 +7448,11 @@ components:
         mfa_enabled: {type: boolean}
     Membership:
       type: object
-      required: [tenant_id, role, created_at]
+      required: [tenant_id, role, permissions, created_at]
       properties:
         tenant_id: {type: string, format: uuid}
-        role: {enum: [owner, admin, operator, viewer]}
+        role: {enum: [owner, admin, operator, viewer, custom]}
+        permissions: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}, description: "What the member may do (ADR 0079); the owner has every permission."}
         created_at: {type: string, format: date-time}
         tenant_status: {enum: [active, suspended, deleting, deleted], description: "deleting: the organization is being deleted (ADR 0069); only the deletion notice and, for the owner, cancelling remain."}
         deletion_purge_after: {type: [string, "null"], format: date-time, description: When the irreversible purge starts; null without an open deletion request.}
@@ -7934,10 +7952,18 @@ components:
               mode: {type: [string, "null"]}
     MoneyVisibility:
       type: object
-      required: [show_money_amounts_to_team, can_view_money_amounts]
+      required: [can_view_money_amounts]
       properties:
-        show_money_amounts_to_team: {type: boolean}
         can_view_money_amounts: {type: boolean}
+    TenantPermission:
+      enum: [stores.read, stores.manage, integrations.manage, checks.run, reconciliation.read, reconciliation.run, allocations.manage, incidents.read, incidents.manage, incidents.snooze, notifications.manage, team.manage, money.view, billing.manage, stores.delete, ownership.transfer, members.mfa_reset, support.access, organization.delete]
+      description: "Customer member permissions (ADR 0079). stores.read is every member's base; billing.manage, stores.delete, ownership.transfer, members.mfa_reset, support.access and organization.delete belong only to the owner."
+    PermissionChange:
+      type: object
+      description: A preset role or an exact permission list (one of them).
+      properties:
+        role: {enum: [admin, operator, viewer]}
+        permissions: {type: array, maxItems: 19, items: {$ref: "#/components/schemas/TenantPermission"}}
     TeamMember:
       type: object
       required: [user_id, tenant_id, role, is_you, mfa_enabled]
@@ -7948,7 +7974,9 @@ components:
         email: {type: [string, "null"]}
         email_verified: {type: boolean}
         mfa_enabled: {type: boolean}
-        role: {enum: [owner, admin, operator, viewer]}
+        role: {enum: [owner, admin, operator, viewer, custom], description: "custom: the list matches no preset."}
+        permissions: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}}
+        can_edit: {type: boolean, description: The viewer may change this member's permissions or remove them.}
         is_you: {type: boolean}
         created_at: {type: [string, "null"], format: date-time}
     Invitation:
@@ -7957,7 +7985,8 @@ components:
       properties:
         id: {type: string, format: uuid}
         email: {type: string}
-        role: {enum: [admin, operator, viewer]}
+        role: {enum: [admin, operator, viewer, custom]}
+        permissions: {type: array, items: {$ref: "#/components/schemas/TenantPermission"}}
         state: {enum: [pending, accepted, revoked, expired]}
         invited_by: {type: [string, "null"]}
         expires_at: {type: string, format: date-time}

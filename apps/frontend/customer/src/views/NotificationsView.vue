@@ -15,7 +15,7 @@ import { useRole } from '@/composables/useRole';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 const { locale } = useI18n();
-const { role, canManageStores } = useRole();
+const { role, canManageNotifications } = useRole();
 
 const channels = ref<NotificationChannel[]>([]);
 const stores = ref<Store[]>([]);
@@ -94,7 +94,7 @@ async function create(): Promise<void> {
   }
 }
 
-if (canManageStores.value) {
+if (canManageNotifications.value) {
   void load();
 } else {
   listStores()
@@ -117,7 +117,7 @@ if (canManageStores.value) {
           <p class="max-w-3xl text-sm text-text-muted">{{ $t('notifications.subtitle') }}</p>
         </div>
         <button
-          v-if="canManageStores && !adding"
+          v-if="canManageNotifications && !adding"
           type="button"
           class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:bg-primary-hover"
           @click="adding = true"
@@ -126,7 +126,7 @@ if (canManageStores.value) {
         </button>
       </div>
 
-      <p v-if="!canManageStores" class="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm">{{ $t('notifications.read_only') }}</p>
+      <p v-if="!canManageNotifications" class="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm">{{ $t('notifications.read_only') }}</p>
 
       <div v-if="telegramBinding" class="rounded-xl border border-primary bg-primary-soft p-4 text-sm" data-telegram-binding>
         <p class="font-semibold text-primary">{{ $t('notifications.telegram.ready', { label: telegramBinding.label }) }}</p>
@@ -175,7 +175,7 @@ if (canManageStores.value) {
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
       <ErrorNotice v-else-if="error" :error="error" />
 
-      <template v-else-if="canManageStores">
+      <template v-else-if="canManageNotifications">
         <p v-if="channels.length === 0 && !adding" class="rounded-xl border border-dashed border-border-strong bg-surface p-6 text-sm text-text-muted" data-empty>{{ $t('notifications.empty') }}</p>
         <ul v-else class="flex flex-col gap-4">
           <ChannelCard v-for="channel in channels" :key="channel.id" :channel="channel" :stores="stores" :is-owner="isOwner" @changed="replace" @tested="refreshKey++" />

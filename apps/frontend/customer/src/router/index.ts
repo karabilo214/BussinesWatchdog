@@ -1,9 +1,11 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized, type Router } from 'vue-router';
+import type { TenantPermission } from '@/api/types';
 import { useSession } from '@/composables/useSession';
 
 declare module 'vue-router' {
   interface RouteMeta {
     public?: boolean;
+    permission?: TenantPermission;
   }
 }
 
@@ -20,13 +22,13 @@ export function buildRouter(): Router {
       { path: '/settings/team', name: 'team', component: () => import('@/views/TeamView.vue') },
       { path: '/settings/billing', name: 'billing', component: () => import('@/views/BillingView.vue') },
       { path: '/settings/organization', name: 'organization', component: () => import('@/views/OrganizationView.vue') },
-      { path: '/settings/support', name: 'support', component: () => import('@/views/SupportGrantsView.vue') },
+      { path: '/settings/support', name: 'support', component: () => import('@/views/SupportGrantsView.vue'), meta: { permission: 'support.access' } },
       { path: '/overview', name: 'overview', component: () => import('@/views/OverviewView.vue') },
       { path: '/stores/new', name: 'store-create', component: () => import('@/views/StoreCreateView.vue') },
       { path: '/stores/:id', name: 'store', component: () => import('@/views/StoreView.vue'), props: true },
-      { path: '/incidents', name: 'incidents', component: () => import('@/views/IncidentsView.vue') },
-      { path: '/incidents/:id', name: 'incident', component: () => import('@/views/IncidentView.vue'), props: true },
-      { path: '/reconciliation', name: 'reconciliation', component: () => import('@/views/ReconciliationView.vue') },
+      { path: '/incidents', name: 'incidents', component: () => import('@/views/IncidentsView.vue'), meta: { permission: 'incidents.read' } },
+      { path: '/incidents/:id', name: 'incident', component: () => import('@/views/IncidentView.vue'), props: true, meta: { permission: 'incidents.read' } },
+      { path: '/reconciliation', name: 'reconciliation', component: () => import('@/views/ReconciliationView.vue'), meta: { permission: 'reconciliation.read' } },
       { path: '/orders/:id', name: 'order', component: () => import('@/views/OrderView.vue'), props: true },
       { path: '/checks', name: 'checks', component: () => import('@/views/ChecksView.vue') },
       { path: '/checks/runs/:id', name: 'check-run', component: () => import('@/views/CheckRunView.vue'), props: true },
@@ -51,6 +53,10 @@ export function buildRouter(): Router {
 
     if (!to.meta.public && active?.tenant_status === 'deleting' && !['organization', 'profile'].includes(String(to.name))) {
       return { name: 'organization' };
+    }
+
+    if (to.meta.permission && active && !active.permissions.includes(to.meta.permission)) {
+      return { name: 'overview' };
     }
 
     return true;

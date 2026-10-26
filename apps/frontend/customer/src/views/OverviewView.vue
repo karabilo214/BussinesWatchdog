@@ -21,7 +21,7 @@ const { session } = useSession();
 const { dateTime } = useFormat();
 const { amount } = useIncidentText();
 
-const VERDICT_TONES: Record<Verdict, Tone> = { no_stores: 'unknown', problems: 'crit', incomplete: 'unknown', all_clear: 'ok' };
+const VERDICT_TONES: Record<Verdict, Tone> = { no_stores: 'unknown', problems: 'crit', incomplete: 'unknown', all_clear: 'ok', restricted: 'unknown' };
 const VERDICT_CLASSES: Record<Tone, string> = {
   ok: 'border-ok-border bg-ok-soft',
   crit: 'border-crit-border bg-crit-soft',
@@ -41,7 +41,7 @@ const deleteBusy = ref(false);
 const deleteStepUpKey = computed(() => stepUpErrorKey(deleteError.value));
 const needsCode = computed(() => session.value?.user.mfa_enabled === true);
 
-const state = computed(() => verdict(stores.value, overview.value?.incidents.active ?? 0));
+const state = computed(() => verdict(stores.value, overview.value ? (overview.value.incidents?.active ?? null) : 0));
 const storeNames = computed(() => new Map(stores.value.map((store) => [store.id, store.name])));
 const lastCheck = computed(() => lastSuccessfulCheck(stores.value));
 const uncovered = computed(() => stores.value.filter((store) => store.coverage.connector.state !== 'fresh' || store.coverage.money.state !== 'reconciling' || store.coverage.browser_checks.state !== 'passing').length);
@@ -136,13 +136,13 @@ onMounted(load);
         <section class="flex flex-col gap-1 rounded-xl border p-5" :class="VERDICT_CLASSES[VERDICT_TONES[state]]" :data-verdict="state" aria-live="polite">
           <div class="flex flex-wrap items-center gap-2">
             <StatusBadge :tone="VERDICT_TONES[state]" solid :label="$t(`overview.verdict.${state}.badge`)" />
-            <h2 class="text-lg font-semibold">{{ $t(`overview.verdict.${state}.title`, { n: overview.incidents.active, stores: uncovered }) }}</h2>
+            <h2 class="text-lg font-semibold">{{ $t(`overview.verdict.${state}.title`, { n: overview.incidents?.active ?? 0, stores: uncovered }) }}</h2>
           </div>
           <p class="text-sm">{{ $t(`overview.verdict.${state}.body`) }}</p>
         </section>
 
         <div class="grid gap-4 md:grid-cols-3">
-          <RouterLink :to="{ name: 'incidents' }" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-5 hover:border-border-strong" data-tile="incidents">
+          <RouterLink v-if="overview.incidents" :to="{ name: 'incidents' }" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-5 hover:border-border-strong" data-tile="incidents">
             <span class="text-sm text-text-muted">{{ $t('overview.tiles.incidents') }}</span>
             <span class="text-3xl font-semibold">{{ overview.incidents.active }}</span>
             <span class="flex flex-wrap gap-1.5">
@@ -152,7 +152,7 @@ onMounted(load);
             </span>
           </RouterLink>
 
-          <RouterLink :to="{ name: 'reconciliation' }" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-5 hover:border-border-strong" data-tile="discrepancies">
+          <RouterLink v-if="overview.discrepancies" :to="{ name: 'reconciliation' }" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-5 hover:border-border-strong" data-tile="discrepancies">
             <span class="text-sm text-text-muted">{{ $t('overview.tiles.discrepancies') }}</span>
             <span v-if="overview.discrepancies.length === 0 && overview.unknown_amount_incidents === 0" class="text-sm">{{ $t('overview.tiles.no_discrepancies') }}</span>
             <ul v-else class="flex flex-col gap-1 text-sm">
@@ -174,7 +174,7 @@ onMounted(load);
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2">
-          <section class="flex flex-col gap-3" aria-labelledby="latest-incidents">
+          <section v-if="overview.incidents" class="flex flex-col gap-3" aria-labelledby="latest-incidents">
             <h2 id="latest-incidents" class="text-lg font-semibold">{{ $t('overview.latest_incidents') }}</h2>
             <p v-if="overview.incidents.latest.length === 0" class="rounded-xl border border-dashed border-border-strong bg-surface p-5 text-sm text-text-muted">{{ $t('overview.no_active_incidents') }}</p>
             <ul v-else class="divide-y divide-border rounded-xl border border-border bg-surface">

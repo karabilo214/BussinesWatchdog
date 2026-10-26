@@ -15,7 +15,7 @@ import { useBackLink } from '@/composables/useBackLink';
 const POLL_MS = 10_000;
 
 const props = defineProps<{ id: string }>();
-const { canManageStores } = useRole();
+const { canRunChecks } = useRole();
 const { dateTime } = useFormat();
 
 const run = ref<CheckRunDetail | null>(null);
@@ -116,7 +116,7 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <div v-if="active && canManageStores" class="rounded-xl border border-border bg-surface p-5">
+        <div v-if="active && canRunChecks" class="rounded-xl border border-border bg-surface p-5">
           <ReasonAction
             id="cancel-run"
             :label="$t('checks.run.cancel')"

@@ -18,6 +18,8 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Account\MfaService;
 use App\Support\Account\Totp;
+use App\Support\Auth\TenantPermissions;
+use App\Support\Auth\TenantRoles;
 use App\Support\Billing\StoreCapacity;
 use App\Support\Billing\TrialStoreHosts;
 use App\Support\Incidents\MoneyIncidentCorrelator;
@@ -317,7 +319,7 @@ class OrganizationDeletionTest extends TestCase
         ]);
         DB::table('integration_credentials')->insert(['id' => (string) Str::uuid(), 'tenant_id' => $tenantId, 'store_id' => $storeId, 'integration_id' => $connector->id, 'kind' => 'plugin_hmac', 'key_id' => Str::random(8), 'ciphertext' => 'x', 'key_version' => 1, 'fingerprint' => Str::random(16)]);
         DB::table('pairing_codes')->insert(['id' => (string) Str::uuid(), 'tenant_id' => $tenantId, 'store_id' => $storeId, 'code_hash' => hash('sha256', Str::random()), 'created_by' => $context['user']->id, 'expires_at' => now()->addHour()]);
-        DB::table('invitations')->insert(['id' => (string) Str::uuid(), 'tenant_id' => $tenantId, 'email' => 'new-'.Str::random(4).'@example.test', 'role' => 'viewer', 'token_hash' => hash('sha256', Str::random()), 'invited_by' => $context['user']->id, 'expires_at' => now()->addDay()]);
+        DB::table('invitations')->insert(['id' => (string) Str::uuid(), 'tenant_id' => $tenantId, 'email' => 'new-'.Str::random(4).'@example.test', 'role' => 'viewer', 'permissions' => json_encode(TenantPermissions::preset(TenantRoles::VIEWER, true)), 'token_hash' => hash('sha256', Str::random()), 'invited_by' => $context['user']->id, 'expires_at' => now()->addDay()]);
         DB::table('usage_buckets')->insert(['tenant_id' => $tenantId, 'metric_key' => 'store_events', 'period_start' => now()->startOfMonth(), 'period_end' => now()->endOfMonth()]);
         AuditLog::query()->create(['tenant_id' => $tenantId, 'actor_user_id' => $context['user']->id, 'actor_type' => 'user', 'action' => 'test', 'entity_type' => 'store', 'entity_id' => $storeId, 'changes' => [], 'request_id' => (string) Str::uuid(), 'created_at' => now()]);
 

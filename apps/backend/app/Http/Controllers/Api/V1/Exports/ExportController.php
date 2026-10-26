@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Exports\CreateExportRequest;
 use App\Models\ExportFile;
 use App\Models\Store;
+use App\Support\Auth\TenantPermissions;
 use App\Support\Exports\CsvExportService;
 use App\Support\Tenancy\MoneyAmountVisibility;
+use App\Support\Tenancy\TenantAccess;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,6 +97,9 @@ class ExportController extends Controller
 
     private function authorizeMoneyExport(Request $request, string $tenantId, string $kind): void
     {
+        $section = $kind === ExportFile::KIND_INCIDENTS ? TenantPermissions::INCIDENTS_READ : TenantPermissions::RECONCILIATION_READ;
+        abort_unless(app(TenantAccess::class)->allows($request, $tenantId, $section), 403);
+
         if (in_array($kind, [ExportFile::KIND_FINDINGS, ExportFile::KIND_INCIDENTS], true)) {
             abort_unless(app(MoneyAmountVisibility::class)->allows($request, $tenantId), 403);
         }
