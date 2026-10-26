@@ -2173,7 +2173,7 @@
     "official_docs_caption": "Source:",
     "why": "PayPal is connected with the credentials of a separate REST app in your PayPal account. They are entered here, not in WordPress, so money data reaches the service around the store.",
     "step_app": "Open developer.paypal.com → Apps & Credentials, choose Live (or Sandbox for testing) and create an app “Business Watchdog” (type Merchant).",
-    "step_features": "In the app settings untick everything and enable only Transaction Search — it is needed to list payments. Optionally enable Disputes too, to see customer disputes (it also lets the app answer disputes; the service never uses that).",
+    "step_features": "In the app settings untick everything and enable only Transaction Search — it is needed to list payments. Optionally enable Customer disputes too (under Add-on services), to see customer disputes (it also lets the app answer disputes; the service never uses that).",
     "step_copy": "Copy the app’s Client ID and Secret and paste them below.",
     "environment": "PayPal environment",
     "environments": {
@@ -2211,7 +2211,7 @@
     "revoked": "PayPal disconnected.",
     "credentials_rejected": "PayPal rejected the app credentials or the app lacks Transaction Search — calls to PayPal are stopped and money reconciliation shows “unknown”. Disconnect and connect PayPal again.",
     "matching_note": "Metadata matching is not supported for PayPal: payments are linked to orders only by the transaction id the PayPal plugin writes to the order.",
-    "disputes_permission_missing": "Disputes are not visible: the PayPal app has no access to disputes. Enable the Disputes feature in the app settings — the rest of the reconciliation works as before."
+    "disputes_permission_missing": "Disputes are not visible: the PayPal app has no access to disputes. Enable Features → Add-on services → Customer disputes in the app settings — the rest of the reconciliation works as before."
   },
   "billing": {
     "selected_from_site": "Selected on the site",

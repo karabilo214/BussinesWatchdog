@@ -2173,7 +2173,7 @@
     "official_docs_caption": "Quelle:",
     "why": "PayPal wird mit den Zugangsdaten einer eigenen REST-App in Ihrem PayPal-Konto verbunden. Sie werden hier eingegeben, nicht in WordPress, damit Gelddaten am Shop vorbei zum Dienst gelangen.",
     "step_app": "Öffnen Sie developer.paypal.com → Apps & Credentials, wählen Sie Live (oder Sandbox zum Testen) und legen Sie eine App „Business Watchdog“ an (Typ Merchant).",
-    "step_features": "Entfernen Sie in den App-Einstellungen alle Häkchen und aktivieren Sie nur Transaction Search — sie wird für die Zahlungsliste gebraucht. Optional auch Disputes aktivieren, um Konflikte von Kunden zu sehen (die Funktion erlaubt der App auch, auf Konflikte zu antworten; der Dienst nutzt das nie).",
+    "step_features": "Entfernen Sie in den App-Einstellungen alle Häkchen und aktivieren Sie nur Transaction Search — sie wird für die Zahlungsliste gebraucht. Optional auch Customer disputes aktivieren (unter Add-on services), um Konflikte von Kunden zu sehen (die Funktion erlaubt der App auch, auf Konflikte zu antworten; der Dienst nutzt das nie).",
     "step_copy": "Kopieren Sie Client ID und Secret der App und fügen Sie sie unten ein.",
     "environment": "PayPal-Umgebung",
     "environments": {
@@ -2211,7 +2211,7 @@
     "revoked": "PayPal getrennt.",
     "credentials_rejected": "PayPal hat die App-Zugangsdaten abgelehnt oder der App fehlt Transaction Search — Aufrufe an PayPal sind gestoppt, der Geldabgleich zeigt „unbekannt“. Trennen und verbinden Sie PayPal neu.",
     "matching_note": "Zuordnung über Metadaten wird für PayPal nicht unterstützt: Zahlungen werden Bestellungen nur über die Transaktions-ID zugeordnet, die das PayPal-Plugin in die Bestellung schreibt.",
-    "disputes_permission_missing": "Rückbuchungen sind nicht sichtbar: Die PayPal-App hat keinen Zugriff auf Konflikte. Aktivieren Sie in den App-Einstellungen die Funktion Disputes — der übrige Abgleich funktioniert wie bisher."
+    "disputes_permission_missing": "Rückbuchungen sind nicht sichtbar: Die PayPal-App hat keinen Zugriff auf Konflikte. Aktivieren Sie in den App-Einstellungen Features → Add-on services → Customer disputes — der übrige Abgleich funktioniert wie bisher."
   },
   "billing": {
     "selected_from_site": "Auf der Website gewählt",
