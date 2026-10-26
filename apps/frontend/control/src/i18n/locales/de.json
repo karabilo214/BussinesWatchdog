@@ -613,7 +613,7 @@
       "override_ended": "Abgelaufen",
       "payments": "Zahlungen"
     },
-    "audit_empty": "Noch keine Mitarbeiteraktionen für diese Organisation.",
+    "audit_empty": "Noch keine Auditeinträge für diese Organisation.",
     "actions": {
       "title": "Aktionen",
       "hint": "Prüfen Sie zuerst die Folgen, dann Grund und Code aus der Authenticator-App angeben. Alles wird protokolliert.",
@@ -749,6 +749,7 @@
       "invitation_revoked": "Einladung widerrufen",
       "member_password_reset_sent": "Link zum Zurücksetzen des Passworts an Mitglied gesendet",
       "member_mfa_reset": "Kunden-MFA zurückgesetzt",
+      "store_updated": "Shopname geändert",
       "store_created": "Shop hinzugefügt",
       "store_viewed": "Shopdaten geöffnet",
       "check_rerun": "Prüfung vom Support neu gestartet",
@@ -1316,6 +1317,7 @@
       "submit": "Shop hinzufügen",
       "done": "Shop hinzugefügt."
     },
+    "rename": {"action": "Bearbeiten", "actions": "Aktionen", "title": "Shopnamen bearbeiten", "hint": "Erfordert eine aktive Support-Freigabe zum Bearbeiten dieses Shops. Nur der Name wird geändert.", "submit": "Namen speichern", "done": "Shopname geändert."},
     "remove": {
       "action": "Löschen",
       "warning": "Shop „{name}“ mit Bestellungen, Zahlungen, Befunden, Prüfungen und Screenshots endgültig löschen? Dies kann nicht rückgängig gemacht werden. Plattform-Audit und der Hash der Testdomain bleiben erhalten. Plugin oder App im Shop separat entfernen.",
@@ -1803,7 +1805,8 @@
     "scope": {
       "read_diagnostics": "Diagnose, Bestellungen und Zahlungen",
       "read_artifacts": "Screenshots und Materialien",
-      "request_recheck": "Neue Browserprüfung starten"
+      "request_recheck": "Neue Browserprüfung starten",
+      "edit_store": "Shopnamen ändern"
     },
     "hours": "Stunden (höchstens 72)",
     "reason": "Begründung",

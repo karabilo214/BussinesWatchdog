@@ -118,6 +118,14 @@
           ],
           "maxLength": 255
         },
+        "gateway_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255,
+          "description": "Display name reported by the store for the gateway code; never used for reconciliation."
+        },
         "transaction_ref": {
           "type": [
             "string",

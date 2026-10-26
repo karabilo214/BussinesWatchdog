@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Business Watchdog for WooCommerce
  * Description: Sends order and refund snapshots to Business Watchdog for payment reconciliation and checkout monitoring.
- * Version: 0.3.3
+ * Version: 0.3.4
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -17,7 +17,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('BW_PLUGIN_VERSION', '0.3.3');
+define('BW_PLUGIN_VERSION', '0.3.4');
 define('BW_PLUGIN_FILE', __FILE__);
 define('BW_PLUGIN_DIR', __DIR__);
 define('BW_MIN_PHP', '7.4');

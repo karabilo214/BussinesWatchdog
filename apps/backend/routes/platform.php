@@ -54,6 +54,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/lookup', [DiscountController::class, 'tenants']);
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants', [TenantController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/{tenant}', [TenantController::class, 'show']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_READ)->get('/tenants/{tenant}/audit', [TenantController::class, 'audit'])->whereUuid('tenant');
     Route::middleware('platform.staff:'.PlatformCapabilities::TENANTS_SUPPORT)->group(function (): void {
         Route::get('/support-grants', [SupportGrantController::class, 'index']);
         Route::post('/support-grants', [SupportGrantController::class, 'store'])->middleware('throttle:platform-step-up');
@@ -94,6 +95,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware(['platform.staff:'.PlatformCapabilities::TENANTS_SUPPORT, 'throttle:platform-step-up'])->group(function (): void {
         Route::post('/tenants/{tenant}/members/{user}/password-reset', [TenantTeamController::class, 'sendPasswordReset'])->whereUuid(['tenant', 'user']);
         Route::post('/tenants/{tenant}/stores/{store}/checks', [TenantStoreController::class, 'rerunCheck'])->whereUuid(['tenant', 'store'])->middleware('platform.support.grant:request_recheck');
+        Route::patch('/tenants/{tenant}/stores/{store}/name', [TenantStoreController::class, 'updateName'])->whereUuid(['tenant', 'store']);
     });
     Route::middleware(['platform.staff:'.PlatformCapabilities::TENANTS_INCIDENT_ACTIONS, 'throttle:platform-step-up'])->group(function (): void {
         Route::post('/tenants/{tenant}/incidents/{incident}/acknowledge', [TenantStoreController::class, 'acknowledgeIncident'])->whereUuid(['tenant', 'incident']);

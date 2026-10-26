@@ -577,7 +577,7 @@ Verification: `WooCommerceApiWebhooksTest` (setup by managers only, unsigned pin
 
 ### Step 223: WooCommerce Plugin 0.3.3 Ready for the WordPress.org Directory
 
-Status: complete in main; submission needs the owner's WordPress.org account; directory assets (icon, banner, screenshots) not made yet
+Status at Step 223: code prepared in main; submission and directory assets were still pending. Later submission status is recorded below under 2026-10-26.
 
 - `readme.txt` (WordPress.org format): description of the service and what the plugin adds over a read-only REST API key, the mandatory «External services» section checked against the code (what is sent and when, nothing before pairing; no customer names, addresses, e-mails, phone numbers or items; versions of WordPress, WooCommerce, theme and active plugins; counters only; links to terms and privacy), installation, FAQ, changelog. `Contributors: businesswatchdog` is a placeholder for the owner's WordPress.org user name.
 - Release package ships `readme.txt` instead of the internal `README.md` (`bin/build-release.sh`); header `Requires Plugins: woocommerce`.
@@ -625,4 +625,10 @@ Verification: `StripeIntegrationTest` new tests — same-second object across th
 Status: complete; ZIP 0.3.3 built for the WordPress.org submission and handed to the owner
 
 - `readme.txt`: `Contributors: karabin214` (the owner's WordPress.org user name) instead of the placeholder `businesswatchdog`. No code change, version stays 0.3.3.
-- Built with `bin/build-release.sh`: 53 files, PHP 7.4 lint ok, SHA-256 `de08405f1dd63088da5e8774e3a0ada4a54223bb7bad291ee7d915682fb5a941`. Plugin Check not rerun (only `readme.txt` changed since Step 223, 0 errors there). Submission to WordPress.org is done by the owner.
+- Built with `bin/build-release.sh`: 53 files, PHP 7.4 lint ok, SHA-256 `de08405f1dd63088da5e8774e3a0ada4a54223bb7bad291ee7d915682fb5a941`. Plugin Check not rerun (only `readme.txt` changed since Step 223, 0 errors there). Submission was left to the owner at that point; the owner later confirmed it had been submitted (see 2026-10-26 below).
+
+### No step number (2026-10-26): WordPress.org Review and Local Candidate Kept Separate
+
+- The owner confirmed that ZIP 0.3.3 had been submitted to WordPress.org and was still awaiting manual approval. The actual submission date and review reference were not recorded. Its SHA-256 remains `de08405f1dd63088da5e8774e3a0ada4a54223bb7bad291ee7d915682fb5a941`; the exact local file was found at `/private/tmp/claude-501/-Users-karabin-Sites-Bussines-Watchdog/d768be68-c797-40de-8ba8-0447d1156b4a/scratchpad/wporg/business-watchdog-0.3.3.zip` and its hash rechecked. This temporary path is not permanent release storage.
+- Step 271 prepared a separate local ZIP 0.3.4 (`/private/tmp/bw-step271-release/business-watchdog-0.3.4.zip`, SHA-256 `859c9bcd317bf9b6f2fa1cff36f7fde16b4a4fa6c0b66987fa4a4525452b48ff`). It sends the store's payment method name; the bundled external-service disclosure was updated. This ZIP was neither submitted to WordPress.org nor approved for customer download. The submitted 0.3.3 ZIP was not overwritten.
+- WordPress.org review, source version in git and the SaaS download SHA-256 gate are separate states. The last recorded customer-download approval remains 0.3.2. `docs/ops/integrations.md` now records the artifacts, the existing-review/SVN update procedure and the checks still needed before publishing 0.3.4. No submission, approval or production publication was performed during this documentation update.

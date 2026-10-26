@@ -4,7 +4,7 @@ Tags: woocommerce, payments, monitoring, checkout, reconciliation
 Requires at least: 5.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.3
+Stable tag: 0.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -38,7 +38,7 @@ This plugin connects your store to the **Business Watchdog** service operated at
 What is sent, when connected:
 
 * **When you connect:** the one-time pairing code, your site address, a random installation ID and the plugin version.
-* **Order and refund changes, as they happen and in a daily check:** order ID and number, status, currency, total, payment method ID, the payment provider's transaction reference, the date the order was marked paid; for refunds the amount, the provider's refund reference and the order they belong to. No customer names, addresses, e-mail addresses, phone numbers or order items are sent.
+* **Order and refund changes, as they happen and in a daily check:** order ID and number, status, currency, total, payment method ID and display name, the payment provider's transaction reference, the date the order was marked paid; for refunds the amount, the provider's refund reference and the order they belong to. No customer names, addresses, e-mail addresses, phone numbers or order items are sent.
 * **Every 5 minutes (heartbeat):** plugin version and the state of the local queue.
 * **When versions change:** the versions of WordPress, WooCommerce, the active theme and active plugins, and whether HPOS and the block checkout are used — to tell you when an update coincides with a problem.
 * **Every few minutes:** counts of payment attempts per payment method and outcome, and — only if checkout observation is enabled for your store — counts of checkout stages per 5-minute window. No IP addresses, browser details or visitor identifiers.
@@ -81,6 +81,9 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 
 == Changelog ==
 
+= 0.3.4 =
+* Sends the store's payment method name with order changes so custom methods have a readable label in Business Watchdog.
+
 = 0.3.3 =
 * Prepared for the WordPress.org plugin directory: readme with the external service description, database queries name the plugin's tables directly, request input is unslashed and sanitized, translator comments.
 
@@ -94,6 +97,9 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 * Optional checkout observation.
 
 == Upgrade Notice ==
+
+= 0.3.4 =
+Custom payment methods can show their store name in Business Watchdog after the next order sync.
 
 = 0.3.3 =
 No change in behaviour; code cleanups for the WordPress.org plugin directory.

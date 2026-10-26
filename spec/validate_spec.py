@@ -204,7 +204,7 @@ for m in matches:
             fm=re.search(r'REFERENCES\s+(\w+)\s*\((.*?)\)',field)
             if fm: foreign_keys.append((name,(col,),fm[1],tuple(x.strip() for x in fm[2].split(','))))
     tables[name]=columns;uniques[name]=keys
-assert len(tables)>=62,len(tables)
+assert len(tables)>=67,len(tables)
 for alter in re.finditer(r'ALTER TABLE\s+(\w+)\s+ADD COLUMN\s+(\w+)',sql):
     assert alter[1] in tables and alter[2] not in tables[alter[1]]
     tables[alter[1]].add(alter[2])
@@ -243,13 +243,13 @@ assert len(extra_acc)>=28 and extra_acc==[f'EXT-{i:02d}' for i in range(1,len(ex
 checked(f'Extension: five panel specifications, {len(billing_cases)} unique billing cases, {len(extra_acc)} additional acceptance scenarios')
 
 report=['# Проверка пакета спецификации','',
-'Проверено 25 октября 2026 года для версии1.1. Ниже перечислены фактически выполненные проверки файлов, а не тесты рабочего SaaS.','']
+'Повторно проверено 26 октября 2026 года командой `python3 spec/validate_spec.py` для пакета версии 1.1 с последующими правками. Ниже перечислены проверки файлов, а не тесты рабочего SaaS.','']
 report += ['- '+x for x in checks]
 report += ['', 'Ограничения проверки', '',
-'- PostgreSQL server и полноценный PostgreSQL parser в текущем окружении недоступны. SQL проверен статически по структуре, полям, FK и уникальным ключам; выполнение DDL в PostgreSQL18 и Laravel migrations обязательно на D1.',
-'- JSON Schema проверен ограниченным валидатором используемых конструкций. В CI реализации требуется стандартный Draft2020-12 validator и полная OpenAPI validation.',
-'- Финансовые классификации fixtures являются ожидаемыми результатами; бизнес-движок пока не написан. Здесь проверена арифметика примеров, а не correctness будущего detector.',
-'- WooCommerce, Stripe sandbox, browser network policy, load/restore/security tests ещё не выполнялись: это gates соответствующих implementation этапов.',
+'- Скрипт проверяет SQL статически по структуре, полям, FK и уникальным ключам; он не запускает PostgreSQL и не проверяет применение Laravel migrations. Отдельные прогоны приложения на PostgreSQL 18 зафиксированы в `../docs/progress/`.',
+'- JSON Schema здесь проверена ограниченным валидатором используемых конструкций. Проверка скрипта не заменяет runtime-тесты и полную OpenAPI-валидацию.',
+'- Финансовые классификации fixtures являются ожидаемыми результатами; этот скрипт проверяет арифметику примеров. Реализация и тесты реестра FIN-01…24 зафиксированы отдельно в `../docs/reconciliation-registry.md` и `../docs/progress/reconciliation.md`.',
+'- Совместимость WooCommerce/Shopware, Stripe и PayPal sandbox, безопасность браузерной сети и восстановление копий проверялись отдельно; их evidence и оставшиеся ограничения — в `../docs/readiness.md`, `ACCEPTANCE.md` и `PANELS-ACCEPTANCE.md`. Нагрузочный сценарий ACC-43 и полное восстановление на новом сервере ACC-41 остаются открытыми.',
 '- Нет DOCX/PDF: основной формат Markdown сохраняет схемы и code blocks для работы владельца и Codex.', '']
 (ROOT/'VALIDATION.md').write_text('\n'.join(report))
 print(json.dumps({'status':'passed_static_checks','checks':checks,'limitations':'No live PostgreSQL/provider/application execution'},ensure_ascii=False,indent=2))

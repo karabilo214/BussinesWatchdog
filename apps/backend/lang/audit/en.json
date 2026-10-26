@@ -13,6 +13,7 @@
     "member_password_reset_sent": "Member password reset link sent",
     "member_mfa_reset": "Customer MFA reset",
     "store_created": "Store added",
+    "store_updated": "Store name changed",
     "store_viewed": "Store data opened",
     "check_rerun": "Check rerun by support",
     "incident_acknowledged": "Incident acknowledged by support",

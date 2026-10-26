@@ -30,6 +30,7 @@ final class OrderSnapshotBuilder
         }
 
         $gateway = (string) $order->get_payment_method('edit');
+        $gatewayName = trim((string) $order->get_payment_method_title('edit'));
         $transactionRef = (string) $order->get_transaction_id('edit');
         $created = EventFactory::isoDate($order->get_date_created('edit'));
         $modified = EventFactory::isoDate($order->get_date_modified('edit'));
@@ -41,6 +42,7 @@ final class OrderSnapshotBuilder
             'currency_exponent' => $exponent,
             'total_minor' => $total,
             'gateway' => $gateway !== '' ? substr($gateway, 0, 255) : null,
+            'gateway_name' => $gatewayName !== '' ? wp_html_excerpt($gatewayName, 255, '') : null,
             'transaction_ref' => $transactionRef !== '' ? substr($transactionRef, 0, 255) : null,
             'payment_expected' => $total !== '0',
             'paid_marked_at' => EventFactory::isoDate($order->get_date_paid('edit')),

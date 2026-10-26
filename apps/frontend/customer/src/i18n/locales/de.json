@@ -2496,7 +2496,7 @@
     "staff": "Support-Mitarbeitende",
     "staff_choose": "Mitarbeitende auswählen",
     "scopes": "Erlaubter Zugriff",
-    "scope": { "read_diagnostics": "Vorfälle, Prüfungen, Bestellungen und Zahlungen", "read_artifacts": "Screenshots und Materialien", "request_recheck": "Neue Browserprüfung starten" },
+    "scope": { "read_diagnostics": "Vorfälle, Prüfungen, Bestellungen und Zahlungen", "read_artifacts": "Screenshots und Materialien", "request_recheck": "Neue Browserprüfung starten", "edit_store": "Shopnamen ändern" },
     "hours": "Dauer in Stunden (höchstens 72)",
     "reason": "Begründung",
     "case": "Supportfall-Referenz",
@@ -2511,7 +2511,7 @@
     "revoke": "Zugriff widerrufen",
     "activity": "Aktivität",
     "no_activity": "Noch keine Aktivität erfasst.",
-    "event": { "support_grant.requested": "Zugriff beantragt", "support_grant.approved": "Zugriff genehmigt", "support_grant.denied": "Anfrage abgelehnt", "support_grant.revoked": "Zugriff widerrufen", "support_access.opened": "Detaildaten geöffnet", "support_access.artifact": "Material heruntergeladen", "check_run.support_started": "Neue Prüfung gestartet" },
+    "event": { "support_grant.requested": "Zugriff beantragt", "support_grant.approved": "Zugriff genehmigt", "support_grant.denied": "Anfrage abgelehnt", "support_grant.revoked": "Zugriff widerrufen", "support_access.opened": "Detaildaten geöffnet", "support_access.artifact": "Material heruntergeladen", "check_run.support_started": "Neue Prüfung gestartet", "store.support_renamed": "Shopname vom Support geändert" },
     "target": { "store": "Shopdaten", "order": "Bestellung", "check": "Prüfung", "artifact": "Prüfmaterial", "incident": "Vorfall" },
     "warning": "Ein Widerruf sperrt neue Anfragen und Links sofort. Bereits gesehene oder gespeicherte Informationen können dadurch nicht gelöscht werden."
   }

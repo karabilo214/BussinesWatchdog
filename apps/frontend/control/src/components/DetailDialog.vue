@@ -29,6 +29,22 @@ onBeforeUnmount(() => {
 function backdrop(event: MouseEvent): void {
   if (event.target === dialog.value) emit('close');
 }
+
+function trapFocus(event: KeyboardEvent): void {
+  if (event.key !== 'Tab' || dialog.value === null) return;
+  const items = Array.from(dialog.value.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+    .filter((item) => item.tabIndex >= 0 && item.getClientRects().length > 0 && !item.closest('[inert]'));
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (!first || !last) return;
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
 </script>
 
 <template>
@@ -38,6 +54,7 @@ function backdrop(event: MouseEvent): void {
     :aria-label="title"
     @cancel.prevent="emit('close')"
     @click="backdrop"
+    @keydown="trapFocus"
   >
     <div v-if="open" class="flex flex-col gap-4 p-5 text-sm">
       <div class="flex items-start justify-between gap-3">

@@ -27,7 +27,9 @@ class SupportAccessGrant extends Model
 
     public const REQUEST_RECHECK = 'request_recheck';
 
-    public const SCOPES = [self::READ_DIAGNOSTICS, self::READ_ARTIFACTS, self::REQUEST_RECHECK];
+    public const EDIT_STORE = 'edit_store';
+
+    public const SCOPES = [self::READ_DIAGNOSTICS, self::READ_ARTIFACTS, self::REQUEST_RECHECK, self::EDIT_STORE];
 
     protected $fillable = [
         'tenant_id', 'store_id', 'staff_id', 'requested_by_staff_id', 'requested_by_user_id',

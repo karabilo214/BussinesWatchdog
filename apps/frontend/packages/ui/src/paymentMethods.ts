@@ -48,3 +48,13 @@ export function paymentMethodLabelKey(code: string | null | undefined): string |
 
   return `payment_method_kind.${paymentMethodKind(code) ?? 'other'}`;
 }
+
+/** Known codes use the panel locale; custom codes use the store's display name when available. */
+export function paymentMethodDisplayName(code: string | null | undefined, storeName: string | null | undefined, translate: (key: string) => string): string | null {
+  const key = paymentMethodLabelKey(code);
+  if (key === null) return null;
+  if (paymentMethodKind(code) !== null) return translate(key);
+
+  const name = storeName?.trim();
+  return name && name.toLowerCase() !== code?.trim().toLowerCase() ? name : translate(key);
+}

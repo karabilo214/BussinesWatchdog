@@ -88,7 +88,7 @@ onMounted(load);
         <TenantSubscription v-else-if="tab === 'subscription' && card.billing" :billing="card.billing" />
         <TenantMembers v-else-if="tab === 'members'" :card="card" :can-manage="canManage" :can-reset-mfa="canResetMfa" :can-send-reset="canSendReset" @updated="card = $event" />
         <TenantReminders v-else-if="tab === 'reminders'" :tenant-id="card.id" />
-        <TenantAudit v-else-if="tab === 'audit'" :card="card" />
+        <TenantAudit v-else-if="tab === 'audit'" :tenant-id="card.id" />
       </template>
     </div>
   </OwnerLayout>

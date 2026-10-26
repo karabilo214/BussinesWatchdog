@@ -21,6 +21,7 @@ use App\Models\Membership;
 use App\Models\Order;
 use App\Models\PlatformStaff;
 use App\Models\Store;
+use App\Models\SupportAccessGrant;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Account\AccountMailer;
@@ -30,6 +31,7 @@ use App\Support\Billing\HistoryWindow;
 use App\Support\Browser\CheckScheduler;
 use App\Support\Incidents\IncidentLifecycleService;
 use App\Support\Platform\PlatformAudit;
+use App\Support\Platform\SupportGrants;
 use App\Support\Privacy\StoreDeletion;
 use App\Support\Tenancy\TenantContext;
 use Closure;
@@ -63,6 +65,51 @@ class TenantStoreController extends Controller
             }
 
             return $response;
+        });
+    }
+
+    /** Change only the display name, with a store-specific owner-approved support grant. */
+    public function updateName(Request $request, string $tenant, string $store, SupportGrants $grants): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'min:1', 'max:100'],
+            'current_name' => ['required', 'string', 'min:1', 'max:100'],
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+        $name = trim($validated['name']);
+        abort_if($name === '', 422, 'store_name_required');
+
+        return $this->as($tenant, function (Tenant $model) use ($request, $store, $grants, $validated, $name): JsonResponse {
+            $updated = DB::transaction(function () use ($request, $model, $store, $grants, $validated, $name): Store|false {
+                /** @var Store $locked */
+                $locked = Store::query()->where('tenant_id', $model->id)->whereKey($store)->lockForUpdate()->firstOrFail();
+                abort_if(in_array($locked->status, ['deleting', 'deleted'], true), 404);
+                $grant = $grants->requireForUpdate($this->staff($request), $model->id, $locked->id, SupportAccessGrant::EDIT_STORE);
+
+                if ($locked->name !== $validated['current_name']) {
+                    return false;
+                }
+                if ($locked->name === $name) {
+                    return $locked;
+                }
+
+                $before = $locked->name;
+                $locked->name = $name;
+                $locked->config_version++;
+                $locked->save();
+                $request->attributes->set('support_grant_id', $grant->id);
+                $this->recordSupport($request, $model, $locked->id, 'tenant.store_updated', 'store', $locked->id,
+                    ['before' => ['name' => $before], 'after' => ['name' => $name], 'target_type' => 'store'],
+                    'store.support_renamed', trim($validated['reason']));
+
+                return $locked->refresh();
+            });
+
+            if ($updated === false) {
+                return response()->json(['code' => 'version_conflict', 'message' => 'The store name changed. Reload and try again.'], 409);
+            }
+
+            return response()->json(['id' => $updated->id, 'name' => $updated->name, 'config_version' => $updated->config_version]);
         });
     }
 

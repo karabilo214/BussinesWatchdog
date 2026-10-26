@@ -1,7 +1,8 @@
-import { flushPromises, mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '@bw/api-client';
 import * as api from '@/api';
-import type { StaffMe, TenantCard, TenantRow } from '@/api';
+import type { StaffMe, StoreCheckDetail, StoreIncident, StoreOrderDetail, TenantCard, TenantRow } from '@/api';
 import App from '@/App.vue';
 import TenantSupportGrants from '@/components/tenant/TenantSupportGrants.vue';
 import { useStaff } from '@/composables/useStaff';
@@ -16,6 +17,7 @@ vi.mock('@/api', () => ({
   fetchPlans: vi.fn(),
   fetchTenants: vi.fn(),
   fetchTenant: vi.fn(),
+  fetchTenantAudit: vi.fn(),
   previewTenantAction: vi.fn(),
   applyTenantAction: vi.fn(),
   previewTenantReminder: vi.fn(),
@@ -23,6 +25,7 @@ vi.mock('@/api', () => ({
   fetchTenantReminders: vi.fn(),
   saveReminderTemplate: vi.fn(),
   createCustomerStore: vi.fn(),
+  renameCustomerStore: vi.fn(),
   deleteCustomerStore: vi.fn(),
   fetchCustomerStore: vi.fn(),
   fetchStoreFindings: vi.fn(),
@@ -35,6 +38,7 @@ vi.mock('@/api', () => ({
   changeStoreIncident: vi.fn(),
   fetchCustomerOrder: vi.fn(),
   fetchCustomerCheck: vi.fn(),
+  fetchCustomerIncident: vi.fn(),
   fetchCustomerArtifactUrl: vi.fn(),
   listPlatformSupportGrants: vi.fn(),
   cancelPlatformSupportGrant: vi.fn(),
@@ -51,6 +55,23 @@ vi.mock('@/api', () => ({
 }));
 
 const mocked = vi.mocked(api);
+enableAutoUnmount(afterEach);
+afterEach(() => vi.useRealTimers());
+
+function storeDetails() {
+  const order: StoreOrderDetail = { id: 'o-deep', store_id: 's-1', display_number: '#Direct', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: null, is_synthetic: false, source_created_at: null, transaction_ref: null, financial_support: 'supported', findings: [], captures: [], refunds: [], revisions: [] };
+  const check: StoreCheckDetail = { id: 'r-deep', store_id: 's-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: null, scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: null, attempts: [] };
+  const incident: StoreIncident = { id: 'i-deep', store_id: 's-1', family: 'money', state: 'open', severity: 'warning', title_code: 'MONEY_CAPTURE_MISSING', currency: 'EUR', currency_exponent: 2, verified_discrepancy_minor: '18400', first_seen_at: null, last_seen_at: null, resolved_at: null };
+  mocked.fetchCustomerStore.mockResolvedValue({ id: 's-1', name: 'Shop', base_url: 'https://shop.example', platform: 'woocommerce', status: 'active', default_currency: 'EUR', timezone: 'Europe/Berlin' });
+  mocked.fetchStoreFindings.mockResolvedValue({ data: [], next_cursor: null });
+  mocked.fetchStoreOrders.mockResolvedValue({ data: [], next_cursor: null });
+  mocked.fetchStoreChecks.mockResolvedValue({ data: [], next_cursor: null });
+  mocked.fetchStoreIncidents.mockResolvedValue({ data: [], next_cursor: null });
+  mocked.fetchCustomerOrder.mockResolvedValue(order);
+  mocked.fetchCustomerCheck.mockResolvedValue(check);
+  mocked.fetchCustomerIncident.mockResolvedValue(incident);
+  return { order, check, incident };
+}
 
 function staff(capabilities: string[], role: StaffMe['role'] = 'platform_owner'): StaffMe {
   return { staff_id: 's-1', name: 'Founder', first_name: null, last_name: 'Founder', photo_url: null, email: 'f@example.test', locale: 'ru', role, mfa_enabled: true, capabilities, billing_mode: 'test', session: { idle_minutes: 30, absolute_hours: 8 } };
@@ -90,7 +111,6 @@ function card(overrides: Partial<TenantCard> = {}): TenantCard {
       plan_changes: [],
       overrides: [],
     },
-    audit: [],
     ...overrides,
   };
 }
@@ -110,12 +130,14 @@ async function open(path: string, capabilities = ['tenants.read', 'tenants.manag
 }
 
 beforeEach(() => {
+  window.history.replaceState({}, '', '/');
   vi.clearAllMocks();
   useStaff().forget();
   localization.setLocale('ru');
   mocked.fetchPlans.mockResolvedValue({ data: [{ id: 'p-1', code: 'start', state: 'published', versions: [{ id: 'v-1', version: 1, state: 'published', name: { ru: 'Старт' }, description: {}, placeholder: false, trial_days: 14, entitlements: { features: [], limits: {} }, published_at: null, subscribers: 1, prices: [] }] }], mode: 'test', provider_configured: true } as never);
   mocked.fetchTenants.mockResolvedValue({ data: [ROW], next_cursor: null });
   mocked.fetchTenant.mockResolvedValue(card());
+  mocked.fetchTenantAudit.mockResolvedValue({ data: [], next_cursor: null });
   mocked.listPlatformSupportGrants.mockResolvedValue([{
     id: 'g-1', tenant_id: 't-1', store_id: 's-1', staff_id: 's-1',
     scopes: ['read_diagnostics', 'read_artifacts', 'request_recheck'], state: 'approved',
@@ -125,6 +147,102 @@ beforeEach(() => {
 });
 
 describe('tenants', () => {
+  it.each([
+    ['order', 'orders', 'o-deep'], ['check', 'checks', 'r-deep'], ['incident', 'incidents', 'i-deep'],
+  ])('opens a direct %s link outside the list page; Back closes and Forward reopens it', async (kind, tab, id) => {
+    storeDetails();
+    const { wrapper, router } = await open(`/owner/tenants/t-1/stores/s-1?tab=${tab}&${kind}=${id}&filter=kept`);
+    await flushPromises();
+    expect(wrapper.get(`[data-detail="${kind}"]`).attributes('open')).toBeDefined();
+    const fetchDetail = kind === 'order' ? mocked.fetchCustomerOrder : kind === 'check' ? mocked.fetchCustomerCheck : mocked.fetchCustomerIncident;
+    expect(fetchDetail).toHaveBeenCalledTimes(1);
+    expect(fetchDetail).toHaveBeenCalledWith('t-1', id);
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    router.back();
+    await vi.waitFor(() => expect(router.currentRoute.value.query[kind]).toBeUndefined());
+    await flushPromises();
+    expect(wrapper.get(`[data-detail="${kind}"]`).attributes('open')).toBeUndefined();
+    expect(router.currentRoute.value.query.filter).toBe('kept');
+    router.forward();
+    await vi.waitFor(() => expect(router.currentRoute.value.query[kind]).toBe(id));
+    await flushPromises();
+    expect(wrapper.get(`[data-detail="${kind}"]`).attributes('open')).toBeDefined();
+    expect(fetchDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not display a detail from a different store and keeps a failed link closable', async () => {
+    const { order } = storeDetails();
+    mocked.fetchCustomerOrder.mockResolvedValue({ ...order, store_id: 's-other', display_number: '#Foreign' });
+    const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1?tab=orders&order=o-deep');
+    await flushPromises();
+    expect(wrapper.find('[data-detail="order"] [role="alert"]').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('#Foreign');
+    await wrapper.get('[data-detail="order"] [data-action="close-detail"]').trigger('click');
+    await vi.waitFor(() => expect(router.currentRoute.value.query.order).toBeUndefined());
+  });
+
+  it('does not reopen an order when its response arrives after closing the dialog', async () => {
+    const { order } = storeDetails();
+    let resolve!: (value: StoreOrderDetail) => void;
+    mocked.fetchCustomerOrder.mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+    const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1?tab=orders&order=o-deep');
+    expect(wrapper.get('[data-detail="order"] [role="status"]').text()).toBe('Загружаем…');
+    await wrapper.get('[data-detail="order"]').trigger('cancel');
+    await vi.waitFor(() => expect(router.currentRoute.value.query.order).toBeUndefined());
+    resolve(order);
+    await flushPromises();
+    expect(wrapper.get('[data-detail="order"]').attributes('open')).toBeUndefined();
+    expect(wrapper.text()).not.toContain('#Direct');
+  });
+
+  it('clears a direct detail on grant revocation and ignores its pending response', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const { order } = storeDetails();
+    let resolve!: (value: StoreOrderDetail) => void;
+    mocked.fetchCustomerOrder.mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+    const { wrapper } = await open('/owner/tenants/t-1/stores/s-1?tab=orders&order=o-deep');
+    mocked.listPlatformSupportGrants.mockResolvedValueOnce([]);
+    await vi.advanceTimersByTimeAsync(15000);
+    await flushPromises();
+    resolve(order);
+    await flushPromises();
+    expect(wrapper.text()).toContain('Доступ');
+    expect(wrapper.find('[data-store-url]').exists()).toBe(false);
+    expect(wrapper.find('dialog[open]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('#Direct');
+  });
+
+  it('handles a missing object and a forbidden direct-link request', async () => {
+    storeDetails();
+    mocked.fetchCustomerCheck.mockRejectedValueOnce(new ApiError(404, 'not_found'));
+    const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1?tab=checks&check=missing');
+    await flushPromises();
+    expect(wrapper.find('[data-detail="check"] [role="alert"]').exists()).toBe(true);
+    mocked.fetchCustomerCheck.mockRejectedValueOnce(new ApiError(403, 'support_grant_required'));
+    await router.push({ query: { tab: 'checks', check: 'denied' } });
+    await flushPromises();
+    expect(wrapper.find('[data-store-url]').exists()).toBe(false);
+    expect(wrapper.find('dialog[open]').exists()).toBe(false);
+  });
+
+  it('shows readable tenant audit, details, and the next page without raw changes', async () => {
+    const entry = {
+      id: 'a-1', created_at: '2026-10-20T10:00:00Z', actor: { id: 's-1', name: 'Founder', photo_url: null }, actor_kind: 'staff', action: 'tenant.suspend', target_type: 'tenant', target_id: 't-1', tenant: { id: 't-1', name: 'Kaffee GmbH' }, result: 'succeeded' as const,
+      presentation: { title: 'Организация приостановлена', description: 'Статус: Активно → Приостановлено', result_label: 'Успешно', object: { label: 'Kaffee GmbH', href: '/owner/tenants/t-1' }, details: ['Статус: Активно → Приостановлено'], links: [] },
+    };
+    mocked.fetchTenantAudit.mockResolvedValueOnce({ data: [entry], next_cursor: 'a-0' }).mockResolvedValueOnce({ data: [{ ...entry, id: 'a-0' }], next_cursor: null });
+    const { wrapper } = await open('/owner/tenants/t-1?tab=audit', ['tenants.read']);
+    expect(mocked.fetchTenantAudit).toHaveBeenCalledWith('t-1', undefined);
+    expect(wrapper.get('[data-section="audit"]').text()).toContain('Активно → Приостановлено');
+    expect(wrapper.get('[data-section="audit"]').text()).not.toContain('tenant.suspend');
+    await wrapper.get('[data-toggle="a-1"]').trigger('click');
+    expect(wrapper.find('[data-details]').exists()).toBe(true);
+    await wrapper.get('[data-action="more"]').trigger('click');
+    await flushPromises();
+    expect(mocked.fetchTenantAudit).toHaveBeenCalledWith('t-1', 'a-0');
+    expect(wrapper.findAll('[data-audit]').length).toBe(2);
+  });
+
   it('deletes an organization only with tenants.delete, a reason and a code, and can cancel it', async () => {
     const scheduled = card({ status: 'deleting', deletion: { status: 'requested', requested_via: 'platform', requested_at: '2026-10-20T10:00:00Z', purge_after: '2026-11-19T10:00:00Z', can_cancel: true } });
     mocked.requestTenantDeletion.mockResolvedValue(scheduled);
@@ -370,6 +488,28 @@ describe('tenants', () => {
     expect(mocked.fetchTenant).toHaveBeenCalledTimes(2);
   });
 
+  it('edits only the store name when the staff member has a live edit grant', async () => {
+    const grant = (await mocked.listPlatformSupportGrants('t-1'))[0]!;
+    mocked.listPlatformSupportGrants.mockResolvedValue([{ ...grant, scopes: ['edit_store'] }]);
+    mocked.fetchTenant.mockResolvedValueOnce(card()).mockResolvedValueOnce(card({ stores: [{ ...card().stores[0]!, name: 'Neuer Shop' }] }));
+    const { wrapper } = await open('/owner/tenants/t-1?tab=stores', ['tenants.read', 'tenants.support'], 'platform_member');
+    expect(mocked.listPlatformSupportGrants).toHaveBeenCalledWith('t-1', true);
+    await wrapper.get('[data-edit-store="s-1"]').trigger('click');
+    expect(wrapper.get('[data-action="confirm-store-edit"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-field="store-name-edit"]').setValue('Neuer Shop');
+    await wrapper.get('[data-field="reason-edit"]').setValue('Customer requested a correction');
+    await wrapper.get('[data-form="edit-store"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.renameCustomerStore).toHaveBeenCalledWith('t-1', 's-1', { current_name: 'Shop', name: 'Neuer Shop', reason: 'Customer requested a correction' });
+    expect(wrapper.get('[data-done="store-rename"]').text()).toContain('Название магазина изменено');
+    wrapper.unmount();
+    useStaff().forget();
+
+    mocked.listPlatformSupportGrants.mockResolvedValue([{ ...grant, scopes: ['read_diagnostics'] }]);
+    const { wrapper: withoutGrant } = await open('/owner/tenants/t-1?tab=stores', ['tenants.read', 'tenants.support'], 'platform_member');
+    expect(withoutGrant.find('[data-edit-store]').exists()).toBe(false);
+  });
+
   it('deletes a customer store only for tenants.delete with exact name, reason and code', async () => {
     const { wrapper: manager } = await open('/owner/tenants/t-1?tab=stores', ['tenants.read', 'tenants.manage'], 'platform_member');
     expect(manager.find('[data-delete-store]').exists()).toBe(false);
@@ -393,12 +533,13 @@ describe('tenants', () => {
   it('shows findings, orders with details, checks with screenshots and incidents of a customer store', async () => {
     mocked.fetchCustomerStore.mockResolvedValue({ id: 's-1', name: 'Shop', base_url: 'https://kaffee.example', platform: 'woocommerce', status: 'active', default_currency: 'EUR', timezone: 'Europe/Berlin' });
     mocked.fetchStoreFindings.mockResolvedValue({ data: [{ id: 'f-1', order_id: 'o-1', order_display_number: '#15238', rule_code: 'MONEY_CAPTURE_MISSING', status: 'mismatch', reason_code: 'x', currency: 'EUR', currency_exponent: 2, difference_minor: '18400', evaluated_at: '2026-10-20T10:00:00Z' }], next_cursor: 'c-2' });
-    mocked.fetchStoreOrders.mockResolvedValue({ data: [{ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: '2026-10-20T07:01:00Z', payment_state: 'paid', is_synthetic: false, source_created_at: '2026-10-20T07:00:00Z' }], next_cursor: null });
-    mocked.fetchCustomerOrder.mockResolvedValue({ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'stripe', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: null, is_synthetic: false, source_created_at: null, transaction_ref: null, financial_support: 'supported', findings: [], captures: [{ id: 'tx-1', kind: 'capture', status: 'succeeded', currency: 'EUR', currency_exponent: 2, amount_minor: '18400', occurred_at: null }], refunds: [], revisions: [{}, {}] });
+    mocked.fetchStoreOrders.mockResolvedValue({ data: [{ id: 'o-1', display_number: '#15238', status: 'processing', gateway: 'merchant_custom', gateway_name: 'Оплата при получении', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: '2026-10-20T07:01:00Z', payment_state: 'paid', is_synthetic: false, source_created_at: '2026-10-20T07:00:00Z' }], next_cursor: null });
+    mocked.fetchCustomerOrder.mockResolvedValue({ id: 'o-1', store_id: 's-1', display_number: '#15238', status: 'processing', gateway: 'merchant_custom', gateway_name: 'Оплата при получении', mode: 'live', currency: 'EUR', currency_exponent: 2, total_minor: '18400', paid_marked_at: null, is_synthetic: false, source_created_at: null, transaction_ref: null, financial_support: 'supported', findings: [], captures: [{ id: 'tx-1', kind: 'capture', status: 'succeeded', currency: 'EUR', currency_exponent: 2, amount_minor: '18400', occurred_at: null }], refunds: [], revisions: [{}, {}] });
     mocked.fetchStoreChecks.mockResolvedValue({ data: [{ id: 'r-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z' }], next_cursor: null });
-    mocked.fetchCustomerCheck.mockResolvedValue({ id: 'r-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z', attempts: [{ id: 'a-1', attempt_number: 1, status: 'failed', error_code: 'site_failure', started_at: '2026-10-20T09:00:00Z', finished_at: null, artifacts: [{ id: 'art-1', kind: 'screenshot', content_type: 'image/jpeg', size_bytes: 2048, expires_at: '2026-11-19T00:00:00Z' }], steps: [{ index: 0, code: 'payment_form', status: 'failed', error_code: 'selector_changed' }] }] });
+    mocked.fetchCustomerCheck.mockResolvedValue({ id: 'r-1', store_id: 's-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z', attempts: [{ id: 'a-1', attempt_number: 1, status: 'failed', error_code: 'site_failure', started_at: '2026-10-20T09:00:00Z', finished_at: null, artifacts: [{ id: 'art-1', kind: 'screenshot', content_type: 'image/jpeg', size_bytes: 2048, expires_at: '2026-11-19T00:00:00Z' }], steps: [{ index: 0, code: 'payment_form', status: 'failed', error_code: 'selector_changed' }] }] });
     mocked.fetchCustomerArtifactUrl.mockResolvedValue({ url: 'https://objects.example.test/shot.jpg', content_type: 'image/jpeg' });
-    mocked.fetchStoreIncidents.mockResolvedValue({ data: [{ id: 'i-1', family: 'money', state: 'open', severity: 'warning', title_code: 'MONEY_CAPTURE_MISSING', currency: 'EUR', currency_exponent: 2, verified_discrepancy_minor: '18400', first_seen_at: null, last_seen_at: '2026-10-20T10:00:00Z', resolved_at: null }], next_cursor: null });
+    mocked.fetchStoreIncidents.mockResolvedValue({ data: [{ id: 'i-1', store_id: 's-1', family: 'money', state: 'open', severity: 'warning', title_code: 'MONEY_CAPTURE_MISSING', currency: 'EUR', currency_exponent: 2, verified_discrepancy_minor: '18400', first_seen_at: null, last_seen_at: '2026-10-20T10:00:00Z', resolved_at: null }], next_cursor: null });
+    mocked.fetchCustomerIncident.mockResolvedValue({ id: 'i-1', store_id: 's-1', family: 'money', state: 'open', severity: 'warning', title_code: 'MONEY_CAPTURE_MISSING', currency: 'EUR', currency_exponent: 2, verified_discrepancy_minor: '18400', first_seen_at: null, last_seen_at: null, resolved_at: null });
     const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1');
 
     expect(mocked.fetchCustomerStore).toHaveBeenCalledWith('t-1', 's-1');
@@ -414,26 +555,31 @@ describe('tenants', () => {
     await flushPromises();
     expect(wrapper.get('[data-order="o-1"]').text()).toContain('В обработке');
     expect(wrapper.get('[data-order="o-1"] [data-payment-state="paid"]').text()).toBe('Оплачен');
-    await wrapper.get('[data-order="o-1"] button').trigger('click');
+    expect(wrapper.get('[data-order="o-1"] [data-gateway]').text()).toBe('Оплата при получении');
+    expect(wrapper.get('[data-order="o-1"] [data-gateway]').attributes('title')).toBe('merchant_custom');
+    await wrapper.get('[data-order="o-1"] a').trigger('click');
     await flushPromises();
     expect(mocked.fetchCustomerOrder).toHaveBeenCalledWith('t-1', 'o-1');
     expect(wrapper.get('[data-detail="order"]').text()).toContain('Заказ #15238');
+    expect(wrapper.get('[data-detail="order"] [data-gateway]').text()).toBe('Оплата при получении');
     expect(wrapper.get('[data-detail="order"]').text()).toContain('succeeded');
     const orderDialog = wrapper.get('[data-detail="order"]');
     expect(orderDialog.element.tagName).toBe('DIALOG');
     expect(orderDialog.attributes('open')).toBeDefined();
     await orderDialog.trigger('cancel');
+    await vi.waitFor(() => expect(router.currentRoute.value.query.order).toBeUndefined());
     await flushPromises();
     expect(wrapper.get('[data-detail="order"]').text()).not.toContain('Заказ #15238');
-    await wrapper.get('[data-order="o-1"] button').trigger('click');
+    await wrapper.get('[data-order="o-1"] a').trigger('click');
     await flushPromises();
     await wrapper.get('[data-detail="order"] [data-action="close-detail"]').trigger('click');
+    await vi.waitFor(() => expect(router.currentRoute.value.query.order).toBeUndefined());
     await flushPromises();
     expect(wrapper.get('[data-detail="order"]').attributes('open')).toBeUndefined();
 
     await router.replace({ query: { tab: 'checks' } });
     await flushPromises();
-    await wrapper.get('[data-check="r-1"] button').trigger('click');
+    await wrapper.get('[data-check="r-1"] a').trigger('click');
     await flushPromises();
     expect(wrapper.get('[data-attempt="1"]').text()).toContain('payment_form');
     await wrapper.get('[data-action="show-screenshot"]').trigger('click');
@@ -443,16 +589,18 @@ describe('tenants', () => {
 
     await router.replace({ query: { tab: 'incidents' } });
     await flushPromises();
-    await wrapper.get('[data-incident="i-1"] button').trigger('click');
+    await wrapper.get('[data-incident="i-1"] a').trigger('click');
+    await flushPromises();
     expect(wrapper.get('[data-detail="incident"]').text()).toMatch(/184,00/);
   });
 
   it('lets support rerun a check and handle an incident for the customer with a reason', async () => {
-    const incident = { id: 'i-1', family: 'money', state: 'open', severity: 'warning', title_code: 'MONEY_CAPTURE_MISSING', currency: 'EUR', currency_exponent: 2, verified_discrepancy_minor: '18400', first_seen_at: null, last_seen_at: '2026-10-20T10:00:00Z', resolved_at: null };
+    const incident = { id: 'i-1', store_id: 's-1', family: 'money', state: 'open', severity: 'warning', title_code: 'MONEY_CAPTURE_MISSING', currency: 'EUR', currency_exponent: 2, verified_discrepancy_minor: '18400', first_seen_at: null, last_seen_at: '2026-10-20T10:00:00Z', resolved_at: null };
     mocked.fetchCustomerStore.mockResolvedValue({ id: 's-1', name: 'Shop', base_url: 'https://kaffee.example', platform: 'woocommerce', status: 'active', default_currency: 'EUR', timezone: 'Europe/Berlin' });
     mocked.fetchStoreFindings.mockResolvedValue({ data: [], next_cursor: null });
     mocked.fetchStoreChecks.mockResolvedValue({ data: [{ id: 'r-1', scenario_id: 'sc-1', trigger: 'scheduled', status: 'failed', error_code: null, scheduled_at: '2026-10-20T09:00:00Z', started_at: null, finished_at: '2026-10-20T09:01:00Z' }], next_cursor: null });
     mocked.fetchStoreIncidents.mockResolvedValue({ data: [incident], next_cursor: null });
+    mocked.fetchCustomerIncident.mockResolvedValue(incident);
     mocked.rerunStoreCheck.mockResolvedValue({ id: 'r-2', scenario_id: 'sc-1', trigger: 'support', status: 'queued', error_code: null, scheduled_at: '2026-10-20T10:00:00Z', started_at: null, finished_at: null });
     mocked.changeStoreIncident.mockResolvedValueOnce({ ...incident, state: 'acknowledged' }).mockResolvedValueOnce({ ...incident, state: 'resolved', resolved_at: '2026-10-20T10:05:00Z' });
     const { wrapper, router } = await open('/owner/tenants/t-1/stores/s-1?tab=checks', ['tenants.read', 'tenants.support', 'tenants.incident_actions']);
@@ -467,7 +615,8 @@ describe('tenants', () => {
 
     await router.replace({ query: { tab: 'incidents' } });
     await flushPromises();
-    await wrapper.get('[data-incident="i-1"] button').trigger('click');
+    await wrapper.get('[data-incident="i-1"] a').trigger('click');
+    await flushPromises();
     await wrapper.get('[data-action="support-acknowledge"]').trigger('click');
     await wrapper.get('[data-field="support-reason"]').setValue('Looking into it');
     await wrapper.get('[data-form="support-acknowledge"]').trigger('submit');

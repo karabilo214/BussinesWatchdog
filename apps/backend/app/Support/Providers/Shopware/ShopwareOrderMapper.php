@@ -2,6 +2,7 @@
 
 namespace App\Support\Providers\Shopware;
 
+use App\Support\Checkout\PaymentMethodName;
 use App\Support\Integrations\ProviderCoverage;
 use App\Support\Providers\WooCommerce\WooCommerceAmount;
 use Illuminate\Support\Carbon;
@@ -40,7 +41,7 @@ class ShopwareOrderMapper
                 'currency' => ['isoCode'],
                 'state_machine_state' => ['technicalName'],
                 'order_transaction' => ['id', 'amount', 'stateMachineState', 'paymentMethod', 'customFields', 'createdAt', 'updatedAt'],
-                'payment_method' => ['technicalName', 'handlerIdentifier'],
+                'payment_method' => ['technicalName', 'handlerIdentifier', 'translated', 'name', 'distinguishableName'],
                 'calculated_price' => ['totalPrice'],
             ],
         ];
@@ -74,6 +75,10 @@ class ShopwareOrderMapper
 
         $transaction = $this->effectiveTransaction(is_array($order['transactions'] ?? null) ? $order['transactions'] : []);
         $gateway = is_string($transaction['paymentMethod']['technicalName'] ?? null) ? $transaction['paymentMethod']['technicalName'] : '';
+        $paymentMethod = is_array($transaction['paymentMethod'] ?? null) ? $transaction['paymentMethod'] : [];
+        $translated = is_array($paymentMethod['translated'] ?? null) ? $paymentMethod['translated'] : [];
+        $gatewayName = collect([$translated['name'] ?? null, $translated['distinguishableName'] ?? null, $paymentMethod['distinguishableName'] ?? null, $paymentMethod['name'] ?? null])
+            ->map(fn (mixed $value): ?string => PaymentMethodName::normalize($value))->first(fn (?string $value): bool => $value !== null);
         $transactionState = (string) ($transaction['stateMachineState']['technicalName'] ?? '');
         $custom = is_array($transaction['customFields'] ?? null) ? $transaction['customFields'] : [];
         $stripePayment = str_starts_with($gateway, self::STRIPE_PAYMENT_PREFIX);
@@ -89,6 +94,7 @@ class ShopwareOrderMapper
             'currency_exponent' => $exponent,
             'total_minor' => $total,
             'gateway' => $gateway !== '' ? substr($gateway, 0, 255) : null,
+            'gateway_name' => $gatewayName,
             'transaction_ref' => $captureRef !== '' ? substr($captureRef, 0, 255) : null,
             'payment_expected' => $total !== '0',
             'paid_marked_at' => in_array($transactionState, self::PAID_STATES, true) ? ($this->time($transaction['updatedAt'] ?? null) ?? $this->time($transaction['createdAt'] ?? null)) : null,

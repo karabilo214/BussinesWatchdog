@@ -180,7 +180,6 @@ class TenantDirectory
             ])->values()->all(),
             'orders_limit' => $this->calculator->forTenant($tenant->id)->limit(FeatureCatalog::MAX_ORDERS_PER_MONTH),
             'billing' => $billing ? $this->billing($tenant) : null,
-            'audit' => $this->audit($tenant->id),
         ];
     }
 
@@ -321,29 +320,6 @@ class TenantDirectory
             'cancel_at_period_end' => $subscription->cancel_at_period_end,
             'extra_store_quantity' => $subscription->extra_store_quantity,
         ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function audit(string $tenantId): array
-    {
-        return DB::table('platform_audit_log')
-            ->leftJoin('platform_staff', 'platform_staff.id', '=', 'platform_audit_log.actor_staff_id')
-            ->leftJoin('users', 'users.id', '=', 'platform_staff.user_id')
-            ->where('platform_audit_log.target_tenant_id', $tenantId)
-            ->orderByDesc('platform_audit_log.created_at')
-            ->limit(50)
-            ->get(['platform_audit_log.*', 'users.name as actor_name'])
-            ->map(fn (object $row): array => [
-                'id' => $row->id,
-                'action' => $row->action,
-                'actor' => $row->actor_name,
-                'reason' => $row->reason,
-                'result' => $row->result,
-                'changes' => json_decode((string) $row->sanitized_changes, true),
-                'created_at' => Carbon::parse($row->created_at)->toJSON(),
-            ])->values()->all();
     }
 
     /**

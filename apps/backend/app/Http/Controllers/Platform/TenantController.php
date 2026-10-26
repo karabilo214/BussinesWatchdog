@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Support\Account\AccountMailer;
 use App\Support\Account\MfaService;
 use App\Support\Billing\BillingCheckoutRejected;
+use App\Support\Platform\AuditJournal;
 use App\Support\Platform\PlatformAudit;
 use App\Support\Platform\PlatformCapabilities;
 use App\Support\Platform\ReminderRejected;
@@ -28,6 +29,7 @@ class TenantController extends Controller
         private readonly TenantActions $actions,
         private readonly MfaService $mfa,
         private readonly PlatformAudit $audit,
+        private readonly AuditJournal $journal,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -52,6 +54,18 @@ class TenantController extends Controller
         $card = $this->directory->tenant($tenant, $this->can($staff, PlatformCapabilities::BILLING_READ), $staff->role === PlatformStaff::ROLE_OWNER);
 
         return $card === null ? response()->json(['code' => 'not_found', 'message' => 'Organisation not found.'], 404) : response()->json($card);
+    }
+
+    public function audit(Request $request, string $tenant): JsonResponse
+    {
+        $validated = $request->validate(['cursor' => ['sometimes', 'uuid']]);
+        if (! Str::isUuid($tenant) || ! Tenant::query()->whereKey($tenant)->whereNot('status', 'deleted')->exists()) {
+            return response()->json(['code' => 'not_found', 'message' => 'Organisation not found.'], 404);
+        }
+
+        $staff = $this->staff($request);
+
+        return response()->json($this->journal->tenantPage($tenant, $validated['cursor'] ?? null, $staff, $staff->user?->locale ?? 'en'));
     }
 
     public function subscriptions(Request $request): JsonResponse

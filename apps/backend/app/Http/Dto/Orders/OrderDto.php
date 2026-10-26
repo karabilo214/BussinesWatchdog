@@ -23,6 +23,7 @@ class OrderDto
             'display_number' => $order->display_number,
             'status' => $order->status,
             'gateway' => $order->gateway,
+            'gateway_name' => $order->metadata['gateway_name'] ?? null,
             'mode' => $mode ?? $order->mode,
             'mode_reported' => $mode !== null || ($order->metadata['mode_reported'] ?? true) !== false,
             'currency' => $order->currency,

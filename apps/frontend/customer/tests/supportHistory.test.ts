@@ -6,7 +6,7 @@ import en from '@/i18n/locales/en.json';
 import ru from '@/i18n/locales/ru.json';
 
 const TARGETS = ['store', 'order', 'check', 'artifact', 'incident'];
-const EVENTS = ['support_grant.requested', 'support_grant.approved', 'support_grant.denied', 'support_grant.revoked', 'support_access.opened', 'support_access.artifact'];
+const EVENTS = ['support_grant.requested', 'support_grant.approved', 'support_grant.denied', 'support_grant.revoked', 'support_access.opened', 'support_access.artifact', 'store.support_renamed'];
 
 describe('support access history', () => {
   it('names every event and every opened object in ru, en and de', () => {
@@ -21,6 +21,8 @@ describe('support access history', () => {
     const view = readFileSync(resolve(__dirname, '../src/views/SupportGrantsView.vue'), 'utf8');
     expect(view).toContain('support_grants.target.');
     expect(view).not.toContain('entry.target_id');
+    expect(view).toContain('entry.before_name');
+    expect(view).toContain('entry.after_name');
   });
 
   it('asks for a support employee by name from the list, never for an e-mail', () => {

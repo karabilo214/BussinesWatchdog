@@ -17,15 +17,24 @@ class SupportGrantController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $validated = $request->validate(['tenant_id' => ['required', 'uuid'], 'store_id' => ['sometimes', 'uuid']]);
+        $validated = $request->validate(['tenant_id' => ['required', 'uuid'], 'store_id' => ['sometimes', 'uuid'], 'active_only' => ['sometimes', 'boolean']]);
         $tenant = Tenant::query()->whereKey($validated['tenant_id'])->whereNotIn('status', ['deleting', 'deleted'])->firstOrFail();
         $query = SupportAccessGrant::query()->where('tenant_id', $tenant->id)->where('staff_id', $this->staff($request)->id)->whereNull('staff_hidden_at');
 
         if (isset($validated['store_id'])) {
             $query->where('store_id', $validated['store_id']);
         }
+        $activeOnly = (bool) ($validated['active_only'] ?? false);
+        if ($activeOnly) {
+            $query->where('state', SupportAccessGrant::APPROVED)->where('expires_at', '>', now());
+        }
 
-        return response()->json(['data' => $query->orderByDesc('created_at')->limit(100)->get()->map(fn (SupportAccessGrant $grant): array => $this->dto($grant))->all()]);
+        $query->orderByDesc('created_at');
+        if (! $activeOnly) {
+            $query->limit(100);
+        }
+
+        return response()->json(['data' => $query->get()->map(fn (SupportAccessGrant $grant): array => $this->dto($grant))->all()]);
     }
 
     public function store(Request $request): JsonResponse
@@ -33,7 +42,7 @@ class SupportGrantController extends Controller
         $validated = $request->validate([
             'tenant_id' => ['required', 'uuid'],
             'store_id' => ['required', 'uuid'],
-            'scopes' => ['required', 'array', 'min:1', 'max:3'],
+            'scopes' => ['required', 'array', 'min:1', 'max:4'],
             'scopes.*' => ['required', 'string', Rule::in(SupportAccessGrant::SCOPES)],
             'duration_hours' => ['sometimes', 'integer', 'between:1,72'],
             'reason' => ['required', 'string', 'min:5', 'max:500'],

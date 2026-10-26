@@ -138,8 +138,13 @@ class ShopwareIntegrationTest extends TestCase
     public function test_orders_are_read_without_customer_data_and_become_order_snapshots(): void
     {
         $this->swOrder('a1', '10001', 39.98, 'EUR', 'open', [$this->transaction('t1', 'paid', 'swag_paypal_paypal', ['swag_paypal_resource_id' => 'CAPTURE00000001X', 'swag_paypal_order_id' => 'ORDER0000000001X', 'swag_paypal_is_sandbox' => true])]);
-        $this->swOrder('a2', '10002', 19.99, 'EUR', 'open', [$this->transaction('t2', 'open', 'payment_prepayment')]);
-        $this->swOrder('a3', '10003', 1500.0, 'JPY', 'completed', [$this->transaction('t3', 'cancelled', 'swag_paypal_paypal'), $this->transaction('t4', 'paid', 'payment_invoicepayment', [], '+1 minute')]);
+        $named = $this->transaction('t2', 'open', 'merchant_special_gateway');
+        $named['paymentMethod']['translated'] = ['name' => ' <b>Pay at the shop</b> '];
+        $this->swOrder('a2', '10002', 19.99, 'EUR', 'open', [$named]);
+        $invoiceMethod = $this->transaction('t4', 'paid', 'payment_invoicepayment', [], '+1 minute');
+        $invoiceMethod['paymentMethod']['translated'] = ['name' => ' '];
+        $invoiceMethod['paymentMethod']['distinguishableName'] = 'Invoice at the shop';
+        $this->swOrder('a3', '10003', 1500.0, 'JPY', 'completed', [$this->transaction('t3', 'cancelled', 'swag_paypal_paypal'), $invoiceMethod]);
         $this->swOrder('a4', '10004', 19.999, 'EUR', 'open', [$this->transaction('t5', 'open', 'payment_prepayment')]);
         $integration = $this->connected();
 
@@ -151,10 +156,13 @@ class ShopwareIntegrationTest extends TestCase
         $this->assertSame(['open', 'EUR', 3998, 'swag_paypal_paypal', 'CAPTURE00000001X', 'test', 'supported', '10001', 'none'], [$paypal->status, $paypal->currency, (int) $paypal->total_minor, $paypal->gateway, $paypal->transaction_ref, $paypal->mode, $paypal->financial_support, $paypal->display_number, $paypal->metadata['refund_state']]);
         $this->assertNotNull($paypal->paid_marked_at);
         $this->assertSame(['paid', 'open'], [$paypal->metadata['payment_state'], Order::query()->where('external_id', $this->id('a2'))->firstOrFail()->metadata['payment_state']], 'the store payment state is normalized');
+        $this->assertSame('Pay at the shop', Order::query()->where('external_id', $this->id('a2'))->firstOrFail()->metadata['gateway_name']);
+        $this->assertSame('merchant_special_gateway', Order::query()->where('external_id', $this->id('a2'))->value('gateway'));
         $this->assertSame($this->id('t1'), $paypal->metadata['store_transaction_ref'], 'the effective transaction id is kept to match SwagPayPal payments');
         $this->assertSame(['unsupported', null], [Order::query()->where('external_id', $this->id('a2'))->value('financial_support'), Order::query()->where('external_id', $this->id('a2'))->value('paid_marked_at')]);
         $yen = Order::query()->where('external_id', $this->id('a3'))->firstOrFail();
         $this->assertSame([1500, 'payment_invoicepayment'], [(int) $yen->total_minor, $yen->gateway], 'the cancelled transaction is skipped for the effective one');
+        $this->assertSame('Invoice at the shop', $yen->metadata['gateway_name'], 'the distinguishable name is used when the translated name is empty');
         $this->assertNull(Order::query()->where('external_id', $this->id('a4'))->first());
         $this->assertSame(['amount_not_representable' => 1], $integration->refresh()->health['sync']['skipped']);
 

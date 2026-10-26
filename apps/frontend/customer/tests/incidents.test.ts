@@ -375,6 +375,16 @@ describe('IncidentEvidence', () => {
     expect(wrapper.text()).toContain('Способ оплаты «Банковская карта»: 4 неудачных попыток подряд (порог 3).');
     expect(wrapper.text()).toContain('Последняя успешная оплата: ещё не было.');
   });
+
+  it('shows a custom payment method name and keeps its code in the tooltip', () => {
+    const wrapper = mount(IncidentEvidence, {
+      props: { incident: incident({ findings: [], signals: [{ id: 'sig-custom', signal_type: 'payment_attempts', family: 'checkout_payment', component: 'merchant_custom', severity: 'warning', confidence: 'observed', currency: null, finding_id: null, evidence: { payment_method: 'merchant_custom', payment_method_name: 'Оплата в магазине', failure_streak: 3, threshold: 3 }, detected_at: '2026-10-09T10:00:00Z' }] }) },
+      global,
+    });
+    expect(wrapper.text()).toContain('Способ оплаты «Оплата в магазине»: 3');
+    expect(wrapper.text()).not.toContain('merchant_custom');
+    expect(wrapper.get('[title="merchant_custom"]').attributes('title')).toBe('merchant_custom');
+  });
 });
 
 describe('IncidentTimeline', () => {

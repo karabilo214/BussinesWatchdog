@@ -299,7 +299,7 @@ CREATE TABLE orders (
  source_updated_at timestamptz NOT NULL,
  deleted_at timestamptz,
  current_payload_hash char(64) NOT NULL,
- metadata jsonb NOT NULL DEFAULT '{}',
+ metadata jsonb NOT NULL DEFAULT '{}', -- gateway_name: optional store payment method display label; matching uses gateway
  created_at timestamptz NOT NULL DEFAULT now(),
  updated_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE (integration_id,external_id),

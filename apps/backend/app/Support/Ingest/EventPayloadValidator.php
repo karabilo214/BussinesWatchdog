@@ -97,12 +97,13 @@ class EventPayloadValidator
         return match ($event['type']) {
             EventInbox::EVENT_ORDER_SNAPSHOT => $event['aggregate_type'] === EventInbox::AGGREGATE_ORDER
                 && array_key_exists('aggregate_revision', $event)
-                && $this->hasOnlyKeys($data, ['status', 'display_number', 'currency', 'currency_exponent', 'total_minor', 'gateway', 'transaction_ref', 'payment_expected', 'paid_marked_at', 'source_created_at', 'source_updated_at', 'mode', 'financial_support', 'order_key_hash', 'refund_state', 'payment_state', 'store_transaction_ref', 'provider_refunds_synced'])
+                && $this->hasOnlyKeys($data, ['status', 'display_number', 'currency', 'currency_exponent', 'total_minor', 'gateway', 'gateway_name', 'transaction_ref', 'payment_expected', 'paid_marked_at', 'source_created_at', 'source_updated_at', 'mode', 'financial_support', 'order_key_hash', 'refund_state', 'payment_state', 'store_transaction_ref', 'provider_refunds_synced'])
                 && $this->isRequiredString($data, 'status')
                 && $this->isOptionalString($data, 'display_number')
                 && $this->isCurrencyData($data)
                 && $this->isMinorUnits($data['total_minor'] ?? null)
                 && $this->isOptionalString($data, 'gateway', nullable: true)
+                && $this->isOptionalString($data, 'gateway_name', nullable: true)
                 && $this->isOptionalString($data, 'transaction_ref', nullable: true)
                 && is_bool($data['payment_expected'] ?? null)
                 && $this->isOptionalDateTime($data, 'paid_marked_at', nullable: true)

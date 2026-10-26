@@ -2496,7 +2496,7 @@
     "staff": "Support employee",
     "staff_choose": "Choose an employee",
     "scopes": "Allowed access",
-    "scope": { "read_diagnostics": "Incidents, checks, orders and payments", "read_artifacts": "Screenshots and other materials", "request_recheck": "Start a new browser check" },
+    "scope": { "read_diagnostics": "Incidents, checks, orders and payments", "read_artifacts": "Screenshots and other materials", "request_recheck": "Start a new browser check", "edit_store": "Edit store name" },
     "hours": "Duration in hours (maximum 72)",
     "reason": "Reason",
     "case": "Support case reference",
@@ -2511,7 +2511,7 @@
     "revoke": "Revoke access",
     "activity": "Activity",
     "no_activity": "No activity recorded.",
-    "event": { "support_grant.requested": "Access requested", "support_grant.approved": "Access approved", "support_grant.denied": "Access denied", "support_grant.revoked": "Access revoked", "support_access.opened": "Detailed data opened", "support_access.artifact": "Material downloaded", "check_run.support_started": "New check started" },
+    "event": { "support_grant.requested": "Access requested", "support_grant.approved": "Access approved", "support_grant.denied": "Access denied", "support_grant.revoked": "Access revoked", "support_access.opened": "Detailed data opened", "support_access.artifact": "Material downloaded", "check_run.support_started": "New check started", "store.support_renamed": "Store name changed by support" },
     "target": { "store": "store data", "order": "order", "check": "check", "artifact": "check material", "incident": "incident" },
     "warning": "Revoking access stops new requests and links immediately. It cannot erase information the employee has already seen or saved."
   }

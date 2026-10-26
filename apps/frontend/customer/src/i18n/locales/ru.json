@@ -2496,7 +2496,7 @@
     "staff": "Сотрудник поддержки",
     "staff_choose": "Выберите сотрудника",
     "scopes": "Разрешённые действия",
-    "scope": { "read_diagnostics": "Инциденты, проверки, заказы и платежи", "read_artifacts": "Скриншоты и материалы", "request_recheck": "Запуск новой браузерной проверки" },
+    "scope": { "read_diagnostics": "Инциденты, проверки, заказы и платежи", "read_artifacts": "Скриншоты и материалы", "request_recheck": "Запуск новой браузерной проверки", "edit_store": "Изменение названия магазина" },
     "hours": "Срок в часах (максимум 72)",
     "reason": "Основание",
     "case": "Номер обращения",
@@ -2511,7 +2511,7 @@
     "revoke": "Отозвать доступ",
     "activity": "История",
     "no_activity": "Действий пока нет.",
-    "event": { "support_grant.requested": "Доступ запрошен", "support_grant.approved": "Доступ разрешён", "support_grant.denied": "Запрос отклонён", "support_grant.revoked": "Доступ отозван", "support_access.opened": "Открыты подробные данные", "support_access.artifact": "Скачан материал", "check_run.support_started": "Запущена новая проверка" },
+    "event": { "support_grant.requested": "Доступ запрошен", "support_grant.approved": "Доступ разрешён", "support_grant.denied": "Запрос отклонён", "support_grant.revoked": "Доступ отозван", "support_access.opened": "Открыты подробные данные", "support_access.artifact": "Скачан материал", "check_run.support_started": "Запущена новая проверка", "store.support_renamed": "Поддержка изменила название магазина" },
     "target": { "store": "данные магазина", "order": "заказ", "check": "проверка", "artifact": "материал проверки", "incident": "инцидент" },
     "warning": "Отзыв сразу остановит новые запросы и ссылки. Он не удалит сведения, которые сотрудник уже увидел или сохранил."
   }

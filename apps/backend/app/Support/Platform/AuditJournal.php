@@ -37,6 +37,22 @@ class AuditJournal
     }
 
     /**
+     * @return array{data: list<array<string, mixed>>, next_cursor: ?string}
+     */
+    public function tenantPage(string $tenantId, ?string $cursor, PlatformStaff $viewer, string $locale): array
+    {
+        $rows = $this->query(['tenant' => $tenantId])
+            ->when($cursor !== null, fn (Builder $query) => $query->where('platform_audit_log.id', '<', $cursor))
+            ->orderByDesc('platform_audit_log.id')->limit(self::PAGE + 1)->get();
+        $page = $rows->take(self::PAGE);
+
+        return [
+            'data' => $page->map(fn (object $row): array => $this->row($row, $viewer, $locale))->values()->all(),
+            'next_cursor' => $rows->count() > self::PAGE ? (string) $page->last()->id : null,
+        ];
+    }
+
+    /**
      * @param  array<string, string>  $filters
      * @return iterable<array<string, mixed>>
      */

@@ -11,6 +11,9 @@ function bw_make_order(array $props = []): WC_Order
     $order = wc_create_order();
     $order->set_currency($props['currency'] ?? 'EUR');
     $order->set_payment_method($props['gateway'] ?? 'stripe');
+    if (isset($props['gateway_title'])) {
+        $order->set_payment_method_title($props['gateway_title']);
+    }
     $order->set_transaction_id($props['transaction_id'] ?? 'pi_test_' . wp_generate_password(8, false));
     $order->set_total($props['total'] ?? '184.00');
     $order->set_status($props['status'] ?? 'processing');
@@ -38,7 +41,7 @@ bw_test('minor units conversion uses strings and rejects lossy amounts', functio
 });
 
 bw_test('saving an order records one order snapshot with minor units', function () {
-    $order = bw_make_order(['transaction_id' => 'pi_capture_1']);
+    $order = bw_make_order(['transaction_id' => 'pi_capture_1', 'gateway_title' => 'Bank card']);
     bw_assert(in_array($order->get_id(), OrderCapture::pendingIds(), true), 'order hooks did not mark the order dirty');
     OrderCapture::flush();
 
@@ -49,6 +52,7 @@ bw_test('saving an order records one order snapshot with minor units', function 
     bw_assert($event['aggregate_revision'] === 1, 'revision is not 1');
     bw_assert($event['data']['total_minor'] === '18400' && $event['data']['currency_exponent'] === 2, 'wrong amount');
     bw_assert($event['data']['gateway'] === 'stripe' && $event['data']['financial_support'] === 'supported', 'gateway support wrong');
+    bw_assert($event['data']['gateway_name'] === 'Bank card', 'payment method title missing');
     bw_assert($event['data']['transaction_ref'] === 'pi_capture_1', 'transaction ref missing');
     bw_assert($event['data']['status'] === 'processing', 'status wrong');
     bw_assert(isset($event['data']['display_number']), 'display number missing');

@@ -80,6 +80,55 @@ class SupportGrantTest extends TestCase
         $this->postJson("/api/v1/support-grants/{$grantId}/revoke")->assertOk()->assertJsonPath('state', 'revoked');
     }
 
+    public function test_store_name_edit_requires_its_own_live_grant_and_records_both_audits(): void
+    {
+        $customer = $this->context();
+        $other = $this->context();
+        $staff = $this->signInStaff();
+        $tenant = $customer['tenant']->id;
+        $store = $customer['store']->id;
+        $path = "/platform-api/v1/tenants/{$tenant}/stores/{$store}/name";
+        $body = ['current_name' => 'Main Shop', 'name' => 'Renamed Shop', 'reason' => 'Correct customer store label'];
+
+        $this->patchJson($path, $body)->assertForbidden();
+        $read = app(SupportGrants::class)->request($tenant, $store, $staff, ['read_diagnostics'], 24, 'Diagnose store', null);
+        app(SupportGrants::class)->decide($read, $customer['user'], true);
+        $this->patchJson($path, $body)->assertForbidden();
+
+        $edit = app(SupportGrants::class)->request($tenant, $store, $staff, [SupportAccessGrant::EDIT_STORE], 24, 'Correct store name', null);
+        $this->patchJson($path, $body)->assertForbidden();
+        app(SupportGrants::class)->decide($edit, $customer['user'], true);
+        $this->assertContains($edit->id, array_column($this->getJson("/platform-api/v1/support-grants?tenant_id={$tenant}&active_only=1")->assertOk()->json('data'), 'id'));
+        $this->patchJson("/platform-api/v1/tenants/{$tenant}/stores/{$other['store']->id}/name", $body)->assertNotFound();
+        $this->patchJson($path, [...$body, 'name' => '   '])->assertStatus(422);
+        $this->patchJson($path, [...$body, 'reason' => 'x'])->assertStatus(422);
+        $beforeStore = DB::table('stores')->where('id', $store)->first();
+        $this->patchJson($path, $body)->assertOk()->assertJsonPath('name', 'Renamed Shop');
+        $afterStore = DB::table('stores')->where('id', $store)->first();
+        $this->assertSame('Renamed Shop', $afterStore->name);
+        $this->assertSame((int) $beforeStore->config_version + 1, (int) $afterStore->config_version);
+        $this->assertSame([$beforeStore->base_url, $beforeStore->platform, $beforeStore->default_currency, $beforeStore->browser_enabled],
+            [$afterStore->base_url, $afterStore->platform, $afterStore->default_currency, $afterStore->browser_enabled]);
+        $this->assertDatabaseHas('platform_audit_log', ['actor_staff_id' => $staff->id, 'action' => 'tenant.store_updated', 'target_id' => $store, 'reason' => $body['reason']]);
+        $entry = DB::table('audit_log')->where('tenant_id', $tenant)->where('action', 'store.support_renamed')->sole();
+        $changes = json_decode($entry->changes, true);
+        $this->assertSame(['name' => 'Main Shop'], $changes['before']);
+        $this->assertSame(['name' => 'Renamed Shop'], $changes['after']);
+        $this->assertSame($edit->id, $changes['grant_id']);
+        $this->patchJson($path, $body)->assertStatus(409);
+
+        SupportAccessGrant::query()->whereKey($edit->id)->update(['expires_at' => Carbon::now()->subSecond()]);
+        $this->patchJson($path, ['current_name' => 'Renamed Shop', 'name' => 'After Expiry', 'reason' => 'Second correction'])->assertForbidden();
+        $this->assertNotContains($edit->id, array_column($this->getJson("/platform-api/v1/support-grants?tenant_id={$tenant}&active_only=1")->assertOk()->json('data'), 'id'));
+        SupportAccessGrant::query()->whereKey($edit->id)->update(['expires_at' => Carbon::now()->addHours(24)]);
+        app(SupportGrants::class)->revoke($edit, $customer['user']);
+        $this->patchJson($path, ['current_name' => 'Renamed Shop', 'name' => 'Another Name', 'reason' => 'Second correction'])->assertForbidden();
+        $this->assertSame('Renamed Shop', DB::table('stores')->where('id', $store)->value('name'));
+        $this->actingAs($customer['user'])->withSession(['active_tenant_id' => $tenant])
+            ->getJson("/api/v1/support-grants/{$edit->id}/activity")->assertOk()
+            ->assertJsonFragment(['action' => 'store.support_renamed', 'before_name' => 'Main Shop', 'after_name' => 'Renamed Shop', 'reason' => $body['reason']]);
+    }
+
     public function test_customer_chooses_staff_from_the_list_but_only_the_owner_can_approve_and_duration_is_bounded(): void
     {
         $customer = $this->context();

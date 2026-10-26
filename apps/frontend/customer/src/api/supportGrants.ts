@@ -1,6 +1,6 @@
 import { request } from '@bw/api-client';
 
-export type GrantScope = 'read_diagnostics' | 'read_artifacts' | 'request_recheck';
+export type GrantScope = 'read_diagnostics' | 'read_artifacts' | 'request_recheck' | 'edit_store';
 export type GrantState = 'pending' | 'approved' | 'denied' | 'revoked' | 'expired' | 'cancelled';
 
 export interface SupportGrant {
@@ -28,6 +28,9 @@ export interface GrantActivity {
   staff_name: string | null;
   target_type: string | null;
   target_id: string | null;
+  before_name: string | null;
+  after_name: string | null;
+  reason: string | null;
 }
 
 export async function listSupportGrants(): Promise<SupportGrant[]> {

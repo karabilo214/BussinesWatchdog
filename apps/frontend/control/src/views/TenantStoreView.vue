@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import { ApiError } from '@bw/api-client';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { StatusBadge, formatMinor, paymentMethodLabelKey } from '@bw/ui';
+import { StatusBadge, formatMinor, paymentMethodDisplayName } from '@bw/ui';
 import {
   changeStoreIncident,
   fetchCustomerArtifactUrl,
   fetchCustomerCheck,
+  fetchCustomerIncident,
   fetchCustomerOrder,
   fetchCustomerStore,
   fetchStoreChecks,
@@ -29,6 +30,7 @@ import DetailDialog from '@/components/DetailDialog.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useStaff } from '@/composables/useStaff';
+import { useStoreDetailRoute } from '@/composables/useStoreDetailRoute';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 
 const TABS = ['findings', 'orders', 'checks', 'incidents'] as const;
@@ -37,6 +39,10 @@ type Tab = (typeof TABS)[number];
 const props = defineProps<{ id: string; storeId: string }>();
 const route = useRoute();
 const router = useRouter();
+const detailRoute = useStoreDetailRoute();
+const selectedDetail = detailRoute.selected;
+const detailLocation = detailRoute.location;
+const closeDetail = detailRoute.close;
 const { locale, t, te } = useI18n();
 const { dateTime } = useFormat();
 
@@ -53,6 +59,12 @@ const cursor = ref<string | null>(null);
 const order = ref<StoreOrderDetail | null>(null);
 const check = ref<StoreCheckDetail | null>(null);
 const incident = ref<StoreIncident | null>(null);
+const detailBusy = ref(false);
+const detailError = ref<unknown>(null);
+const ready = ref(false);
+let detailRequest = 0;
+let pageRequest = 0;
+let lifecycle = 0;
 const screenshots = ref<Record<string, string>>({});
 const accessEnded = ref(false);
 const grantScopes = ref<string[]>([]);
@@ -70,6 +82,8 @@ function askSupport(kind: NonNullable<typeof support.kind>): void {
 }
 
 function expireAccess(): void {
+  detailRequest++;
+  pageRequest++;
   accessEnded.value = true;
   store.value = null;
   findings.value = [];
@@ -80,6 +94,9 @@ function expireAccess(): void {
   check.value = null;
   incident.value = null;
   screenshots.value = {};
+  detailBusy.value = false;
+  detailError.value = null;
+  support.kind = null;
   grantScopes.value = [];
 }
 
@@ -89,15 +106,21 @@ function accessError(caught: unknown): void {
 
 async function refreshGrant(): Promise<void> {
   if (document.hidden || accessEnded.value) return;
+  const version = lifecycle;
+  const tenantId = props.id;
+  const storeId = props.storeId;
   try {
     const now = Date.now();
-    const scopes = (await listPlatformSupportGrants(props.id))
-      .filter((grant) => grant.store_id === props.storeId && grant.state === 'approved' && grant.expires_at !== null && Date.parse(grant.expires_at) > now)
+    const grants = await listPlatformSupportGrants(tenantId);
+    if (version !== lifecycle) return;
+    const scopes = grants
+      .filter((grant) => grant.store_id === storeId && grant.state === 'approved' && grant.expires_at !== null && Date.parse(grant.expires_at) > now)
       .flatMap((grant) => grant.scopes);
     grantScopes.value = [...new Set(scopes)];
+    if (!grantScopes.value.includes('read_artifacts')) screenshots.value = {};
     if (!grantScopes.value.includes('read_diagnostics')) expireAccess();
   } catch (caught) {
-    accessError(caught);
+    if (version === lifecycle) accessError(caught);
   }
 }
 
@@ -113,8 +136,11 @@ async function confirmSupport(): Promise<void> {
       await rerunStoreCheck(props.id, props.storeId, scenarioToRerun.value, reason);
       await loadTab();
     } else if (kind !== 'rerun' && incident.value) {
-      incident.value = await changeStoreIncident(props.id, incident.value.id, kind, reason);
-      incidents.value = incidents.value.map((row) => (row.id === incident.value?.id ? incident.value : row));
+      const request = detailRequest;
+      const updated = await changeStoreIncident(props.id, incident.value.id, kind, reason);
+      if (request !== detailRequest || accessEnded.value) return;
+      incident.value = updated;
+      incidents.value = incidents.value.map((row) => (row.id === updated.id ? updated : row));
     }
     support.done = `store_data.support.done.${kind}`;
     support.kind = null;
@@ -156,28 +182,26 @@ function label(group: string, code: string | null): string {
 }
 
 async function page<T>(load: (cursor: string | null) => Promise<Page<T>>, target: { value: T[] }, more: boolean): Promise<void> {
+  const request = ++pageRequest;
   busy.value = true;
   listError.value = null;
 
   try {
     const result = await load(more ? cursor.value : null);
+    if (request !== pageRequest || accessEnded.value) return;
     target.value = more ? [...target.value, ...result.data] : result.data;
     cursor.value = result.next_cursor;
   } catch (caught) {
+    if (request !== pageRequest) return;
     listError.value = caught;
     accessError(caught);
   } finally {
-    busy.value = false;
+    if (request === pageRequest) busy.value = false;
   }
 }
 
 function loadTab(more = false): Promise<void> {
   if (accessEnded.value) return Promise.resolve();
-  if (!more) {
-    order.value = null;
-    check.value = null;
-    incident.value = null;
-  }
 
   switch (tab.value) {
     case 'orders':
@@ -191,61 +215,93 @@ function loadTab(more = false): Promise<void> {
   }
 }
 
-async function openOrder(id: string): Promise<void> {
-  listError.value = null;
-
-  try {
-    order.value = await fetchCustomerOrder(props.id, id);
-  } catch (caught) {
-    listError.value = caught;
-    accessError(caught);
-  }
-}
-
-async function openCheck(id: string): Promise<void> {
-  listError.value = null;
+async function loadDetail(): Promise<void> {
+  const request = ++detailRequest;
+  order.value = null;
+  check.value = null;
+  incident.value = null;
   screenshots.value = {};
+  detailError.value = null;
+  detailBusy.value = false;
+  support.kind = null;
+  const selected = detailRoute.selected.value;
+  if (!ready.value || accessEnded.value || !selected) return;
+  detailBusy.value = true;
 
   try {
-    check.value = await fetchCustomerCheck(props.id, id);
+    const result = selected.kind === 'order' ? await fetchCustomerOrder(props.id, selected.id)
+      : selected.kind === 'check' ? await fetchCustomerCheck(props.id, selected.id)
+        : await fetchCustomerIncident(props.id, selected.id);
+    if (request !== detailRequest || accessEnded.value) return;
+    if (result.store_id !== props.storeId) throw new ApiError(404, 'not_found');
+    if (selected.kind === 'order') order.value = result as StoreOrderDetail;
+    else if (selected.kind === 'check') check.value = result as StoreCheckDetail;
+    else incident.value = result as StoreIncident;
   } catch (caught) {
-    listError.value = caught;
+    if (request !== detailRequest) return;
+    detailError.value = caught;
     accessError(caught);
+  } finally {
+    if (request === detailRequest) detailBusy.value = false;
   }
 }
 
 async function showScreenshot(id: string): Promise<void> {
+  const request = detailRequest;
   try {
-    screenshots.value = { ...screenshots.value, [id]: (await fetchCustomerArtifactUrl(props.id, id)).url };
+    const result = await fetchCustomerArtifactUrl(props.id, id);
+    if (request !== detailRequest || accessEnded.value || !canArtifacts.value) return;
+    screenshots.value = { ...screenshots.value, [id]: result.url };
   } catch (caught) {
-    listError.value = caught;
+    if (request !== detailRequest) return;
+    detailError.value = caught;
     accessError(caught);
   }
 }
 
-async function findingOrder(finding: StoreFinding): Promise<void> {
-  if (finding.order_id === null) return;
-  await router.replace({ query: { tab: 'orders' } });
-  await openOrder(finding.order_id);
-}
-
-onMounted(async () => {
+async function initialize(): Promise<void> {
+  const version = ++lifecycle;
+  ready.value = false;
+  loading.value = true;
+  error.value = null;
+  listError.value = null;
+  busy.value = false;
+  grantScopes.value = [];
+  Object.assign(support, { kind: null, reason: '', error: null, done: null });
+  accessEnded.value = false;
+  if (grantTimer !== null) clearInterval(grantTimer);
+  store.value = null;
+  findings.value = []; orders.value = []; checks.value = []; incidents.value = [];
+  cursor.value = null;
+  pageRequest++;
+  void loadDetail();
   try {
-    store.value = await fetchCustomerStore(props.id, props.storeId);
+    const result = await fetchCustomerStore(props.id, props.storeId);
+    if (version !== lifecycle) return;
+    store.value = result;
     await refreshGrant();
+    if (version !== lifecycle || accessEnded.value) return;
+    await detailRoute.prepareDirectLink();
+    if (version !== lifecycle) return;
+    ready.value = true;
+    void loadDetail();
     await loadTab();
   } catch (caught) {
+    if (version !== lifecycle) return;
     error.value = caught;
     accessError(caught);
   } finally {
-    loading.value = false;
+    if (version === lifecycle) loading.value = false;
   }
+  if (version !== lifecycle) return;
   grantTimer = setInterval(() => void refreshGrant(), 15000);
-});
+}
 
-onUnmounted(() => { if (grantTimer !== null) clearInterval(grantTimer); });
+onUnmounted(() => { lifecycle++; detailRequest++; pageRequest++; if (grantTimer !== null) clearInterval(grantTimer); });
 
-watch(tab, () => void loadTab());
+watch(() => [props.id, props.storeId], () => void initialize(), { immediate: true });
+watch(tab, () => { if (ready.value) void loadTab(); });
+watch(() => [detailRoute.selected.value?.kind, detailRoute.selected.value?.id], () => { if (ready.value) void loadDetail(); });
 </script>
 
 <template>
@@ -311,7 +367,7 @@ watch(tab, () => void loadTab());
                 <td class="px-4 py-3">{{ label('rule', row.rule_code) }}</td>
                 <td class="px-4 py-3"><StatusBadge :tone="row.status === 'ok' ? 'ok' : row.status === 'mismatch' ? 'crit' : 'unknown'" :label="label('finding_status', row.status)" /></td>
                 <td class="px-4 py-3">
-                  <button v-if="row.order_id" type="button" class="font-medium text-primary hover:underline" @click="findingOrder(row)">{{ row.order_display_number ?? row.order_id }}</button>
+                  <RouterLink v-if="row.order_id" :to="detailLocation('order', row.order_id)" class="font-medium text-primary hover:underline">{{ row.order_display_number ?? row.order_id }}</RouterLink>
                   <span v-else>—</span>
                 </td>
                 <td class="px-4 py-3 tabular-nums">{{ money(row.difference_minor, row.currency, row.currency_exponent) }}</td>
@@ -334,7 +390,7 @@ watch(tab, () => void loadTab());
             <tbody class="divide-y divide-border">
               <tr v-for="row in orders" :key="row.id" :data-order="row.id">
                 <td class="px-4 py-3">
-                  <button type="button" class="font-medium text-primary hover:underline" @click="openOrder(row.id)">{{ row.display_number ?? row.id }}</button>
+                  <RouterLink :to="detailLocation('order', row.id)" class="font-medium text-primary hover:underline">{{ row.display_number ?? row.id }}</RouterLink>
                   <StatusBadge v-if="row.is_synthetic" tone="unknown" :label="$t('store_data.order.synthetic')" class="ml-1" />
                   <StatusBadge v-if="row.mode === 'test'" tone="warn" :label="$t('store_data.order.test')" class="ml-1" />
                 </td>
@@ -342,7 +398,7 @@ watch(tab, () => void loadTab());
                 <td class="px-4 py-3">{{ orderStatus(row.status) }}</td>
                 <td class="px-4 py-3" :data-payment-state="row.payment_state ?? ''">{{ paymentState(row) }}</td>
                 <td class="px-4 py-3 tabular-nums">{{ money(row.total_minor, row.currency, row.currency_exponent) }}</td>
-                <td class="px-4 py-3" :title="row.gateway ?? undefined" :data-gateway="row.gateway ?? ''">{{ paymentMethodLabelKey(row.gateway) ? $t(paymentMethodLabelKey(row.gateway)!) : '—' }}</td>
+                <td class="px-4 py-3" :title="row.gateway ?? undefined" :data-gateway="row.gateway ?? ''">{{ paymentMethodDisplayName(row.gateway, row.gateway_name, $t) ?? '—' }}</td>
                 <td class="px-4 py-3 whitespace-nowrap">{{ dateTime(row.paid_marked_at) }}</td>
               </tr>
             </tbody>
@@ -359,7 +415,7 @@ watch(tab, () => void loadTab());
             </thead>
             <tbody class="divide-y divide-border">
               <tr v-for="row in checks" :key="row.id" :data-check="row.id">
-                <td class="px-4 py-3 whitespace-nowrap"><button type="button" class="font-medium text-primary hover:underline" @click="openCheck(row.id)">{{ dateTime(row.finished_at ?? row.scheduled_at) }}</button></td>
+                <td class="px-4 py-3 whitespace-nowrap"><RouterLink :to="detailLocation('check', row.id)" class="font-medium text-primary hover:underline">{{ dateTime(row.finished_at ?? row.scheduled_at) }}</RouterLink></td>
                 <td class="px-4 py-3">{{ label('check_trigger', row.trigger) }}</td>
                 <td class="px-4 py-3"><StatusBadge :tone="row.status === 'passed' ? 'ok' : row.status === 'failed' ? 'crit' : 'unknown'" :label="label('check_status', row.status)" /></td>
                 <td class="px-4 py-3">{{ label('check_error', row.error_code) }}</td>
@@ -378,7 +434,7 @@ watch(tab, () => void loadTab());
             </thead>
             <tbody class="divide-y divide-border">
               <tr v-for="row in incidents" :key="row.id" :data-incident="row.id">
-                <td class="px-4 py-3"><button type="button" class="text-left font-medium text-primary hover:underline" @click="incident = row">{{ label('incident_title', row.title_code) }}</button></td>
+                <td class="px-4 py-3"><RouterLink :to="detailLocation('incident', row.id)" class="text-left font-medium text-primary hover:underline">{{ label('incident_title', row.title_code) }}</RouterLink></td>
                 <td class="px-4 py-3"><StatusBadge :tone="row.severity === 'critical' ? 'crit' : row.severity === 'warning' ? 'warn' : 'unknown'" :label="label('incident_severity', row.severity)" /></td>
                 <td class="px-4 py-3">{{ label('incident_state', row.state) }}</td>
                 <td class="px-4 py-3 whitespace-nowrap">{{ dateTime(row.last_seen_at) }}</td>
@@ -392,12 +448,15 @@ watch(tab, () => void loadTab());
 
         <button v-if="cursor" type="button" class="self-start rounded-md border border-border-strong px-4 py-2 text-sm font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="load-more" @click="loadTab(true)">{{ $t('store_data.load_more') }}</button>
 
-        <DetailDialog :open="order !== null" :title="order ? $t('store_data.order.title', { number: order.display_number ?? order.id }) : ''" data-detail="order" @close="order = null">
+        <DetailDialog :open="selectedDetail?.kind === 'order' && !accessEnded" :title="order ? $t('store_data.order.title', { number: order.display_number ?? order.id }) : $t('store_data.tab.orders')" data-detail="order" @close="closeDetail">
+          <p v-if="detailBusy" role="status">{{ $t('common.loading') }}</p>
+          <ErrorNotice v-else-if="detailError" :error="detailError" />
           <template v-if="order">
             <dl class="grid gap-3 sm:grid-cols-3">
               <div><dt class="text-text-muted">{{ $t('store_data.col.total') }}</dt><dd class="tabular-nums">{{ money(order.total_minor, order.currency, order.currency_exponent) }}</dd></div>
               <div><dt class="text-text-muted">{{ $t('store_data.col.state') }}</dt><dd>{{ orderStatus(order.status) }}</dd></div>
               <div><dt class="text-text-muted">{{ $t('store_data.col.payment_state') }}</dt><dd>{{ paymentState(order) }}</dd></div>
+              <div><dt class="text-text-muted">{{ $t('store_data.col.gateway') }}</dt><dd :title="order.gateway ?? undefined" :data-gateway="order.gateway ?? ''">{{ paymentMethodDisplayName(order.gateway, order.gateway_name, $t) ?? '—' }}</dd></div>
               <div><dt class="text-text-muted">{{ $t('store_data.col.paid') }}</dt><dd>{{ dateTime(order.paid_marked_at) }}</dd></div>
             </dl>
             <div class="flex flex-col gap-1">
@@ -419,7 +478,9 @@ watch(tab, () => void loadTab());
           </template>
         </DetailDialog>
 
-        <DetailDialog :open="check !== null" :title="check ? `${dateTime(check.finished_at ?? check.scheduled_at)} · ${label('check_status', check.status)}` : ''" data-detail="check" @close="check = null">
+        <DetailDialog :open="selectedDetail?.kind === 'check' && !accessEnded" :title="check ? `${dateTime(check.finished_at ?? check.scheduled_at)} · ${label('check_status', check.status)}` : $t('store_data.tab.checks')" data-detail="check" @close="closeDetail">
+          <p v-if="detailBusy" role="status">{{ $t('common.loading') }}</p>
+          <ErrorNotice v-else-if="detailError" :error="detailError" />
           <template v-if="check">
             <article v-for="attempt in check.attempts" :key="attempt.id" class="flex flex-col gap-3 rounded-lg border border-border p-4" :data-attempt="attempt.attempt_number">
               <p class="font-medium">{{ $t('store_data.check.attempt', { n: attempt.attempt_number }) }} · {{ label('attempt_status', attempt.status) }}<span v-if="attempt.error_code"> · {{ label('check_error', attempt.error_code) }}</span></p>
@@ -441,7 +502,9 @@ watch(tab, () => void loadTab());
           </template>
         </DetailDialog>
 
-        <DetailDialog :open="incident !== null" :title="incident ? label('incident_title', incident.title_code) : ''" data-detail="incident" @close="incident = null">
+        <DetailDialog :open="selectedDetail?.kind === 'incident' && !accessEnded" :title="incident ? label('incident_title', incident.title_code) : $t('store_data.tab.incidents')" data-detail="incident" @close="closeDetail">
+          <p v-if="detailBusy" role="status">{{ $t('common.loading') }}</p>
+          <ErrorNotice v-else-if="detailError" :error="detailError" />
           <template v-if="incident">
             <dl class="grid gap-3 sm:grid-cols-4">
               <div><dt class="text-text-muted">{{ $t('store_data.col.severity') }}</dt><dd>{{ label('incident_severity', incident.severity) }}</dd></div>

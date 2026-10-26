@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Incidents;
 
+use App\Http\Dto\Incidents\SignalDto;
 use App\Models\FinancialTransaction;
 use App\Models\Incident;
 use App\Models\Integration;
@@ -79,6 +80,28 @@ class IncidentApiTest extends TestCase
             ->assertJsonPath('findings.0.rule_code', 'MONEY_CAPTURE_MISSING')
             ->assertJsonPath('findings.0.order_display_number', '#1001')
             ->assertJsonPath('findings.0.expected_minor', '18400');
+    }
+
+    public function test_payment_attempt_name_comes_only_from_the_same_tenant_store_and_gateway(): void
+    {
+        $context = $this->context('viewer');
+        $otherStore = $this->context('owner', $context['tenant']);
+        $foreign = $this->context('owner');
+        foreach ([$otherStore, $foreign] as $other) {
+            $this->order($other, ['gateway' => 'merchant_custom', 'metadata' => ['gateway_name' => 'Private shop name'], 'source_updated_at' => now()]);
+        }
+        $this->order($context, ['gateway' => 'different_code', 'metadata' => ['gateway_name' => 'Different method'], 'source_updated_at' => now()]);
+        $signal = new Signal(['tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'signal_type' => Signal::TYPE_PAYMENT_ATTEMPTS, 'evidence' => ['payment_method' => 'merchant_custom', 'failure_streak' => 3]]);
+        $dto = app(SignalDto::class);
+        $this->assertNull($dto->toArray($signal)['evidence']['payment_method_name']);
+
+        $this->order($context, ['gateway' => 'merchant_custom', 'metadata' => ['gateway_name' => 'Pay at pickup']]);
+        $this->order($context, ['gateway' => 'merchant_custom', 'metadata' => [], 'source_updated_at' => now()]);
+        $evidence = $dto->toArray($signal)['evidence'];
+        $this->assertSame('Pay at pickup', $evidence['payment_method_name']);
+        $this->assertSame('merchant_custom', $evidence['payment_method']);
+        $this->assertSame(3, $evidence['failure_streak']);
+        $this->assertArrayNotHasKey('payment_method_name', $signal->evidence, 'display enrichment never changes stored signal evidence');
     }
 
     public function test_an_unconfirmed_capture_is_explained_from_its_evidence_with_steps_for_a_known_reference(): void

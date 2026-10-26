@@ -2,6 +2,7 @@
 
 namespace App\Support\Providers\WooCommerce;
 
+use App\Support\Checkout\PaymentMethodName;
 use Illuminate\Support\Carbon;
 
 /**
@@ -11,7 +12,7 @@ use Illuminate\Support\Carbon;
  */
 class WooCommerceApiOrderMapper
 {
-    public const ORDER_FIELDS = 'id,number,status,currency,total,payment_method,transaction_id,order_key,created_via,date_created_gmt,date_modified_gmt,date_paid_gmt,refunds,meta_data';
+    public const ORDER_FIELDS = 'id,number,status,currency,total,payment_method,payment_method_title,transaction_id,order_key,created_via,date_created_gmt,date_modified_gmt,date_paid_gmt,refunds,meta_data';
 
     public const REFUND_FIELDS = 'id,amount,date_created_gmt,refunded_payment,meta_data';
 
@@ -56,6 +57,7 @@ class WooCommerceApiOrderMapper
         }
 
         $gateway = is_string($order['payment_method'] ?? null) ? $order['payment_method'] : '';
+        $gatewayName = PaymentMethodName::normalize($order['payment_method_title'] ?? null);
         $transactionRef = is_string($order['transaction_id'] ?? null) ? trim($order['transaction_id']) : '';
         $meta = $this->meta($order['meta_data'] ?? null);
         $created = $this->time($order['date_created_gmt'] ?? null);
@@ -67,6 +69,7 @@ class WooCommerceApiOrderMapper
             'currency_exponent' => $exponent,
             'total_minor' => $total,
             'gateway' => $gateway !== '' ? substr($gateway, 0, 255) : null,
+            'gateway_name' => $gatewayName,
             'transaction_ref' => $transactionRef !== '' ? substr($transactionRef, 0, 255) : null,
             'payment_expected' => $total !== '0',
             'paid_marked_at' => $this->time($order['date_paid_gmt'] ?? null),

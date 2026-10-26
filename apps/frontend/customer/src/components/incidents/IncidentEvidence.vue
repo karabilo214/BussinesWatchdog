@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { paymentMethodLabelKey } from '@bw/ui';
+import { paymentMethodDisplayName } from '@bw/ui';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { artifactLink, getCheckRun } from '@/api/incidents';
@@ -24,10 +24,8 @@ const latestRunId = computed(() => {
   return typeof id === 'string' ? id : null;
 });
 
-function methodLabel(code: string | null): string {
-  const key = paymentMethodLabelKey(code);
-
-  return key === null ? '—' : key.endsWith('.other') ? `${t(key)} (${code})` : t(key);
+function methodLabel(code: string | null, name: string | null): string {
+  return paymentMethodDisplayName(code, name, t) ?? '—';
 }
 
 function text(value: unknown): string | null {
@@ -52,7 +50,7 @@ function facts(signal: Signal): string[] {
   const lines: string[] = [];
 
   if (signal.signal_type === 'payment_attempts') {
-    lines.push(t('incident.facts.payment_streak', { method: methodLabel(text(evidence.payment_method)), n: count(evidence.failure_streak) ?? '—', threshold: count(evidence.threshold) ?? '—' }));
+    lines.push(t('incident.facts.payment_streak', { method: methodLabel(text(evidence.payment_method), text(evidence.payment_method_name)), n: count(evidence.failure_streak) ?? '—', threshold: count(evidence.threshold) ?? '—' }));
     lines.push(t('incident.facts.last_success', { time: dateTime(text(evidence.last_success_at)) }));
   }
 
@@ -117,7 +115,7 @@ async function showScreenshot(): Promise<void> {
           <span>{{ $t(`incident.signal_type.${signal.signal_type}`) }}</span>
           <span>{{ dateTime(signal.detected_at) }} · {{ $t(`incident.confidence.${signal.confidence}`) }}</span>
         </div>
-        <p v-for="(line, index) in facts(signal)" :key="index">{{ line }}</p>
+        <p v-for="(line, index) in facts(signal)" :key="index" :title="signal.signal_type === 'payment_attempts' && index === 0 ? text(signal.evidence.payment_method) ?? undefined : undefined">{{ line }}</p>
       </li>
     </ul>
 

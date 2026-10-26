@@ -14,7 +14,7 @@ const busy = ref(false);
 const error = ref<unknown>(null);
 const done = ref<string | null>(null);
 const form = reactive({ store_id: props.card.stores[0]?.id ?? '', scopes: ['read_diagnostics'] as SupportGrantScope[], duration_hours: 24, reason: '' });
-const scopes: SupportGrantScope[] = ['read_diagnostics', 'read_artifacts', 'request_recheck'];
+const scopes: SupportGrantScope[] = ['read_diagnostics', 'read_artifacts', 'request_recheck', 'edit_store'];
 
 async function load(): Promise<void> {
   try { grants.value = await listPlatformSupportGrants(props.card.id); } catch (caught) { error.value = caught; } finally { loading.value = false; }

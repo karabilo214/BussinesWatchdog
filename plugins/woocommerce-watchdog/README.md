@@ -63,6 +63,8 @@ The plugin is never a dependency of the payment process; disabling it only stops
 
 ## Release package
 
+Current source: 0.3.4, a local candidate (Step 271). The owner has submitted the separate 0.3.3 ZIP to WordPress.org and is awaiting review; the submitted artifact is unchanged. The last recorded approved SaaS download remains 0.3.2. Exact hashes, required checks and the two approval processes are recorded in [`docs/ops/integrations.md`](../../docs/ops/integrations.md). A source commit does not publish a ZIP or update the WordPress.org submission.
+
 ```sh
 bin/build-release.sh                     # dist/business-watchdog-<version>.zip: no tests or dotfiles, PHP 7.4 lint of the package
 tests/matrix/release-checks.sh latest    # the package as shipped: upgrade from the previous package (BW_PREVIOUS_REF, default origin/main), rollback and upgrade again, checkout with the service unreachable, both switches, no WooCommerce, deactivation and repeated uninstall without network

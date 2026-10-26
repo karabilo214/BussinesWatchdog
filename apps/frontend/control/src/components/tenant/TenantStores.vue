@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { StatusBadge } from '@bw/ui';
-import { createCustomerStore, deleteCustomerStore, fetchTenant, type NewCustomerStore, type TenantCard } from '@/api';
+import { createCustomerStore, deleteCustomerStore, fetchTenant, listPlatformSupportGrants, renameCustomerStore, type NewCustomerStore, type PlatformSupportGrant, type TenantCard } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 
@@ -14,6 +14,40 @@ const busy = ref(false);
 const error = ref<unknown>(null);
 const added = ref(false);
 const deleting = ref<TenantCard['stores'][number] | null>(null);
+const editing = ref<TenantCard['stores'][number] | null>(null);
+const editGrants = ref<PlatformSupportGrant[]>([]);
+const editForm = reactive({ name: '', reason: '' });
+const renamed = ref(false);
+const editReady = computed(() => editing.value !== null && editForm.name.trim() !== '' && editForm.name.trim() !== editing.value.name && editForm.reason.trim().length >= 3);
+function canEdit(storeId: string): boolean {
+  return Boolean(props.canSupport && editGrants.value.some((grant) => grant.store_id === storeId && grant.state === 'approved' && grant.scopes.includes('edit_store') && grant.expires_at && new Date(grant.expires_at).getTime() > Date.now()));
+}
+onMounted(async () => {
+  if (props.canSupport) {
+    try { editGrants.value = await listPlatformSupportGrants(props.card.id, true); } catch (caught) { error.value = caught; }
+  }
+});
+function openEdit(store: TenantCard['stores'][number]): void {
+  editing.value = store;
+  Object.assign(editForm, { name: store.name, reason: '' });
+  error.value = null;
+  renamed.value = false;
+}
+async function saveName(): Promise<void> {
+  if (!editReady.value || !editing.value || busy.value) return;
+  busy.value = true;
+  error.value = null;
+  try {
+    await renameCustomerStore(props.card.id, editing.value.id, { current_name: editing.value.name, name: editForm.name.trim(), reason: editForm.reason.trim() });
+    editing.value = null;
+    renamed.value = true;
+    emit('updated', await fetchTenant(props.card.id));
+  } catch (caught) {
+    error.value = caught;
+  } finally {
+    busy.value = false;
+  }
+}
 const deleteForm = reactive({ name: '', reason: '', code: '' });
 const deleteReady = computed(() => deleting.value !== null && deleteForm.name.trim() === deleting.value.name && deleteForm.reason.trim().length >= 3 && deleteForm.code.trim().length >= 6);
 const form = reactive<NewCustomerStore>({ reason: '', name: '', base_url: 'https://', timezone: 'Europe/Berlin', default_currency: 'EUR', locale: 'de', platform: 'woocommerce' });
@@ -68,6 +102,8 @@ async function remove(): Promise<void> {
       <button v-if="canManage && !adding" type="button" class="rounded-md border border-border-strong px-3 py-2 text-sm font-medium text-primary hover:bg-primary-soft" data-action="add-store" @click="adding = true; added = false">{{ $t('store_data.add.submit') }}</button>
     </div>
     <p v-if="added" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-done="store">{{ $t('store_data.add.done') }}</p>
+    <p v-if="renamed" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok" data-done="store-rename">{{ $t('store_data.rename.done') }}</p>
+    <ErrorNotice v-if="error && !adding && !editing && !deleting" :error="error" />
 
     <form v-if="adding" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 text-sm" data-form="add-store" @submit.prevent="add">
       <div class="flex flex-col gap-1">
@@ -125,7 +161,7 @@ async function remove(): Promise<void> {
             <th class="px-4 py-3 font-medium">{{ $t('tenant.store.state') }}</th>
             <th class="px-4 py-3 font-medium">{{ $t('tenant.store.orders') }}</th>
             <th class="px-4 py-3 font-medium">{{ $t('tenants.col.incidents') }}</th>
-            <th v-if="canDelete" class="px-4 py-3 font-medium">{{ $t('store_data.remove.action') }}</th>
+            <th v-if="canSupport || canDelete" class="px-4 py-3 font-medium">{{ $t('store_data.rename.actions') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
@@ -147,11 +183,19 @@ async function remove(): Promise<void> {
               <StatusBadge v-if="store.orders_over_since" tone="warn" :label="$t('tenant.store.orders_over', { date: dateTime(store.orders_over_since) })" />
             </td>
             <td class="px-4 py-3 tabular-nums" :class="store.open_incidents > 0 ? 'text-crit' : 'text-text-muted'">{{ store.open_incidents }}</td>
-            <td v-if="canDelete" class="px-4 py-3"><button type="button" class="text-sm font-medium text-crit hover:underline" :data-delete-store="store.id" @click="openDelete(store)">{{ $t('store_data.remove.action') }}</button></td>
+            <td v-if="canSupport || canDelete" class="px-4 py-3"><div class="flex gap-3"><button v-if="canEdit(store.id)" type="button" class="text-sm font-medium text-primary hover:underline" :data-edit-store="store.id" @click="openEdit(store)">{{ $t('store_data.rename.action') }}</button><button v-if="canDelete" type="button" class="text-sm font-medium text-crit hover:underline" :data-delete-store="store.id" @click="openDelete(store)">{{ $t('store_data.remove.action') }}</button></div></td>
           </tr>
         </tbody>
       </table>
     </div>
+    <form v-if="editing" class="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 text-sm" data-form="edit-store" @submit.prevent="saveName">
+      <h2 class="font-semibold">{{ $t('store_data.rename.title') }}</h2>
+      <p class="text-text-muted">{{ $t('store_data.rename.hint') }}</p>
+      <label class="flex flex-col gap-1.5"><span>{{ $t('store_data.add.name') }}</span><input v-model="editForm.name" maxlength="100" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="store-name-edit" /></label>
+      <label class="flex flex-col gap-1.5"><span>{{ $t('store_data.add.reason') }}</span><textarea v-model="editForm.reason" maxlength="500" rows="2" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="reason-edit" /></label>
+      <ErrorNotice v-if="error" :error="error" />
+      <div class="flex gap-2"><button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse disabled:opacity-60" :disabled="busy || !editReady" data-action="confirm-store-edit">{{ $t('store_data.rename.submit') }}</button><button type="button" class="rounded-md border border-border-strong px-4 py-2" @click="editing = null">{{ $t('common.cancel') }}</button></div>
+    </form>
     <form v-if="deleting" class="flex flex-col gap-3 rounded-xl border border-crit-border bg-crit-soft p-5 text-sm" data-form="delete-store" @submit.prevent="remove">
       <p class="font-semibold text-crit">{{ $t('store_data.remove.warning', { name: deleting.name }) }}</p>
       <label class="flex flex-col gap-1.5"><span>{{ $t('store_data.remove.name') }}</span><input v-model="deleteForm.name" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="store-name-confirm" /></label>

@@ -6,6 +6,7 @@ use App\Models\EventInbox;
 use App\Models\Order;
 use App\Models\OrderRevision;
 use App\Support\Billing\OrderVolume;
+use App\Support\Checkout\PaymentMethodName;
 use App\Support\Ingest\EventProjectionResult;
 
 class OrderSnapshotProjector
@@ -128,6 +129,7 @@ class OrderSnapshotProjector
             'current_payload_hash' => $payloadHash,
             'metadata' => array_filter([
                 'order_key_hash' => ProjectionValueNormalizer::nullableString($data['order_key_hash'] ?? null),
+                'gateway_name' => PaymentMethodName::normalize($data['gateway_name'] ?? null),
                 'mode_reported' => array_key_exists('mode', $data) ? null : false,
                 'refund_state' => in_array($data['refund_state'] ?? null, ['none', 'partial', 'full'], true) ? $data['refund_state'] : null,
                 'payment_state' => in_array($data['payment_state'] ?? null, Order::PAYMENT_STATES, true) ? $data['payment_state'] : null,

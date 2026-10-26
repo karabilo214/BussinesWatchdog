@@ -90,6 +90,56 @@ class AuditJournalTest extends TestCase
         $this->get('/platform-api/v1/audit/export')->assertForbidden();
     }
 
+    public function test_tenant_card_audit_is_scoped_localized_paginated_and_requires_tenants_read(): void
+    {
+        $staff = $this->signIn(PlatformStaff::ROLE_ADMIN);
+        $staff->forceFill(['capabilities' => ['tenants.read']])->save();
+        $tenant = Tenant::query()->create(['name' => 'Kaffee GmbH', 'locale' => 'de', 'timezone' => 'Europe/Berlin']);
+        $other = Tenant::query()->create(['name' => 'Other GmbH', 'locale' => 'de', 'timezone' => 'Europe/Berlin']);
+        $audit = app(PlatformAudit::class);
+        $audit->record($staff->id, 'tenant.suspend', 'tenant', $other->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['status' => 'active'], 'after' => ['status' => 'suspended']], 'Other reason', $other->id);
+        for ($i = 0; $i < 51; $i++) {
+            $audit->record($staff->id, 'tenant.suspend', 'tenant', $tenant->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => ['status' => 'active'], 'after' => ['status' => 'suspended'], 'content_hash' => str_repeat('a', 64)], 'Customer reason', $tenant->id);
+        }
+
+        $this->getJson("/platform-api/v1/tenants/{$tenant->id}")->assertOk()->assertJsonMissingPath('audit');
+        $first = $this->getJson("/platform-api/v1/tenants/{$tenant->id}/audit")->assertOk()->json();
+        $this->assertCount(50, $first['data']);
+        $this->assertNotNull($first['next_cursor']);
+        $this->assertSame('Kaffee GmbH', $first['data'][0]['tenant']['name']);
+        $this->assertStringContainsString('Активно → Приостановлено', $first['data'][0]['presentation']['description']);
+        $this->assertStringNotContainsString('Other reason', json_encode($first));
+        $this->assertStringNotContainsString(str_repeat('a', 64), json_encode($first));
+        $this->assertArrayNotHasKey('changes', $first['data'][0]);
+        $this->assertArrayNotHasKey('actions', $first);
+        $this->assertArrayNotHasKey('staff', $first);
+        $second = $this->getJson("/platform-api/v1/tenants/{$tenant->id}/audit?cursor={$first['next_cursor']}")->assertOk()->json();
+        $this->assertCount(1, $second['data']);
+        $this->assertNull($second['next_cursor']);
+        $this->getJson("/platform-api/v1/tenants/{$tenant->id}/audit?cursor=invalid")->assertStatus(422);
+        $this->getJson('/platform-api/v1/tenants/'.str_repeat('0', 8).'-0000-4000-8000-000000000000/audit')->assertNotFound();
+
+        $staff->forceFill(['capabilities' => ['audit.read']])->save();
+        $this->getJson("/platform-api/v1/tenants/{$tenant->id}/audit")->assertForbidden();
+    }
+
+    public function test_tenant_audit_hides_reminder_recipient_emails_from_non_owner_staff(): void
+    {
+        $staff = $this->signIn(PlatformStaff::ROLE_ADMIN);
+        $staff->forceFill(['capabilities' => ['tenants.read']])->save();
+        $tenant = Tenant::query()->create(['name' => 'Kaffee GmbH', 'locale' => 'de', 'timezone' => 'Europe/Berlin']);
+        $recipient = User::query()->create(['name' => 'Customer', 'email' => 'private@example.test', 'password_hash' => Hash::make('customer-password-1234')]);
+        app(PlatformAudit::class)->record($staff->id, 'tenant.reminder_sent', 'tenant', $tenant->id, PlatformAudit::RESULT_SUCCEEDED, ['recipient_user_ids' => [$recipient->id]], null, $tenant->id);
+
+        $memberView = $this->getJson("/platform-api/v1/tenants/{$tenant->id}/audit")->assertOk()->json('data.0.presentation.description');
+        $this->assertStringNotContainsString('private@example.test', $memberView);
+        $this->assertStringContainsString('Кому: 1', $memberView);
+
+        $staff->forceFill(['role' => PlatformStaff::ROLE_OWNER])->save();
+        $ownerView = $this->getJson("/platform-api/v1/tenants/{$tenant->id}/audit")->assertOk()->json('data.0.presentation.description');
+        $this->assertStringContainsString('private@example.test', $ownerView);
+    }
+
     public function test_audit_only_staff_cannot_resolve_customer_names_in_page_or_csv(): void
     {
         $staff = $this->signIn(PlatformStaff::ROLE_ADMIN);

@@ -234,6 +234,8 @@ easyCredit (оплата в рассрочку, финансирование с�
 
 `event_id` создаётся один раз и не меняется при retry. `aggregate_id` — строка, scoped integration. `occurred_at` — время изменения по источнику, если известно; `observed_at` — время наблюдения connector. Source update timestamp отдельно включается в snapshot при наличии. Устаревшие revision не применяются к current projection. Одинаковая revision с другим content hash — conflict и resync, не last writer wins. Для Stripe revision может отсутствовать: immutable transactions дедуплицируются по operation key, mutable state перечитывается API после coalescing events.
 
+`order.snapshot.data.gateway_name` (Step 271) — необязательное название способа оплаты из магазина, до 255 символов: WooCommerce `payment_method_title`, Shopware `paymentMethod.translated.name` с fallback на `distinguishableName`/`name`. Сохраняется в `orders.metadata.gateway_name` и возвращается API рядом с `gateway`. Известный код отображается переводом ru/en/de; неизвестный — названием магазина, а при отсутствии названия — «Другой способ оплаты», код остаётся в подсказке. Название служит только отображению и не участвует в matching, сверке, группировке попыток или fingerprint инцидента. В фактах инцидента название ищется только среди заказов той же организации, магазина и кода; без такого названия применяется общий fallback.
+
 Основные типы: `order.snapshot`, `order.deleted`, `refund.snapshot`, `payment.snapshot`, `transaction.observed`, `integration.heartbeat`, `integration.capabilities_changed`, `deployment.observed`; P2 — `funnel.observed`. Snapshot содержит полное поддерживаемое состояние сущности, а не только diff. Термин «raw event» в БД означает исходную принятую оболочку ПОСЛЕ redaction; банковские или карточные данные сохранять запрещено.
 
 Ingestion lifecycle: signature/limits/schema → durable inbox commit → response 202 → transactional normalize/projection/outbox → processed. Если БД не записала событие, 202 запрещён. Если Redis недоступен после commit, sweeper находит неприменённые записи. At-least-once доставка обеспечивается idempotency и БД, без обещания exactly-once network delivery.
@@ -487,9 +489,9 @@ Checks page: сценарий и покрытые шаги, schedule, истор
 | Alerts | notification_channels, notification_deliveries | Recipients и отправка |
 | SaaS | subscriptions, usage_buckets, audit_log, data_deletion_requests | Доступ по тарифу, аудит и удаление |
 
-`schema.sql` включает 41 доменную таблицу; таблицы P2 используются только после соответствующих feature flags. Framework authentication, API idempotency и worker identity tables добавляются при bootstrap по выбранному механизму и не входят в это число. Справочники enums реализованы text+CHECK для контролируемых состояний; расширения требуют миграции, произвольные state values не принимаются. Provider-specific metadata jsonb ограничивается размером и JSON Schema; основные search/filter поля типизированы, не спрятаны в payload.
+`schema.sql` включает 45 reference-таблиц; таблицы P2 используются только после соответствующих feature flags. Framework authentication, API idempotency и worker identity tables добавляются при bootstrap по выбранному механизму и не входят в это число. Справочники enums реализованы text+CHECK для контролируемых состояний; расширения требуют миграции, произвольные state values не принимаются. Provider-specific metadata jsonb ограничивается размером и JSON Schema; основные search/filter поля типизированы, не спрятаны в payload.
 
-Дополнение `database/platform-billing-extension.sql` применяется после базовой схемы: ещё21 таблица и дополнительные поля subscriptions; всего62 reference таблицы. Оплаты нашей услуги, invoices, plan versions, checkout sessions, platform staff/audit/support grants хранятся отдельно от магазинных financial_transactions. Подробности — `panels/ADMIN-BACKEND.md`.
+Дополнение `database/platform-billing-extension.sql` применяется после базовой схемы: ещё 22 таблицы и дополнительные поля subscriptions; всего 67 reference-таблиц. Оплаты нашей услуги, invoices, plan versions, checkout sessions, platform staff/audit/support grants хранятся отдельно от магазинных financial_transactions. Подробности — `panels/ADMIN-BACKEND.md`. Фактическая схема работающего приложения определяется Laravel migrations.
 
 ### 25.1 Семантика важных полей
 
@@ -590,7 +592,7 @@ Past_due grace default 7 дней. Suspended tenant продолжает вид�
 
 ### 29.1 Функциональные пакеты тарифов (решение владельца 2026-10-09)
 
-Тарифы различаются не только лимитами, но и набором функций. Пример будущей линейки — Free / €19 / €59 в месяц; названия, цены и состав пакетов не утверждены и не являются требованием. Подписок пока нет, но архитектура MUST с самого начала строить функции так, чтобы их можно было включать по тарифу.
+Тарифы различаются не только лимитами, но и набором функций. Исходный пример Free / €19 / €59 в месяц не является требованием. К 2026-10-26 опубликованы и применяются тарифы Start/Business/Growth/Enterprise с Paddle; текущие цены и состав пакетов определяются опубликованными версиями тарифов, не этим примером. Архитектура MUST включать функции по тарифу.
 
 - **Каталог функций.** Каждая продаваемая функция имеет стабильный код (feature code) в entitlements версии тарифа (`plan_versions.entitlements`) наряду с лимитами. Предварительный каталог: `checkout_monitoring` (браузерные проверки, §18), `payment_attempts_server` (§17.1 слой 1), `payment_attempts_script` (§17.1 слой 2), `money_reconciliation` (§14, требует подключённого провайдера §10.1), `order_outcomes` (обязательства и адаптеры дополнения 1.2, §43), `notifications_telegram`, `agency_workspace` (дополнение 1.2, A8), а также лимиты: число магазинов, частота проверок, retention, event budget, ручные запуски. Распределение функций по тарифам — решение владельца; до него P0 pilot entitlement выдаётся вручную (как и раньше).
 - **Проверка только на сервере.** Доступность функции определяется `EntitlementCalculator` по snapshot подписки/override/trial (`panels/ADMIN-BACKEND.md` §4) и проверяется на backend в каждой точке: планирование проверок, детекторы и создание обязательств, приём дополнительных данных, API, уведомления, экспорт. Frontend только отображает доступность; скрытая кнопка не является защитой.
@@ -802,7 +804,7 @@ Tenant A не читает/меняет B при известном UUID, artifa
 | Решение | Почему необходимо |
 |---|---|
 | ~~Место контура обязательств в этапах §2~~ — **решено 2026-10-09:** входит в P1 как функции отдельных тарифов (feature code `order_outcomes`, §29.1, ADR 0008) | — |
-| Распределение функций по тарифам (Free / платные пакеты) и цены | Подписок пока нет; каталог функций §29.1 готовится заранее |
+| Распределение новых функций по действующим тарифам | Действующие подписки и цены уже есть; до реализации `order_outcomes` нужно решить, каким пакетам доступна функция |
 | Платёжные адаптеры: Stripe и PayPal — **решено 2026-10-09, P1** (§10.2); easyCredit — кандидат, нужна проверка API и семантики (§10.3) | — |
 | Подтверждение первых адаптеров исполнения и почты (Sendcloud, Postmark) для целевого рынка | Дополнение прямо не утверждает их распространённость среди будущих клиентов |
 | Отдельный ADR о границе read-only и операциях восстановления (A6) | Меняет архитектурное решение исходного ТЗ |

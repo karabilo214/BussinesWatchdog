@@ -1,13 +1,13 @@
 # Инструкция для реализации Business Watchdog
 
-Этот файл предназначен владельцу и Codex. При создании репозитория перенесите правила в `AGENTS.md`; не запускайте здесь разработку всего SaaS только потому, что файл открыт. Пользователь сейчас заказал спецификацию, а реализация — отдельная задача.
+Этот файл сохраняет исходные правила реализации для владельца и Codex. Репозиторий и приложение уже созданы; текущий контекст находится в `../PROJECT_STATE.md`, действующие правила — в `../AGENTS.md`, история — в `../docs/progress.md`. Не считать порядок первого среза ниже списком ещё не начатых работ.
 
 ## Порядок чтения
 
 1. Прочитайте `Business-Watchdog-TZ.md`, особенно разделы 2, 9–14, 18–20, 25–28 и 36–39.
 2. Прочитайте `database/schema.sql`, `contracts` и `ACCEPTANCE.md`.
    Для customer/panels/billing прочитайте также пять ТЗ в `panels`, `database/platform-billing-extension.sql`, `contracts/platform-billing-api.yaml` и `PANELS-ACCEPTANCE.md`. Это обязательное дополнение1.1, а не optional backlog.
-3. Проверьте реальные `AGENTS.md`, code, текущие migrations и `docs/progress.md` репозитория.
+3. Проверьте `../AGENTS.md`, код, текущие migrations и `../docs/progress.md` репозитория.
 4. Определите этап P0/P1/P2. Не включайте P2 автоматически в P0.
 
 ## Инварианты
@@ -32,7 +32,7 @@
 
 ## Первый реализуемый шаг
 
-Сначала D0 compatibility spike и D1 bootstrap. Создать ADR с точными versions. Подготовить fixtures Classic/Blocks, HPOS/legacy. Проверить Stripe gateway metadata и side effects открытия checkout. Реализовать tenant auth/store и миграции первыми, затем ingress durable slice. Browser network enforcement проектировать до production check.
+Исторический первый срез: D0 compatibility spike, D1 bootstrap, fixtures Classic/Blocks и HPOS/legacy, проверка Stripe gateway metadata и checkout side effects, затем tenant auth/store, migrations и durable ingress. Эти этапы выполнены; для следующей задачи использовать актуальные пробелы из `../PROJECT_STATE.md`, `../docs/backlog.md` и матриц приёмки. Browser network enforcement остаётся обязательным для новых сценариев.
 
 Начальная task template:
 

@@ -188,6 +188,24 @@ class SupportGrants
         return null;
     }
 
+    /** Called inside a transaction before a store mutation; a concurrent revocation waits for this decision. */
+    public function requireForUpdate(PlatformStaff $staff, string $tenantId, string $storeId, string $scope): SupportAccessGrant
+    {
+        abort_unless($staff->active() && PlatformCapabilities::allows($staff, PlatformCapabilities::TENANTS_SUPPORT), 403);
+
+        $grants = SupportAccessGrant::query()->where('tenant_id', $tenantId)->where('store_id', $storeId)
+            ->where('staff_id', $staff->id)->where('state', SupportAccessGrant::APPROVED)
+            ->where('expires_at', '>', Carbon::now())->orderByDesc('approved_at')->lockForUpdate()->get();
+
+        foreach ($grants as $grant) {
+            if (in_array($scope, $grant->scopes, true)) {
+                return $grant;
+            }
+        }
+
+        abort(403, 'support_grant_required');
+    }
+
     public function require(PlatformStaff $staff, string $tenantId, string $storeId, string $scope, string $targetType, string $targetId): SupportAccessGrant
     {
         $grant = $this->active($staff, $tenantId, $storeId, $scope);

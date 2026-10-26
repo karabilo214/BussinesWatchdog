@@ -592,7 +592,7 @@ paths:
     get:
       tags: [Platform]
       operationId: platformShowTenant
-      description: "Capability tenants.read. Organisation card: access, store capacity, members (email masked unless platform owner), stores as a summary (host, platform, state, verification, capacity pause, open incident count — no findings, orders or screenshots), platform audit for this organisation; `billing` (subscription, provider contracts, plan changes, entitlement overrides) only with billing.read. No provider secrets."
+      description: "Capability tenants.read. Organisation card: access, store capacity, members (email masked unless platform owner), stores as a summary (host, platform, state, verification, capacity pause, open incident count — no findings, orders or screenshots); `billing` (subscription, provider contracts, plan changes, entitlement overrides) only with billing.read. Audit is loaded from the tenant audit endpoint. No provider secrets."
       security:
         - {StaffSession: []}
       parameters:
@@ -606,6 +606,31 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/audit:
+    get:
+      tags: [Platform]
+      operationId: platformShowTenantAudit
+      description: "Capability tenants.read. Tenant-scoped platform audit, newest first, 50 entries per page. Returns localized presentation for the staff member's language and a next_cursor; no raw changes, request IDs, hashes, global action list or staff list. Object links respect the viewer's capabilities."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: cursor, in: query, required: false, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: Tenant audit page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next_cursor]
+                properties:
+                  data: {type: array, items: {type: object}}
+                  next_cursor: {type: string, format: uuid, nullable: true}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/actions/{action}/preview:
     post:
       tags: [Platform]
@@ -911,6 +936,33 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/tenants/{tenant}/stores/{store}/name:
+    patch:
+      tags: [Platform]
+      operationId: platformRenameTenantStore
+      description: "Capability tenants.support and an active owner-approved edit_store grant for this exact tenant, store and employee. Changes only the display name. The grant is locked and checked with the store at save time; a stale current_name returns 409. Reason and before/after values are recorded in platform audit and the customer's support activity."
+      security: [{StaffSession: []}]
+      parameters:
+        - {name: tenant, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: store, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_name, name, reason]
+              properties:
+                current_name: {type: string, minLength: 1, maxLength: 100}
+                name: {type: string, minLength: 1, maxLength: 100}
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "200": {description: Updated store name and config version, content: {application/json: {schema: {type: object}}}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/tenants/{tenant}/stores/{store}/findings:
     get:
@@ -7166,6 +7218,7 @@ paths:
       parameters:
         - {name: tenant_id, in: query, required: true, schema: {type: string, format: uuid}}
         - {name: store_id, in: query, schema: {type: string, format: uuid}}
+        - {name: active_only, in: query, schema: {type: boolean}, description: "Only currently approved, unexpired grants. Used for store actions so an older active grant is not hidden by the 100-row history limit."}
       responses:
         "200": {description: Own grants, content: {application/json: {schema: {type: object}}}}
     post:
@@ -8129,6 +8182,7 @@ components:
         display_number: {type: [string, "null"]}
         status: {type: string}
         gateway: {type: [string, "null"]}
+        gateway_name: {type: [string, "null"], description: "Store-reported payment method name for display only; the gateway code remains authoritative for matching."}
         mode: {enum: [live, test]}
         mode_reported:
           type: boolean
@@ -8397,7 +8451,7 @@ components:
         config_version: {type: integer}
         currency: {type: [string, "null"], pattern: "^[A-Z]{3}$"}
         finding_id: {type: [string, "null"], format: uuid}
-        evidence: {type: object, description: Sanitized facts; no customer data.}
+        evidence: {type: object, description: "Sanitized facts; no customer data. Payment-attempt evidence may include payment_method_name from the newest named order with the same tenant, store and payment_method code; display only, null when unavailable."}
         detected_at: {type: string, format: date-time}
     IncidentActivity:
       type: object

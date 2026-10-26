@@ -52,7 +52,7 @@ class SupportGrantController extends Controller
         $validated = $request->validate([
             'store_id' => ['required', 'uuid'],
             'staff_id' => ['required', 'uuid'],
-            'scopes' => ['required', 'array', 'min:1', 'max:3'],
+            'scopes' => ['required', 'array', 'min:1', 'max:4'],
             'scopes.*' => ['required', 'string', Rule::in(SupportAccessGrant::SCOPES)],
             'duration_hours' => ['sometimes', 'integer', 'between:1,72'],
             'reason' => ['required', 'string', 'min:5', 'max:500'],
@@ -104,6 +104,9 @@ class SupportGrantController extends Controller
             'staff_name' => $staffNames[$entry->changes['staff_id'] ?? ''] ?? null,
             'target_type' => $entry->changes['target_type'] ?? null,
             'target_id' => $entry->changes['target_type'] ?? null ? $entry->entity_id : null,
+            'before_name' => $entry->action === 'store.support_renamed' ? ($entry->changes['before']['name'] ?? null) : null,
+            'after_name' => $entry->action === 'store.support_renamed' ? ($entry->changes['after']['name'] ?? null) : null,
+            'reason' => $entry->action === 'store.support_renamed' ? ($entry->changes['reason'] ?? null) : null,
         ])->all()]);
     }
 

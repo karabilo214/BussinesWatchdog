@@ -165,12 +165,14 @@ class DomainOutboxDispatcherTest extends TestCase
             sourceRevision: 2,
             totalMinor: '25000',
             status: 'completed',
+            gatewayName: 'Current card name',
         )[1];
         $stale = $this->receivedEventInbox(
             context: [$tenant, $store, $integration],
             sourceRevision: 1,
             totalMinor: '18400',
             status: 'processing',
+            gatewayName: 'Old card name',
         )[1];
         $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $latest->id]);
         $this->outbox($tenant, DomainOutbox::TOPIC_EVENT_INBOX_RECEIVED, ['event_inbox_id' => $stale->id]);
@@ -181,6 +183,7 @@ class DomainOutboxDispatcherTest extends TestCase
         $this->assertSame(2, $order->source_revision);
         $this->assertSame(25000, $order->total_minor);
         $this->assertSame('completed', $order->status);
+        $this->assertSame('Current card name', $order->metadata['gateway_name']);
         $this->assertSame(2, OrderRevision::query()->where('order_id', $order->id)->count());
     }
 
@@ -459,6 +462,7 @@ class DomainOutboxDispatcherTest extends TestCase
         int $sourceRevision = 1,
         string $totalMinor = '18400',
         string $status = 'processing',
+        ?string $gatewayName = null,
     ): array {
         [$tenant, $store, $integration] = $context ?? $this->integrationContext();
         $processedAt = $inboxStatus === EventInbox::STATUS_PROCESSED ? now()->subMinute() : null;
@@ -488,6 +492,9 @@ class DomainOutboxDispatcherTest extends TestCase
                 'financial_support' => 'supported',
             ],
         ];
+        if ($gatewayName !== null) {
+            $payload['data']['gateway_name'] = $gatewayName;
+        }
         $inbox = EventInbox::query()->create([
             'tenant_id' => $tenant->id,
             'store_id' => $store->id,

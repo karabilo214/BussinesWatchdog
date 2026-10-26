@@ -150,7 +150,7 @@ class WooCommerceApiIntegrationTest extends TestCase
         $this->wcOrder(41, ['payment_method' => 'stripe', 'transaction_id' => 'ch_3Abc', 'total' => '184.000000', 'meta' => ['_bw_payment_mode' => 'test']]);
         $this->wcRefund(41, 51, '30.000000', ['_stripe_refund_id' => 're_3Abc'], true);
         $this->wcOrder(42, ['payment_method' => 'ppcp-gateway', 'transaction_id' => '5TR80192ED162870P', 'currency' => 'USD', 'total' => '10.000000', 'meta' => ['_ppcp_paypal_payment_mode' => 'sandbox', '_ppcp_paypal_payer_email' => 'buyer@example.test']]);
-        $this->wcOrder(43, ['payment_method' => 'bacs', 'currency' => 'JPY', 'total' => '1500.000000', 'status' => 'on-hold', 'date_paid_gmt' => null]);
+        $this->wcOrder(43, ['payment_method' => 'merchant_special', 'payment_method_title' => ' <b>Pay at pickup</b> ', 'currency' => 'JPY', 'total' => '1500.000000', 'status' => 'on-hold', 'date_paid_gmt' => null]);
         $this->wcOrder(44, ['payment_method' => 'stripe', 'total' => '19.999000']);
         $integration = $this->connected();
 
@@ -164,6 +164,8 @@ class WooCommerceApiIntegrationTest extends TestCase
         $this->assertSame([3000, 're_3Abc', true, $stripe->id], [(int) $refund->amount_minor, $refund->provider_ref, (bool) $refund->external_required, $refund->order_id]);
         $this->assertSame('test', Order::query()->where('external_id', '42')->value('mode'));
         $this->assertSame(1500, (int) Order::query()->where('external_id', '43')->value('total_minor'));
+        $this->assertSame('Pay at pickup', Order::query()->where('external_id', '43')->firstOrFail()->metadata['gateway_name']);
+        $this->assertSame('merchant_special', Order::query()->where('external_id', '43')->value('gateway'));
         $this->assertNull(Order::query()->where('external_id', '44')->first(), 'an amount finer than the currency allows is not sent');
         $this->assertSame(['amount_not_representable' => 1], $integration->refresh()->health['sync']['skipped']);
         $this->assertSame([EventInbox::STATUS_PROCESSED], EventInbox::query()->distinct()->pluck('status')->all());
@@ -388,6 +390,7 @@ class WooCommerceApiIntegrationTest extends TestCase
             'currency' => $props['currency'] ?? 'EUR',
             'total' => $props['total'],
             'payment_method' => $props['payment_method'],
+            'payment_method_title' => $props['payment_method_title'] ?? null,
             'transaction_id' => $props['transaction_id'] ?? '',
             'order_key' => 'wc_order_'.$id.'abcdef',
             'date_created_gmt' => $this->orders[$id]['date_created_gmt'] ?? now()->subHour()->format('Y-m-d\TH:i:s'),

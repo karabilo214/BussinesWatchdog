@@ -2,7 +2,7 @@ import { request } from '@bw/api-client';
 
 export type StaffRole = 'platform_owner' | 'platform_member';
 
-export type SupportGrantScope = 'read_diagnostics' | 'read_artifacts' | 'request_recheck';
+export type SupportGrantScope = 'read_diagnostics' | 'read_artifacts' | 'request_recheck' | 'edit_store';
 export interface PlatformSupportGrant {
   id: string;
   tenant_id: string;
@@ -18,8 +18,8 @@ export interface PlatformSupportGrant {
   expires_at: string | null;
 }
 
-export async function listPlatformSupportGrants(tenantId: string): Promise<PlatformSupportGrant[]> {
-  return (await request<{ data: PlatformSupportGrant[] }>('GET', '/platform-api/v1/support-grants', { query: { tenant_id: tenantId } })).data.data;
+export async function listPlatformSupportGrants(tenantId: string, activeOnly = false): Promise<PlatformSupportGrant[]> {
+  return (await request<{ data: PlatformSupportGrant[] }>('GET', '/platform-api/v1/support-grants', { query: { tenant_id: tenantId, ...(activeOnly ? { active_only: '1' } : {}) } })).data.data;
 }
 
 export async function cancelPlatformSupportGrant(id: string): Promise<PlatformSupportGrant> {
@@ -395,7 +395,6 @@ export interface TenantCard {
     overrides: Override[];
     transactions?: Payment[];
   } | null;
-  audit: { id: string; action: string; actor: string | null; reason: string | null; result: string; changes: Record<string, unknown> | null; created_at: string }[];
 }
 
 export type TenantAction = 'suspend' | 'resume' | 'grant_override' | 'revoke_override' | 'extend_trial' | 'cancel_subscription' | 'refresh_billing';
@@ -561,6 +560,7 @@ export interface StoreOrder {
   display_number: string | null;
   status: string;
   gateway: string | null;
+  gateway_name?: string | null;
   mode: string;
   currency: string;
   currency_exponent: number;
@@ -572,6 +572,7 @@ export interface StoreOrder {
 }
 
 export interface StoreOrderDetail extends StoreOrder {
+  store_id: string;
   transaction_ref: string | null;
   financial_support: string;
   findings: StoreFinding[];
@@ -592,6 +593,7 @@ export interface StoreCheck {
 }
 
 export interface StoreCheckDetail extends StoreCheck {
+  store_id: string;
   attempts: {
     id: string;
     attempt_number: number;
@@ -606,6 +608,7 @@ export interface StoreCheckDetail extends StoreCheck {
 
 export interface StoreIncident {
   id: string;
+  store_id: string;
   family: string;
   state: string;
   severity: string;
@@ -638,6 +641,10 @@ function paged(cursor?: string | null): string {
 
 export async function createCustomerStore(tenantId: string, input: NewCustomerStore): Promise<CustomerStore> {
   return (await request<CustomerStore>('POST', tenantPath(tenantId, 'stores'), { body: input })).data;
+}
+
+export async function renameCustomerStore(tenantId: string, storeId: string, input: { current_name: string; name: string; reason: string }): Promise<void> {
+  await request('PATCH', tenantPath(tenantId, 'stores/' + encodeURIComponent(storeId) + '/name'), { body: input });
 }
 
 export async function deleteCustomerStore(tenantId: string, storeId: string, input: { name: string; reason: string; confirmation_code: string }): Promise<void> {
@@ -678,6 +685,10 @@ export async function fetchCustomerOrder(tenantId: string, orderId: string): Pro
 
 export async function fetchCustomerCheck(tenantId: string, checkId: string): Promise<StoreCheckDetail> {
   return (await request<StoreCheckDetail>('GET', tenantPath(tenantId, `checks/${encodeURIComponent(checkId)}`))).data;
+}
+
+export async function fetchCustomerIncident(tenantId: string, incidentId: string): Promise<StoreIncident> {
+  return (await request<StoreIncident>('GET', tenantPath(tenantId, `incidents/${encodeURIComponent(incidentId)}`))).data;
 }
 
 export async function fetchCustomerArtifactUrl(tenantId: string, artifactId: string): Promise<{ url: string; content_type: string }> {
@@ -940,6 +951,12 @@ export interface AuditPage {
   next_cursor: string | null;
   actions: string[];
   staff: { id: string; name: string | null }[];
+}
+
+export type TenantAuditPage = Pick<AuditPage, 'data' | 'next_cursor'>;
+
+export async function fetchTenantAudit(tenantId: string, cursor?: string): Promise<TenantAuditPage> {
+  return (await request<TenantAuditPage>('GET', `/platform-api/v1/tenants/${tenantId}/audit`, { query: cursor ? { cursor } : {} })).data;
 }
 
 export type AuditFilters = Partial<Record<'actor' | 'action' | 'result' | 'tenant' | 'from' | 'to' | 'cursor', string>>;

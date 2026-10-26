@@ -13,6 +13,7 @@
     "member_password_reset_sent": "Link zum Zurücksetzen des Passworts an Mitglied gesendet",
     "member_mfa_reset": "Kunden-MFA zurückgesetzt",
     "store_created": "Shop hinzugefügt",
+    "store_updated": "Shopname geändert",
     "store_viewed": "Shopdaten geöffnet",
     "check_rerun": "Prüfung vom Support neu gestartet",
     "incident_acknowledged": "Vorfall vom Support angenommen",

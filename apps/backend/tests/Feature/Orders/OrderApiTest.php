@@ -27,6 +27,7 @@ class OrderApiTest extends TestCase
     public function test_viewer_can_read_order_detail_with_findings_allocations_and_revisions(): void
     {
         $context = $this->context('viewer');
+        $context['order']->forceFill(['metadata' => ['gateway_name' => 'Shop card title']])->save();
         $allocation = app(PaymentAllocationService::class)->allocateCapture(
             $context['payment'],
             $context['capture'],
@@ -56,6 +57,7 @@ class OrderApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('id', $context['order']->id)
             ->assertJsonPath('total_minor', '18400')
+            ->assertJsonPath('gateway_name', 'Shop card title')
             ->assertJsonCount(1, 'captures')
             ->assertJsonPath('captures.0.id', $context['capture']->id)
             ->assertJsonCount(1, 'allocations')

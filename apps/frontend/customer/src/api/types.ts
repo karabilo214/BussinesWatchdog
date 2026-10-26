@@ -396,6 +396,7 @@ export interface Order {
   display_number: string | null;
   status: string;
   gateway: string | null;
+  gateway_name?: string | null;
   mode: 'live' | 'test';
   mode_reported?: boolean;
   currency: string;
