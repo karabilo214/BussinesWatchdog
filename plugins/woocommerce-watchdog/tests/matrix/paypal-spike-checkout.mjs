@@ -14,8 +14,8 @@ async function approve(popup) {
   const email = popup.locator('#email');
   await email.waitFor({ timeout: 60000 });
   await email.fill(process.env.BUYER_EMAIL);
-  await popup.getByRole('button', { name: 'Next', exact: true }).click();
-  const password = popup.getByLabel('Password', { exact: true });
+  await email.press('Enter');
+  const password = popup.locator('input[type=password]:visible').first();
   await password.waitFor({ state: 'visible', timeout: 60000 });
   await popup.waitForTimeout(1500);
   await password.click();

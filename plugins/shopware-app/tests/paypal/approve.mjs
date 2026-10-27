@@ -8,9 +8,8 @@ try {
   const email = page.locator('#email');
   await email.waitFor({ timeout: 90000 });
   await email.fill(process.env.BUYER_EMAIL);
-  const password = page.getByLabel('Password', { exact: true });
-  const next = page.getByRole('button', { name: 'Next', exact: true });
-  if (!(await password.isVisible()) && (await next.count()) > 0) await next.click();
+  const password = page.locator('input[type=password]:visible').first();
+  await email.press('Enter');
   await password.waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForTimeout(1500);
   await password.click();
