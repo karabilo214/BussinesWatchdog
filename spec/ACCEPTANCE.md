@@ -42,10 +42,10 @@
 | ACC-28 | P0 | done | Email timeout/retry | Notification channel/delivery tests; `make frontend-smoke` with Mailpit; Step 62; DKIM signing and `mail:auth-check` (SPF/DKIM/DMARC), Step 107 | Real SMTP provider and public DNS records not tested |
 | ACC-29 | P1 | done | FIN-01…FIN-24 | Registry `FinRegistryTest` runs every example of `spec/examples/reconciliation-cases.json` through store snapshots → StripeSync (JSON-faked HTTP) → matcher → reconciliation → incidents, `docs/reconciliation-registry.md`: 24 of 24 match (Steps 200–201, ADR 0068); plus reconciliation, Stripe, PayPal and allocation tests; Steps 30-36, 65-72; Step 155 real Stripe test-mode capture/decline and reverse capture-state rule; Step 156 real PayPal Sandbox captures, refunds and both Shopware payment divergences | The §43 PAYMENT_RECORDED obligation engine is a separate P1 feature (not implemented) |
 | ACC-30 | P1 | done | Intent+charge events об одном capture | Stripe connector tests; Step 65 | — |
-| ACC-31 | P1 | done | Два captures distinct IDs | Reconciliation rule tests for multiple captures | — |
+| ACC-31 | P1 | done | Два captures distinct IDs | Reconciliation rule tests for multiple captures; Stripe multicapture of one charge grows one capture with `amount_captured` (`StripeMulticaptureTest`, Step 278, ADR 0082) | — |
 | ACC-32 | P1 | done | Manual Woo refund | Reconciliation/provider coverage tests: store claim is not provider refund | — |
 | ACC-33 | P1 | done | Authorization without capture | Stripe and PayPal connector tests; Steps 65, 70 | — |
-| ACC-34 | P1 | done | Fee/net payout отличается от total | Money semantics exclude fees/payouts from order underpayment; reconciliation tests | — |
+| ACC-34 | P1 | done | Fee/net payout отличается от total | Money semantics exclude fees/payouts from order underpayment; reconciliation tests; provider fees stored as `fee` operations, never allocated, shown as information (`StripeFeeTest`, `PayPalDisputeTest`, Step 279, ADR 0083) | — |
 | ACC-35 | P1 | done | Two currencies | Multi-currency reconciliation and overview totals tests; Steps 60, 63, 70, 162 (mode/currency/component isolation) | — |
 | ACC-36 | P1 | done | Concurrent manual allocation | `PaymentAllocationServiceTest`; row locks and allocation bounds | — |
 | ACC-37 | P1 | done | Revoked API key | Provider coverage tests; rejected Stripe/PayPal credentials degrade to unknown | — |
