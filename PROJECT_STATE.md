@@ -4,7 +4,7 @@
 
 ## Обновлено
 
-2026-10-27. Последний шаг — **285** (`progress/connectors.md`). Код SaaS до Step 283 выложен (`14e0754`). Миграции применены.
+2026-10-27. Последний шаг — **285** (`progress/connectors.md`). Всё до Step 285 выложено (`f398422`). Миграции применены.
 
 Последние шаги (подробности — в файлах `docs/progress/`):
 
@@ -23,7 +23,7 @@ https://business-watchdog.com (Contabo, Docker Compose, Caddy), выкладка
 
 - WooCommerce-плагин опубликован в каталоге WordPress.org (0.4.0); выпуск новых версий — `docs/ops/integrations.md`. Для кабинета владелец одобрил тот же ZIP 0.4.0 (Step 285).
 - Подключены тестовые магазины WooCommerce-Test и Shopware-Test (`docs/ops/test-shops.md`), тестовые Stripe и PayPal. Shopware-Test ещё на App 1.3.1 (одобрена универсальная 1.5.0).
-- Для выдачи из кабинета одобрены ZIP WooCommerce 0.3.2 и Shopware App 1.5.0.
+- Для выдачи из кабинета одобрены ZIP WooCommerce 0.4.0 (0.3.2 удалён с сервера) и Shopware App 1.5.0.
 - `reconciliation:recheck-open-incidents` после правил сверки v3 выполнялся 2026-10-21 (хотфикс `b92b8f2`) и повторно 2026-10-27 на `017622a`: 3 заказа пересчитаны, итог не изменился; открыты 5 денежных инцидентов, все в тестовом режиме (`progress/reconciliation.md`).
 
 ## Что это за проект

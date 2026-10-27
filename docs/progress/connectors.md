@@ -747,7 +747,7 @@ Screenshot 3 retaken and cabinet download approved — Step 285.
 
 ### Step 285: The cabinet hands out plugin 0.4.0 and points to the WordPress.org directory (2026-10-27)
 
-Status: code complete; production ZIP and `WATCHDOG_WOO_APPROVED_SHA256` pending (see below)
+Status: complete; deployed 2026-10-27 (`f398422`, no migration)
 
 - Owner approved the ZIP 0.4.0 for cabinet download — the same file that is in the WordPress.org directory (SHA-256 `f05829f91d0ab9d8d3262a8f0510e510664a014fada624cef4b44f9f04c70c1a`). On the server: copy the file into `storage/app/plugins`, set the hash in `.env`, deploy (`docs/ops/integrations.md`). Archives with another hash (0.3.2) are no longer served.
 - `PluginDownload`: under the download button «You can download the plugin here or install it from the WordPress.org directory…» with a link to https://wordpress.org/plugins/business-watchdog/ (new tab); the link opens the connection guide with the code like the download does. Shown also when no ZIP is available. Guide step «upload» names both ways. Texts ru/en/de.
@@ -756,3 +756,4 @@ Status: code complete; production ZIP and `WATCHDOG_WOO_APPROVED_SHA256` pending
 
 Verification: backend SQLite 820 + 4 skipped, PostgreSQL 18 824/824, Pint; cabinet types, 211 tests, build; the download block checked on the local stand in ru and en.
 
+Production (2026-10-27): ZIP 0.4.0 copied into `storage/app/plugins` (hash checked on the server), `WATCHDOG_WOO_APPROVED_SHA256` set to it, deployed; `PluginPackage::latest()` returns 0.4.0, 64918 bytes. At the owner's request the 0.3.2 ZIP was deleted from the server. The deployed `StoreView` chunk contains the directory link.
