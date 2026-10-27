@@ -347,7 +347,7 @@
       "pairing_code": "Connection code",
       "code_expires": "Valid until {time}.",
       "waiting": "Waiting for the plugin to connect — the list updates by itself.",
-      "api_active": "Orders currently come through the REST API key. A store has one order source: to switch to the plugin, first disconnect the key in the \"REST API key\" tab.",
+      "api_active": "Orders currently come through the REST API key. A store has one order source: to switch to the plugin, first disconnect the key in the \"{block}\" section above.",
       "download": {
         "button": "Download plugin",
         "meta": "WooCommerce plugin, version {version}, {size} KB",
@@ -511,7 +511,7 @@
       "polling_note_with_webhook": "Changes arrive at once through WooCommerce webhooks; every 5 minutes we also check everything ourselves.",
       "key_rejected": "The store no longer accepts the key (it was deleted or its permissions changed). Reading has stopped — create a new \"Read\" key, disconnect the old one and connect the new one.",
       "revoke_warning": "The service deletes the key on its side and stops reading orders. Delete the key in WooCommerce too (Settings → Advanced → REST API).",
-      "plugin_active": "Orders currently come through the plugin. A store has one order source: to switch to a REST API key, first disconnect the plugin in the \"Plugin\" tab."
+      "plugin_active": "Orders currently come through the plugin. A store has one order source: to switch to a REST API key, first disconnect the plugin in the \"{block}\" section below."
     },
     "shopware": {
       "why": "Nothing has to be installed in your shop: the service reads Shopware 6.6 and 6.7 orders through the Admin API with an integration key. The app is optional, for instant updates and checkout observation.",

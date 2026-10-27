@@ -754,6 +754,6 @@ Status: complete; deployed 2026-10-27 (`f398422`, no migration)
 - Directory screenshot 3 retaken (SVN r3768857): local stand, «Demo Store» paired with plugin 0.4.0 from the matrix wc9 WordPress through a connection code; the plugin challenge was served by the plugin and handed to the verification check by hand because the local backend cannot resolve `shop-wc9.example.test`. Demo data only.
 - CI «Backend (PostgreSQL 18)» had failed since Step 282: four test assertions compared `health` arrays from `jsonb` with `assertSame`, which depends on key order. Now `assertEquals`; the cabinet already lists webhook topics in its own fixed order.
 
-Verification: backend SQLite 820 + 4 skipped, PostgreSQL 18 824/824, Pint; cabinet types, 211 tests, build; the download block checked on the local stand in ru and en.
+Verification: backend SQLite 820 + 4 skipped, PostgreSQL 18 824/824, Pint; cabinet types, 210 tests, build; the download block checked on the local stand in ru and en.
 
 Production (2026-10-27): ZIP 0.4.0 copied into `storage/app/plugins` (hash checked on the server), `WATCHDOG_WOO_APPROVED_SHA256` set to it, deployed; `PluginPackage::latest()` returns 0.4.0, 64918 bytes. At the owner's request the 0.3.2 ZIP was deleted from the server. The deployed `StoreView` chunk contains the directory link.

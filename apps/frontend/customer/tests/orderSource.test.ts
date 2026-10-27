@@ -90,7 +90,7 @@ describe('OrderSource', () => {
 
     expect(wrapper.find('[data-connector="plugin"]').exists()).toBe(true);
     expect(wrapper.find('#wc-consumer-key').exists()).toBe(false);
-    expect(wrapper.get('[data-other-source]').text()).toContain('сначала отключите плагин');
+    expect(wrapper.get('[data-other-source]').text()).toContain('сначала отключите плагин в блоке «Дополнительное наблюдение через плагин» ниже');
   });
 
   it('shows the connected key and hides the pairing code while the API is the source', async () => {
@@ -102,7 +102,7 @@ describe('OrderSource', () => {
     expect(wrapper.text()).toContain('только чтение');
     await wrapper.findAll('button').find((button) => button.text() === 'Показать настройку')!.trigger('click');
     await flushPromises();
-    expect(wrapper.get('[data-other-source]').text()).toContain('сначала отключите ключ');
+    expect(wrapper.get('[data-other-source]').text()).toContain('сначала отключите ключ в блоке «Подключить WooCommerce через API» выше');
     expect(wrapper.findAll('button').some((button) => /код/i.test(button.text()))).toBe(false);
   });
 });

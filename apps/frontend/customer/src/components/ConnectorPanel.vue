@@ -111,7 +111,7 @@ void load();
     <ErrorNotice v-else-if="loadError" :error="loadError" />
 
     <template v-else>
-      <p v-if="connectors.length === 0 && apiActive" class="text-sm" data-other-source>{{ $t('store.connector.api_active') }}</p>
+      <p v-if="connectors.length === 0 && apiActive" class="text-sm" data-other-source>{{ $t('store.connector.api_active', { block: $t('store.order_source.primary_woocommerce') }) }}</p>
       <p v-else-if="connectors.length === 0" class="text-sm text-text-muted">{{ $t('store.connector.none') }}</p>
 
       <ul v-else class="flex flex-col divide-y divide-border rounded-lg border border-border">
@@ -191,7 +191,7 @@ void load();
           <button v-if="canManage && !apiActive" type="button" class="self-start rounded-md border border-border-strong bg-surface px-3 py-1.5 text-sm" :disabled="pairingBusy" @click="issueCode">{{ $t('store.connector.new_code') }}</button>
         </div>
         <p v-else-if="pairingBusy" class="mt-4 text-sm" role="status">{{ $t('store.connector.creating_code') }}</p>
-        <p v-else-if="apiActive" class="mt-4 text-sm text-warn">{{ $t('store.connector.api_active') }}</p>
+        <p v-else-if="apiActive" class="mt-4 text-sm text-warn">{{ $t('store.connector.api_active', { block: $t('store.order_source.primary_woocommerce') }) }}</p>
         <button v-else-if="canManage" type="button" class="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-text-inverse" @click="issueCode">{{ $t('store.connector.new_code') }}</button>
         <ErrorNotice v-if="actionError" :error="actionError" />
       </div>

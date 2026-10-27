@@ -347,7 +347,7 @@
       "pairing_code": "Verbindungscode",
       "code_expires": "Gültig bis {time}.",
       "waiting": "Warten auf die Verbindung des Plugins – die Liste aktualisiert sich selbst.",
-      "api_active": "Bestellungen kommen derzeit über den REST-API-Schlüssel. Ein Shop hat eine Bestellquelle: Um zum Plugin zu wechseln, trennen Sie zuerst den Schlüssel im Reiter „REST-API-Schlüssel“.",
+      "api_active": "Bestellungen kommen derzeit über den REST-API-Schlüssel. Ein Shop hat eine Bestellquelle: Um zum Plugin zu wechseln, trennen Sie zuerst den Schlüssel im Abschnitt „{block}“ oben.",
       "download": {
         "button": "Plugin herunterladen",
         "meta": "WooCommerce-Plugin, Version {version}, {size} KB",
@@ -511,7 +511,7 @@
       "polling_note_with_webhook": "Änderungen kommen sofort über WooCommerce-Webhooks; alle 5 Minuten prüfen wir zusätzlich alles selbst.",
       "key_rejected": "Der Shop akzeptiert den Schlüssel nicht mehr (gelöscht oder Rechte geändert). Das Lesen ist gestoppt — erstellen Sie einen neuen Schlüssel „Lesen“, trennen Sie den alten und verbinden Sie den neuen.",
       "revoke_warning": "Der Dienst löscht den Schlüssel bei sich und liest keine Bestellungen mehr. Löschen Sie den Schlüssel auch in WooCommerce (Einstellungen → Erweitert → REST-API).",
-      "plugin_active": "Bestellungen kommen derzeit über das Plugin. Ein Shop hat eine Bestellquelle: Um zu einem REST-API-Schlüssel zu wechseln, trennen Sie zuerst das Plugin im Reiter „Plugin“."
+      "plugin_active": "Bestellungen kommen derzeit über das Plugin. Ein Shop hat eine Bestellquelle: Um zu einem REST-API-Schlüssel zu wechseln, trennen Sie zuerst das Plugin im Abschnitt „{block}“ unten."
     },
     "shopware": {
       "why": "Im Shop muss nichts installiert werden: Der Dienst liest Bestellungen von Shopware 6.6 und 6.7 über die Admin-API mit einem Integrationsschlüssel. Die App ist optional – für sofortige Aktualisierung und die Beobachtung des Bestellabschlusses.",

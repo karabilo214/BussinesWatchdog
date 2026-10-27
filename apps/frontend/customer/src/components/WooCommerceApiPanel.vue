@@ -136,7 +136,7 @@ void load();
       </div>
     </template>
 
-    <p v-else-if="pluginActive" class="text-sm" data-other-source>{{ $t('store.api.plugin_active') }}</p>
+    <p v-else-if="pluginActive" class="text-sm" data-other-source>{{ $t('store.api.plugin_active', { block: $t('store.order_source.extra_woocommerce') }) }}</p>
 
     <template v-else>
       <p class="text-sm">{{ $t('store.api.why') }}</p>
