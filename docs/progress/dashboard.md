@@ -426,7 +426,7 @@ Verification: `StoreDomainVerificationTest` new case (404, 403, 503, 418, mainte
 
 ### Step 286: The order-source hint names the real section instead of a removed tab (2026-10-27)
 
-Status: complete
+Status: complete; not deployed yet
 
 - Since Step 237 the WooCommerce order source has no «REST API key» / «Plugin» tabs: the API is the main section, the plugin sits below in «Additional checkout observation with a plugin». The hints `store.api.plugin_active` and `store.connector.api_active` still told the merchant to disconnect «in the "Plugin" tab» / «in the "REST API key" tab».
 - Both hints now name the section and where it is («…disconnect the plugin in the "Additional checkout observation with a plugin" section below», «…the key in the "Connect WooCommerce through its API" section above»); the section name is taken from the same translation key as its heading, so they cannot drift apart. ru/en/de.
