@@ -161,3 +161,18 @@ Verification on the local stand (WordPress 7.1.3, WooCommerce 11.2.0, official S
 
 Found on the way: `browser-e2e.sh` fails on a fresh wc9 stand with the original worker code as well (classic and Blocks `selector_changed`; the script still counts the old `wp_bw_payment_attempts` table renamed in 0.4.0) — the matrix e2e needs its own repair.
 
+### Step 294: Sales videos from the real service (2026-10-27)
+
+Status: complete; videos are outside git (owner's `~/Desktop/bw-videos/`, 6 MP4, 1280×720, no sound, on-screen captions; build script and specs in `sources/`)
+
+- Owner asked for videos a prospect can judge the product by: a real incident, a browser check where customers cannot pay because of the payment provider, and the bot's walk to the payment form. English and German, local stand, captions.
+- Stand: matrix `latest` (WordPress 7.1.3, WooCommerce 11.2.0, official Stripe gateway 11.1.1 with the owner's Stripe **test** keys, Blocks checkout), store «Kaffeerösterei Lindner» on `https://kaffee-lindner.example.test` behind a local Caddy TLS proxy (`bw-video-tls`); demo organization `anna@kaffee-lindner.example.test` in the local database with Stripe connected in test mode and a verified e-mail channel; e-mails caught by Mailpit.
+- 1 «checkout check»: the recording wraps the real `runAttempt` with a browser that records video (`recordVideo`), worker code unchanged; full payment-form check (Step 293) sees the real Stripe form; then the check run in the cabinet. 2 «payment provider failure»: an invalid Stripe publishable key; the bot sees «Invalid API Key provided», the step fails `payment_provider_rejected`, two failures open `CHECKOUT_FLOW_FAILED`, the e-mail is the real one. 3 «paid without money»: a card declined at Stripe (`4000 0000 0000 0002`), the order set to Processing by hand in WooCommerce admin, 30 minutes later `MONEY_CAPTURE_MISSING` €18.40 with the real e-mail. E-mails shown cropped above the sender footer (owner's postal address); the logo is replaced by the repository's `mail-logo.png` (the local `APP_URL` of the sending process was not reachable).
+- Stand resets for clean takes (local data only): store/tenant locale switched en → de for the e-mail language; an already notified incident was resolved and its fingerprint suffixed so the next failure opens a fresh one.
+
+Found while filming (open):
+- Test-mode gap: the plugin records the Stripe payment mode only when the order becomes paid, so «captured at Stripe, order still pending» in **test** mode stays `payment_mode_needs_plugin` (the metadata link requires the same mode by design). Live mode is unaffected. Fix: record the mode at checkout — plugin 0.4.1.
+- `CHECKOUT_FLOW_FAILED` incident and e-mail say only «step payment form did not pass»; the cause shown on the check run (`payment_provider_rejected`) is not carried into them.
+- German cabinet header with a longer user name still wraps «Benachrichtigungen» at 1280 px.
+- Behaviour confirmed correct: while the plugin was silent the order evaluated `unknown / store_data_stale` instead of a discrepancy, and was rechecked to `mismatch` as soon as the data was fresh again.
+
