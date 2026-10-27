@@ -351,11 +351,11 @@ Verification: `PublicSiteTest::test_sitemap_lists_shown_pages_with_their_languag
 
 ### Step 288: Small Transparent WebP Header Logo
 
-Status: complete locally; not deployed.
+Status: complete; deployed 2026-10-27 (`15fd387`).
 
 - Re-encoded the original 512×512 PNG eye as `public/images/brand-mark-64.webp` (1,960 bytes) and `brand-mark-128.webp` (4,102 bytes), with transparency outside the rounded blue mark. The internal white artwork is preserved.
 - The public header uses `/images/brand-mark-64.webp` with `/images/brand-mark-128.webp 2x` in `srcset`, keeping `width="36"`, `height="36"`, empty alt and async decoding. It no longer selects the oversized media PNG via `WATCHDOG_SITE_BRAND_MEDIA_URL`. Existing user changes to stylesheet inclusion were preserved.
 - The owner's layout change embeds the site stylesheet on public pages as well as previews. Caddy serves `/site/assets/*` from `/srv/web/current/public` with a one-year immutable cache header on successful responses. Caddy 2.10.2 `caddy validate` passed.
 - No migrations or API contracts changed. Traceability: Step 224 site branding and spec §31 performance; no acceptance matrix status changed.
 
-Verification: decoded both files (64×64 and 128×128, alpha range 0–255), visually compared them with the original on a grey background; `git diff --check`; Docker `APP_ENV=testing` PublicSiteTest: 15 passed, 384 assertions. Initial Docker run without explicitly overriding APP_ENV: 6 passed, 9 failed with login CSRF 419; rerun in testing environment passed. Remaining: production deployment and a fresh PageSpeed measurement.
+Verification: decoded both files (64×64 and 128×128, alpha range 0–255), visually compared them with the original on a grey background; `git diff --check`; Docker `APP_ENV=testing` PublicSiteTest: 15 passed, 384 assertions. Initial Docker run without explicitly overriding APP_ENV: 6 passed, 9 failed with login CSRF 419; rerun in testing environment passed. Production: rollout completed successfully, no migrations pending; live HTML selects both WebP sizes and inline CSS; both images return HTTP 200 with image/webp and match the committed files byte for byte; site stylesheet returns HTTP 200 with the one-year immutable cache header. The 300-second rollout probe observed only HTTP 200: `/health/ready` 495 requests, `/app/` 707, `/en` 422. Remaining: a fresh PageSpeed measurement.
