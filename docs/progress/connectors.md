@@ -683,10 +683,12 @@ Production 2026-10-27 (`a58ce7e`, no migration, deploy without downtime: ~4500 r
 
 ### Step 278: Stripe Multicapture (2026-10-27)
 
-Status: complete; not deployed (no migration)
+Status: complete; deployed 2026-10-27 (`95a9e14`, no migration)
 
 - Backlog «Частичные многократные списания (multicapture)». ADR 0082 (financial assumption shown to the owner): one capture operation per charge is the cumulative `amount_captured`.
 - `FinancialTransactionProjector::captureGrowth()`: an independent-provider `capture`, succeeded before and after, same currency, exponent and payment, may grow; history in `metadata.amount_history` / `amount_observed_at`. A smaller amount from an older observation is ignored; from a newer one it stays `transaction_operation_conflict`. Other kinds and store-reported operations stay immutable (ADR 0020).
 - `PaymentAllocationService::followCaptureGrowth()`: a single active automatic allocation that covered the previous amount grows with it (`evidence.capture_growth`); manual or split allocations keep their amounts; affected orders and unmatched payments are marked for reconciliation.
 
 Verification: `StripeMulticaptureTest` (2): partial capture 40 → order under-captured; capture grows to 100 with the intent succeeded → capture and automatic link 100, history kept, all events processed, no mismatch after reconciliation; a late 40 delivery is ignored; a manual 40 link stays 40 when the capture grows to 70, and a newer 50 stays a conflict. Backend SQLite 811 passed + 4 skipped, PostgreSQL 18 815/815, Pint. JSON fixtures only, not tested against a real Stripe multicapture account (multicapture needs an eligible Stripe account and IC+ pricing).
+
+Production 2026-10-27 (`95a9e14`): deploy without downtime (`probe.sh` 420 s, ~4300 requests, 0 answers other than 200). `stripe:sync --inline` on the three Stripe connections `ok`; all `transaction.observed` events processed, 0 `transaction_operation_conflict`, 0 of 139 captures grew (no multicapture in these accounts); no errors in app or worker logs. A real multicapture was not observed.
