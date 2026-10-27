@@ -30,6 +30,17 @@ class WooCommerceWebhookController extends Controller
         return response()->json($this->webhooks->setUp($integration, $request->user()?->id));
     }
 
+    public function check(Integration $integration, TenantContext $tenantContext): JsonResponse
+    {
+        abort_unless($integration->tenant_id === $tenantContext->requireTenantId('check woocommerce webhooks') && $integration->provider === WooCommerceApiConnector::PROVIDER, 404);
+
+        if (! in_array($integration->status, [Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED], true)) {
+            return response()->json(['code' => 'integration_not_active', 'message' => 'The connection is not active.'], 409);
+        }
+
+        return response()->json($this->webhooks->check($integration));
+    }
+
     public function store(Request $request, string $integration): JsonResponse
     {
         $target = Str::isUuid($integration) ? Integration::query()->whereKey($integration)->where('provider', WooCommerceApiConnector::PROVIDER)->first() : null;

@@ -4938,12 +4938,43 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/integrations/{integration_id}/woocommerce-webhook/check:
+    post:
+      tags: [Integrations]
+      operationId: checkWooCommerceWebhooks
+      security:
+        - {UserSession: []}
+      description: "WooCommerce REST API connection only (ADR 0077): reads the store's webhooks with the read-only key (GET /wc/v3/webhooks) and compares them with the four order topics and this connection's delivery URL. Only this connection's webhooks are considered; other webhooks of the store and their addresses are not stored. The result is also kept in health.webhook_check; a ping of an active webhook of this store becomes health.webhook_ping.verified. state ok, issues or not_readable (error_code from the key read); issues old_address (a webhook of an earlier connection) and secret_newer_than_webhooks (the secret was created after the webhooks were last saved and no signed delivery arrived since). Throttled like a manual sync."
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: Webhook check
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [checked_at, state]
+                properties:
+                  checked_at: {type: string, format: date-time}
+                  state: {enum: [ok, issues, not_readable]}
+                  error_code: {type: string}
+                  topics:
+                    type: object
+                    additionalProperties: {enum: [active, paused, disabled, missing]}
+                  issues: {type: array, items: {enum: [old_address, secret_newer_than_webhooks]}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /api/v1/webhooks/woocommerce/{integration_id}:
     post:
       tags: [Integrations]
       operationId: receiveWooCommerceWebhook
       security: []
-      description: "WooCommerce's own webhook for a REST API connection (ADR 0077). Signature X-WC-Webhook-Signature = base64 HMAC-SHA256 of the raw body with the secret; X-WC-Webhook-Source must be the store's host. An order topic only queues the connection's delta sync (the body is not used). WooCommerce's unsigned ping (webhook_id=N) is answered 200. 409 webhook_not_configured, 401 signature_invalid, 422 source_mismatch."
+      description: "WooCommerce's own webhook for a REST API connection (ADR 0077). Signature X-WC-Webhook-Signature = base64 HMAC-SHA256 of the raw body with the secret; X-WC-Webhook-Source must be the store's host. An order topic only queues the connection's delta sync (the body is not used). WooCommerce's unsigned ping (webhook_id=N) is answered 200, kept as health.webhook_ping (unverified) and queues a webhook check. A delivery from the store's host with an order topic and a wrong signature is kept as health.webhook_rejected. 409 webhook_not_configured, 401 signature_invalid, 422 source_mismatch."
       parameters:
         - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
       responses:

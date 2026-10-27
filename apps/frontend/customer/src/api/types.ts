@@ -214,6 +214,14 @@ export interface ProviderSyncHealth {
   fees?: { state: 'ok' | 'permission_missing'; checked_at: string; complete?: boolean };
 }
 
+export interface WooCommerceWebhookCheck {
+  checked_at: string;
+  state: 'ok' | 'issues' | 'not_readable';
+  error_code?: string;
+  topics?: Record<string, 'active' | 'paused' | 'disabled' | 'missing'>;
+  issues?: ('old_address' | 'secret_newer_than_webhooks')[];
+}
+
 export interface Integration {
   id: string;
   store_id: string;
@@ -239,6 +247,9 @@ export interface Integration {
     sync?: ProviderSyncHealth;
     last_error?: { code: string; at: string; retry_after_seconds?: number | null } | null;
     webhook?: { last_received_at?: string; last_type?: string };
+    webhook_ping?: { webhook_id: number; received_at: string; verified: boolean };
+    webhook_rejected?: { reason: string; topic: string; at: string };
+    webhook_check?: WooCommerceWebhookCheck;
   };
   credentials?: IntegrationCredentialInfo[];
   webhook_url?: string;

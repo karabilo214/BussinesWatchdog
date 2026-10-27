@@ -22,6 +22,7 @@ class WooCommerceApiClient
         '#^/wc/v3$#',
         '#^/wc/v3/orders$#',
         '#^/wc/v3/orders/[0-9]{1,20}/refunds$#',
+        '#^/wc/v3/webhooks$#',
     ];
 
     public function __construct(

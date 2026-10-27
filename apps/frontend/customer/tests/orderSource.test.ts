@@ -18,7 +18,7 @@ import ru from '@/i18n/locales/ru.json';
 import { localization, setLocale } from '@/i18n';
 import { makeStore } from './fixtures';
 
-vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), downloadShopwareApp: vi.fn(), downloadShopwareAppUpdate: vi.fn(), setUpWooCommerceWebhook: vi.fn(), syncProvider: vi.fn() }));
+vi.mock('@/api/providers', () => ({ connectWooCommerceApi: vi.fn(), connectShopware: vi.fn(), downloadShopwareApp: vi.fn(), downloadShopwareAppUpdate: vi.fn(), setUpWooCommerceWebhook: vi.fn(), checkWooCommerceWebhooks: vi.fn(), syncProvider: vi.fn() }));
 vi.mock('@/api/plugin', () => ({ PLUGIN_DOWNLOAD_URL: '/api/v1/downloads/woocommerce-plugin/file', getPluginPackage: vi.fn() }));
 vi.mock('@/api/stores', () => ({
   listStoreIntegrations: vi.fn(),
@@ -162,8 +162,52 @@ describe('WooCommerceApiPanel', () => {
     vi.mocked(stores.listStoreIntegrations).mockResolvedValue([integration('woocommerce_api', { health: { key_last7: '1234567', webhook_set_up_at: '2026-10-22T09:00:00Z', webhook: { last_received_at: '2026-10-22T09:05:00Z', last_type: 'order.updated' } } })]);
     const live = mount(WooCommerceApiPanel, { props: { storeId: 's-1', canManage: true, pluginActive: false }, global });
     await flushPromises();
-    expect(live.get('[data-webhook-state]').text()).toContain('Последнее сообщение от WooCommerce');
+    expect(live.get('[data-webhook-state]').text()).toContain('Работают: подписанное событие order.updated');
+    expect(live.get('[data-webhook-stage]').text()).toBe('работают');
     expect(live.get('[data-api-limits]').text()).toContain('приходят сразу');
+  });
+
+  it('shows the webhook stages and never says working before a signed event', async () => {
+    const stageOf = async (health: Record<string, unknown>) => {
+      vi.mocked(stores.listStoreIntegrations).mockResolvedValue([integration('woocommerce_api', { health: { key_last7: '1234567', webhook_set_up_at: '2026-10-27T09:00:00Z', ...health } })]);
+      const wrapper = mount(WooCommerceApiPanel, { props: { storeId: 's-1', canManage: true, pluginActive: false }, global });
+      await flushPromises();
+
+      return wrapper;
+    };
+
+    const waiting = await stageOf({});
+    expect(waiting.get('[data-webhook-stage]').text()).toBe('ожидаем проверку');
+    waiting.unmount();
+
+    const unverified = await stageOf({ webhook_ping: { webhook_id: 7, received_at: '2026-10-27T09:01:00Z', verified: false } });
+    expect(unverified.get('[data-webhook-stage]').text()).toBe('ожидаем проверку');
+    expect(unverified.get('[data-webhook-state]').text()).toContain('сверяем');
+    unverified.unmount();
+
+    const reached = await stageOf({ webhook_ping: { webhook_id: 7, received_at: '2026-10-27T09:01:00Z', verified: true }, webhook_check: { checked_at: '2026-10-27T09:01:10Z', state: 'ok', topics: { 'order.created': 'active', 'order.updated': 'active', 'order.deleted': 'active', 'order.restored': 'active' }, issues: [] } });
+    expect(reached.get('[data-webhook-stage]').text()).toBe('подпись не проверена');
+    expect(reached.get('[data-webhook-state]').text()).toContain('вебхука №7');
+    expect(reached.get('[data-webhook-state]').text()).toContain('нажмите «Обновить»');
+    reached.unmount();
+
+    const issues = await stageOf({ webhook_check: { checked_at: '2026-10-27T09:01:10Z', state: 'issues', topics: { 'order.created': 'active', 'order.updated': 'disabled', 'order.deleted': 'missing', 'order.restored': 'active' }, issues: ['secret_newer_than_webhooks'] } });
+    expect(issues.get('[data-webhook-stage]').text()).toBe('ожидаем проверку');
+    expect(issues.get('[data-topic="order.updated"]').text()).toContain('отключён WooCommerce');
+    expect(issues.get('[data-topic="order.deleted"]').text()).toContain('не найден');
+    expect(issues.find('[data-issue="secret_newer_than_webhooks"]').exists()).toBe(true);
+    issues.unmount();
+
+    const rejected = await stageOf({ webhook: { last_received_at: '2026-10-27T09:02:00Z', last_type: 'order.updated' }, webhook_rejected: { reason: 'signature_invalid', topic: 'order.updated', at: '2026-10-27T09:05:00Z' } });
+    expect(rejected.get('[data-webhook-stage]').text()).toBe('проверка не прошла');
+    expect(rejected.get('[data-webhook-state]').text()).toContain('подпись не совпала');
+    rejected.unmount();
+
+    vi.mocked(providers.checkWooCommerceWebhooks).mockResolvedValue({ checked_at: '2026-10-27T09:06:00Z', state: 'ok', topics: {}, issues: [] });
+    const check = await stageOf({});
+    await check.get('[data-action="check-webhook"]').trigger('click');
+    await flushPromises();
+    expect(providers.checkWooCommerceWebhooks).toHaveBeenCalledWith('int-woocommerce_api');
   });
 
   it('every REST API connector error code is explained in every language', () => {

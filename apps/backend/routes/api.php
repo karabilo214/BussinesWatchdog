@@ -178,6 +178,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/integrations/{integration}/woocommerce-webhook', [WooCommerceWebhookController::class, 'setUp'])
         ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
+    Route::post('/integrations/{integration}/woocommerce-webhook/check', [WooCommerceWebhookController::class, 'check'])
+        ->middleware(['tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE, 'throttle:provider-sync']);
     Route::post('/stores/{store}/integrations/paypal', [PayPalIntegrationController::class, 'connect'])
         ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/stores/{store}/integrations/woocommerce-api', [WooCommerceApiIntegrationController::class, 'connect'])
