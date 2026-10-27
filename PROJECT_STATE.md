@@ -24,7 +24,7 @@ https://business-watchdog.com (Contabo, Docker Compose, Caddy), выкладка
 
 - Подключены тестовые магазины WooCommerce-Test и Shopware-Test (`docs/ops/test-shops.md`), тестовые Stripe и PayPal. Shopware-Test ещё на App 1.3.1 (одобрена универсальная 1.5.0).
 - Для выдачи из кабинета одобрены ZIP WooCommerce 0.3.2 и Shopware App 1.5.0.
-- После выкладки правил сверки v3 (Step 201) нужен один раз `php artisan reconciliation:recheck-open-incidents` — факт запуска не записан.
+- `reconciliation:recheck-open-incidents` после правил сверки v3 выполнялся 2026-10-21 (хотфикс `b92b8f2`) и повторно 2026-10-27 на `017622a`: 3 заказа пересчитаны, итог не изменился; открыты 5 денежных инцидентов, все в тестовом режиме (`progress/reconciliation.md`).
 
 ## Что это за проект
 

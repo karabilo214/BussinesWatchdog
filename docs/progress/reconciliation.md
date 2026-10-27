@@ -521,3 +521,9 @@ Status: complete; deployed 2026-10-22
 - Amounts take the finding's currency, so an explanation without an order still shows them.
 
 Verification: `IncidentApiTest` three new tests (refund only at the provider, smaller capture and several captures, payment without an order with a real capture operation); customer `incidents.test.ts` headlines of the new scenarios. Backend SQLite 725 passed + 4 skipped, Incidents + Notifications on PostgreSQL 18 87/87, Pint ok; customer typecheck, 158/158, build.
+
+### Без номера шага: повторная проверка открытых денежных инцидентов на боевом (2026-10-27)
+
+- Пункт «после выкладки правил v3 (Step 201) один раз запустить `reconciliation:recheck-open-incidents`, факт запуска не записан» снят. Команда уже выполнялась 2026-10-21 при хотфиксе `b92b8f2` (6 заказов, `progress/connectors.md`, Step 222).
+- 2026-10-27 09:39 UTC на `017622a` команда выполнена повторно: `Orders queued for recheck: 3 of 3 behind open money incidents`. `reconciliation:process-dirty` разобрал очередь в ту же минуту. `reconciliation_subject_states.evaluated_at` всех трёх заказов — 09:39:15–16. Хеш результата не изменился, поэтому новых `reconciliation_runs` нет, а `evaluated_at` находок остался прежним (`ReconciliationResultRecorder`).
+- Открытыми остались 5 денежных инцидентов, все `test`, уровень warning: BW — `MONEY_REFUND_EXTRA` (с 2026-10-23); Shopware-Test — `MONEY_REFUND_EXTRA` (заказ 10002, с 2026-10-21, реальное расхождение возврата из Step 222); Woo-Test — `MONEY_REFUND_EXTRA`, `MONEY_MULTIPLE_CAPTURES`, `MONEY_CAPTURE_AMOUNT` по одному заказу (с 2026-10-20). По текущим правилам это действительные расхождения тестовых данных, а не следы старых правил.

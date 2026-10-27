@@ -16,4 +16,4 @@ Step history is split by area. Read only the file you need; add a new step to th
 
 Last step: 279 (`progress/connectors.md`).
 
-Контекст сверен 2026-10-27 без нового шага реализации: на сервере `017622a` (Step 279), статус WordPress.org — в `ops/integrations.md`.
+Контекст сверен 2026-10-27 без нового шага реализации: на сервере `017622a` (Step 279), статус WordPress.org — в `ops/integrations.md`; повторная проверка открытых денежных инцидентов — в конце `progress/reconciliation.md`.
