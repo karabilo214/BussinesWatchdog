@@ -4,17 +4,16 @@
 
 ## Обновлено
 
-2026-10-27. Последний шаг — **288** (`progress/public-site.md`). Steps 286–288 выложены на сервер (`15fd387`). Миграции применены.
+2026-10-27. Последний шаг — **289** (`progress/connectors.md`). Steps 286–288 выложены на сервер (`15fd387`); Step 289 в git, не выложен. Миграции применены.
 
 Последние шаги (подробности — в файлах `docs/progress/`):
 
-- **288** (`connectors`): английские скриншоты для Shopware Store (`plugins/shopware-app/store-assets/en/`, снято на локальном Shopware 6.7.15.1 с App 1.5.0); исправлено название пункта «Open extension» в кабинете и подсказка модуля App. Без миграции.
+- **289** (`connectors`): английские скриншоты для Shopware Store (`plugins/shopware-app/store-assets/en/`, снято на локальном Shopware 6.7.15.1 с App 1.5.0); исправлено название пункта «Open extension» в кабинете и подсказка модуля App. Без миграции.
 - **288** (`public-site`): логотип шапки — прозрачные WebP 64/128 px (1,9/4,0 КиБ) с `srcset` вместо PNG 512 px (235 КиБ); размер в макете 36×36 сохранён. `PublicSiteTest` 15/15. Без миграции; выложено (`15fd387`).
 - **287** (`connectors`): пакет Shopware App для Shopware Store (`shopware:app-store-package`, без секрета, с иконкой; проходит `shopware-cli extension validate`), регистрация по секрету Store, инструкция владельцу `docs/ops/shopware-store.md`. Без миграции.
 - **286** (`dashboard`): подсказка о смене источника заказов называет настоящий блок вместо несуществующей вкладки «Плагин» / «Ключ REST API». Без миграции.
 - **285** (`connectors`): кабинет выдаёт плагин 0.4.0 (одобрен владельцем) и ссылается на каталог WordPress.org; скриншот 3 каталога переснят; тесты вебхуков сравнивают `jsonb` без учёта порядка ключей (CI на PostgreSQL падал с Step 282). Без миграции.
 - **284** (`connectors`): WooCommerce-плагин 0.4.0 одобрен WordPress.org и опубликован в каталоге — https://wordpress.org/plugins/business-watchdog/ (SVN r3768832, точный одобренный ZIP). Без кода.
-- **283** (`connectors`, 11.G): то же для Stripe и PayPal — проверка настройки у провайдера, любое проверенное событие, отклонённая подпись. Первая настоящая доставка вебхука PayPal (sandbox) и Stripe test на «BW». Без миграции.
 
 Последний полный прогон (Step 283): backend SQLite 820 + 4 пропуска, Pint; кабинет — типы, 209 тестов, сборка. Живые доставки вебхуков WooCommerce, PayPal sandbox, Stripe test. PostgreSQL 18 818/818 — на Step 279.
 

@@ -106,7 +106,7 @@
 
 WordPress.org: плагин 0.4.0 одобрен 2026-10-27 и опубликован в каталоге (Step 284, https://wordpress.org/plugins/business-watchdog/); процедура выпуска — `docs/ops/integrations.md`.
 
-- [ ] Публикация Shopware App в Shopware Store. Пакет и инструкция — Step 287, `docs/ops/shopware-store.md`. Ждёт владельца: аккаунт Extension Partner (возможно, нужна компания), ответ Shopware о договоре Technology Partner, субподрядчики от юриста; затем загрузка, секрет на сервер, тексты и картинки (английский набор снят — Step 288, `plugins/shopware-app/store-assets/en/`).
+- [ ] Публикация Shopware App в Shopware Store. Пакет и инструкция — Step 287, `docs/ops/shopware-store.md`. Ждёт владельца: аккаунт Extension Partner (возможно, нужна компания), ответ Shopware о договоре Technology Partner, субподрядчики от юриста; затем загрузка, секрет на сервер, тексты и картинки (английский набор снят — Step 289, `plugins/shopware-app/store-assets/en/`).
 
 - [ ] Подключение Stripe в один клик через Stripe App OAuth (ADR 0020; Step 163 — код, Step 185 — удалён). Для Украины Stripe не даёт завершить настройку аккаунта платформы без зарегистрированного бизнеса в Германии: не работают ни авторизация клиента через кнопку, ни External test. После регистрации компании можно вернуться к задаче. Сейчас клиент подключает Stripe ограниченным ключом (restricted key); прежний код OAuth удалён.
 

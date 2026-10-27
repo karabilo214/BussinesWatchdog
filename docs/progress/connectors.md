@@ -769,7 +769,7 @@ Status: complete; not deployed yet
 
 Verification: `ShopwareStoreAppTest` (package contents, no secret, icon, same files as the universal app, unchanged fingerprint, name without prefix rejected; registration with the Store secret only when configured, proof with the Store name, universal registration unchanged, other secret rejected), `ShopwareAppUniversalTest`; the built package passes `xmllint` against Shopware's `manifest-2.0.xsd` and `shopware-cli extension validate` (0 problems; first run found the icon over 30 KB and short descriptions — fixed). Not installed into a real Shopware: without a manifest secret Shopware takes the secret from the Store account.
 
-### Step 288: Shopware Store screenshots and the real «Open extension» label (2026-10-27)
+### Step 289: Shopware Store screenshots and the real «Open extension» label (2026-10-27)
 
 Status: complete; not deployed yet
 
