@@ -695,7 +695,7 @@ Production 2026-10-27 (`95a9e14`): deploy without downtime (`probe.sh` 420 s, ~4
 
 ### Step 279: Payment Provider Fees as Information (2026-10-27)
 
-Status: complete; not deployed (no migration)
+Status: complete; deployed 2026-10-27 (`017622a`, no migration)
 
 - Backlog «Комиссии как информационный сигнал, вне сверки денег». ADR 0083, owner's decisions: order card plus a 30-day overview and CSV; Stripe `Balance: Read` optional.
 - Fees are `financial_transactions` of kind `fee` with id `fee:<capture id>`; `ExactReferenceMatcher` now matches only captures and refunds (by kind), so a fee is never mistaken for a refund or linked to an order.
@@ -705,3 +705,5 @@ Status: complete; not deployed (no migration)
 - Cabinet: «Payment provider fee» and «Net after fee» lines on the order card (BigInt arithmetic), «Fees, last 30 days» overview tile with the share of captures, Stripe hint `provider.fees_permission_missing`, `Balance` in the key instruction (ru/en/de).
 
 Verification: `StripeFeeTest` (2): the fee comes from the balance transaction, is linked to the payment, never allocated, reconciliation without mismatch, order API and overview with fee 1.58 € of 89.00 €, a known fee is not requested again; 403 keeps the sync and the integration active with `permission_missing`, and the fee arrives after the permission is added. `PayPalDisputeTest` new fee test (0.84 USD from the capture breakdown, allocation stays 10.00). Cabinet provider test excludes the API field `paypal_fee` from error codes. Backend SQLite 814 passed + 4 skipped, PostgreSQL 18 818/818, Pint; cabinet typecheck, 196 tests, build. JSON fixtures only.
+
+Production 2026-10-27 (`017622a`): deploy without downtime (`probe.sh` 420 s, 0 answers other than 200). `stripe:sync --inline`: fees `ok` on the three Stripe connections (the restricted keys already read balance transactions), 42 fee operations (14 charges × 3 connections to the same Stripe test account), all linked to their payments, none allocated, all in EUR; overview fees of the owner's organisation: 90.75 € of 7,936.02 € captured in test mode (≈ 1.1 %). PayPal delta sync emitted no fees: delta reads only new transactions, so fees of existing PayPal captures arrive with the next daily `paypal:sync --audit` (03:xx) or a new capture. No errors in app or worker logs.
