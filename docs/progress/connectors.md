@@ -757,3 +757,15 @@ Status: complete; deployed 2026-10-27 (`f398422`, no migration)
 Verification: backend SQLite 820 + 4 skipped, PostgreSQL 18 824/824, Pint; cabinet types, 210 tests, build; the download block checked on the local stand in ru and en.
 
 Production (2026-10-27): ZIP 0.4.0 copied into `storage/app/plugins` (hash checked on the server), `WATCHDOG_WOO_APPROVED_SHA256` set to it, deployed; `PluginPackage::latest()` returns 0.4.0, 64918 bytes. At the owner's request the 0.3.2 ZIP was deleted from the server. The deployed `StoreView` chunk contains the directory link.
+
+### Step 287: Shopware Store package and the owner's publication guide (2026-10-27)
+
+Status: complete; not deployed yet
+
+- Owner asked to prepare the Shopware App for the Shopware Store, like the WordPress.org directory. Store requirements read from Shopware's quality guidelines, content rules, manifest reference and registration docs (sources in `docs/ops/shopware-store.md`).
+- `ShopwareStoreApp` + `php artisan shopware:app-store-package <dir>`: the universal app 1.5.0 under the technical name `WATCHDOG_SHOPWARE_STORE_APP_NAME` (must differ from `BusinessWatchdog`, starts with a capital letter — the partner prefix), no `<secret>` (Store apps get it from the Shopware account), `Resources/config/plugin.png` (brand icon, 256×256, 23 KB — the Store limit is 30 KB), `<privacy>` = `APP_URL/en/privacy`, `<compatibility>~6.6.0 || ~6.7.0</compatibility>` (the versions the app e2e runs on), descriptions of 150–185 characters. Built in its own class so `ShopwareApp::releaseFingerprint()` (hash of `ShopwareApp.php` and the sources) stays the approved one.
+- `ShopwareAppInstallations::register` accepts a registration signed with the universal secret or the Store secret (`WATCHDOG_SHOPWARE_STORE_APP_SECRET`, only with a valid Store name) and returns the proof for the app that signed; confirm, webhooks and the module are signed with the shop secret and are unchanged.
+- `docs/ops/shopware-store.md`: open questions (who may become Extension Partner — a company may be needed; whether a free app for a paid SaaS needs the paid Technology Partner agreement; subprocessors for the lawyer), the owner's steps, listing texts en/de (short descriptions 167/175 characters), highlights, keywords, image plan, reviewer instructions.
+
+Verification: `ShopwareStoreAppTest` (package contents, no secret, icon, same files as the universal app, unchanged fingerprint, name without prefix rejected; registration with the Store secret only when configured, proof with the Store name, universal registration unchanged, other secret rejected), `ShopwareAppUniversalTest`; the built package passes `xmllint` against Shopware's `manifest-2.0.xsd` and `shopware-cli extension validate` (0 problems; first run found the icon over 30 KB and short descriptions — fixed). Not installed into a real Shopware: without a manifest secret Shopware takes the secret from the Store account.
+

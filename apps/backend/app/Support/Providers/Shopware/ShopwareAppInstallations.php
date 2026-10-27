@@ -35,14 +35,10 @@ class ShopwareAppInstallations
      */
     public function register(string $rawQuery, string $signature, array $query): array
     {
-        $secret = ShopwareApp::appSecret();
+        [$appName, $secret] = $this->signer($rawQuery, $signature);
         $shopId = (string) ($query['shop-id'] ?? '');
         $shopUrl = rtrim((string) ($query['shop-url'] ?? ''), '/');
         $timestamp = (int) ($query['timestamp'] ?? 0);
-
-        if (! hash_equals(hash_hmac('sha256', $rawQuery, $secret), $signature)) {
-            throw new AccountRejected('shopware_app_signature_invalid', 401);
-        }
 
         if (abs(time() - $timestamp) > self::MAX_CLOCK_SKEW_SECONDS || preg_match('/^[A-Za-z0-9]{8,64}$/', $shopId) !== 1 || ! $this->shopUrlAllowed($shopUrl)) {
             throw new AccountRejected('shopware_app_registration_invalid', 422);
@@ -69,7 +65,7 @@ class ShopwareAppInstallations
         }
 
         return [
-            'proof' => hash_hmac('sha256', $shopId.$shopUrl.ShopwareApp::APP_NAME, $secret),
+            'proof' => hash_hmac('sha256', $shopId.$shopUrl.$appName, $secret),
             'secret' => $shopSecret,
             'confirmation_url' => url('/api/v1/shopware/app/confirm'),
         ];
@@ -260,6 +256,28 @@ class ShopwareAppInstallations
         $secrets = $installation->secrets;
 
         return ['shop_id' => $installation->shop_id, 'shop_url' => $installation->shop_url, 'shop_secret' => (string) ($secrets['shop_secret'] ?? ''), 'api_key' => (string) ($secrets['api_key'] ?? ''), 'secret_key' => (string) ($secrets['secret_key'] ?? '')];
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function signer(string $rawQuery, string $signature): array
+    {
+        $apps = [ShopwareApp::APP_NAME => ShopwareApp::appSecret()];
+        $storeName = ShopwareStoreApp::name();
+        $storeSecret = (string) config('watchdog.shopware.store_app_secret');
+
+        if ($storeName !== null && $storeSecret !== '') {
+            $apps[$storeName] = $storeSecret;
+        }
+
+        foreach ($apps as $name => $secret) {
+            if (hash_equals(hash_hmac('sha256', $rawQuery, $secret), $signature)) {
+                return [$name, $secret];
+            }
+        }
+
+        throw new AccountRejected('shopware_app_signature_invalid', 401);
     }
 
     private function host(string $url): string

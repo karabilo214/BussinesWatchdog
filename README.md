@@ -32,5 +32,6 @@ SaaS для обнаружения денежных расхождений и п
 | [docs/ops/site.md](docs/ops/site.md) | Публичный сайт: страницы, регистрация, проверка магазина, юридические страницы |
 | [docs/ops/test-shops.md](docs/ops/test-shops.md) | Тестовые магазины WooCommerce и Shopware на боевом сервере: версии, пароли, пересоздание |
 | [docs/ops/integrations.md](docs/ops/integrations.md) | Воркер браузерных проверок, Telegram, WooCommerce-плагин, Shopware App |
+| [docs/ops/shopware-store.md](docs/ops/shopware-store.md) | Публикация Shopware App в Shopware Store: аккаунт, пакет, секрет, тексты страницы, картинки |
 | [docs/ops/maintenance.md](docs/ops/maintenance.md) | Команды обслуживания: ключи шифрования, сотрудники, внеочередные синхронизации и очистки |
 | [docs/ops/development.md](docs/ops/development.md) | Локальная разработка, тесты, живые проверки; CI — `.github/workflows/ci.yml` |

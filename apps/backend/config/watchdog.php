@@ -194,6 +194,8 @@ return [
 
     'shopware' => [
         'app_approved_sha256' => (string) env('WATCHDOG_SHOPWARE_APP_APPROVED_SHA256', ''),
+        'store_app_name' => (string) env('WATCHDOG_SHOPWARE_STORE_APP_NAME', ''),
+        'store_app_secret' => (string) env('WATCHDOG_SHOPWARE_STORE_APP_SECRET', ''),
         'timeout_seconds' => 20,
         'page_size' => 100,
         'max_requests_per_run' => 60,

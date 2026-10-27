@@ -25,3 +25,8 @@ Shopware's private-app handshake needs a secret in the manifest. In a universal 
 - Anyone can install the archive and register a shop; without a valid code for a store on the same domain nothing is read or bound. Registration and the form are rate limited.
 - A shop on a different domain than the cabinet's store (e.g. a staging host) cannot be bound to it; the customer adds that host as its own store.
 - Moving from a per-store archive to the universal one means uninstalling the old app and installing the new one (the registration URL changes).
+
+## Shopware Store version (Step 287, 2026-10-27)
+
+Decision 7 is implemented: `ShopwareStoreApp` builds the Store package (`php artisan shopware:app-store-package <dir>`) with the technical name from `WATCHDOG_SHOPWARE_STORE_APP_NAME` (extension partner prefix), no `<secret>`, an icon, the privacy URL and `<compatibility>~6.6.0 || ~6.7.0</compatibility>`; URLs, permissions, webhooks, module and files are those of the universal archive. Registration accepts a query signed with the universal secret or, when configured, with `WATCHDOG_SHOPWARE_STORE_APP_SECRET`; the proof names the app that signed. The Store package is built outside `ShopwareApp` so the approved release fingerprint (ADR 0074) does not change. One shop runs either the universal or the Store app (same shop id); switching means uninstalling one first. Owner's steps: `docs/ops/shopware-store.md`.
+
