@@ -75,6 +75,11 @@ class PayPalOrderMapper
 
             if ($draft !== null) {
                 $drafts[] = $draft;
+                $fee = $status === 'succeeded' ? $this->fee($integration, $capture, $orderId) : null;
+
+                if ($fee !== null) {
+                    $drafts[] = $fee;
+                }
             }
         }
 
@@ -139,6 +144,40 @@ class PayPalOrderMapper
                 'payment_external_id' => $orderId,
                 'kind' => $kind,
                 'status' => $status,
+                'currency' => $currency,
+                'currency_exponent' => $exponent,
+                'amount_minor' => $amount,
+                'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $capture
+     * @return array<string, mixed>|null
+     */
+    private function fee(Integration $integration, array $capture, string $orderId): ?array
+    {
+        $fee = $capture['seller_receivable_breakdown']['paypal_fee'] ?? null;
+        $id = $this->id($capture);
+        $currency = strtoupper((string) ($fee['currency_code'] ?? ''));
+        $exponent = PayPalCurrency::exponent($currency);
+        $amount = $exponent === null ? null : PayPalCurrency::toMinor($fee['value'] ?? null, $exponent);
+
+        if ($id === null || $amount === null) {
+            return null;
+        }
+
+        return [
+            'type' => 'transaction.observed',
+            'aggregate_type' => 'transaction',
+            'aggregate_id' => 'fee:'.$id,
+            'created' => $this->time($capture['create_time'] ?? null),
+            'data' => [
+                'external_operation_id' => 'fee:'.$id,
+                'payment_external_id' => $orderId,
+                'kind' => 'fee',
+                'status' => 'succeeded',
                 'currency' => $currency,
                 'currency_exponent' => $exponent,
                 'amount_minor' => $amount,

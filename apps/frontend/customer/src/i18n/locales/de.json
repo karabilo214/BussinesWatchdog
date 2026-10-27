@@ -171,7 +171,10 @@
       "last_check": "Letzte erfolgreiche Checkout-Prüfung",
       "uncovered": "Shops mit unvollständiger Abdeckung: {n}",
       "all_covered": "Alle Shops werden überwacht.",
-      "paused_stores": "Durch den Tarif pausierte Shops: {n} — ihre Beträge werden nicht abgeglichen und sind unbekannt."
+      "paused_stores": "Durch den Tarif pausierte Shops: {n} — ihre Beträge werden nicht abgeglichen und sind unbekannt.",
+      "fees": "Gebühren der letzten {days} Tage",
+      "fee_share": "{share} % der Abbuchungen",
+      "fees_note": "Nur zur Information: Gebühren gehören nicht zum Geldabgleich."
     },
     "component": {
       "capture": "Abbuchungen",
@@ -1595,7 +1598,10 @@
     "link_refund_confirm": "Verknüpfen",
     "revisions_title": "Änderungsverlauf der Bestellung",
     "revision": "Version {n}",
-    "mode_needs_plugin": "Test-/Live-Modus: Plugin nötig"
+    "mode_needs_plugin": "Test-/Live-Modus: Plugin nötig",
+    "provider_fee": "Gebühr des Zahlungsanbieters",
+    "net_after_fee": "Netto nach Gebühr",
+    "fee_note": "Die Gebühr ist eine Angabe des Zahlungsanbieters und gehört nicht zum Geldabgleich. Sie kann in der Währung Ihres Guthabens beim Anbieter sein."
   },
   "checks": {
     "skip_reason": {
@@ -2111,7 +2117,7 @@
     },
     "why": "Verbinden Sie Stripe mit einem Schlüssel nur zum Lesen. Der Schlüssel wird hier eingegeben, nicht in WordPress — so erreichen uns Gelddaten am Shop vorbei.",
     "step_dashboard": "Öffnen Sie in Stripe Developers → API keys → „Create restricted key“.",
-    "step_permissions": "Vergeben Sie Read für Payment Intents, Charges und Refunds sowie für Disputes, um Rückbuchungen zu sehen (optional Account). Schreibrechte sind nicht nötig.",
+    "step_permissions": "Vergeben Sie Read für Payment Intents, Charges und Refunds, für Disputes, um Rückbuchungen zu sehen, und für Balance, um Gebühren zu sehen (optional Account). Schreibrechte sind nicht nötig.",
     "step_paste": "Kopieren Sie den Schlüssel (rk_live_… oder rk_test_…) und fügen Sie ihn unten ein.",
     "key_label": "Eingeschränkter Stripe-Schlüssel",
     "key_hint": "Der Schlüssel wird auf Lesezugriff geprüft und verschlüsselt gespeichert; danach zeigen wir nur die letzten 4 Zeichen.",
@@ -2166,7 +2172,8 @@
       "stripe_invalid_response": "Stripe hat eine unerwartete Antwort geliefert.",
       "integration_not_active": "Nur eine aktive Verbindung kann synchronisiert werden."
     },
-    "disputes_permission_missing": "Rückbuchungen sind nicht sichtbar: Dem Schlüssel fehlt die Berechtigung Disputes: Read. Ergänzen Sie sie im eingeschränkten Schlüssel in Stripe — der übrige Abgleich funktioniert wie bisher."
+    "disputes_permission_missing": "Rückbuchungen sind nicht sichtbar: Dem Schlüssel fehlt die Berechtigung Disputes: Read. Ergänzen Sie sie im eingeschränkten Schlüssel in Stripe — der übrige Abgleich funktioniert wie bisher.",
+    "fees_permission_missing": "Stripe-Gebühren sind nicht sichtbar: Dem Schlüssel fehlt die Berechtigung Balance: Read. Ergänzen Sie sie im eingeschränkten Schlüssel — alles andere funktioniert wie bisher."
   },
   "paypal": {
     "official_docs_image": "Aufnahme der offiziellen PayPal-Anleitung für Client ID und Secret",

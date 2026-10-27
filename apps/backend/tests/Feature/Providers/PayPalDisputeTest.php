@@ -3,11 +3,13 @@
 namespace Tests\Feature\Providers;
 
 use App\Models\EventInbox;
+use App\Models\FinancialTransaction;
 use App\Models\Incident;
 use App\Models\Integration;
 use App\Models\Membership;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PaymentAllocation;
 use App\Models\ProviderDispute;
 use App\Models\Store;
 use App\Models\Tenant;
@@ -67,7 +69,8 @@ class PayPalDisputeTest extends TestCase
         $order = [
             'id' => 'ORDER1', 'status' => 'COMPLETED', 'intent' => 'CAPTURE', 'create_time' => now()->subDays(5)->toIso8601ZuluString(),
             'purchase_units' => [['reference_id' => 'default', 'custom_id' => '1042', 'amount' => ['currency_code' => 'USD', 'value' => '10.00'],
-                'payments' => ['captures' => [['id' => 'CAP1', 'status' => 'COMPLETED', 'amount' => ['currency_code' => 'USD', 'value' => '10.00'], 'final_capture' => true, 'create_time' => now()->subDays(5)->toIso8601ZuluString()]]]]],
+                'payments' => ['captures' => [['id' => 'CAP1', 'status' => 'COMPLETED', 'amount' => ['currency_code' => 'USD', 'value' => '10.00'], 'final_capture' => true, 'create_time' => now()->subDays(5)->toIso8601ZuluString(),
+                    'seller_receivable_breakdown' => ['gross_amount' => ['currency_code' => 'USD', 'value' => '10.00'], 'paypal_fee' => ['currency_code' => 'USD', 'value' => '0.84'], 'net_amount' => ['currency_code' => 'USD', 'value' => '9.16']]]]]]],
         ];
 
         Http::fake(function (HttpRequest $request) use ($order) {
@@ -135,6 +138,22 @@ class PayPalDisputeTest extends TestCase
 
         $this->assertSame(['won', 'closed', 'warning_closed'], ProviderDispute::query()->orderBy('external_id')->pluck('status')->all());
         $this->assertSame(['auto_resolved_dispute_closed', 'auto_resolved_dispute_closed', 'auto_resolved_dispute_won'], Incident::query()->where('family', DisputeIncidents::FAMILY)->orderBy('resolution_reason')->pluck('resolution_reason')->all());
+    }
+
+    public function test_the_paypal_fee_of_a_capture_is_kept_as_information(): void
+    {
+        $order = $this->storeOrder();
+        $integration = $this->connected();
+
+        app(PayPalSync::class)->run($integration);
+        $this->drain();
+
+        $fee = FinancialTransaction::query()->where('kind', 'fee')->firstOrFail();
+        $this->assertSame(['fee:CAP1', 84, 'USD'], [$fee->external_operation_id, (int) $fee->amount_minor, $fee->currency]);
+        $this->assertSame(Payment::query()->where('external_id', 'ORDER1')->value('id'), $fee->payment_id);
+        $this->assertSame(1000, (int) PaymentAllocation::query()->where('order_id', $order->id)->value('amount_minor'));
+        $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
+            ->getJson("/api/v1/orders/{$order->id}")->assertOk()->assertJsonPath('fees.0.amount_minor', '84');
     }
 
     public function test_an_app_without_dispute_access_keeps_syncing_payments(): void

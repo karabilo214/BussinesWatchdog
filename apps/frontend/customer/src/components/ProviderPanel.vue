@@ -129,6 +129,7 @@ void load();
         {{ $t('provider.last_error', { time: dateTime(integration.health.last_error.at) }) }} {{ $te(`provider.errors.${integration.health.last_error.code}`) ? $t(`provider.errors.${integration.health.last_error.code}`) : integration.health.last_error.code }}
       </p>
       <p v-if="sync?.disputes?.state === 'permission_missing'" class="text-sm text-warn" data-disputes-permission>{{ $t('provider.disputes_permission_missing') }}</p>
+      <p v-if="sync?.fees?.state === 'permission_missing'" class="text-sm text-warn" data-fees-permission>{{ $t('provider.fees_permission_missing') }}</p>
       <p class="text-[13px] text-text-muted">{{ $t('provider.polling_note') }}</p>
 
       <div v-if="canManage" class="flex flex-wrap gap-2">

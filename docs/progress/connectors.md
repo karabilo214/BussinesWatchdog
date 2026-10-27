@@ -692,3 +692,16 @@ Status: complete; deployed 2026-10-27 (`95a9e14`, no migration)
 Verification: `StripeMulticaptureTest` (2): partial capture 40 → order under-captured; capture grows to 100 with the intent succeeded → capture and automatic link 100, history kept, all events processed, no mismatch after reconciliation; a late 40 delivery is ignored; a manual 40 link stays 40 when the capture grows to 70, and a newer 50 stays a conflict. Backend SQLite 811 passed + 4 skipped, PostgreSQL 18 815/815, Pint. JSON fixtures only, not tested against a real Stripe multicapture account (multicapture needs an eligible Stripe account and IC+ pricing).
 
 Production 2026-10-27 (`95a9e14`): deploy without downtime (`probe.sh` 420 s, ~4300 requests, 0 answers other than 200). `stripe:sync --inline` on the three Stripe connections `ok`; all `transaction.observed` events processed, 0 `transaction_operation_conflict`, 0 of 139 captures grew (no multicapture in these accounts); no errors in app or worker logs. A real multicapture was not observed.
+
+### Step 279: Payment Provider Fees as Information (2026-10-27)
+
+Status: complete; not deployed (no migration)
+
+- Backlog «Комиссии как информационный сигнал, вне сверки денег». ADR 0083, owner's decisions: order card plus a 30-day overview and CSV; Stripe `Balance: Read` optional.
+- Fees are `financial_transactions` of kind `fee` with id `fee:<capture id>`; `ExactReferenceMatcher` now matches only captures and refunds (by kind), so a fee is never mistaken for a refund or linked to an order.
+- PayPal: `PayPalOrderMapper::fee()` from `seller_receivable_breakdown.paypal_fee` of a succeeded capture.
+- Stripe: `StripeSync::fees()` — succeeded captures of the audit window without a fee, `GET /v1/balance_transactions?source=<charge>` (≤ 100 per run, retry after 6 h via cache), `health.sync.fees` `ok` / `permission_missing` (403 never fails the sync); fee in the balance currency.
+- API: `fees` on the order card; overview `fees` (last 30 days per payment mode and currency, fee and captured sums, operations; null without `reconciliation.read`, amounts null without `money.view`). OpenAPI updated.
+- Cabinet: «Payment provider fee» and «Net after fee» lines on the order card (BigInt arithmetic), «Fees, last 30 days» overview tile with the share of captures, Stripe hint `provider.fees_permission_missing`, `Balance` in the key instruction (ru/en/de).
+
+Verification: `StripeFeeTest` (2): the fee comes from the balance transaction, is linked to the payment, never allocated, reconciliation without mismatch, order API and overview with fee 1.58 € of 89.00 €, a known fee is not requested again; 403 keeps the sync and the integration active with `permission_missing`, and the fee arrives after the permission is added. `PayPalDisputeTest` new fee test (0.84 USD from the capture breakdown, allocation stays 10.00). Cabinet provider test excludes the API field `paypal_fee` from error codes. Backend SQLite 814 passed + 4 skipped, PostgreSQL 18 818/818, Pint; cabinet typecheck, 196 tests, build. JSON fixtures only.

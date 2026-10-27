@@ -5885,6 +5885,10 @@ paths:
                       revisions:
                         type: array
                         items: {$ref: "#/components/schemas/OrderRevision"}
+                      fees:
+                        type: array
+                        description: Payment provider fees (kind fee) of the payments allocated to the order (ADR 0083). Informational; they do not change the reconciliation. The currency is the provider's settlement currency and may differ from the order.
+                        items: {$ref: "#/components/schemas/FinancialTransaction"}
                       disputes:
                         type: array
                         description: Disputes (chargebacks) reported by the payment provider for the payments allocated to the order (ADR 0081). Informational; they do not change the reconciliation.
@@ -6192,6 +6196,26 @@ paths:
                         incident_count: {type: integer}
                   unknown_amount_incidents: {type: [integer, "null"]}
                   capacity_paused_stores: {type: integer, description: "Stores paused by the plan (ADR 0037 point 7): nothing is received or reconciled for them, so their money results are unknown — not zero and not healthy."}
+                  fees:
+                    type: [array, "null"]
+                    description: Payment provider fees of the last 30 days per mode and currency (ADR 0083), with captures in the same currency for a share. Informational, never part of the reconciliation. Null without reconciliation.read; amounts null without money.view.
+                    items:
+                      type: object
+                      required: [mode, currency, currency_exponent, days, fee_minor, captured_minor, fee_operations]
+                      properties:
+                        mode: {enum: [live, test]}
+                        currency: {type: string, pattern: "^[A-Z]{3}$"}
+                        currency_exponent: {type: integer, minimum: 0, maximum: 6}
+                        days: {type: integer}
+                        fee_minor:
+                          oneOf:
+                            - {$ref: "#/components/schemas/MoneyMinor"}
+                            - {type: "null"}
+                        captured_minor:
+                          oneOf:
+                            - {$ref: "#/components/schemas/MoneyMinor"}
+                            - {type: "null"}
+                        fee_operations: {type: integer}
                   money_amounts_hidden: {type: boolean}
                   recent_checks:
                     type: array

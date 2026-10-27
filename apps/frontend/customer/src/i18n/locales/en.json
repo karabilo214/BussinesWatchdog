@@ -171,7 +171,10 @@
       "last_check": "Last successful checkout check",
       "uncovered": "Stores with incomplete coverage: {n}",
       "all_covered": "All stores are monitored.",
-      "paused_stores": "Stores paused by the plan: {n} — their amounts are not reconciled and unknown."
+      "paused_stores": "Stores paused by the plan: {n} — their amounts are not reconciled and unknown.",
+      "fees": "Fees, last {days} days",
+      "fee_share": "{share} % of captures",
+      "fees_note": "Information only: fees are not part of the money reconciliation."
     },
     "component": {
       "capture": "Captures",
@@ -1595,7 +1598,10 @@
     "link_refund_confirm": "Link",
     "revisions_title": "Order change history",
     "revision": "Version {n}",
-    "mode_needs_plugin": "test/live mode: plugin needed"
+    "mode_needs_plugin": "test/live mode: plugin needed",
+    "provider_fee": "Payment provider fee",
+    "net_after_fee": "Net after fee",
+    "fee_note": "The fee is information from the payment provider and is not part of the money reconciliation. It may be in the currency of your provider balance."
   },
   "checks": {
     "skip_reason": {
@@ -2111,7 +2117,7 @@
     },
     "why": "Connect Stripe with a read-only key. The key is entered here, not in WordPress, so money data reaches us without passing through the store.",
     "step_dashboard": "In Stripe open Developers → API keys → “Create restricted key”.",
-    "step_permissions": "Grant Read on Payment Intents, Charges and Refunds, and on Disputes to see disputes (optionally Account). No write access is needed.",
+    "step_permissions": "Grant Read on Payment Intents, Charges and Refunds, on Disputes to see disputes and on Balance to see fees (optionally Account). No write access is needed.",
     "step_paste": "Copy the key (rk_live_… or rk_test_…) and paste it below.",
     "key_label": "Stripe restricted key",
     "key_hint": "The key is checked for read access and stored encrypted; afterwards we only show its last 4 characters.",
@@ -2166,7 +2172,8 @@
       "stripe_invalid_response": "Stripe returned an unexpected response.",
       "integration_not_active": "Only an active connection can be synchronised."
     },
-    "disputes_permission_missing": "Disputes are not visible: the key has no Disputes: Read permission. Add it to the restricted key in Stripe — the rest of the reconciliation works as before."
+    "disputes_permission_missing": "Disputes are not visible: the key has no Disputes: Read permission. Add it to the restricted key in Stripe — the rest of the reconciliation works as before.",
+    "fees_permission_missing": "Stripe fees are not visible: the key has no Balance: Read permission. Add it to the restricted key — everything else works as before."
   },
   "paypal": {
     "official_docs_image": "Screenshot of the official PayPal guide to finding Client ID and Secret",

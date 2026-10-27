@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Dto\Checks\CheckDto;
 use App\Http\Dto\Incidents\IncidentDto;
 use App\Models\CheckRun;
+use App\Models\FinancialTransaction;
 use App\Models\Incident;
+use App\Models\Integration;
 use App\Models\ReconciliationFinding;
 use App\Models\Store;
 use App\Support\Auth\TenantPermissions;
@@ -18,6 +20,8 @@ use Illuminate\Http\Request;
 
 class OverviewController extends Controller
 {
+    private const FEE_DAYS = 30;
+
     public const LATEST_LIMIT = 5;
 
     private const ACTIVE_STATES = [Incident::STATE_OPEN, Incident::STATE_ACKNOWLEDGED];
@@ -51,6 +55,7 @@ class OverviewController extends Controller
                 ),
             ],
             ...($discrepanciesVisible ? $this->discrepancies($tenantId, $showMoneyAmounts) : ['discrepancies' => null, 'unknown_amount_incidents' => null]),
+            'fees' => $discrepanciesVisible ? $this->fees($tenantId, $showMoneyAmounts) : null,
             'money_amounts_hidden' => ! $showMoneyAmounts,
             'capacity_paused_stores' => Store::query()
                 ->where('tenant_id', $tenantId)
@@ -113,6 +118,36 @@ class OverviewController extends Controller
                 ->where(fn ($query) => $query->whereNull('verified_discrepancy_minor')->orWhereNull('currency'))
                 ->count(),
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fees(string $tenantId, bool $showMoneyAmounts): array
+    {
+        $since = now()->subDays(self::FEE_DAYS);
+        $sums = fn (string $kind) => FinancialTransaction::query()
+            ->join('payments as p', 'p.id', '=', 'financial_transactions.payment_id')
+            ->where('financial_transactions.tenant_id', $tenantId)
+            ->where('financial_transactions.kind', $kind)
+            ->where('financial_transactions.status', 'succeeded')
+            ->where('financial_transactions.source_authority', Integration::SOURCE_INDEPENDENT_PROVIDER)
+            ->where('financial_transactions.occurred_at', '>=', $since)
+            ->selectRaw('p.mode as mode, financial_transactions.currency as currency, MAX(financial_transactions.currency_exponent) as currency_exponent, SUM(financial_transactions.amount_minor) as total_minor, COUNT(*) as operations')
+            ->groupBy('p.mode', 'financial_transactions.currency')
+            ->get()
+            ->keyBy(fn ($row): string => $row->mode.'/'.$row->currency);
+        $captures = $sums('capture');
+
+        return $sums('fee')->sortKeys()->map(fn ($row, string $key): array => [
+            'mode' => $row->mode,
+            'currency' => $row->currency,
+            'currency_exponent' => (int) $row->currency_exponent,
+            'days' => self::FEE_DAYS,
+            'fee_minor' => $showMoneyAmounts ? $this->minorString($row->total_minor) : null,
+            'captured_minor' => $showMoneyAmounts && isset($captures[$key]) ? $this->minorString($captures[$key]->total_minor) : null,
+            'fee_operations' => (int) $row->operations,
+        ])->values()->all();
     }
 
     /** SUM over bigint comes back as an integer (SQLite) or a numeric string (PostgreSQL); keep it a decimal string. */

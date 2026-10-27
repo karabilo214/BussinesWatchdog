@@ -66,6 +66,8 @@ class ExactReferenceMatcher
         $transaction = FinancialTransaction::query()
             ->where('tenant_id', $event->tenant_id)
             ->where('integration_id', $event->integration_id)
+            ->where('kind', $event->payload['data']['kind'] ?? null)
+            ->whereIn('kind', ['capture', 'refund'])
             ->where('external_operation_id', $event->payload['data']['external_operation_id'] ?? null)
             ->first();
 
@@ -87,6 +89,7 @@ class ExactReferenceMatcher
         FinancialTransaction::query()
             ->where('tenant_id', $event->tenant_id)
             ->where('payment_id', $paymentId)
+            ->whereIn('kind', ['capture', 'refund'])
             ->get()
             ->each(fn (FinancialTransaction $transaction) => $transaction->kind === 'capture' ? $this->matchCapture($transaction) : $this->matchProviderRefund($transaction));
     }

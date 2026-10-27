@@ -2,11 +2,14 @@
 
 namespace App\Support\Providers\Stripe;
 
+use App\Models\FinancialTransaction;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
 use App\Models\ReconciliationDirtySubject;
+use App\Support\Providers\ProviderEventEmitter;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -26,6 +29,7 @@ class StripeSync
         private readonly StripeClient $client,
         private readonly StripeConnector $connector,
         private readonly StripeObjectIngestor $ingestor,
+        private readonly ProviderEventEmitter $emitter,
         private readonly StoreReconciliationRequeue $requeue,
     ) {}
 
@@ -94,6 +98,7 @@ class StripeSync
                 $resources[$resource] = $current;
             }
             $disputes = $this->disputes($integration, $apiKey, $now, $totals);
+            $fees = $this->fees($integration, $apiKey, $now, $totals);
         } catch (StripeRequestFailed $failure) {
             return $this->fail($integration, $failure);
         }
@@ -109,6 +114,7 @@ class StripeSync
                 'skipped' => $totals['skipped'],
                 'complete' => $complete,
                 'disputes' => $disputes,
+                'fees' => $fees,
             ],
             'last_error' => null,
         ], ['last_successful_sync_at' => $now]);
@@ -137,6 +143,100 @@ class StripeSync
         $this->add($totals, $this->ingestor->ingest($integration, $page['objects']));
 
         return ['state' => 'ok', 'checked_at' => $now->toJSON(), 'complete' => $page['complete']];
+    }
+
+    /**
+     * @param  array{emitted: int, unchanged: int, skipped: array<string, int>}  $totals
+     * @return array{state: string, checked_at: string, complete?: bool}
+     */
+    private function fees(Integration $integration, string $apiKey, Carbon $now, array &$totals): array
+    {
+        $captures = FinancialTransaction::query()
+            ->where('integration_id', $integration->id)
+            ->where('kind', 'capture')
+            ->where('status', 'succeeded')
+            ->where('occurred_at', '>=', $now->copy()->subDays((int) config('watchdog.stripe.audit_days')))
+            ->whereNotExists(fn ($fee) => $fee->selectRaw('1')->from('financial_transactions as fee')
+                ->whereColumn('fee.integration_id', 'financial_transactions.integration_id')
+                ->where('fee.kind', 'fee')
+                ->whereRaw("fee.external_operation_id = 'fee:' || financial_transactions.external_operation_id"))
+            ->orderByDesc('occurred_at')
+            ->limit(500)
+            ->get(['external_operation_id', 'metadata']);
+        $budget = (int) config('watchdog.stripe.max_fees_per_run');
+        $complete = true;
+
+        foreach ($captures as $capture) {
+            if (! Cache::add('stripe:fee:'.$integration->id.':'.$capture->external_operation_id, true, $now->copy()->addMinutes((int) config('watchdog.stripe.fee_retry_minutes')))) {
+                continue;
+            }
+
+            if ($budget-- <= 0) {
+                Cache::forget('stripe:fee:'.$integration->id.':'.$capture->external_operation_id);
+                $complete = false;
+
+                break;
+            }
+
+            try {
+                $page = $this->client->get($apiKey, '/v1/balance_transactions', ['source' => $capture->external_operation_id, 'limit' => 10]);
+            } catch (StripeRequestFailed $failure) {
+                Cache::forget('stripe:fee:'.$integration->id.':'.$capture->external_operation_id);
+
+                if ($failure->reasonCode === 'stripe_permission_missing') {
+                    return ['state' => 'permission_missing', 'checked_at' => $now->toJSON()];
+                }
+
+                throw $failure;
+            }
+
+            $draft = $this->feeDraft($capture, is_array($page['data'] ?? null) ? $page['data'] : []);
+
+            if ($draft !== null) {
+                $this->add($totals, ['skipped' => [], ...$this->emitter->emit($integration, [$draft])]);
+            }
+        }
+
+        return ['state' => 'ok', 'checked_at' => $now->toJSON(), 'complete' => $complete];
+    }
+
+    /**
+     * @param  list<mixed>  $balanceTransactions
+     * @return array<string, mixed>|null
+     */
+    private function feeDraft(FinancialTransaction $capture, array $balanceTransactions): ?array
+    {
+        foreach ($balanceTransactions as $row) {
+            if (! is_array($row) || ! in_array($row['type'] ?? null, ['charge', 'payment'], true) || ! is_int($row['fee'] ?? null) || $row['fee'] < 0) {
+                continue;
+            }
+
+            $currency = strtoupper((string) ($row['currency'] ?? ''));
+            $exponent = StripeCurrency::exponent($currency);
+
+            if ($exponent === null) {
+                return null;
+            }
+
+            return [
+                'type' => 'transaction.observed',
+                'aggregate_type' => 'transaction',
+                'aggregate_id' => 'fee:'.$capture->external_operation_id,
+                'created' => (int) ($row['created'] ?? time()),
+                'data' => [
+                    'external_operation_id' => 'fee:'.$capture->external_operation_id,
+                    'payment_external_id' => $capture->metadata['payment_external_id'] ?? null,
+                    'kind' => 'fee',
+                    'status' => 'succeeded',
+                    'currency' => $currency,
+                    'currency_exponent' => $exponent,
+                    'amount_minor' => (string) $row['fee'],
+                    'source_authority' => Integration::SOURCE_INDEPENDENT_PROVIDER,
+                ],
+            ];
+        }
+
+        return null;
     }
 
     /**

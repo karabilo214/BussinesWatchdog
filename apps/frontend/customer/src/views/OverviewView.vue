@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getOverview } from '@/api/overview';
 import { deleteStore, listStores } from '@/api/stores';
 import type { Overview, Store } from '@/api/types';
@@ -20,6 +21,8 @@ const { canManageStores, role } = useRole();
 const { session } = useSession();
 const { dateTime } = useFormat();
 const { amount } = useIncidentText();
+const { locale } = useI18n();
+const decimalSeparator = computed(() => (locale.value === 'en' ? '.' : ','));
 
 const VERDICT_TONES: Record<Verdict, Tone> = { no_stores: 'unknown', problems: 'crit', incomplete: 'unknown', all_clear: 'ok', restricted: 'unknown' };
 const VERDICT_CLASSES: Record<Tone, string> = {
@@ -92,6 +95,16 @@ async function confirmDelete(): Promise<void> {
 }
 
 onMounted(load);
+
+function feeShare(row: NonNullable<Overview['fees']>[number]): string | null {
+  if (row.fee_minor === null || row.captured_minor === null || BigInt(row.captured_minor) === 0n) {
+    return null;
+  }
+
+  const tenths = (BigInt(row.fee_minor) * 1000n + BigInt(row.captured_minor) / 2n) / BigInt(row.captured_minor);
+
+  return `${tenths / 10n}${decimalSeparator.value}${tenths % 10n}`;
+}
 </script>
 
 <template>
@@ -165,6 +178,19 @@ onMounted(load);
             <span v-if="overview.capacity_paused_stores" class="text-[13px] text-unknown" data-paused-stores>{{ $t('overview.tiles.paused_stores', { n: overview.capacity_paused_stores }) }}</span>
             <span class="text-[13px] text-text-muted">{{ $t('overview.tiles.discrepancies_note') }}</span>
           </RouterLink>
+
+          <div v-if="overview.fees && overview.fees.length > 0" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-5" data-tile="fees">
+            <span class="text-sm text-text-muted">{{ $t('overview.tiles.fees', { days: overview.fees[0]?.days ?? 30 }) }}</span>
+            <ul class="flex flex-col gap-1 text-sm">
+              <li v-for="row in overview.fees" :key="`${row.mode}-${row.currency}`" class="flex flex-wrap items-baseline justify-between gap-x-3" :data-fee-row="`${row.mode}-${row.currency}`">
+                <span class="text-text-muted">{{ $t(`financial_mode.${row.mode}`) }} · {{ row.currency }}</span>
+                <span class="font-mono font-semibold">
+                  {{ row.fee_minor === null ? $t('money_visibility.hidden_amount') : amount(row.fee_minor, row.currency, row.currency_exponent) }}<template v-if="feeShare(row)"> · {{ $t('overview.tiles.fee_share', { share: feeShare(row) }) }}</template>
+                </span>
+              </li>
+            </ul>
+            <span class="text-[13px] text-text-muted">{{ $t('overview.tiles.fees_note') }}</span>
+          </div>
 
           <RouterLink :to="{ name: 'checks' }" class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-5 hover:border-border-strong" data-tile="checks">
             <span class="text-sm text-text-muted">{{ $t('overview.tiles.last_check') }}</span>

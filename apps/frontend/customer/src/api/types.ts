@@ -211,6 +211,7 @@ export interface ProviderSyncHealth {
   complete?: boolean;
   search_refreshed_at?: string | null;
   disputes?: { state: 'ok' | 'permission_missing' | 'unavailable'; checked_at: string; complete?: boolean };
+  fees?: { state: 'ok' | 'permission_missing'; checked_at: string; complete?: boolean };
 }
 
 export interface Integration {
@@ -499,6 +500,7 @@ export interface OrderDetail extends Order {
   allocations: PaymentAllocation[];
   refund_allocations: RefundAllocation[];
   revisions: OrderRevision[];
+  fees?: FinancialTransaction[];
   disputes?: Dispute[];
 }
 
@@ -684,6 +686,8 @@ export interface Overview {
   unknown_amount_incidents: number | null;
   capacity_paused_stores?: number;
   money_amounts_hidden?: boolean;
+  /** Provider fees of the last 30 days (ADR 0083); null without reconciliation.read, amounts null without money.view. */
+  fees?: { mode: 'live' | 'test'; currency: string; currency_exponent: number; days: number; fee_minor: string | null; captured_minor: string | null; fee_operations: number }[] | null;
   recent_checks: CheckRunSummary[];
 }
 

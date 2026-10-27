@@ -194,7 +194,7 @@ describe('PayPalPanel', () => {
     const dir = resolve(__dirname, '../../../backend/app/Support/Providers/PayPal');
     const files = [...readdirSync(dir).map((name) => resolve(dir, name)), resolve(__dirname, '../../../backend/app/Http/Controllers/Api/V1/Integrations/PayPalIntegrationController.php')];
     const source = files.map((file) => readFileSync(file, 'utf8')).join('\n');
-    const codes = new Set([...source.matchAll(/'(paypal_[a-z_]+)'/g)].map((match) => match[1]!).filter((code) => !['paypal_client', 'paypal_webhook', 'paypal_reference_id', 'paypal_reference_id_type'].includes(code)));
+    const codes = new Set([...source.matchAll(/'(paypal_[a-z_]+)'/g)].map((match) => match[1]!).filter((code) => !['paypal_client', 'paypal_webhook', 'paypal_reference_id', 'paypal_reference_id_type', 'paypal_fee'].includes(code)));
 
     expect(codes.size).toBeGreaterThan(8);
 

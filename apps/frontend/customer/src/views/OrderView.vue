@@ -47,6 +47,25 @@ function transactionMoney(transaction: FinancialTransaction): string {
   return amount(transaction.amount_minor, transaction.currency, transaction.currency_exponent) ?? '—';
 }
 
+const fees = computed(() => {
+  const byCurrency = new Map<string, { currency: string; exponent: number; minor: bigint }>();
+
+  for (const fee of order.value?.fees ?? []) {
+    const known = byCurrency.get(fee.currency);
+    byCurrency.set(fee.currency, { currency: fee.currency, exponent: fee.currency_exponent, minor: (known?.minor ?? 0n) + BigInt(fee.amount_minor) });
+  }
+
+  return [...byCurrency.values()].map((fee) => {
+    const net = fee.currency === totals.value.currency && totals.value.captured !== null ? BigInt(totals.value.captured) - fee.minor : null;
+
+    return {
+      currency: fee.currency,
+      fee: amount(fee.minor.toString(), fee.currency, fee.exponent) ?? '—',
+      net: net === null ? null : (amount(net.toString(), fee.currency, fee.exponent) ?? '—'),
+    };
+  });
+});
+
 /** G/C/RW/RP of the latest run, taken from the first finding that carries them. */
 const totals = computed(() => {
   const finding = order.value?.findings?.find((item) => item.gross_minor !== undefined && item.gross_minor !== null) ?? null;
@@ -194,6 +213,13 @@ watch(
             <div class="flex gap-2"><dt class="text-text-muted">{{ $t('order.gateway') }}</dt><dd :title="order.gateway ?? undefined" :data-gateway="order.gateway ?? ''">{{ paymentMethodDisplayName(order.gateway, order.gateway_name, $t) ?? '—' }}</dd></div>
             <div class="flex gap-2"><dt class="text-text-muted">{{ $t('order.transaction_ref') }}</dt><dd class="break-all font-mono">{{ order.transaction_ref ?? '—' }}</dd></div>
             <div class="flex gap-2"><dt class="text-text-muted">{{ $t('order.support') }}</dt><dd>{{ $t(`order.financial_support.${order.financial_support}`) }}</dd></div>
+          </dl>
+          <dl v-if="fees.length > 0" class="grid gap-x-6 gap-y-1 border-t border-border pt-3 text-[13px] sm:col-span-2 sm:grid-cols-2 lg:col-span-4" data-fees>
+            <template v-for="fee in fees" :key="fee.currency">
+              <div class="flex gap-2"><dt class="text-text-muted">{{ $t('order.provider_fee') }}</dt><dd class="font-mono" :data-fee="fee.currency">{{ fee.fee }}</dd></div>
+              <div v-if="fee.net" class="flex gap-2"><dt class="text-text-muted">{{ $t('order.net_after_fee') }}</dt><dd class="font-mono" :data-net="fee.currency">{{ fee.net }}</dd></div>
+            </template>
+            <p class="text-text-muted sm:col-span-2">{{ $t('order.fee_note') }}</p>
           </dl>
           <p class="text-[13px] text-text-muted sm:col-span-2 lg:col-span-4">{{ $t('order.paid_marker_note') }}</p>
         </section>

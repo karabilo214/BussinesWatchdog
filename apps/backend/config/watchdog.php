@@ -73,6 +73,8 @@ return [
         'delta_overlap_minutes' => 60,
         'audit_days' => (int) env('WATCHDOG_STRIPE_AUDIT_DAYS', 90),
         'dispute_days' => (int) env('WATCHDOG_STRIPE_DISPUTE_DAYS', 120),
+        'max_fees_per_run' => 100,
+        'fee_retry_minutes' => 360,
         'webhook_tolerance_seconds' => 300,
     ],
 
