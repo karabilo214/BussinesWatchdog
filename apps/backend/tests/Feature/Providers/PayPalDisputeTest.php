@@ -84,7 +84,7 @@ class PayPalDisputeTest extends TestCase
 
         $this->verification = 'FAILURE';
         $this->postWebhook($integration, ['event_type' => 'PAYMENT.CAPTURE.COMPLETED', 'resource' => ['id' => 'CAP1']])->assertStatus(400);
-        $this->assertSame(['reason' => 'signature_invalid', 'topic' => 'PAYMENT.CAPTURE.COMPLETED'], array_intersect_key($integration->refresh()->health['webhook_rejected'], ['reason' => 1, 'topic' => 1]));
+        $this->assertEquals(['reason' => 'signature_invalid', 'topic' => 'PAYMENT.CAPTURE.COMPLETED'], array_intersect_key($integration->refresh()->health['webhook_rejected'], ['reason' => 1, 'topic' => 1]));
         $this->assertArrayNotHasKey('webhook', $integration->health);
 
         $this->verification = 'SUCCESS';

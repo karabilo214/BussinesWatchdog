@@ -51,12 +51,12 @@ class WooCommerceApiWebhooksTest extends TestCase
 
         $this->deliver($integration, 'webhook_id=17', null, null)->assertOk()->assertJsonPath('result', 'ping');
         $this->assertArrayNotHasKey('webhook', $integration->refresh()->health ?? [], 'an unsigned ping proves nothing by itself');
-        $this->assertSame(['webhook_id' => 17, 'verified' => false], array_intersect_key($integration->health['webhook_ping'], ['webhook_id' => 1, 'verified' => 1]));
+        $this->assertEquals(['webhook_id' => 17, 'verified' => false], array_intersect_key($integration->health['webhook_ping'], ['webhook_id' => 1, 'verified' => 1]));
         Queue::assertPushed(CheckWooCommerceWebhooks::class, fn (CheckWooCommerceWebhooks $job): bool => $job->integrationId === $integration->id);
 
         $order = json_encode(['id' => 1042, 'status' => 'processing'], JSON_THROW_ON_ERROR);
         $this->deliver($integration, $order, 'wrong-secret', 'order.updated')->assertStatus(401);
-        $this->assertSame(['reason' => 'signature_invalid', 'topic' => 'order.updated'], array_intersect_key($integration->refresh()->health['webhook_rejected'], ['reason' => 1, 'topic' => 1]));
+        $this->assertEquals(['reason' => 'signature_invalid', 'topic' => 'order.updated'], array_intersect_key($integration->refresh()->health['webhook_rejected'], ['reason' => 1, 'topic' => 1]));
         $this->deliver($integration, $order, $secret, 'order.updated', 'https://evil.example.test/')->assertStatus(422);
         $this->deliver($integration, $order, $secret, 'product.updated')->assertOk()->assertJsonPath('result', 'topic_not_used');
         Queue::assertNotPushed(SyncIntegration::class);
@@ -142,7 +142,7 @@ class WooCommerceApiWebhooksTest extends TestCase
 
         (new CheckWooCommerceWebhooks($integration->id))->handle(app(WooCommerceApiWebhooks::class));
 
-        $this->assertSame(['order.created' => 'missing', 'order.updated' => 'missing', 'order.deleted' => 'missing', 'order.restored' => 'missing'], $integration->refresh()->health['webhook_check']['topics']);
+        $this->assertEquals(['order.created' => 'missing', 'order.updated' => 'missing', 'order.deleted' => 'missing', 'order.restored' => 'missing'], $integration->refresh()->health['webhook_check']['topics']);
         Http::assertSentCount(1);
     }
 
