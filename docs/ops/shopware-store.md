@@ -7,14 +7,27 @@
 ## Что решить или выяснить до регистрации
 
 1. **Кто может стать Extension Partner.** Раздел Extension Partner открывается только после того, как владелец принял договор Extension Partner и Shopware его одобрил ([документация](https://docs.shopware.com/en/account-en/extension-partner/extensions)). Нужна ли зарегистрированная компания (раньше в проекте предполагалось «да» — по опыту с аккаунтом Shopware для плагина Stripe, ADR 0025), в документации Shopware не сказано. Проверить при регистрации аккаунта; если форма требует компанию или VAT ID — задача ждёт регистрации компании.
-2. **Нужен ли договор Technology Partner.** Правила проверки: «A Shopware Technology Partner (STP) agreement is required for commission-based integrations that bill the merchant» ([правила](https://developer.shopware.com/docs/guides/development/testing/store/functionality-integration.html)); договор Technology Partner платный — годовой взнос и доля выручки ([условия](https://www.shopware.com/en/partner/become-partner/technology-partner/)). App бесплатный, но без подписки Business Watchdog (Paddle) он бесполезен. Это не комиссия с оборота магазина, но толкование за Shopware: спросить до подачи (qa@shopware.com или поддержка в аккаунте) — «Our free app connects the shop to our own SaaS, billed by us as a monthly subscription, no commission on the shop's sales. Do we need the Technology Partner agreement?».
+2. **Договор Technology Partner (STP) нужен** — по тексту договора Extension Partner (SEP, версия 5.6, прочитан 2026-10-27 из аккаунта владельца). Толкование для владельца, не юридическая оценка — окончательно смотрит юрист:
+   - п. 1.4.1: если у клиента в связи с расширением могут возникнуть «Folgekosten, Transaktionsgebühren oder Servicegebühren außerhalb des shopware Stores» (вне Store и вне In-App-покупок Shopware), нужен отдельный STP-договор, заключённый **до** размещения. Подписка Business Watchdog через Paddle — именно такая плата вне Store;
+   - п. 1.4.2: без STP запрещено из Store, расширения или Shopware указывать или ссылаться на получение/пробу вне Store. Наши тексты страницы («Create an account at business-watchdog.com…, a trial is available»), инструкция для проверяющих и модуль App («In your Business Watchdog account…») это делают;
+   - п. 1.4.3: без STP нельзя своей проверкой лицензии — только проверка лицензий Shopware (или их In-App-интерфейсы). Наш доступ по подписке — своя проверка;
+   - п. 1.3.13: реклама и ссылки на контакты вне тикет-системы Shopware запрещены, кроме как с письменного согласия Shopware.
+
+   Цена STP в договоре не названа (страница Shopware: годовой взнос и доля выручки). Варианты — решение владельца:
+   - **A. Заключить STP** — запросить у Shopware условия и цену; при STP ограничения 1.4.2/1.4.3 не действуют, тексты страницы остаются как есть;
+   - **B. Продавать доступ для Shopware-магазинов через Shopware** (платное расширение или In-App-покупка, Shopware берёт 25 %, п. 2.1.2): тогда STP не нужен, но нужна разработка — признавать лицензию Shopware вместо подписки Paddle для таких магазинов, отдельная цена, тексты без ссылок на свой сайт;
+   - **C. Не публиковать в Store** — App и дальше выдаётся из кабинета (уже работает, ADR 0076).
+
+   Другие пункты, важные при A или B: Shopware может бесплатно ставить расширение в свои демо-магазины на 30–120 дней (п. 1.3.10a) — без кабинета App там ничего не делает; по запросу Shopware в течение недели открыть внешнюю логику (п. 1.3.8; репозиторий и так публичный); поддерживать совместимость со всеми версиями Shopware, которые Shopware ещё поддерживает (п. 1.3.9); договор до конца календарного года с автопродлением, расторжение — за 30 дней (п. 4); приложение AVV — Shopware становится заказчиком обработки, список субподрядчиков в машиночитаемом виде (п. 1.3.5, приложение) — юристу.
 3. **Субподрядчики (Art. 28 DSGVO).** App передаёт данные заказов сервису; Store требует указать в аккаунте обработчика и субподрядчиков. Список — у юриста владельца (юридические тексты ведёт он).
 
 ## Шаги владельца
 
 Серверные шаги (3, 5) может выполнить Claude по просьбе владельца — нужны только техническое имя и секрет из аккаунта. Названия разделов аккаунта Shopware взяты из документации Shopware, не из живого аккаунта: если в аккаунте раздел называется иначе — искать по смыслу.
 
-**1. Спросить Shopware про договор Technology Partner** (до подачи, чтобы не делать работу зря). В аккаунте — поддержка, или письмом на qa@shopware.com:
+**1. Решить вариант A/B/C выше.** Для A — запросить у Shopware условия и цену STP (письмо ниже нужно переписать в запрос цены: договор уже отвечает, что STP нужен). Шаги 2–7 — для варианта A; при B сначала разработка.
+
+Прежний вопрос для Shopware (до чтения договора): В аккаунте — поддержка, или письмом на qa@shopware.com:
 
 > Hello, we would like to publish a free app in the Shopware Store. The app connects the shop read-only to our own SaaS service (business-watchdog.com), which the merchant pays directly as a monthly subscription; we take no commission on the shop's sales and nothing is billed through Shopware. Do we need the Shopware Technology Partner agreement for this, or is the Extension Partner agreement enough?
 
