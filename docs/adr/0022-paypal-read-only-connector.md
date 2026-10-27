@@ -81,4 +81,4 @@ What the run shows:
 
 ## Open
 
-- A real PayPal webhook delivery (needs a public URL registered in the Watchdog app).
+- ~~A real PayPal webhook delivery~~ — done 2026-10-27 (Step 283): sandbox `PAYMENT.CAPTURE.COMPLETED` verified with the saved Webhook ID on production.
