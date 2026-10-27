@@ -52,6 +52,46 @@ class PayPalDisputeTest extends TestCase
     /** @var list<array<string, mixed>> */
     private array $listQueries = [];
 
+    private string $verification = 'SUCCESS';
+
+    /** @var list<array<string, mixed>> */
+    private array $webhooks = [];
+
+    public function test_the_webhook_check_finds_the_app_webhook_by_address_and_id_and_a_rejected_signature_is_kept(): void
+    {
+        $integration = $this->connected();
+        $member = fn () => $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id]);
+        $member()->putJson("/api/v1/integrations/{$integration->id}/webhook-id", ['webhook_id' => 'WH0123456789ABC'])->assertOk();
+        $url = url('/api/v1/webhooks/paypal/'.$integration->id);
+        $events = fn (array $names): array => array_map(fn (string $name): array => ['name' => $name], $names);
+        $this->webhooks = [
+            ['id' => 'WHOTHER000001', 'url' => 'https://erp.example.test/paypal', 'event_types' => $events(['*'])],
+            ['id' => 'WH9999999999ZZZ', 'url' => $url, 'event_types' => $events(['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'])],
+        ];
+        $check = fn () => $member()->postJson("/api/v1/integrations/{$integration->id}/webhook-check");
+
+        $check()->assertOk()->assertJsonPath('state', 'issues')->assertJsonPath('issues', ['webhook_id_mismatch', 'events_missing'])
+            ->assertJsonPath('missing_events', ['PAYMENT.CAPTURE.PENDING', 'PAYMENT.CAPTURE.DENIED', 'PAYMENT.CAPTURE.REVERSED', 'CHECKOUT.ORDER.COMPLETED']);
+        $this->assertStringNotContainsString('erp.example.test', json_encode($integration->refresh()->health, JSON_THROW_ON_ERROR));
+
+        $this->webhooks[1] = ['id' => 'WH0123456789ABC', 'url' => $url, 'event_types' => $events(['*'])];
+        $this->travel(1)->minutes();
+        $check()->assertOk()->assertJsonPath('state', 'ok');
+
+        $this->webhooks = [];
+        $this->travel(1)->minutes();
+        $check()->assertOk()->assertJsonPath('issues', ['endpoint_missing']);
+
+        $this->verification = 'FAILURE';
+        $this->postWebhook($integration, ['event_type' => 'PAYMENT.CAPTURE.COMPLETED', 'resource' => ['id' => 'CAP1']])->assertStatus(400);
+        $this->assertSame(['reason' => 'signature_invalid', 'topic' => 'PAYMENT.CAPTURE.COMPLETED'], array_intersect_key($integration->refresh()->health['webhook_rejected'], ['reason' => 1, 'topic' => 1]));
+        $this->assertArrayNotHasKey('webhook', $integration->health);
+
+        $this->verification = 'SUCCESS';
+        $this->postWebhook($integration, ['event_type' => 'BILLING.PLAN.CREATED', 'resource' => []])->assertOk();
+        $this->assertSame('BILLING.PLAN.CREATED', $integration->refresh()->health['webhook']['last_type'], 'any verified event proves the delivery');
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -79,7 +119,8 @@ class PayPalDisputeTest extends TestCase
 
             return match (true) {
                 $path === '/v1/oauth2/token' => Http::response(['access_token' => 'A21-test-token', 'token_type' => 'Bearer', 'expires_in' => 32400, 'app_id' => 'APP-TEST123', 'scope' => self::SCOPES]),
-                $path === '/v1/notifications/verify-webhook-signature' => Http::response(['verification_status' => 'SUCCESS']),
+                $path === '/v1/notifications/verify-webhook-signature' => Http::response(['verification_status' => $this->verification]),
+                $path === '/v1/notifications/webhooks' => Http::response(['webhooks' => $this->webhooks]),
                 $path === '/v1/reporting/transactions' => Http::response(['transaction_details' => [['transaction_info' => ['transaction_id' => 'CAP1', 'transaction_event_code' => 'T0006', 'transaction_initiation_date' => now()->subDays(5)->toIso8601ZuluString()]]], 'total_pages' => 1, 'page' => 1, 'last_refreshed_datetime' => now()->toIso8601ZuluString()]),
                 $path === '/v2/payments/captures/CAP1' => Http::response([...$order['purchase_units'][0]['payments']['captures'][0], 'links' => [['rel' => 'up', 'href' => 'https://paypal.test/v2/checkout/orders/ORDER1']]]),
                 $path === '/v2/checkout/orders/ORDER1' => Http::response($order),

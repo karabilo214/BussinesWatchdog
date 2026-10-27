@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
-import { connectPayPal, setPayPalWebhookId, syncProvider, webhookUrl } from '@/api/providers';
+import { checkProviderWebhook, connectPayPal, setPayPalWebhookId, syncProvider, webhookUrl } from '@/api/providers';
 import { listStoreIntegrations, revokeIntegration } from '@/api/stores';
 import type { Integration } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
@@ -8,6 +8,7 @@ import { StatusBadge } from '@bw/ui';
 import CopyField from './CopyField.vue';
 import ConnectionProgress from './ConnectionProgress.vue';
 import ErrorNotice from './ErrorNotice.vue';
+import ProviderWebhookStatus from './ProviderWebhookStatus.vue';
 
 const props = defineProps<{ storeId: string; canManage: boolean }>();
 const emit = defineEmits<{ changed: [] }>();
@@ -86,6 +87,8 @@ function saveWebhook(): Promise<void> {
   return act(async () => {
     integration.value = await setPayPalWebhookId(integration.value!.id, (webhookForm.value ?? '').trim());
     webhookForm.value = null;
+    await checkProviderWebhook(integration.value.id).catch(() => undefined);
+    await load();
   }, 'paypal.webhook_saved');
 }
 
@@ -129,10 +132,7 @@ void load();
           <span v-if="sync?.search_refreshed_at" class="block text-[13px] text-text-muted">{{ $t('paypal.search_refreshed', { time: dateTime(sync.search_refreshed_at) }) }}</span>
         </dd>
         <dt class="text-text-muted">{{ $t('provider.webhook') }}</dt>
-        <dd>
-          {{ webhookConfigured ? $t('provider.webhook_on') : $t('paypal.webhook_off') }}
-          <span v-if="integration.health?.webhook?.last_received_at" class="block text-[13px] text-text-muted">{{ $t('provider.webhook_last', { time: dateTime(integration.health.webhook.last_received_at) }) }}</span>
-        </dd>
+        <dd><ProviderWebhookStatus :integration="integration" provider="paypal" :configured="webhookConfigured" :can-manage="canManage" @reload="load" /></dd>
       </dl>
       <p v-if="integration.health?.last_error && !credentialsRejected" class="text-sm text-warn" data-last-error>
         {{ $t('provider.last_error', { time: dateTime(integration.health.last_error.at) }) }} {{ $te(`errors.${integration.health.last_error.code}`) ? $t(`errors.${integration.health.last_error.code}`) : integration.health.last_error.code }}

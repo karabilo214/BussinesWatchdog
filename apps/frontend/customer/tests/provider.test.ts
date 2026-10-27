@@ -11,7 +11,7 @@ import ProviderPanel from '@/components/ProviderPanel.vue';
 import en from '@/i18n/locales/en.json';
 import { localization, setLocale } from '@/i18n';
 
-vi.mock('@/api/providers', () => ({ connectStripe: vi.fn(), connectPayPal: vi.fn(), setPayPalWebhookId: vi.fn(), setWebhookSecret: vi.fn(), syncProvider: vi.fn(), webhookUrl: (id: string, provider = 'stripe') => `https://app.example/api/v1/webhooks/${provider}/${id}` }));
+vi.mock('@/api/providers', () => ({ checkProviderWebhook: vi.fn(async () => ({ checked_at: '2026-10-27T09:00:00Z', state: 'ok' })), connectStripe: vi.fn(), connectPayPal: vi.fn(), setPayPalWebhookId: vi.fn(), setWebhookSecret: vi.fn(), syncProvider: vi.fn(), webhookUrl: (id: string, provider = 'stripe') => `https://app.example/api/v1/webhooks/${provider}/${id}` }));
 vi.mock('@/api/stores', () => ({ listStoreIntegrations: vi.fn(), revokeIntegration: vi.fn() }));
 
 const global = { plugins: [localization] };
@@ -107,6 +107,58 @@ function paypal(overrides: Partial<Integration> = {}): Integration {
     ...overrides,
   };
 }
+
+describe('provider webhook stages', () => {
+  const webhook = { id: 'c-2', kind: 'stripe_webhook', status: 'active', created_at: null } as const;
+  const stageOf = async (health: Record<string, unknown>, withSecret = true) => {
+    vi.mocked(stores.listStoreIntegrations).mockResolvedValue([stripe({ health: { key_last4: 'cdef', ...health }, credentials: [{ id: 'c-1', kind: 'stripe_api', status: 'active', created_at: null }, ...(withSecret ? [webhook] : [])] })]);
+    const wrapper = mount(ProviderPanel, { props: { storeId: 's-1', canManage: true }, global });
+    await flushPromises();
+
+    return wrapper;
+  };
+
+  it('never says working after only saving a secret', async () => {
+    const none = await stageOf({}, false);
+    expect(none.get('[data-webhook-stage]').text()).toBe('не настроен');
+    expect(none.find('[data-action="check-webhook"]').exists()).toBe(false);
+    none.unmount();
+
+    const waiting = await stageOf({});
+    expect(waiting.get('[data-webhook-stage]').text()).toBe('ожидаем первое событие');
+    expect(waiting.get('[data-webhook-state]').text()).toContain('Resend');
+    waiting.unmount();
+
+    const issues = await stageOf({ webhook_check: { checked_at: '2026-10-27T09:00:00Z', state: 'issues', issues: ['events_missing'], missing_events: ['refund.*'] } });
+    expect(issues.get('[data-issue="events_missing"]').text()).toContain('refund.*');
+    issues.unmount();
+
+    const permission = await stageOf({ webhook_check: { checked_at: '2026-10-27T09:00:00Z', state: 'permission_missing' } });
+    expect(permission.get('[data-webhook-check]').text()).toContain('Webhook Endpoints: Read');
+    permission.unmount();
+
+    const rejected = await stageOf({ webhook: { last_received_at: '2026-10-27T08:00:00Z', last_type: 'charge.succeeded' }, webhook_rejected: { reason: 'signature_invalid', at: '2026-10-27T09:00:00Z' } });
+    expect(rejected.get('[data-webhook-stage]').text()).toBe('проверка не прошла');
+    expect(rejected.get('[data-webhook-state]').text()).toContain('Signing secret');
+    rejected.unmount();
+
+    const working = await stageOf({ webhook: { last_received_at: '2026-10-27T09:10:00Z', last_type: 'charge.succeeded' }, webhook_rejected: { reason: 'signature_invalid', at: '2026-10-27T09:00:00Z' } });
+    expect(working.get('[data-webhook-stage]').text()).toBe('работает');
+    expect(working.find('[data-webhook-check]').exists()).toBe(false);
+    working.unmount();
+  });
+
+  it('checks the set-up right after a new secret is saved', async () => {
+    vi.mocked(providers.setWebhookSecret).mockResolvedValue(stripe());
+    const wrapper = await stageOf({}, false);
+    await wrapper.findAll('button').find((item) => item.text() === 'Секрет webhook')!.trigger('click');
+    await wrapper.get('#stripe-webhook-secret').setValue('whsec_0123456789abcdef');
+    await wrapper.findAll('form').at(-1)!.trigger('submit');
+    await flushPromises();
+
+    expect(providers.checkProviderWebhook).toHaveBeenCalledWith('int-1');
+  });
+});
 
 describe('PaymentProviders', () => {
   it('shows one block with a tab per provider and opens the connected one', async () => {

@@ -329,6 +329,8 @@ class StripeIntegrationTest extends TestCase
 
         $this->call('POST', "/api/v1/webhooks/stripe/{$integration->id}", [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_STRIPE_SIGNATURE' => $this->signature($payload, 'whsec_wrong0123456789')], $payload)
             ->assertStatus(400)->assertJsonPath('code', 'signature_invalid');
+        $this->assertSame('signature_invalid', $integration->refresh()->health['webhook_rejected']['reason']);
+        $this->call('POST', "/api/v1/webhooks/stripe/{$integration->id}", [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_STRIPE_SIGNATURE' => 'garbage'], $payload)->assertStatus(400);
 
         $this->call('POST', "/api/v1/webhooks/stripe/{$integration->id}", [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_STRIPE_SIGNATURE' => $this->signature($payload, 'whsec_0123456789abcdef')], $payload)
             ->assertOk()->assertJsonPath('emitted', 2);
@@ -337,6 +339,53 @@ class StripeIntegrationTest extends TestCase
         $this->drain();
 
         $this->assertSame(777, (int) FinancialTransaction::query()->where('external_operation_id', 'ch_9')->value('amount_minor'));
+    }
+
+    public function test_any_verified_event_proves_the_delivery_and_a_new_secret_starts_over(): void
+    {
+        $integration = $this->connected('whsec_0123456789abcdef');
+        $payload = json_encode(['id' => 'evt_2', 'object' => 'event', 'type' => 'customer.created', 'livemode' => false, 'created' => time(), 'api_version' => '2026-09-30.endive', 'data' => ['object' => ['id' => 'cus_1', 'object' => 'customer']]], JSON_THROW_ON_ERROR);
+
+        $this->call('POST', "/api/v1/webhooks/stripe/{$integration->id}", [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_STRIPE_SIGNATURE' => $this->signature($payload, 'whsec_0123456789abcdef')], $payload)
+            ->assertOk()->assertJsonPath('ignored', 'object_not_used');
+        $this->assertSame('customer.created', $integration->refresh()->health['webhook']['last_type']);
+
+        $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])
+            ->putJson("/api/v1/integrations/{$integration->id}/webhook-secret", ['webhook_secret' => 'whsec_newsecret0123456'])->assertOk();
+        $this->assertArrayNotHasKey('webhook', $integration->refresh()->health, 'the new secret is not proven yet');
+    }
+
+    public function test_the_webhook_check_finds_this_connection_endpoint_and_its_events(): void
+    {
+        $integration = $this->connected('whsec_0123456789abcdef');
+        $url = url('/api/v1/webhooks/stripe/'.$integration->id);
+        $created = now()->getTimestamp();
+        $this->stripe['webhook_endpoints'] = [
+            ['id' => 'we_other', 'object' => 'webhook_endpoint', 'url' => 'https://erp.example.test/stripe?token=abc', 'status' => 'enabled', 'enabled_events' => ['*'], 'created' => $created],
+            ['id' => 'we_1', 'object' => 'webhook_endpoint', 'url' => $url, 'status' => 'enabled', 'enabled_events' => ['payment_intent.succeeded', 'charge.*'], 'created' => $created],
+        ];
+        $check = fn () => $this->actingAs($this->user)->withSession(['active_tenant_id' => $this->tenant->id])->postJson("/api/v1/integrations/{$integration->id}/webhook-check");
+
+        $check()->assertOk()->assertJsonPath('state', 'issues')->assertJsonPath('issues', ['events_missing'])->assertJsonPath('missing_events', ['refund.*']);
+        $this->assertStringNotContainsString('erp.example.test', json_encode($integration->refresh()->health, JSON_THROW_ON_ERROR));
+
+        $this->stripe['webhook_endpoints'][1]['enabled_events'] = ['*'];
+        $this->stripe['webhook_endpoints'][1]['status'] = 'disabled';
+        $this->travel(1)->minutes();
+        $check()->assertOk()->assertJsonPath('issues', ['endpoint_disabled']);
+
+        $this->stripe['webhook_endpoints'][1]['status'] = 'enabled';
+        $this->travel(1)->minutes();
+        $check()->assertOk()->assertJsonPath('state', 'ok');
+
+        unset($this->stripe['webhook_endpoints'][1]);
+        $this->travel(1)->minutes();
+        $check()->assertOk()->assertJsonPath('issues', ['endpoint_missing']);
+
+        $this->failures['webhook_endpoints'] = 403;
+        $this->travel(1)->minutes();
+        $check()->assertOk()->assertJsonPath('state', 'permission_missing');
+        $this->assertSame('permission_missing', $integration->refresh()->health['webhook_check']['state']);
     }
 
     public function test_a_window_larger_than_the_page_budget_is_finished_on_the_next_runs(): void

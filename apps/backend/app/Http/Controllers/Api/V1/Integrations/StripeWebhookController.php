@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Integration;
 use App\Models\IntegrationCredential;
 use App\Support\Billing\StoreCapacity;
+use App\Support\Providers\ProviderWebhookCheck;
 use App\Support\Providers\Stripe\StripeConnector;
 use App\Support\Providers\Stripe\StripeObjectIngestor;
 use Illuminate\Http\JsonResponse;
@@ -47,8 +48,14 @@ class StripeWebhookController extends Controller
         try {
             $event = Webhook::constructEvent($request->getContent(), (string) $request->header('Stripe-Signature'), $secret, (int) config('watchdog.stripe.webhook_tolerance_seconds'));
         } catch (SignatureVerificationException|UnexpectedValueException) {
+            if (preg_match('/(^|,)t=\d+,.*v1=[0-9a-f]{64}/', (string) $request->header('Stripe-Signature')) === 1) {
+                ProviderWebhookCheck::remember($target, 'webhook_rejected', ['reason' => 'signature_invalid', 'at' => Carbon::now()->toJSON()]);
+            }
+
             return response()->json(['code' => 'signature_invalid'], 400);
         }
+
+        ProviderWebhookCheck::remember($target, 'webhook', ['last_received_at' => Carbon::now()->toJSON(), 'last_type' => $event->type]);
 
         if ($target->status !== Integration::STATUS_ACTIVE) {
             return response()->json(['received' => true, 'ignored' => 'integration_not_active']);
@@ -65,7 +72,6 @@ class StripeWebhookController extends Controller
         }
 
         $summary = $this->ingestor->ingest($target, [$object]);
-        $target->forceFill(['health' => array_merge($target->health ?? [], ['webhook' => ['last_received_at' => Carbon::now()->toJSON(), 'last_type' => $event->type]])])->save();
 
         return response()->json(['received' => true, 'emitted' => $summary['emitted']]);
     }

@@ -10,6 +10,7 @@ use App\Support\Providers\PayPal\PayPalClient;
 use App\Support\Providers\PayPal\PayPalConnector;
 use App\Support\Providers\PayPal\PayPalRequestFailed;
 use App\Support\Providers\PayPal\PayPalSync;
+use App\Support\Providers\ProviderWebhookCheck;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -70,11 +71,15 @@ class PayPalWebhookController extends Controller
             $token = $this->client->token($target->mode, $credentials['client_id'], $credentials['client_secret'])['token'];
 
             if (! $this->client->verifyWebhook($target->mode, $token, $webhookId, $headers, $request->getContent())) {
+                ProviderWebhookCheck::remember($target, 'webhook_rejected', ['reason' => 'signature_invalid', 'topic' => (string) ($event['event_type'] ?? ''), 'at' => Carbon::now()->toJSON()]);
+
                 return response()->json(['code' => 'signature_invalid'], 400);
             }
         } catch (PayPalRequestFailed) {
             return response()->json(['code' => 'verification_unavailable'], 503);
         }
+
+        ProviderWebhookCheck::remember($target, 'webhook', ['last_received_at' => Carbon::now()->toJSON(), 'last_type' => (string) ($event['event_type'] ?? '')]);
 
         if ($target->status !== Integration::STATUS_ACTIVE) {
             return response()->json(['received' => true, 'ignored' => 'integration_not_active']);
@@ -99,8 +104,6 @@ class PayPalWebhookController extends Controller
                 return response()->json(['code' => 'provider_unavailable'], 503);
             }
 
-            $target->forceFill(['health' => array_merge($target->health ?? [], ['webhook' => ['last_received_at' => Carbon::now()->toJSON(), 'last_type' => $type]])])->save();
-
             return response()->json(['received' => true, 'emitted' => $summary['emitted']]);
         }
 
@@ -115,8 +118,6 @@ class PayPalWebhookController extends Controller
         } catch (PayPalRequestFailed) {
             return response()->json(['code' => 'provider_unavailable'], 503);
         }
-
-        $target->forceFill(['health' => array_merge($target->health ?? [], ['webhook' => ['last_received_at' => Carbon::now()->toJSON(), 'last_type' => $type]])])->save();
 
         return response()->json(['received' => true, 'emitted' => $summary['emitted']]);
     }

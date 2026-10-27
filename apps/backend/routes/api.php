@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\Integrations\PayPalIntegrationController;
 use App\Http\Controllers\Api\V1\Integrations\PayPalWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\PluginDownloadController;
 use App\Http\Controllers\Api\V1\Integrations\ProviderSyncController;
+use App\Http\Controllers\Api\V1\Integrations\ProviderWebhookCheckController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareAppController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareAppInstallationController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareIntegrationController;
@@ -192,6 +193,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::put('/integrations/{integration}/webhook-id', [PayPalIntegrationController::class, 'webhookId'])
         ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
+    Route::post('/integrations/{integration}/webhook-check', [ProviderWebhookCheckController::class, 'check'])
+        ->middleware(['tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE, 'throttle:provider-sync']);
     Route::post('/integrations/{integration}/sync', [ProviderSyncController::class, 'sync'])
         ->middleware(['tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE, 'throttle:provider-sync']);
     Route::post('/billing/checkout', [CheckoutController::class, 'checkout'])

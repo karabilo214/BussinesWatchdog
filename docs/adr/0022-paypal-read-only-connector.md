@@ -75,6 +75,10 @@ What the run shows:
 - Each pointer is read at most once per 15 minutes (pending captures, unknown ids); a linked capture is not read again. Older orders rely on Transaction Search and the daily audit. All calls stay inside the GET allowlist.
 - Real check: the one-run chain now uses the pointer pass instead of a simulated webhook hint — PASS (Transaction Search refreshed to 04:59:59 at ~06:55 UTC; the fresh payment came through the pointer, 1 read, 3 events).
 
+## Webhook confirmation for the merchant (2026-10-27, backlog 11.G)
+
+`GET /v1/notifications/webhooks` is added to the GET allowlist: «Check set-up» lists the app's webhooks and looks only at the one with this connection's address — its ID equals the saved Webhook ID (`webhook_id_mismatch` otherwise) and it listens to the capture and order events. Other webhooks of the app are not stored. Any event that PayPal verifies counts as proof of delivery (`health.webhook`); an event with PayPal's headers that does not verify with the saved Webhook ID is kept as `health.webhook_rejected`. Simulator events are not used: PayPal cannot verify them. Saving a new Webhook ID clears both and the last check.
+
 ## Open
 
 - A real PayPal webhook delivery (needs a public URL registered in the Watchdog app).

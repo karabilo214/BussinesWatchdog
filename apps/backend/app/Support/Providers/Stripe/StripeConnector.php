@@ -128,6 +128,9 @@ class StripeConnector
                 ->where('kind', IntegrationCredential::KIND_STRIPE_WEBHOOK)
                 ->where('status', IntegrationCredential::STATUS_ACTIVE)
                 ->update(['status' => IntegrationCredential::STATUS_REVOKED, 'rotated_at' => Carbon::now()]);
+            $health = $integration->health ?? [];
+            unset($health['webhook'], $health['webhook_rejected'], $health['webhook_check']);
+            $integration->forceFill(['health' => $health])->save();
             $this->storeSecret($integration, IntegrationCredential::KIND_STRIPE_WEBHOOK, $webhookSecret);
             $this->audit($integration, $actorId, AuditLog::ACTION_INTEGRATION_WEBHOOK_SECRET_SET, []);
         });

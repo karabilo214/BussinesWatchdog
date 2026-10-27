@@ -107,7 +107,7 @@ onBeforeUnmount(stopPolling);
       <template v-if="stage === 'none'">{{ $t('store.api.webhook_none') }}</template>
       <template v-else-if="stage === 'working'">{{ $t('store.api.webhook_working', { topic: health.webhook?.last_type ?? '', time: dateTime(delivered) }) }}</template>
       <template v-else-if="stage === 'rejected'">
-        <span class="text-crit">{{ $t('store.api.webhook_rejected', { topic: rejected!.topic, time: dateTime(rejected!.at) }) }}</span>
+        <span class="text-crit">{{ $t('store.api.webhook_rejected', { topic: rejected!.topic ?? '', time: dateTime(rejected!.at) }) }}</span>
       </template>
       <template v-else-if="stage === 'reached'">
         {{ ping?.verified ? $t('store.api.webhook_reached_ping', { id: ping.webhook_id, time: dateTime(ping.received_at) }) : $t('store.api.webhook_reached') }}

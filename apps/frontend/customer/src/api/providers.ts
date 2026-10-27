@@ -1,5 +1,5 @@
 import { request, requestFile } from '@bw/api-client';
-import type { Integration, WooCommerceWebhookCheck } from './types';
+import type { Integration, WebhookCheck } from './types';
 
 export async function connectStripe(storeId: string, input: { restricted_api_key: string; webhook_secret?: string; expected_account_id?: string }): Promise<Integration> {
   return (await request<Integration>('POST', `/api/v1/stores/${encodeURIComponent(storeId)}/integrations/stripe`, { body: input })).data;
@@ -47,8 +47,12 @@ export async function setUpWooCommerceWebhook(integrationId: string): Promise<Wo
   return (await request<WooCommerceWebhookSetup>('POST', `/api/v1/integrations/${encodeURIComponent(integrationId)}/woocommerce-webhook`)).data;
 }
 
-export async function checkWooCommerceWebhooks(integrationId: string): Promise<WooCommerceWebhookCheck> {
-  return (await request<WooCommerceWebhookCheck>('POST', `/api/v1/integrations/${encodeURIComponent(integrationId)}/woocommerce-webhook/check`)).data;
+export async function checkWooCommerceWebhooks(integrationId: string): Promise<WebhookCheck> {
+  return (await request<WebhookCheck>('POST', `/api/v1/integrations/${encodeURIComponent(integrationId)}/woocommerce-webhook/check`)).data;
+}
+
+export async function checkProviderWebhook(integrationId: string): Promise<WebhookCheck> {
+  return (await request<WebhookCheck>('POST', `/api/v1/integrations/${encodeURIComponent(integrationId)}/webhook-check`)).data;
 }
 
 export function webhookUrl(integrationId: string, provider: 'stripe' | 'paypal' = 'stripe'): string {

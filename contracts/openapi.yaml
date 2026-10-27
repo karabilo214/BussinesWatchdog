@@ -5033,6 +5033,35 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/integrations/{integration_id}/webhook-check:
+    post:
+      tags: [Integrations]
+      operationId: checkProviderWebhook
+      security:
+        - {UserSession: []}
+      description: "Stripe or PayPal connection (backlog 11.G): reads the provider's webhook configuration with the connection's own read access and finds the webhook pointing to this connection's address. Stripe: GET /v1/webhook_endpoints — optional key permission Webhook Endpoints: Read (403 → state permission_missing); events payment_intent.*, charge.*, refund.* (or *). PayPal: GET /v1/notifications/webhooks of the app; issues webhook_id_mismatch when the webhook for this address has another ID than the one saved here; the six capture/order events. Other endpoints and their addresses are not stored. The result is kept in health.webhook_check. A verified delivery (any event type) is health.webhook; a delivery with a Stripe-format signature or PayPal headers that fails verification is health.webhook_rejected. Saving a new secret or webhook ID clears all three. Throttled like a manual sync."
+      parameters:
+        - {name: integration_id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "200":
+          description: Webhook check
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [checked_at, state]
+                properties:
+                  checked_at: {type: string, format: date-time}
+                  state: {enum: [ok, issues, not_readable, permission_missing]}
+                  error_code: {type: string}
+                  issues: {type: array, items: {enum: [endpoint_missing, endpoint_disabled, events_missing, webhook_id_mismatch]}}
+                  missing_events: {type: array, items: {type: string}}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /api/v1/integrations/{integration_id}/webhook-id:
     put:
       tags: [Integrations]
