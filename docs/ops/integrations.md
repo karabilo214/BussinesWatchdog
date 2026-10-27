@@ -41,7 +41,7 @@ Shopware App — **один архив для всех магазинов** (ADR
 |---|---|---|
 | 0.3.3 | Первая подача в WordPress.org; 2026-10-26 получены замечания, заменён в той же заявке на 0.4.0. Дата подачи и номер заявки в репозитории не записаны. Это ранее переданный владельцу ZIP с `Contributors: karabin214` | `de08405f1dd63088da5e8774e3a0ada4a54223bb7bad291ee7d915682fb5a941` |
 | 0.3.4 | Локальный кандидат Step 271 с названиями способов оплаты; в WordPress.org не отправлялся, для выдачи клиентам не одобрен | `859c9bcd317bf9b6f2fa1cff36f7fde16b4a4fa6c0b66987fa4a4525452b48ff` |
-| 0.4.0 | Ответ на замечания WordPress.org от 2026-10-26 (Step 274): префикс `business_watchdog_`, уведомления только на экране «Плагины» и своей странице. Включает 0.3.4. Владелец загрузил в ту же заявку и добавил TXT-запись подтверждения домена; ждём ответа WordPress.org. Для выдачи из кабинета не одобрен | `f05829f91d0ab9d8d3262a8f0510e510664a014fada624cef4b44f9f04c70c1a` |
+| 0.4.0 | Ответ на замечания WordPress.org от 2026-10-26 (Step 274): префикс `business_watchdog_`, уведомления только на экране «Плагины» и своей странице. Включает 0.3.4. Одобрен WordPress.org 2026-10-27, опубликован в каталоге (SVN r3768832, `trunk/` и `tags/0.4.0/` — содержимое именно этого ZIP). Для выдачи из кабинета не одобрен | `f05829f91d0ab9d8d3262a8f0510e510664a014fada624cef4b44f9f04c70c1a` |
 
 Оба точных файла повторно найдены и их хеши сверены 2026-10-26. Локальный кандидат лежит в `/private/tmp/bw-step271-release/business-watchdog-0.3.4.zip`; путь к переданному 0.3.3 зафиксирован в `docs/progress/connectors.md`. Временные каталоги не являются постоянным хранилищем релизов. Исходники 0.3.4 не заменяют уже загруженный WordPress.org ZIP 0.3.3. Не пересобирать отправленный ZIP из текущих исходников и не приписывать новой сборке одобрение прежнего файла.
 
@@ -65,7 +65,24 @@ wp plugin check bw-release --slug=business-watchdog                        # о�
 2. Префиксы — исправлено в 0.4.0. Старые имена `bw_*` (таблицы, опции, расписания) переносятся автоматически при первом запросе админки, cron или WP-CLI после обновления. Метаполя заказов `_bw_payment_mode` и `_bw_synthetic_run` продолжают читаться плагином, а `_bw_payment_mode` ещё и REST-коннектором бэкенда. Откат на 0.3.x после переноса требует нового подключения магазина; релизная проверка для такого отката выводит SKIP.
 3. Уведомления админки (Guideline 11) — в 0.4.0 показываются только на экране «Плагины» и на странице плагина.
 
-Сделано владельцем 2026-10-26: ZIP 0.4.0 загружен в ту же заявку под `karabin214`, TXT-запись видна в DNS. Ждём ответа WordPress.org.
+Сделано владельцем 2026-10-26: ZIP 0.4.0 загружен в ту же заявку под `karabin214`, TXT-запись видна в DNS.
+
+**Каталог WordPress.org (с 2026-10-27).** Плагин одобрен (Review ID `APPROVED business-watchdog/karabin214/26Oct26/T2 27Oct26/4.3`) и опубликован: https://wordpress.org/plugins/business-watchdog/, SVN `https://plugins.svn.wordpress.org/business-watchdog`, пользователь `karabin214`. SVN-пароль отдельный от пароля WordPress.org, задаётся в профиле (Account & Security → SVN password), хранится у владельца; в репозиторий и кэш SVN не попадает. Письма `plugins@wordpress.org` владелец добавил в контакты Gmail — без ответа на их письма плагин могут закрыть.
+
+Выпуск новой версии в каталог (SVN — система выпусков: в `trunk/` только готовые версии). На macOS 14 Homebrew собирает `subversion` из исходников, поэтому SVN запускается в Docker:
+
+```sh
+W=/private/tmp/bw-wporg && mkdir -p $W/zip && unzip -q business-watchdog-X.Y.Z.zip -d $W/zip   # точный ZIP после проверок выпуска
+docker run --rm -it -v $W:/w -w /w alpine:3.20 sh -c '
+  apk add -q subversion &&
+  svn co https://plugins.svn.wordpress.org/business-watchdog repo && cd repo &&
+  find trunk -mindepth 1 -maxdepth 1 ! -name .svn -exec rm -rf {} + && cp -R /w/zip/business-watchdog/. trunk/ &&
+  svn add -q --force trunk && svn status trunk | grep "^!" | cut -c9- | xargs -r svn rm -q &&
+  svn cp trunk tags/X.Y.Z &&
+  svn status && svn ci -m "Business Watchdog for WooCommerce X.Y.Z" --username karabin214 --no-auth-cache'
+```
+
+`Stable tag` в `readme.txt` должен совпадать с новой версией. Картинки каталога (`assets/`, из `plugins/woocommerce-watchdog/.wordpress-org/`) меняются отдельным коммитом без новой версии; у PNG ставить `svn propset svn:mime-type image/png`. Страница обновляется за несколько минут, поиск и профиль — до 72 часов. Каждый выпуск проходит автоматическую проверку безопасности WordPress.org. Скриншот 3 в каталоге снят до Step 237 (старый экран «Источник заказов») — переснять.
 
 Для 0.4.0 (2026-10-26): интеграционные тесты floor и latest 59/59, `release-checks.sh latest` PASS (обновление с 0.3.4, перенос имён), PHP 7.4 lint ZIP, Plugin Check на ZIP — 0 ошибок (предупреждения о прямых запросах к своим таблицам, как и раньше). `release-checks.sh floor` не работает и до этого шага: `release-probe.php` использует `?->`, которого нет в PHP 7.4.
 

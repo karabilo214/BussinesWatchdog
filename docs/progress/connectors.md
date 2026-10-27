@@ -732,3 +732,16 @@ Status: complete; deployed 2026-10-27 (`14e0754`, no migration)
 Live on production (owner's test stores only): the check on the six Stripe/PayPal connections of BW, Woo-Test and Shopware-Test — Stripe `permission_missing` (the restricted keys have no Webhook Endpoints: Read), PayPal `endpoint_missing` (the sandbox app had no webhook for any of our addresses). With the owner's permission: a PayPal sandbox webhook `19E93928EC726853K` was created for BW's address (6 capture/order events + 3 dispute events) and saved in BW → check `ok`; a 1.00 EUR sandbox order approved by the sandbox buyer and captured (`8C766418BE355374N`) → **the first real PayPal webhook delivery**: `PAYMENT.CAPTURE.COMPLETED` verified by PayPal with the saved ID, payment taken into BW (test mode, no allocation, no incident). A Stripe test endpoint `we_1UV8XUQHjXkT04LtyIUKfgEP` was created for BW's address and its secret saved; a 1.00 EUR test PaymentIntent with `pm_card_visa` → signed `charge.succeeded` at BW within seconds. The test payments are not linked to an order; the shared test Stripe account is also read by Woo-Test and Shopware-Test.
 
 Verification: `StripeIntegrationTest` (rejected signature kept, garbage header not kept; any verified event counts; new secret clears; endpoint check — missing events, disabled, ok, missing, 403), `PayPalDisputeTest` (webhook id mismatch + missing events, ok, missing, rejected verification kept, any verified event counts); customer `provider.test.ts` (every stage, never «working» after only saving a secret, check after saving). Backend SQLite 820 passed + 4 skipped, Pint, `spec/validate_spec.py` (284 operations); customer typecheck, 209 tests, build.
+
+### Step 284: WooCommerce plugin published in the WordPress.org directory (2026-10-27)
+
+Status: complete; no code change
+
+- WordPress.org approved the plugin on 2026-10-27 (Review ID `APPROVED business-watchdog/karabin214/26Oct26/T2 27Oct26/4.3`) after the 0.4.0 answer of Step 274 and the TXT domain verification.
+- Committed to `https://plugins.svn.wordpress.org/business-watchdog` as revision 3768832: `trunk/` and `tags/0.4.0/` are the contents of the exact ZIP the owner uploaded to the review (SHA-256 `f05829f91d0ab9d8d3262a8f0510e510664a014fada624cef4b44f9f04c70c1a`, not rebuilt); `assets/` — the two banners, two icons and four screenshots from `plugins/woocommerce-watchdog/.wordpress-org/` (PNG mime type set). Screenshots checked before publishing: demo data only, no real personal data or secrets.
+- SVN ran in an `alpine:3.20` Docker container: Homebrew builds `subversion` from source on macOS 14. The SVN password is the owner's, used for the one commit with `--no-auth-cache`, not stored.
+- Public page https://wordpress.org/plugins/business-watchdog/ answers 200 with version 0.4.0.
+- `docs/ops/integrations.md`: directory details and the release procedure for new versions.
+
+Open: screenshot 3 shows the order-source screen from before Step 237 (two equal tabs, plugin 0.3.2) — retake it; assets can be replaced without a new plugin version. Approval for cabinet download (`WATCHDOG_WOO_APPROVED_SHA256`) remains a separate decision.
+
