@@ -2,7 +2,7 @@
 
 Date: 2026-10-27
 
-Status: accepted (implemented in Step 278; the owner reviews the financial assumption below)
+Status: accepted (implemented in Step 278; the owner accepted the financial assumption below on 2026-10-27)
 
 ## Context
 
