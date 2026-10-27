@@ -271,6 +271,34 @@ class PaymentAllocationService
         });
     }
 
+    public function followCaptureGrowth(FinancialTransaction $capture, int $previousMinor): void
+    {
+        $active = PaymentAllocation::query()
+            ->where('capture_transaction_id', $capture->id)
+            ->whereNull('revoked_at')
+            ->lockForUpdate()
+            ->get();
+        $automatic = $active->count() === 1
+            && $active->first()->strategy !== PaymentAllocation::STRATEGY_MANUAL
+            && (int) $active->first()->amount_minor === $previousMinor;
+
+        if ($automatic) {
+            /** @var PaymentAllocation $allocation */
+            $allocation = $active->first();
+            $evidence = $allocation->evidence ?? [];
+            $evidence['capture_growth'] = [...($evidence['capture_growth'] ?? []), ['from' => (string) $previousMinor, 'to' => (string) $capture->amount_minor, 'at' => now()->toJSON()]];
+            $allocation->forceFill(['amount_minor' => (int) $capture->amount_minor, 'evidence' => $evidence])->save();
+        }
+
+        foreach ($active->pluck('order_id')->unique() as $orderId) {
+            $this->markAllocationChanged($capture->tenant_id, $capture->store_id, $orderId);
+        }
+
+        if ($active->isEmpty()) {
+            $this->markAllocationChanged($capture->tenant_id, $capture->store_id, null);
+        }
+    }
+
     private function markAllocationChanged(string $tenantId, string $storeId, ?string $orderId): void
     {
         if ($orderId !== null) {

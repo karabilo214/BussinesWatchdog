@@ -6,9 +6,12 @@ use App\Models\EventInbox;
 use App\Models\FinancialTransaction;
 use App\Models\Payment;
 use App\Support\Ingest\EventProjectionResult;
+use App\Support\Payments\PaymentAllocationService;
 
 class FinancialTransactionProjector
 {
+    public function __construct(private readonly PaymentAllocationService $allocations) {}
+
     public const ERROR_INVALID = 'transaction_observed_invalid';
 
     public const ERROR_OPERATION_CONFLICT = 'transaction_operation_conflict';
@@ -51,6 +54,12 @@ class FinancialTransactionProjector
             return EventProjectionResult::ok();
         }
 
+        $growth = $this->captureGrowth($event, $transaction, $data, $operationHash);
+
+        if ($growth !== null) {
+            return $growth ? EventProjectionResult::ok() : EventProjectionResult::failed(self::ERROR_OPERATION_CONFLICT);
+        }
+
         return $this->statusTransition($event, $transaction, $data, $operationHash)
             ? EventProjectionResult::ok()
             : EventProjectionResult::failed(self::ERROR_OPERATION_CONFLICT);
@@ -91,6 +100,43 @@ class FinancialTransactionProjector
             'operation_hash' => $operationHash,
             'metadata' => $metadata,
         ])->save();
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function captureGrowth(EventInbox $event, FinancialTransaction $transaction, array $data, string $operationHash): ?bool
+    {
+        $candidate = $data['kind'] === 'capture'
+            && $data['source_authority'] === 'independent_provider'
+            && $transaction->source_authority === 'independent_provider'
+            && $transaction->status === 'succeeded'
+            && $data['status'] === 'succeeded'
+            && $transaction->currency === $data['currency']
+            && $transaction->currency_exponent === $data['currency_exponent']
+            && ($transaction->metadata['payment_external_id'] ?? null) === ($data['payment_external_id'] ?? null)
+            && (string) $transaction->amount_minor !== $data['amount_minor'];
+
+        if (! $candidate) {
+            return null;
+        }
+
+        $metadata = $transaction->metadata ?? [];
+        $observedAt = $event->observed_at->toJSON();
+        $lastObservedAt = (string) ($metadata['amount_observed_at'] ?? $transaction->created_at?->toJSON() ?? '');
+        $previous = (int) $transaction->amount_minor;
+        $amount = (int) $data['amount_minor'];
+
+        if ($amount < $previous) {
+            return strcmp($observedAt, $lastObservedAt) < 0;
+        }
+
+        $metadata['amount_history'] = [...($metadata['amount_history'] ?? []), ['from' => (string) $previous, 'to' => $data['amount_minor'], 'observed_at' => $observedAt, 'event_id' => $event->id]];
+        $metadata['amount_observed_at'] = $observedAt;
+        $transaction->forceFill(['amount_minor' => $amount, 'operation_hash' => $operationHash, 'metadata' => $metadata])->save();
+        $this->allocations->followCaptureGrowth($transaction, $previous);
 
         return true;
     }
