@@ -132,7 +132,7 @@ watch(storeId, () => loadScenario(), { immediate: true });
       <p v-else-if="stores.length === 0" class="rounded-xl border border-dashed border-border-strong bg-surface p-6 text-sm text-text-muted">{{ $t('reconciliation.no_stores') }}</p>
 
       <template v-else-if="store">
-        <section class="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5" aria-labelledby="readiness-title" data-panel="readiness">
+        <section id="check-readiness" class="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5" aria-labelledby="readiness-title" data-panel="readiness">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 id="readiness-title" class="text-lg font-semibold">{{ $t('checks.readiness.title') }}</h2>
             <StatusBadge :tone="ready ? 'ok' : 'unknown'" :label="ready ? $t('checks.readiness.ready') : $t('checks.readiness.not_ready')" />
@@ -164,7 +164,7 @@ watch(storeId, () => loadScenario(), { immediate: true });
         <p v-if="scenarioLoading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
         <ErrorNotice v-else-if="scenarioError" :error="scenarioError" />
         <template v-else>
-          <ScenarioPanel :key="store.id" :store="store" :scenario="scenario" :can-manage="canRunChecks" @saved="onScenarioSaved" @stale="loadScenario" />
+          <ScenarioPanel id="check-scenario" :key="store.id" :store="store" :scenario="scenario" :can-manage="canRunChecks" @saved="onScenarioSaved" @stale="loadScenario" />
           <RunsList :key="`runs-${store.id}`" :store-id="store.id" :scenario="scenario" :can-run="canRunChecks" :ready="ready" @finished="refreshStore" />
         </template>
       </template>

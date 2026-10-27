@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { getStore } from '@/api/stores';
 import type { Store } from '@/api/types';
 import OrderSource from '@/components/OrderSource.vue';
@@ -9,12 +10,14 @@ import ErrorNotice from '@/components/ErrorNotice.vue';
 import CheckoutLayoutSettings from '@/components/CheckoutLayoutSettings.vue';
 import StoreSettings from '@/components/StoreSettings.vue';
 import VerificationPanel from '@/components/VerificationPanel.vue';
+import { setupSteps } from '@/components/setupSteps';
 import { storeHost } from '@/components/storeHost';
 import { useRole } from '@/composables/useRole';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { StatusBadge } from '@bw/ui';
 
 const props = defineProps<{ id: string }>();
+const route = useRoute();
 const { canManageStores, canManageIntegrations } = useRole();
 const logoBase = `${import.meta.env.BASE_URL}onboarding/`;
 
@@ -23,6 +26,7 @@ const loading = ref(true);
 const error = ref<unknown>(null);
 
 const host = computed(() => (store.value ? storeHost(store.value.base_url) : ''));
+const steps = computed(() => (store.value ? setupSteps(store.value) : []));
 
 async function load(): Promise<void> {
   error.value = null;
@@ -90,19 +94,16 @@ watch(
           <CoverageList :coverage="store.coverage" />
         </section>
 
-        <section class="rounded-xl border border-border bg-surface p-5" aria-labelledby="more-title">
+        <section v-if="steps.length" class="rounded-xl border border-border bg-surface p-5" aria-labelledby="more-title" data-panel="setup-steps">
           <h2 id="more-title" class="text-lg font-semibold">{{ $t('store.more.title') }}</h2>
           <p class="mt-1 text-sm text-text-muted">{{ $t('store.more.subtitle') }}</p>
-          <ul class="mt-3 flex flex-wrap gap-2 text-sm">
-            <li><a href="#payment-providers" class="text-primary hover:underline">{{ $t('store.more.payment') }}</a></li>
-            <li><RouterLink :to="{ name: 'notifications' }" class="text-primary hover:underline">{{ $t('store.more.telegram') }}</RouterLink></li>
-            <li><a href="#order-source" class="text-primary hover:underline">{{ $t('store.more.observation') }}</a></li>
-            <li><a href="#browser-checks" class="text-primary hover:underline">{{ $t('store.more.browser') }}</a></li>
+          <ul class="mt-3 flex flex-col gap-2 text-sm">
+            <li v-for="step in steps" :key="step.key" :data-step="step.key"><RouterLink :to="step.to" class="text-primary hover:underline">{{ $t(step.label) }}</RouterLink></li>
           </ul>
         </section>
-        <div id="order-source"><OrderSource :store-id="store.id" :can-manage="canManageIntegrations" :platform="store.platform" :base-url="store.base_url" @changed="load" /></div>
+        <div id="order-source"><OrderSource :store-id="store.id" :can-manage="canManageIntegrations" :platform="store.platform" :base-url="store.base_url" :open-plugin="route.hash === '#woocommerce-plugin'" @changed="load" /></div>
         <div id="payment-providers"><PaymentProviders :store-id="store.id" :can-manage="canManageIntegrations" @changed="load" /></div>
-        <div id="browser-checks"><VerificationPanel :key="store.verified_at ?? 'unverified'" :store="store" :can-manage="canManageStores" @verified="load" /></div>
+        <div id="store-verification"><VerificationPanel :key="store.verified_at ?? 'unverified'" :store="store" :can-manage="canManageStores" @verified="load" /></div>
         <StoreSettings :store="store" :can-manage="canManageStores" @updated="store = $event" @stale="load" />
         <CheckoutLayoutSettings :store="store" :can-manage="canManageStores" @updated="store = $event" />
       </template>

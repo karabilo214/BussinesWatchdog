@@ -140,7 +140,7 @@ class StoreCoverage
                         'last_window_end_at' => $windowEnd === null ? null : Carbon::parse($windowEnd)->toJSON(),
                     ],
                     'browser_checks' => $this->browserCoverage($store, $scenarios->get($store->id), $lastRuns->get($store->id)),
-                    'checkout_script' => $this->scriptCoverage($store, $connector, $scriptSeen->get($store->id), $lastRuns->get($store->id)),
+                    'checkout_script' => $this->scriptCoverage($store, $storeIntegrations->first(fn (Integration $integration): bool => $integration->source_authority === Integration::SOURCE_STORE_REPORTED && CheckoutObservation::carriesScript($integration)) ?? $connector, $scriptSeen->get($store->id), $lastRuns->get($store->id)),
                 ],
                 'last_successful_check_at' => $passedAt === null ? null : Carbon::parse($passedAt)->toJSON(),
                 'active_incident_count' => (int) $incidents->get($store->id, 0),

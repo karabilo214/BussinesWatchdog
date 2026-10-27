@@ -24,12 +24,39 @@ function restoreWhenRendered(saved: { left: number; top: number }): Promise<{ le
   });
 }
 
+/** A linked block loads with its page and the panels above it: wait (up to three seconds) until it exists and the page stops growing, then keep it below the sticky header. */
+function scrollWhenRendered(hash: string): Promise<{ el: string; top: number } | { top: number }> {
+  return new Promise((resolve) => {
+    const started = Date.now();
+    let height = -1;
+    let stableSince = 0;
+    const check = () => {
+      const found = document.getElementById(decodeURIComponent(hash.slice(1))) !== null;
+      const current = document.documentElement.scrollHeight;
+      const now = Date.now();
+
+      if (current !== height) {
+        height = current;
+        stableSince = now;
+      }
+
+      const top = (document.querySelector<HTMLElement>('header.sticky')?.offsetHeight ?? 0) + 16;
+
+      if (found && now - stableSince >= 300) resolve({ el: hash, top });
+      else if (now - started > 3000) resolve(found ? { el: hash, top } : { top: 0 });
+      else setTimeout(check, 50);
+    };
+
+    check();
+  });
+}
+
 export function buildRouter(): Router {
   const router = createRouter({
     history: createWebHistory('/app/'),
     scrollBehavior: (to, from, saved) => {
       if (saved) return restoreWhenRendered(saved);
-      if (to.hash) return { el: to.hash };
+      if (to.hash) return scrollWhenRendered(to.hash);
 
       return to.path === from.path ? false : { top: 0 };
     },

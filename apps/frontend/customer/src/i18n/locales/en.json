@@ -281,6 +281,7 @@
     "more": {
       "title": "What else you can connect",
       "subtitle": "You can do these steps later. Until a source or check is connected, its coverage remains unknown.",
+      "source": "Order source — where the service gets orders",
       "payment": "Payment provider — independent money reconciliation",
       "telegram": "Telegram — notifications",
       "observation": "Checkout observation",

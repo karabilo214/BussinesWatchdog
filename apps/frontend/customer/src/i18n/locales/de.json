@@ -281,6 +281,7 @@
     "more": {
       "title": "Was Sie noch verbinden können",
       "subtitle": "Diese Schritte können Sie später erledigen. Bis zur Verbindung bleiben die jeweiligen Daten unbekannt.",
+      "source": "Bestellquelle — woher der Dienst die Bestellungen erhält",
       "payment": "Zahlungsanbieter — unabhängiger Geldabgleich",
       "telegram": "Telegram — Benachrichtigungen",
       "observation": "Checkout-Beobachtung",

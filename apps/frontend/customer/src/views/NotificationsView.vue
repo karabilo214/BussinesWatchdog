@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { fetchEntitlements, type Entitlements } from '@/api/billing';
 import { createEmailChannel, createTelegramChannel, listChannels } from '@/api/notifications';
 import { listStores } from '@/api/stores';
@@ -19,13 +20,14 @@ const { refresh: refreshBadges } = useNavBadgeState();
 
 const { locale } = useI18n();
 const { role, canManageNotifications } = useRole();
+const addTelegram = useRoute().query.add === 'telegram' && canManageNotifications.value;
 
 const channels = ref<NotificationChannel[]>([]);
 const stores = ref<Store[]>([]);
 const loading = ref(true);
 const error = ref<unknown>(null);
-const adding = ref(false);
-const form = reactive({ kind: 'email' as 'email' | 'telegram', label: '', email: '' });
+const adding = ref(addTelegram);
+const form = reactive({ kind: (addTelegram ? 'telegram' : 'email') as 'email' | 'telegram', label: '', email: '' });
 const creating = ref(false);
 const createError = ref<unknown>(null);
 const prefs = ref<InstanceType<typeof PreferencesForm> | null>(null);
@@ -140,7 +142,7 @@ if (canManageNotifications.value) {
         </p>
       </div>
 
-      <form v-if="adding" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" novalidate @submit.prevent="create" data-panel="new-channel">
+      <form v-if="adding" id="new-channel" class="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5" novalidate @submit.prevent="create" data-panel="new-channel">
         <h2 class="text-lg font-semibold">{{ $t('notifications.new.title') }}</h2>
         <div class="inline-flex w-fit rounded-md border border-border-strong bg-surface-muted p-1">
           <button type="button" class="rounded px-3 py-1.5 text-sm font-medium" :class="form.kind === 'email' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted'" @click="form.kind = 'email'">

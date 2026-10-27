@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { listStoreIntegrations } from '@/api/stores';
 import type { Integration } from '@/api/types';
 import ConnectorPanel from './ConnectorPanel.vue';
@@ -8,11 +8,18 @@ import WooCommerceApiPanel from './WooCommerceApiPanel.vue';
 
 type Source = 'api' | 'plugin';
 
-const props = withDefaults(defineProps<{ storeId: string; canManage: boolean; platform?: string; baseUrl?: string }>(), { platform: 'woocommerce', baseUrl: '' });
+const props = withDefaults(defineProps<{ storeId: string; canManage: boolean; platform?: string; baseUrl?: string; openPlugin?: boolean }>(), { platform: 'woocommerce', baseUrl: '', openPlugin: false });
 const emit = defineEmits<{ changed: [] }>();
 
 const integrations = ref<Integration[]>([]);
-const showPlugin = ref(false);
+const showPlugin = ref(props.openPlugin);
+
+watch(
+  () => props.openPlugin,
+  (open) => {
+    if (open) showPlugin.value = true;
+  },
+);
 
 const current = computed<Record<Source, Integration | null>>(() => {
   const live = (provider: string) => integrations.value.find((item) => item.provider === provider && ['active', 'degraded', 'pending'].includes(item.status)) ?? null;
@@ -52,7 +59,7 @@ void load();
         <p class="mt-1 text-sm text-text-muted">{{ $t('store.order_source.primary_hint') }}</p>
         <WooCommerceApiPanel :store-id="storeId" :base-url="baseUrl" :can-manage="canManage" :plugin-active="current.plugin !== null" @changed="changed" />
       </div>
-      <div class="rounded-lg border border-border p-4">
+      <div id="woocommerce-plugin" class="rounded-lg border border-border p-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 class="font-medium">{{ $t('store.order_source.extra_woocommerce') }}</h3>

@@ -113,11 +113,15 @@ class WooCommerceCheckoutObservationTest extends TestCase
         $this->ingest($this->event($this->windowAgo(30), 1, ['checkout_rendered' => 1, 'script_loaded' => 1]));
         $this->assertSame('observing', $coverage());
 
-        $this->plugin->forceFill(['status' => Integration::STATUS_REVOKED])->save();
+        $this->travel(1)->minutes();
         Integration::query()->create([
             'tenant_id' => $this->store->tenant_id, 'store_id' => $this->store->id, 'provider' => 'woocommerce_api', 'mode' => 'live',
             'source_authority' => Integration::SOURCE_STORE_REPORTED, 'status' => Integration::STATUS_ACTIVE, 'capabilities' => [], 'connector_version' => 'x', 'health' => [],
         ]);
+        Cache::flush();
+        $this->assertSame('observing', $coverage(), 'a newer REST API connection next to the plugin does not hide the plugin script');
+
+        $this->plugin->forceFill(['status' => Integration::STATUS_REVOKED])->save();
         Cache::flush();
         $this->assertSame('needs_plugin', $coverage());
         $this->assertFalse(app(ScenarioDefinition::class)->snapshot($scenario, $this->store)['expect_checkout_script']);
