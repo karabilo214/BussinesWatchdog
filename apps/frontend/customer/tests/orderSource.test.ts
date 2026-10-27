@@ -292,7 +292,7 @@ describe('Shopware order source', () => {
     expect(wrapper.get('[data-create-app-code]').attributes('disabled')).toBeDefined();
     await wrapper.get('[data-acknowledge]').setValue(true);
     expect(wrapper.get('[data-download-app]').attributes('href')).toBe('/api/v1/downloads/shopware-app');
-    expect(wrapper.text()).toContain('Open app');
+    expect(wrapper.text()).toContain('Open extension');
 
     await wrapper.get('[data-download-app]').trigger('click');
     await flushPromises();

@@ -37,7 +37,7 @@
 
 5. «Description & images» — тексты ниже, картинки (до 1 МБ, английские для английской страницы), иконка. Highlights, features, keywords — ниже.
 6. Указать субподрядчиков (п. 3 выше).
-7. Инструкция для проверяющих (поле для тестировщиков): тестовая организация в Business Watchdog с магазином на их домене не создаётся заранее — домен тестового Shopware неизвестен. Предложить: «Create a free trial at https://business-watchdog.com/en/signup, add a Shopware store with your test shop's URL, open the app in Shopware (Extensions → My extensions → Business Watchdog → Open app) and paste the connection code from the store page.» Пробный период привязан к домену магазина — если проверяющим нужен доступ без регистрации, завести организацию вручную и дать им e-mail и пароль.
+7. Инструкция для проверяющих (поле для тестировщиков): тестовая организация в Business Watchdog с магазином на их домене не создаётся заранее — домен тестового Shopware неизвестен. Предложить: «Create a free trial at https://business-watchdog.com/en/signup, add a Shopware store with your test shop's URL, open the app in Shopware (Extensions → My extensions → «…» next to Business Watchdog → Open extension) and paste the connection code from the store page.» Пробный период привязан к домену магазина — если проверяющим нужен доступ без регистрации, завести организацию вручную и дать им e-mail и пароль.
 8. Отправить на проверку. Статусы: Code review → Pending approval → Approved/Rejected → In store; после одобрения включить «Publish extensions».
 
 Новые версии: поднять `ShopwareApp::APP_VERSION`, пройти обычные проверки App, собрать пакет той же командой и загрузить в Versions. Версию можно отозвать в течение трёх дней после загрузки.
@@ -75,7 +75,7 @@ Description:
 <h3>Setup</h3>
 <ol>
 <li>Create an account at business-watchdog.com and add your shop with its storefront address.</li>
-<li>Install and activate the app, then open it: Extensions → My extensions → Business Watchdog → Open app.</li>
+<li>Install and activate the app, then open it: Extensions → My extensions, click «…» next to Business Watchdog and choose Open extension.</li>
 <li>On the store page in the Business Watchdog dashboard create a connection code and paste it into the app. The app connects only when the code is valid and your shop runs at the address of the store in the dashboard.</li>
 <li>Optionally connect Stripe or PayPal in the dashboard for the money comparison.</li>
 </ol>
@@ -113,7 +113,7 @@ Beschreibung:
 <h3>Einrichtung</h3>
 <ol>
 <li>Erstellen Sie ein Konto auf business-watchdog.com und legen Sie Ihren Shop mit der Adresse der Storefront an.</li>
-<li>Installieren und aktivieren Sie die App und öffnen Sie sie: Erweiterungen → Meine Erweiterungen → Business Watchdog → App öffnen.</li>
+<li>Installieren und aktivieren Sie die App und öffnen Sie sie: Erweiterungen → Meine Erweiterungen, bei Business Watchdog auf „…“ klicken und „Erweiterung öffnen“ wählen.</li>
 <li>Erstellen Sie auf der Shop-Seite im Business-Watchdog-Dashboard einen Verbindungscode und fügen Sie ihn in der App ein. Die App verbindet sich nur, wenn der Code gültig ist und Ihr Shop unter der Adresse des Shops im Dashboard läuft.</li>
 <li>Verbinden Sie optional Stripe oder PayPal im Dashboard für den Zahlungsabgleich.</li>
 </ol>
@@ -133,8 +133,17 @@ Keywords: `Zahlungsüberwachung`, `Zahlungsabgleich`, `Stripe`, `PayPal`, `Check
 
 ## Картинки
 
-Нужно: английские скриншоты для английской страницы (немецкие — для немецкой, языки в одной картинке не смешивать), не меньше одного из администрирования и одного из витрины, каждый до 1 МБ, только функции App, без рекламы других услуг.
+Готовый английский набор — `plugins/shopware-app/store-assets/en/` (каждая меньше 1 МБ, только демо-данные). Сняты 2026-10-27 на локальном Shopware 6.7.15.1 (тот же образ, что у Shopware-Test) с App 1.5.0, подключённым к магазину «Kaffeerösterei Lindner» (демо-адрес `kaffee-demo.example.test`) кодом из кабинета, как это делает продавец; заказы оформлены в магазине и пришли через вебхуки.
 
-- Кабинет: скриншоты 1–3 каталога WordPress.org (`plugins/woocommerce-watchdog/.wordpress-org/screenshot-1..3.png`, английские, демо-данные) подходят по смыслу, но сняты на WooCommerce-магазине — для Shopware переснять на магазине Shopware.
-- Администрирование Shopware: модуль App («Open app») до и после ввода кода — снять на Shopware-Test после перехода на App 1.5.0.
-- Витрина: видимого элемента у App нет. Показать страницу подтверждения заказа, где работает наблюдение, и в описании к картинке написать, что App ничего не добавляет в оформление.
+| Файл | Что | Подпись (en) |
+|---|---|---|
+| `1-admin-enter-code.png` | Администрирование: модуль App до подключения | Open the app in Extensions and paste the connection code from your Business Watchdog account. |
+| `2-admin-connected.png` | Администрирование: App подключён | Connected: Business Watchdog reads orders and payment states, read-only. |
+| `3-storefront-confirm.png` | Витрина: страница подтверждения заказа | The checkout stays unchanged: the app adds nothing visible and reports only to your own shop. |
+| `4-dashboard-store.png` | Кабинет: магазин Shopware после подключения | What the service sees for your shop: orders received, scheduled sync, payment attempts. |
+| `5-dashboard-incident.png` | Кабинет: инцидент «оплачен без списания» | An order marked as paid without a capture at the provider, with the amounts and what to check. |
+| `6-dashboard-incidents.png` | Кабинет: список инцидентов | Open incidents across your shops. |
+
+5 и 6 — те же, что в каталоге WordPress.org: на них нет ничего от платформы, только название магазина. Немецкий набор для немецкой страницы — по желанию: кабинет и модуль App переключаются на немецкий, Shopware — языком пользователя администрирования.
+
+Иконка: `apps/backend/resources/shopware-store/plugin.png` (256×256, 23 КБ). Логотип производителя: тот же знак или `plugins/woocommerce-watchdog/.wordpress-org/icon-256x256.png`.

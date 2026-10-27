@@ -555,7 +555,7 @@
       "app_step_install": "Suchen Sie Business Watchdog in der Erweiterungsliste, klicken Sie auf Installieren, dann auf Aktivieren und bestätigen Sie die Berechtigungen.",
       "app_permissions": "Die App fragt nur Lesezugriff auf Bestellungen, Zahlungen, Währungen und Zahlungsarten an. Es wird nichts gelesen, bis Sie den Shop mit einem Code bestätigen.",
       "app_download": "App herunterladen",
-      "app_step_open": "Öffnen Sie in Shopware Erweiterungen → Meine Erweiterungen → Business Watchdog → „App öffnen“.",
+      "app_step_open": "Öffnen Sie in Shopware Erweiterungen → Meine Erweiterungen, klicken Sie bei Business Watchdog auf „…“ und wählen Sie „Erweiterung öffnen“.",
       "app_step_code": "Kopieren Sie den Code unten, fügen Sie ihn auf der App-Seite ein und bestätigen Sie. Die Shop-Adresse muss mit der Adresse dieses Shops im Kundenkonto übereinstimmen.",
       "app_create_code": "Verbindungscode erstellen",
       "app_code": "Verbindungscode",

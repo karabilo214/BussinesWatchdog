@@ -24,11 +24,11 @@ class ShopwareStoreApp
      */
     public function package(): array
     {
-        $name = self::name() ?? throw new \RuntimeException('shopware_store_app_name_missing');
+        $name = self::name() ?? throw new \RuntimeException('store_app_name_missing');
         $icon = file_get_contents(resource_path('shopware-store/plugin.png'));
 
         if ($icon === false) {
-            throw new \RuntimeException('shopware_store_app_icon_missing');
+            throw new \RuntimeException('store_app_icon_missing');
         }
 
         $files = ['manifest.xml' => $this->manifest($name), self::ICON => $icon, ...$this->app->sourceFiles()];

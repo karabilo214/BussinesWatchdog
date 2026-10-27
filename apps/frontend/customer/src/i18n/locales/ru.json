@@ -555,7 +555,7 @@
       "app_step_install": "В списке расширений найдите Business Watchdog, нажмите Install, затем Activate и подтвердите запрошенные права.",
       "app_permissions": "Приложение запрашивает только чтение заказов, оплат, валют и способов оплаты. Ничего не читается, пока вы не подтвердите магазин кодом.",
       "app_download": "Скачать приложение",
-      "app_step_open": "В Shopware откройте Extensions → My extensions → Business Watchdog → «Open app».",
+      "app_step_open": "В Shopware откройте Extensions → My extensions, нажмите «…» у Business Watchdog и выберите «Open extension».",
       "app_step_code": "Скопируйте код ниже, вставьте его на странице App и подтвердите. Адрес магазина должен совпадать с адресом этого магазина в кабинете.",
       "app_create_code": "Создать код подключения",
       "app_code": "Код подключения",

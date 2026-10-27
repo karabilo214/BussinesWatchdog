@@ -769,3 +769,14 @@ Status: complete; not deployed yet
 
 Verification: `ShopwareStoreAppTest` (package contents, no secret, icon, same files as the universal app, unchanged fingerprint, name without prefix rejected; registration with the Store secret only when configured, proof with the Store name, universal registration unchanged, other secret rejected), `ShopwareAppUniversalTest`; the built package passes `xmllint` against Shopware's `manifest-2.0.xsd` and `shopware-cli extension validate` (0 problems; first run found the icon over 30 KB and short descriptions — fixed). Not installed into a real Shopware: without a manifest secret Shopware takes the secret from the Store account.
 
+### Step 288: Shopware Store screenshots and the real «Open extension» label (2026-10-27)
+
+Status: complete; not deployed yet
+
+- English screenshot set for the Store listing in `plugins/shopware-app/store-assets/en/` (admin module before and after the code, storefront confirm page, dashboard store page, incident, incident list; each under 1 MB, demo data only), captions in `docs/ops/shopware-store.md`.
+- Taken on a local Shopware 6.7.15.1 (`bw-shopware:6.7.15.1`, the Shopware-Test image) with the domain changed to `kaffee-demo.example.test`: the universal app 1.5.0 installed through the Extension API, registered against a local backend on the development database, opened in the Administration through «…» → «Open extension» and bound with a pairing code of the store «Kaffeerösterei Lindner» (Smoke Owner's organization) typed into the module; three orders placed in the shop arrived through webhooks, the scheduled sync ran. The storefront visit showed the app's script and reports going only to the shop's own `/storefront/script/bw-observe`.
+- Found on the way: Shopware 6.6 and 6.7 call the menu item «Open extension» / «Erweiterung öffnen» (checked in both admin snippet files); the cabinet step `store.shopware.app_step_open` (ru/en/de), `docs/ops` and the Store texts said «Open app» / «App öffnen» — fixed, and the step now says the item is in the «…» menu of the app's row. The module's intro told the merchant to «choose «Shopware app»»; the cabinet option is «Additional checkout observation with Shopware App» with the button «Create connection code» — the intro (en/de) now names them. The module page is served by the backend, not part of the app archive, so the approved app fingerprint is unchanged.
+- Not a bug: right after the first sync the store page showed «waiting for first data» next to «orders received: 3» because the scheduler that runs `integrations:check-freshness` every minute was paused on the local stand.
+
+Verification: cabinet 210 tests (the Shopware error-code test had failed since Step 287 on two internal exception codes of `ShopwareStoreApp` — renamed to `store_app_*_missing`, they never reach the API), types and build; backend tests, Pint; screenshots checked by eye.
+

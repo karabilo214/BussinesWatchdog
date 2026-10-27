@@ -2,7 +2,7 @@
     $t = [
         'de' => [
             'title' => 'Business Watchdog verbinden',
-            'intro' => 'Öffnen Sie in Ihrem Business-Watchdog-Konto den Shop, wählen Sie „Shopware-App“ und erstellen Sie einen Verbindungscode. Fügen Sie ihn hier ein. Der Code gilt 15 Minuten; die Adresse dieses Shops muss mit der Shop-Adresse in Business Watchdog übereinstimmen.',
+            'intro' => 'Öffnen Sie in Ihrem Business-Watchdog-Konto den Shop, wählen Sie „Zusätzliche Checkout-Beobachtung mit Shopware App“ und klicken Sie auf „Verbindungscode erstellen“. Fügen Sie ihn hier ein. Der Code gilt 15 Minuten; die Adresse dieses Shops muss mit der Shop-Adresse in Business Watchdog übereinstimmen.',
             'code' => 'Verbindungscode',
             'submit' => 'Verbinden',
             'connected' => 'Verbunden mit dem Shop „:store“. Business Watchdog liest jetzt Bestellungen und Zahlungsstatus (nur lesend).',
@@ -25,7 +25,7 @@
         ],
         'en' => [
             'title' => 'Connect Business Watchdog',
-            'intro' => 'In your Business Watchdog account open the store, choose «Shopware app» and create a connection code. Paste it here. The code is valid for 15 minutes; the address of this shop must match the store address in Business Watchdog.',
+            'intro' => 'In your Business Watchdog account open the store, choose «Additional checkout observation with Shopware App» and click «Create connection code». Paste it here. The code is valid for 15 minutes; the address of this shop must match the store address in Business Watchdog.',
             'code' => 'Connection code',
             'submit' => 'Connect',
             'connected' => 'Connected to the store «:store». Business Watchdog now reads orders and payment states (read-only).',

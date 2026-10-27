@@ -555,7 +555,7 @@
       "app_step_install": "Find Business Watchdog in the extension list, click Install, then Activate and approve the permissions.",
       "app_permissions": "The app asks only to read orders, payments, currencies and payment methods. Nothing is read until you confirm the store with a code.",
       "app_download": "Download app",
-      "app_step_open": "In Shopware open Extensions → My extensions → Business Watchdog → «Open app».",
+      "app_step_open": "In Shopware open Extensions → My extensions, click «…» next to Business Watchdog and choose «Open extension».",
       "app_step_code": "Copy the code below, paste it on the app page and confirm. The shop address must match this store’s address in your account.",
       "app_create_code": "Create connection code",
       "app_code": "Connection code",
