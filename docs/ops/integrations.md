@@ -92,7 +92,7 @@ docker run --rm -it -v $W:/w -w /w alpine:3.20 sh -c '
   svn status && svn ci -m "Business Watchdog for WooCommerce X.Y.Z" --username karabin214 --no-auth-cache'
 ```
 
-`Stable tag` в `readme.txt` должен совпадать с новой версией. Картинки каталога (`assets/`, из `plugins/woocommerce-watchdog/.wordpress-org/`) меняются отдельным коммитом без новой версии; у PNG ставить `svn propset svn:mime-type image/png`. Страница обновляется за несколько минут, поиск и профиль — до 72 часов. Каждый выпуск проходит автоматическую проверку безопасности WordPress.org. Скриншот 3 переснят 2026-10-27 (r3768857) на локальном стенде: «Demo Store», подключённый плагином 0.4.0 со стенда wc9.
+`Stable tag` в `readme.txt` должен совпадать с новой версией. Картинки каталога (`assets/`, из `plugins/woocommerce-watchdog/.wordpress-org/`) меняются отдельным коммитом без новой версии; у PNG ставить `svn propset svn:mime-type image/png`. Страница обновляется за несколько минут, поиск и профиль — до 72 часов. Описание (`readme.txt`) без новой версии: тот же файл в `trunk/` и в `tags/<Stable tag>/` (каталог берёт описание из тега стабильной версии), один коммит; страница обновляется примерно за минуту. Каждый выпуск проходит автоматическую проверку безопасности WordPress.org. Скриншот 3 переснят 2026-10-27 (r3768857) на локальном стенде: «Demo Store», подключённый плагином 0.4.0 со стенда wc9.
 
 Для 0.4.0 (2026-10-26): интеграционные тесты floor и latest 59/59, `release-checks.sh latest` PASS (обновление с 0.3.4, перенос имён), PHP 7.4 lint ZIP, Plugin Check на ZIP — 0 ошибок (предупреждения о прямых запросах к своим таблицам, как и раньше). `release-checks.sh floor` не работает и до этого шага: `release-probe.php` использует `?->`, которого нет в PHP 7.4.
 

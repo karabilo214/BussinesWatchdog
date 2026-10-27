@@ -790,3 +790,12 @@ Status: complete; not deployed yet (header change)
 
 Verification: header measured at 1024 and 1280 px in de/ru/en on the local stand; cabinet 210 tests, types, build; backend tests; screenshots checked by eye.
 
+### Step 291: WordPress.org description rewritten around the merchant's problems (2026-10-27)
+
+Status: complete; published in the directory (SVN r3769100, `trunk/readme.txt` and `tags/0.4.0/readme.txt`; the plugin code and the approved ZIP are unchanged)
+
+- Owner's test readers: the description started with the mechanism (comparing orders with Stripe and PayPal) instead of the problems a merchant searches for, and installing a plugin + signing up for an unknown service is a high trust threshold.
+- `readme.txt`: short description (139 characters) and the first section now name the problems — paid but the order stayed unpaid, money without an order, different amounts, refunds on one side, failing payments; then «What Business Watchdog finds» (each item backed by an incident code: `MONEY_CAPTURE_NOT_RECORDED`, `MONEY_CAPTURE_MISSING`, `MONEY_PAYMENT_WITHOUT_ORDER`, `MONEY_CAPTURE_AMOUNT`/`MONEY_MULTIPLE_CAPTURES`/`MONEY_ORDER_CHANGED`, `MONEY_REFUND_MISSING`/`MONEY_REFUND_EXTRA`/`MONEY_CANCELLED_PAID`, `CHECKOUT_PAYMENTS_FAILING`), «Try it without risk» (the public storefront check without sign-up `/en/check-store`, 14 days free without a card as on the pricing page, read-only, emergency stop), then the existing technical sections. New FAQ: cost, without Stripe/PayPal, difference from the providers' own e-mails. Tags: `woocommerce, stripe, paypal, failed payments, checkout`.
+- Claims checked before publishing: PayPal cannot issue read-only access (the cabinet's `paypal.warning_body`), so the text says Business Watchdog calls only reading methods and blocks the rest instead of «keys cannot move money»; «tells you when they disagree», not «as soon as» (reconciliation has a grace period); trial «you can try 14 days free», not «every plan» (the pricing page says trial availability depends on the plan).
+- Not changed: the plugin name «Business Watchdog for WooCommerce» (it is in the plugin header; a more descriptive name needs a new release and a new look at the directory's naming rules).
+

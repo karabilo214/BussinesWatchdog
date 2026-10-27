@@ -1,6 +1,6 @@
 === Business Watchdog for WooCommerce ===
 Contributors: karabin214
-Tags: woocommerce, payments, monitoring, checkout, reconciliation
+Tags: woocommerce, stripe, paypal, failed payments, checkout
 Requires at least: 5.9
 Tested up to: 7.1
 Requires PHP: 7.4
@@ -8,15 +8,44 @@ Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Finds orders and payments that do not match and tells you when customers can no longer pay. Connects your store to Business Watchdog.
+Get alerted when a customer paid but the order stayed unpaid, when Stripe or PayPal disagree with WooCommerce, or when payments start failing.
 
 == Description ==
 
-Business Watchdog watches the money side of a WooCommerce store. It compares the orders of your store with what your payment providers (Stripe, PayPal) really received and refunded, and warns you when they disagree: an order marked as paid without a charge, a charge without a paid order, a refund missing on one side, payments that keep failing.
+**Does any of this sound familiar?**
 
-This plugin is the connector for the Business Watchdog service. **You need a Business Watchdog account** (a subscription with a free trial) at [business-watchdog.com](https://business-watchdog.com). The plugin does nothing until you connect it to your account with a one-time code.
+* A customer paid, but the order is still "pending payment" in WooCommerce — and nobody ships it.
+* Stripe or PayPal received the money, but there is no matching order in your store.
+* WooCommerce says one amount, Stripe or PayPal captured another.
+* A refund was made in PayPal, but WooCommerce still shows the order as fully paid — or the other way round.
+* Card payments started failing an hour ago, and you find out from an angry customer the next day.
 
-You can also connect a store **without installing anything**: Business Watchdog reads orders through the WooCommerce REST API with a read-only key, and WooCommerce's own webhooks make it instant. The plugin adds what a key cannot:
+These problems are silent. WooCommerce does not warn you, and the payment provider's dashboard does not know what your store expects. **Business Watchdog** watches both sides and tells you when they disagree — by e-mail or Telegram, with the order, the amounts and what to check.
+
+= What Business Watchdog finds =
+
+* **Paid, but the order stayed unpaid** — the provider captured the money, the store never marked the order as paid.
+* **Marked as paid, but no money** — the order is marked paid in the store, but the provider has no capture for it.
+* **Payments without an order** — money arrived at Stripe or PayPal that belongs to no order of your store.
+* **Wrong amounts** — partial or double captures, overpayments, orders changed after payment.
+* **Refund problems** — a refund recorded on one side only, or a cancelled order that was paid and never refunded.
+* **Failing payments** — one payment method suddenly fails again and again at checkout.
+
+An "all fine" is shown only when the data really says so: if a provider is not connected or data is outdated, Business Watchdog says "unknown" instead of hiding the gap.
+
+= Try it without risk =
+
+* **Free storefront check, no sign-up:** enter your store address at [business-watchdog.com/en/check-store](https://business-watchdog.com/en/check-store) and see whether your public checkout path works.
+* **14 days free, no card:** create an account, connect your store and Stripe or PayPal, and see the results on your real orders.
+* **It only reads:** the plugin never changes orders. Stripe is connected with a read-only key; for PayPal, which cannot issue read-only access, Business Watchdog calls only reading methods from a fixed list and blocks every other request.
+* **Nothing changes for your customers:** the plugin never takes part in payment or order creation, and your store keeps working if the service is unreachable.
+* **Easy to stop:** one click on "Stop monitoring" or deactivate the plugin.
+
+= How it works =
+
+This plugin is the connector for the Business Watchdog service. **You need a Business Watchdog account** at [business-watchdog.com](https://business-watchdog.com) — the trial is free. The plugin does nothing until you connect it to your account with a one-time code. Stripe and PayPal are connected in your Business Watchdog account, not in WordPress.
+
+**Prefer not to install a plugin?** You can also connect a store **without installing anything**: Business Watchdog reads orders through the WooCommerce REST API with a read-only key, and WooCommerce's own webhooks make it instant. The plugin adds what a key cannot:
 
 * Order and refund changes are sent the moment they happen, also on WooCommerce versions where the REST API notices refunds late.
 * Payment attempts at checkout are counted per payment method, so repeated failures of one method are noticed early.
@@ -55,6 +84,18 @@ The service processes this data on your behalf as a processor under a data proce
 3. In WordPress open WooCommerce → Business Watchdog, paste the code and click **Connect**.
 
 == Frequently Asked Questions ==
+
+= What does it cost? =
+
+You can try Business Watchdog for 14 days free, no card needed; a paid plan starts only when you buy it. Prices are on [business-watchdog.com/en/pricing](https://business-watchdog.com/en/pricing).
+
+= Does it work without Stripe or PayPal? =
+
+Yes. Without a payment provider Business Watchdog watches your orders, payment attempts and checkout. The comparison with the money stays "unknown" until you connect Stripe or PayPal.
+
+= Isn't this what Stripe and PayPal e-mails already tell me? =
+
+Stripe and PayPal only know their side. They cannot tell you that an order in your store is still unpaid although they captured the money, or that an order marked as paid has no capture. Business Watchdog compares both sides.
 
 = Do I need the plugin? =
 
