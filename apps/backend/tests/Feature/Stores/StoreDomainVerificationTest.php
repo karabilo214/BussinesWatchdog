@@ -116,6 +116,28 @@ class StoreDomainVerificationTest extends TestCase
         $this->assertNull($store->fresh()->verified_at);
     }
 
+    public function test_a_failed_challenge_fetch_names_the_concrete_reason(): void
+    {
+        [$user, $tenant, $store] = $this->context();
+        $started = $this->start($user, $tenant, $store, 'plugin_challenge');
+        $this->dns->ips['shop.example.test'] = ['93.184.216.34'];
+        Http::fake([$started->json('instructions.url') => Http::sequence()
+            ->push('', 404)
+            ->push('', 403)
+            ->push('', 503)
+            ->push('', 418)
+            ->push('<html>Wartungsarbeiten</html>', 503, ['Content-Type' => 'text/html'])
+            ->pushFailedConnection('cURL error 7: Failed to connect to shop.example.test port 443: Connection refused')
+            ->pushFailedConnection('cURL error 28: Operation timed out')]);
+
+        foreach (['http_not_found', 'http_forbidden', 'http_server_error', 'http_status_unexpected', 'maintenance', 'connection_refused', 'connection_timeout'] as $reason) {
+            $this->travel(2)->minutes();
+            $this->check($user, $tenant, $store)->assertOk()->assertJsonPath('reason_code', $reason);
+        }
+
+        $this->assertNull($store->fresh()->verified_at);
+    }
+
     public function test_changing_the_store_url_fails_the_pending_verification(): void
     {
         [$user, $tenant, $store] = $this->context();

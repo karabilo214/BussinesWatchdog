@@ -13,6 +13,8 @@ class SafeHttpFetcher
 
     public const ERROR_CONNECTION = 'connection_failed';
 
+    public const ERROR_REFUSED = 'connection_refused';
+
     public const ERROR_TIMEOUT = 'connection_timeout';
 
     public const ERROR_TLS = 'tls_failed';
@@ -20,6 +22,12 @@ class SafeHttpFetcher
     public const ERROR_REDIRECT = 'redirect_not_allowed';
 
     public const ERROR_HTTP_STATUS = 'http_status_unexpected';
+
+    public const ERROR_NOT_FOUND = 'http_not_found';
+
+    public const ERROR_FORBIDDEN = 'http_forbidden';
+
+    public const ERROR_SERVER = 'http_server_error';
 
     public const ERROR_BODY_TOO_LARGE = 'response_too_large';
 
@@ -71,6 +79,7 @@ class SafeHttpFetcher
             return SafeFetchResult::failed(match (true) {
                 str_contains($message, 'timed out'), str_contains($message, 'curl error 28') => self::ERROR_TIMEOUT,
                 str_contains($message, 'certificate'), str_contains($message, 'ssl'), str_contains($message, 'curl error 60') => self::ERROR_TLS,
+                str_contains($message, 'connection refused'), str_contains($message, 'curl error 7') => self::ERROR_REFUSED,
                 default => self::ERROR_CONNECTION,
             });
         }
@@ -84,7 +93,12 @@ class SafeHttpFetcher
                 return SafeFetchResult::failed($protection);
             }
 
-            return SafeFetchResult::failed(self::ERROR_HTTP_STATUS);
+            return SafeFetchResult::failed(match (true) {
+                $response->status() === 404 => self::ERROR_NOT_FOUND,
+                in_array($response->status(), [401, 403], true) => self::ERROR_FORBIDDEN,
+                $response->status() >= 500 => self::ERROR_SERVER,
+                default => self::ERROR_HTTP_STATUS,
+            });
         }
 
         $body = $response->body();

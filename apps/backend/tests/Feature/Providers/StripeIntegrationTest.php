@@ -101,9 +101,11 @@ class StripeIntegrationTest extends TestCase
     {
         $this->connect(['restricted_api_key' => 'sk_test_51Full0123456789abc'])->assertStatus(422)->assertJsonPath('code', 'stripe_secret_key_refused');
 
-        $this->failures['refunds'] = 403;
-        $this->connect()->assertStatus(422)->assertJsonPath('code', 'stripe_permission_missing');
-        unset($this->failures['refunds']);
+        foreach (['payment_intents', 'charges', 'refunds'] as $resource) {
+            $this->failures[$resource] = 403;
+            $this->connect()->assertStatus(422)->assertJsonPath('code', "stripe_{$resource}_read_missing");
+            unset($this->failures[$resource]);
+        }
 
         $this->connect(['expected_account_id' => 'acct_Other'])->assertStatus(422)->assertJsonPath('code', 'stripe_account_mismatch');
 

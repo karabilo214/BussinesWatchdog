@@ -1,0 +1,22 @@
+/** reason_code values the backend can report (StoreVerificationService, SafeHttpFetcher, StoreProtectionPage). */
+export const VERIFICATION_REASONS = [
+  'dns_record_missing',
+  'challenge_mismatch',
+  'store_url_changed',
+  'trial_store_already_used',
+  'connection_failed',
+  'connection_refused',
+  'connection_timeout',
+  'tls_failed',
+  'challenge',
+  'basic_auth',
+  'maintenance',
+  'dns_failure',
+  'http_not_found',
+  'http_forbidden',
+  'http_server_error',
+  'http_status_unexpected',
+  'redirect_not_allowed',
+  'response_too_large',
+  'unsafe_destination',
+];

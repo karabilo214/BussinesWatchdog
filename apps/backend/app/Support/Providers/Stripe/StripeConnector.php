@@ -53,7 +53,7 @@ class StripeConnector
                 $this->client->get($apiKey, $path, ['limit' => 1]);
                 $capabilities[$name] = 'read';
             } catch (StripeRequestFailed $failure) {
-                throw new AccountRejected($failure->reasonCode === 'stripe_permission_missing' ? 'stripe_permission_missing' : $failure->reasonCode);
+                throw new AccountRejected($failure->reasonCode === 'stripe_permission_missing' ? "stripe_{$name}_read_missing" : $failure->reasonCode);
             }
         }
 

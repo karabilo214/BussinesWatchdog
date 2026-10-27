@@ -411,3 +411,15 @@ Status: complete; not deployed yet
 - Known gap (not changed): a Shopware store connected by key has no path in the cabinet to add the App without disconnecting the key; its observation link leads to the order source block.
 
 Verification: `setupSteps.test.ts` (6), `WooCommerceCheckoutObservationTest` extended (newer REST API next to the plugin stays `observing`; fails without the fix). Customer panel typecheck, 202 tests, build; backend SQLite 814 passed + 4 skipped, Pint. Chromium (local backend + Vite, smoke data, 5 stores in different states): 42 links from the store page and the overview, each lands on its block 75 px from the top under the header; the plugin block opens, the Telegram form opens on its tab. The local dev database needed `migrate` (migrations of Steps 267–277 were missing).
+
+### Step 281: Key and domain errors say what is already established and the concrete reason (2026-10-27)
+
+Status: complete; not deployed yet
+
+- Backlog 11.D «Что уже установлено». WooCommerce and Shopware already showed the passed steps (`ConnectionProgress`); now Stripe and PayPal do too: format → provider responds → key accepted (→ read permissions for `stripe_account_mismatch`). `paypal_credentials_rejected` shows format and «PayPal responds».
+- Stripe connect names the missing permission: `stripe_payment_intents_read_missing`, `stripe_charges_read_missing`, `stripe_refunds_read_missing` instead of one `stripe_permission_missing` («У ключа нет права Refunds: Read…»). The sync-time `stripe_permission_missing` (health, disputes, fees) is unchanged.
+- Domain verification: `SafeHttpFetcher` splits the generic codes — `connection_refused` (cURL 7), `http_not_found` (404: plugin not active or not yet given the code), `http_forbidden` (401/403 without a Basic Auth header: site protection), `http_server_error` (5xx); other statuses stay `http_status_unexpected`, other connection failures `connection_failed`.
+- Bug fixed: the cabinet's list of known verification reasons lacked `connection_timeout`, `tls_failed`, `challenge`, `basic_auth`, `maintenance`, so the client saw «Проверка пока не прошла» although concrete texts existed. The list moved to `components/verificationReasons.ts`; a test requires a ru/en/de text for every reason.
+- No migration, no new routes; error codes are free strings in the contract.
+
+Verification: `StoreDomainVerificationTest` new case (404, 403, 503, 418, maintenance page, refused, timeout → their codes), `StripeIntegrationTest` (each missing read permission → its code). `connectionProgress.test.ts` (4). Backend SQLite 815 passed + 4 skipped, Pint; customer panel typecheck, 206 tests, build. Not checked against a real Stripe/PayPal account: JSON fakes only.

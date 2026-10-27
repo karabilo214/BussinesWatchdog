@@ -263,7 +263,7 @@
     }
   },
   "store": {
-    "connection_progress": {"title": "Was bereits feststeht", "site": "Die Website hat geantwortet", "api": "Die Shop-API wurde gefunden", "authorization": "Der Schlüssel wurde akzeptiert; das Leserecht für Bestellungen fehlt"},
+    "connection_progress": {"title": "Was bereits feststeht", "site": "Die Website hat geantwortet", "api": "Die Shop-API wurde gefunden", "authorization": "Der Schlüssel wurde akzeptiert; das Leserecht für Bestellungen fehlt", "format": "Die Angaben haben das richtige Format", "reached": "{provider} antwortet", "accepted": "{provider} hat den Schlüssel angenommen", "read": "Leserechte sind vorhanden"},
     "onboarding": {
       "title": "Shop-Verbindung",
       "subtitle": "Hier stehen nur bestätigte Schritte. Noch keine Bestellungen bedeutet nicht, dass alles funktioniert.",
@@ -397,6 +397,10 @@
         "store_url_changed": "Die Shop-Adresse hat sich während der Prüfung geändert. Bitte die Bestätigung neu starten.",
         "trial_store_already_used": "Dieser Shop hatte bereits einen Testzeitraum in einer anderen Organisation. Schließen Sie ein Abo ab und bestätigen Sie den Shop erneut.",
         "connection_failed": "Keine Verbindung zur Website möglich.",
+        "connection_refused": "Die Website nimmt keine HTTPS-Verbindungen an (Port 443 geschlossen oder Server aus). Prüfen Sie, ob der Shop per https erreichbar ist.",
+        "http_not_found": "Die Bestätigungsadresse wurde nicht gefunden (404). Prüfen Sie, ob das Plugin installiert und aktiv ist; nach dem Verbinden kann es bis zu 5 Minuten dauern.",
+        "http_forbidden": "Der Server des Shops verweigert den Zugriff auf die Bestätigungsadresse (401/403). Geben Sie diesen Pfad im Seitenschutz frei oder bestätigen Sie die Domain per DNS.",
+        "http_server_error": "Die Website hat einen internen Fehler gemeldet (5xx). Prüfen Sie das Fehlerprotokoll des Shops und versuchen Sie es erneut.",
         "connection_timeout": "Die Website hat nicht rechtzeitig geantwortet. Prüfen Sie die Adresse und versuchen Sie es erneut.",
         "tls_failed": "Das HTTPS-Zertifikat der Website konnte nicht geprüft werden. Korrigieren Sie es und versuchen Sie es erneut.",
         "challenge": "Die Bestätigungsadresse zeigt eine Schutzseite. Erlauben Sie den Zugriff ohne CAPTCHA.",
@@ -643,6 +647,9 @@
     "stripe_key_invalid": "Das sieht nicht nach einem eingeschränkten Stripe-Schlüssel aus (rk_test_… oder rk_live_…).",
     "stripe_webhook_secret_invalid": "Das Webhook-Geheimnis muss mit whsec_ beginnen.",
     "stripe_permission_missing": "Der Schlüssel darf Payment Intents, Charges oder Refunds nicht lesen. Ergänzen Sie die Rechte und versuchen Sie es erneut.",
+    "stripe_payment_intents_read_missing": "Dem Schlüssel fehlt die Berechtigung Payment Intents: Read. Ergänzen Sie sie in den Einstellungen des eingeschränkten Schlüssels in Stripe und versuchen Sie es erneut.",
+    "stripe_charges_read_missing": "Dem Schlüssel fehlt die Berechtigung Charges: Read. Ergänzen Sie sie in den Einstellungen des eingeschränkten Schlüssels in Stripe und versuchen Sie es erneut.",
+    "stripe_refunds_read_missing": "Dem Schlüssel fehlt die Berechtigung Refunds: Read. Ergänzen Sie sie in den Einstellungen des eingeschränkten Schlüssels in Stripe und versuchen Sie es erneut.",
     "stripe_key_rejected": "Stripe hat den Schlüssel abgelehnt: gelöscht, widerrufen oder falsch eingegeben.",
     "stripe_account_mismatch": "Der Schlüssel gehört zu einem anderen Stripe-Konto als angegeben.",
     "provider_already_connected": "Dieser Zahlungsanbieter ist mit dem Shop bereits verbunden.",

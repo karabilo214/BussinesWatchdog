@@ -6,22 +6,9 @@ import { useFormat } from '@/composables/useFormat';
 import { StatusBadge, type Tone } from '@bw/ui';
 import CopyField from './CopyField.vue';
 import ErrorNotice from './ErrorNotice.vue';
+import { VERIFICATION_REASONS } from './verificationReasons';
 
 const POLL_MS = 15_000;
-
-/** reason_code values the backend can report (StoreVerificationService, SafeHttpFetcher). */
-const KNOWN_REASONS = [
-  'dns_record_missing',
-  'challenge_mismatch',
-  'store_url_changed',
-  'trial_store_already_used',
-  'connection_failed',
-  'dns_failure',
-  'http_status_unexpected',
-  'redirect_not_allowed',
-  'response_too_large',
-  'unsafe_destination',
-];
 
 const STATE_TONES: Record<StoreVerification['state'], Tone> = { verified: 'ok', pending: 'unknown', failed: 'crit', expired: 'unknown' };
 
@@ -47,7 +34,7 @@ const reasonKey = computed(() => {
     return null;
   }
 
-  return `store.verification.reason.${KNOWN_REASONS.includes(code) ? code : 'other'}`;
+  return `store.verification.reason.${VERIFICATION_REASONS.includes(code) ? code : 'other'}`;
 });
 
 function settle(next: StoreVerification | null): void {

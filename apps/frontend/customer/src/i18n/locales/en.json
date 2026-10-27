@@ -263,7 +263,7 @@
     }
   },
   "store": {
-    "connection_progress": {"title": "What we have established", "site": "The site responded", "api": "The store API was found", "authorization": "The key was accepted; order-read permission is missing"},
+    "connection_progress": {"title": "What we have established", "site": "The site responded", "api": "The store API was found", "authorization": "The key was accepted; order-read permission is missing", "format": "The details have the right format", "reached": "{provider} responds", "accepted": "{provider} accepted the key", "read": "Read permissions are in place"},
     "onboarding": {
       "title": "Store connection",
       "subtitle": "Only confirmed steps appear here. No orders received yet does not mean everything works.",
@@ -397,6 +397,10 @@
         "store_url_changed": "The store address changed during the check. Start the confirmation again.",
         "trial_store_already_used": "This store already had a trial in another organisation. Subscribe, then confirm the store again.",
         "connection_failed": "Could not connect to the site.",
+        "connection_refused": "The site does not accept HTTPS connections (port 443 closed or the server is down). Check that the store opens over https.",
+        "http_not_found": "The verification URL was not found (404). Check that the plugin is installed and active; if you just connected it, wait up to 5 minutes.",
+        "http_forbidden": "The store's server denies access to the verification URL (401/403). Allow this path in the site protection or confirm the domain via DNS.",
+        "http_server_error": "The site returned an internal error (5xx). Check the store's error log and try again.",
         "connection_timeout": "The site did not respond in time. Check the address and try again.",
         "tls_failed": "The site's HTTPS certificate could not be verified. Fix the certificate and try again.",
         "challenge": "The verification URL returned a protection page. Allow this service through without CAPTCHA.",
@@ -643,6 +647,9 @@
     "stripe_key_invalid": "This does not look like a Stripe restricted key (rk_test_… or rk_live_…).",
     "stripe_webhook_secret_invalid": "The webhook secret must start with whsec_.",
     "stripe_permission_missing": "The key cannot read Payment Intents, Charges or Refunds. Add the permissions and try again.",
+    "stripe_payment_intents_read_missing": "The key lacks the Payment Intents: Read permission. Add it in the restricted key settings in Stripe and try again.",
+    "stripe_charges_read_missing": "The key lacks the Charges: Read permission. Add it in the restricted key settings in Stripe and try again.",
+    "stripe_refunds_read_missing": "The key lacks the Refunds: Read permission. Add it in the restricted key settings in Stripe and try again.",
     "stripe_key_rejected": "Stripe rejected the key: it was deleted, revoked or mistyped.",
     "stripe_account_mismatch": "The key belongs to a different Stripe account than the one given.",
     "provider_already_connected": "This payment provider is already connected to the store.",

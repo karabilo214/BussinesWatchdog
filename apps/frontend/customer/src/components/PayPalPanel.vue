@@ -6,6 +6,7 @@ import type { Integration } from '@/api/types';
 import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
 import CopyField from './CopyField.vue';
+import ConnectionProgress from './ConnectionProgress.vue';
 import ErrorNotice from './ErrorNotice.vue';
 
 const props = defineProps<{ storeId: string; canManage: boolean }>();
@@ -223,6 +224,6 @@ void load();
     </template>
 
     <p v-if="notice" class="text-sm text-ok" role="status">{{ $t(notice) }}</p>
-    <ErrorNotice v-if="error" :error="error" />
+    <ErrorNotice v-if="error" :error="error"><ConnectionProgress :error="error" platform="paypal" /></ErrorNotice>
   </div>
 </template>
