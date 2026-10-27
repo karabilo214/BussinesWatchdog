@@ -27,11 +27,53 @@
 
 **1. Решить вариант A/B/C выше.** Для A — запросить у Shopware условия и цену STP (письмо ниже нужно переписать в запрос цены: договор уже отвечает, что STP нужен). Шаги 2–7 — для варианта A; при B сначала разработка.
 
-Прежний вопрос для Shopware (до чтения договора): В аккаунте — поддержка, или письмом на qa@shopware.com:
+Запрос условий STP — через форму на странице https://www.shopware.com/en/partner/become-partner/technology-partner/ или поддержку в аккаунте Shopware. Адрес qa@shopware.com — отдел проверки расширений, условия партнёрства он не даёт. Можно отправить на немецком (вариант ниже), Shopware — немецкая компания.
 
-> Hello, we would like to publish a free app in the Shopware Store. The app connects the shop read-only to our own SaaS service (business-watchdog.com), which the merchant pays directly as a monthly subscription; we take no commission on the shop's sales and nothing is billed through Shopware. Do we need the Shopware Technology Partner agreement for this, or is the Extension Partner agreement enough?
+> Subject: Technology Partner agreement — terms and pricing for a free SaaS app
+>
+> Hello,
+>
+> we are preparing to publish a free app in the Shopware Store and, according to section 1.4.1 of the Extension Partner agreement (version 5.6), we need a Shopware Technology Partner agreement first. Before we decide, could you please send us the terms and the pricing?
+>
+> About the app: Business Watchdog (business-watchdog.com) is a SaaS service for online shops in the DACH region. It compares the orders of a shop with what the payment providers (Stripe, PayPal) really captured and refunded, and reports discrepancies and checkout problems. The Shopware app (6.6 and 6.7) is free and read-only: it connects the shop to the service, sends order webhooks and observes the checkout pages. The merchant pays us directly for the service as a monthly subscription; we take no commission on the shop's sales and charge no transaction fees.
+>
+> Our questions:
+> 1. What is the annual fee of the Technology Partner agreement, and is there a one-time onboarding fee?
+> 2. How is the revenue share calculated in our case — on which revenue (only subscriptions of merchants who installed the app from the Store, or all Shopware merchants), at what rate, and how is it reported and paid?
+> 3. What is the minimum term and the notice period?
+> 4. Do you require a registered company, or can a sole proprietor become a Technology Partner? Are there further requirements (certification, insurance, minimum number of customers)?
+> 5. How long does the onboarding take until the app can be submitted?
+>
+> Could you also send us the current Technology Partner agreement so we can review it?
+>
+> Thank you and best regards,
+> <имя>
+> Business Watchdog
 
-Если ответ «нужен Technology Partner» — решить, стоит ли он своих денег (годовой взнос и доля выручки), до продолжения.
+Deutsch:
+
+> Betreff: Technologiepartner-Vertrag — Konditionen und Preise für eine kostenlose SaaS-App
+>
+> Guten Tag,
+>
+> wir bereiten die Veröffentlichung einer kostenlosen App im Shopware Store vor. Nach Ziffer 1.4.1 der Extension-Partner-Vereinbarung (Version 5.6) benötigen wir dafür zuvor einen shopware Technologiepartner-Vertrag. Bevor wir entscheiden, schicken Sie uns bitte die Konditionen und Preise.
+>
+> Zur App: Business Watchdog (business-watchdog.com) ist ein SaaS-Dienst für Onlineshops in der DACH-Region. Er vergleicht die Bestellungen eines Shops mit dem, was die Zahlungsanbieter (Stripe, PayPal) tatsächlich eingezogen und erstattet haben, und meldet Abweichungen und Checkout-Probleme. Die Shopware-App (6.6 und 6.7) ist kostenlos und nur lesend: Sie verbindet den Shop mit dem Dienst, sendet Bestell-Webhooks und beobachtet die Checkout-Seiten. Der Händler bezahlt den Dienst direkt bei uns als monatliches Abonnement; wir erhalten keine Provision auf die Umsätze des Shops und erheben keine Transaktionsgebühren.
+>
+> Unsere Fragen:
+> 1. Wie hoch ist die Jahresgebühr des Technologiepartner-Vertrags, und gibt es eine einmalige Einrichtungsgebühr?
+> 2. Wie wird die Umsatzbeteiligung in unserem Fall berechnet — auf welche Umsätze (nur Abonnements von Händlern, die die App aus dem Store installiert haben, oder alle Shopware-Händler), mit welchem Satz, und wie wird sie gemeldet und abgerechnet?
+> 3. Welche Mindestlaufzeit und Kündigungsfrist gelten?
+> 4. Ist eine eingetragene Firma erforderlich, oder kann auch ein Einzelunternehmer Technologiepartner werden? Gibt es weitere Voraussetzungen (Zertifizierung, Versicherung, Mindestanzahl an Kunden)?
+> 5. Wie lange dauert das Onboarding, bis die App eingereicht werden kann?
+>
+> Bitte senden Sie uns auch den aktuellen Technologiepartner-Vertrag zur Prüfung.
+>
+> Vielen Dank und freundliche Grüße
+> <имя>
+> Business Watchdog
+
+По ответу: если цена приемлема — STP, затем шаги 2–7; если нет — вариант C (App из кабинета) или B.
 
 **2. Аккаунт и профиль производителя** — https://account.shopware.com:
 - зарегистрироваться (или войти), раздел **Extension Partner** → принять договор Extension Partner и дождаться, что Shopware его подтвердит. Если форма требует компанию или VAT ID — остановиться: публикация ждёт регистрации компании;
