@@ -22,6 +22,16 @@
 		file_server
 	}
 
+	handle /site/assets/* {
+		root * /srv/web/current/public
+
+		header Cache-Control "public, max-age=31536000, immutable" {
+			match status 200 206
+		}
+
+		file_server
+	}
+
 	handle {
 		root * /srv/web/current/public
 		php_fastcgi app:9000 app-b:9000 {

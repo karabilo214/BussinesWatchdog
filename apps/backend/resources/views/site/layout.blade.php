@@ -21,13 +21,9 @@
     @foreach ($alternates as $alternate)
         <link rel="alternate" hreflang="{{ $alternate['locale'] }}" href="{{ $alternate['href'] }}">
     @endforeach
-    @if ($preview)
-        <style>{!! \App\Support\Site\SiteAssets::inline() !!}</style>
-    @else
-        @foreach (\App\Support\Site\SiteAssets::stylesheets() as $stylesheet)
-            <link rel="stylesheet" href="{{ $stylesheet }}">
-        @endforeach
-    @endif
+
+    <style>{!! \App\Support\Site\SiteAssets::inline() !!}</style>
+
 </head>
 <body class="site">
 <a class="site-skip" href="#content">{{ __('site.nav.skip') }}</a>
@@ -41,7 +37,7 @@
 <header class="site-header">
     <div class="site-wrap site-header-row">
         <a class="site-brand" href="{{ \App\Support\Site\SiteContent::url($locale) }}">
-            <img class="site-brand-mark" src="{{ config('watchdog.site.brand_media_url') ?: '/brand-mark.png' }}" alt="" width="36" height="36" decoding="async">
+            <img class="site-brand-mark" src="/images/brand-mark-64.webp" srcset="/images/brand-mark-128.webp 2x" alt="" width="36" height="36" decoding="async">
             <span>{{ __('site.brand') }}</span>
         </a>
         <nav aria-label="{{ __('site.nav.main') }}" class="site-nav site-nav-wide">
