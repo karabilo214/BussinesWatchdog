@@ -743,5 +743,16 @@ Status: complete; no code change
 - Public page https://wordpress.org/plugins/business-watchdog/ answers 200 with version 0.4.0.
 - `docs/ops/integrations.md`: directory details and the release procedure for new versions.
 
-Open: screenshot 3 shows the order-source screen from before Step 237 (two equal tabs, plugin 0.3.2) — retake it; assets can be replaced without a new plugin version. Approval for cabinet download (`WATCHDOG_WOO_APPROVED_SHA256`) remains a separate decision.
+Screenshot 3 retaken and cabinet download approved — Step 285.
+
+### Step 285: The cabinet hands out plugin 0.4.0 and points to the WordPress.org directory (2026-10-27)
+
+Status: code complete; production ZIP and `WATCHDOG_WOO_APPROVED_SHA256` pending (see below)
+
+- Owner approved the ZIP 0.4.0 for cabinet download — the same file that is in the WordPress.org directory (SHA-256 `f05829f91d0ab9d8d3262a8f0510e510664a014fada624cef4b44f9f04c70c1a`). On the server: copy the file into `storage/app/plugins`, set the hash in `.env`, deploy (`docs/ops/integrations.md`). Archives with another hash (0.3.2) are no longer served.
+- `PluginDownload`: under the download button «You can download the plugin here or install it from the WordPress.org directory…» with a link to https://wordpress.org/plugins/business-watchdog/ (new tab); the link opens the connection guide with the code like the download does. Shown also when no ZIP is available. Guide step «upload» names both ways. Texts ru/en/de.
+- Directory screenshot 3 retaken (SVN r3768857): local stand, «Demo Store» paired with plugin 0.4.0 from the matrix wc9 WordPress through a connection code; the plugin challenge was served by the plugin and handed to the verification check by hand because the local backend cannot resolve `shop-wc9.example.test`. Demo data only.
+- CI «Backend (PostgreSQL 18)» had failed since Step 282: four test assertions compared `health` arrays from `jsonb` with `assertSame`, which depends on key order. Now `assertEquals`; the cabinet already lists webhook topics in its own fixed order.
+
+Verification: backend SQLite 820 + 4 skipped, PostgreSQL 18 824/824, Pint; cabinet types, 211 tests, build; the download block checked on the local stand in ru and en.
 

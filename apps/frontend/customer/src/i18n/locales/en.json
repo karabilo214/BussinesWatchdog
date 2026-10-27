@@ -354,13 +354,15 @@
         "install": "After download, a guide with the service URL and connection code opens.",
         "missing": "The plugin is not available for installation yet. The download will appear here after the release is tested and published.",
         "checksum": "File checksum SHA-256:",
-        "checksum_hint": "Use this only to verify the ZIP file integrity. This is not the connection code."
+        "checksum_hint": "Use this only to verify the ZIP file integrity. This is not the connection code.",
+        "directory": "You can download the plugin here or install it from the WordPress.org directory: in WordPress open Plugins → Add New Plugin and search for “Business Watchdog”.",
+        "directory_link": "Plugin page on WordPress.org"
       },
       "install_title": "Install and connect WooCommerce",
       "close_guide": "Close",
       "creating_code": "Creating a connection code…",
       "step_download": "Save the downloaded plugin ZIP. Do not unpack it.",
-      "step_upload": "In WordPress, open Plugins → Add New → Upload Plugin, select the ZIP and click Install Now."
+      "step_upload": "In WordPress, open Plugins → Add New Plugin. Either click Upload Plugin, select the downloaded ZIP and click Install Now, or search for “Business Watchdog” and click Install Now."
     },
     "verification": {
       "title": "Domain confirmation",

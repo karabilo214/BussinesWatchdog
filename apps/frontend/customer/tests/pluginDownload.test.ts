@@ -20,6 +20,20 @@ describe('plugin download', () => {
     expect(wrapper.text()).toContain('abc123');
   });
 
+  it('points to the WordPress.org directory and opens the connection guide from there too', async () => {
+    setLocale('ru');
+    for (const pack of [{ available: true, version: '0.4.0', file: 'business-watchdog-0.4.0.zip', size_bytes: 62_000, sha256: 'abc' }, { available: false }]) {
+      vi.mocked(pluginApi.getPluginPackage).mockResolvedValue(pack);
+      const wrapper = await mountAndWait();
+      const link = wrapper.get('[data-action="plugin-directory"]');
+      expect(link.attributes('href')).toBe('https://wordpress.org/plugins/business-watchdog/');
+      expect(link.attributes('target')).toBe('_blank');
+      expect(wrapper.get('[data-plugin-directory]').text()).toContain('найдите «Business Watchdog»');
+      await link.trigger('click');
+      expect(wrapper.emitted('downloaded')).toHaveLength(1);
+    }
+  });
+
   it('explains when no package is published or the request fails', async () => {
     vi.mocked(pluginApi.getPluginPackage).mockResolvedValue({ available: false });
     expect((await mountAndWait()).find('[data-plugin-missing]').exists()).toBe(true);
