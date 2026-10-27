@@ -780,3 +780,13 @@ Status: complete; deployed 2026-10-27 (`2a36cf7`, no migration)
 
 Verification: cabinet 210 tests (the Shopware error-code test had failed since Step 287 on two internal exception codes of `ShopwareStoreApp` — renamed to `store_app_*_missing`, they never reach the API), types and build; backend tests, Pint; screenshots checked by eye.
 
+### Step 290: German Shopware Store screenshots, the owner's step-by-step guide and a one-line German header (2026-10-27)
+
+Status: complete; not deployed yet (header change)
+
+- German screenshot set in `plugins/shopware-app/store-assets/de/` (admin module before/after the code, storefront confirm page under `/de`, dashboard store page, incident), captions in `docs/ops/shopware-store.md`. Taken the same way as Step 289 on a local Shopware 6.7.15.1: admin user switched to de-DE (the app module follows `sw-user-language`), a German sales channel domain `http://kaffee-demo.example.test/de` added, the app installed, opened through «…» → «Erweiterung öffnen» and bound with a pairing code typed into the module. The incident list is left out of the German set: on the local stand it shows WooCommerce plugin incidents that would confuse a Shopware listing.
+- `docs/ops/shopware-store.md`: the owner's steps rewritten one by one — the Technology Partner question to Shopware first (ready English text), account and manufacturer profile, technical name and package on the server, extension master data, description and images per language, the app secret right after the upload, reviewer notes (ready English text), submission and publishing. Account section names come from Shopware's documentation, not from a live account — marked as such.
+- Cabinet header (`AppLayout`): in German the menu wrapped to a second line even at 1440 px (the header is `max-w-6xl`). `gap-x-8` → `gap-x-6` between logo, menu and account block, menu items `px-3` → `px-2.5`: one line at 1280 px in de/ru/en (header 59 px; at 1024 px it still wraps, as before).
+
+Verification: header measured at 1024 and 1280 px in de/ru/en on the local stand; cabinet 210 tests, types, build; backend tests; screenshots checked by eye.
+

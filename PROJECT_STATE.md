@@ -4,16 +4,16 @@
 
 ## Обновлено
 
-2026-10-27. Последний шаг — **289** (`progress/connectors.md`). Всё до Step 289 выложено на сервер (`2a36cf7`), CI зелёный. Миграции применены.
+2026-10-27. Последний шаг — **290** (`progress/connectors.md`). Всё до Step 289 выложено на сервер (`2a36cf7`), CI зелёный; Step 290 в git, не выложен. Миграции применены.
 
 Последние шаги (подробности — в файлах `docs/progress/`):
 
+- **290** (`connectors`): немецкие скриншоты для Shopware Store (`store-assets/de/`), пошаговая инструкция владельцу в `docs/ops/shopware-store.md`; шапка кабинета на немецком в одну строку. Без миграции.
 - **289** (`connectors`): английские скриншоты для Shopware Store (`plugins/shopware-app/store-assets/en/`, снято на локальном Shopware 6.7.15.1 с App 1.5.0); исправлено название пункта «Open extension» в кабинете и подсказка модуля App. Без миграции.
 - **288** (`public-site`): логотип шапки — прозрачные WebP 64/128 px (1,9/4,0 КиБ) с `srcset` вместо PNG 512 px (235 КиБ); размер в макете 36×36 сохранён. `PublicSiteTest` 15/15. Без миграции; выложено (`15fd387`).
 - **287** (`connectors`): пакет Shopware App для Shopware Store (`shopware:app-store-package`, без секрета, с иконкой; проходит `shopware-cli extension validate`), регистрация по секрету Store, инструкция владельцу `docs/ops/shopware-store.md`. Без миграции.
 - **286** (`dashboard`): подсказка о смене источника заказов называет настоящий блок вместо несуществующей вкладки «Плагин» / «Ключ REST API». Без миграции.
 - **285** (`connectors`): кабинет выдаёт плагин 0.4.0 (одобрен владельцем) и ссылается на каталог WordPress.org; скриншот 3 каталога переснят; тесты вебхуков сравнивают `jsonb` без учёта порядка ключей (CI на PostgreSQL падал с Step 282). Без миграции.
-- **284** (`connectors`): WooCommerce-плагин 0.4.0 одобрен WordPress.org и опубликован в каталоге — https://wordpress.org/plugins/business-watchdog/ (SVN r3768832, точный одобренный ZIP). Без кода.
 
 Последний полный прогон (Step 283): backend SQLite 820 + 4 пропуска, Pint; кабинет — типы, 209 тестов, сборка. Живые доставки вебхуков WooCommerce, PayPal sandbox, Stripe test. PostgreSQL 18 818/818 — на Step 279.
 

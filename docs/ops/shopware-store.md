@@ -12,35 +12,52 @@
 
 ## Шаги владельца
 
-1. Аккаунт на https://account.shopware.com → Extension Partner: принять договор, заполнить профиль производителя (логотип — можно `apps/backend/resources/shopware-store/plugin.png` или брендовый знак; описание на английском и немецком, без iframe, скриптов и трекинга), получить префикс разработчика.
-2. Extensions → Create new extension:
-   - техническое имя: `<Префикс>BusinessWatchdog` (после публикации не меняется);
-   - лицензия: **proprietary** (как в манифесте; позже не меняется — только новым расширением);
-   - магазины: международный (обязательно) и немецкий;
-   - цена: бесплатно; категория — одна.
-3. Записать техническое имя на сервере и собрать пакет:
+Серверные шаги (3, 5) может выполнить Claude по просьбе владельца — нужны только техническое имя и секрет из аккаунта. Названия разделов аккаунта Shopware взяты из документации Shopware, не из живого аккаунта: если в аккаунте раздел называется иначе — искать по смыслу.
 
-   ```sh
-   ssh bw-prod "echo 'WATCHDOG_SHOPWARE_STORE_APP_NAME=<Префикс>BusinessWatchdog' >> /opt/business-watchdog/.env"
-   infra/production/deploy.sh
-   ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose exec -T -u www-data app php artisan shopware:app-store-package /tmp && docker compose cp app:/tmp/<Префикс>BusinessWatchdog-1.5.0.zip /tmp/'
-   scp bw-prod:/tmp/<Префикс>BusinessWatchdog-1.5.0.zip .
-   ```
+**1. Спросить Shopware про договор Technology Partner** (до подачи, чтобы не делать работу зря). В аккаунте — поддержка, или письмом на qa@shopware.com:
 
-   Собирать на сервере: адреса в манифесте берутся из `APP_URL`. Локально — только с `APP_URL=https://business-watchdog.com`.
-4. Versions → загрузить ZIP. После загрузки аккаунт показывает секрет App — **сразу** записать его и выложить, иначе установки проверяющих не зарегистрируются (`shopware_app_signature_invalid`):
+> Hello, we would like to publish a free app in the Shopware Store. The app connects the shop read-only to our own SaaS service (business-watchdog.com), which the merchant pays directly as a monthly subscription; we take no commission on the shop's sales and nothing is billed through Shopware. Do we need the Shopware Technology Partner agreement for this, or is the Extension Partner agreement enough?
 
-   ```sh
-   ssh bw-prod "echo 'WATCHDOG_SHOPWARE_STORE_APP_SECRET=<секрет из аккаунта>' >> /opt/business-watchdog/.env"
-   infra/production/deploy.sh
-   ```
+Если ответ «нужен Technology Partner» — решить, стоит ли он своих денег (годовой взнос и доля выручки), до продолжения.
 
-5. «Description & images» — тексты ниже, картинки (до 1 МБ, английские для английской страницы), иконка. Highlights, features, keywords — ниже.
-6. Указать субподрядчиков (п. 3 выше).
-7. Инструкция для проверяющих (поле для тестировщиков): тестовая организация в Business Watchdog с магазином на их домене не создаётся заранее — домен тестового Shopware неизвестен. Предложить: «Create a free trial at https://business-watchdog.com/en/signup, add a Shopware store with your test shop's URL, open the app in Shopware (Extensions → My extensions → «…» next to Business Watchdog → Open extension) and paste the connection code from the store page.» Пробный период привязан к домену магазина — если проверяющим нужен доступ без регистрации, завести организацию вручную и дать им e-mail и пароль.
-8. Отправить на проверку. Статусы: Code review → Pending approval → Approved/Rejected → In store; после одобрения включить «Publish extensions».
+**2. Аккаунт и профиль производителя** — https://account.shopware.com:
+- зарегистрироваться (или войти), раздел **Extension Partner** → принять договор Extension Partner и дождаться, что Shopware его подтвердит. Если форма требует компанию или VAT ID — остановиться: публикация ждёт регистрации компании;
+- **Extension Partner → Profile**: название «Business Watchdog», логотип (`plugins/woocommerce-watchdog/.wordpress-org/icon-256x256.png`), описание на английском и немецком (можно первый абзац описания ниже), сайт `https://business-watchdog.com`. Без iframe, скриптов, трекинга;
+- там же виден **префикс разработчика** (несколько латинских букв) — записать.
 
-Новые версии: поднять `ShopwareApp::APP_VERSION`, пройти обычные проверки App, собрать пакет той же командой и загрузить в Versions. Версию можно отозвать в течение трёх дней после загрузки.
+**3. Техническое имя на сервер** (`<Префикс>BusinessWatchdog`, например `AbcdBusinessWatchdog`) и сборка пакета:
+
+```sh
+ssh bw-prod "echo 'WATCHDOG_SHOPWARE_STORE_APP_NAME=<Префикс>BusinessWatchdog' >> /opt/business-watchdog/.env"
+infra/production/deploy.sh
+ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose exec -T -u www-data app php artisan shopware:app-store-package /tmp && docker compose cp app:/tmp/<Префикс>BusinessWatchdog-1.5.0.zip /tmp/'
+scp bw-prod:/tmp/<Префикс>BusinessWatchdog-1.5.0.zip .
+```
+
+Собирать на сервере: адреса в манифесте берутся из `APP_URL`. Локально — только с `APP_URL=https://business-watchdog.com`.
+
+**4. Расширение в аккаунте** — Extension Partner → **Extensions → Create new extension**:
+- **Master data**: техническое имя — ровно то, что в п. 3 (после публикации не меняется); лицензия — **proprietary** (как в манифесте; позже не меняется); магазины — международный (обязательно) и немецкий; цена — бесплатно; одна категория из списка аккаунта — ближайшая по смыслу (мониторинг, аналитика или администрирование);
+- **Description & images**: языки English и Deutsch; для каждого — краткое описание, описание (HTML), highlights и keywords из раздела «Тексты страницы»; картинки из `plugins/shopware-app/store-assets/en/` для английской страницы и `…/de/` для немецкой, с подписями из раздела «Картинки»; иконка — `apps/backend/resources/shopware-store/plugin.png`;
+- **субподрядчики** (Art. 28 DSGVO) — список от юриста;
+- **Versions → upload**: ZIP из п. 3, совместимость — Shopware 6.6 и 6.7.
+
+**5. Секрет App на сервер — сразу после загрузки ZIP.** Аккаунт покажет секрет App (App secret) у расширения. Без него установки проверяющих не зарегистрируются (`shopware_app_signature_invalid`):
+
+```sh
+ssh bw-prod "echo 'WATCHDOG_SHOPWARE_STORE_APP_SECRET=<секрет из аккаунта>' >> /opt/business-watchdog/.env"
+infra/production/deploy.sh
+```
+
+**6. Инструкция для проверяющих** (поле для тестировщиков / notes for the reviewer):
+
+> The app needs a Business Watchdog account. Create a free trial at https://business-watchdog.com/en/signup (confirm the e-mail), add a Shopware store with the address of your test shop and open the store page. Install and activate the app in your test shop, open it (Extensions → My extensions → «…» next to Business Watchdog → Open extension). In Business Watchdog choose «Additional checkout observation with Shopware App», click «Create connection code» and paste the code into the app. The app connects only when your test shop runs at the address you entered. After that orders of the test shop appear in Business Watchdog within minutes.
+
+Пробный период привязан к домену магазина. Если проверяющие попросят готовый доступ — завести организацию вручную и отдать им e-mail и пароль (не боевые данные клиентов).
+
+**7. Отправить на проверку.** Статусы: Code review → Pending approval → Approved / Rejected → In store. Замечания приходят письмом и видны у версии; исправленную версию загружают туда же (в течение трёх дней версию можно отозвать). После «Approved» — в Master data включить **Publish extensions**.
+
+Новые версии: поднять `ShopwareApp::APP_VERSION`, пройти обычные проверки App, собрать пакет той же командой и загрузить в Versions.
 
 ## Требования Store, которые уже выполнены
 
@@ -144,6 +161,18 @@ Keywords: `Zahlungsüberwachung`, `Zahlungsabgleich`, `Stripe`, `PayPal`, `Check
 | `5-dashboard-incident.png` | Кабинет: инцидент «оплачен без списания» | An order marked as paid without a capture at the provider, with the amounts and what to check. |
 | `6-dashboard-incidents.png` | Кабинет: список инцидентов | Open incidents across your shops. |
 
-5 и 6 — те же, что в каталоге WordPress.org: на них нет ничего от платформы, только название магазина. Немецкий набор для немецкой страницы — по желанию: кабинет и модуль App переключаются на немецкий, Shopware — языком пользователя администрирования.
+5 и 6 — те же, что в каталоге WordPress.org: на них нет ничего от платформы, только название магазина.
+
+Немецкий набор — `plugins/shopware-app/store-assets/de/` (снят тем же путём: администрирование Shopware на немецком, витрина по адресу `/de`, кабинет на немецком):
+
+| Файл | Подпись (de) |
+|---|---|
+| `1-admin-code-eingeben.png` | Öffnen Sie die App unter Erweiterungen und fügen Sie den Verbindungscode aus Ihrem Business-Watchdog-Konto ein. |
+| `2-admin-verbunden.png` | Verbunden: Business Watchdog liest Bestellungen und Zahlungsstatus, nur lesend. |
+| `3-storefront-bestellung-abschliessen.png` | Der Checkout bleibt unverändert: Die App fügt nichts Sichtbares hinzu und meldet nur an Ihren eigenen Shop. |
+| `4-dashboard-shop.png` | Was der Dienst für Ihren Shop sieht: empfangene Bestellungen, geplante Synchronisierung, Zahlungsversuche. |
+| `5-dashboard-vorfall.png` | Eine als bezahlt markierte Bestellung ohne Einzug beim Zahlungsanbieter, mit Betrag und Erklärung. |
+
+Списка инцидентов в немецком наборе нет: на локальном стенде в нём видны инциденты WooCommerce-плагина («Das Shop-Plugin meldet sich nicht»), на странице Shopware App они сбивали бы с толку.
 
 Иконка: `apps/backend/resources/shopware-store/plugin.png` (256×256, 23 КБ). Логотип производителя: тот же знак или `plugins/woocommerce-watchdog/.wordpress-org/icon-256x256.png`.
