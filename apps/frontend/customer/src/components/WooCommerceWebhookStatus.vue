@@ -11,6 +11,7 @@ type Stage = 'none' | 'waiting' | 'reached' | 'rejected' | 'working';
 
 const POLL_MS = 10_000;
 const POLL_LIMIT_MS = 15 * 60_000;
+const screenshotUrl = `${import.meta.env.BASE_URL}onboarding/woo-webhook-form.png`;
 const STAGE_TONES: Record<Stage, Tone> = { none: 'unknown', waiting: 'unknown', reached: 'warn', rejected: 'crit', working: 'ok' };
 
 const props = defineProps<{ integration: Integration; canManage: boolean }>();
@@ -38,7 +39,8 @@ const stage = computed<Stage>(() => {
 
   return 'waiting';
 });
-const topicProblems = computed(() => Object.entries(check.value?.topics ?? {}).filter(([, state]) => state !== 'active'));
+const TOPICS = ['order.created', 'order.updated', 'order.deleted', 'order.restored'];
+const topics = computed(() => TOPICS.filter((topic) => check.value?.topics?.[topic] !== undefined).map((topic) => ({ topic, state: check.value!.topics![topic]! })));
 
 async function act(action: () => Promise<void>): Promise<void> {
   busy.value = true;
@@ -112,7 +114,7 @@ onBeforeUnmount(stopPolling);
         {{ $t('store.api.webhook_sign_test') }}
       </template>
       <template v-else>
-        {{ ping ? $t('store.api.webhook_ping_unverified', { id: ping.webhook_id, time: dateTime(ping.received_at) }) : $t('store.api.webhook_waiting') }}
+        {{ ping ? $t('store.api.webhook_ping_unverified', { id: ping.webhook_id, time: dateTime(ping.received_at) }) : check?.state === 'issues' ? $t('store.api.webhook_waiting_issues') : $t('store.api.webhook_waiting') }}
       </template>
     </p>
 
@@ -123,12 +125,11 @@ onBeforeUnmount(stopPolling);
         <template v-if="check.error_code && $te(`errors.${check.error_code}`)"> {{ $t(`errors.${check.error_code}`) }}</template>
       </p>
       <ul v-else class="flex flex-col gap-0.5">
-        <li v-for="(state, topic) in check.topics" :key="topic" :data-topic="topic" :class="state === 'active' ? '' : 'text-warn'">
-          {{ state === 'active' ? '✓' : '✗' }} {{ topic }} — {{ $t(`store.api.webhook_topic.${state}`) }}
+        <li v-for="item in topics" :key="item.topic" :data-topic="item.topic" :class="item.state === 'active' ? '' : 'text-warn'">
+          {{ item.state === 'active' ? '✓' : '✗' }} {{ item.topic }} — {{ $t(`store.api.webhook_topic.${item.state}`) }}
         </li>
         <li v-for="issue in check.issues ?? []" :key="issue" class="text-warn" :data-issue="issue">{{ $t(`store.api.webhook_issue.${issue}`) }}</li>
       </ul>
-      <p v-if="check.state === 'ok' && topicProblems.length === 0 && stage !== 'reached'" class="text-ok">{{ $t('store.api.webhook_check_ok') }}</p>
     </div>
 
     <template v-if="setup">
@@ -138,6 +139,10 @@ onBeforeUnmount(stopPolling);
         <li>{{ $t('store.api.webhook_step_save') }}</li>
         <li>{{ $t('store.api.webhook_step_check') }}</li>
       </ol>
+      <figure class="max-w-3xl overflow-hidden rounded-lg border border-border bg-surface-muted">
+        <img :src="screenshotUrl" :alt="$t('store.api.webhook_screenshot_alt')" loading="lazy" class="w-full" />
+        <figcaption class="p-3 text-[13px] text-text-muted">{{ $t('store.api.webhook_screenshot_caption') }}</figcaption>
+      </figure>
       <CopyField id="woo-webhook-url" :label="$t('store.api.webhook_url')" :value="setup.delivery_url" />
       <CopyField id="woo-webhook-secret" :label="$t('store.api.webhook_secret')" :value="setup.secret" />
       <p class="text-[13px] text-warn">{{ $t('store.api.webhook_secret_once') }}</p>
