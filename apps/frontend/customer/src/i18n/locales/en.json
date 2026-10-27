@@ -1630,8 +1630,12 @@
     "fee_note": "The fee is information from the payment provider and is not part of the money reconciliation. It may be in the currency of your provider balance."
   },
   "checks": {
+    "failure_reason": {
+      "payment_provider_rejected": "The payment provider rejected your store's key: customers see an error instead of the payment form. Check the API keys in the payment plugin's settings.",
+      "no_payment_methods": "The checkout shows no payment method: customers cannot pay."
+    },
     "skip_reason": {
-      "payment_methods_not_verified": "Payment methods not verified: the check does not load payment gateway scripts (Stripe, PayPal, etc.) and the store's payment form waits for them. The path up to the payment form is confirmed.",
+      "payment_methods_not_verified": "Payment methods not verified: the check does not load payment provider scripts (Stripe, PayPal, etc.) and the store's payment form needs them. Turn on «Check payment forms fully» in the check settings to verify them. The path up to the payment form is confirmed.",
       "synthetic_location_not_configured": "No delivery address is set for the check — delivery was not checked."
     },
     "title": "Checkout checks",
@@ -1689,6 +1693,8 @@
       "advanced": "Advanced",
       "origins": "Allowed external addresses",
       "origins_hint": "Public https addresses of payment gateways and CDNs the checkout page needs. One per line.",
+      "providers_label": "Check payment forms fully",
+      "providers_hint": "The check also loads the scripts of Stripe, PayPal and other payment providers and verifies that their payment form appears — for example, it notices when the provider rejects your store's key. It never submits a payment: every write request to the provider is blocked. The provider sees the check's page loads like visits of its form.",
       "country": "Shipping country (2 letters)",
       "postcode": "Postcode",
       "location_hint": "Test shipping data if the payment form only appears after it. No real addresses are used.",

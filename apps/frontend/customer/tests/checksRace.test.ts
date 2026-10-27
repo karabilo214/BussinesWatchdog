@@ -27,7 +27,7 @@ describe('ChecksView', () => {
         : Promise.resolve([
             {
               id: 'sc-2', store_id: 's-2', name: 'Payment form', mode: 'payment_form', version: 1, enabled: false, adapter_version: 'a',
-              product_external_id: null, product_url: 'https://second.example/p/', cart_url: null, checkout_url: null, extra_allowed_origins: [],
+              product_external_id: null, product_url: 'https://second.example/p/', cart_url: null, checkout_url: null, extra_allowed_origins: [], load_payment_providers: false,
               synthetic_location: null, platform: 'woocommerce', checkout_access: null, sign_in_configured: false, interval_seconds: 900, next_due_at: null, supported_steps: [], untested_components: [],
             },
           ]),

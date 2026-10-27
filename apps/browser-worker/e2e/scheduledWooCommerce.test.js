@@ -26,6 +26,9 @@ before(async () => {
       const price = cartFault === 'zero_amount' ? '$0.00' : '$10.00';
       const link = cartFault === 'wrong_item' ? '/other/' : '/product/';
       send(cart ? `<form class="woocommerce-cart-form"><div class="cart_item" style="display:none">Mobile</div><div class="cart_item"><a href="${link}">Small item</a><span class="product-subtotal"><span class="amount">${price}</span></span></div></form><div class="cart_totals"><div class="order-total"><span class="amount">${price}</span></div></div>${checkout}` : '<p class="cart-empty">Empty</p>');
+    } else if (path === '/checkout/' && cartFault.startsWith('blocks_')) {
+      const script = cartFault === 'blocks_stripe' ? 'https://js.stripe.com/v3/' : 'https://www.googletagmanager.com/gtag/js';
+      send(`<div class="wc-block-checkout"><div class="wc-block-components-form"><div class="wc-block-checkout__payment-method"><div class="wc-block-checkout__no-payment-methods-notice">There are no payment methods available.</div></div></div></div><script src="${script}"></script>`);
     } else if (path === '/checkout/') {
       const shipping = cartFault === 'missing_shipping' ? '<div class="woocommerce-shipping-methods"></div>' : `<div class="woocommerce-shipping-methods"><input name="shipping_method[0]" type="radio" ${cartFault === 'disabled_shipping' ? 'disabled' : 'checked'}></div>`;
       const payment = cartFault === 'missing_payment' ? '' : `<li><input name="payment_method" type="radio" ${cartFault === 'disabled_payment' ? 'disabled' : 'checked'}></li>`;
@@ -112,3 +115,18 @@ for (const [faultCode, stepCode] of [['missing_shipping', 'shipping'], ['disable
     assert.equal(result.steps.find((step) => step.code === stepCode).error_code, 'site_failure');
   });
 }
+
+test('Blocks checkout without methods because the payment provider script was blocked is not verified, not failed', async () => {
+  const result = await check(false, 'blocks_stripe');
+  assert.equal(result.status, 'passed');
+  const payment = result.steps.find((step) => step.code === 'payment_form');
+  assert.equal(payment.status, 'skipped');
+  assert.ok(payment.assertions.some((assertion) => assertion.code === 'payment_methods_not_verified' && assertion.detail_code === 'gateway_scripts_not_loaded'));
+});
+
+test('Blocks checkout without methods and only a non-payment script blocked is a site failure', async () => {
+  const result = await check(false, 'blocks_analytics');
+  assert.equal(result.status, 'failed');
+  assert.equal(result.steps.find((step) => step.code === 'payment_form').error_code, 'site_failure');
+});
+

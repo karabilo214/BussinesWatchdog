@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createNetworkPolicy } from '../src/networkPolicy.js';
+import { createNetworkPolicy, isPaymentProviderScript } from '../src/networkPolicy.js';
 
 const policy = createNetworkPolicy({
   allowedOrigins: ['https://shop.example.test', 'https://js.stripe.com', 'https://api.stripe.com'],
@@ -195,3 +195,29 @@ test('public storefront checks allow store cart-add and third-party subrequests 
   assert.deepEqual(pub.decide({ method: 'GET', url: 'https://www.paypal.com/v2/checkout/orders/1/capture' }), { allow: false, reason: 'mutation', operation: 'payment_capture' });
   assert.deepEqual(pub.decide({ method: 'POST', url: 'https://api.stripe.com/v1/payment_intents/pi_1/confirm', postData: '{}' }), { allow: false, reason: 'mutation', operation: 'payment_capture' });
 });
+
+test('payment provider scripts are recognised by host, other third-party scripts are not', () => {
+  for (const url of ['https://js.stripe.com/v3/', 'https://m.stripe.network/inner.html', 'https://www.paypal.com/sdk/js?client-id=x', 'https://www.paypalobjects.com/api/checkout.js', 'https://js.braintreegateway.com/web/3/js/client.min.js', 'https://x.klarnacdn.net/kp/lib/v1/api.js', 'https://pay.google.com/gp/p/js/pay.js']) {
+    assert.equal(isPaymentProviderScript(url), true, url);
+  }
+  for (const url of ['https://www.googletagmanager.com/gtag/js', 'https://notstripe.com/v3/', 'https://stripe.com.evil.test/x.js', 'not a url']) {
+    assert.equal(isPaymentProviderScript(url), false, url);
+  }
+});
+
+test('with payment providers allowed, provider hosts are readable and every write to them stays blocked', () => {
+  const store = 'https://shop.example';
+  const allowed = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, paymentProviders: true });
+  for (const url of ['https://js.stripe.com/v3/', 'https://api.stripe.com/v1/elements/sessions?key=pk_test', 'https://b.stripecdn.com/x.js', 'https://www.paypal.com/sdk/js?client-id=x']) {
+    assert.deepEqual(allowed.decide({ url, method: 'GET' }), { allow: true }, url);
+  }
+  for (const url of ['https://api.stripe.com/v1/payment_methods', 'https://api.stripe.com/v1/payment_intents/pi_1/confirm', 'https://r.stripe.com/b', 'https://m.stripe.com/6', 'https://api-m.paypal.com/v2/checkout/orders']) {
+    assert.deepEqual(allowed.decide({ url, method: 'POST', postData: 'a=1' }), { allow: false, reason: 'provider_write' }, url);
+  }
+  assert.equal(allowed.decide({ url: 'https://stripe.com.evil.test/v3/', method: 'GET' }).allow, false);
+  assert.equal(allowed.decide({ url: 'http://js.stripe.com/v3/', method: 'GET' }).allow, false);
+
+  const closed = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store });
+  assert.deepEqual(closed.decide({ url: 'https://js.stripe.com/v3/', method: 'GET' }), { allow: false, reason: 'origin_not_allowed' });
+});
+

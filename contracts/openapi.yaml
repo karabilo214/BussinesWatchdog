@@ -8712,6 +8712,7 @@ components:
         extra_allowed_origins:
           type: array
           items: {type: string, format: uri}
+        load_payment_providers: {type: boolean, description: "Full payment-form check (ADR 0070 point 2): the check also loads the scripts of known payment providers read-only and verifies their form; every write request to a provider stays blocked."}
         synthetic_location:
           type: [object, "null"]
           properties:
@@ -8747,6 +8748,7 @@ components:
           maxItems: 10
           items: {type: string, format: uri}
           description: Public HTTPS gateway/CDN origins the check may load.
+        load_payment_providers: {type: boolean, description: "Turn the full payment-form check on or off (default off)."}
         synthetic_location:
           type: [object, "null"]
           additionalProperties: false
@@ -8902,6 +8904,7 @@ components:
             allowed_origins: {type: array, items: {type: string, format: uri}}
             blocked_operations: {type: array, items: {type: string}}
             quiet_paths: {type: array, items: {type: string, pattern: "^/"}, description: "Paths on the store's origin the check never requests and does not report (the Shopware app's observation endpoint, ADR 0062), so the check is not counted as a shopper."}
+            payment_providers: {type: boolean, description: "Known payment-provider hosts (Stripe, PayPal, Braintree, Klarna, Mollie, Adyen, Google Pay) may be read (GET/HEAD/OPTIONS); any other request to them is blocked. A 401/403 from a provider on such a read fails the payment step as payment_provider_rejected."}
     BrowserResult:
       type: object
       additionalProperties: false

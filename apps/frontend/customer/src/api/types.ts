@@ -570,6 +570,7 @@ export interface CheckScenario {
   cart_url: string | null;
   checkout_url: string | null;
   extra_allowed_origins: string[];
+  load_payment_providers: boolean;
   synthetic_location: { country: string; postcode: string | null } | null;
   platform: string;
   checkout_access: CheckoutAccess | null;
@@ -590,6 +591,7 @@ export interface CheckScenarioInput {
   interval_seconds?: number;
   enabled?: boolean;
   extra_allowed_origins?: string[];
+  load_payment_providers?: boolean;
   synthetic_location?: { country: string; postcode: string | null } | null;
   checkout_access?: CheckoutAccess | null;
   sign_in?: { email: string; password: string } | null;

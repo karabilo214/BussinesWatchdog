@@ -148,6 +148,7 @@ class CheckScenarioController extends Controller
             'enabled' => ['sometimes', 'boolean'],
             'extra_allowed_origins' => ['sometimes', 'array', 'max:10'],
             'extra_allowed_origins.*' => ['string', 'max:255', new PublicHttpsUrl],
+            'load_payment_providers' => ['sometimes', 'boolean'],
             'synthetic_location' => ['sometimes', 'nullable', 'array:country,postcode'],
             'synthetic_location.country' => ['required_with:synthetic_location', 'string', 'size:2', 'alpha'],
             'synthetic_location.postcode' => ['sometimes', 'nullable', 'string', 'max:16', 'regex:/^[A-Za-z0-9 \-]+$/'],
@@ -219,6 +220,10 @@ class CheckScenarioController extends Controller
 
         if (array_key_exists('extra_allowed_origins', $validated)) {
             $definition['extra_allowed_origins'] = array_values(array_unique(array_map(fn (string $url): string => $this->definition->origin($url), $validated['extra_allowed_origins'])));
+        }
+
+        if (array_key_exists('load_payment_providers', $validated)) {
+            $definition['load_payment_providers'] = (bool) $validated['load_payment_providers'];
         }
 
         if (array_key_exists('synthetic_location', $validated)) {

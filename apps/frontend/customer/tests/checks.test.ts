@@ -35,7 +35,7 @@ function scenario(overrides: Partial<CheckScenario> = {}): CheckScenario {
   return {
     id: 'sc-1', store_id: 's-1', name: 'Payment form', mode: 'payment_form', version: 2, enabled: true, adapter_version: 'woo-1',
     product_external_id: null, product_url: 'https://kaffee-lindner.example/product/test/', cart_url: null, checkout_url: null,
-    extra_allowed_origins: [], synthetic_location: null, platform: 'woocommerce', checkout_access: null, sign_in_configured: false,
+    extra_allowed_origins: [], load_payment_providers: false, synthetic_location: null, platform: 'woocommerce', checkout_access: null, sign_in_configured: false,
     interval_seconds: 900, next_due_at: '2026-10-10T10:15:00Z',
     supported_steps: ['product', 'add_to_cart', 'cart', 'checkout', 'shipping', 'payment_form'],
     untested_components: ['variable_products', 'shipping_required_before_payment', 'third_party_gateway_iframes', 'redirect_gateways'],
@@ -103,9 +103,23 @@ describe('ScenarioPanel', () => {
       interval_seconds: 900,
       enabled: true,
       extra_allowed_origins: [],
+      load_payment_providers: false,
       synthetic_location: null,
     });
     expect(wrapper.emitted('saved')).toHaveLength(1);
+  });
+
+  it('turns on the full payment form check', async () => {
+    mocked.updateScenario.mockResolvedValue(scenario({ load_payment_providers: true }));
+    const wrapper = mount(ScenarioPanel, { props: { store: verifiedStore(), scenario: scenario(), canManage: true }, global });
+    await wrapper.findAll('button').find((button) => button.text() === 'Изменить')!.trigger('click');
+
+    expect((wrapper.get('[data-scenario-providers]').element as HTMLInputElement).checked).toBe(false);
+    await wrapper.get('[data-scenario-providers]').setValue(true);
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.updateScenario.mock.calls.at(-1)?.[1]).toMatchObject({ load_payment_providers: true });
   });
 
   it('cannot enable checks before the domain is confirmed', () => {

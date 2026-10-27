@@ -20,7 +20,7 @@ vi.mock('@/api/maintenance', () => ({ getMaintenance: vi.fn(async () => null) })
 vi.mock('@/api/account', () => ({ resendEmailVerification: vi.fn() }));
 vi.mock('@/composables/useSession', () => ({ useSession: () => ({ session, load: vi.fn(), signOut: vi.fn(), replace: vi.fn() }) }));
 
-const step = (index: number, code: string, status: 'passed' | 'skipped', assertions: { code: string; passed: boolean; detail_code?: string }[] = []) => ({
+const step = (index: number, code: string, status: 'passed' | 'skipped' | 'failed', assertions: { code: string; passed: boolean; detail_code?: string }[] = []) => ({
   index, code, status, error_code: null, assertions, started_at: '2026-10-20T10:00:00Z', finished_at: '2026-10-20T10:00:01Z',
 });
 
@@ -47,5 +47,28 @@ describe('check run', () => {
     expect(reasons).toHaveLength(1);
     expect(reasons[0]!.text()).toContain('Способы оплаты не проверены');
     expect(wrapper.get('[data-step="cart"]').find('[data-skip-reason]').exists()).toBe(false);
+  });
+
+  it('names the cause when the payment provider rejected the store key', async () => {
+    setLocale('en');
+    const failed = { ...step(1, 'payment_form', 'failed', [{ code: 'payment_form_check', passed: false, detail_code: 'payment_provider_rejected' }]), error_code: 'site_failure' };
+    const run: CheckRunDetail = {
+      id: 'r-2', store_id: 's-1', scenario_id: 'sc-1', scenario_version: 1, trigger: 'scheduled', status: 'failed', error_code: 'site_failure',
+      scheduled_at: '2026-10-20T10:00:00Z', started_at: '2026-10-20T10:00:00Z', finished_at: '2026-10-20T10:01:00Z',
+      attempts: [{
+        id: 'a-2', attempt_number: 1, status: 'failed', error_code: 'site_failure', location: 'eu-de', browser_version: 'chromium', started_at: '2026-10-20T10:00:00Z', finished_at: '2026-10-20T10:01:00Z',
+        diagnostics: null, artifacts: [],
+        steps: [step(0, 'cart', 'passed'), failed],
+      }],
+    };
+    vi.mocked(checks.getRun).mockResolvedValue(run);
+    const router = createRouter({ history: createMemoryHistory('/app/'), routes: ['overview', 'checks', 'profile', 'incidents', 'reconciliation', 'notifications', 'login'].map((name) => ({ path: `/${name}`, name, component: { template: '<div />' } })) });
+    await router.push('/checks');
+
+    const wrapper = mount(CheckRunView, { props: { id: 'r-2' }, global: { plugins: [localization, router], stubs: { RouterLink: RouterLinkStub } } });
+    await flushPromises();
+
+    expect(wrapper.get('[data-step="payment_form"] [data-failure-reason]').text()).toContain("rejected your store's key");
+    expect(wrapper.get('[data-step="cart"]').find('[data-failure-reason]').exists()).toBe(false);
   });
 });

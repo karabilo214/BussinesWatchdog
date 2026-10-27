@@ -136,3 +136,28 @@ Status: complete
 - README: creating/rotating the token on the server, the seccomp profile, how to check `worker_started … "sandbox":true`.
 
 Verification: on the server — default seccomp: `unshare failed: Operation not permitted`; the new profile: `userns-ok` and `chromium.launch({chromiumSandbox: true})` → Chromium 140.0.7339.16. The worker logged `worker_started` with `sandbox: true`, `egress_proxy: true`, and `last_seen_at` was set. A public storefront check of `https://thompsonhanson.com` submitted through `PublicStorefrontCheckService` on the server finished `passed` in 28 s (`delivery: accepted`), traffic through the egress proxy.
+
+### Step 292: No false «payment form missing» when the provider script is what blocks the Blocks payment step (2026-10-27)
+
+Status: complete; not deployed yet
+
+- Found while preparing the sales videos on the local stand (WordPress 7.1.3, WooCommerce 11.2.0, official Stripe gateway 11.1.1 in test mode, Blocks checkout, Stripe the only method): the browser check blocks `js.stripe.com`, the Stripe gateway then cannot register its Blocks methods, WooCommerce shows «There are no payment methods available», and the payment step failed as `site_failure / payment_form_missing` on a healthy store. ADR 0070 point 1 covered only a method list without radios. Production test stores were not affected (their checks pass: they have a method that needs no provider script).
+- Worker: `isPaymentProviderScript()` (`networkPolicy.js`, hosts of Stripe, PayPal, Braintree, Klarna, Mollie, Adyen, Google Pay by suffix); `runAttempt` marks `blockedPaymentScripts` when such a script is blocked. The WooCommerce payment step on Blocks with no selectable method and a blocked payment-provider script is **skipped** with `payment_methods_not_verified / gateway_scripts_not_loaded` (as ADR 0070 point 1). Only a blocked provider script counts: a store with no payment methods and, say, an analytics script blocked still fails `site_failure`.
+- ADR 0070: amendment for this case. Point 2 (full payment-form check) is the next step.
+
+Verification: worker unit tests (new: provider hosts recognised, look-alike hosts not); adapter tests 13/13 in Chromium (new: Blocks without methods + blocked Stripe script → skipped; + blocked analytics script → `site_failure`); the local Stripe store: before `failed / payment_form_missing`, after `passed` with the payment step skipped; `browser-e2e.sh wc9` (real WooCommerce: methods selectable, no methods → `site_failure`).
+
+### Step 293: Full payment-form check as a scenario setting (ADR 0070 point 2) (2026-10-27)
+
+Status: complete; not deployed yet
+
+- Owner's decision 2026-10-27: after the false «payment form missing» fix (Step 292), implement ADR 0070 point 2 so the check sees real provider forms and notices real provider failures.
+- Backend: `load_payment_providers` (boolean) in `CheckScenarioController` validation and the scenario definition, `CheckDto`, snapshot `network_policy.payment_providers`; OpenAPI (scenario output/input, lease network policy).
+- Worker: `createNetworkPolicy({ paymentProviders })` allows known provider hosts read-only and blocks every other method to them as `provider_write`; `runAttempt` passes the lease flag and marks `paymentProviderRejected` on a provider 401/403 GET (diagnostic `provider_rejected`, cause `server_response`); the WooCommerce payment step fails `site_failure / payment_provider_rejected` then.
+- Cabinet: «Check payment forms fully» toggle with what it does and does not do; a failed step shows its cause (`checks.failure_reason.*`: `payment_provider_rejected`, `no_payment_methods`); the «payment methods not verified» note points to the setting. ru/en/de.
+- Details and limits: ADR 0070 «Point 2 implemented».
+
+Verification on the local stand (WordPress 7.1.3, WooCommerce 11.2.0, official Stripe gateway 11.1.1 in test mode, Blocks checkout, store on `https://kaffee-lindner.example.test` behind a local TLS proxy): setting off → `passed`, payment step skipped (Step 292); on → `passed`, `payment_method_selectable` with the real Stripe form, provider POSTs blocked (`provider_write`); on + an invalid publishable key → `failed / site_failure / payment_provider_rejected`. Worker unit tests 30 (new: provider hosts read-only, writes blocked, look-alike and http hosts refused, closed by default); backend `BrowserChecksTest` 26 (new: setting validated, stored, returned, handed to the worker); cabinet 212 (new: toggle saved, failure cause shown); `spec/validate_spec.py` green.
+
+Found on the way: `browser-e2e.sh` fails on a fresh wc9 stand with the original worker code as well (classic and Blocks `selector_changed`; the script still counts the old `wp_bw_payment_attempts` table renamed in 0.4.0) — the matrix e2e needs its own repair.
+

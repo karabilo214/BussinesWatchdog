@@ -68,6 +68,22 @@ export function formFields(postData) {
   return fields;
 }
 
+const PAYMENT_PROVIDER_HOSTS = ['stripe.com', 'stripe.network', 'stripecdn.com', 'paypal.com', 'paypalobjects.com', 'braintreegateway.com', 'klarna.com', 'klarnacdn.net', 'klarnaservices.com', 'mollie.com', 'adyen.com', 'pay.google.com'];
+
+function isPaymentProviderHost(host) {
+  const name = host.toLowerCase();
+
+  return PAYMENT_PROVIDER_HOSTS.some((suffix) => name === suffix || name.endsWith(`.${suffix}`));
+}
+
+export function isPaymentProviderScript(url) {
+  try {
+    return isPaymentProviderHost(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function originOf(url) {
   const parsed = new URL(url);
 
@@ -92,7 +108,7 @@ export function restRoute(parsed) {
  * unknown mutation is blocked rather than trusted. Order placement, order-pay, capture and
  * refund are always blocked, whatever the button text.
  */
-export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false, platform = 'woocommerce', checkoutAccess = null, quietPaths = [] }) {
+export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false, platform = 'woocommerce', checkoutAccess = null, quietPaths = [], paymentProviders = false }) {
   const allowed = new Set(allowedOrigins.map((origin) => origin.toLowerCase().replace(/\/$/, '')));
   const store = storeOrigin.toLowerCase().replace(/\/$/, '');
   const publicStoreOrigins = platform === 'public' ? allowed : new Set([store]);
@@ -345,6 +361,10 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
 
       if (`${parsed.protocol}//${parsed.host}`.toLowerCase() === store && !readsShopwareSetting && quiet.some((path) => quietTarget.some((target) => target.endsWith(path)))) {
         return { allow: false, reason: 'quiet' };
+      }
+
+      if (paymentProviders && parsed.protocol === 'https:' && parsed.port === '' && isPaymentProviderHost(parsed.hostname)) {
+        return READ_METHODS.has(verb) ? { allow: true } : { allow: false, reason: 'provider_write' };
       }
 
       const publicExternalSubrequest = platform === 'public'

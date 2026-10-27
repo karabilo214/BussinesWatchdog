@@ -113,6 +113,24 @@ class BrowserChecksTest extends TestCase
         $this->lease()->assertNoContent();
     }
 
+    public function test_the_full_payment_form_check_is_a_scenario_setting_handed_to_the_worker(): void
+    {
+        $context = $this->checkContext();
+        $created = $this->asOwner($context)->postJson("/api/v1/stores/{$context['store']->id}/scenarios", ['product_url' => 'https://shop.example.test/product/x'])
+            ->assertCreated()->assertJsonPath('load_payment_providers', false);
+        $this->asOwner($context)->withHeader('If-Match', '"1"')->patchJson('/api/v1/scenarios/'.$created->json('id'), ['load_payment_providers' => 'yes'])
+            ->assertStatus(422);
+        $this->asOwner($context)->withHeader('If-Match', '"1"')->patchJson('/api/v1/scenarios/'.$created->json('id'), ['load_payment_providers' => true, 'enabled' => true])
+            ->assertOk()->assertJsonPath('load_payment_providers', true);
+        CheckScenario::query()->whereKey($created->json('id'))->update(['next_due_at' => now()]);
+        app(CheckScheduler::class)->scheduleDue();
+
+        $lease = $this->lease()->assertOk();
+
+        $this->assertTrue($lease->json('network_policy.payment_providers'));
+        $this->assertSame(['https://shop.example.test'], $lease->json('network_policy.allowed_origins'));
+    }
+
     public function test_a_lease_hands_out_the_scenario_with_a_fenced_one_time_token(): void
     {
         $context = $this->checkContext();
@@ -126,6 +144,7 @@ class BrowserChecksTest extends TestCase
         $this->assertSame('payment_form', $lease->json('scenario.mode'));
         $this->assertSame(['product', 'add_to_cart', 'cart', 'checkout', 'shipping', 'payment_form'], array_column($lease->json('scenario.steps'), 'code'));
         $this->assertSame(['https://shop.example.test'], $lease->json('network_policy.allowed_origins'));
+        $this->assertFalse($lease->json('network_policy.payment_providers'));
         $attempt = CheckAttempt::query()->sole();
         $this->assertSame(hash('sha256', $lease->json('lease_token')), $attempt->lease_token_hash);
         $this->assertStringNotContainsString($lease->json('lease_token'), json_encode($attempt->toArray()));

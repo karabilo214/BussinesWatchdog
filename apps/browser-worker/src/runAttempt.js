@@ -3,7 +3,7 @@ import { StepOutcome } from './adapter/common.js';
 import { ADAPTER_VERSION as PUBLIC_STOREFRONT_ADAPTER, createPublicStorefrontAdapter } from './adapter/publicStorefront.js';
 import { ADAPTER_VERSION as SHOPWARE_ADAPTER, createShopwareAdapter } from './adapter/shopware.js';
 import { ADAPTER_VERSION as WOOCOMMERCE_ADAPTER, createWooCommerceAdapter } from './adapter/woocommerce.js';
-import { createNetworkPolicy } from './networkPolicy.js';
+import { createNetworkPolicy, isPaymentProviderScript } from './networkPolicy.js';
 import { errorSourceUrl, publicConsoleCause, publicConsoleFinding, publicConsoleSourceUrl, reportableRequestFailure } from './publicDiagnostics.js';
 import { REDACTION_VERSION, errorName, failureCode, redactUrl } from './redact.js';
 
@@ -97,6 +97,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     platform: scenario.platform ?? 'woocommerce',
     checkoutAccess: scenario.checkout_access ?? null,
     quietPaths: lease.network_policy.quiet_paths ?? [],
+    paymentProviders: lease.network_policy.payment_providers === true,
   });
   const deadline = new Date(lease.absolute_deadline_at).getTime() - 5000;
   const errors = createErrorLog();
@@ -110,6 +111,8 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     blockedNavigation: false,
     blockedScripts: false,
     blockedThirdPartyScripts: false,
+    blockedPaymentScripts: false,
+    paymentProviderRejected: false,
     checkoutMode: null,
     lineItemId: null,
     signedIn: false,
@@ -173,6 +176,9 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
 
       if (request.resourceType() === 'script' && decision.reason === 'origin_not_allowed' && policy.party(request.url()) !== 'first') {
         state.blockedThirdPartyScripts = true;
+        if (isPaymentProviderScript(request.url())) {
+          state.blockedPaymentScripts = true;
+        }
       }
 
       if (decision.reason === 'mutation' && policy.isPaymentOperation(decision.operation)) {
@@ -248,6 +254,11 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
       const request = response.request();
       const party = policy.party(response.url());
       const { origin, path } = redactUrl(response.url());
+
+      if (lease.network_policy.payment_providers === true && [401, 403].includes(response.status()) && request.method() === 'GET' && isPaymentProviderScript(response.url())) {
+        state.paymentProviderRejected = true;
+        errors.add({ type: 'provider_rejected', party, origin, path, status: response.status(), step_code: state.stepCode ?? 'setup', cause_code: 'server_response' });
+      }
 
       if (response.status() >= 500 && party !== 'third') {
         errors.add({ type: 'http_5xx', party, origin, path, status: response.status(), step_code: state.stepCode ?? 'setup', cause_code: 'server_response' });

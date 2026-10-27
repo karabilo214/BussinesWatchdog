@@ -1630,8 +1630,12 @@
     "fee_note": "Die Gebühr ist eine Angabe des Zahlungsanbieters und gehört nicht zum Geldabgleich. Sie kann in der Währung Ihres Guthabens beim Anbieter sein."
   },
   "checks": {
+    "failure_reason": {
+      "payment_provider_rejected": "Der Zahlungsanbieter hat den Schlüssel Ihres Shops abgelehnt: Kunden sehen einen Fehler statt des Zahlungsformulars. Prüfen Sie die API-Schlüssel in den Einstellungen des Zahlungs-Plugins.",
+      "no_payment_methods": "Die Kassenseite zeigt keine Zahlungsart: Kunden können nicht bezahlen."
+    },
     "skip_reason": {
-      "payment_methods_not_verified": "Zahlungsarten nicht geprüft: Die Prüfung lädt keine Skripte von Zahlungsanbietern (Stripe, PayPal u. a.), und das Zahlungsformular des Shops wartet auf sie. Der Weg bis zum Zahlungsformular ist bestätigt.",
+      "payment_methods_not_verified": "Zahlungsarten nicht geprüft: Die Prüfung lädt keine Skripte von Zahlungsanbietern (Stripe, PayPal u. a.), und das Zahlungsformular des Shops braucht sie. Um sie zu prüfen, aktivieren Sie in den Prüfungseinstellungen „Zahlungsformulare vollständig prüfen“. Der Weg bis zum Zahlungsformular ist bestätigt.",
       "synthetic_location_not_configured": "Für die Prüfung ist keine Lieferadresse festgelegt — der Versand wurde nicht geprüft."
     },
     "title": "Checkout-Prüfungen",
@@ -1689,6 +1693,8 @@
       "advanced": "Erweitert",
       "origins": "Erlaubte externe Adressen",
       "origins_hint": "Öffentliche https-Adressen von Zahlungs-Gateways und CDNs, die die Kassenseite braucht. Eine pro Zeile.",
+      "providers_label": "Zahlungsformulare vollständig prüfen",
+      "providers_hint": "Die Prüfung lädt auch die Skripte von Stripe, PayPal und anderen Zahlungsanbietern und prüft, ob deren Zahlungsformular erscheint — sie bemerkt zum Beispiel, wenn der Anbieter den Schlüssel Ihres Shops ablehnt. Eine Zahlung sendet sie nie: Jede schreibende Anfrage an den Anbieter wird blockiert. Der Anbieter sieht die Seitenaufrufe der Prüfung wie Besuche seines Formulars.",
       "country": "Lieferland (2 Buchstaben)",
       "postcode": "Postleitzahl",
       "location_hint": "Testdaten für den Versand, falls das Zahlungsformular erst danach erscheint. Es werden keine echten Adressen verwendet.",

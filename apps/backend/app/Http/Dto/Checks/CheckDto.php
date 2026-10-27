@@ -36,6 +36,7 @@ class CheckDto
             'cart_url' => $definition['cart_url'] ?? null,
             'checkout_url' => $definition['checkout_url'] ?? null,
             'extra_allowed_origins' => $definition['extra_allowed_origins'] ?? [],
+            'load_payment_providers' => (bool) ($definition['load_payment_providers'] ?? false),
             'synthetic_location' => $definition['synthetic_location'] ?? null,
             'platform' => $store->platform,
             'checkout_access' => $access,

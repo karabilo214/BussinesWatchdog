@@ -309,6 +309,8 @@ export function createWooCommerceAdapter() {
         if (context.forbiddenOperation) throw new StepOutcome('blocked', 'forbidden_mutation', context.forbiddenOperation);
         if (context.blockedUnknownMutation) throw UNSUPPORTED('payment_selection_blocked');
         if (!selectable) throw SITE('payment_methods_unselectable');
+        await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => null);
+        if (context.paymentProviderRejected) throw SITE('payment_provider_rejected');
         const assertions = [{ code: 'payment_method_selectable', passed: true, detail_code: context.checkoutMode }];
 
         if (context.scenario.expect_checkout_script) {
@@ -317,6 +319,12 @@ export function createWooCommerceAdapter() {
         }
 
         return assertions;
+      }
+
+      if (context.paymentProviderRejected) throw SITE('payment_provider_rejected');
+
+      if (blocks && context.blockedPaymentScripts && await page.locator('.wc-block-checkout__payment-method input[type="radio"]').count() === 0) {
+        return { skipped: true, assertions: [{ code: 'payment_methods_not_verified', passed: true, detail_code: 'gateway_scripts_not_loaded' }] };
       }
 
       throw SITE(outcome === 'none' ? 'no_payment_methods' : 'payment_form_missing');

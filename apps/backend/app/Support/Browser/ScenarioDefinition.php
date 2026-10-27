@@ -165,6 +165,7 @@ class ScenarioDefinition
                 'allowed_origins' => array_values(array_unique(array_merge([$origin], $definition['extra_allowed_origins'] ?? []))),
                 'blocked_operations' => $this->blockedOperations($store->platform),
                 'quiet_paths' => $shopware ? [self::SHOPWARE_OBSERVATION_PATH] : self::WOOCOMMERCE_OBSERVATION_PATHS,
+                'payment_providers' => (bool) ($definition['load_payment_providers'] ?? false),
             ],
         ];
     }

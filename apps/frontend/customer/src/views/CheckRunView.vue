@@ -154,6 +154,9 @@ onBeforeUnmount(() => {
                 <template v-for="assertion in step.status === 'skipped' ? (step.assertions ?? []) : []" :key="assertion.code">
                   <span v-if="$te(`checks.skip_reason.${assertion.code}`)" class="text-[13px] text-text-muted" data-skip-reason>{{ $t(`checks.skip_reason.${assertion.code}`) }}</span>
                 </template>
+                <template v-for="assertion in step.status === 'failed' ? (step.assertions ?? []).filter((item) => !item.passed && item.detail_code) : []" :key="assertion.code">
+                  <span v-if="$te(`checks.failure_reason.${assertion.detail_code}`)" class="text-[13px] text-danger" data-failure-reason>{{ $t(`checks.failure_reason.${assertion.detail_code}`) }}</span>
+                </template>
               </span>
               <span class="flex items-center gap-2">
                 <span v-if="step.error_code" class="text-[13px] text-text-muted">{{ $te(`checks.error.${step.error_code}`) ? $t(`checks.error.${step.error_code}`) : step.error_code }}</span>

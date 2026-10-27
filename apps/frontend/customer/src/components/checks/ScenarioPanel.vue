@@ -15,7 +15,7 @@ const { dateTime } = useFormat();
 
 const ACCESSES: CheckoutAccess[] = ['stop_before_sign_in', 'test_customer', 'guest'];
 
-const form = reactive({ product_url: '', cart_url: '', checkout_url: '', interval_seconds: 900, enabled: false, origins: '', country: '', postcode: '', access: 'stop_before_sign_in' as CheckoutAccess, email: '', password: '' });
+const form = reactive({ product_url: '', cart_url: '', checkout_url: '', interval_seconds: 900, enabled: false, origins: '', providers: false, country: '', postcode: '', access: 'stop_before_sign_in' as CheckoutAccess, email: '', password: '' });
 const editing = ref(false);
 const saving = ref(false);
 const error = ref<unknown>(null);
@@ -38,6 +38,7 @@ function reset(): void {
   form.interval_seconds = scenario?.interval_seconds ?? 900;
   form.enabled = scenario?.enabled ?? verified.value;
   form.origins = (scenario?.extra_allowed_origins ?? []).join('\n');
+  form.providers = scenario?.load_payment_providers ?? false;
   form.country = scenario?.synthetic_location?.country ?? '';
   form.postcode = scenario?.synthetic_location?.postcode ?? '';
   form.access = scenario?.checkout_access ?? 'stop_before_sign_in';
@@ -57,6 +58,7 @@ function input(): CheckScenarioInput {
     interval_seconds: form.interval_seconds,
     enabled: form.enabled && verified.value,
     extra_allowed_origins: origins,
+    load_payment_providers: form.providers,
     synthetic_location: form.country.trim() === '' ? null : { country: form.country.trim().toUpperCase(), postcode: form.postcode.trim() || null },
     ...(usesAccess.value ? { checkout_access: form.access } : {}),
     ...(usesAccess.value && form.access === 'test_customer' && accountEntered.value ? { sign_in: { email: form.email.trim(), password: form.password } } : {}),
@@ -219,6 +221,13 @@ function hours(seconds: number): string {
       <details class="rounded-lg border border-border p-3 text-sm">
         <summary class="cursor-pointer font-medium">{{ $t('checks.scenario.advanced') }}</summary>
         <div class="mt-3 flex flex-col gap-3">
+          <label class="flex items-start gap-2">
+            <input v-model="form.providers" type="checkbox" class="mt-0.5 size-4 accent-primary" data-scenario-providers />
+            <span>
+              <span class="font-medium">{{ $t('checks.scenario.providers_label') }}</span>
+              <span class="block text-[13px] text-text-muted">{{ $t('checks.scenario.providers_hint') }}</span>
+            </span>
+          </label>
           <div class="flex flex-col gap-1.5">
             <label for="scenario-origins" class="font-medium">{{ $t('checks.scenario.origins') }}</label>
             <textarea id="scenario-origins" v-model="form.origins" rows="3" spellcheck="false" :aria-invalid="invalid.has('extra_allowed_origins')" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono text-[13px]"></textarea>
