@@ -771,7 +771,7 @@ Verification: `ShopwareStoreAppTest` (package contents, no secret, icon, same fi
 
 ### Step 289: Shopware Store screenshots and the real «Open extension» label (2026-10-27)
 
-Status: complete; not deployed yet
+Status: complete; deployed 2026-10-27 (`2a36cf7`, no migration)
 
 - English screenshot set for the Store listing in `plugins/shopware-app/store-assets/en/` (admin module before and after the code, storefront confirm page, dashboard store page, incident, incident list; each under 1 MB, demo data only), captions in `docs/ops/shopware-store.md`.
 - Taken on a local Shopware 6.7.15.1 (`bw-shopware:6.7.15.1`, the Shopware-Test image) with the domain changed to `kaffee-demo.example.test`: the universal app 1.5.0 installed through the Extension API, registered against a local backend on the development database, opened in the Administration through «…» → «Open extension» and bound with a pairing code of the store «Kaffeerösterei Lindner» (Smoke Owner's organization) typed into the module; three orders placed in the shop arrived through webhooks, the scheduled sync ran. The storefront visit showed the app's script and reports going only to the shop's own `/storefront/script/bw-observe`.
