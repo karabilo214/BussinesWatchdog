@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Site;
 
-use App\Http\Controllers\Site\SiteVideosController;
 use App\Mail\NotificationMessageMail;
 use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
@@ -93,28 +92,31 @@ class PublicSiteTest extends TestCase
             ->assertSee("User-agent: *\nDisallow:\n", false);
     }
 
-    public function test_the_videos_page_shows_the_videos_in_the_page_language_and_is_in_the_sitemap(): void
+    public function test_the_videos_page_is_an_editable_page_created_by_command_with_working_video_tags(): void
     {
-        $this->get('/de/videos')->assertOk()
-            ->assertSee('<source src="/videos/de-checkout-pruefung.mp4" type="video/mp4">', false)
-            ->assertSee('poster="/videos/de-bezahlt-ohne-geld.webp"', false)
-            ->assertSee('Testshop mit Stripe im Testmodus');
-        $this->get('/en/videos')->assertOk()
-            ->assertSee('/videos/en-payment-provider-failure.mp4', false)
-            ->assertDontSee('/videos/de-', false);
-        $this->get('/ru/videos')->assertOk()
-            ->assertSee('/videos/en-paid-without-money.mp4', false)
-            ->assertSee('Видео на английском языке.');
+        $this->owner('owner@platform.test');
 
-        foreach (SiteVideosController::VIDEOS as $files) {
-            foreach ($files as $file) {
-                $this->assertFileExists(public_path('videos/'.$file.'.mp4'));
-                $this->assertFileExists(public_path('videos/'.$file.'.webp'));
+        $this->artisan('site:videos-page', ['staff' => 'owner@platform.test'])->assertSuccessful();
+        $this->get('/de/videos')->assertNotFound();
+
+        $this->artisan('site:videos-page', ['staff' => 'owner@platform.test', '--publish' => 'Videos'])->assertSuccessful();
+        $this->assertSame(1, PublicPage::query()->where('path', 'videos')->count(), 'running again keeps one page');
+        $this->get('/de/videos')->assertOk()
+            ->assertSee('<source src="/videos/de-checkout-pruefung.mp4" type="video/mp4"', false)
+            ->assertSee('poster="/videos/de-bezahlt-ohne-geld.webp"', false)
+            ->assertSee('controls', false);
+        $this->get('/ru/videos')->assertOk()->assertSee('/videos/en-paid-without-money.mp4', false)->assertSee('Видео на английском языке.');
+        $this->get('/en')->assertOk()->assertSee('/en/videos', false);
+        $this->get('/sitemap.xml')->assertOk()->assertSee('https://watchdog.test/de/videos', false);
+
+        foreach (['en', 'de', 'ru'] as $locale) {
+            preg_match_all('#/videos/([a-z-]+\.(?:mp4|webp))#', (string) file_get_contents(database_path("data/videos_page/{$locale}.html")), $files);
+            $this->assertNotEmpty($files[1]);
+
+            foreach ($files[1] as $file) {
+                $this->assertFileExists(public_path('videos/'.$file));
             }
         }
-
-        $this->get('/sitemap.xml')->assertOk()
-            ->assertSee('<loc>'.rtrim((string) config('app.url'), '/').'/de/videos</loc>', false);
     }
 
     public function test_root_sends_the_visitor_to_their_language_and_home_works_without_published_content(): void

@@ -365,10 +365,20 @@ Verification: decoded both files (64×64 and 128×128, alpha range 0–255), vis
 Status: complete
 
 - Owner: host the sales videos (Step 294) on our own site instead of YouTube and link them from the plugin description.
-- `/{ru,en,de}/videos` (`SiteVideosController`, `site/videos.blade.php`, texts `site.videos.*`): three videos with a short problem-first text each, a note how they were made (test shop, Stripe test mode, real checks, incidents and e-mails; shop and customer invented), buttons «14 days free» and «check your store URL». German page shows the German videos; English and Russian the English ones (Russian page says so). In the sitemap with hreflang alternates.
+- (replaced by an editor page in Step 296) `/{ru,en,de}/videos` (`SiteVideosController`, `site/videos.blade.php`, texts `site.videos.*`): three videos with a short problem-first text each, a note how they were made (test shop, Stripe test mode, real checks, incidents and e-mails; shop and customer invented), buttons «14 days free» and «check your store URL». German page shows the German videos; English and Russian the English ones (Russian page says so). In the sitemap with hreflang alternates.
 - Files: `apps/backend/public/videos/*.mp4` (H.264, `+faststart`, CRF 25, ~8.7 MB for six) and `*.webp` posters; served as static files by Caddy (byte ranges for seeking — PHP media serving would not support them), `preload="none"`.
 - Fixed a fragile sitemap test: `collect($xml->url)` kept only the last `<url>` (SimpleXML iterator keys are all `url`); now `iterator_to_array(..., false)`.
 - WordPress.org shows an embedded player only for YouTube/Vimeo/VideoPress links; the plugin description links to the page instead. Shopware Store accepts YouTube videos only.
 
 Verification: `PublicSiteTest` 16 (new: page per language, video and poster files exist, sitemap entry); local `/en|de|ru/videos` 200, `Range` request answered `206` with `video/mp4`; page checked on desktop and 390 px.
+
+### Step 296: The videos page is an editable page of the site editor (2026-10-28)
+
+Status: complete
+
+- Owner: the videos page must be editable in the owner panel. Step 295's page in code (`SiteVideosController`, `site/videos.blade.php`, `site.videos.*`, a fixed sitemap entry) is replaced by an ordinary editor page `videos` (header menu): `<video>`/`<source>` with relative addresses already pass `PageSanitizer`.
+- `php artisan site:videos-page <owner email> [--publish=reason]` creates the page when missing and saves the en/de/ru texts from `database/data/videos_page/` as drafts, publishing them with `--publish`; a second run updates the same page. The sitemap lists it like any published page.
+- Video files stay in `apps/backend/public/videos/` (static, byte ranges); the media library still takes images and PDFs only, so a new video is added to git and deployed, then referenced in the page HTML.
+
+Verification: `PublicSiteTest` 16 (new: drafts give 404, `--publish` serves `<video>` with sources and posters in de, English videos with the note on ru, header menu link, sitemap entry, one page after a second run, every referenced file exists).
 

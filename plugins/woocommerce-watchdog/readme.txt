@@ -22,6 +22,8 @@ Get alerted when a customer paid but the order stayed unpaid, when Stripe or Pay
 
 These problems are silent. WooCommerce does not warn you, and the payment provider's dashboard does not know what your store expects. **Business Watchdog** watches both sides and tells you when they disagree — by e-mail or Telegram, with the order, the amounts and what to check.
 
+▶ **See it work:** three one-minute videos recorded on a test shop — the checkout check, a payment provider failure and an order marked as paid without money: [business-watchdog.com/en/videos](https://business-watchdog.com/en/videos)
+
 = What Business Watchdog finds =
 
 * **Paid, but the order stayed unpaid** — the provider captured the money, the store never marked the order as paid.

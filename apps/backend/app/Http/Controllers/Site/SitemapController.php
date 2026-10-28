@@ -10,7 +10,7 @@ use Illuminate\Http\Response;
 
 /**
  * `/sitemap.xml` and `/robots.txt` of the public site: every page that is shown in a language (system pages in all
- * languages, other pages where a version is published, the videos page), with its other languages as hreflang alternates. Absolute
+ * languages, other pages where a version is published), with its other languages as hreflang alternates. Absolute
  * addresses come from APP_URL, so a domain change needs no code. Forms and result pages (sign-up, store check, pay)
  * are left out.
  */
@@ -44,17 +44,6 @@ class SitemapController extends Controller
 
                 $xml[] = '  </url>';
             }
-        }
-
-        foreach (PublicPage::LOCALES as $locale) {
-            $xml[] = '  <url>';
-            $xml[] = '    <loc>'.e($origin.SiteContent::url($locale, 'videos')).'</loc>';
-
-            foreach (PublicPage::LOCALES as $alternate) {
-                $xml[] = '    <xhtml:link rel="alternate" hreflang="'.$alternate.'" href="'.e($origin.SiteContent::url($alternate, 'videos')).'"/>';
-            }
-
-            $xml[] = '  </url>';
         }
 
         $xml[] = '</urlset>';
