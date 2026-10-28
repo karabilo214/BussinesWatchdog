@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Site;
 
+use App\Http\Controllers\Site\SiteVideosController;
 use App\Mail\NotificationMessageMail;
 use App\Models\BillingPlan;
 use App\Models\BillingPlanVersion;
@@ -77,7 +78,7 @@ class PublicSiteTest extends TestCase
         $this->assertSame([], array_values(array_filter($locs, fn (string $loc): bool => preg_match('#/(signup|check-store|pay)$#', $loc) === 1)));
         $this->assertSame(['https://watchdog.test/ru', 'https://watchdog.test/en', 'https://watchdog.test/de'], array_slice($locs, 0, 3), 'the home page comes first');
 
-        $about = collect($xml->url)->first(fn ($url): bool => (string) $url->loc === 'https://watchdog.test/de/about');
+        $about = collect(iterator_to_array($xml->url, false))->first(fn ($url): bool => (string) $url->loc === 'https://watchdog.test/de/about');
         $this->assertSame('2026-10-15', (string) $about->lastmod);
         $alternates = [];
 
@@ -90,6 +91,30 @@ class PublicSiteTest extends TestCase
         $this->get('/robots.txt')->assertOk()->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
             ->assertSee('Sitemap: https://watchdog.test/sitemap.xml', false)
             ->assertSee("User-agent: *\nDisallow:\n", false);
+    }
+
+    public function test_the_videos_page_shows_the_videos_in_the_page_language_and_is_in_the_sitemap(): void
+    {
+        $this->get('/de/videos')->assertOk()
+            ->assertSee('<source src="/videos/de-checkout-pruefung.mp4" type="video/mp4">', false)
+            ->assertSee('poster="/videos/de-bezahlt-ohne-geld.webp"', false)
+            ->assertSee('Testshop mit Stripe im Testmodus');
+        $this->get('/en/videos')->assertOk()
+            ->assertSee('/videos/en-payment-provider-failure.mp4', false)
+            ->assertDontSee('/videos/de-', false);
+        $this->get('/ru/videos')->assertOk()
+            ->assertSee('/videos/en-paid-without-money.mp4', false)
+            ->assertSee('Видео на английском языке.');
+
+        foreach (SiteVideosController::VIDEOS as $files) {
+            foreach ($files as $file) {
+                $this->assertFileExists(public_path('videos/'.$file.'.mp4'));
+                $this->assertFileExists(public_path('videos/'.$file.'.webp'));
+            }
+        }
+
+        $this->get('/sitemap.xml')->assertOk()
+            ->assertSee('<loc>'.rtrim((string) config('app.url'), '/').'/de/videos</loc>', false);
     }
 
     public function test_root_sends_the_visitor_to_their_language_and_home_works_without_published_content(): void

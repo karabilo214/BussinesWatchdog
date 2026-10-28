@@ -63,6 +63,9 @@
   .site-small { font-size: 0.875rem; }
   .site-note { margin: 1.5rem 0 0; padding: 0.75rem 1rem; border: 1px solid var(--color-note-border); background: var(--color-note-soft); color: var(--color-note); border-radius: 0.5rem; }
 
+  .site-video { margin: 2.5rem 0 0; }
+  .site-video video { display: block; width: 100%; height: auto; margin-top: 1rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-surface-muted); }
+
   .site-switches { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
   .site-switch { display: inline-flex; border: 1px solid var(--color-border-strong); border-radius: 0.5rem; overflow: hidden; background: var(--color-surface); }
   .site-switch a { padding: 0.5rem 1rem; color: var(--color-text) !important; text-decoration: none !important; font-weight: 500; font-size: 0.9375rem; }

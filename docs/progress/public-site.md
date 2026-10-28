@@ -359,3 +359,16 @@ Status: complete; deployed 2026-10-27 (`15fd387`).
 - No migrations or API contracts changed. Traceability: Step 224 site branding and spec §31 performance; no acceptance matrix status changed.
 
 Verification: decoded both files (64×64 and 128×128, alpha range 0–255), visually compared them with the original on a grey background; `git diff --check`; Docker `APP_ENV=testing` PublicSiteTest: 15 passed, 384 assertions. Initial Docker run without explicitly overriding APP_ENV: 6 passed, 9 failed with login CSRF 419; rerun in testing environment passed. Production: rollout completed successfully, no migrations pending; live HTML selects both WebP sizes and inline CSS; both images return HTTP 200 with image/webp and match the committed files byte for byte; site stylesheet returns HTTP 200 with the one-year immutable cache header. The 300-second rollout probe observed only HTTP 200: `/health/ready` 495 requests, `/app/` 707, `/en` 422. Remaining: a fresh PageSpeed measurement.
+
+### Step 295: Videos page on the public site (2026-10-28)
+
+Status: complete
+
+- Owner: host the sales videos (Step 294) on our own site instead of YouTube and link them from the plugin description.
+- `/{ru,en,de}/videos` (`SiteVideosController`, `site/videos.blade.php`, texts `site.videos.*`): three videos with a short problem-first text each, a note how they were made (test shop, Stripe test mode, real checks, incidents and e-mails; shop and customer invented), buttons «14 days free» and «check your store URL». German page shows the German videos; English and Russian the English ones (Russian page says so). In the sitemap with hreflang alternates.
+- Files: `apps/backend/public/videos/*.mp4` (H.264, `+faststart`, CRF 25, ~8.7 MB for six) and `*.webp` posters; served as static files by Caddy (byte ranges for seeking — PHP media serving would not support them), `preload="none"`.
+- Fixed a fragile sitemap test: `collect($xml->url)` kept only the last `<url>` (SimpleXML iterator keys are all `url`); now `iterator_to_array(..., false)`.
+- WordPress.org shows an embedded player only for YouTube/Vimeo/VideoPress links; the plugin description links to the page instead. Shopware Store accepts YouTube videos only.
+
+Verification: `PublicSiteTest` 16 (new: page per language, video and poster files exist, sitemap entry); local `/en|de|ru/videos` 200, `Range` request answered `206` with `video/mp4`; page checked on desktop and 390 px.
+
