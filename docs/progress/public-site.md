@@ -408,3 +408,15 @@ Status: complete
 Verification: `PublicSiteTest` 18 (new: unknown or unsafe slug refused, footer page in three languages with terms/privacy links and the GDPR answers, footer link, sitemap, no GitHub link).
 
 Production (2026-10-28): deployed `e57c38a`; `site:page security <owner> --publish="Security page"` published `/en|de|ru/security` (footer menu, sitemap); no GitHub link on the page.
+
+### Step 300: The security page redone as a designed page with real screenshots and permission lists (2026-10-28)
+
+Status: complete
+
+- Owner: the published security page was dry — plain lists, no screenshots, «designed like a log». Wanted: quality and good looks, screenshots, lazy-loaded web-optimised images for PageSpeed, and code blocks with the real permission lists.
+- The page now uses the home page's design (`bw-page`): hero with «what it does / never does», section chips, six promise cards, per connection a split of text and a screenshot or code block — WooCommerce (key form with «Read», the GET allowlist, `ORDER_FIELDS`, what is kept from `meta_data`), Stripe (cabinet card with `rk_••••`, the restricted key's permissions), PayPal (the honest warning, the cabinet warning, the exact method list), Shopware (the App's `<read>` permissions, the POST allowlist, the honest note about «view only» roles), the plugin (emergency stop), the checkout check (a real passed run), data storage (facts, support access form), GDPR FAQ (6), call to action. en/de/ru; screenshots per language from the local stand (cabinet in the page language; WordPress key form en/de, the plugin page has no translation), no personal data or secrets (keys masked, test e-mails).
+- Images: WebP 640/1280 with a content hash in the name under `public/images/pages/security/` (5–45 KB each), `srcset`/`sizes`, `width`/`height`, `loading="lazy"`, `decoding="async"`, descriptive `alt`; the hero has no image, so nothing lazy is above the fold. Caddy serves `/images/pages/*` as immutable for a year.
+- `site/page.blade.php`: a page whose HTML starts with `<div class="bw-page"` is rendered full width like the home page and brings its own `<h1>`; other pages unchanged. New `bw-*` classes for screenshots, code blocks, check lists, section chips, facts and the honest note.
+
+Verification: `PublicSiteTest` 18 (security test: one `<h1>`, the Shopware permission list, links to terms/privacy; every image lazy/async with size, alt and existing 640/1280 files), backend 826 + 4 skipped, Pint; site stylesheet build check. Looked at desktop 1366 and mobile 390 in en/de/ru: no horizontal scroll, all images load.
+

@@ -130,14 +130,36 @@ class PublicSiteTest extends TestCase
         $page = PublicPage::query()->where('path', 'security')->firstOrFail();
         $this->assertSame(PublicPage::MENU_FOOTER, $page->menu);
 
-        $this->get('/en/security')->assertOk()
-            ->assertSee('<h1>Why Business Watchdog is safe for your store</h1>', false)
-            ->assertSee('<a href="/en/terms" rel="noopener noreferrer">', false)
-            ->assertSee('<a href="/en/privacy" rel="noopener noreferrer">', false)
-            ->assertSee('<section class="site-stores">', false)
-            ->assertSee('Art. 28 GDPR');
-        $this->get('/de/security')->assertOk()->assertSee('Auftragsverarbeiter nach Art. 28 DSGVO')->assertSee('<a href="/de/terms" rel="noopener noreferrer">', false);
-        $this->get('/ru/security')->assertOk()->assertSee('Вопросы о GDPR')->assertSee('<a href="/ru/privacy" rel="noopener noreferrer">', false);
+        $html = $this->get('/en/security')->assertOk()
+            ->assertSee('<h1>Why Business Watchdog is <span class="bw-accent">safe for your store</span></h1>', false)
+            ->assertSee('href="/en/terms"', false)
+            ->assertSee('href="/en/privacy"', false)
+            ->assertSee('&lt;read&gt;order_transaction&lt;/read&gt;', false)
+            ->assertSee('Art. 28 GDPR')
+            ->getContent();
+        $this->assertSame(1, substr_count($html, '<h1'), 'a designed page brings its own heading');
+        $this->get('/de/security')->assertOk()->assertSee('Auftragsverarbeiter nach Art. 28 DSGVO')->assertSee('href="/de/terms"', false);
+        $this->get('/ru/security')->assertOk()->assertSee('Вопросы о GDPR')->assertSee('href="/ru/privacy"', false);
+
+        foreach (['en', 'de', 'ru'] as $locale) {
+            $body = (string) file_get_contents(database_path("data/pages/security/{$locale}.html"));
+            preg_match_all('#<img [^>]*>#', $body, $images);
+            $this->assertCount(6, $images[0]);
+
+            foreach ($images[0] as $image) {
+                $this->assertStringContainsString('loading="lazy"', $image);
+                $this->assertStringContainsString('decoding="async"', $image);
+                $this->assertMatchesRegularExpression('/ width="\d+" height="\d+"/', $image);
+                $this->assertMatchesRegularExpression('/ alt="[^"]{20,}"/', $image);
+                preg_match_all('#/images/pages/security/([a-z0-9-]+\.webp)#', $image, $files);
+                $this->assertCount(3, $files[1]);
+
+                foreach ($files[1] as $file) {
+                    $this->assertFileExists(public_path('images/pages/security/'.$file));
+                }
+            }
+        }
+
         $this->get('/en')->assertOk()->assertSee('/en/security', false);
         $this->get('/sitemap.xml')->assertOk()->assertSee('https://watchdog.test/ru/security', false);
 
