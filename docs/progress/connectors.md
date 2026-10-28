@@ -801,7 +801,7 @@ Status: complete; published in the directory (SVN r3769100, `trunk/readme.txt` a
 
 ### Step 299: WooCommerce plugin 0.4.1 — the account is visible right after installation (2026-10-28)
 
-Status: complete (not yet in the WordPress.org directory)
+Status: complete
 
 - Owner, as «a simple customer» on a test stand: installed the plugin from the directory and waited for results — nothing says a Business Watchdog account is needed. The directory sidebar («Requires …») has only fixed fields (WordPress, PHP, plugins), so the requirement goes where a customer actually looks.
 - Plugin header description (Plugins screen): what it alerts about and «Requires a Business Watchdog account: create one free» with a link to `/en/signup`.
@@ -811,3 +811,4 @@ Status: complete (not yet in the WordPress.org directory)
 
 Verification: integration tests floor (WP 5.9, PHP 7.4, WooCommerce 6.0) and wc8 60/60 (new: unconnected store — signup link in the action links and on the page, pre-filled service URL, notice on the Plugins screen; none once connected), PHP 7.4 lint. ZIP 0.4.1 `4dfb47d5…5864` (54 files).
 
+Release (2026-10-28, owner's approval): published in the WordPress.org directory (SVN r3770171, `trunk/` and `tags/0.4.1/` from this exact ZIP; the directory API reports 0.4.1). The same ZIP is on the production plugin volume and `WATCHDOG_WOO_APPROVED_SHA256` points at it, so the cabinet hands out 0.4.1 (0.4.0 stays on the volume, no longer served).

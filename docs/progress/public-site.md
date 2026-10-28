@@ -407,3 +407,4 @@ Status: complete
 
 Verification: `PublicSiteTest` 18 (new: unknown or unsafe slug refused, footer page in three languages with terms/privacy links and the GDPR answers, footer link, sitemap, no GitHub link).
 
+Production (2026-10-28): deployed `e57c38a`; `site:page security <owner> --publish="Security page"` published `/en|de|ru/security` (footer menu, sitemap); no GitHub link on the page.
