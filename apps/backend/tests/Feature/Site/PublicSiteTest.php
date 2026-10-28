@@ -248,6 +248,52 @@ class PublicSiteTest extends TestCase
         $this->assertSame('Первая версия', DB::table('platform_audit_log')->where('action', 'site.page.published')->orderBy('id')->value('reason'));
     }
 
+    public function test_the_header_menu_nests_pages_under_an_item_with_short_labels_without_changing_addresses(): void
+    {
+        $this->signIn();
+        $publish = function (string $slug, string $menu, string $title): string {
+            $page = $this->postJson('/platform-api/v1/pages', ['slug' => $slug, 'menu' => $menu])->assertCreated()->json();
+            $this->putJson("/platform-api/v1/pages/{$page['id']}/locales/ru/draft", ['title' => $title, 'body' => '<p>x</p>'])->assertOk();
+            $this->postJson("/platform-api/v1/pages/{$page['id']}/locales/ru/publish", ['reason' => 'Первая версия'])->assertOk();
+
+            return $page['id'];
+        };
+        $resources = $publish('resources', 'header', 'Материалы для владельцев магазинов');
+        $videos = $publish('videos', 'header', 'Посмотрите, как работает Business Watchdog, за минуту');
+        $security = $publish('security', 'footer', 'Почему Business Watchdog безопасен для вашего магазина');
+
+        $this->patchJson("/platform-api/v1/pages/{$videos}", ['menu_labels' => ['ru' => str_repeat('я', 41)]])->assertUnprocessable();
+        $this->patchJson("/platform-api/v1/pages/{$videos}", ['menu_labels' => ['fr' => 'Vidéos']])->assertUnprocessable();
+        $this->patchJson("/platform-api/v1/pages/{$videos}", ['menu_parent_id' => $videos])->assertUnprocessable()->assertJsonPath('code', 'menu_parent_invalid');
+        $this->patchJson("/platform-api/v1/pages/{$security}", ['menu_parent_id' => $resources])->assertUnprocessable()->assertJsonPath('code', 'menu_parent_other_menu');
+
+        $this->patchJson("/platform-api/v1/pages/{$resources}", ['menu_labels' => ['ru' => '  Материалы ', 'en' => '']])->assertOk()
+            ->assertJsonPath('menu_labels', ['ru' => 'Материалы']);
+        $this->patchJson("/platform-api/v1/pages/{$videos}", ['menu_parent_id' => $resources, 'menu_labels' => ['ru' => 'Видео']])->assertOk()
+            ->assertJsonPath('menu_parent_id', $resources);
+        $this->patchJson("/platform-api/v1/pages/{$security}", ['menu' => 'header', 'menu_parent_id' => $resources, 'menu_labels' => ['ru' => 'Безопасность']])->assertOk();
+        $this->patchJson("/platform-api/v1/pages/{$resources}", ['menu_parent_id' => $videos])->assertUnprocessable()->assertJsonPath('code', 'menu_parent_invalid');
+        $this->patchJson("/platform-api/v1/pages/{$resources}", ['menu' => 'footer'])->assertStatus(409)->assertJsonPath('code', 'menu_has_children');
+
+        $html = $this->get('/ru/videos')->assertOk()->getContent();
+        $nav = substr($html, (int) strpos($html, 'class="site-nav site-nav-wide"'), 2000);
+        $this->assertMatchesRegularExpression('#<summary\s+aria-current="true"\s*>Материалы</summary>#', $nav);
+        $this->assertMatchesRegularExpression('#<a href="/ru/resources"\s*>Материалы</a>\s*<a href="/ru/security"\s*>Безопасность</a>\s*<a href="/ru/videos"\s+aria-current="page"\s*>Видео</a>#', $nav);
+        $this->assertStringNotContainsString('за минуту</a>', $nav);
+        $this->assertStringContainsString('details[data-dropdown]', $html);
+        $this->get('/ru/security')->assertOk();
+        $this->get('/ru/resources/security')->assertNotFound();
+        $this->get('/en')->assertOk()->assertDontSee('data-dropdown', false);
+
+        $this->patchJson("/platform-api/v1/pages/{$security}", ['menu' => 'footer'])->assertOk()->assertJsonPath('menu_parent_id', null);
+        $this->assertMatchesRegularExpression('#<a href="/ru/security"\s*>Безопасность</a>#', $this->get('/ru')->assertOk()->getContent());
+
+        $this->postJson("/platform-api/v1/pages/{$resources}/archive", ['reason' => 'Раздел больше не нужен'])->assertNoContent();
+        $this->assertNull(PublicPage::query()->findOrFail($videos)->menu_parent_id);
+        $home = $this->get('/ru')->assertOk()->assertDontSee('data-dropdown', false)->getContent();
+        $this->assertMatchesRegularExpression('#<a href="/ru/videos"\s*>Видео</a>#', $home);
+    }
+
     public function test_the_published_version_is_changed_in_place_except_for_legal_documents(): void
     {
         $this->signIn();

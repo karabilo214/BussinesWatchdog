@@ -14,7 +14,8 @@ class CreateSitePage extends Command
     protected $signature = 'site:page
         {slug : Page from database/data/pages, e.g. videos or security}
         {staff : Email of the platform owner the drafts are saved as}
-        {--publish= : Publish the drafts at once with this reason}';
+        {--publish= : Publish the drafts at once with this reason}
+        {--menu : Only apply the menu labels from the data file; texts stay untouched}';
 
     protected $description = 'Create an editable page of the site from database/data/pages and save its texts as drafts';
 
@@ -45,6 +46,15 @@ class CreateSitePage extends Command
         try {
             $page = PublicPage::query()->where('kind', PublicPage::KIND_PAGE)->where('path', $slug)->whereNull('archived_at')->first()
                 ?? $pages->create($staff->id, ['slug' => $slug, 'menu' => $data['menu'], 'sort' => $data['sort']]);
+
+            if (isset($data['menu_labels'])) {
+                $pages->update($staff->id, $page->id, ['menu_labels' => $data['menu_labels']]);
+                $this->line("/{$slug} menu labels set");
+            }
+
+            if ($this->option('menu')) {
+                return self::SUCCESS;
+            }
 
             foreach ($data['locales'] as $locale => $content) {
                 $pages->saveDraft($staff->id, $page->id, $locale, $content);

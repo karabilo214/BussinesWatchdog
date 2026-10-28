@@ -3,6 +3,7 @@
 return [
     'menu' => 'header',
     'sort' => 5,
+    'menu_labels' => ['ru' => 'Видео', 'en' => 'Videos', 'de' => 'Videos'],
     'locales' => [
         'en' => [
             'title' => 'See Business Watchdog work in a minute',

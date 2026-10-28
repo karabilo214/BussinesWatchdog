@@ -421,3 +421,17 @@ Status: complete
 Verification: `PublicSiteTest` 18 (security test: one `<h1>`, the Shopware permission list, links to terms/privacy; every image lazy/async with size, alt and existing 640/1280 files), backend 826 + 4 skipped, Pint; site stylesheet build check. Looked at desktop 1366 and mobile 390 in en/de/ru: no horizontal scroll, all images load.
 
 Production (2026-10-28): deployed `6de69e1`; `site:page security <owner> --publish="Security page redesign"` updated `/en|de|ru/security` (one designed `<h1>`, 6 lazy images per language, every image 200, `Cache-Control: public, max-age=31536000, immutable`, `image/webp`; no GitHub link).
+
+### Step 301: Short menu labels and a nested header menu (2026-10-28)
+
+Status: complete
+
+- Owner (screenshot of the header): the videos page put its full title «Посмотрите, как работает Business Watchdog, за минуту» into the header and the other items wrapped onto two lines. Wanted: fix the menu, make it multi-level for more pages later; images for menu items go to the backlog.
+- `public_pages.menu_labels` (jsonb, per language, up to 40 characters, empty falls back to the page title) and `public_pages.menu_parent_id` (migration `2026_10_28_120000`; foreign key with `ON DELETE SET NULL` on PostgreSQL). The menu tree is separate from the URL tree (`parent_id`/path), so nesting never changes a page address. Rules in `PageAdmin::update`: the parent must be another live page of the same menu, not the home page, not nested itself; a page with nested pages cannot be nested or change its menu (`menu_has_children`); moving a nested page to another menu drops its parent; archiving a parent releases its children. Audit before/after as for menu and order.
+- Site: `SiteContent::menu` returns items with children. The header shows an item with children as a `<details>` dropdown (click, tap and keyboard; a small inline script closes it on an outside click or Escape and keeps one open); the section page itself is the first entry; the current page marks its section. Mobile menu: nested items indented. Footer: nested items follow their section. Menu items never wrap; the wide menu starts at 1024 px.
+- Owner panel, page settings: «Menu label» ru/en/de (placeholder = page title) and «Show under» (items of the same menu that are not nested themselves), hidden for «no menu» and for an item that has nested pages; hints ru/en/de; new error texts.
+- `site:page <slug> <owner> --menu` applies only `menu_labels` from the data file; videos — «Видео / Videos / Videos», security — «Безопасность / Security / Sicherheit».
+- Backlog: an image for a menu item, shown on the site (section «Публичный сайт»).
+
+Verification: `PublicSiteTest` 19 (new: label length and language checks, self/other-menu/too-deep parents, refused menu change with children, dropdown with the section first and the current page marked, address unchanged, footer flat after moving out, archive releases children), backend 827 + 4 skipped, Pint; owner panel 98 tests (new: nesting with labels, no nesting offered for an item with children), types, build; site stylesheet check. Looked at 1366/1024 px (ru, de) and 390 px locally.
+

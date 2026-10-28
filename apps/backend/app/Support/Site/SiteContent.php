@@ -54,7 +54,7 @@ class SiteContent
     }
 
     /**
-     * @return list<array{href: string, label: string, path: string}>
+     * @return list<array{href: string, label: string, path: string, children: list<array{href: string, label: string, path: string}>}>
      */
     public function menu(string $locale, string $menu): array
     {
@@ -63,14 +63,22 @@ class SiteContent
         $items = [];
 
         foreach ($pages as $page) {
-            $label = ($page->isEditable() ? $titles[$page->id] ?? null : null) ?? ($page->isSystem() ? trans("site.nav.{$page->kind}", [], $locale) : null);
+            $title = ($page->isEditable() ? $titles[$page->id] ?? null : null) ?? ($page->isSystem() ? trans("site.nav.{$page->kind}", [], $locale) : null);
 
-            if ($label !== null) {
-                $items[] = ['href' => self::url($locale, $page->path), 'label' => (string) $label, 'path' => $page->path];
+            if ($title !== null) {
+                $label = $page->menu_labels[$locale] ?? $title;
+                $items[$page->id] = ['href' => self::url($locale, $page->path), 'label' => (string) $label, 'path' => $page->path, 'parent' => $page->menu_parent_id, 'children' => []];
             }
         }
 
-        return $items;
+        foreach ($items as $id => $item) {
+            if ($item['parent'] !== null && isset($items[$item['parent']]) && $items[$item['parent']]['parent'] === null) {
+                $items[$item['parent']]['children'][] = ['href' => $item['href'], 'label' => $item['label'], 'path' => $item['path']];
+                unset($items[$id]);
+            }
+        }
+
+        return array_values(array_map(fn (array $item): array => ['href' => $item['href'], 'label' => $item['label'], 'path' => $item['path'], 'children' => $item['children']], $items));
     }
 
     public static function url(string $locale, string $path = ''): string

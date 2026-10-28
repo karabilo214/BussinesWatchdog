@@ -2438,7 +2438,7 @@ paths:
     patch:
       tags: [Platform]
       operationId: platformUpdatePage
-      description: "Capability content.manage. Changes the menu, the order and the legal document type (service_terms, privacy_notice, recurring_payment — one page per type, ordinary pages only: 409 policy_taken, 422 policy_type_invalid; ADR 0042); the slug and the parent never change."
+      description: "Capability content.manage. Changes the menu, the order, the menu tree and labels, and the legal document type (service_terms, privacy_notice, recurring_payment — one page per type, ordinary pages only: 409 policy_taken, 422 policy_type_invalid; ADR 0042); the slug and the parent never change. menu_parent_id shows the page under another item of the same menu without changing its address: one level only (422 menu_parent_invalid, menu_parent_other_menu, menu_too_deep); changing the menu of an item with nested pages is refused (409 menu_has_children); changing the menu of a nested page drops its menu parent. menu_labels are short menu labels per language (up to 40 characters; empty falls back to the page title; 422 menu_label_invalid)."
       security:
         - {StaffSession: []}
       parameters:
@@ -2453,6 +2453,14 @@ paths:
                 menu: {enum: [none, header, footer]}
                 sort: {type: integer, minimum: -1000, maximum: 1000}
                 policy_type: {type: [string, "null"], enum: [service_terms, privacy_notice, recurring_payment, null]}
+                menu_parent_id: {type: [string, "null"], format: uuid}
+                menu_labels:
+                  type: [object, "null"]
+                  additionalProperties: false
+                  properties:
+                    ru: {type: [string, "null"], maxLength: 40}
+                    en: {type: [string, "null"], maxLength: 40}
+                    de: {type: [string, "null"], maxLength: 40}
       responses:
         "200":
           description: Page card

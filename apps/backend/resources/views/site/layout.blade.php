@@ -60,6 +60,9 @@
             <nav aria-label="{{ __('site.nav.footer') }}" class="site-footer-nav">
                 @foreach ($footer as $item)
                     <a href="{{ $item['href'] }}" @if ($item['path'] === $path) aria-current="page" @endif>{{ $item['label'] }}</a>
+                    @foreach ($item['children'] as $child)
+                        <a href="{{ $child['href'] }}" @if ($child['path'] === $path) aria-current="page" @endif>{{ $child['label'] }}</a>
+                    @endforeach
                 @endforeach
             </nav>
         @endif
@@ -71,6 +74,13 @@
         <p class="site-copy">© {{ now()->year }} {{ __('site.brand') }}</p>
     </div>
 </footer>
+@if (collect($header)->contains(fn ($item) => $item['children'] !== []))
+<script>
+document.addEventListener('click', (event) => document.querySelectorAll('details[data-dropdown][open]').forEach((menu) => menu.contains(event.target) || menu.removeAttribute('open')));
+document.addEventListener('keydown', (event) => event.key === 'Escape' && document.querySelectorAll('details[data-dropdown][open]').forEach((menu) => { menu.removeAttribute('open'); menu.querySelector('summary').focus(); }));
+document.querySelectorAll('details[data-dropdown]').forEach((menu) => menu.addEventListener('toggle', () => menu.open && document.querySelectorAll('details[data-dropdown][open]').forEach((other) => other === menu || other.removeAttribute('open'))));
+</script>
+@endif
 @stack('scripts')
 </body>
 </html>

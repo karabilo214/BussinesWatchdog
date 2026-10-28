@@ -135,7 +135,7 @@ class PageAdmin
     }
 
     /**
-     * @param  array{menu?: string, sort?: int, policy_type?: ?string}  $input
+     * @param  array{menu?: string, sort?: int, policy_type?: ?string, menu_parent_id?: ?string, menu_labels?: ?array<string, ?string>}  $input
      */
     public function update(string $staffId, string $pageId, array $input): PublicPage
     {
@@ -146,6 +146,20 @@ class PageAdmin
         }
 
         $changes = array_filter(['menu' => $input['menu'] ?? null, 'sort' => isset($input['sort']) ? (int) $input['sort'] : null], fn ($value): bool => $value !== null);
+
+        if (array_key_exists('menu_labels', $input)) {
+            $changes['menu_labels'] = $this->menuLabels($input['menu_labels']);
+        }
+
+        if (array_key_exists('menu_parent_id', $input)) {
+            $changes['menu_parent_id'] = $this->menuParent($page, $input['menu_parent_id'], $changes['menu'] ?? $page->menu);
+        } elseif (isset($changes['menu']) && $changes['menu'] !== $page->menu && $page->menu_parent_id !== null) {
+            $changes['menu_parent_id'] = null;
+        }
+
+        if (isset($changes['menu']) && $changes['menu'] !== $page->menu && PublicPage::query()->where('menu_parent_id', $page->id)->whereNull('archived_at')->exists()) {
+            throw new SiteRejected('menu_has_children', 409);
+        }
 
         if (array_key_exists('policy_type', $input)) {
             $type = $input['policy_type'];
@@ -161,11 +175,68 @@ class PageAdmin
             $changes['policy_type'] = $type;
         }
 
-        $before = array_intersect_key($page->getAttributes(), $changes);
+        $before = array_intersect_key(['menu_labels' => $page->menu_labels] + $page->getAttributes(), $changes);
         $page->forceFill($changes)->save();
         $this->audit->record($staffId, 'site.page.updated', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => $before, 'after' => $changes]);
 
         return $page;
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private function menuLabels(mixed $labels): ?array
+    {
+        if ($labels === null) {
+            return null;
+        }
+
+        if (! is_array($labels)) {
+            throw new SiteRejected('menu_label_invalid');
+        }
+
+        $clean = [];
+
+        foreach ($labels as $locale => $label) {
+            if (! in_array($locale, PublicPage::LOCALES, true) || ! (is_string($label) || $label === null)) {
+                throw new SiteRejected('menu_label_invalid');
+            }
+
+            $label = trim(preg_replace('/\s+/u', ' ', (string) $label) ?? '');
+
+            if (mb_strlen($label) > PublicPage::MENU_LABEL_MAX) {
+                throw new SiteRejected('menu_label_invalid');
+            }
+
+            if ($label !== '') {
+                $clean[$locale] = $label;
+            }
+        }
+
+        return $clean === [] ? null : $clean;
+    }
+
+    private function menuParent(PublicPage $page, mixed $parentId, string $menu): ?string
+    {
+        if ($parentId === null) {
+            return null;
+        }
+
+        $parent = is_string($parentId) ? PublicPage::query()->whereKey($parentId)->whereNull('archived_at')->first() : null;
+
+        if ($parent === null || $parent->id === $page->id || $parent->kind === PublicPage::KIND_HOME || $parent->menu_parent_id !== null) {
+            throw new SiteRejected('menu_parent_invalid');
+        }
+
+        if ($menu === PublicPage::MENU_NONE || $parent->menu !== $menu) {
+            throw new SiteRejected('menu_parent_other_menu');
+        }
+
+        if (PublicPage::query()->where('menu_parent_id', $page->id)->whereNull('archived_at')->exists()) {
+            throw new SiteRejected('menu_too_deep');
+        }
+
+        return $parent->id;
     }
 
     /**
@@ -356,6 +427,7 @@ class PageAdmin
             }
 
             PublicPageVersion::query()->where('page_id', $page->id)->where('state', PublicPageVersion::STATE_DRAFT)->delete();
+            PublicPage::query()->where('menu_parent_id', $page->id)->update(['menu_parent_id' => null]);
             $previousPolicy = $page->policy_type;
             $page->forceFill(['archived_at' => $now, 'policy_type' => null])->save();
             $this->audit->record($staffId, 'site.page.archived', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $page->path, 'before' => ['archived_at' => null, 'policy_type' => $previousPolicy], 'after' => ['archived_at' => $now->toJSON(), 'policy_type' => null]], $reason);
@@ -392,6 +464,8 @@ class PageAdmin
             'slug' => $page->slug,
             'path' => $page->path,
             'menu' => $page->menu,
+            'menu_parent_id' => $page->menu_parent_id,
+            'menu_labels' => (object) ($page->menu_labels ?? []),
             'sort' => $page->sort,
             'policy_type' => $page->policy_type,
             'editable' => $page->isEditable(),

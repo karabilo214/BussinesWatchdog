@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, r
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { StatusBadge } from '@bw/ui';
-import { archivePage, deletePageVersion, discardPageDraft, fetchPage, fetchPageBlocks, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, updatePublishedPage, type PageBlock, type PageCard, type PageMenu, type PolicyType, type SiteLocale } from '@/api';
+import { archivePage, deletePageVersion, discardPageDraft, fetchPage, fetchPageBlocks, fetchPages, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, updatePublishedPage, type PageBlock, type PageCard, type PageMenu, type PageSummary, type PolicyType, type SiteLocale } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import RichEditor from '@/components/editor/RichEditor.vue';
 import { CONTENT_CLASSES, SITE_LOCALES, publicUrl } from '@/components/site';
@@ -26,7 +26,10 @@ const notice = ref<string | null>(null);
 const locale = ref<SiteLocale>('ru');
 const form = reactive({ title: '', description: '', body: '' });
 const saved = ref({ title: '', description: '', body: '' });
-const settings = reactive({ menu: 'none' as PageMenu, sort: 0, policy: '' as PolicyType | '' });
+const settings = reactive({ menu: 'none' as PageMenu, sort: 0, policy: '' as PolicyType | '', menuParent: '', labels: { ru: '', en: '', de: '' } as Record<SiteLocale, string> });
+const allPages = ref<PageSummary[]>([]);
+const menuParents = computed(() => allPages.value.filter((row) => row.id !== page.value?.id && row.kind !== 'home' && row.menu === settings.menu && row.menu_parent_id === null));
+const hasMenuChildren = computed(() => allPages.value.some((row) => row.menu_parent_id === page.value?.id));
 const confirm = reactive({ action: null as 'publish' | 'unpublish' | 'archive' | 'delete_version' | 'update_published' | null, reason: '', version: '' });
 const previewHtml = ref('');
 const previewError = ref<unknown>(null);
@@ -75,6 +78,16 @@ function accept(card: PageCard): void {
   settings.menu = card.menu;
   settings.policy = card.policy_type ?? '';
   settings.sort = card.sort;
+  settings.menuParent = card.menu_parent_id ?? '';
+  settings.labels = { ru: card.menu_labels?.ru ?? '', en: card.menu_labels?.en ?? '', de: card.menu_labels?.de ?? '' };
+}
+
+async function loadPages(): Promise<void> {
+  try {
+    allPages.value = await fetchPages();
+  } catch {
+    allPages.value = [];
+  }
 }
 
 async function loadBlocks(): Promise<void> {
@@ -88,6 +101,7 @@ async function loadBlocks(): Promise<void> {
 async function load(): Promise<void> {
   error.value = null;
   void loadBlocks();
+  void loadPages();
 
   try {
     accept(await fetchPage(props.id));
@@ -157,7 +171,10 @@ async function restore(versionId: string): Promise<void> {
 async function saveSettings(): Promise<void> {
   if (page.value === null) return;
   const id = page.value.id;
-  await run(() => updatePage(id, { menu: settings.menu, sort: settings.sort, ...(page.value?.kind === 'page' ? { policy_type: settings.policy === '' ? null : settings.policy } : {}) }), 'site.done.settings');
+  const menuParent = settings.menu === 'none' || settings.menuParent === '' || !menuParents.value.some((row) => row.id === settings.menuParent) ? null : settings.menuParent;
+  const labels = { ru: settings.labels.ru.trim() || null, en: settings.labels.en.trim() || null, de: settings.labels.de.trim() || null };
+  await run(() => updatePage(id, { menu: settings.menu, sort: settings.sort, menu_parent_id: menuParent, menu_labels: labels, ...(page.value?.kind === 'page' ? { policy_type: settings.policy === '' ? null : settings.policy } : {}) }), 'site.done.settings');
+  void loadPages();
 }
 
 async function confirmAction(): Promise<void> {
@@ -385,6 +402,20 @@ onBeforeUnmount(() => {
             <span class="font-medium">{{ $t('site.sort') }}</span>
             <input v-model.number="settings.sort" type="number" min="-1000" max="1000" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="sort" />
           </label>
+          <label v-if="settings.menu !== 'none' && !hasMenuChildren" class="flex flex-col gap-1.5">
+            <span class="font-medium">{{ $t('site.menu_parent') }}</span>
+            <select v-model="settings.menuParent" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="menu-parent">
+              <option value="">{{ $t('site.menu_parent_none') }}</option>
+              <option v-for="row in menuParents" :key="row.id" :value="row.id">{{ row.menu_labels?.[locale] || row.locales[locale]?.title || '/' + row.path }}</option>
+            </select>
+          </label>
+          <fieldset v-if="settings.menu !== 'none'" class="flex w-full flex-wrap items-end gap-3" data-field="menu-labels">
+            <legend class="mb-1.5 font-medium">{{ $t('site.menu_label') }}</legend>
+            <label v-for="lang in (['ru', 'en', 'de'] as const)" :key="lang" class="flex flex-col gap-1">
+              <span class="text-xs uppercase text-text-muted">{{ lang }}</span>
+              <input v-model="settings.labels[lang]" type="text" maxlength="40" class="w-48 rounded-md border border-border-strong bg-surface px-3 py-2" :data-field="`menu-label-${lang}`" :placeholder="page.locales[lang]?.title ?? ''" />
+            </label>
+          </fieldset>
           <label v-if="page.kind === 'page'" class="flex flex-col gap-1.5">
             <span class="font-medium">{{ $t('site.policy.label') }}</span>
             <select v-model="settings.policy" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="policy">
@@ -395,6 +426,7 @@ onBeforeUnmount(() => {
           <button type="submit" class="rounded-md border border-border-strong px-4 py-2 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy" data-action="save-settings">{{ $t('site.action.save_settings') }}</button>
           <button v-if="page.kind === 'page'" type="button" class="ml-auto rounded-md border border-crit-border px-4 py-2 font-medium text-crit hover:bg-crit-soft" data-action="archive" @click="ask('archive')">{{ $t('site.action.archive') }}</button>
           <p class="w-full text-text-muted">{{ $t('site.slug_fixed') }}</p>
+          <p v-if="settings.menu !== 'none'" class="w-full text-text-muted" data-hint="menu">{{ $t('site.menu_label_hint') }} {{ hasMenuChildren ? $t('site.menu_children') : $t('site.menu_parent_hint') }}</p>
           <p v-if="page.kind === 'page'" class="w-full text-text-muted">{{ $t('site.policy.hint') }}</p>
         </form>
       </template>

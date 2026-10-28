@@ -3,6 +3,7 @@
 return [
     'menu' => 'footer',
     'sort' => 10,
+    'menu_labels' => ['ru' => 'Безопасность', 'en' => 'Security', 'de' => 'Sicherheit'],
     'locales' => [
         'en' => [
             'title' => 'Why Business Watchdog is safe for your store',

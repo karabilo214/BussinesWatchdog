@@ -47,6 +47,9 @@ class PageController extends Controller
             'menu' => ['sometimes', 'string', Rule::in(PublicPage::MENUS)],
             'sort' => ['sometimes', 'integer', 'min:-1000', 'max:1000'],
             'policy_type' => ['sometimes', 'nullable', 'string', Rule::in(PublicPage::POLICIES)],
+            'menu_parent_id' => ['sometimes', 'nullable', 'uuid'],
+            'menu_labels' => ['sometimes', 'nullable', 'array:'.implode(',', PublicPage::LOCALES)],
+            'menu_labels.*' => ['nullable', 'string', 'max:'.PublicPage::MENU_LABEL_MAX],
         ]);
 
         return $this->guard(function (PlatformStaff $staff) use ($page, $validated): JsonResponse {

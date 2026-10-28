@@ -46,7 +46,7 @@ function staff(capabilities: string[]): StaffMe {
 const NONE = { published: null, draft: false, title: null };
 
 function summary(overrides: Partial<PageSummary>): PageSummary {
-  return { id: 'p-1', kind: 'page', parent_id: null, slug: 'about', path: 'about', menu: 'header', sort: 0, policy_type: null, editable: true, created_at: null, locales: { ru: NONE, en: NONE, de: NONE }, ...overrides };
+  return { id: 'p-1', kind: 'page', parent_id: null, slug: 'about', path: 'about', menu: 'header', menu_parent_id: null, menu_labels: {}, sort: 0, policy_type: null, editable: true, created_at: null, locales: { ru: NONE, en: NONE, de: NONE }, ...overrides };
 }
 
 function card(overrides: Partial<PageCard> = {}): PageCard {
@@ -82,6 +82,7 @@ async function open(path: string, capabilities = ['content.manage', 'contacts.re
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocked.fetchPages.mockResolvedValue([]);
   window.localStorage.setItem('bw.page-editor-mode', 'html');
   useStaff().forget();
   localization.setLocale('ru');
@@ -228,7 +229,7 @@ describe('site', () => {
     await wrapper.get('[data-field="menu"]').setValue('footer');
     await wrapper.get('[data-form="page-settings"]').trigger('submit');
     await flushPromises();
-    expect(mocked.updatePage).toHaveBeenCalledWith('pricing', { menu: 'footer', sort: 0 });
+    expect(mocked.updatePage).toHaveBeenCalledWith('pricing', { menu: 'footer', sort: 0, menu_parent_id: null, menu_labels: { ru: null, en: null, de: null } });
   });
 
   it('deletes an old version with a reason but offers nothing for the current version or a legal document', async () => {
@@ -255,6 +256,44 @@ describe('site', () => {
     expect(legal.wrapper.find('[data-action="remove"]').exists()).toBe(false);
   });
 
+  it('nests a page under another menu item with short menu labels', async () => {
+    mocked.fetchPages.mockResolvedValue([
+      summary({ id: 'p-1' }),
+      summary({ id: 'res', slug: 'resources', path: 'resources', locales: { ru: { published: null, draft: false, title: 'Ресурсы для магазинов' }, en: NONE, de: NONE }, menu_labels: { ru: 'Ресурсы' } }),
+      summary({ id: 'child', slug: 'faq', path: 'faq', menu_parent_id: 'res' }),
+      summary({ id: 'foot', slug: 'imprint', path: 'imprint', menu: 'footer' }),
+    ]);
+    mocked.fetchPage.mockResolvedValue(card());
+    mocked.updatePage.mockResolvedValue(card({ menu_parent_id: 'res', menu_labels: { ru: 'О нас' } }));
+    const { wrapper } = await open('/owner/site/pages/p-1');
+    await flushPromises();
+
+    const options = wrapper.findAll('[data-field="menu-parent"] option').map((option) => option.text());
+    expect(options).toEqual(['Отдельным пунктом', 'Ресурсы']);
+    expect(wrapper.get('[data-field="menu-label-ru"]').attributes('placeholder')).toBe('О компании');
+    await wrapper.get('[data-field="menu-parent"]').setValue('res');
+    await wrapper.get('[data-field="menu-label-ru"]').setValue('  О нас ');
+    await wrapper.get('[data-form="page-settings"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.updatePage).toHaveBeenCalledWith('p-1', { menu: 'header', sort: 0, menu_parent_id: 'res', menu_labels: { ru: 'О нас', en: null, de: null }, policy_type: null });
+    expect(wrapper.get('[data-hint="menu"]').text()).toContain('Адрес страницы при этом не меняется');
+
+    await wrapper.get('[data-field="menu"]').setValue('none');
+    expect(wrapper.find('[data-field="menu-parent"]').exists()).toBe(false);
+    expect(wrapper.find('[data-field="menu-labels"]').exists()).toBe(false);
+  });
+
+  it('does not offer nesting for an item that has nested pages', async () => {
+    mocked.fetchPages.mockResolvedValue([summary({ id: 'p-1' }), summary({ id: 'child', slug: 'faq', path: 'faq', menu_parent_id: 'p-1' })]);
+    mocked.fetchPage.mockResolvedValue(card());
+    const { wrapper } = await open('/owner/site/pages/p-1');
+    await flushPromises();
+
+    expect(wrapper.find('[data-field="menu-parent"]').exists()).toBe(false);
+    expect(wrapper.get('[data-hint="menu"]').text()).toContain('нельзя вложить в другой');
+  });
+
   it('marks a page as the terms of service in its settings', async () => {
     mocked.fetchPage.mockResolvedValue(card());
     mocked.updatePage.mockResolvedValue(card({ policy_type: 'service_terms' }));
@@ -264,7 +303,7 @@ describe('site', () => {
     await wrapper.get('[data-form="page-settings"]').trigger('submit');
     await flushPromises();
 
-    expect(mocked.updatePage).toHaveBeenCalledWith('p-1', { menu: 'header', sort: 0, policy_type: 'service_terms' });
+    expect(mocked.updatePage).toHaveBeenCalledWith('p-1', { menu: 'header', sort: 0, menu_parent_id: null, menu_labels: { ru: null, en: null, de: null }, policy_type: 'service_terms' });
     expect(wrapper.text()).toContain('С опубликованной версией этой страницы клиент соглашается');
   });
 

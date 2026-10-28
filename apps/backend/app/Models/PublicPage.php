@@ -29,6 +29,8 @@ class PublicPage extends Model
 
     public const LOCALES = ['ru', 'en', 'de'];
 
+    public const MENU_LABEL_MAX = 40;
+
     public const POLICY_SERVICE_TERMS = 'service_terms';
 
     public const POLICY_PRIVACY_NOTICE = 'privacy_notice';
@@ -37,12 +39,13 @@ class PublicPage extends Model
 
     public const POLICIES = [self::POLICY_SERVICE_TERMS, self::POLICY_PRIVACY_NOTICE, self::POLICY_RECURRING_PAYMENT];
 
-    protected $fillable = ['kind', 'parent_id', 'slug', 'path', 'menu', 'sort', 'policy_type', 'created_by', 'archived_at'];
+    protected $fillable = ['kind', 'parent_id', 'slug', 'path', 'menu', 'menu_parent_id', 'menu_labels', 'sort', 'policy_type', 'created_by', 'archived_at'];
 
     protected function casts(): array
     {
         return [
             'sort' => 'integer',
+            'menu_labels' => 'array',
             'archived_at' => 'datetime',
         ];
     }

@@ -465,6 +465,8 @@ export interface PageSummary {
   slug: string | null;
   path: string;
   menu: PageMenu;
+  menu_parent_id: string | null;
+  menu_labels: Partial<Record<SiteLocale, string>>;
   sort: number;
   policy_type: PolicyType | null;
   editable: boolean;
@@ -1141,7 +1143,7 @@ export async function fetchPage(id: string): Promise<PageCard> {
   return (await request<PageCard>('GET', `/platform-api/v1/pages/${encodeURIComponent(id)}`)).data;
 }
 
-export async function updatePage(id: string, input: { menu: PageMenu; sort: number; policy_type?: PolicyType | null }): Promise<PageCard> {
+export async function updatePage(id: string, input: { menu: PageMenu; sort: number; menu_parent_id?: string | null; menu_labels?: Record<SiteLocale, string | null>; policy_type?: PolicyType | null }): Promise<PageCard> {
   return (await request<PageCard>('PATCH', `/platform-api/v1/pages/${encodeURIComponent(id)}`, { body: input })).data;
 }
 
