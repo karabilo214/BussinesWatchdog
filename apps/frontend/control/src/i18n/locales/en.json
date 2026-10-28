@@ -1477,6 +1477,7 @@
     }
   },
   "overview": {
+    "funnel": {"title": "WordPress plugin: from a click to a connected store", "definition": "Journeys that started from a link or button in the plugin. A click and a form view are counted once per journey; the account, the connection code and the connection — once per organization and store, as confirmed by the server. «All» also counts connections without a plugin journey (existing customers). The period does not depend on LIVE/TEST.", "stage": "Stage", "attributed": "From the plugin", "conversion": "From the previous stage", "total": "All", "placement": "Where the merchant clicked", "stages": {"click": "Click in the plugin", "signup_view": "Sign-up form opened", "signup": "Account created", "code": "Connection code created", "connected": "Plugin connected"}, "placements": {"plugins_card": "Card on the plugins screen", "plugins_list": "Link in the plugins list", "plugin_page": "Plugin page", "plugin_description": "Plugin description", "wordpress_org": "WordPress.org page", "unknown": "Unknown"}},
     "hint": "Commercial figures by the specification definitions: every currency separately, LIVE and TEST never mixed. Click a figure to open the list it is counted from.",
     "mode": "Mode",
     "from": "From",

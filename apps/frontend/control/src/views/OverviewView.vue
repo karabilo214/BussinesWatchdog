@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { StatusBadge, formatMinor } from '@bw/ui';
-import { fetchOverview, type BusinessOverview, type OverviewMoney } from '@/api';
+import { fetchOverview, fetchPluginFunnel, type BusinessOverview, type OverviewMoney, type PluginFunnel } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useStaff } from '@/composables/useStaff';
@@ -14,6 +14,7 @@ const { can } = useStaff();
 
 const allowed = computed(() => can('billing.read'));
 const data = ref<BusinessOverview | null>(null);
+const funnel = ref<PluginFunnel | null>(null);
 const loading = ref(false);
 const error = ref<unknown>(null);
 const filters = reactive({ mode: 'live' as 'live' | 'test', from: '', to: '' });
@@ -51,7 +52,8 @@ async function load(): Promise<void> {
   error.value = null;
 
   try {
-    data.value = await fetchOverview({ mode: filters.mode, ...(filters.from ? { from: filters.from } : {}), ...(filters.to ? { to: filters.to } : {}) });
+    const period = { ...(filters.from ? { from: filters.from } : {}), ...(filters.to ? { to: filters.to } : {}) };
+    [data.value, funnel.value] = await Promise.all([fetchOverview({ mode: filters.mode, ...period }), fetchPluginFunnel(period)]);
     filters.from = day(data.value.from);
     filters.to = day(data.value.to, -1);
   } catch (caught) {
@@ -169,6 +171,48 @@ onMounted(load);
               <span class="font-medium text-text">{{ $t('overview.later.title') }}</span>
               <span>{{ $t('overview.later.body') }}</span>
             </article>
+          </section>
+          <section v-if="funnel" class="flex flex-col gap-3" data-section="plugin-funnel">
+            <div class="flex flex-col gap-1">
+              <h2 class="text-lg font-semibold">{{ $t('overview.funnel.title') }}</h2>
+              <p class="text-sm text-text-muted">{{ $t('overview.funnel.definition') }}</p>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-border bg-surface">
+              <table class="w-full min-w-[36rem] text-sm">
+                <thead class="border-b border-border text-left text-text-muted">
+                  <tr>
+                    <th class="px-4 py-3 font-medium">{{ $t('overview.funnel.stage') }}</th>
+                    <th class="px-4 py-3 font-medium">{{ $t('overview.funnel.attributed') }}</th>
+                    <th class="px-4 py-3 font-medium">{{ $t('overview.funnel.conversion') }}</th>
+                    <th class="px-4 py-3 font-medium">{{ $t('overview.funnel.total') }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                  <tr v-for="row in funnel.stages" :key="row.stage" :data-stage="row.stage">
+                    <td class="px-4 py-3">{{ $t(`overview.funnel.stages.${row.stage}`) }}</td>
+                    <td class="px-4 py-3 font-semibold tabular-nums">{{ row.attributed }}</td>
+                    <td class="px-4 py-3 tabular-nums">{{ row.conversion_percent === null ? '—' : percent(row.conversion_percent, 100) }}</td>
+                    <td class="px-4 py-3 tabular-nums text-text-muted">{{ row.total }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-if="funnel.placements.length > 0" class="overflow-x-auto rounded-xl border border-border bg-surface">
+              <table class="w-full min-w-[36rem] text-sm">
+                <thead class="border-b border-border text-left text-text-muted">
+                  <tr>
+                    <th class="px-4 py-3 font-medium">{{ $t('overview.funnel.placement') }}</th>
+                    <th v-for="row in funnel.stages" :key="row.stage" class="px-4 py-3 font-medium">{{ $t(`overview.funnel.stages.${row.stage}`) }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                  <tr v-for="row in funnel.placements" :key="row.placement" :data-placement="row.placement">
+                    <td class="px-4 py-3">{{ $te(`overview.funnel.placements.${row.placement}`) ? $t(`overview.funnel.placements.${row.placement}`) : row.placement }}</td>
+                    <td v-for="stage in funnel.stages" :key="stage.stage" class="px-4 py-3 tabular-nums">{{ row[stage.stage] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </section>
           <p class="text-xs text-text-muted">{{ $t('overview.as_of', { date: dateTime(data.as_of) }) }}</p>
         </template>

@@ -73,6 +73,7 @@ export function buildRouter(): Router {
       { path: '/settings/support', name: 'support', component: () => import('@/views/SupportGrantsView.vue'), meta: { permission: 'support.access' } },
       { path: '/overview', name: 'overview', component: () => import('@/views/OverviewView.vue') },
       { path: '/stores/new', name: 'store-create', component: () => import('@/views/StoreCreateView.vue') },
+      { path: '/connect', name: 'plugin-connect', component: () => import('@/views/ConnectView.vue') },
       { path: '/stores/:id', name: 'store', component: () => import('@/views/StoreView.vue'), props: true },
       { path: '/incidents', name: 'incidents', component: () => import('@/views/IncidentsView.vue'), meta: { permission: 'incidents.read' } },
       { path: '/incidents/:id', name: 'incident', component: () => import('@/views/IncidentView.vue'), props: true, meta: { permission: 'incidents.read' } },

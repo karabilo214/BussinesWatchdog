@@ -4,7 +4,7 @@ Tags: woocommerce, stripe, paypal, failed payments, checkout
 Requires at least: 5.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.1
+Stable tag: 0.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Alerts when a paid order stays unpaid, Stripe or PayPal disagree with WooCommerc
 
 == Description ==
 
-**Requires a Business Watchdog account.** The plugin connects your store to the Business Watchdog service and does nothing on its own. [Create a free account](https://business-watchdog.com/en/signup) (14 days free, no card), add your store and connect the plugin with the code from your account — see *Installation*.
+**Requires a Business Watchdog account.** The plugin connects your store to the Business Watchdog service and does nothing on its own. [Create a free account](https://business-watchdog.com/go/wordpress-plugin?placement=wordpress_org&lang=en) (14 days free, no card) — or simply click **Connect to Business Watchdog** after activating the plugin: you sign in or create the account, confirm the store and come back to WordPress connected. See *Installation*.
 
 **Does any of this sound familiar?**
 
@@ -70,7 +70,8 @@ This plugin connects your store to the **Business Watchdog** service operated at
 
 What is sent, when connected:
 
-* **When you connect:** the one-time pairing code, your site address, a random installation ID and the plugin version.
+* **When you connect:** the one-time pairing code, your site address, a random installation ID and the plugin version. With **Connect to Business Watchdog** your browser first opens business-watchdog.com with your site address, the address of this plugin's return page in your admin, your WordPress language and two one-time random values; you then sign in there and come back. The secret part of the check stays in your WordPress database until the final exchange.
+* **Links to business-watchdog.com in the plugin:** when you click one, the service counts the click with the place of the link and your WordPress language for its connection statistics. Nothing about your store, orders or visitors; the plugin itself sends nothing in the background before it is connected.
 * **Order and refund changes, as they happen and in a daily check:** order ID and number, status, currency, total, payment method ID and display name, the payment provider's transaction reference, the date the order was marked paid; for refunds the amount, the provider's refund reference and the order they belong to. No customer names, addresses, e-mail addresses, phone numbers or order items are sent.
 * **Every 5 minutes (heartbeat):** plugin version and the state of the local queue.
 * **When versions change:** the versions of WordPress, WooCommerce, the active theme and active plugins, and whether HPOS and the block checkout are used — to tell you when an update coincides with a problem.
@@ -83,10 +84,12 @@ The service processes this data on your behalf as a processor under a data proce
 
 == Installation ==
 
-1. [Create a free Business Watchdog account](https://business-watchdog.com/en/signup) (14 days free, no card). Without an account the plugin cannot do anything.
-2. Install and activate the plugin (WooCommerce 6.0 or newer must be active).
-3. In your Business Watchdog account add your store, choose «WooCommerce plugin» and create a connection code.
-4. In WordPress open WooCommerce → Business Watchdog, paste the code and click **Connect**. The service URL is already filled in.
+1. Install and activate the plugin (WooCommerce 6.0 or newer must be active).
+2. On the Plugins screen or under WooCommerce → Business Watchdog click **Connect to Business Watchdog** (or **Create a free account** if you have none yet — 14 days free, no card). Without an account the plugin cannot do anything.
+3. Sign in or create the account on business-watchdog.com, choose your store or create it with your site address, and click **Connect**.
+4. You come back to WordPress and the plugin is connected — no code to copy.
+
+Another way, for example from another browser: in your Business Watchdog account open the store, choose «WooCommerce plugin», create a connection code, paste it under WooCommerce → Business Watchdog → **Connect with a code** and click **Connect**.
 
 == Frequently Asked Questions ==
 
@@ -127,6 +130,11 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 
 == Changelog ==
 
+= 0.4.3 =
+* Connect in one click: **Connect to Business Watchdog** opens business-watchdog.com, where you sign in or create a free account and confirm the store; you come back to WordPress connected, without copying a code. Connecting with a code still works.
+* A card on the Plugins screen with the buttons «Connect to Business Watchdog», «Create a free account» and «I have a connection code» until the plugin is connected. It can be hidden per user; the plugin page always shows how to connect.
+* Readable messages on the plugin page after connecting, disconnecting and failed attempts.
+
 = 0.4.1 =
 * Shows right after activation that a Business Watchdog account is needed: a link to create one on the Plugins screen, in the plugin description and on the plugin page, and the steps to connect.
 * The service URL on the plugin page is filled in.
@@ -151,6 +159,9 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 * Optional checkout observation.
 
 == Upgrade Notice ==
+
+= 0.4.3 =
+Connect to Business Watchdog in one click, without copying a code. No change in what the plugin records or sends about orders.
 
 = 0.4.1 =
 Clearer first steps: where to create the Business Watchdog account and how to connect. No change in what the plugin records or sends.

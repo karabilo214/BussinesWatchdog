@@ -1753,6 +1753,52 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/plugin-funnel:
+    get:
+      tags: [Platform]
+      operationId: platformPluginFunnel
+      description: "Capability billing.read. The WooCommerce plugin connection funnel (ADR 0084) for a UTC period of whole days (default the last 30 days including today, at most 400): per stage (click, signup_view, signup, code, connected) the events attributed to a plugin journey, all events, and the conversion from the previous stage in percent (null without a previous count); attributed counts per placement. No customer data. 422 period_invalid."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: from, in: query, required: false, schema: {type: string, format: date}}
+        - {name: to, in: query, required: false, schema: {type: string, format: date}}
+      responses:
+        "200":
+          description: Funnel
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [from, to, stages, placements]
+                properties:
+                  from: {type: string, format: date-time}
+                  to: {type: string, format: date-time}
+                  stages:
+                    type: array
+                    items:
+                      type: object
+                      required: [stage, attributed, total, conversion_percent]
+                      properties:
+                        stage: {enum: [click, signup_view, signup, code, connected]}
+                        attributed: {type: integer, minimum: 0}
+                        total: {type: integer, minimum: 0}
+                        conversion_percent: {type: [number, "null"]}
+                  placements:
+                    type: array
+                    items:
+                      type: object
+                      required: [placement, click, signup_view, signup, code, connected]
+                      properties:
+                        placement: {type: string}
+                        click: {type: integer}
+                        signup_view: {type: integer}
+                        signup: {type: integer}
+                        code: {type: integer}
+                        connected: {type: integer}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/attention:
     get:
       tags: [Platform]
@@ -4655,6 +4701,85 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/plugin-connect:
+    get:
+      tags: [Pairing]
+      operationId: showPluginConnect
+      description: "Permission integrations.manage. The one-click connection request the WooCommerce plugin started in this session (ADR 0084, kept 30 minutes in the server session only) and the active organization's stores with exactly the site's address, each with its active order source. 404 plugin_connect_missing when there is none."
+      security:
+        - {UserSession: []}
+      responses:
+        "200":
+          description: Connection request
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [site, site_host, organization, expires_at, stores]
+                properties:
+                  site: {type: string, format: uri}
+                  site_host: {type: string}
+                  organization: {type: string, description: Name of the active organization}
+                  expires_at: {type: string, format: date-time}
+                  stores:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, base_url, platform, order_source]
+                      properties:
+                        id: {type: string, format: uuid}
+                        name: {type: string}
+                        base_url: {type: string, format: uri}
+                        platform: {type: [string, "null"]}
+                        order_source: {type: [string, "null"], enum: [woocommerce, woocommerce_api, shopware, null]}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Pairing]
+      operationId: approvePluginConnect
+      description: "Permission integrations.manage. Creates a one-time connection code bound to the plugin's challenge (10 minutes), writes the audit entry integration.connect_approved (never the code), records the `code` funnel stage, ends the request and returns the plugin's return address with the state and the code. 404 plugin_connect_missing or store_not_found; 422 plugin_connect_site_mismatch (store address differs from the site) or plugin_connect_wrong_platform; 409 order_source_already_connected."
+      security:
+        - {UserSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [store_id]
+              properties:
+                store_id: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Where the browser goes back to WordPress
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [redirect_url]
+                properties:
+                  redirect_url: {type: string, format: uri}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/plugin-connect/cancel:
+    post:
+      tags: [Pairing]
+      operationId: cancelPluginConnect
+      description: Permission integrations.manage. Forgets the plugin's connection request of this session (ADR 0084).
+      security:
+        - {UserSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      responses:
+        "204": {description: Forgotten}
+        "401": {$ref: "#/components/responses/Problem"}
   /api/v1/stores/{store_id}/integrations:
     get:
       tags: [Integrations]
@@ -5236,7 +5361,7 @@ paths:
     post:
       tags: [Pairing]
       operationId: exchangePairingCode
-      description: Called by the store connector; base_url must equal the store base URL. Rate-limited per IP.
+      description: Called by the store connector; base_url must equal the store base URL. Rate-limited per IP. A successful exchange by the WooCommerce plugin records the `connected` stage of the plugin funnel (ADR 0084).
       requestBody:
         required: true
         content:
@@ -5247,6 +5372,7 @@ paths:
               required: [pairing_code, install_id, connector_code, plugin_version, base_url]
               properties:
                 pairing_code: {type: string, minLength: 16, maxLength: 128}
+                code_verifier: {type: string, pattern: "^[A-Za-z0-9_-]{43,128}$", description: "Required for a code created by the one-click connection (ADR 0084): base64url(sha256(code_verifier)) must equal the code's challenge, otherwise 422 pairing_verifier_mismatch (counted as an attempt). Ignored for a code created by hand."}
                 install_id: {type: string, format: uuid}
                 connector_code: {type: string, pattern: "^[a-z][a-z0-9_]{1,63}$"}
                 plugin_version: {type: string, maxLength: 100}

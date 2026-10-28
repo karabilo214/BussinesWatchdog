@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Site\PluginLinkController;
 use App\Http\Controllers\Site\PublicStorefrontCheckController;
 use App\Http\Controllers\Site\SignupController;
 use App\Http\Controllers\Site\SiteController;
@@ -9,6 +10,8 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function (): void {
+    Route::get('/go/wordpress-plugin', [PluginLinkController::class, 'go'])->middleware('throttle:30,1');
+    Route::get('/connect/woocommerce', [PluginLinkController::class, 'connect'])->middleware('throttle:30,1');
     Route::get('/{locale}/contact', [SiteController::class, 'contact'])->where('locale', 'ru|en|de');
     Route::get('/{locale}/contact/captcha', [SiteController::class, 'contactCaptcha'])->where('locale', 'ru|en|de');
     Route::post('/{locale}/contact', [SiteController::class, 'submitContact'])->where('locale', 'ru|en|de');

@@ -160,6 +160,7 @@ return [
         ],
     ],
     'signup' => [
+        'plugin_connect' => 'Nach der Registrierung kehren Sie zu WordPress zurück, und das Plugin auf :site verbindet sich von selbst.',
         'title' => 'Registrieren',
         'lead' => 'Erstellen Sie Konto und Organisation — Testphase oder Tarifkauf im Konto. Shops werden nach der Registrierung verbunden.',
         'salutation' => 'Anrede',
@@ -348,6 +349,12 @@ return [
             'infra_timeout' => 'Die Browser-Prüfung hat das Zeitlimit überschritten.',
             'worker_unavailable' => 'Kein Browser-Worker hat die Aufgabe rechtzeitig übernommen. Bitte versuchen Sie es später erneut.',
             'lease_expired' => 'Die Browser-Prüfung hat zu lange gedauert. Bitte starten Sie sie erneut.',
+        ],
+    ],
+    'notice' => [
+        'plugin_connect_invalid' => [
+            'title' => 'Der Verbindungslink ist unvollständig',
+            'body' => 'Öffnen Sie die Seite Business Watchdog in Ihrem WordPress-Admin und klicken Sie erneut auf «Mit Business Watchdog verbinden». Wenn es wieder passiert, verbinden Sie mit einem Code aus Ihrem Konto.',
         ],
     ],
     'missing' => [

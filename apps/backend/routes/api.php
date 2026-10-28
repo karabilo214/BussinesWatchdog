@@ -44,6 +44,7 @@ use App\Http\Controllers\Api\V1\Overview\MaintenanceController;
 use App\Http\Controllers\Api\V1\Overview\OverviewController;
 use App\Http\Controllers\Api\V1\Pairing\PairingCodeController;
 use App\Http\Controllers\Api\V1\Pairing\PairingExchangeController;
+use App\Http\Controllers\Api\V1\Pairing\PluginConnectController;
 use App\Http\Controllers\Api\V1\Payments\PaymentAllocationController;
 use App\Http\Controllers\Api\V1\Payments\PaymentController;
 use App\Http\Controllers\Api\V1\Payments\RefundAllocationController;
@@ -172,6 +173,12 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::post('/stores/{store}/verification/check', [StoreVerificationController::class, 'check'])
         ->middleware(['tenant.can:'.TenantPermissions::STORES_MANAGE, 'throttle:store-verification-check']);
     Route::post('/stores/{store}/pairing-codes', [PairingCodeController::class, 'store'])
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
+    Route::get('/plugin-connect', [PluginConnectController::class, 'show'])
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
+    Route::post('/plugin-connect', [PluginConnectController::class, 'store'])
+        ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
+    Route::post('/plugin-connect/cancel', [PluginConnectController::class, 'destroy'])
         ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);
     Route::post('/stores/{store}/integrations/stripe', [StripeIntegrationController::class, 'connect'])
         ->middleware('tenant.can:'.TenantPermissions::INTEGRATIONS_MANAGE);

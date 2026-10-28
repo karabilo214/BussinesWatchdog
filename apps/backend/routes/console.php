@@ -195,3 +195,9 @@ Schedule::command('billing:history-purge')
     ->timezone('UTC')
     ->withoutOverlapping(120)
     ->onOneServer();
+
+Schedule::command('plugin-funnel:prune')
+    ->dailyAt('03:55')
+    ->timezone('UTC')
+    ->withoutOverlapping(60)
+    ->onOneServer();

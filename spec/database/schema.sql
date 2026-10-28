@@ -166,7 +166,24 @@ CREATE TABLE pairing_codes (
  expires_at timestamptz NOT NULL,
  consumed_at timestamptz,
  created_at timestamptz NOT NULL DEFAULT now(),
+ -- One-click connection (ADR 0084): base64url(sha256(verifier)) of the plugin; the exchange must present the verifier.
+ code_challenge varchar(64),
+ funnel_journey varchar(32),
  FOREIGN KEY (tenant_id,store_id) REFERENCES stores(tenant_id,id)
+);
+
+-- Plugin connection funnel (ADR 0084): stages only, no customer data, codes or addresses; kept 13 months.
+CREATE TABLE plugin_funnel_events (
+ id uuid PRIMARY KEY,
+ stage varchar(20) NOT NULL,
+ journey varchar(32),
+ placement varchar(32),
+ path varchar(16),
+ locale varchar(2),
+ tenant_id uuid,
+ store_id uuid,
+ dedupe_key varchar(120) NOT NULL UNIQUE,
+ created_at timestamptz NOT NULL
 );
 
 -- A Shopware shop that installed the universal app (ADR 0076); bound to a customer's integration only after the

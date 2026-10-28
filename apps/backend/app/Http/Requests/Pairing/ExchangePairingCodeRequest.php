@@ -18,6 +18,7 @@ class ExchangePairingCodeRequest extends FormRequest
     {
         return [
             'pairing_code' => ['required', 'string', 'min:16', 'max:128'],
+            'code_verifier' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Za-z0-9_-]{43,128}$/'],
             'install_id' => ['required', 'uuid'],
             'connector_code' => ['required', 'string', 'min:2', 'max:64', 'regex:/^[a-z][a-z0-9_]{1,63}$/'],
             'plugin_version' => ['required', 'string', 'min:1', 'max:100'],

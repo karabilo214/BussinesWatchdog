@@ -13,6 +13,7 @@ vi.mock('@/api', () => ({
   submitMfa: vi.fn(),
   logout: vi.fn(),
   fetchOverview: vi.fn(),
+  fetchPluginFunnel: vi.fn(),
   fetchSubscriptions: vi.fn(),
 }));
 
@@ -54,8 +55,22 @@ async function open(capabilities: string[]) {
   return { wrapper, router };
 }
 
+const FUNNEL: api.PluginFunnel = {
+  from: '2026-09-21T00:00:00.000000Z',
+  to: '2026-10-21T00:00:00.000000Z',
+  stages: [
+    { stage: 'click', attributed: 40, total: 40, conversion_percent: null },
+    { stage: 'signup_view', attributed: 30, total: 30, conversion_percent: 75 },
+    { stage: 'signup', attributed: 10, total: 10, conversion_percent: 33.3 },
+    { stage: 'code', attributed: 6, total: 9, conversion_percent: 60 },
+    { stage: 'connected', attributed: 5, total: 8, conversion_percent: 83.3 },
+  ],
+  placements: [{ placement: 'plugins_card', click: 30, signup_view: 25, signup: 8, code: 5, connected: 4 }],
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
+  mocked.fetchPluginFunnel.mockResolvedValue(FUNNEL);
   useStaff().forget();
   localization.setLocale('ru');
 });
@@ -85,10 +100,29 @@ describe('overview', () => {
     expect(wrapper.get('[data-incomplete]').text()).toContain('это не нулевая выручка');
   });
 
+  it('shows the plugin funnel for the same period with conversion between the stages', async () => {
+    mocked.fetchOverview.mockResolvedValue(OVERVIEW);
+    const { wrapper } = await open(['billing.read']);
+
+    expect(mocked.fetchPluginFunnel).toHaveBeenCalledWith({});
+    const section = wrapper.get('[data-section="plugin-funnel"]');
+    expect(section.get('[data-stage="click"]').text()).toContain('Нажатие в плагине');
+    expect(section.get('[data-stage="click"]').text()).toContain('—');
+    expect(section.get('[data-stage="signup"]').text()).toMatch(/33,3\s?%/);
+    expect(section.get('[data-stage="connected"]').text()).toContain('8');
+    expect(section.get('[data-placement="plugins_card"]').text()).toContain('Карточка на экране «Плагины»');
+
+    await wrapper.get('[data-action="apply"]').trigger('click');
+    await wrapper.get('[data-form="overview"]').trigger('submit');
+    await flushPromises();
+    expect(mocked.fetchPluginFunnel).toHaveBeenLastCalledWith({ from: '2026-09-21', to: '2026-10-20' });
+  });
+
   it('shows staff without billing access a plain start page without loading figures', async () => {
     const { wrapper } = await open(['contacts.read']);
 
     expect(mocked.fetchOverview).not.toHaveBeenCalled();
+    expect(mocked.fetchPluginFunnel).not.toHaveBeenCalled();
     expect(wrapper.find('[data-form="overview"]').exists()).toBe(false);
   });
 });

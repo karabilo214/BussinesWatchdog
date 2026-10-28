@@ -24,6 +24,8 @@ try {
     delete_option('business_watchdog_outbox_full');
     delete_option('business_watchdog_checkout_observation');
     delete_option('business_watchdog_checkout_script_altered_at');
+    delete_metadata('user', 0, 'business_watchdog_connect', '', true);
+    delete_metadata('user', 0, 'business_watchdog_card_hidden', '', true);
 
     global $wpdb;
 

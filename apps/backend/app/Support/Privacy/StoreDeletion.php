@@ -20,7 +20,7 @@ class StoreDeletion
         'reconciliation_subject_states', 'reconciliation_findings', 'reconciliation_runs', 'reconciliation_dirty_subjects',
         'refund_allocations', 'payment_allocations', 'refunds', 'provider_disputes', 'financial_transactions', 'payments', 'order_revisions', 'orders',
         'payment_attempt_windows', 'observed_payment_attempts', 'checkout_observation_windows', 'checkout_observation_collected_reports',
-        'provider_object_states', 'event_inbox', 'integration_credentials', 'integrations', 'pairing_codes', 'store_verifications',
+        'provider_object_states', 'event_inbox', 'integration_credentials', 'integrations', 'pairing_codes', 'plugin_funnel_events', 'store_verifications',
         'store_order_volumes', 'exports', 'audit_log',
     ];
 

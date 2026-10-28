@@ -67,6 +67,7 @@ class OrganizationPurger
         'integration_credentials',
         'integrations',
         'pairing_codes',
+        'plugin_funnel_events',
         'store_verifications',
         'store_order_volumes',
         'exports',

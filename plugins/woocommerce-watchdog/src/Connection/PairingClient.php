@@ -17,7 +17,7 @@ final class PairingClient
     /**
      * @return array{ok: bool, code: ?string}
      */
-    public static function pair(string $endpoint, string $pairingCode): array
+    public static function pair(string $endpoint, string $pairingCode, ?string $codeVerifier = null): array
     {
         $endpoint = untrailingslashit(trim($endpoint));
 
@@ -25,13 +25,19 @@ final class PairingClient
             return ['ok' => false, 'code' => 'endpoint_not_https'];
         }
 
-        $response = Transport::postJson($endpoint . '/api/v1/pairing/exchange', (string) wp_json_encode([
+        $body = [
             'pairing_code' => trim($pairingCode),
             'install_id' => State::installId(),
             'connector_code' => self::CONNECTOR_CODE,
             'plugin_version' => BUSINESS_WATCHDOG_VERSION,
             'base_url' => self::siteBaseUrl(),
-        ]));
+        ];
+
+        if ($codeVerifier !== null) {
+            $body['code_verifier'] = $codeVerifier;
+        }
+
+        $response = Transport::postJson($endpoint . '/api/v1/pairing/exchange', (string) wp_json_encode($body));
 
         if ($response->status !== 201 || ! is_array($response->json)) {
             return ['ok' => false, 'code' => $response->errorCode ?? ($response->transportFailed() ? 'transport_error' : 'pairing_failed')];

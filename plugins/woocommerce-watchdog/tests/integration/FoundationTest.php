@@ -75,37 +75,134 @@ bw_test('admin routes require manage_woocommerce', function () {
     bw_assert(in_array($response->get_status(), [401, 403], true), 'Diagnostics open to anonymous users: ' . $response->get_status());
 });
 
-bw_test('an unconnected store shows where to create the account', function () {
+final class BusinessWatchdogRedirected extends RuntimeException
+{
+}
+
+function bw_capture_redirect(callable $callback): string
+{
+    $capture = static function ($location) {
+        throw new BusinessWatchdogRedirected((string) $location);
+    };
+    add_filter('wp_redirect', $capture, 1);
+
+    try {
+        $callback();
+    } catch (BusinessWatchdogRedirected $redirect) {
+        return $redirect->getMessage();
+    } finally {
+        remove_filter('wp_redirect', $capture, 1);
+    }
+
+    throw new RuntimeException('no redirect');
+}
+
+function bw_without_connection(callable $callback): void
+{
     $connection = State::get(\BusinessWatchdog\WooCommerce\Connection\Connection::STATE_KEY);
     $admin = get_user_by('login', 'admin');
     wp_set_current_user($admin ? $admin->ID : 1);
     \BusinessWatchdog\WooCommerce\Connection\Connection::forget();
 
     try {
+        $callback();
+    } finally {
+        State::set(\BusinessWatchdog\WooCommerce\Connection\Connection::STATE_KEY, $connection);
+        \BusinessWatchdog\WooCommerce\Capture\OrderCapture::resetCapturingCache();
+        delete_user_meta(get_current_user_id(), \BusinessWatchdog\WooCommerce\Admin\SettingsPage::CARD_HIDDEN_META);
+        delete_user_meta(get_current_user_id(), \BusinessWatchdog\WooCommerce\Admin\SettingsPage::CONNECT_META);
+        $_GET = [];
+        $_POST = [];
+        $_REQUEST = [];
+    }
+}
+
+bw_test('an unconnected store shows the connect card with buttons until it is connected or hidden', function () {
+    bw_without_connection(function () {
         $links = \BusinessWatchdog\WooCommerce\Admin\SettingsPage::actionLinks(['deactivate' => '<a>Deactivate</a>']);
-        bw_assert(count($links) === 3 && strpos(implode('', $links), 'https://business-watchdog.com/en/signup') !== false, 'signup link missing: ' . implode(' ', $links));
-        bw_assert(isset($links['deactivate']), 'WordPress links kept');
+        bw_assert(count($links) === 3 && strpos(implode('', $links), 'https://business-watchdog.com/go/wordpress-plugin?placement=plugins_list&#038;lang=en') !== false, 'signup link missing: ' . implode(' ', $links));
+        bw_assert(strpos(implode('', $links), 'Connect') !== false && isset($links['deactivate']), 'connect link or WordPress links missing');
 
         ob_start();
         \BusinessWatchdog\WooCommerce\Admin\SettingsPage::render();
         $html = (string) ob_get_clean();
-        bw_assert(strpos($html, 'https://business-watchdog.com/en/signup') !== false, 'settings page has no signup link');
-        bw_assert(strpos($html, 'value="https://business-watchdog.com"') !== false, 'service URL is not filled in');
+        bw_assert(strpos($html, 'data-business-watchdog-connect') !== false && strpos($html, 'value="plugin_page"') !== false, 'plugin page has no connect card');
+        bw_assert(strpos($html, 'value="https://business-watchdog.com"') !== false && strpos($html, 'id="business-watchdog-code"') !== false, 'code form missing');
 
         set_current_screen('plugins');
         ob_start();
         \BusinessWatchdog\WooCommerce\Admin\SettingsPage::connectNotice();
-        $notice = (string) ob_get_clean();
-        bw_assert(strpos($notice, 'not connected yet') !== false && strpos($notice, '/en/signup') !== false, 'plugins screen notice missing');
-    } finally {
-        State::set(\BusinessWatchdog\WooCommerce\Connection\Connection::STATE_KEY, $connection);
-    }
+        $card = (string) ob_get_clean();
+        foreach (['Connect Business Watchdog', 'name="start" value="login"', 'name="start" value="signup"', 'value="plugins_card"', 'I have a connection code', 'business_watchdog_hide_card', 'name="_wpnonce"'] as $needle) {
+            bw_assert(strpos($card, $needle) !== false, 'card misses ' . $needle);
+        }
+
+        update_user_meta(get_current_user_id(), \BusinessWatchdog\WooCommerce\Admin\SettingsPage::CARD_HIDDEN_META, '1');
+        ob_start();
+        \BusinessWatchdog\WooCommerce\Admin\SettingsPage::connectNotice();
+        bw_assert((string) ob_get_clean() === '', 'hidden card still shown');
+        ob_start();
+        \BusinessWatchdog\WooCommerce\Admin\SettingsPage::render();
+        bw_assert(strpos((string) ob_get_clean(), 'data-business-watchdog-connect') !== false, 'plugin page must keep the card');
+    });
 
     $links = \BusinessWatchdog\WooCommerce\Admin\SettingsPage::actionLinks([]);
-    bw_assert(count($links) === 1, 'no signup link once connected');
+    bw_assert(count($links) === 1 && strpos($links[0], 'Settings') !== false, 'only settings once connected');
+    set_current_screen('plugins');
     ob_start();
     \BusinessWatchdog\WooCommerce\Admin\SettingsPage::connectNotice();
-    bw_assert((string) ob_get_clean() === '', 'no notice once connected');
+    bw_assert((string) ob_get_clean() === '', 'no card once connected');
+});
+
+bw_test('one-click connect sends the site, its return page and a challenge, and pairs on return with the verifier', function () {
+    bw_without_connection(function () {
+        $_POST = $_REQUEST = ['action' => 'business_watchdog_connect', 'start' => 'signup', 'placement' => 'plugins_card', '_wpnonce' => wp_create_nonce('business_watchdog_connect')];
+        $location = bw_capture_redirect([\BusinessWatchdog\WooCommerce\Admin\SettingsPage::class, 'handleConnect']);
+        bw_assert(strpos($location, 'https://business-watchdog.com/connect/woocommerce?') === 0, 'wrong start: ' . $location);
+        parse_str((string) wp_parse_url($location, PHP_URL_QUERY), $query);
+        bw_assert($query['site'] === untrailingslashit(home_url()) && $query['return'] === admin_url('admin-post.php?action=business_watchdog_connect_return'), 'site or return wrong');
+        bw_assert($query['start'] === 'signup' && $query['placement'] === 'plugins_card' && $query['lang'] === 'en', 'start, placement or language wrong');
+        bw_assert(preg_match('/^[0-9a-f]{64}$/', $query['state']) === 1 && preg_match('/^[A-Za-z0-9_-]{43}$/', $query['challenge']) === 1, 'state or challenge malformed');
+
+        $stored = get_user_meta(get_current_user_id(), \BusinessWatchdog\WooCommerce\Admin\SettingsPage::CONNECT_META, true);
+        bw_assert(is_array($stored) && $stored['state_hash'] === hash('sha256', $query['state']) && strpos(wp_json_encode($stored), $query['state']) === false, 'state stored in clear');
+        $verifier = \BusinessWatchdog\WooCommerce\Security\SecretBox::open($stored['verifier']);
+        bw_assert(rtrim(strtr(base64_encode(hash('sha256', (string) $verifier, true)), '+/', '-_'), '=') === $query['challenge'], 'challenge does not match the verifier');
+
+        $_GET = ['action' => 'business_watchdog_connect_return', 'state' => str_repeat('0', 64), 'code' => 'bwpc_wrong'];
+        $location = bw_capture_redirect([\BusinessWatchdog\WooCommerce\Admin\SettingsPage::class, 'handleConnectReturn']);
+        bw_assert(strpos($location, 'business_watchdog_notice=connect_expired') !== false, 'foreign state accepted');
+        bw_assert(get_user_meta(get_current_user_id(), \BusinessWatchdog\WooCommerce\Admin\SettingsPage::CONNECT_META, true) === '', 'request not single use');
+
+        update_user_meta(get_current_user_id(), \BusinessWatchdog\WooCommerce\Admin\SettingsPage::CONNECT_META, $stored);
+        $sent = null;
+        $fake = static function ($preempt, $args, $url) use (&$sent) {
+            if (strpos((string) $url, '/api/v1/pairing/exchange') === false) {
+                return ['headers' => [], 'body' => '{}', 'response' => ['code' => 200, 'message' => 'OK'], 'cookies' => [], 'filename' => null];
+            }
+            $sent = json_decode((string) $args['body'], true);
+
+            return ['headers' => [], 'body' => (string) wp_json_encode(['integration_id' => wp_generate_uuid4(), 'key_id' => 'bwk_one_click', 'secret' => base64_encode(random_bytes(32)), 'secret_encoding' => 'base64', 'signature_version' => 1]), 'response' => ['code' => 201, 'message' => 'Created'], 'cookies' => [], 'filename' => null];
+        };
+        add_filter('pre_http_request', $fake, 10, 3);
+
+        try {
+            $_GET = ['action' => 'business_watchdog_connect_return', 'state' => $query['state'], 'code' => 'bwpc_from_the_service_1234567890'];
+            $location = bw_capture_redirect([\BusinessWatchdog\WooCommerce\Admin\SettingsPage::class, 'handleConnectReturn']);
+        } finally {
+            remove_filter('pre_http_request', $fake, 10);
+        }
+
+        bw_assert(strpos($location, 'business_watchdog_notice=paired') !== false && strpos($location, 'bwpc_') === false, 'not paired or code left in the address: ' . $location);
+        bw_assert(is_array($sent) && $sent['pairing_code'] === 'bwpc_from_the_service_1234567890' && $sent['code_verifier'] === $verifier && $sent['base_url'] === untrailingslashit(home_url()), 'exchange body wrong');
+        bw_assert(\BusinessWatchdog\WooCommerce\Connection\Connection::current() !== null, 'connection not stored');
+        bw_assert(get_user_meta(get_current_user_id(), \BusinessWatchdog\WooCommerce\Admin\SettingsPage::CONNECT_META, true) === '', 'request kept after use');
+
+        wp_set_current_user(0);
+        $_GET = ['action' => 'business_watchdog_connect_return', 'state' => 'abc', 'code' => 'bwpc_x'];
+        $location = bw_capture_redirect([\BusinessWatchdog\WooCommerce\Admin\SettingsPage::class, 'handleConnectReturnSignedOut']);
+        bw_assert(strpos($location, 'wp-login.php') !== false && strpos(rawurldecode($location), 'action=business_watchdog_connect_return&state=abc&code=bwpc_x') !== false, 'signed-out return does not go through the login: ' . $location);
+    });
 });
 
 bw_test('names from before 0.4.0 are moved with their data', function () {

@@ -1477,6 +1477,7 @@
     }
   },
   "overview": {
+    "funnel": {"title": "WordPress-Plugin: vom Klick zum verbundenen Shop", "definition": "Wege, die mit einem Link oder Button im Plugin begonnen haben. Klick und Formularaufruf zählen einmal je Weg; Konto, Verbindungscode und Verbindung einmal je Organisation und Shop, wie vom Server bestätigt. «Alle» zählt auch Verbindungen ohne Plugin-Weg (bestehende Kunden). Der Zeitraum hängt nicht von LIVE/TEST ab.", "stage": "Schritt", "attributed": "Aus dem Plugin", "conversion": "Vom vorherigen Schritt", "total": "Alle", "placement": "Wo geklickt wurde", "stages": {"click": "Klick im Plugin", "signup_view": "Registrierungsformular geöffnet", "signup": "Konto erstellt", "code": "Verbindungscode erstellt", "connected": "Plugin verbunden"}, "placements": {"plugins_card": "Karte auf der Plugin-Seite", "plugins_list": "Link in der Plugin-Liste", "plugin_page": "Seite des Plugins", "plugin_description": "Plugin-Beschreibung", "wordpress_org": "Seite auf WordPress.org", "unknown": "Unbekannt"}},
     "hint": "Geschäftszahlen nach den Definitionen der Spezifikation: jede Währung einzeln, LIVE und TEST nie gemischt. Klicken Sie auf eine Kennzahl, um die zugrunde liegende Liste zu öffnen.",
     "mode": "Modus",
     "from": "Von",

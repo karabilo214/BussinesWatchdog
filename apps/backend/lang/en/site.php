@@ -160,6 +160,7 @@ return [
         ],
     ],
     'signup' => [
+        'plugin_connect' => 'After you sign up you return to WordPress, and the plugin on :site connects by itself.',
         'title' => 'Sign up',
         'lead' => 'Create your account and organisation — start a trial or buy a plan in your account. Stores are connected after signing up.',
         'salutation' => 'Salutation',
@@ -348,6 +349,12 @@ return [
             'infra_timeout' => 'The browser check timed out.',
             'worker_unavailable' => 'No browser worker picked up the task in time. Please try again later.',
             'lease_expired' => 'The browser check took too long. Please run it again.',
+        ],
+    ],
+    'notice' => [
+        'plugin_connect_invalid' => [
+            'title' => 'The connection link is incomplete',
+            'body' => 'Open the Business Watchdog page in your WordPress admin and click «Connect to Business Watchdog» again. If it keeps happening, connect with a code from your account.',
         ],
     ],
     'missing' => [

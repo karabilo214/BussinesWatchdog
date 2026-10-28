@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Pairing;
 use App\Http\Controllers\Controller;
 use App\Models\PairingCode;
 use App\Models\Store;
+use App\Support\Plugin\PluginFunnel;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ use Illuminate\Support\Str;
 
 class PairingCodeController extends Controller
 {
-    public function store(Request $request, Store $store, TenantContext $tenantContext): JsonResponse
+    public function store(Request $request, Store $store, TenantContext $tenantContext, PluginFunnel $funnel): JsonResponse
     {
         $tenantId = $tenantContext->requireTenantId('create pairing code');
 
@@ -27,6 +28,10 @@ class PairingCodeController extends Controller
             'expires_at' => now()->addMinutes(15),
             'created_at' => now(),
         ]);
+
+        if ($store->platform === 'woocommerce') {
+            $funnel->code($tenantId, $store->id);
+        }
 
         return response()->json([
             'id' => $pairingCode->id,

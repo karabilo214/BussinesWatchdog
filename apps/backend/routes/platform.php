@@ -10,6 +10,7 @@ use App\Http\Controllers\Platform\PageController;
 use App\Http\Controllers\Platform\PaymentController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformAuthController;
+use App\Http\Controllers\Platform\PluginFunnelController;
 use App\Http\Controllers\Platform\PublicStorefrontCheckHistoryController;
 use App\Http\Controllers\Platform\RefundController;
 use App\Http\Controllers\Platform\ServiceHealthController;
@@ -66,6 +67,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/subscriptions', [TenantController::class, 'subscriptions']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/payments', [PaymentController::class, 'index']);
     Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/overview', [OverviewController::class, 'show']);
+    Route::middleware('platform.staff:'.PlatformCapabilities::BILLING_READ)->get('/plugin-funnel', [PluginFunnelController::class, 'show']);
     Route::middleware('platform.staff:'.PlatformCapabilities::SERVICE_READ)->get('/health', [ServiceHealthController::class, 'show']);
     Route::middleware('platform.staff:'.PlatformCapabilities::SERVICE_MANAGE)->group(function (): void {
         Route::get('/health/dead-outbox', [ServiceOutboxController::class, 'index']);

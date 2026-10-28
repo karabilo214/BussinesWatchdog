@@ -10,6 +10,7 @@ use App\Models\PairingCode;
 use App\Support\Integrations\IntegrationCredentialService;
 use App\Support\Integrations\OrderSourceContinuity;
 use App\Support\Integrations\OrderSources;
+use App\Support\Plugin\PluginFunnel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -18,6 +19,7 @@ class PairingExchangeController extends Controller
 {
     public function __construct(
         private readonly IntegrationCredentialService $credentials,
+        private readonly PluginFunnel $funnel,
     ) {}
 
     public function store(ExchangePairingCodeRequest $request): JsonResponse
@@ -56,6 +58,13 @@ class PairingExchangeController extends Controller
 
             $pairingCode->increment('attempt_count');
             $pairingCode->refresh();
+
+            if ($pairingCode->code_challenge !== null && ! $this->verifierMatches($pairingCode->code_challenge, $validated['code_verifier'] ?? null)) {
+                $this->auditFailure($pairingCode, 'pairing_verifier_mismatch');
+
+                return ['error' => ['code' => 'pairing_verifier_mismatch', 'message' => 'The code verifier does not match this pairing code.', 'status' => 422]];
+            }
+
             $store = $pairingCode->store()->lockForUpdate()->firstOrFail();
 
             if ($validated['base_url'] !== $store->base_url) {
@@ -115,6 +124,7 @@ class PairingExchangeController extends Controller
             ]);
 
             return [
+                'funnel' => $validated['connector_code'] === 'woocommerce' ? [$integration->tenant_id, $integration->store_id, $pairingCode->funnel_journey] : null,
                 'payload' => [
                     'integration_id' => $integration->id,
                     'key_id' => $credential->key_id,
@@ -132,7 +142,20 @@ class PairingExchangeController extends Controller
             ], $result['error']['status']);
         }
 
+        if ($result['funnel'] !== null) {
+            $this->funnel->connected(...$result['funnel']);
+        }
+
         return response()->json($result['payload'], 201);
+    }
+
+    private function verifierMatches(string $challenge, ?string $verifier): bool
+    {
+        if ($verifier === null) {
+            return false;
+        }
+
+        return hash_equals($challenge, rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '='));
     }
 
     private function auditFailure(PairingCode $pairingCode, string $reasonCode): void

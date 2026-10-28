@@ -18,6 +18,8 @@ class PairingCode extends Model
         'tenant_id',
         'store_id',
         'code_hash',
+        'code_challenge',
+        'funnel_journey',
         'created_by',
         'attempt_count',
         'expires_at',

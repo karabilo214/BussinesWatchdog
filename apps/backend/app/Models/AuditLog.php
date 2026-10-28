@@ -34,6 +34,8 @@ class AuditLog extends Model
 
     public const ACTION_INTEGRATION_PAIRING_FAILED = 'integration.pairing_failed';
 
+    public const ACTION_INTEGRATION_CONNECT_APPROVED = 'integration.connect_approved';
+
     public const ACTION_INTEGRATION_CREDENTIAL_ROTATION_REQUESTED = 'integration.credential_rotation_requested';
 
     public const ACTION_INTEGRATION_CREDENTIAL_ROTATED = 'integration.credential_rotated';

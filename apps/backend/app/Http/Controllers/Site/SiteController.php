@@ -211,6 +211,12 @@ class SiteController extends Controller
             ->header('Cache-Control', 'no-store');
     }
 
+    public function notice(string $locale, string $key, int $status): Response
+    {
+        return response()->view('site.notice', $this->chrome($locale, null, null) + ['key' => $key, 'title' => trans("site.notice.{$key}.title", [], $locale), 'description' => null], $status)
+            ->header('Cache-Control', 'no-store');
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */

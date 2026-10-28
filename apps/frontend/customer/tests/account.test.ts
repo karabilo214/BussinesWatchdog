@@ -462,6 +462,13 @@ describe('EmailChangePanel', () => {
 });
 
 describe('LoginView', () => {
+  it('offers the sign-up when the sign-in finishes a WordPress connection', async () => {
+    const wrapper = await mountWith(LoginView, '/login?redirect=/connect');
+    expect(wrapper.get('[data-plugin-connect]').text()).toContain('Войдите, чтобы закончить подключение WordPress.');
+    expect(wrapper.get('[data-plugin-connect] a').attributes('href')).toBe('/ru/signup?utm_source=wordpress_plugin&utm_medium=connect');
+    expect((await mountWith(LoginView, '/login')).find('[data-plugin-connect]').exists()).toBe(false);
+  });
+
   it('sends device trust only after the user opts in during the MFA challenge', async () => {
     session.value = null;
     signIn.mockResolvedValue('mfa');

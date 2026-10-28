@@ -85,6 +85,8 @@
     }
   },
   "auth": {
+    "connect_hint": "Melden Sie sich an, um die Verbindung mit WordPress abzuschließen.",
+    "connect_signup": "Noch kein Konto? Kostenlos erstellen",
     "title": "Anmelden",
     "subtitle": "Verwenden Sie die E-Mail-Adresse und das Passwort Ihrer Registrierung.",
     "email": "E-Mail",
@@ -593,6 +595,9 @@
     }
   },
   "errors": {
+    "plugin_connect_missing": "Die Verbindungsanfrage aus WordPress ist abgelaufen oder wurde bereits verwendet. Starten Sie erneut auf der Plugin-Seite in WordPress.",
+    "plugin_connect_site_mismatch": "Die Shop-Adresse weicht von der Adresse der WordPress-Website ab.",
+    "plugin_connect_wrong_platform": "Mit dem Plugin kann nur ein WooCommerce-Shop verbunden werden.",
     "email_unchanged": "Das ist bereits Ihre Adresse.",
     "email_change_not_pending": "Es gibt keine ausstehende Adressänderung.",
     "permission_not_assignable": "Dieses Recht können Sie nicht vergeben: Sie haben es nicht oder nur der Inhaber hat es.",
@@ -2629,5 +2634,24 @@
       "canceled_recurring_billing": "wiederkehrende Zahlung wurde gekündigt",
       "problem_with_remittance": "Problem bei der Überweisung"
     }
+  },
+  "plugin_connect": {
+    "title": "WordPress verbinden",
+    "subtitle": "Das Business-Watchdog-Plugin auf {site} möchte sich mit der Organisation «{organization}» verbinden.",
+    "missing": "Es gibt keine Verbindungsanfrage aus WordPress. Öffnen Sie die Seite Business Watchdog im WordPress-Admin und klicken Sie erneut auf «Mit Business Watchdog verbinden» — die Anfrage gilt 30 Minuten.",
+    "forbidden": "Ihre Rolle kann keine Shops verbinden. Wenden Sie sich an den Inhaber oder einen Administrator der Organisation.",
+    "choose_store": "Welcher Shop ist diese Website?",
+    "blocked_platform": "Das ist kein WooCommerce-Shop.",
+    "blocked_api": "Dieser Shop liefert Bestellungen bereits über die API-Verbindung. Eine Bestellquelle pro Shop: Trennen Sie zuerst die API in den Shop-Einstellungen.",
+    "reconnect": "Das Plugin ist mit diesem Shop bereits verbunden; eine neue Verbindung ersetzt die bisherige.",
+    "no_usable": "Keiner dieser Shops kann mit dem Plugin verbunden werden.",
+    "create_title": "Shop anlegen",
+    "create_hint": "In dieser Organisation gibt es noch keinen Shop mit der Adresse {site}. Er wird als WooCommerce-Shop mit dieser Adresse angelegt.",
+    "what_happens": "Nach «Verbinden» kehren Sie zu WordPress zurück, und das Plugin verbindet sich von selbst — ohne Code zu kopieren.",
+    "connect": "Verbinden",
+    "create_and_connect": "Shop anlegen und verbinden",
+    "connecting": "Wird verbunden…",
+    "expires": "Die Anfrage gilt bis {time}.",
+    "manual": "Anderer Weg: Erstellen Sie auf der Shop-Seite einen Verbindungscode und fügen Sie ihn auf der Plugin-Seite ein."
   }
 }

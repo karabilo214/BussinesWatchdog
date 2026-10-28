@@ -85,6 +85,8 @@
     }
   },
   "auth": {
+    "connect_hint": "Sign in to finish connecting WordPress.",
+    "connect_signup": "No account yet? Create one free",
     "title": "Sign in",
     "subtitle": "Use the e-mail and password you registered with.",
     "email": "E-mail",
@@ -593,6 +595,9 @@
     }
   },
   "errors": {
+    "plugin_connect_missing": "The connection request from WordPress expired or was already used. Start again on the plugin page in WordPress.",
+    "plugin_connect_site_mismatch": "The store address differs from the WordPress site address.",
+    "plugin_connect_wrong_platform": "Only a WooCommerce store can be connected with the plugin.",
     "email_unchanged": "This is already your address.",
     "email_change_not_pending": "There is no pending address change.",
     "permission_not_assignable": "You cannot give this permission: you do not have it or only the owner does.",
@@ -2629,5 +2634,24 @@
       "canceled_recurring_billing": "recurring billing was cancelled",
       "problem_with_remittance": "problem with the remittance"
     }
+  },
+  "plugin_connect": {
+    "title": "Connect WordPress",
+    "subtitle": "The Business Watchdog plugin on {site} asks to connect to the organization «{organization}».",
+    "missing": "There is no connection request from WordPress. Open the Business Watchdog page in your WordPress admin and click «Connect to Business Watchdog» again — the request is valid for 30 minutes.",
+    "forbidden": "Your role cannot connect stores. Ask the owner or an administrator of the organization.",
+    "choose_store": "Which store is this site?",
+    "blocked_platform": "This is not a WooCommerce store.",
+    "blocked_api": "This store already sends orders through its API connection. One order source per store: disconnect the API first in the store settings.",
+    "reconnect": "The plugin is already connected to this store; connecting again replaces that connection.",
+    "no_usable": "None of these stores can be connected with the plugin.",
+    "create_title": "Create the store",
+    "create_hint": "There is no store with the address {site} in this organization yet. It is created as a WooCommerce store with this address.",
+    "what_happens": "After «Connect» you return to WordPress and the plugin connects by itself — no code to copy.",
+    "connect": "Connect",
+    "create_and_connect": "Create the store and connect",
+    "connecting": "Connecting…",
+    "expires": "The request is valid until {time}.",
+    "manual": "Another way: create a connection code on the store page and paste it on the plugin page."
   }
 }

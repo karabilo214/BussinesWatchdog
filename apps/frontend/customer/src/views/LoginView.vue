@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue';
 import { Passkeys, UserCancelledError } from '@laravel/passkeys';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { ApiError } from '@bw/api-client';
 import { useSession } from '@/composables/useSession';
@@ -9,6 +10,8 @@ import AuthLayout from '@/layouts/AuthLayout.vue';
 const route = useRoute();
 const router = useRouter();
 const { signIn, signInWithPasskey, completeMfa } = useSession();
+const { locale } = useI18n();
+const connectingPlugin = route.query.redirect === '/connect';
 const passkeySupported = ref(false);
 const email = ref('');
 const password = ref('');
@@ -127,6 +130,11 @@ function restart(reason: string | null = null): void {
         <h1 class="text-2xl font-semibold">{{ $t('auth.title') }}</h1>
         <p class="text-sm text-text-muted">{{ $t('auth.subtitle') }}</p>
       </div>
+
+      <p v-if="connectingPlugin" class="rounded-md border border-note-border bg-note-soft px-3 py-2 text-sm" data-plugin-connect>
+        {{ $t('auth.connect_hint') }}
+        <a :href="`/${locale}/signup?utm_source=wordpress_plugin&utm_medium=connect`" class="font-medium text-primary hover:underline">{{ $t('auth.connect_signup') }}</a>
+      </p>
 
       <p v-if="infoKey && !errorKey" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-sm text-ok">{{ $t(infoKey) }}</p>
 

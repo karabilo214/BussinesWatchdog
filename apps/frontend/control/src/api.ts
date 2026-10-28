@@ -776,6 +776,19 @@ export async function fetchOverview(filters: { mode: 'live' | 'test'; from?: str
   return (await request<BusinessOverview>('GET', '/platform-api/v1/overview', { query: filters })).data;
 }
 
+export type PluginFunnelStage = 'click' | 'signup_view' | 'signup' | 'code' | 'connected';
+
+export interface PluginFunnel {
+  from: string;
+  to: string;
+  stages: { stage: PluginFunnelStage; attributed: number; total: number; conversion_percent: number | null }[];
+  placements: ({ placement: string } & Record<PluginFunnelStage, number>)[];
+}
+
+export async function fetchPluginFunnel(filters: { from?: string; to?: string }): Promise<PluginFunnel> {
+  return (await request<PluginFunnel>('GET', '/platform-api/v1/plugin-funnel', { query: filters })).data;
+}
+
 export type HealthState = 'ok' | 'warn' | 'crit';
 
 export interface HealthQueue {

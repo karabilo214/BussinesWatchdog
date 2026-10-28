@@ -7,6 +7,8 @@ use App\Models\PublicPage;
 use App\Support\Account\EmailVerificationService;
 use App\Support\Account\PersonalName;
 use App\Support\Account\Registration;
+use App\Support\Plugin\PluginConnectRequest;
+use App\Support\Plugin\PluginFunnel;
 use App\Support\Site\Policies;
 use App\Support\Site\PolicyAcceptanceRequired;
 use App\Support\Site\PricingTable;
@@ -34,15 +36,19 @@ class SignupController extends Controller
     public function __construct(
         private readonly SiteContent $content,
         private readonly Policies $policies,
+        private readonly PluginFunnel $funnel,
     ) {}
 
     public function show(Request $request, string $locale): Response|RedirectResponse
     {
+        $connect = PluginConnectRequest::fromSession($request);
+
         if (Auth::guard('web')->check()) {
-            return redirect($this->target($request->query('plan'), $request->query('price'), $request->query('stores')));
+            return redirect($connect !== null ? '/app/connect' : $this->target($request->query('plan'), $request->query('price'), $request->query('stores')));
         }
 
         app()->setLocale($locale);
+        $this->funnel->signupView($request, $locale);
         $origin = rtrim((string) config('app.url'), '/');
 
         return response()->view('site.signup', [
@@ -60,7 +66,8 @@ class SignupController extends Controller
             'plan' => old('plan', $request->query('plan')),
             'price' => old('price', $request->query('price')),
             'stores' => old('stores', $request->query('stores')),
-            'login_target' => $this->target(old('plan', $request->query('plan')), old('price', $request->query('price')), old('stores', $request->query('stores'))),
+            'login_target' => $connect !== null ? '/app/connect' : $this->target(old('plan', $request->query('plan')), old('price', $request->query('price')), old('stores', $request->query('stores'))),
+            'connect_site' => $connect?->siteHost(),
             'timezones' => DateTimeZone::listIdentifiers(),
             'timezone' => old('timezone', self::DEFAULT_TIMEZONE[$locale]),
         ])->header('Cache-Control', 'no-store');
@@ -120,11 +127,16 @@ class SignupController extends Controller
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
         $request->session()->put('active_tenant_id', $tenant->id);
+        $this->funnel->signup($request, $tenant->id, $locale);
 
         try {
             $verification->send($user);
         } catch (Throwable $exception) {
             Log::warning('site.signup_verification_failed', ['user_id' => $user->id, 'exception' => $exception::class]);
+        }
+
+        if (PluginConnectRequest::fromSession($request) !== null) {
+            return redirect('/app/connect');
         }
 
         return redirect($this->target($validated['plan'] ?? null, $validated['price'] ?? null, $validated['stores'] ?? null));

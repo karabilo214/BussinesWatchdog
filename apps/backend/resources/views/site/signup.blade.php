@@ -4,6 +4,9 @@
     <section class="site-wrap site-section site-narrow">
         <h1>{{ $title }}</h1>
         <p class="site-lead">{{ __('site.signup.lead') }}</p>
+        @if ($connect_site)
+            <p class="site-note" data-plugin-connect>{{ __('site.signup.plugin_connect', ['site' => $connect_site]) }}</p>
+        @endif
 
         @if ($errors->any())
             <div class="site-errors" role="alert" id="form-errors">
