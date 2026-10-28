@@ -9,16 +9,26 @@ use App\Support\Site\PageAdmin;
 use App\Support\Site\SiteRejected;
 use Illuminate\Console\Command;
 
-class CreateVideosPage extends Command
+class CreateSitePage extends Command
 {
-    protected $signature = 'site:videos-page
+    protected $signature = 'site:page
+        {slug : Page from database/data/pages, e.g. videos or security}
         {staff : Email of the platform owner the drafts are saved as}
         {--publish= : Publish the drafts at once with this reason}';
 
-    protected $description = 'Create the editable videos page of the site (slug videos) and save its texts as drafts';
+    protected $description = 'Create an editable page of the site from database/data/pages and save its texts as drafts';
 
     public function handle(PageAdmin $pages): int
     {
+        $slug = (string) $this->argument('slug');
+        $file = database_path("data/pages/{$slug}.php");
+
+        if (preg_match('/^[a-z0-9-]+$/', $slug) !== 1 || ! is_file($file)) {
+            $this->error('No page data for this slug in database/data/pages.');
+
+            return self::FAILURE;
+        }
+
         $user = User::query()->where('email', mb_strtolower(trim((string) $this->argument('staff'))))->first();
         $staff = $user === null ? null : PlatformStaff::query()->where('user_id', $user->id)->where('role', PlatformStaff::ROLE_OWNER)->where('state', PlatformStaff::STATE_ACTIVE)->first();
 
@@ -30,19 +40,20 @@ class CreateVideosPage extends Command
 
         $reason = $this->option('publish');
         $reason = is_string($reason) ? trim($reason) : null;
+        $data = require $file;
 
         try {
-            $page = PublicPage::query()->where('kind', PublicPage::KIND_PAGE)->where('path', 'videos')->whereNull('archived_at')->first()
-                ?? $pages->create($staff->id, ['slug' => 'videos', 'menu' => PublicPage::MENU_HEADER, 'sort' => 5]);
+            $page = PublicPage::query()->where('kind', PublicPage::KIND_PAGE)->where('path', $slug)->whereNull('archived_at')->first()
+                ?? $pages->create($staff->id, ['slug' => $slug, 'menu' => $data['menu'], 'sort' => $data['sort']]);
 
-            foreach (require database_path('data/videos_page.php') as $locale => $content) {
+            foreach ($data['locales'] as $locale => $content) {
                 $pages->saveDraft($staff->id, $page->id, $locale, $content);
 
                 if ($reason !== null && $reason !== '') {
                     $pages->publish($staff->id, $page->id, $locale, $reason);
-                    $this->line("/{$locale}/videos published");
+                    $this->line("/{$locale}/{$slug} published");
                 } else {
-                    $this->line("/{$locale}/videos draft saved");
+                    $this->line("/{$locale}/{$slug} draft saved");
                 }
             }
         } catch (SiteRejected $rejected) {
@@ -52,7 +63,7 @@ class CreateVideosPage extends Command
         }
 
         if ($reason === null || $reason === '') {
-            $this->info('Review the drafts in the owner panel (Site → Pages → videos) and publish each language.');
+            $this->info("Review the drafts in the owner panel (Site → Pages → {$slug}) and publish each language.");
         }
 
         return self::SUCCESS;

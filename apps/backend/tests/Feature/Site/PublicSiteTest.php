@@ -96,10 +96,10 @@ class PublicSiteTest extends TestCase
     {
         $this->owner('owner@platform.test');
 
-        $this->artisan('site:videos-page', ['staff' => 'owner@platform.test'])->assertSuccessful();
+        $this->artisan('site:page', ['slug' => 'videos', 'staff' => 'owner@platform.test'])->assertSuccessful();
         $this->get('/de/videos')->assertNotFound();
 
-        $this->artisan('site:videos-page', ['staff' => 'owner@platform.test', '--publish' => 'Videos'])->assertSuccessful();
+        $this->artisan('site:page', ['slug' => 'videos', 'staff' => 'owner@platform.test', '--publish' => 'Videos'])->assertSuccessful();
         $this->assertSame(1, PublicPage::query()->where('path', 'videos')->count(), 'running again keeps one page');
         $this->get('/de/videos')->assertOk()
             ->assertSee('<source src="/videos/de-checkout-pruefung.mp4" type="video/mp4"', false)
@@ -110,12 +110,39 @@ class PublicSiteTest extends TestCase
         $this->get('/sitemap.xml')->assertOk()->assertSee('https://watchdog.test/de/videos', false);
 
         foreach (['en', 'de', 'ru'] as $locale) {
-            preg_match_all('#/videos/([a-z-]+\.(?:mp4|webp))#', (string) file_get_contents(database_path("data/videos_page/{$locale}.html")), $files);
+            preg_match_all('#/videos/([a-z-]+\.(?:mp4|webp))#', (string) file_get_contents(database_path("data/pages/videos/{$locale}.html")), $files);
             $this->assertNotEmpty($files[1]);
 
             foreach ($files[1] as $file) {
                 $this->assertFileExists(public_path('videos/'.$file));
             }
+        }
+    }
+
+    public function test_the_security_page_is_published_by_command_in_the_footer_with_gdpr_answers_and_no_source_links(): void
+    {
+        $this->owner('owner@platform.test');
+
+        $this->artisan('site:page', ['slug' => 'missing', 'staff' => 'owner@platform.test'])->assertFailed();
+        $this->artisan('site:page', ['slug' => '../videos', 'staff' => 'owner@platform.test'])->assertFailed();
+        $this->artisan('site:page', ['slug' => 'security', 'staff' => 'owner@platform.test', '--publish' => 'Security'])->assertSuccessful();
+
+        $page = PublicPage::query()->where('path', 'security')->firstOrFail();
+        $this->assertSame(PublicPage::MENU_FOOTER, $page->menu);
+
+        $this->get('/en/security')->assertOk()
+            ->assertSee('<h1>Why Business Watchdog is safe for your store</h1>', false)
+            ->assertSee('<a href="/en/terms" rel="noopener noreferrer">', false)
+            ->assertSee('<a href="/en/privacy" rel="noopener noreferrer">', false)
+            ->assertSee('<section class="site-stores">', false)
+            ->assertSee('Art. 28 GDPR');
+        $this->get('/de/security')->assertOk()->assertSee('Auftragsverarbeiter nach Art. 28 DSGVO')->assertSee('<a href="/de/terms" rel="noopener noreferrer">', false);
+        $this->get('/ru/security')->assertOk()->assertSee('Вопросы о GDPR')->assertSee('<a href="/ru/privacy" rel="noopener noreferrer">', false);
+        $this->get('/en')->assertOk()->assertSee('/en/security', false);
+        $this->get('/sitemap.xml')->assertOk()->assertSee('https://watchdog.test/ru/security', false);
+
+        foreach (['en', 'de', 'ru'] as $locale) {
+            $this->get("/{$locale}/security")->assertDontSee('github', false)->assertDontSee('GitHub', false);
         }
     }
 

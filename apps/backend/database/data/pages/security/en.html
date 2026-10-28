@@ -1,0 +1,98 @@
+<p class="site-lead">You are asked to give a monitoring service access to your shop and your payment accounts. Here is exactly what Business Watchdog reads, what it never does, and how it protects your data — including the places where a platform does not allow a read-only key and how we handle that.</p>
+
+<section class="site-note">
+<h2>In short</h2>
+<ul>
+<li><strong>Read-only.</strong> Business Watchdog reads orders and payment states. It never changes orders, refunds, captures or moves money.</li>
+<li><strong>No customer data needed.</strong> We do not request customer names, addresses, e-mail addresses, phone numbers or order items.</li>
+<li><strong>Keys, not passwords.</strong> You never give us an admin password. A WooCommerce key that can write and a full Stripe secret key are refused.</li>
+<li><strong>Stored in Germany.</strong> Servers and encrypted backups are in Germany; we process store data on your behalf under Art. 28 GDPR.</li>
+<li><strong>You stay in control.</strong> Revoke a key, stop the plugin or delete your organisation at any time.</li>
+</ul>
+</section>
+
+<h2>What we read — and what we don't</h2>
+
+<h3>WooCommerce with a REST API key</h3>
+<ul>
+<li>Only a key with <strong>Read</strong> permission is accepted. When you connect, the service checks the key without writing anything and refuses a key that could write.</li>
+<li>The service sends only reading requests (GET) from a fixed list of addresses.</li>
+<li>Per order it asks only for: number, status, currency, total, payment method, the payment provider's transaction reference, dates and refunds. Billing and shipping addresses, customer data and order items are not requested. The order key is stored only as a one-way hash.</li>
+</ul>
+
+<h3>WooCommerce plugin (optional)</h3>
+<ul>
+<li>The plugin sends the same order and refund facts as they happen, payment attempt counts per payment method and, only if you turn it on, counts of checkout stages. No names, addresses, e-mail addresses, phone numbers, order items, IP addresses or visitor identifiers.</li>
+<li>It never takes part in payment, order creation, stock or store e-mails. If the service is unreachable, your shop keeps working.</li>
+<li>The plugin is published in the WordPress.org plugin directory under the GPL, so its code can be reviewed by anyone.</li>
+</ul>
+
+<h3>Shopware</h3>
+<ul>
+<li>With an integration key you create a role that may only view orders. With the Shopware App, Shopware shows you the app's permissions before installation: reading orders, transactions, currencies, payment methods and order states.</li>
+<li>The service explicitly limits the fields it receives: no customers, addresses or line items.</li>
+<li>The app writes only its own two records (checkout stage reports and their setting) — never orders, customers or settings of your shop.</li>
+</ul>
+
+<h3>Stripe</h3>
+<ul>
+<li>Only a <strong>restricted key</strong> with Read permissions is accepted; a full secret key (<code>sk_…</code>) is refused.</li>
+<li>The service sends only reading requests: payments, charges, refunds, disputes and — if you allow it — balance for fees.</li>
+</ul>
+
+<h3>PayPal</h3>
+<ul>
+<li>The service reads the transaction list and, if you allow it, disputes, using the credentials of a separate app in your PayPal account.</li>
+</ul>
+
+<h2>Where a platform does not allow read-only access, we say so</h2>
+<ul>
+<li><strong>PayPal</strong> cannot issue read-only credentials: by PayPal's rules an app with Transaction Search may also refund payments. Business Watchdog only ever calls reading methods from a fixed list and blocks every other request before it is sent.</li>
+<li><strong>Shopware</strong> lets even a «view only» role technically change order, payment and delivery states. The service never sends such requests.</li>
+</ul>
+<p>We tell you this in the dashboard before you connect, so you can decide with all the facts.</p>
+
+<h2>The checkout check never buys anything</h2>
+<ul>
+<li>A browser walks your shop like a customer — product, cart, checkout — and stops at the payment form. It never places an order and never enters card data.</li>
+<li>Every request that would place an order, pay, capture or refund is blocked. If you turn on the full payment form check, the scripts of Stripe, PayPal and other providers are loaded for reading only; every write request to them is blocked as well.</li>
+<li>Input fields and addresses are masked in the screenshots of the check.</li>
+<li>The optional checkout observation script sets no cookies, stores nothing on your customers' devices, reads no form fields and reports only to your own shop.</li>
+</ul>
+
+<h2>How your data is stored</h2>
+<ul>
+<li>Servers and encrypted backups are located in Germany (Contabo GmbH, Munich, as our processor).</li>
+<li>Connection keys are stored encrypted; after saving, only their last characters are shown.</li>
+<li>Order history is kept for 90, 180 or 365 days depending on your plan; check screenshots for 30 days.</li>
+<li>Your team signs in with two-factor authentication or passkeys if you enable them; actions in your account are recorded in an audit log.</li>
+<li>Our support sees the details of a store only after the organisation owner approves a request — for one store, for at most 72 hours, and every view is logged.</li>
+</ul>
+
+<h2>You stay in control</h2>
+<ul>
+<li>Revoke an API key in your shop or in Stripe or PayPal at any time — the service stops reading immediately.</li>
+<li>Stop the WooCommerce plugin with one click («Stop monitoring») or deactivate it.</li>
+<li>Delete your organisation: account data is deleted within 30 days unless the law requires us to keep it.</li>
+</ul>
+
+<h2>GDPR questions</h2>
+
+<h3>Is Business Watchdog a processor under the GDPR?</h3>
+<p>Yes. We process the data of your stores on your behalf as a processor under Art. 28 GDPR. The data processing terms are part of our <a href="/en/terms">Terms of Service</a> (Section 15).</p>
+
+<h3>Where is the data stored?</h3>
+<p>On servers in Germany, with daily encrypted backups also stored in Germany. Details, including from where the service is operated, are in the <a href="/en/privacy">Privacy Policy</a>.</p>
+
+<h3>Which other services receive data?</h3>
+<p>Contabo GmbH hosts the servers and backups. Paddle handles subscription payments as its own controller. Telegram receives alert texts only if you connect a Telegram chat.</p>
+
+<h3>Do my customers have to consent to the checkout observation?</h3>
+<p>The observation script sets no cookies, stores nothing on the device and collects no personal data of your customers. In the dashboard you find a ready-made paragraph for your privacy policy and a template for the legitimate-interest assessment. Please check them with your own legal advisor.</p>
+
+<h3>How long do you keep data?</h3>
+<p>Order history for 90, 180 or 365 days depending on the plan, screenshots of checks for 30 days, account data until 30 days after the account is closed.</p>
+
+<h2>See it for yourself</h2>
+<p>Watch the <a href="/en/videos">one-minute videos</a> recorded on a test shop, or check the public path to checkout of your shop for free — no sign-up and no access needed.</p>
+<section class="site-stores"><a class="site-button" href="/en/check-store">Check your store URL for free</a> <a class="site-button site-button-secondary" href="/en/pricing">14 days free — no card</a></section>

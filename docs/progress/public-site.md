@@ -396,3 +396,14 @@ Status: complete
 Verification: `PublicSiteTest` 17 (new: 409 without a published version, reason required, in-place change keeps one version and no draft, sanitized, audit before/after, legal document refused); owner panel tests 96 (new: button disabled until changed, sends text and reason, no draft saved, notice; no button and a hint for a legal document), types, build.
 
 Production (2026-10-28): deployed `099f2a0`; the published videos page was fixed with the new in-place update as the owner (en/de/ru stay version 1, reason «Button row as a section (spacing)», audit `site.page.published_updated`); the button row now has its spacing.
+
+### Step 298: Security page «Why Business Watchdog is safe for your store» (2026-10-28)
+
+Status: complete
+
+- Owner: visitors must see that the service reads nothing extra and changes nothing; trust first, GDPR answers (the lawyer may correct them), good for search. No links to the source code on GitHub — not proof for a merchant, and a map for attackers.
+- New editor page `security` (footer menu, en/de/ru, from `database/data/pages/security/`): short summary; what is read per connection (WooCommerce read-only key checked and write keys refused, GET allowlist and the requested order fields; plugin; Shopware role and App permissions; Stripe restricted key only, `sk_` refused; PayPal); where a platform cannot be read-only (PayPal, Shopware) and how the service handles it; the checkout check never buys; storage in Germany, encrypted keys, retention, MFA/passkeys, support access only with the owner's approval; how to stay in control; GDPR Q&A (processor under Art. 28 — Terms Section 15, location — Privacy, other recipients Contabo/Paddle/Telegram, consent for the observation script, retention); links to the videos, the free store check and pricing. Every claim matches code and the legal pages.
+- `site:videos-page` is replaced by the generic `php artisan site:page <slug> <owner email> [--publish=reason]` reading `database/data/pages/<slug>.php` (menu, sort, texts); the videos texts moved to `database/data/pages/videos/`.
+
+Verification: `PublicSiteTest` 18 (new: unknown or unsafe slug refused, footer page in three languages with terms/privacy links and the GDPR answers, footer link, sitemap, no GitHub link).
+

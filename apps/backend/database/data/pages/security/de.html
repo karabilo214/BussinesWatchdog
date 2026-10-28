@@ -1,0 +1,98 @@
+<p class="site-lead">Sie sollen einem Monitoring-Dienst Zugriff auf Ihren Shop und Ihre Zahlungskonten geben. Hier steht genau, was Business Watchdog liest, was es nie tut und wie es Ihre Daten schützt — auch dort, wo eine Plattform keinen reinen Lesezugriff erlaubt, und wie wir damit umgehen.</p>
+
+<section class="site-note">
+<h2>Kurz gesagt</h2>
+<ul>
+<li><strong>Nur Lesezugriff.</strong> Business Watchdog liest Bestellungen und Zahlungsstatus. Es ändert nie Bestellungen, erstattet nichts, zieht nichts ein und bewegt kein Geld.</li>
+<li><strong>Keine Kundendaten nötig.</strong> Wir fragen keine Namen, Adressen, E-Mail-Adressen, Telefonnummern oder Bestellpositionen Ihrer Kunden ab.</li>
+<li><strong>Schlüssel statt Passwörter.</strong> Sie geben uns nie ein Admin-Passwort. Ein WooCommerce-Schlüssel mit Schreibrecht und ein vollständiger Stripe-Geheimschlüssel werden abgelehnt.</li>
+<li><strong>Gespeichert in Deutschland.</strong> Server und verschlüsselte Backups stehen in Deutschland; Shopdaten verarbeiten wir als Auftragsverarbeiter nach Art. 28 DSGVO.</li>
+<li><strong>Sie behalten die Kontrolle.</strong> Schlüssel widerrufen, Plugin stoppen oder Organisation löschen — jederzeit.</li>
+</ul>
+</section>
+
+<h2>Was wir lesen — und was nicht</h2>
+
+<h3>WooCommerce mit REST-API-Schlüssel</h3>
+<ul>
+<li>Akzeptiert wird nur ein Schlüssel mit der Berechtigung <strong>Lesen</strong>. Beim Verbinden prüft der Dienst den Schlüssel, ohne etwas zu schreiben, und lehnt einen Schlüssel ab, der schreiben könnte.</li>
+<li>Der Dienst sendet nur lesende Anfragen (GET) an eine feste Liste von Adressen.</li>
+<li>Pro Bestellung fragt er nur ab: Nummer, Status, Währung, Betrag, Zahlungsart, die Transaktionsreferenz des Zahlungsanbieters, Zeitpunkte und Erstattungen. Rechnungs- und Lieferadressen, Kundendaten und Bestellpositionen werden nicht abgefragt. Der Bestellschlüssel wird nur als Einweg-Hash gespeichert.</li>
+</ul>
+
+<h3>WooCommerce-Plugin (optional)</h3>
+<ul>
+<li>Das Plugin sendet dieselben Fakten zu Bestellungen und Erstattungen sofort, Zählungen der Zahlungsversuche je Zahlungsart und — nur wenn Sie es einschalten — Zählungen der Checkout-Schritte. Keine Namen, Adressen, E-Mail-Adressen, Telefonnummern, Bestellpositionen, IP-Adressen oder Besucherkennungen.</li>
+<li>Es greift nie in Zahlung, Bestellanlage, Lager oder Shop-E-Mails ein. Ist der Dienst nicht erreichbar, läuft Ihr Shop normal weiter.</li>
+<li>Das Plugin ist im WordPress.org-Plugin-Verzeichnis unter der GPL veröffentlicht; sein Code kann von jedem geprüft werden.</li>
+</ul>
+
+<h3>Shopware</h3>
+<ul>
+<li>Mit einem Integrationsschlüssel legen Sie eine Rolle an, die Bestellungen nur ansehen darf. Bei der Shopware App zeigt Ihnen Shopware vor der Installation die Berechtigungen: Lesen von Bestellungen, Transaktionen, Währungen, Zahlungsarten und Bestellstatus.</li>
+<li>Der Dienst begrenzt die abgefragten Felder ausdrücklich: keine Kunden, Adressen oder Positionen.</li>
+<li>Die App schreibt nur ihre eigenen zwei Datensätze (Meldungen der Checkout-Schritte und deren Einstellung) — nie Bestellungen, Kunden oder Einstellungen Ihres Shops.</li>
+</ul>
+
+<h3>Stripe</h3>
+<ul>
+<li>Akzeptiert wird nur ein <strong>eingeschränkter Schlüssel</strong> mit Leserechten; ein vollständiger Geheimschlüssel (<code>sk_…</code>) wird abgelehnt.</li>
+<li>Der Dienst sendet nur lesende Anfragen: Zahlungen, Belastungen, Erstattungen, Rückbuchungen und — wenn Sie es erlauben — das Guthaben für Gebühren.</li>
+</ul>
+
+<h3>PayPal</h3>
+<ul>
+<li>Der Dienst liest die Transaktionsliste und — wenn Sie es erlauben — Konflikte, mit den Zugangsdaten einer eigenen App in Ihrem PayPal-Konto.</li>
+</ul>
+
+<h2>Wo eine Plattform keinen reinen Lesezugriff erlaubt, sagen wir es</h2>
+<ul>
+<li><strong>PayPal</strong> kann keine reinen Lese-Zugangsdaten ausstellen: Nach PayPals Regeln darf eine App mit Transaction Search auch Zahlungen erstatten. Business Watchdog ruft ausschließlich lesende Methoden aus einer festen Liste auf und blockiert jede andere Anfrage, bevor sie gesendet wird.</li>
+<li><strong>Shopware</strong> erlaubt selbst einer Rolle «nur ansehen» technisch, Bestell-, Zahlungs- und Lieferstatus zu ändern. Der Dienst sendet solche Anfragen nie.</li>
+</ul>
+<p>Das sagen wir Ihnen im Dashboard, bevor Sie verbinden — damit Sie mit allen Fakten entscheiden.</p>
+
+<h2>Die Checkout-Prüfung kauft nie etwas</h2>
+<ul>
+<li>Ein Browser geht Ihren Shop wie ein Kunde durch — Produkt, Warenkorb, Kasse — und stoppt am Zahlungsformular. Er bestellt nie und gibt nie Kartendaten ein.</li>
+<li>Jede Anfrage, die eine Bestellung auslösen, zahlen, einziehen oder erstatten würde, wird blockiert. Wenn Sie die vollständige Prüfung der Zahlungsformulare einschalten, werden die Skripte von Stripe, PayPal und anderen Anbietern nur lesend geladen; jede schreibende Anfrage an sie wird ebenfalls blockiert.</li>
+<li>Eingabefelder und Adressen werden auf den Screenshots der Prüfung unkenntlich gemacht.</li>
+<li>Das optionale Skript zur Checkout-Beobachtung setzt keine Cookies, speichert nichts auf den Geräten Ihrer Kunden, liest keine Formularfelder und meldet nur an Ihren eigenen Shop.</li>
+</ul>
+
+<h2>Wie Ihre Daten gespeichert werden</h2>
+<ul>
+<li>Server und verschlüsselte Backups stehen in Deutschland (Contabo GmbH, München, als unser Auftragsverarbeiter).</li>
+<li>Verbindungsschlüssel werden verschlüsselt gespeichert; nach dem Speichern sind nur ihre letzten Zeichen sichtbar.</li>
+<li>Der Bestellverlauf wird je nach Tarif 90, 180 oder 365 Tage aufbewahrt, Screenshots der Prüfungen 30 Tage.</li>
+<li>Ihr Team meldet sich auf Wunsch mit Zwei-Faktor-Authentifizierung oder Passkeys an; Aktionen in Ihrem Konto werden im Audit-Protokoll festgehalten.</li>
+<li>Unser Support sieht die Details eines Shops erst, nachdem der Inhaber der Organisation eine Anfrage freigibt — für einen Shop, höchstens 72 Stunden, und jeder Zugriff wird protokolliert.</li>
+</ul>
+
+<h2>Sie behalten die Kontrolle</h2>
+<ul>
+<li>Widerrufen Sie einen API-Schlüssel jederzeit in Ihrem Shop oder bei Stripe bzw. PayPal — der Dienst liest sofort nicht mehr.</li>
+<li>Stoppen Sie das WooCommerce-Plugin mit einem Klick («Überwachung stoppen») oder deaktivieren Sie es.</li>
+<li>Löschen Sie Ihre Organisation: Kontodaten werden innerhalb von 30 Tagen gelöscht, sofern keine gesetzliche Aufbewahrungspflicht besteht.</li>
+</ul>
+
+<h2>Fragen zur DSGVO</h2>
+
+<h3>Ist Business Watchdog Auftragsverarbeiter nach DSGVO?</h3>
+<p>Ja. Wir verarbeiten die Daten Ihrer Shops in Ihrem Auftrag als Auftragsverarbeiter nach Art. 28 DSGVO. Die Regelungen zur Auftragsverarbeitung sind Teil unserer <a href="/de/terms">Nutzungsbedingungen</a> (Abschnitt 15).</p>
+
+<h3>Wo werden die Daten gespeichert?</h3>
+<p>Auf Servern in Deutschland, mit täglichen verschlüsselten Backups, die ebenfalls in Deutschland liegen. Einzelheiten, auch von wo aus der Dienst betrieben wird, finden Sie in der <a href="/de/privacy">Datenschutzerklärung</a>.</p>
+
+<h3>Welche anderen Dienste erhalten Daten?</h3>
+<p>Contabo GmbH betreibt die Server und Backups. Paddle wickelt die Abo-Zahlungen als eigener Verantwortlicher ab. Telegram erhält Meldungstexte nur, wenn Sie einen Telegram-Chat verbinden.</p>
+
+<h3>Müssen meine Kunden der Checkout-Beobachtung zustimmen?</h3>
+<p>Das Beobachtungsskript setzt keine Cookies, speichert nichts auf dem Gerät und erhebt keine personenbezogenen Daten Ihrer Kunden. Im Dashboard finden Sie einen fertigen Absatz für Ihre Datenschutzerklärung und eine Vorlage für die Interessenabwägung. Bitte prüfen Sie diese mit Ihrer eigenen Rechtsberatung.</p>
+
+<h3>Wie lange werden Daten aufbewahrt?</h3>
+<p>Bestellverlauf je nach Tarif 90, 180 oder 365 Tage, Screenshots der Prüfungen 30 Tage, Kontodaten bis 30 Tage nach Schließung des Kontos.</p>
+
+<h2>Überzeugen Sie sich selbst</h2>
+<p>Sehen Sie sich die <a href="/de/videos">Videos in einer Minute</a> aus einem Testshop an oder prüfen Sie den öffentlichen Weg zur Kasse Ihres Shops kostenlos — ohne Anmeldung und ohne Zugriff.</p>
+<section class="site-stores"><a class="site-button" href="/de/check-store">Shop-Adresse kostenlos prüfen</a> <a class="site-button site-button-secondary" href="/de/pricing">14 Tage kostenlos — ohne Karte</a></section>
