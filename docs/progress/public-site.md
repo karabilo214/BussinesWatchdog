@@ -420,3 +420,4 @@ Status: complete
 
 Verification: `PublicSiteTest` 18 (security test: one `<h1>`, the Shopware permission list, links to terms/privacy; every image lazy/async with size, alt and existing 640/1280 files), backend 826 + 4 skipped, Pint; site stylesheet build check. Looked at desktop 1366 and mobile 390 in en/de/ru: no horizontal scroll, all images load.
 
+Production (2026-10-28): deployed `6de69e1`; `site:page security <owner> --publish="Security page redesign"` updated `/en|de|ru/security` (one designed `<h1>`, 6 lazy images per language, every image 200, `Cache-Control: public, max-age=31536000, immutable`, `image/webp`; no GitHub link).
