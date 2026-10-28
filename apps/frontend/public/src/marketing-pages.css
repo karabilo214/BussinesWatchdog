@@ -48,6 +48,7 @@
 .bw-page .bw-band { @apply rounded-3xl border border-brand-200 bg-brand-50 p-6 sm:p-10; }
 .bw-page .bw-band .bw-grid-2 { margin-top: 2rem; }
 .bw-page .bw-list { @apply list-disc space-y-3 pl-5 text-ink-700; margin-top: 1.2rem; }
+.bw-page ol.bw-list { list-style-type: decimal; }
 .bw-page .bw-list li + li { margin-top: 0.65rem; }
 .bw-page .bw-subnote { @apply rounded-xl border border-ink-200 bg-ink-50 p-4 text-sm text-ink-700; margin-top: 1.25rem; }
 .bw-page .bw-platforms { @apply grid gap-4 md:grid-cols-2; margin-top: 2rem; }

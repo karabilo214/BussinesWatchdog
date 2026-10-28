@@ -21,6 +21,8 @@ class MenuSectionAdmin
         $before = $section->only(['labels', 'sort']);
         if ($id === null) {
             $section->menu = $input['menu'];
+            // Internal imports may give a section a stable identity; the public API does not accept this field.
+            $section->code = $input['code'] ?? null;
         }
         if (array_key_exists('labels', $input)) {
             $labels = [];

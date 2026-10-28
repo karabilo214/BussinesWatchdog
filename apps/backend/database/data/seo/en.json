@@ -1,0 +1,680 @@
+{
+  "woocommerce-payment-pending": {
+    "title": "WooCommerce Payment Received but Order Pending?",
+    "description": "Payment succeeded in Stripe or PayPal, but the WooCommerce order is still pending? Learn why it happens and how to detect discrepancies.",
+    "h1": "WooCommerce Payment Received but Order Still Pending",
+    "label": "Payment received, order pending",
+    "eyebrow": "WooCommerce · Payment status troubleshooting",
+    "lead": "A payment in the provider dashboard and a pending order in WooCommerce can describe different stages of the same checkout. Confirm that money was actually captured, identify the exact order, and then investigate why the store did not record the result.",
+    "answer_title": "Captured payment or only an authorization?",
+    "answer": "A reservation, a pending payment and a completed capture are different facts. A browser success screen alone does not settle that distinction.",
+    "checks": [
+      "Confirm the captured amount and currency.",
+      "Match the provider reference to the order.",
+      "Compare the payment time with the order notes."
+    ],
+    "causes_title": "Why the payment and order can disagree",
+    "causes_intro": "Investigate the event path rather than changing the order status immediately.",
+    "causes": [
+      [
+        "Notification did not arrive",
+        "A webhook or callback can be blocked by a firewall, fail validation or reach an outdated address."
+      ],
+      [
+        "The update failed inside WordPress",
+        "A gateway exception or conflicting extension can prevent the order update even when the provider accepted the notification."
+      ],
+      [
+        "The payment is not final",
+        "An authorization or delayed payment may legitimately precede the status you expect in the store."
+      ]
+    ],
+    "manual_title": "Check the payment and the order side by side",
+    "manual": [
+      "Open the payment in the correct Stripe or PayPal account and in the same test or live mode as the checkout.",
+      "Inspect the actual capture, its amount and currency. Check whether a refund or reversal has already followed it.",
+      "Locate the WooCommerce order by its payment reference. Read the timestamped notes, not just the badge in the order list.",
+      "Inspect the provider notification history and WooCommerce gateway logs around that time. Record the error without sharing customer data or secrets."
+    ],
+    "fix_title": "Restore the missing update without charging twice",
+    "fix_now": "Correct the confirmed endpoint, signature or gateway error. Use the gateway’s documented notification retry procedure only after checking that it handles repeated events safely. Do not ask the buyer to pay again merely because the order is pending.",
+    "fix_verify": "Re-read the order and provider record after recovery. Confirm that the captured amount was recorded once and that stock, e-mails and fulfillment follow your store’s normal workflow. Test the underlying fix in sandbox or staging.",
+    "monitor_title": "How Business Watchdog can detect this mismatch",
+    "monitor": "For a supported, linked payment, Business Watchdog can identify a provider capture that the store has not recorded after its grace period. It reads the order and independent Stripe or PayPal evidence; it does not rely on the store’s paid marker alone.",
+    "limit": "A pending badge by itself is not an incident. Detection needs fresh sources, a reliable payment-to-order link and the appropriate coverage. The service does not repair webhooks or change order statuses.",
+    "connect": [
+      "Add WooCommerce with a read-only REST API key; the optional plugin adds checkout observation and faster store events.",
+      "Connect Stripe with a restricted read key or PayPal with the permissions and warning shown in the dashboard.",
+      "Wait for the initial synchronization and review live/test coverage. Enable notifications for the supported financial checks."
+    ],
+    "faq": [
+      [
+        "Can I mark the order paid manually?",
+        "Only after independently verifying the capture and checking your gateway’s recovery procedure. A manual status change can trigger stock, e-mail or fulfillment actions."
+      ],
+      [
+        "Does a broken webhook always mean lost money?",
+        "No. Payment and notification delivery are separate events. Check the provider’s capture before deciding what happened."
+      ]
+    ],
+    "sources": [
+      [
+        "WooCommerce: troubleshooting orders",
+        "https://woocommerce.com/document/managing-orders/troubleshooting-orders/"
+      ],
+      [
+        "WooCommerce: order statuses",
+        "https://woocommerce.com/document/managing-orders/order-statuses/"
+      ]
+    ],
+    "related": [
+      "stripe-woocommerce-mismatch",
+      "paypal-pending-orders",
+      "woocommerce-reconciliation"
+    ]
+  },
+  "woocommerce-missing-orders": {
+    "title": "WooCommerce Missing Orders: Find the Payment Trail",
+    "description": "A payment exists but the WooCommerce order is missing? Check filters, payment references and synchronization before concluding that an order was lost.",
+    "h1": "WooCommerce Missing Orders: Where to Look First",
+    "label": "Missing orders",
+    "eyebrow": "WooCommerce · Orders and payment references",
+    "lead": "A customer reports a charge, but you cannot find the order. Start by establishing whether the order is absent from WooCommerce, hidden by a filter, or simply missing from another tool. Those situations require different fixes.",
+    "answer_title": "Missing from which system?",
+    "answer": "An absent e-mail, an empty filtered list and a missing database record are not equivalent. Find the original payment reference before trying to recreate anything.",
+    "checks": [
+      "Search WooCommerce, not only the inbox.",
+      "Confirm the provider account and capture.",
+      "Check whether another shop owns the payment."
+    ],
+    "causes_title": "Three common breaks in the trail",
+    "causes_intro": "A successful payment can be visible even when the surrounding order workflow is incomplete.",
+    "causes": [
+      [
+        "The order is outside the current view",
+        "Date, status, search and trash filters can hide a record. A missing notification e-mail does not prove the order is missing."
+      ],
+      [
+        "The checkout or storage path failed",
+        "A timeout, gateway error or interrupted write may leave a payment reference without the order record you expected."
+      ],
+      [
+        "You are comparing different scopes",
+        "A second store, test account or delayed external synchronization can make unrelated records look like a missing order."
+      ]
+    ],
+    "manual_title": "Trace one payment before investigating totals",
+    "manual": [
+      "Obtain the transaction reference through your normal support process. Do not request card details or a screenshot containing unnecessary personal data.",
+      "Verify the successful capture in the provider account, including currency, time and test/live mode. Check whether it belongs to another sales channel.",
+      "Search all relevant order statuses in WooCommerce and review available deleted or trashed records. Compare the gateway reference and order notes.",
+      "Review gateway errors, hosting logs and the external tool’s synchronization status at the payment time. Distinguish an absent order from a delayed import."
+    ],
+    "fix_title": "Recover the evidence before rebuilding the order",
+    "fix_now": "If the order exists, correct the filter, e-mail workflow or synchronization fault. If it is truly absent, follow the payment gateway and store recovery procedures; document the verified charge and review stock, tax and fulfillment before any manual reconstruction.",
+    "fix_verify": "Confirm that a recovered record is linked to the original payment exactly once. Check related notifications and downstream systems separately. Avoid replaying checkout or issuing a fresh charge to manufacture an order record.",
+    "monitor_title": "What an unmatched-payment signal can tell you",
+    "monitor": "Business Watchdog can surface an independently confirmed capture that remains without an allocated order after the review grace period. The scan considers covered payments since the store was connected and excludes payments identified as belonging to another store.",
+    "limit": "An unmatched payment is a review item, not proof that WooCommerce deleted an order or that revenue was lost. Reliable account attribution, current store data and supported provider coverage are required. The service does not recreate missing orders.",
+    "connect": [
+      "Connect WooCommerce and the relevant Stripe or PayPal account separately. Confirm which shop uses the provider account.",
+      "Check that order synchronization is current before interpreting unmatched payments. Review the payment references and live/test mode.",
+      "Use the reconciliation view to investigate the evidence, then handle order recovery in your store’s supported tools."
+    ],
+    "faq": [
+      [
+        "Will monitoring recover an order that was never stored?",
+        "No. It can provide a payment trail for review within its coverage; recovery remains a store operation."
+      ],
+      [
+        "Are all old unlinked payments missing orders?",
+        "No. Historical payments, other shops and external sales can explain them. Attribution and the covered time window matter."
+      ]
+    ],
+    "sources": [
+      [
+        "WooCommerce: troubleshooting orders",
+        "https://woocommerce.com/document/managing-orders/troubleshooting-orders/"
+      ],
+      [
+        "Stripe references in WooCommerce orders",
+        "https://woocommerce.com/document/stripe/admin-experience/order-information/"
+      ]
+    ],
+    "related": [
+      "woocommerce-payment-pending",
+      "woocommerce-reconciliation",
+      "stripe-woocommerce-mismatch"
+    ]
+  },
+  "woocommerce-reconciliation": {
+    "title": "WooCommerce Payment Reconciliation: Orders vs Captures",
+    "description": "Compare WooCommerce orders with Stripe and PayPal captures and refunds. Learn a practical reconciliation workflow and the limits of payment monitoring.",
+    "h1": "WooCommerce Payment Reconciliation Without Guessing from Order Status",
+    "label": "Payment reconciliation",
+    "eyebrow": "WooCommerce · Independent payment evidence",
+    "lead": "Reconciliation answers whether the payment evidence agrees with the order, not whether a status label looks reassuring. Compare each supported order with the actual captures and refunds, using reliable references and the same currency.",
+    "answer_title": "Compare like with like",
+    "answer": "An order total, a capture, a refund, a processor fee and a bank payout describe different things. Combining them into one unexplained difference creates false alarms.",
+    "checks": [
+      "Match references before comparing amounts.",
+      "Keep currencies and test/live modes separate.",
+      "Review captures and refunds independently."
+    ],
+    "causes_title": "Why a daily total is not enough",
+    "causes_intro": "Matching totals can conceal order-level problems; different totals can also be legitimate.",
+    "causes": [
+      [
+        "Status is treated as payment proof",
+        "A store can report an order paid without independently confirming that the provider captured the money."
+      ],
+      [
+        "Different operations are combined",
+        "A payout may include fees, refunds and payments from several days. It is not the original order amount."
+      ],
+      [
+        "Matching or coverage is incomplete",
+        "An unresolved reference, missing integration or stale import should lead to investigation, not a zero balance."
+      ]
+    ],
+    "manual_title": "A repeatable order-level reconciliation workflow",
+    "manual": [
+      "Choose one store, provider account, currency, mode and covered period. Confirm that all required sources have synchronized.",
+      "Match the WooCommerce transaction reference to the provider’s payment and capture. Do not match solely by equal amount or nearby timestamps.",
+      "Compare the order amount with captured funds. Then compare each reported refund with independent refund evidence.",
+      "Review differences by type: missing capture, amount disagreement, unmatched reference or refund mismatch. Keep fees and payouts in a separate accounting task."
+    ],
+    "fix_title": "Resolve the type of difference you actually found",
+    "fix_now": "A missing webhook calls for a delivery repair; an unresolved reference calls for matching; a real amount difference calls for a review of the original order and provider operations. Keep a record of the evidence and choose the correction in the responsible system.",
+    "fix_verify": "Run the comparison again after synchronization. Confirm that the particular discrepancy has cleared, rather than relying on the daily totals becoming equal. Do not offset an incorrect capture with an unrelated refund.",
+    "monitor_title": "How Business Watchdog supports reconciliation",
+    "monitor": "Business Watchdog reads WooCommerce orders and compares supported captures and refunds with independent Stripe or PayPal data. It highlights covered mismatches and explains incomplete or unmatched evidence without silently treating it as a healthy zero.",
+    "limit": "This is order/payment reconciliation, not bank payout reconciliation or a bookkeeping ledger. Fees are information rather than an order underpayment. Unsupported gateways and unverified matches do not become independently confirmed payments.",
+    "connect": [
+      "Create a WooCommerce read key and connect the store. Review the synchronization period and freshness.",
+      "Connect the supported provider separately using the access instructions. Verify store attribution when an account serves several shops.",
+      "Review the first reconciliation results and configure e-mail or Telegram notifications for the supported incident rules."
+    ],
+    "faq": [
+      [
+        "Does a refunded order prove the customer received a refund?",
+        "No. The store’s refund record must be compared with independent provider evidence; manual refunds can require additional review."
+      ],
+      [
+        "Can I compare the bank deposit with total order sales?",
+        "Not as an order-level capture check. Deposits and fees have different timing and scope."
+      ]
+    ],
+    "sources": [
+      [
+        "WooCommerce: status and manual refund semantics",
+        "https://woocommerce.com/document/managing-orders/order-statuses/"
+      ],
+      [
+        "Stripe: Charge fields",
+        "https://docs.stripe.com/api/charges/object"
+      ]
+    ],
+    "related": [
+      "stripe-reconciliation",
+      "woocommerce-payment-pending",
+      "woocommerce-missing-orders"
+    ]
+  },
+  "woocommerce-order-processing": {
+    "title": "WooCommerce Orders Not Processing: Payment or Workflow?",
+    "description": "Find why WooCommerce orders do not move to Processing. Separate payment confirmation, expected status behavior and fulfillment problems before applying a fix.",
+    "h1": "WooCommerce Orders Not Processing: Check Payment Before Workflow",
+    "label": "Orders not processing",
+    "eyebrow": "WooCommerce · Payment and fulfillment are different",
+    "lead": "An order that does not enter Processing may have an unresolved payment, an expected alternative status or a workflow failure after payment. Determine which transition is missing before forcing the status or changing a fulfillment integration.",
+    "answer_title": "Processing is not the same as shipped",
+    "answer": "WooCommerce’s Processing status normally indicates a paid order awaiting fulfillment. Orders containing only products that are both virtual and downloadable can follow a different path.",
+    "checks": [
+      "Check whether payment was captured.",
+      "Identify the expected status for the products.",
+      "Review fulfillment as a separate process."
+    ],
+    "causes_title": "Identify the stage that has actually stopped",
+    "causes_intro": "The word “processing” can refer to payment, order status or warehouse work. Treat those as separate checks.",
+    "causes": [
+      [
+        "Payment confirmation never reached the order",
+        "A missing or rejected gateway notification can leave the store waiting even after a supported provider capture."
+      ],
+      [
+        "The status is intentional",
+        "An offline payment, delayed method or virtual/downloadable-only order may not follow the status path you expected."
+      ],
+      [
+        "A downstream task has failed",
+        "Warehouse queues, e-mail delivery and third-party automation can stop after an order is already paid."
+      ]
+    ],
+    "manual_title": "Find the missing transition",
+    "manual": [
+      "Read the WooCommerce status, order notes and payment method. Decide which transition should occur for this specific order.",
+      "Verify the provider capture independently. Do not use a received e-mail or a manually changed status as payment evidence.",
+      "If payment is confirmed but not recorded, check gateway notification delivery and the error logs for the relevant time.",
+      "If the order is already paid, inspect the separate fulfillment, scheduled-action or e-mail system responsible for the missing next step."
+    ],
+    "fix_title": "Repair the responsible stage",
+    "fix_now": "Restore payment notifications when payment confirmation is missing. For a downstream failure, investigate that queue or integration using its logs and retry rules. Do not change a paid order’s status repeatedly to trigger uncertain side effects.",
+    "fix_verify": "Verify payment recording and the required business outcome separately. Use staging or sandbox for reproduction. For a virtual/downloadable-only order, confirm the intended status behavior before classifying the absence of Processing as a fault.",
+    "monitor_title": "What Business Watchdog can help you distinguish",
+    "monitor": "Business Watchdog can flag supported financial inconsistencies such as a linked capture not recorded by the store, or an order marked paid without matching capture evidence. Those checks help separate payment problems from work that happens after payment.",
+    "limit": "Business Watchdog does not currently verify every post-payment obligation: warehouse handling, confirmation e-mail delivery, invoice creation and shipment are not automatically proven by these financial checks.",
+    "connect": [
+      "Connect WooCommerce for order data and Stripe or PayPal for independent payment evidence.",
+      "Review current coverage and synchronization, then investigate supported payment discrepancies in the order view.",
+      "Keep your existing fulfillment and delivery monitoring for the later stages; use the security page to review the service’s access boundaries."
+    ],
+    "faq": [
+      [
+        "Should every paid order enter Processing?",
+        "No. Product types and the configured payment flow affect the expected transition. Compare the actual configuration with WooCommerce’s status guidance."
+      ],
+      [
+        "Does a paid order prove it reached the warehouse?",
+        "No. Payment evidence and fulfillment evidence are separate; investigate the warehouse integration directly."
+      ]
+    ],
+    "sources": [
+      [
+        "WooCommerce: order status meanings",
+        "https://woocommerce.com/document/managing-orders/order-statuses/"
+      ],
+      [
+        "Stripe extension: status transitions",
+        "https://woocommerce.com/document/stripe/admin-experience/order-statuses/"
+      ]
+    ],
+    "related": [
+      "woocommerce-payment-pending",
+      "woocommerce-reconciliation",
+      "shopware-order-monitoring"
+    ]
+  },
+  "stripe-woocommerce-mismatch": {
+    "title": "Stripe Payment Not Showing in WooCommerce: Trace the Match",
+    "description": "Stripe shows a payment but WooCommerce does not show it as paid? Trace PaymentIntent and Charge references, mode and webhook delivery before retrying payment.",
+    "h1": "Stripe Payment Not Showing in WooCommerce",
+    "label": "Stripe and WooCommerce disagree",
+    "eyebrow": "Stripe + WooCommerce · Match one payment",
+    "lead": "Stripe and WooCommerce can disagree because they are showing different records or different payment stages. Follow the PaymentIntent and its Charge back to the order before assuming the money or the order has disappeared.",
+    "answer_title": "Start with the Stripe reference",
+    "answer": "A PaymentIntent identifies a payment flow; its related Charge holds capture and refund information. A webhook event ID identifies a notification, not a second payment.",
+    "checks": [
+      "Use the correct Stripe account and mode.",
+      "Resolve the order’s Stripe reference.",
+      "Inspect capture and notification separately."
+    ],
+    "causes_title": "Where the reference or status can diverge",
+    "causes_intro": "The exact identifier often narrows the problem faster than a screenshot of the payment list.",
+    "causes": [
+      [
+        "Account or mode does not match",
+        "A payment in test mode or another Stripe account will not explain a live order in this store."
+      ],
+      [
+        "Payment exists but the capture is not final",
+        "An authorization or unfinished payment flow should not be treated as a completed charge for fulfillment."
+      ],
+      [
+        "The store did not apply the event",
+        "A delivery failure, wrong webhook secret or gateway error can prevent a paid-state update."
+      ]
+    ],
+    "manual_title": "Trace Stripe → gateway → WooCommerce",
+    "manual": [
+      "Open the WooCommerce order and copy its Stripe reference from the gateway details or notes. Determine whether it identifies a PaymentIntent or Charge.",
+      "Find the corresponding payment in Stripe and inspect the related charge, captured amount, currency and mode. Check later refunds separately.",
+      "Inspect the notification delivery that should update the store. Compare the destination and signing configuration with the installed gateway’s instructions.",
+      "Check WooCommerce gateway logs for the same reference and time. A delivered notification can still fail during the order update."
+    ],
+    "fix_title": "Restore synchronization, not another payment",
+    "fix_now": "Correct the account, mode or notification fault established by the trace. Follow the installed Stripe gateway’s documented reconnect or retry procedure; avoid copying a webhook secret from a different destination.",
+    "fix_verify": "Confirm the original Stripe charge is reflected once in the correct order. Test the same event path in test mode. Do not ask for a new payment while the first capture remains unresolved.",
+    "monitor_title": "How Business Watchdog checks the Stripe/store relationship",
+    "monitor": "Business Watchdog resolves supported Stripe references and compares independently read captures with the WooCommerce order. A linked capture that is not recorded by the store can become a discrepancy after the configured grace; an unresolved reference remains a matching problem.",
+    "limit": "The service does not infer that every Stripe payment belongs to this WooCommerce shop. Test/live coverage, shared-account attribution and gateway metadata must be sufficient. It does not edit gateway configuration or repair order records.",
+    "connect": [
+      "Connect WooCommerce and the Stripe restricted read key as separate data sources. Never provide a full secret key for monitoring.",
+      "Check the live/test setting and the gateway references. For WooCommerce test-mode coverage, review the plugin requirement shown in the dashboard.",
+      "Verify source freshness and the first reconciliation results before enabling the relevant notifications."
+    ],
+    "faq": [
+      [
+        "Are pi_, ch_ and evt_ interchangeable?",
+        "No. They identify a payment flow, a charge and an event respectively. Use the relationship between them rather than comparing their strings."
+      ],
+      [
+        "Does a successful webhook delivery prove the order is correct?",
+        "No. Also inspect the gateway result and the order’s recorded payment state."
+      ]
+    ],
+    "sources": [
+      [
+        "Stripe identifiers shown in WooCommerce",
+        "https://woocommerce.com/document/stripe/admin-experience/order-information/"
+      ],
+      [
+        "Stripe: Charge object",
+        "https://docs.stripe.com/api/charges/object"
+      ],
+      [
+        "Stripe: webhook delivery",
+        "https://docs.stripe.com/webhooks"
+      ]
+    ],
+    "related": [
+      "woocommerce-payment-pending",
+      "stripe-reconciliation",
+      "woocommerce-missing-orders"
+    ]
+  },
+  "paypal-pending-orders": {
+    "title": "PayPal Payment Received but Order Pending: What to Check",
+    "description": "PayPal shows a payment while the shop order remains pending? Distinguish completed captures, pending payments and missing notifications before changing the order.",
+    "h1": "PayPal Payment Received but the Order Is Still Pending",
+    "label": "PayPal payment, pending order",
+    "eyebrow": "PayPal · Payment status and store confirmation",
+    "lead": "“Received” in a message or payment overview is not enough to decide whether an order is ready. Inspect the PayPal capture and its current status, then trace the notification that should update the shop.",
+    "answer_title": "Pending capture or completed capture?",
+    "answer": "PayPal distinguishes a completed capture from a pending one. Buyer approval alone is another stage and is not the same as a completed capture.",
+    "checks": [
+      "Find the capture, not just the PayPal order.",
+      "Read the pending reason when provided.",
+      "Match the account and shop reference."
+    ],
+    "causes_title": "Why a PayPal order may keep waiting",
+    "causes_intro": "Some cases are payment delays; others are failures to communicate a final result.",
+    "causes": [
+      [
+        "The capture is still pending",
+        "Review, funding or receiving-account requirements can delay the final payment result. Check the specific status details."
+      ],
+      [
+        "The shop missed a notification",
+        "The relevant PayPal app, event subscription, destination or delivery can differ from what the installed gateway expects."
+      ],
+      [
+        "The wrong transaction is being compared",
+        "A PayPal order ID, authorization and capture are different references; sandbox and live accounts also remain separate."
+      ]
+    ],
+    "manual_title": "Read PayPal’s final evidence before updating the shop",
+    "manual": [
+      "Open the payment in the correct live or sandbox account. Find the capture ID, amount, currency and current status.",
+      "If the capture is PENDING, read its available reason and resolve the provider’s requested action. Do not treat it as COMPLETED.",
+      "If the capture is completed, locate the corresponding shop order and compare payment references and timestamped gateway notes.",
+      "Check the gateway’s notification configuration and relevant delivery history. Investigate a verified delivery error separately from the payment status."
+    ],
+    "fix_title": "Handle pending funds and missing notifications differently",
+    "fix_now": "For a provider-side pending result, follow the PayPal account guidance for that specific reason. For a completed capture with a stale shop status, repair the gateway’s notification path and reconcile the original transaction before changing order handling.",
+    "fix_verify": "Re-read the capture and order after recovery. Confirm that any retry applied the original result once. Do not capture again, refund or ask for another payment merely to make the status labels agree.",
+    "monitor_title": "What Business Watchdog can detect for PayPal",
+    "monitor": "With covered PayPal and shop data, Business Watchdog compares independent captures and supported refunds with order records. A completed, linked capture missing from the store’s payment state is different from a provider payment that is still pending.",
+    "limit": "A pending PayPal payment is not automatically a store failure or missing money. Supported references, source freshness and provider coverage matter. Monitoring does not release held funds or change a PayPal transaction.",
+    "connect": [
+      "Add the store, then connect the correct PayPal REST app using the dashboard instructions. Review the access warning before saving credentials.",
+      "Verify live/sandbox mode and configure the Business Watchdog webhook independently of the payment gateway’s own notifications.",
+      "Wait for provider synchronization and inspect coverage before relying on a missing-capture conclusion or enabling alerts."
+    ],
+    "faq": [
+      [
+        "Is CHECKOUT.ORDER.APPROVED proof of capture?",
+        "No. Approval and capture are separate events. Inspect the capture result before making a fulfillment decision."
+      ],
+      [
+        "Can monitoring remove a PayPal hold?",
+        "No. Provider-side account requirements and payment decisions remain with PayPal."
+      ]
+    ],
+    "sources": [
+      [
+        "PayPal: capture statuses and pending reasons",
+        "https://developer.paypal.com/api/payments/v2/definitions/capture_status/"
+      ],
+      [
+        "PayPal: approval and capture webhook events",
+        "https://developer.paypal.com/payment-methods/webhooks/"
+      ]
+    ],
+    "related": [
+      "woocommerce-payment-pending",
+      "woocommerce-reconciliation",
+      "shopware-reconciliation"
+    ]
+  },
+  "stripe-reconciliation": {
+    "title": "Stripe WooCommerce Reconciliation: Match Captures, Not Payouts",
+    "description": "Reconcile Stripe payments with WooCommerce orders using PaymentIntent and Charge references. Keep captures, refunds, fees and payouts separate.",
+    "h1": "Stripe WooCommerce Reconciliation at Order Level",
+    "label": "Stripe reconciliation",
+    "eyebrow": "Stripe · Captures, refunds and order references",
+    "lead": "A Stripe payment flow can contain multiple attempts, while a bank payout can combine many payments. To reconcile WooCommerce correctly, identify the capture operations that belong to each order and check refunds separately.",
+    "answer_title": "One payment flow is not one bank deposit",
+    "answer": "Use the relationship between the order, PaymentIntent and Charge. Compare the actual captured amount; do not count a notification or authorization as another capture.",
+    "checks": [
+      "Resolve the payment and charge relationship.",
+      "Compare captured amounts in one currency.",
+      "Keep fees, refunds and payouts distinct."
+    ],
+    "causes_title": "Why Stripe reconciliation can look wrong",
+    "causes_intro": "Many apparent differences come from mixing identifiers or accounting scopes.",
+    "causes": [
+      [
+        "Notifications are counted as operations",
+        "Several events can describe the same payment. Counting them independently inflates the amount you believe was collected."
+      ],
+      [
+        "Authorized and captured amounts are confused",
+        "A payment can be authorized before collection; the captured amount may also differ from the original authorization."
+      ],
+      [
+        "Payout net is compared with order gross",
+        "Fees, settlement timing and unrelated payments make a bank deposit unsuitable as an order capture amount."
+      ]
+    ],
+    "manual_title": "Build a Stripe reconciliation trail for one order",
+    "manual": [
+      "Select the WooCommerce order, Stripe account, mode and currency. Obtain the gateway reference and resolve its PaymentIntent and related Charge.",
+      "Inspect the captured amount rather than the authorized amount. If capture happened in stages, review the cumulative captured amount and history.",
+      "Check refunds against the same payment. Verify whether each WooCommerce refund has independent evidence and whether extra provider refunds exist.",
+      "Record unresolved matches separately. Investigate processor fees and bank payouts outside the order capture comparison."
+    ],
+    "fix_title": "Correct matching before correcting money",
+    "fix_now": "Repair a missing reference or delayed import before deciding there is a financial discrepancy. If a real difference remains, review the order revision and the actual provider operations; choose a correction through the appropriate store or provider workflow.",
+    "fix_verify": "Repeat the comparison with fresh data. A duplicate event must not increase the captured amount, and a fee must not become an underpaid order. Verify refunds independently even if the net totals happen to agree.",
+    "monitor_title": "How Business Watchdog reconciles Stripe with WooCommerce",
+    "monitor": "Business Watchdog reads Stripe with a restricted key, resolves supported payment references and checks captures and refunds against WooCommerce. Its Stripe multicapture handling follows the Charge’s captured amount rather than inventing another capture from each repeated event.",
+    "limit": "This does not reconcile bank payouts or cover every Stripe product. Unsupported store payment flows, unreliable references or missing permissions remain limited or unknown. Optional fee information is not added to the order’s payment difference.",
+    "connect": [
+      "Create a restricted Stripe key with the read permissions listed in the dashboard; full secret keys are refused.",
+      "Connect WooCommerce separately and review account attribution and live/test coverage. Additional Stripe permissions are optional where the dashboard says so.",
+      "Confirm source freshness, examine the first order matches and then configure the financial notifications you need."
+    ],
+    "faq": [
+      [
+        "Can fees explain a capture mismatch?",
+        "Fees may explain a smaller settlement, but they do not reduce the amount captured from the buyer for the order."
+      ],
+      [
+        "Does payment_intent.succeeded create another payment?",
+        "No. An event describes a payment state; reconcile the underlying charge/capture evidence without counting the event twice."
+      ]
+    ],
+    "sources": [
+      [
+        "Stripe: Charge and captured amount fields",
+        "https://docs.stripe.com/api/charges/object"
+      ],
+      [
+        "WooCommerce: Stripe references",
+        "https://woocommerce.com/document/stripe/admin-experience/order-information/"
+      ],
+      [
+        "Stripe: events and webhook delivery",
+        "https://docs.stripe.com/webhooks"
+      ]
+    ],
+    "related": [
+      "woocommerce-reconciliation",
+      "stripe-woocommerce-mismatch",
+      "woocommerce-payment-pending"
+    ]
+  },
+  "shopware-reconciliation": {
+    "title": "Shopware Payment Reconciliation with Stripe and PayPal",
+    "description": "Compare supported Shopware 6 order payments with independent Stripe or PayPal evidence. Check transaction references, currencies and synchronization coverage.",
+    "h1": "Shopware Payment Reconciliation with Independent Provider Evidence",
+    "label": "Payment reconciliation",
+    "eyebrow": "Shopware 6 · Supported payment scenarios",
+    "lead": "Shopware keeps order, payment and delivery states separately. Reconciliation starts with the order’s payment transaction, then verifies the corresponding capture and supported refunds at Stripe or PayPal rather than trusting the shop status alone.",
+    "answer_title": "Which state are you comparing?",
+    "answer": "A paid transaction and an order marked in progress describe different stages. An order’s overall status is not independent evidence of captured funds.",
+    "checks": [
+      "Identify the relevant order transaction.",
+      "Match provider references and currency.",
+      "Review each source’s current coverage."
+    ],
+    "causes_title": "Where a Shopware payment comparison can diverge",
+    "causes_intro": "Focus on the payment transaction and its evidence before interpreting the order workflow.",
+    "causes": [
+      [
+        "The wrong state is used",
+        "Order, delivery and payment states answer different questions. A delivery update cannot confirm a provider capture."
+      ],
+      [
+        "A payment attempt or reference is unresolved",
+        "An order may have payment history that must be resolved to the supported provider operation, not matched by amount alone."
+      ],
+      [
+        "Coverage is incomplete",
+        "An unconnected provider, stale synchronization or an unsupported refund path prevents a reliable financial conclusion."
+      ]
+    ],
+    "manual_title": "Reconcile one Shopware order transaction",
+    "manual": [
+      "Open the order and distinguish its order, delivery and payment states. Inspect the relevant payment transaction and state history.",
+      "Find the matching Stripe or PayPal capture using supported payment references. Verify amount, currency, account and mode.",
+      "Compare captured funds and refunds separately. Do not infer a provider refund solely from a changed Shopware state.",
+      "Check synchronization freshness and provider-account attribution. A shared account needs enough evidence to identify which store owns the payment."
+    ],
+    "fix_title": "Repair the evidence or integration that is missing",
+    "fix_now": "Investigate the payment extension and notification path for a confirmed state-update problem. Resolve missing references and synchronize again before deciding that an amount is wrong. Keep any refund or capture action in the supported provider/store workflow.",
+    "fix_verify": "Recheck the same transaction with fresh independent data. Verify the order, payment and delivery states separately. Use a test environment for integration changes rather than repeatedly changing a live order’s states.",
+    "monitor_title": "What Business Watchdog supports for Shopware",
+    "monitor": "Business Watchdog supports Shopware 6.6/6.7 connections and financial checks for covered, identifiable Stripe and PayPal payments. It compares available store records with independent provider evidence and reports unsupported or incomplete coverage rather than inventing a result.",
+    "limit": "Coverage is not universal for every Shopware payment extension. In particular, a partial refund through SwagPayPal can remain unknown. Payments without a reliable store association cannot be confidently assigned across shops sharing an account.",
+    "connect": [
+      "Create the Shopware integration with the permissions shown in Business Watchdog and connect the store.",
+      "Connect the supported Stripe or PayPal account separately; store integration access alone does not supply independent payment evidence.",
+      "Review synchronization and exact coverage. The optional App adds checkout observation; it does not turn an unsupported financial scenario into a supported one."
+    ],
+    "faq": [
+      [
+        "Does a Shopware paid status prove the provider captured money?",
+        "No. Independent capture evidence comes from the connected provider, not from the store’s own status."
+      ],
+      [
+        "Are all Shopware refund scenarios covered?",
+        "No. Review the reported coverage for the extension and refund path; an unknown result must not be treated as zero."
+      ]
+    ],
+    "sources": [
+      [
+        "Shopware: order, payment and delivery states",
+        "https://docs.shopware.com/en/shopware-6-en/orders/overview"
+      ],
+      [
+        "Stripe: Charge fields",
+        "https://docs.stripe.com/api/charges/object"
+      ],
+      [
+        "PayPal: capture status",
+        "https://developer.paypal.com/api/payments/v2/definitions/capture_status/"
+      ]
+    ],
+    "related": [
+      "shopware-order-monitoring",
+      "woocommerce-reconciliation",
+      "paypal-pending-orders"
+    ]
+  },
+  "shopware-order-monitoring": {
+    "title": "Shopware Paid Order Not Processed? Check Payment Recording",
+    "description": "Covered case: Stripe or PayPal captured a payment but Shopware did not record it. Check the payment transaction; later fulfillment needs separate investigation.",
+    "h1": "Shopware Payment Captured but Order Not Updated",
+    "label": "Capture not recorded",
+    "eyebrow": "Shopware 6 · Payment recording, not fulfillment automation",
+    "lead": "This guide covers a supported financial scenario: Stripe or PayPal has captured money, but Shopware has not recorded that payment correctly. If Shopware already records the payment as paid and the next business task is missing, that is a separate workflow investigation.",
+    "answer_title": "First check whether the payment was recorded",
+    "answer": "A provider capture and Shopware’s payment state can disagree. An already-paid payment with an open order is different and does not, by itself, prove a financial error.",
+    "checks": [
+      "Confirm the provider capture independently.",
+      "Match it to the relevant Shopware transaction.",
+      "Separate later processing from payment recording."
+    ],
+    "causes_title": "Why a captured payment may not update the order",
+    "causes_intro": "Locate the missing payment update before investigating a later business transition.",
+    "causes": [
+      [
+        "The payment result was not applied",
+        "An interrupted or rejected notification can prevent the payment extension from recording the provider’s result."
+      ],
+      [
+        "A different attempt is being inspected",
+        "The order’s transaction history, payment reference or account mode may not correspond to the capture you found."
+      ],
+      [
+        "The payment is already recorded",
+        "If the payment state is already paid, a missing flow, invoice or warehouse action is an operational issue, outside the financial check."
+      ]
+    ],
+    "manual_title": "Trace capture → payment transaction → recorded payment",
+    "manual": [
+      "Open the Shopware order and distinguish payment, order and delivery histories. Identify the transaction whose payment state is in question.",
+      "Verify the matching Stripe or PayPal capture independently, including amount, currency, account and mode. Authorization alone is not capture.",
+      "Compare provider references and the payment extension’s notification/error history. Establish whether the confirmed result reached the correct transaction.",
+      "If Shopware already records the payment correctly, investigate the responsible Flow Builder action or external system separately. Do not use a status label as proof of an invoice, e-mail or warehouse handover."
+    ],
+    "fix_title": "Restore the payment update without replaying the purchase",
+    "fix_now": "For a missing payment update, repair the payment extension’s event path using its documented procedure. Before retrying an event, check that the original capture is not repeated and that processing is safe for duplicate delivery.",
+    "fix_verify": "Re-read the original provider operation and Shopware payment transaction. Confirm that payment was recorded once. Any later order flow or external fulfillment outcome must be verified separately; changing the order to Done is not evidence of completion.",
+    "monitor_title": "The supported check: capture not recorded by the store",
+    "monitor": "For covered Shopware payments with reliable references and fresh sources, Business Watchdog can identify an independent capture that the store has not recorded after the grace period. It reads the evidence and leaves corrective actions to you.",
+    "limit": "Business Watchdog does not currently provide end-to-end monitoring of post-payment processing obligations. It does not verify every Flow Builder action, invoice, confirmation e-mail, warehouse handover or shipment. An open but paid order is not automatically an incident.",
+    "connect": [
+      "Connect Shopware and the relevant supported provider, then confirm payment-reference coverage and synchronization.",
+      "Use the financial checks to review payment discrepancies. Keep operational logs and existing fulfillment monitoring for the later stages.",
+      "Review the Security page before granting access. Monitoring reads evidence; it does not execute your order flows or change statuses."
+    ],
+    "faq": [
+      [
+        "What if my Shopware order is already paid but not processed?",
+        "That is not automatically a financial incident. The service does not verify the later processing obligation; inspect the configured flow and destination system directly."
+      ],
+      [
+        "Does this monitor every paid order through fulfillment?",
+        "No. This page covers payment-recording discrepancies. Invoices, confirmation e-mails, warehouse handover and shipment are not proven by the current financial checks."
+      ]
+    ],
+    "sources": [
+      [
+        "Shopware: separate order, payment and delivery states",
+        "https://docs.shopware.com/en/shopware-6-en/orders/overview"
+      ],
+      [
+        "Shopware: Flow Builder state triggers",
+        "https://docs.shopware.com/en/shopware-6-en/settings/Flow-Builder"
+      ]
+    ],
+    "related": [
+      "shopware-reconciliation",
+      "woocommerce-order-processing",
+      "woocommerce-reconciliation"
+    ]
+  }
+}

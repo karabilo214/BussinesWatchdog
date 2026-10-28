@@ -53,7 +53,7 @@
   .site-nav-wide .site-dropdown-panel { position: absolute; top: calc(100% + 0.75rem); left: -0.75rem; z-index: 20; min-width: 14rem; padding: 0.5rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 0.75rem; box-shadow: 0 18px 40px -24px rgb(20 49 97 / 0.45); }
   .site-menu .site-dropdown > summary { padding: 0.5rem 0; }
   .site-menu .site-dropdown-panel { padding-left: 0.75rem; border-left: 2px solid var(--color-border); margin: 0 0 0.5rem 0.25rem; }
-  @media (min-width: 1024px) {
+  @media (min-width: 1280px) {
     .site-nav-wide { display: flex; }
     .site-menu { display: none; }
   }

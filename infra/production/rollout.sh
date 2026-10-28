@@ -24,5 +24,8 @@ else
     docker compose up -d --no-deps web
 fi
 
+# Initial publication is idempotent; later editorial changes and unpublications are preserved.
+docker compose exec -T -u www-data app php artisan site:seo-pages --if-owner --publish="Initial SEO guide publication during release"
+
 docker compose $PROFILES up -d --remove-orphans --wait $(docker compose $PROFILES config --services | grep -vxE 'web-static|app|app-b|web')
 docker compose ps

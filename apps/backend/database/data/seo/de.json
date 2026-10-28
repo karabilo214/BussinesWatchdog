@@ -1,0 +1,680 @@
+{
+  "woocommerce-payment-pending": {
+    "title": "WooCommerce: Zahlung erhalten, Bestellung noch ausstehend?",
+    "description": "Stripe oder PayPal hat die Zahlung bestätigt, doch WooCommerce zeigt eine ausstehende Bestellung? Ursachen prüfen und Zahlungsabweichungen erkennen.",
+    "h1": "WooCommerce: Zahlung erhalten, Bestellung weiterhin ausstehend",
+    "label": "Bezahlt, aber noch ausstehend",
+    "eyebrow": "WooCommerce · Zahlungsstatus prüfen",
+    "lead": "Eine Zahlung beim Anbieter und eine ausstehende Bestellung in WooCommerce können unterschiedliche Schritte desselben Checkouts zeigen. Prüfen Sie zuerst die tatsächliche Abbuchung, ordnen Sie diese der richtigen Bestellung zu und untersuchen Sie dann die fehlende Rückmeldung im Shop.",
+    "answer_title": "Abbuchung oder nur Autorisierung?",
+    "answer": "Eine Reservierung, eine ausstehende Zahlung und eine abgeschlossene Abbuchung sind verschiedene Sachverhalte. Die Erfolgsseite im Browser reicht als Zahlungsnachweis nicht aus.",
+    "checks": [
+      "Abgebuchten Betrag und Währung prüfen.",
+      "Zahlungsreferenz der Bestellung zuordnen.",
+      "Zeitpunkte mit den Bestellnotizen vergleichen."
+    ],
+    "causes_title": "Warum Zahlung und Bestellung auseinanderlaufen",
+    "causes_intro": "Verfolgen Sie die Rückmeldung vom Anbieter bis zum Shop, bevor Sie den Status manuell ändern.",
+    "causes": [
+      [
+        "Die Benachrichtigung kommt nicht an",
+        "Eine Firewall, eine falsche Zieladresse oder eine abgelehnte Signatur kann die Zustellung eines Webhooks verhindern."
+      ],
+      [
+        "Die Verarbeitung im Shop bricht ab",
+        "Ein Fehler der Zahlungsanbindung oder eine Erweiterung kann das Aktualisieren der Bestellung verhindern, obwohl die Benachrichtigung angekommen ist."
+      ],
+      [
+        "Die Zahlung ist noch nicht endgültig",
+        "Bei einer Autorisierung oder verzögerten Zahlungsart kann der erwartete Statuswechsel erst später erfolgen."
+      ]
+    ],
+    "manual_title": "Zahlung und Bestellung nebeneinander prüfen",
+    "manual": [
+      "Öffnen Sie den Vorgang im richtigen Stripe- oder PayPal-Konto und im passenden Test- oder Live-Modus.",
+      "Prüfen Sie die tatsächliche Abbuchung, Betrag und Währung sowie mögliche spätere Erstattungen oder Rückabwicklungen.",
+      "Suchen Sie die WooCommerce-Bestellung über die Zahlungsreferenz. Lesen Sie die zeitlich zugeordneten Bestellnotizen statt nur des Status in der Liste.",
+      "Prüfen Sie Zustellversuche und die Protokolle der Zahlungsanbindung zum betreffenden Zeitpunkt. Geben Sie keine Zugangsdaten oder unnötigen Kundendaten weiter."
+    ],
+    "fix_title": "Die Rückmeldung wiederherstellen, ohne doppelt abzubuchen",
+    "fix_now": "Beheben Sie den nachgewiesenen Fehler bei Zieladresse, Signatur oder Zahlungsanbindung. Wiederholen Sie eine Benachrichtigung nur nach dem dokumentierten Verfahren der Erweiterung. Fordern Sie wegen eines ausstehenden Shopstatus nicht vorschnell eine zweite Zahlung an.",
+    "fix_verify": "Lesen Sie Zahlung und Bestellung nach der Wiederherstellung erneut. Prüfen Sie, dass die ursprüngliche Abbuchung genau einmal erfasst wurde und Lagerbestand, E-Mails und Abwicklung dem vorgesehenen Ablauf folgen. Testen Sie die Ursache in Sandbox oder Staging.",
+    "monitor_title": "Wie Business Watchdog diese Abweichung erkennen kann",
+    "monitor": "Bei unterstützten, eindeutig zugeordneten Zahlungen kann Business Watchdog eine Abbuchung erkennen, die der Shop nach Ablauf der Wartefrist noch nicht erfasst hat. Dafür werden Bestelldaten und unabhängige Stripe- oder PayPal-Nachweise verglichen.",
+    "limit": "Ein ausstehender Status allein ist kein Vorfall. Erforderlich sind aktuelle Quellen, eine verlässliche Zuordnung und passende Abdeckung. Der Dienst repariert keine Webhooks und ändert keine Bestellstatus.",
+    "connect": [
+      "Verbinden Sie WooCommerce mit einem REST-API-Schlüssel mit Leserechten. Das optionale Plugin ergänzt Checkout-Beobachtung und schnellere Shopereignisse.",
+      "Verbinden Sie Stripe über einen eingeschränkten Leseschlüssel oder PayPal gemäß den angezeigten Berechtigungen und Hinweisen.",
+      "Warten Sie die erste Synchronisierung ab, prüfen Sie Test-/Live-Abdeckung und aktivieren Sie die gewünschten Finanzmeldungen."
+    ],
+    "faq": [
+      [
+        "Kann ich die Bestellung manuell als bezahlt markieren?",
+        "Erst nach unabhängiger Prüfung der Abbuchung und des Wiederherstellungsverfahrens. Eine Statusänderung kann Lager-, E-Mail- und Abwicklungsaktionen auslösen."
+      ],
+      [
+        "Bedeutet ein fehlerhafter Webhook verlorenes Geld?",
+        "Nein. Zahlung und Zustellung der Benachrichtigung sind getrennte Ereignisse. Prüfen Sie den Zahlungsnachweis beim Anbieter."
+      ]
+    ],
+    "sources": [
+      [
+        "WooCommerce: Bestellprobleme prüfen",
+        "https://woocommerce.com/document/managing-orders/troubleshooting-orders/"
+      ],
+      [
+        "WooCommerce: Bestellstatus",
+        "https://woocommerce.com/document/managing-orders/order-statuses/"
+      ]
+    ],
+    "related": [
+      "stripe-woocommerce-mismatch",
+      "paypal-pending-orders",
+      "woocommerce-reconciliation"
+    ]
+  },
+  "woocommerce-missing-orders": {
+    "title": "Fehlende WooCommerce-Bestellungen: Zahlungsspur prüfen",
+    "description": "Eine Zahlung ist vorhanden, aber die WooCommerce-Bestellung fehlt? Filter, Zahlungsreferenzen und Synchronisierung systematisch prüfen.",
+    "h1": "WooCommerce-Bestellungen fehlen: So verfolgen Sie die Zahlung",
+    "label": "Fehlende Bestellungen",
+    "eyebrow": "WooCommerce · Bestellungen und Zahlungsreferenzen",
+    "lead": "Ein Kunde meldet eine Abbuchung, doch die Bestellung ist nicht auffindbar. Klären Sie zunächst, ob der Datensatz in WooCommerce fehlt, durch einen Filter verborgen ist oder lediglich in einem angeschlossenen System noch nicht erscheint.",
+    "answer_title": "In welchem System fehlt die Bestellung?",
+    "answer": "Eine fehlende E-Mail, eine gefilterte Bestellliste und ein fehlender Datensatz sind unterschiedliche Probleme. Sichern Sie zuerst die ursprüngliche Zahlungsreferenz.",
+    "checks": [
+      "Direkt in WooCommerce suchen, nicht nur im Postfach.",
+      "Anbieterkonto und Abbuchung bestätigen.",
+      "Eine Zahlung aus einem anderen Shop ausschließen."
+    ],
+    "causes_title": "Wo die Zuordnung unterbrochen sein kann",
+    "causes_intro": "Die Zahlung kann sichtbar sein, obwohl der umgebende Bestellablauf unvollständig ist.",
+    "causes": [
+      [
+        "Der Datensatz ist in der Ansicht verborgen",
+        "Datums-, Status- und Papierkorbfilter können eine Bestellung ausblenden. Eine ausbleibende Benachrichtigung beweist keinen Datenverlust."
+      ],
+      [
+        "Checkout oder Speicherung sind fehlgeschlagen",
+        "Ein Timeout, ein Fehler der Zahlungsanbindung oder ein abgebrochener Schreibvorgang kann die erwartete Bestellerfassung unterbrechen."
+      ],
+      [
+        "Die betrachteten Daten gehören nicht zusammen",
+        "Ein zweiter Shop, der Testmodus oder ein verzögerter Import kann wie eine fehlende Bestellung aussehen."
+      ]
+    ],
+    "manual_title": "Eine einzelne Zahlung vollständig nachverfolgen",
+    "manual": [
+      "Erfragen Sie die Transaktionsreferenz über Ihren üblichen Supportweg. Benötigt werden keine Kartendaten oder Screenshots mit unnötigen personenbezogenen Angaben.",
+      "Bestätigen Sie die Abbuchung im richtigen Anbieterkonto mit Betrag, Währung, Zeitpunkt und Modus. Prüfen Sie andere Verkaufskanäle.",
+      "Durchsuchen Sie die relevanten Bestellstatus und verfügbare Papierkorb- oder Löschansichten in WooCommerce. Vergleichen Sie Zahlungsreferenz und Bestellnotizen.",
+      "Prüfen Sie Gateway- und Hostingprotokolle sowie den Synchronisierungsstand des externen Systems. Trennen Sie fehlende Speicherung von einem verspäteten Import."
+    ],
+    "fix_title": "Nachweise sichern, bevor Sie eine Bestellung neu anlegen",
+    "fix_now": "Existiert die Bestellung, korrigieren Sie Filter, E-Mail-Ablauf oder Synchronisierung. Fehlt sie tatsächlich, nutzen Sie das Wiederherstellungsverfahren Ihrer Anbindung. Prüfen Sie vor einer manuellen Rekonstruktion Zahlung, Bestand, steuerliche Angaben und Abwicklung.",
+    "fix_verify": "Stellen Sie sicher, dass ein wiederhergestellter Datensatz genau der ursprünglichen Zahlung zugeordnet ist. Kontrollieren Sie nachgelagerte Systeme gesondert. Starten Sie keinen neuen Checkout und keine neue Abbuchung, nur um eine Bestellnummer zu erzeugen.",
+    "monitor_title": "Was ein nicht zugeordneter Zahlungseingang aussagt",
+    "monitor": "Business Watchdog kann eine unabhängig bestätigte Abbuchung zur Prüfung anzeigen, der nach der vorgesehenen Wartefrist keine Bestellung zugeordnet ist. Berücksichtigt werden abgedeckte Zahlungen seit der Shopanbindung; als shopfremd erkannte Zahlungen werden ausgeschlossen.",
+    "limit": "Ein nicht zugeordneter Zahlungseingang beweist weder eine gelöschte Bestellung noch einen Umsatzverlust. Aktuelle Shopdaten, verlässliche Kontozuordnung und unterstützte Anbieter sind erforderlich. Der Dienst stellt keine Bestellungen wieder her.",
+    "connect": [
+      "Verbinden Sie WooCommerce und das zugehörige Stripe- oder PayPal-Konto getrennt. Prüfen Sie, welche Shops das Konto nutzen.",
+      "Bestätigen Sie die Aktualität der Bestellsynchronisierung, bevor Sie nicht zugeordnete Zahlungen interpretieren. Beachten Sie Referenzen und Test-/Live-Modus.",
+      "Untersuchen Sie die Nachweise in der Abstimmung und nutzen Sie zur Wiederherstellung die vorgesehenen Werkzeuge des Shops."
+    ],
+    "faq": [
+      [
+        "Kann die Überwachung eine nie gespeicherte Bestellung wiederherstellen?",
+        "Nein. Sie kann innerhalb ihrer Abdeckung eine Zahlungsspur zur Prüfung liefern; die Wiederherstellung bleibt eine Shopaufgabe."
+      ],
+      [
+        "Sind alte Zahlungen ohne Zuordnung immer fehlende Bestellungen?",
+        "Nein. Andere Shops, frühere Vorgänge und externe Verkäufe sind mögliche Erklärungen. Zeitraum und Zuordnung sind entscheidend."
+      ]
+    ],
+    "sources": [
+      [
+        "WooCommerce: Bestellprobleme prüfen",
+        "https://woocommerce.com/document/managing-orders/troubleshooting-orders/"
+      ],
+      [
+        "Stripe-Referenzen in WooCommerce",
+        "https://woocommerce.com/document/stripe/admin-experience/order-information/"
+      ]
+    ],
+    "related": [
+      "woocommerce-payment-pending",
+      "woocommerce-reconciliation",
+      "stripe-woocommerce-mismatch"
+    ]
+  },
+  "woocommerce-reconciliation": {
+    "title": "WooCommerce-Zahlungsabgleich mit Stripe und PayPal",
+    "description": "WooCommerce-Bestellungen mit Abbuchungen und Erstattungen von Stripe und PayPal abgleichen. Praktischer Ablauf, Grenzen und unabhängige Zahlungsnachweise.",
+    "h1": "WooCommerce-Zahlungsabgleich statt Vertrauen auf Statusangaben",
+    "label": "Zahlungsabgleich",
+    "eyebrow": "WooCommerce · Unabhängige Zahlungsnachweise",
+    "lead": "Beim Zahlungsabgleich geht es darum, ob die Zahlungsnachweise zur Bestellung passen. Vergleichen Sie unterstützte Bestellungen über verlässliche Referenzen mit den tatsächlichen Abbuchungen und Erstattungen in derselben Währung.",
+    "answer_title": "Gleichartige Beträge vergleichen",
+    "answer": "Bestellbetrag, Abbuchung, Erstattung, Anbietergebühr und Bankauszahlung sind unterschiedliche Vorgänge. Eine einzige vermischte Differenz führt leicht zu falschen Schlussfolgerungen.",
+    "checks": [
+      "Zuerst Referenzen zuordnen, dann Beträge prüfen.",
+      "Währungen sowie Test und Live getrennt halten.",
+      "Abbuchungen und Erstattungen einzeln prüfen."
+    ],
+    "causes_title": "Warum die Tagessumme allein nicht genügt",
+    "causes_intro": "Gleiche Summen können einzelne Fehler verdecken; unterschiedliche Summen können berechtigt sein.",
+    "causes": [
+      [
+        "Der Shopstatus gilt als Zahlungsnachweis",
+        "Eine Bestellung kann im Shop bezahlt aussehen, ohne dass eine unabhängige Abbuchung beim Anbieter bestätigt ist."
+      ],
+      [
+        "Unterschiedliche Vorgänge werden vermischt",
+        "Eine Auszahlung kann Gebühren, Erstattungen und Zahlungen mehrerer Tage enthalten. Sie entspricht nicht dem einzelnen Bestellbetrag."
+      ],
+      [
+        "Zuordnung oder Datenabdeckung fehlen",
+        "Ungeklärte Referenzen und veraltete oder fehlende Quellen verlangen eine Prüfung statt einer scheinbar ausgeglichenen Null."
+      ]
+    ],
+    "manual_title": "Zahlungsabgleich auf Bestellebene durchführen",
+    "manual": [
+      "Wählen Sie Shop, Anbieterkonto, Währung, Modus und Zeitraum. Prüfen Sie die Aktualität aller benötigten Quellen.",
+      "Ordnen Sie die WooCommerce-Referenz der Anbieterzahlung und Abbuchung zu. Gleicher Betrag und ähnliche Uhrzeit allein reichen nicht aus.",
+      "Vergleichen Sie den Bestellbetrag mit den abgebuchten Beträgen. Prüfen Sie anschließend jede im Shop erfasste Erstattung unabhängig beim Anbieter.",
+      "Trennen Sie fehlende Abbuchungen, Betragsabweichungen, ungeklärte Zuordnungen und Erstattungsabweichungen. Gebühren und Auszahlungen gehören in einen eigenen Abgleich."
+    ],
+    "fix_title": "Die tatsächlich gefundene Abweichung bearbeiten",
+    "fix_now": "Ein Zustellfehler benötigt eine Reparatur der Benachrichtigung, eine fehlende Referenz eine Zuordnungsprüfung und eine echte Betragsabweichung eine Prüfung der ursprünglichen Vorgänge. Dokumentieren Sie die Nachweise und korrigieren Sie im zuständigen System.",
+    "fix_verify": "Wiederholen Sie den Vergleich nach der Synchronisierung. Prüfen Sie die konkrete Abweichung statt nur die Tagessumme. Verrechnen Sie eine falsche Abbuchung nicht mit einer unbeteiligten Erstattung.",
+    "monitor_title": "Wie Business Watchdog den Abgleich unterstützt",
+    "monitor": "Business Watchdog liest WooCommerce-Bestellungen und vergleicht unterstützte Abbuchungen und Erstattungen mit unabhängigen Stripe- oder PayPal-Daten. Abweichungen werden hervorgehoben; unvollständige oder nicht zugeordnete Nachweise bleiben als solche sichtbar.",
+    "limit": "Dies ist ein Bestell- und Zahlungsabgleich, kein Bankauszahlungsabgleich und keine Buchhaltung. Gebühren sind Informationen, keine Unterzahlung der Bestellung. Nicht unterstützte Zahlungsarten werden nicht als unabhängig bestätigt behandelt.",
+    "connect": [
+      "Erstellen Sie einen WooCommerce-Schlüssel mit Leserechten und verbinden Sie den Shop. Prüfen Sie Zeitraum und Aktualität der Synchronisierung.",
+      "Verbinden Sie den unterstützten Zahlungsanbieter gesondert. Bei gemeinsam genutzten Konten ist die Shopzuordnung zu prüfen.",
+      "Prüfen Sie erste Ergebnisse und richten Sie E-Mail- oder Telegram-Hinweise für unterstützte Vorfallsregeln ein."
+    ],
+    "faq": [
+      [
+        "Beweist der Status Erstattet, dass Geld zurückgezahlt wurde?",
+        "Nein. Der Shoperstattung muss ein unabhängiger Anbieternachweis gegenübergestellt werden. Manuelle Erstattungen können ungeklärt bleiben."
+      ],
+      [
+        "Kann die Bankgutschrift direkt mit dem Bestellumsatz verglichen werden?",
+        "Nicht als Prüfung der einzelnen Abbuchung. Auszahlungen und Gebühren haben einen anderen Zeitraum und Umfang."
+      ]
+    ],
+    "sources": [
+      [
+        "WooCommerce: Status und manuelle Erstattung",
+        "https://woocommerce.com/document/managing-orders/order-statuses/"
+      ],
+      [
+        "Stripe: Charge-Felder",
+        "https://docs.stripe.com/api/charges/object"
+      ]
+    ],
+    "related": [
+      "stripe-reconciliation",
+      "woocommerce-payment-pending",
+      "woocommerce-missing-orders"
+    ]
+  },
+  "woocommerce-order-processing": {
+    "title": "WooCommerce-Bestellungen nicht in Bearbeitung: Ursachen prüfen",
+    "description": "Warum wechseln WooCommerce-Bestellungen nicht zu In Bearbeitung? Zahlungsbestätigung, erwartete Statuswechsel und Abwicklungsprobleme getrennt untersuchen.",
+    "h1": "WooCommerce-Bestellungen nicht in Bearbeitung: Zahlung oder Ablauf?",
+    "label": "Bestellung nicht in Bearbeitung",
+    "eyebrow": "WooCommerce · Zahlung und Abwicklung unterscheiden",
+    "lead": "Eine Bestellung ohne den erwarteten Status In Bearbeitung kann auf eine ungeklärte Zahlung, ein vorgesehenes alternatives Verhalten oder einen späteren Prozessfehler zurückgehen. Ermitteln Sie den fehlenden Übergang, bevor Sie einen Status erzwingen.",
+    "answer_title": "In Bearbeitung bedeutet nicht versendet",
+    "answer": "Der WooCommerce-Status In Bearbeitung steht üblicherweise für eine bezahlte Bestellung vor der Abwicklung. Enthält eine Bestellung ausschließlich gleichzeitig virtuelle und herunterladbare Produkte, kann sie einen anderen Weg nehmen.",
+    "checks": [
+      "Tatsächliche Abbuchung kontrollieren.",
+      "Den erwarteten Produkt- und Statusablauf klären.",
+      "Die Abwicklung anschließend separat prüfen."
+    ],
+    "causes_title": "Welcher Schritt steht tatsächlich still?",
+    "causes_intro": "Zahlungsverarbeitung, Bestellstatus und Lagerarbeit sind keine austauschbaren Begriffe.",
+    "causes": [
+      [
+        "Die Zahlungsbestätigung fehlt im Shop",
+        "Eine abgelehnte oder fehlende Gateway-Benachrichtigung kann die Bestellung trotz Anbieterabbuchung warten lassen."
+      ],
+      [
+        "Der Status ist vorgesehen",
+        "Offline- und verzögerte Zahlungen sowie bestimmte virtuelle Downloads folgen nicht zwingend dem erwarteten Standardablauf."
+      ],
+      [
+        "Eine spätere Aufgabe ist fehlgeschlagen",
+        "Lagerwarteschlangen, E-Mail-Zustellung und externe Automatisierung können nach dem Zahlungsschritt ausfallen."
+      ]
+    ],
+    "manual_title": "Den fehlenden Übergang eingrenzen",
+    "manual": [
+      "Lesen Sie Bestellstatus, Notizen und Zahlungsart. Bestimmen Sie, welcher Übergang für diese konkrete Bestellung erwartet wird.",
+      "Prüfen Sie die Anbieterabbuchung unabhängig. Eine E-Mail oder ein manuell gesetzter Status ist dafür kein Ersatz.",
+      "Fehlt die Erfassung einer bestätigten Zahlung, prüfen Sie Benachrichtigungszustellung und Gateway-Protokolle zum betreffenden Zeitpunkt.",
+      "Ist die Bestellung bereits bezahlt, untersuchen Sie das zuständige Lager-, Aufgaben- oder E-Mail-System für den fehlenden Folgeschritt."
+    ],
+    "fix_title": "Den zuständigen Prozessschritt reparieren",
+    "fix_now": "Stellen Sie fehlende Zahlungsrückmeldungen wieder her. Bei einem späteren Fehler prüfen Sie Protokolle und Wiederholungsregeln der verantwortlichen Warteschlange oder Anbindung. Wiederholte Statuswechsel können ungewollte Nebenwirkungen auslösen.",
+    "fix_verify": "Prüfen Sie Zahlungserfassung und geschäftliches Ergebnis getrennt. Reproduzieren Sie den Fehler in Staging oder Sandbox. Bei virtuellen Downloads ist zuerst das vorgesehene Statusverhalten zu klären.",
+    "monitor_title": "Wobei Business Watchdog unterscheiden hilft",
+    "monitor": "Business Watchdog kann unterstützte finanzielle Widersprüche erkennen, etwa eine im Shop nicht erfasste zugeordnete Abbuchung oder einen Bezahlt-Marker ohne passenden Abbuchungsnachweis. Damit lässt sich ein Zahlungsproblem von späteren Arbeitsschritten abgrenzen.",
+    "limit": "Business Watchdog prüft derzeit nicht sämtliche Pflichten nach der Zahlung. Lagerbearbeitung, Zustellung von Bestätigungs-E-Mails, Rechnungserstellung und Versand werden durch den finanziellen Abgleich nicht nachgewiesen.",
+    "connect": [
+      "Verbinden Sie WooCommerce für Bestelldaten und Stripe oder PayPal für unabhängige Zahlungsnachweise.",
+      "Prüfen Sie Abdeckung und Aktualität und untersuchen Sie die unterstützten Abweichungen in der Bestellansicht.",
+      "Behalten Sie Ihre Überwachung der Abwicklung und Zustellung bei. Die Sicherheitsseite erklärt die Zugriffsgrenzen des Dienstes."
+    ],
+    "faq": [
+      [
+        "Muss jede bezahlte Bestellung In Bearbeitung erreichen?",
+        "Nein. Produkttypen und Zahlungsablauf bestimmen den erwarteten Übergang. Vergleichen Sie Ihre Konfiguration mit der WooCommerce-Dokumentation."
+      ],
+      [
+        "Beweist eine bezahlte Bestellung die Übergabe ans Lager?",
+        "Nein. Zahlungs- und Abwicklungsnachweise sind getrennt. Prüfen Sie die Lageranbindung direkt."
+      ]
+    ],
+    "sources": [
+      [
+        "WooCommerce: Bedeutung der Bestellstatus",
+        "https://woocommerce.com/document/managing-orders/order-statuses/"
+      ],
+      [
+        "Stripe-Erweiterung: Statuswechsel",
+        "https://woocommerce.com/document/stripe/admin-experience/order-statuses/"
+      ]
+    ],
+    "related": [
+      "woocommerce-payment-pending",
+      "woocommerce-reconciliation",
+      "shopware-order-monitoring"
+    ]
+  },
+  "stripe-woocommerce-mismatch": {
+    "title": "Stripe-Zahlung fehlt in WooCommerce: Referenz verfolgen",
+    "description": "Stripe zeigt eine Zahlung, WooCommerce aber keine bezahlte Bestellung? PaymentIntent, Charge, Modus und Webhook-Zustellung nachvollziehen.",
+    "h1": "Stripe-Zahlung wird in WooCommerce nicht angezeigt",
+    "label": "Stripe und WooCommerce weichen ab",
+    "eyebrow": "Stripe + WooCommerce · Eine Zahlung zuordnen",
+    "lead": "Stripe und WooCommerce können unterschiedliche Datensätze oder Zahlungsphasen anzeigen. Verfolgen Sie PaymentIntent und Charge bis zur Bestellung, bevor Sie von fehlendem Geld oder einer verschwundenen Bestellung ausgehen.",
+    "answer_title": "Mit der Stripe-Referenz beginnen",
+    "answer": "Ein PaymentIntent steht für den Zahlungsablauf; der zugehörige Charge enthält Informationen zu Abbuchung und Erstattung. Eine Ereignis-ID bezeichnet eine Benachrichtigung, keine weitere Zahlung.",
+    "checks": [
+      "Passendes Stripe-Konto und richtigen Modus wählen.",
+      "Die Stripe-Referenz der Bestellung auflösen.",
+      "Abbuchung und Benachrichtigung getrennt prüfen."
+    ],
+    "causes_title": "Wo Referenz und Status auseinanderlaufen",
+    "causes_intro": "Die genaue Kennung grenzt die Ursache oft schneller ein als die Zahlungsübersicht.",
+    "causes": [
+      [
+        "Konto oder Modus stimmen nicht überein",
+        "Eine Testzahlung oder ein anderes Stripe-Konto erklärt nicht die Live-Bestellung dieses Shops."
+      ],
+      [
+        "Die Abbuchung ist noch nicht endgültig",
+        "Eine Autorisierung oder ein unvollständiger Zahlungsablauf darf nicht wie eine abgeschlossene Abbuchung behandelt werden."
+      ],
+      [
+        "Der Shop hat das Ereignis nicht verarbeitet",
+        "Zustellfehler, falsches Webhook-Geheimnis oder Gateway-Fehler können die Bezahlt-Aktualisierung verhindern."
+      ]
+    ],
+    "manual_title": "Stripe, Zahlungsanbindung und WooCommerce nachverfolgen",
+    "manual": [
+      "Öffnen Sie die Bestellung und suchen Sie die Stripe-Referenz in Zahlungsdetails oder Notizen. Unterscheiden Sie PaymentIntent und Charge.",
+      "Prüfen Sie in Stripe den zugehörigen Charge, den abgebuchten Betrag, Währung und Modus. Spätere Erstattungen sind separat zu prüfen.",
+      "Kontrollieren Sie die Benachrichtigung, die den Shop aktualisieren sollte. Vergleichen Sie Zieladresse und Signaturkonfiguration mit der Anleitung der installierten Anbindung.",
+      "Suchen Sie dieselbe Referenz und Uhrzeit im Gateway-Protokoll. Auch nach einer Zustellung kann das Aktualisieren der Bestellung scheitern."
+    ],
+    "fix_title": "Synchronisierung wiederherstellen statt neu bezahlen lassen",
+    "fix_now": "Beheben Sie den nachgewiesenen Konto-, Modus- oder Zustellfehler. Nutzen Sie das dokumentierte Verbindungs- oder Wiederholungsverfahren Ihrer Stripe-Erweiterung. Übernehmen Sie kein Webhook-Geheimnis von einem anderen Ziel.",
+    "fix_verify": "Prüfen Sie, dass der ursprüngliche Charge genau einmal der richtigen Bestellung entspricht. Testen Sie den Ereignispfad im Testmodus. Fordern Sie keine zweite Zahlung an, solange die erste Abbuchung ungeklärt ist.",
+    "monitor_title": "Wie Business Watchdog Stripe und Shop vergleicht",
+    "monitor": "Business Watchdog löst unterstützte Stripe-Referenzen auf und vergleicht unabhängige Abbuchungsdaten mit WooCommerce. Eine zugeordnete, im Shop nicht erfasste Abbuchung kann nach der Wartefrist als Abweichung erscheinen; eine ungeklärte Referenz bleibt ein Zuordnungsproblem.",
+    "limit": "Nicht jede Stripe-Zahlung wird automatisch diesem Shop zugerechnet. Test-/Live-Abdeckung, Shopzuordnung im gemeinsamen Konto und Gateway-Metadaten müssen ausreichen. Der Dienst repariert keine Gateway-Konfiguration oder Bestelldatensätze.",
+    "connect": [
+      "Verbinden Sie WooCommerce und Stripe als getrennte Quellen. Verwenden Sie für Stripe einen eingeschränkten Leseschlüssel statt eines vollständigen Secret Keys.",
+      "Prüfen Sie Modus und Zahlungsreferenzen. Beachten Sie die im Dashboard angezeigte Plugin-Voraussetzung für WooCommerce-Testzahlungen.",
+      "Bestätigen Sie aktuelle Quellen und erste Zuordnungen, bevor Sie die gewünschten Hinweise aktivieren."
+    ],
+    "faq": [
+      [
+        "Sind pi_, ch_ und evt_ austauschbar?",
+        "Nein. Sie kennzeichnen Zahlungsablauf, Charge und Ereignis. Nutzen Sie ihre Beziehung zueinander statt die Zeichenfolgen gleichzusetzen."
+      ],
+      [
+        "Beweist eine erfolgreiche Webhook-Zustellung eine korrekte Bestellung?",
+        "Nein. Prüfen Sie zusätzlich das Verarbeitungsergebnis der Anbindung und den Zahlungsstand der Bestellung."
+      ]
+    ],
+    "sources": [
+      [
+        "Stripe-Kennungen in WooCommerce",
+        "https://woocommerce.com/document/stripe/admin-experience/order-information/"
+      ],
+      [
+        "Stripe: Charge-Objekt",
+        "https://docs.stripe.com/api/charges/object"
+      ],
+      [
+        "Stripe: Webhook-Zustellung",
+        "https://docs.stripe.com/webhooks"
+      ]
+    ],
+    "related": [
+      "woocommerce-payment-pending",
+      "stripe-reconciliation",
+      "woocommerce-missing-orders"
+    ]
+  },
+  "paypal-pending-orders": {
+    "title": "PayPal-Zahlung erhalten, Bestellung noch ausstehend?",
+    "description": "PayPal zeigt eine Zahlung, die Bestellung bleibt ausstehend? Abgeschlossene Abbuchung, ausstehende Zahlung und fehlende Rückmeldung unterscheiden.",
+    "h1": "PayPal-Zahlung erhalten, aber die Bestellung bleibt ausstehend",
+    "label": "PayPal: Bestellung ausstehend",
+    "eyebrow": "PayPal · Zahlungsstatus und Shopbestätigung",
+    "lead": "Die Meldung „Zahlung erhalten“ reicht nicht aus, um über eine Bestellung zu entscheiden. Prüfen Sie den PayPal-Capture und seinen aktuellen Status und verfolgen Sie anschließend die Rückmeldung an den Shop.",
+    "answer_title": "Capture ausstehend oder abgeschlossen?",
+    "answer": "PayPal unterscheidet ausstehende und abgeschlossene Captures. Die Zustimmung des Käufers ist ein weiterer Schritt und bedeutet nicht bereits eine abgeschlossene Abbuchung.",
+    "checks": [
+      "Den Capture suchen, nicht nur die PayPal-Order.",
+      "Einen angegebenen Grund für PENDING lesen.",
+      "Konto und Shopreferenz abgleichen."
+    ],
+    "causes_title": "Warum eine PayPal-Bestellung weiter warten kann",
+    "causes_intro": "Manche Fälle betreffen die Zahlung selbst, andere die Übermittlung ihres Ergebnisses.",
+    "causes": [
+      [
+        "Der Capture ist noch ausstehend",
+        "Prüfung, Finanzierung oder Anforderungen an das Empfängerkonto können den endgültigen Zahlungsstand verzögern."
+      ],
+      [
+        "Die Rückmeldung fehlt im Shop",
+        "PayPal-App, Ereignisabonnement, Zieladresse oder Zustellung können von der erwarteten Gateway-Konfiguration abweichen."
+      ],
+      [
+        "Es wird der falsche Vorgang verglichen",
+        "Order-ID, Autorisierung und Capture sind unterschiedliche Referenzen. Sandbox- und Live-Konten bleiben ebenfalls getrennt."
+      ]
+    ],
+    "manual_title": "PayPal-Nachweis lesen, bevor Sie die Bestellung ändern",
+    "manual": [
+      "Öffnen Sie die Zahlung im richtigen Live- oder Sandbox-Konto. Prüfen Sie Capture-ID, Betrag, Währung und aktuellen Status.",
+      "Bei PENDING lesen Sie den verfügbaren Grund und die angeforderte Maßnahme. Behandeln Sie diesen Status nicht als COMPLETED.",
+      "Bei abgeschlossenem Capture suchen Sie die zugehörige Shopbestellung und vergleichen Referenzen und zeitlich zugeordnete Gateway-Notizen.",
+      "Prüfen Sie Benachrichtigungskonfiguration und relevante Zustellversuche der Zahlungsanbindung. Unterscheiden Sie Zustellfehler und Zahlungsstatus."
+    ],
+    "fix_title": "Ausstehende Zahlung und fehlende Rückmeldung getrennt behandeln",
+    "fix_now": "Bei einer ausstehenden Anbieterzahlung folgen Sie der PayPal-Anleitung für den konkreten Grund. Ist der Capture abgeschlossen, aber der Shopstatus veraltet, reparieren Sie den Benachrichtigungspfad und gleichen den ursprünglichen Vorgang ab.",
+    "fix_verify": "Lesen Sie Capture und Bestellung nach der Wiederherstellung erneut. Eine Wiederholung soll das ursprüngliche Ergebnis genau einmal verarbeiten. Buchen Sie nicht erneut ab und erstatten Sie nicht allein zum Angleichen zweier Statusangaben.",
+    "monitor_title": "Was Business Watchdog bei PayPal erkennen kann",
+    "monitor": "Bei abgedeckten PayPal- und Shopdaten vergleicht Business Watchdog unabhängige Captures und unterstützte Erstattungen mit Bestellungen. Ein abgeschlossener, zugeordneter Capture ohne Zahlungserfassung im Shop ist etwas anderes als eine noch ausstehende Anbieterzahlung.",
+    "limit": "Eine ausstehende PayPal-Zahlung ist nicht automatisch ein Shopfehler oder fehlendes Geld. Referenzen, Aktualität und Abdeckung müssen passen. Die Überwachung hebt keine Zahlungssperren auf und verändert keine Transaktionen.",
+    "connect": [
+      "Verbinden Sie Shop und richtige PayPal-REST-App nach den Dashboard-Anweisungen. Lesen Sie vor dem Speichern die Zugriffshinweise.",
+      "Prüfen Sie Live/Sandbox und richten Sie den Business-Watchdog-Webhook unabhängig von den Gateway-Benachrichtigungen ein.",
+      "Warten Sie die Anbietersynchronisierung ab und prüfen Sie die Abdeckung, bevor Sie fehlende Abbuchungen beurteilen oder Hinweise aktivieren."
+    ],
+    "faq": [
+      [
+        "Beweist CHECKOUT.ORDER.APPROVED eine Abbuchung?",
+        "Nein. Zustimmung und Capture sind getrennte Ereignisse. Prüfen Sie den Capture vor einer Abwicklungsentscheidung."
+      ],
+      [
+        "Kann die Überwachung eine PayPal-Sperre aufheben?",
+        "Nein. Kontoanforderungen und Zahlungsentscheidungen verbleiben bei PayPal."
+      ]
+    ],
+    "sources": [
+      [
+        "PayPal: Capture-Status und Gründe für PENDING",
+        "https://developer.paypal.com/api/payments/v2/definitions/capture_status/"
+      ],
+      [
+        "PayPal: Ereignisse für Zustimmung und Capture",
+        "https://developer.paypal.com/payment-methods/webhooks/"
+      ]
+    ],
+    "related": [
+      "woocommerce-payment-pending",
+      "woocommerce-reconciliation",
+      "shopware-reconciliation"
+    ]
+  },
+  "stripe-reconciliation": {
+    "title": "Stripe-WooCommerce-Abgleich: Abbuchungen statt Auszahlungen",
+    "description": "Stripe-Zahlungen über PaymentIntent- und Charge-Referenzen mit WooCommerce abgleichen. Abbuchungen, Erstattungen, Gebühren und Auszahlungen trennen.",
+    "h1": "Stripe und WooCommerce auf Bestellebene abgleichen",
+    "label": "Stripe-Zahlungsabgleich",
+    "eyebrow": "Stripe · Abbuchungen, Erstattungen und Zuordnung",
+    "lead": "Ein Stripe-Zahlungsablauf kann mehrere Versuche enthalten, eine Bankauszahlung viele Zahlungen zusammenfassen. Für den WooCommerce-Abgleich müssen Sie die zur Bestellung gehörenden Abbuchungen ermitteln und Erstattungen gesondert prüfen.",
+    "answer_title": "Zahlungsablauf ist nicht Bankgutschrift",
+    "answer": "Verfolgen Sie Bestellung, PaymentIntent und Charge. Vergleichen Sie den tatsächlich abgebuchten Betrag und zählen Sie weder Benachrichtigungen noch Autorisierungen als zusätzliche Abbuchungen.",
+    "checks": [
+      "PaymentIntent und Charge miteinander verknüpfen.",
+      "Abgebuchte Beträge derselben Währung vergleichen.",
+      "Gebühren, Erstattungen und Auszahlungen trennen."
+    ],
+    "causes_title": "Warum der Stripe-Abgleich unplausibel wirken kann",
+    "causes_intro": "Häufig werden unterschiedliche Kennungen oder Abrechnungsumfänge vermischt.",
+    "causes": [
+      [
+        "Ereignisse werden als Zahlungen gezählt",
+        "Mehrere Benachrichtigungen können dieselbe Zahlung beschreiben. Eigenständiges Zählen würde den vermeintlichen Zahlungseingang erhöhen."
+      ],
+      [
+        "Autorisierung wird mit Abbuchung verwechselt",
+        "Geld kann zunächst reserviert sein; der tatsächlich abgebuchte Betrag kann später vom autorisierten Betrag abweichen."
+      ],
+      [
+        "Nettoauszahlung wird mit Bruttobestellung verglichen",
+        "Gebühren, Auszahlungstermine und andere Zahlungen machen die Bankgutschrift zum falschen Vergleichswert für einen einzelnen Capture."
+      ]
+    ],
+    "manual_title": "Eine Stripe-Bestellung nachvollziehbar abstimmen",
+    "manual": [
+      "Wählen Sie Bestellung, Stripe-Konto, Modus und Währung. Lösen Sie die Gateway-Referenz in PaymentIntent und zugehörigen Charge auf.",
+      "Prüfen Sie den tatsächlich abgebuchten statt des reservierten Betrags. Bei mehreren Erfassungsschritten lesen Sie kumulierten Betrag und Verlauf.",
+      "Ordnen Sie Erstattungen derselben Zahlung zu. Prüfen Sie Shop-Erstattungen auf unabhängige Nachweise und zusätzliche Erstattungen beim Anbieter.",
+      "Halten Sie ungeklärte Zuordnungen separat fest. Prüfen Sie Gebühren und Bankauszahlungen außerhalb des einzelnen Bestellabgleichs."
+    ],
+    "fix_title": "Erst die Zuordnung, dann den Geldvorgang korrigieren",
+    "fix_now": "Beheben Sie fehlende Referenzen oder verspätete Importe, bevor Sie eine echte Zahlungsabweichung feststellen. Bleibt eine Differenz, prüfen Sie Bestelländerungen und originale Anbietervorgänge und wählen das zuständige Korrekturverfahren.",
+    "fix_verify": "Vergleichen Sie erneut mit aktuellen Daten. Ein doppeltes Ereignis darf den Capture-Betrag nicht erhöhen; eine Gebühr ist keine unterbezahlte Bestellung. Prüfen Sie Erstattungen auch bei gleichen Nettosummen separat.",
+    "monitor_title": "Wie Business Watchdog Stripe und WooCommerce abstimmt",
+    "monitor": "Business Watchdog liest Stripe über einen eingeschränkten Schlüssel, löst unterstützte Referenzen auf und prüft Abbuchungen und Erstattungen gegen WooCommerce. Bei Stripe-Multicapture wird der erfasste Betrag des Charge berücksichtigt, nicht jede Ereigniswiederholung als neue Zahlung.",
+    "limit": "Bankauszahlungen und sämtliche Stripe-Produkte sind damit nicht abgedeckt. Nicht unterstützte Zahlungsabläufe, unzuverlässige Referenzen oder fehlende Rechte bleiben eingeschränkt oder unbekannt. Optionale Gebühreninformationen erhöhen keine Bestellabweichung.",
+    "connect": [
+      "Erstellen Sie einen eingeschränkten Stripe-Schlüssel mit den angezeigten Leserechten. Vollständige Secret Keys werden abgelehnt.",
+      "Verbinden Sie WooCommerce separat und prüfen Sie Shopzuordnung und Test-/Live-Abdeckung. Zusätzliche Stripe-Rechte sind nur dort optional, wo das Dashboard es angibt.",
+      "Kontrollieren Sie Aktualität und erste Zuordnungen und richten Sie anschließend die benötigten Finanzmeldungen ein."
+    ],
+    "faq": [
+      [
+        "Erklären Gebühren eine Capture-Abweichung?",
+        "Sie können eine kleinere Auszahlung erklären, mindern aber nicht den vom Käufer für die Bestellung abgebuchten Betrag."
+      ],
+      [
+        "Erzeugt payment_intent.succeeded eine zweite Zahlung?",
+        "Nein. Das Ereignis beschreibt einen Zahlungsstand. Vergleichen Sie die zugrunde liegenden Abbuchungsnachweise ohne Doppelzählung."
+      ]
+    ],
+    "sources": [
+      [
+        "Stripe: Charge und abgebuchter Betrag",
+        "https://docs.stripe.com/api/charges/object"
+      ],
+      [
+        "WooCommerce: Stripe-Referenzen",
+        "https://woocommerce.com/document/stripe/admin-experience/order-information/"
+      ],
+      [
+        "Stripe: Ereignisse und Webhooks",
+        "https://docs.stripe.com/webhooks"
+      ]
+    ],
+    "related": [
+      "woocommerce-reconciliation",
+      "stripe-woocommerce-mismatch",
+      "woocommerce-payment-pending"
+    ]
+  },
+  "shopware-reconciliation": {
+    "title": "Shopware-Zahlungsabgleich mit Stripe und PayPal",
+    "description": "Unterstützte Shopware-6-Zahlungen mit unabhängigen Stripe- oder PayPal-Nachweisen vergleichen. Referenzen, Währungen und Datenabdeckung prüfen.",
+    "h1": "Shopware-Zahlungsabgleich mit unabhängigen Anbieternachweisen",
+    "label": "Zahlungsabgleich",
+    "eyebrow": "Shopware 6 · Unterstützte Zahlungsszenarien",
+    "lead": "Shopware trennt Bestell-, Zahlungs- und Lieferstatus. Beginnen Sie beim Zahlungsabgleich mit der Bestelltransaktion und prüfen Sie danach die passende Abbuchung und unterstützte Erstattungen bei Stripe oder PayPal.",
+    "answer_title": "Welchen Status vergleichen Sie?",
+    "answer": "Eine bezahlte Zahlungstransaktion und eine Bestellung in Bearbeitung beschreiben unterschiedliche Phasen. Der allgemeine Bestellstatus ist kein unabhängiger Abbuchungsnachweis.",
+    "checks": [
+      "Die relevante Bestelltransaktion bestimmen.",
+      "Anbieterreferenzen und Währung zuordnen.",
+      "Aktuelle Abdeckung jeder Quelle prüfen."
+    ],
+    "causes_title": "Wo Shopware und Zahlung voneinander abweichen können",
+    "causes_intro": "Prüfen Sie zuerst die Zahlungstransaktion und ihre Nachweise, bevor Sie den Bestellablauf bewerten.",
+    "causes": [
+      [
+        "Der falsche Status dient als Nachweis",
+        "Bestell-, Liefer- und Zahlungsstatus beantworten verschiedene Fragen. Ein Lieferstatus bestätigt keine Anbieterabbuchung."
+      ],
+      [
+        "Zahlungsversuch oder Referenz sind ungeklärt",
+        "Eine Bestellung kann einen Zahlungsverlauf haben, der zur unterstützten Anbieteroperation aufgelöst werden muss. Der Betrag allein reicht nicht."
+      ],
+      [
+        "Die Abdeckung ist unvollständig",
+        "Fehlender Anbieterzugang, veraltete Synchronisierung oder ein nicht unterstützter Erstattungsweg verhindern einen verlässlichen Schluss."
+      ]
+    ],
+    "manual_title": "Eine Shopware-Zahlungstransaktion abgleichen",
+    "manual": [
+      "Öffnen Sie die Bestellung und unterscheiden Sie ihre drei Statusarten. Lesen Sie die relevante Transaktion und ihren Statusverlauf.",
+      "Finden Sie den Stripe- oder PayPal-Capture über unterstützte Referenzen. Prüfen Sie Betrag, Währung, Konto und Modus.",
+      "Vergleichen Sie Abbuchungen und Erstattungen getrennt. Eine im Shop geänderte Statusangabe beweist keine Anbietererstattung.",
+      "Prüfen Sie Synchronisierungsstand und Kontozuordnung. Gemeinsam genutzte Anbieterzugänge benötigen ausreichende Nachweise für den zugehörigen Shop."
+    ],
+    "fix_title": "Fehlende Nachweise oder Anbindungen gezielt reparieren",
+    "fix_now": "Bei einem nachgewiesenen Statusproblem untersuchen Sie Zahlungserweiterung und Benachrichtigungspfad. Klären Sie fehlende Referenzen und synchronisieren Sie erneut. Capture- oder Erstattungsaktionen bleiben im vorgesehenen Shop- oder Anbieterprozess.",
+    "fix_verify": "Prüfen Sie dieselbe Transaktion mit aktuellen unabhängigen Daten. Kontrollieren Sie Bestell-, Zahlungs- und Lieferstatus getrennt. Testen Sie Anbindungsänderungen in einer Testumgebung statt durch wiederholte Statusänderungen im Live-Shop.",
+    "monitor_title": "Was Business Watchdog für Shopware unterstützt",
+    "monitor": "Business Watchdog unterstützt Shopware-6.6/6.7-Anbindungen und finanzielle Prüfungen abgedeckter, zuordenbarer Stripe- und PayPal-Zahlungen. Verfügbare Shopdaten werden mit unabhängigen Anbieternachweisen verglichen; fehlende Abdeckung wird nicht durch Vermutungen ersetzt.",
+    "limit": "Nicht jede Shopware-Zahlungserweiterung ist vollständig abgedeckt. Insbesondere kann eine Teilrückerstattung über SwagPayPal unbekannt bleiben. Ohne verlässliche Shopzuordnung lassen sich Zahlungen eines gemeinsamen Kontos nicht sicher verteilen.",
+    "connect": [
+      "Erstellen Sie die Shopware-Integration mit den in Business Watchdog angegebenen Berechtigungen und verbinden Sie den Shop.",
+      "Verbinden Sie Stripe oder PayPal gesondert. Der Shopzugang allein liefert keinen unabhängigen Zahlungsnachweis.",
+      "Prüfen Sie Synchronisierung und genaue Abdeckung. Die optionale App ergänzt Checkout-Beobachtung, erweitert aber nicht automatisch die finanzielle Unterstützung."
+    ],
+    "faq": [
+      [
+        "Beweist Shopware Bezahlt eine Abbuchung beim Anbieter?",
+        "Nein. Der unabhängige Nachweis kommt vom verbundenen Anbieter, nicht vom eigenen Status des Shops."
+      ],
+      [
+        "Sind alle Shopware-Erstattungsfälle abgedeckt?",
+        "Nein. Prüfen Sie die Abdeckung für Erweiterung und Erstattungsweg. Unbekannt darf nicht als Null interpretiert werden."
+      ]
+    ],
+    "sources": [
+      [
+        "Shopware: Bestell-, Zahlungs- und Lieferstatus",
+        "https://docs.shopware.com/en/shopware-6-en/orders/overview"
+      ],
+      [
+        "Stripe: Charge-Felder",
+        "https://docs.stripe.com/api/charges/object"
+      ],
+      [
+        "PayPal: Capture-Status",
+        "https://developer.paypal.com/api/payments/v2/definitions/capture_status/"
+      ]
+    ],
+    "related": [
+      "shopware-order-monitoring",
+      "woocommerce-reconciliation",
+      "paypal-pending-orders"
+    ]
+  },
+  "shopware-order-monitoring": {
+    "title": "Shopware: Zahlung abgebucht, Bestellung nicht aktualisiert?",
+    "description": "Unterstützter Fall: Stripe oder PayPal hat Geld abgebucht, Shopware erfasst die Zahlung aber nicht. Spätere Abwicklung muss getrennt geprüft werden.",
+    "h1": "Shopware: Zahlung abgebucht, Bestellung nicht aktualisiert",
+    "label": "Abbuchung nicht erfasst",
+    "eyebrow": "Shopware 6 · Zahlungserfassung statt Abwicklungsautomatisierung",
+    "lead": "Diese Anleitung behandelt einen unterstützten finanziellen Fall: Stripe oder PayPal hat Geld abgebucht, Shopware hat die Zahlung aber nicht korrekt erfasst. Ist die Zahlung dort bereits als bezahlt erfasst und fehlt erst der nächste Arbeitsschritt, muss der Ablauf gesondert untersucht werden.",
+    "answer_title": "Zuerst die Zahlungserfassung prüfen",
+    "answer": "Anbieterabbuchung und Shopware-Zahlungsstatus können voneinander abweichen. Eine bereits bezahlte Transaktion bei offener Bestellung ist ein anderer Fall und beweist allein keinen finanziellen Fehler.",
+    "checks": [
+      "Die Anbieterabbuchung unabhängig bestätigen.",
+      "Der relevanten Shopware-Transaktion zuordnen.",
+      "Spätere Bearbeitung von Zahlungserfassung trennen."
+    ],
+    "causes_title": "Warum die Abbuchung im Shop nicht ankommen kann",
+    "causes_intro": "Ermitteln Sie das fehlende Zahlungsupdate, bevor Sie spätere Geschäftsschritte untersuchen.",
+    "causes": [
+      [
+        "Das Zahlungsergebnis wurde nicht übernommen",
+        "Eine unterbrochene oder abgelehnte Benachrichtigung kann verhindern, dass die Zahlungserweiterung das Anbieterergebnis erfasst."
+      ],
+      [
+        "Ein anderer Zahlungsversuch wird betrachtet",
+        "Transaktionsverlauf, Referenz oder Kontomodus können nicht zu der gefundenen Abbuchung passen."
+      ],
+      [
+        "Die Zahlung ist bereits erfasst",
+        "Steht der Zahlungsstatus schon auf bezahlt, betrifft ein fehlender Flow, Beleg oder Lagerschritt den Betrieb außerhalb der finanziellen Prüfung."
+      ]
+    ],
+    "manual_title": "Abbuchung, Zahlungstransaktion und Erfassung verfolgen",
+    "manual": [
+      "Öffnen Sie die Bestellung und unterscheiden Sie Zahlungs-, Bestell- und Lieferverlauf. Bestimmen Sie die fragliche Zahlungstransaktion.",
+      "Bestätigen Sie den passenden Stripe- oder PayPal-Capture mit Betrag, Währung, Konto und Modus unabhängig. Autorisierung ist noch keine Abbuchung.",
+      "Vergleichen Sie Anbieterreferenzen und Benachrichtigungs- oder Fehlerprotokolle der Zahlungserweiterung. Hat das Ergebnis die richtige Transaktion erreicht?",
+      "Ist die Zahlung bereits korrekt erfasst, prüfen Sie die zuständige Flow-Builder-Aktion oder das Fremdsystem separat. Ein Status beweist keine Rechnung, zugestellte E-Mail oder Lagerübergabe."
+    ],
+    "fix_title": "Das Zahlungsupdate ohne erneuten Kauf wiederherstellen",
+    "fix_now": "Beheben Sie den Ereignispfad der Zahlungserweiterung nach deren Anleitung. Stellen Sie vor einer Wiederholung sicher, dass der ursprüngliche Capture nicht erneut ausgeführt wird und doppelte Benachrichtigungen sicher verarbeitet werden.",
+    "fix_verify": "Prüfen Sie den ursprünglichen Anbietervorgang und die Shopware-Transaktion erneut. Die Zahlung soll genau einmal erfasst sein. Spätere Flows und externe Ergebnisse sind getrennt zu prüfen; der Status Erledigt beweist keine Ausführung.",
+    "monitor_title": "Unterstützte Prüfung: Abbuchung im Shop nicht erfasst",
+    "monitor": "Für abgedeckte Shopware-Zahlungen mit verlässlicher Zuordnung und aktuellen Quellen kann Business Watchdog eine unabhängige Abbuchung erkennen, die der Shop nach der Wartefrist noch nicht erfasst hat. Korrekturen bleiben in Ihrer Hand.",
+    "limit": "Business Watchdog überwacht derzeit nicht sämtliche Verarbeitungspflichten nach Zahlung. Nicht jede Flow-Builder-Aktion, Rechnung, Bestätigungs-E-Mail, Lagerübergabe oder Sendung wird nachgewiesen. Offen trotz Bezahlt ist nicht automatisch ein Vorfall.",
+    "connect": [
+      "Verbinden Sie Shopware und den unterstützten Anbieter und prüfen Sie Referenzabdeckung und Synchronisierung.",
+      "Nutzen Sie die finanziellen Prüfungen für Zahlungsabweichungen. Behalten Sie Betriebsprotokolle und vorhandene Abwicklungsüberwachung für spätere Schritte bei.",
+      "Lesen Sie vor der Freigabe die Sicherheitsseite. Die Überwachung liest Nachweise und führt keine Bestellflows oder Statusänderungen aus."
+    ],
+    "faq": [
+      [
+        "Was gilt für bereits bezahlte, aber nicht bearbeitete Bestellungen?",
+        "Das ist nicht automatisch ein finanzieller Vorfall. Der Dienst prüft die spätere Bearbeitungspflicht nicht. Untersuchen Sie Flow und Zielsystem direkt."
+      ],
+      [
+        "Wird damit jede bezahlte Bestellung bis zum Versand überwacht?",
+        "Nein. Diese Seite behandelt Abweichungen der Zahlungserfassung. Rechnung, Bestätigungs-E-Mail, Lagerübergabe und Versand werden dadurch nicht nachgewiesen."
+      ]
+    ],
+    "sources": [
+      [
+        "Shopware: getrennte Statusarten",
+        "https://docs.shopware.com/en/shopware-6-en/orders/overview"
+      ],
+      [
+        "Shopware: Statusereignisse im Flow Builder",
+        "https://docs.shopware.com/en/shopware-6-en/settings/Flow-Builder"
+      ]
+    ],
+    "related": [
+      "shopware-reconciliation",
+      "woocommerce-order-processing",
+      "woocommerce-reconciliation"
+    ]
+  }
+}
