@@ -75,6 +75,39 @@ bw_test('admin routes require manage_woocommerce', function () {
     bw_assert(in_array($response->get_status(), [401, 403], true), 'Diagnostics open to anonymous users: ' . $response->get_status());
 });
 
+bw_test('an unconnected store shows where to create the account', function () {
+    $connection = State::get(\BusinessWatchdog\WooCommerce\Connection\Connection::STATE_KEY);
+    $admin = get_user_by('login', 'admin');
+    wp_set_current_user($admin ? $admin->ID : 1);
+    \BusinessWatchdog\WooCommerce\Connection\Connection::forget();
+
+    try {
+        $links = \BusinessWatchdog\WooCommerce\Admin\SettingsPage::actionLinks(['deactivate' => '<a>Deactivate</a>']);
+        bw_assert(count($links) === 3 && strpos(implode('', $links), 'https://business-watchdog.com/en/signup') !== false, 'signup link missing: ' . implode(' ', $links));
+        bw_assert(isset($links['deactivate']), 'WordPress links kept');
+
+        ob_start();
+        \BusinessWatchdog\WooCommerce\Admin\SettingsPage::render();
+        $html = (string) ob_get_clean();
+        bw_assert(strpos($html, 'https://business-watchdog.com/en/signup') !== false, 'settings page has no signup link');
+        bw_assert(strpos($html, 'value="https://business-watchdog.com"') !== false, 'service URL is not filled in');
+
+        set_current_screen('plugins');
+        ob_start();
+        \BusinessWatchdog\WooCommerce\Admin\SettingsPage::connectNotice();
+        $notice = (string) ob_get_clean();
+        bw_assert(strpos($notice, 'not connected yet') !== false && strpos($notice, '/en/signup') !== false, 'plugins screen notice missing');
+    } finally {
+        State::set(\BusinessWatchdog\WooCommerce\Connection\Connection::STATE_KEY, $connection);
+    }
+
+    $links = \BusinessWatchdog\WooCommerce\Admin\SettingsPage::actionLinks([]);
+    bw_assert(count($links) === 1, 'no signup link once connected');
+    ob_start();
+    \BusinessWatchdog\WooCommerce\Admin\SettingsPage::connectNotice();
+    bw_assert((string) ob_get_clean() === '', 'no notice once connected');
+});
+
 bw_test('names from before 0.4.0 are moved with their data', function () {
     global $wpdb;
 

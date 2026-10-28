@@ -799,3 +799,15 @@ Status: complete; published in the directory (SVN r3769100, `trunk/readme.txt` a
 - Claims checked before publishing: PayPal cannot issue read-only access (the cabinet's `paypal.warning_body`), so the text says Business Watchdog calls only reading methods and blocks the rest instead of «keys cannot move money»; «tells you when they disagree», not «as soon as» (reconciliation has a grace period); trial «you can try 14 days free», not «every plan» (the pricing page says trial availability depends on the plan).
 - Not changed: the plugin name «Business Watchdog for WooCommerce» (it is in the plugin header; a more descriptive name needs a new release and a new look at the directory's naming rules).
 
+### Step 299: WooCommerce plugin 0.4.1 — the account is visible right after installation (2026-10-28)
+
+Status: complete (not yet in the WordPress.org directory)
+
+- Owner, as «a simple customer» on a test stand: installed the plugin from the directory and waited for results — nothing says a Business Watchdog account is needed. The directory sidebar («Requires …») has only fixed fields (WordPress, PHP, plugins), so the requirement goes where a customer actually looks.
+- Plugin header description (Plugins screen): what it alerts about and «Requires a Business Watchdog account: create one free» with a link to `/en/signup`.
+- Plugins screen: «Settings» and, while not connected, «Create a free account» action links; while not connected and not stopped, an info notice with three steps (account → connection code in the cabinet → paste on the plugin page). Shown only on the Plugins screen, as required since 0.4.0.
+- Plugin page: a paragraph with the signup link before the form; the service URL is pre-filled with `https://business-watchdog.com`. Signup links follow the admin's language (de/ru/en).
+- `readme.txt`: short description ends with «Needs a free Business Watchdog account.» (140 characters), the description opens with «Requires a Business Watchdog account» and the signup link, «Installation» starts with creating the account; changelog and upgrade notice 0.4.1. Nothing changes in what the plugin records or sends.
+
+Verification: integration tests floor (WP 5.9, PHP 7.4, WooCommerce 6.0) and wc8 60/60 (new: unconnected store — signup link in the action links and on the page, pre-filled service URL, notice on the Plugins screen; none once connected), PHP 7.4 lint. ZIP 0.4.1 `4dfb47d5…5864` (54 files).
+

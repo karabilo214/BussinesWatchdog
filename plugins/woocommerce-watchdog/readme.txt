@@ -4,13 +4,15 @@ Tags: woocommerce, stripe, paypal, failed payments, checkout
 Requires at least: 5.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Get alerted when a customer paid but the order stayed unpaid, when Stripe or PayPal disagree with WooCommerce, or when payments start failing.
+Alerts when a paid order stays unpaid, Stripe or PayPal disagree with WooCommerce, or payments fail. Needs a free Business Watchdog account.
 
 == Description ==
+
+**Requires a Business Watchdog account.** The plugin connects your store to the Business Watchdog service and does nothing on its own. [Create a free account](https://business-watchdog.com/en/signup) (14 days free, no card), add your store and connect the plugin with the code from your account — see *Installation*.
 
 **Does any of this sound familiar?**
 
@@ -81,9 +83,10 @@ The service processes this data on your behalf as a processor under a data proce
 
 == Installation ==
 
-1. Install and activate the plugin (WooCommerce 6.0 or newer must be active).
-2. In your Business Watchdog account open your store, choose «WooCommerce plugin» and create a connection code.
-3. In WordPress open WooCommerce → Business Watchdog, paste the code and click **Connect**.
+1. [Create a free Business Watchdog account](https://business-watchdog.com/en/signup) (14 days free, no card). Without an account the plugin cannot do anything.
+2. Install and activate the plugin (WooCommerce 6.0 or newer must be active).
+3. In your Business Watchdog account add your store, choose «WooCommerce plugin» and create a connection code.
+4. In WordPress open WooCommerce → Business Watchdog, paste the code and click **Connect**. The service URL is already filled in.
 
 == Frequently Asked Questions ==
 
@@ -124,6 +127,10 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 
 == Changelog ==
 
+= 0.4.1 =
+* Shows right after activation that a Business Watchdog account is needed: a link to create one on the Plugins screen, in the plugin description and on the plugin page, and the steps to connect.
+* The service URL on the plugin page is filled in.
+
 = 0.4.0 =
 * All tables, options, scheduled actions, order meta and constants of the plugin use the `business_watchdog_` prefix. Existing data is moved after the update by the next admin page, scheduled task or WP-CLI command. Going back to a version before 0.4.0 afterwards needs a new pairing.
 * Admin notices of the plugin appear only on the Plugins screen and on its own settings page.
@@ -144,6 +151,9 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 * Optional checkout observation.
 
 == Upgrade Notice ==
+
+= 0.4.1 =
+Clearer first steps: where to create the Business Watchdog account and how to connect. No change in what the plugin records or sends.
 
 = 0.4.0 =
 The plugin moves its data to new names after the update. Do not downgrade to 0.3.x afterwards; that version would need a new pairing.

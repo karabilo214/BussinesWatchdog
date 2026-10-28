@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Business Watchdog for WooCommerce
  * Plugin URI: https://business-watchdog.com/en
- * Description: Sends order and refund snapshots to Business Watchdog for payment reconciliation and checkout monitoring.
- * Version: 0.4.0
+ * Description: Alerts you when a customer paid but the order stayed unpaid, when Stripe or PayPal disagree with WooCommerce, or when payments start failing. Requires a Business Watchdog account: <a href="https://business-watchdog.com/en/signup">create one free</a>, then connect the plugin with a code from it.
+ * Version: 0.4.1
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -19,7 +19,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('BUSINESS_WATCHDOG_VERSION', '0.4.0');
+define('BUSINESS_WATCHDOG_VERSION', '0.4.1');
 define('BUSINESS_WATCHDOG_FILE', __FILE__);
 define('BUSINESS_WATCHDOG_DIR', __DIR__);
 define('BUSINESS_WATCHDOG_MIN_PHP', '7.4');

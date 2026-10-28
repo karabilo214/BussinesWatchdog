@@ -14,6 +14,8 @@ final class SettingsPage
 {
     public const SLUG = 'business-watchdog';
 
+    public const SERVICE_URL = 'https://business-watchdog.com';
+
     public static function register(): void
     {
         add_action('admin_menu', Guard::action([self::class, 'menu'], 'admin_menu'));
@@ -21,6 +23,50 @@ final class SettingsPage
         add_action('admin_post_business_watchdog_disconnect', Guard::action([self::class, 'handleDisconnect'], 'admin_disconnect'));
         add_action('admin_post_business_watchdog_stop', Guard::action([self::class, 'handleStop'], 'admin_stop'));
         add_action('admin_post_business_watchdog_resume', Guard::action([self::class, 'handleResume'], 'admin_resume'));
+        add_filter('plugin_action_links_' . plugin_basename(BUSINESS_WATCHDOG_FILE), Guard::filter([self::class, 'actionLinks'], 'action_links'));
+
+        if (! MonitoringSwitch::stopped()) {
+            add_action('admin_notices', Guard::action([self::class, 'connectNotice'], 'connect_notice'));
+        }
+    }
+
+    public static function signupUrl(): string
+    {
+        $locale = strtolower(substr((string) get_user_locale(), 0, 2));
+
+        return self::SERVICE_URL . '/' . (in_array($locale, ['de', 'ru'], true) ? $locale : 'en') . '/signup';
+    }
+
+    /**
+     * @param array<int|string, string> $links
+     * @return array<int|string, string>
+     */
+    public static function actionLinks($links): array
+    {
+        $links = is_array($links) ? $links : [];
+        $own = ['<a href="' . esc_url(admin_url('admin.php?page=' . self::SLUG)) . '">' . esc_html__('Settings', 'business-watchdog') . '</a>'];
+
+        if (Connection::current() === null) {
+            $own[] = '<a href="' . esc_url(self::signupUrl()) . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Create a free account', 'business-watchdog') . '</a>';
+        }
+
+        return array_merge($own, $links);
+    }
+
+    public static function connectNotice(): void
+    {
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+
+        if ($screen === null || $screen->id !== 'plugins' || ! current_user_can('manage_woocommerce') || Connection::current() !== null) {
+            return;
+        }
+
+        echo '<div class="notice notice-info"><p><strong>' . esc_html__('Business Watchdog is not connected yet.', 'business-watchdog') . '</strong> ';
+        echo esc_html__('The plugin works together with a Business Watchdog account:', 'business-watchdog') . '</p><ol>';
+        echo '<li><a href="' . esc_url(self::signupUrl()) . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Create a free account', 'business-watchdog') . '</a> ' . esc_html__('(14 days free, no card).', 'business-watchdog') . '</li>';
+        echo '<li>' . esc_html__('In your account add your store, choose «WooCommerce plugin» and create a connection code.', 'business-watchdog') . '</li>';
+        echo '<li><a href="' . esc_url(admin_url('admin.php?page=' . self::SLUG)) . '">' . esc_html__('Paste the code on the plugin page', 'business-watchdog') . '</a> ' . esc_html__('and click Connect.', 'business-watchdog') . '</li>';
+        echo '</ol></div>';
     }
 
     public static function menu(): void
@@ -107,11 +153,13 @@ final class SettingsPage
         }
 
         if ($connection === null) {
+            echo '<p>' . esc_html__('To connect, you need a Business Watchdog account and a connection code from it.', 'business-watchdog') . ' ';
+            echo esc_html__('No account yet?', 'business-watchdog') . ' <a href="' . esc_url(self::signupUrl()) . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Create a free account', 'business-watchdog') . '</a> ' . esc_html__('(14 days free, no card), add your store, choose «WooCommerce plugin» and create a connection code.', 'business-watchdog') . '</p>';
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
             wp_nonce_field('business_watchdog_pair');
             echo '<input type="hidden" name="action" value="business_watchdog_pair" />';
             echo '<table class="form-table"><tr><th><label for="business_watchdog_endpoint">' . esc_html__('Service URL', 'business-watchdog') . '</label></th>';
-            echo '<td><input class="regular-text" type="url" id="business_watchdog_endpoint" name="business_watchdog_endpoint" required /></td></tr>';
+            echo '<td><input class="regular-text" type="url" id="business_watchdog_endpoint" name="business_watchdog_endpoint" value="' . esc_attr(self::SERVICE_URL) . '" required /></td></tr>';
             echo '<tr><th><label for="business_watchdog_pairing_code">' . esc_html__('Pairing code', 'business-watchdog') . '</label></th>';
             echo '<td><input class="regular-text" type="text" id="business_watchdog_pairing_code" name="business_watchdog_pairing_code" autocomplete="off" required /></td></tr></table>';
             submit_button(__('Connect', 'business-watchdog'));
