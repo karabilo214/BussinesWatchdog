@@ -474,7 +474,7 @@ Status: complete; awaiting release. No production publication performed in this 
 
 ### Step 306: SEO guides revised after review, the free store check as a landing page (2026-10-28)
 
-Status: complete locally, not deployed.
+Status: complete; deployed 2026-10-28 (`9efa51e`): all 27 guide versions refreshed by the release, `/de/check-store` indexable with canonical and in the sitemap.
 
 - Owner passed on a review of the guides. Changes per group (details in `docs/seo-guides.md`): diagnosis paths and illustrative timelines for payment pending / missing orders (honestly labelled as made-up examples — there are no real customer cases yet); the two reconciliation pages split by intent (routine across all payment methods vs Stripe mechanism, with an object table and a partial-capture example); native German Shopware titles and leads (Zahlungsabgleich, Zahlungsstatus, «Bestellung bezahlt») and a payment-state table / diagnosis path in all languages; WooCommerce PayPal Payments situations.
 - Renderer: optional `extra` blocks (`flow`, `example`, `table`, `cards`) after the causes, with table-of-contents links; styles `bw-flow`, `bw-table`, `bw-takeaway` (no word breaks inside cells, horizontal scroll on phones).
