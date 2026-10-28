@@ -395,3 +395,4 @@ Status: complete
 
 Verification: `PublicSiteTest` 17 (new: 409 without a published version, reason required, in-place change keeps one version and no draft, sanitized, audit before/after, legal document refused); owner panel tests 96 (new: button disabled until changed, sends text and reason, no draft saved, notice; no button and a hint for a legal document), types, build.
 
+Production (2026-10-28): deployed `099f2a0`; the published videos page was fixed with the new in-place update as the owner (en/de/ru stay version 1, reason «Button row as a section (spacing)», audit `site.page.published_updated`); the button row now has its spacing.
