@@ -815,7 +815,7 @@ Release (2026-10-28, owner's approval): published in the WordPress.org directory
 
 ### Step 305: WooCommerce plugin 0.4.2 — connect in one click, a connect card and the plugin funnel (2026-10-28)
 
-Status: complete locally; plugin 0.4.2 built and checked, **not** uploaded to WordPress.org SVN (owner: only on their command); backend not deployed.
+Status: complete; backend deployed 2026-10-28 (`7a28a0d`, migration applied, `/go/wordpress-plugin` and `/connect/woocommerce` answer on production); plugin 0.4.2 built and checked, **not** uploaded to WordPress.org SVN (owner: only on their command).
 
 - Owner: do all plugin items of the backlog (11.H stages 1 and 2, 11.I) as one release 0.4.2; upload to SVN only on the owner's command. Decisions in ADR 0084 (written before the code).
 - Plugins screen: while not connected and not stopped, a card «Connect Business Watchdog» with «Connect to Business Watchdog», «Create a free account» and «I have a connection code». It can be hidden per WordPress user (user meta `business_watchdog_card_hidden`, through a nonce link, no JavaScript); the plugin page always shows the card while not connected, and the code form moved below it («Connect with a code»). Action links: «Connect» (to the plugin page) and «Create a free account» while not connected, «Settings» after. Readable notices after connect, disconnect, stop and failures instead of raw codes.
