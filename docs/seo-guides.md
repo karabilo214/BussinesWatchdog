@@ -42,3 +42,12 @@ The guides link their relevant references next to the manual checks; these suppo
 See [site operations](ops/site.md). `site:seo-pages` prepares initial drafts; `--publish=<reason>` publishes new or unchanged initial translations. The standard rollout runs it after the new app and static files are ready. New installations without an owner skip with a message. Later releases preserve published edits, changed drafts, archived pages, unpublications, section names and menu choices. No payment operations are performed.
 
 The nullable unique `public_menu_sections.code` supplies a stable import identity (`seo-woocommerce`, `seo-payments`, `seo-shopware`). Existing release code can continue omitting the column. No API or event contract changes are required; editing uses the page and menu-section APIs already present.
+
+## Revision after review (Step 306, 2026-10-28)
+
+- Payment pending and missing orders: a four-question diagnosis path and an illustrative timeline (made-up identifiers and amounts, real formats of WooCommerce notes and provider dashboards, labelled as such). There are no real customer cases yet; replace with anonymized cases when they exist.
+- The two reconciliation pages are split by intent: `/woocommerce-reconciliation` — a recurring routine across all payment methods (table of the independent record per method and what is covered); `/stripe-reconciliation` — the Stripe mechanism from the order to PaymentIntent, charge, refund, balance transaction and payout, with a partial-capture example. Each lead points to the other.
+- Shopware: German titles, descriptions and leads written natively with Zahlungsabgleich, Zahlungsstatus and «Bestellung bezahlt»; a payment-state table (technical names) on the reconciliation page and a diagnosis path on the monitoring page in all languages.
+- PayPal: situations specific to WooCommerce PayPal Payments (authorize intent, PENDING reasons RECEIVING_PREFERENCE_MANDATES_MANUAL_REVIEW and ECHECK, webhooks after a domain change, approved but not captured, sandbox/live).
+- Check store (`/{locale}/check-store`, not an editable page): now indexable and in the sitemap; explains what the free check does, problems it finds, a comparison with a test purchase and monitoring, limits and FAQ for checkout-checker queries. Result pages stay `noindex`.
+- Releases refresh a published guide only while it still equals a shipped version (`database/data/seo/shipped.php`).

@@ -184,14 +184,80 @@ return [
         'policies_changed' => 'The documents changed while you were filling in the form. Read the new version and confirm your consent again.',
     ],
     'check_store' => [
-        'title' => 'Check a store URL',
+        'title' => 'Free WooCommerce and Shopware Checkout Check',
         'result_title' => 'Storefront check result',
-        'meta' => 'A one-time public storefront check by URL. It does not verify ownership, payment success or money reconciliation.',
+        'meta' => 'Free one-time check of a WooCommerce or Shopware store’s path to checkout: product, cart, checkout page, browser errors and screenshots. No sign-up and no test purchase.',
         'eyebrow' => 'Public diagnostic',
-        'heading' => 'Check the public path to checkout',
+        'heading' => 'Check your store’s path to checkout — free, without signing up',
         'lead' => 'Enter a public HTTPS store address. We will open only public pages, add one item to the cart if it is safe, and show where the path to checkout stops.',
         'limits_title' => 'This is not monitoring',
         'limits_body' => 'This check does not prove that payments work, does not verify ownership and does not watch real payment attempts. Connect the store for continuous monitoring and financial coverage.',
+        'about' => [
+            'what_title' => 'What the free check does',
+            'what' => [
+                'Opens the store’s home page and finds categories and products in the public catalog.',
+                'Adds one product to the cart when that is safe (no required options it cannot choose) and confirms it appears in the cart.',
+                'Goes on to checkout and stops at the customer details, login or registration page. It enters no personal data.',
+                'Records browser messages on the way: JavaScript exceptions, server errors, scripts or styles that did not load or were blocked.',
+                'Recognizes WooCommerce or Shopware and shows screenshots of the steps, deleted after 5 minutes.',
+            ],
+            'finds_title' => 'Problems it can find',
+            'finds' => [
+                [
+                    'Add to cart does nothing',
+                    'The button is missing, the click has no effect, or the product never shows up in the cart.',
+                ],
+                [
+                    'Checkout cannot be reached',
+                    'The cart or checkout page fails, redirects in a loop or answers with a server error.',
+                ],
+                [
+                    'Broken scripts',
+                    'A JavaScript exception or a blocked script on the way to checkout — often after a plugin or theme update.',
+                ],
+                [
+                    'Missing files',
+                    'Scripts or styles that return 404 or 403 or the wrong file type, so parts of the page behave differently.',
+                ],
+            ],
+            'compare_title' => 'Free check, test purchase or monitoring?',
+            'compare_head' => ['', 'Free check', 'Test purchase', 'Business Watchdog'],
+            'compare_rows' => [
+                ['Sign-up', 'Not needed', '—', 'Account and connected store'],
+                ['Path to checkout', 'Once, public pages', 'Once, by hand', 'Regularly, with a configured product'],
+                [
+                    'Payment',
+                    'Not tested',
+                    'A real payment, then a refund',
+                    'No purchase; your customers’ real payments are compared with Stripe and PayPal',
+                ],
+                ['Order in the store', 'None', 'Yes — to be cancelled', 'No test orders'],
+                ['Alerts', 'No', 'No', 'E-mail or Telegram'],
+            ],
+            'limits_title' => 'Limits',
+            'limits' => [
+                'One check per store address in 30 days and per visitor in 10 days.',
+                'Public pages only: no shops behind a login or password, no customer accounts.',
+                'Bot protection (a challenge page or CAPTCHA) can stop the check; the result then says so.',
+                'WooCommerce and Shopware storefronts are checked up to checkout; for other platforms the result explains what is missing.',
+                'A passed check confirms only the path tested at that moment — not that payments work.',
+            ],
+            'faq_title' => 'Questions',
+            'faq' => [
+                [
+                    'Is this a WooCommerce checkout test?',
+                    'It tests the path a customer takes — product, cart, checkout page — on your live store without placing an order. The payment itself is not tested.',
+                ],
+                [
+                    'Does it change anything in my store?',
+                    'No order is created and no personal data is entered. The product goes into the cart of a temporary browser session that the store discards like any abandoned cart.',
+                ],
+                [
+                    'Can I monitor a Shopware checkout continuously?',
+                    'Yes, by connecting the store: Business Watchdog then checks a configured product and checkout regularly and alerts you to confirmed failures.',
+                ],
+            ],
+        ],
         'url' => 'Store URL',
         'captcha' => 'Enter the answer from the image',
         'captcha_alt' => 'CAPTCHA with an addition example',

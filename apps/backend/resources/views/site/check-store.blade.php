@@ -46,6 +46,49 @@
                 @include('site.partials.check-store-result')
             </div>
         @endif
+
+        @if ($check === null)
+            @php($about = trans('site.check_store.about'))
+            <div class="site-about" data-check-store-about>
+                <h2>{{ $about['what_title'] }}</h2>
+                <ul>
+                    @foreach ($about['what'] as $item)
+                        <li>{{ $item }}</li>
+                    @endforeach
+                </ul>
+
+                <h2>{{ $about['finds_title'] }}</h2>
+                <div class="site-cards">
+                    @foreach ($about['finds'] as [$cardTitle, $cardText])
+                        <div class="site-card"><h3>{{ $cardTitle }}</h3><p>{{ $cardText }}</p></div>
+                    @endforeach
+                </div>
+
+                <h2>{{ $about['compare_title'] }}</h2>
+                <div class="site-table-wrap">
+                    <table class="site-table">
+                        <thead><tr>@foreach ($about['compare_head'] as $cell)<th scope="col">{{ $cell }}</th>@endforeach</tr></thead>
+                        <tbody>
+                            @foreach ($about['compare_rows'] as $row)
+                                <tr><th scope="row">{{ $row[0] }}</th>@foreach (array_slice($row, 1) as $cell)<td>{{ $cell }}</td>@endforeach</tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>{{ $about['limits_title'] }}</h2>
+                <ul>
+                    @foreach ($about['limits'] as $item)
+                        <li>{{ $item }}</li>
+                    @endforeach
+                </ul>
+
+                <h2>{{ $about['faq_title'] }}</h2>
+                @foreach ($about['faq'] as [$question, $answer])
+                    <div class="site-faq-item"><h3>{{ $question }}</h3><p class="site-muted">{{ $answer }}</p></div>
+                @endforeach
+            </div>
+        @endif
     </section>
     <script>
         (() => {

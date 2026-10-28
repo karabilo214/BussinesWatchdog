@@ -46,6 +46,17 @@ class SitemapController extends Controller
             }
         }
 
+        foreach (PublicPage::LOCALES as $locale) {
+            $xml[] = '  <url>';
+            $xml[] = '    <loc>'.e($origin.SiteContent::url($locale, 'check-store')).'</loc>';
+
+            foreach (PublicPage::LOCALES as $alternate) {
+                $xml[] = '    <xhtml:link rel="alternate" hreflang="'.$alternate.'" href="'.e($origin.SiteContent::url($alternate, 'check-store')).'"/>';
+            }
+
+            $xml[] = '  </url>';
+        }
+
         $xml[] = '</urlset>';
 
         return response(implode("\n", $xml)."\n", 200, [

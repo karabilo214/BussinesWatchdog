@@ -28,7 +28,11 @@
     "cta_title": "Keep the next discrepancy visible",
     "cta_text": "Connect your store and the supported payment provider. Review the coverage and first synchronization before relying on the results. Features and limits depend on your plan.",
     "signup": "Create an account",
-    "pricing": "See plans and coverage"
+    "pricing": "See plans and coverage",
+    "if_yes": "If yes:",
+    "if_no": "If no:",
+    "example_note": "Illustrative sequence: identifiers, amounts and times are made up; the formats follow WooCommerce order notes and the providers’ dashboards. No customer data.",
+    "takeaway": "What this shows"
   },
   "de": {
     "causes": "Mögliche Ursachen",
@@ -59,7 +63,11 @@
     "cta_title": "Die nächste Abweichung im Blick behalten",
     "cta_text": "Verbinden Sie Ihren Shop und den unterstützten Zahlungsanbieter. Prüfen Sie die Abdeckung und die erste Synchronisierung, bevor Sie sich auf Ergebnisse verlassen. Funktionen und Grenzen hängen vom Tarif ab.",
     "signup": "Konto erstellen",
-    "pricing": "Tarife und Abdeckung ansehen"
+    "pricing": "Tarife und Abdeckung ansehen",
+    "if_yes": "Wenn ja:",
+    "if_no": "Wenn nein:",
+    "example_note": "Beispielhafter Ablauf: Kennungen, Beträge und Uhrzeiten sind erfunden; die Formate entsprechen den Bestellnotizen von WooCommerce und den Dashboards der Zahlungsanbieter. Keine Kundendaten.",
+    "takeaway": "Was das zeigt"
   },
   "ru": {
     "causes": "Почему это происходит",
@@ -90,6 +98,10 @@
     "cta_title": "Не оставляйте следующее расхождение незамеченным",
     "cta_text": "Подключите магазин и поддерживаемого платёжного провайдера. Прежде чем полагаться на результат, проверьте покрытие и первую синхронизацию. Возможности и ограничения зависят от тарифа.",
     "signup": "Создать аккаунт",
-    "pricing": "Тарифы и покрытие"
+    "pricing": "Тарифы и покрытие",
+    "if_yes": "Если да:",
+    "if_no": "Если нет:",
+    "example_note": "Пример последовательности: идентификаторы, суммы и время вымышлены; форматы — как в заметках заказа WooCommerce и кабинетах платёжных провайдеров. Без данных покупателей.",
+    "takeaway": "Что это показывает"
   }
 }

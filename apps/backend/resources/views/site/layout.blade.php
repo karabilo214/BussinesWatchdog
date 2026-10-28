@@ -12,7 +12,7 @@
         <meta name="robots" content="noindex, nofollow">
         <base target="_blank">
     @endif
-    @if (in_array($path ?? null, ['check-store', 'pay'], true))
+    @if (in_array($path ?? null, ['check-store', 'pay'], true) && ! ($indexable ?? false))
         <meta name="robots" content="noindex, nofollow">
     @endif
     @if ($canonical)

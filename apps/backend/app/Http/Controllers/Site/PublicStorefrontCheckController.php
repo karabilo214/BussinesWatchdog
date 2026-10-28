@@ -25,7 +25,7 @@ class PublicStorefrontCheckController extends Controller
 
     public function form(Request $request, string $locale): Response
     {
-        return response()->view('site.check-store', $this->chrome($locale) + [
+        return response()->view('site.check-store', $this->chrome($locale, true) + [
             'title' => trans('site.check_store.title', [], $locale),
             'description' => trans('site.check_store.meta', [], $locale),
             'check' => null,
@@ -148,15 +148,17 @@ class PublicStorefrontCheckController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function chrome(string $locale): array
+    private function chrome(string $locale, bool $indexable = false): array
     {
         app()->setLocale($locale);
+        $origin = rtrim((string) config('app.url'), '/');
 
         return [
             'locale' => $locale,
             'path' => 'check-store',
-            'canonical' => null,
-            'alternates' => [],
+            'indexable' => $indexable,
+            'canonical' => $indexable ? $origin.SiteContent::url($locale, 'check-store') : null,
+            'alternates' => $indexable ? array_map(fn (string $code): array => ['locale' => $code, 'href' => $origin.SiteContent::url($code, 'check-store')], PublicPage::LOCALES) : [],
             'languages' => array_map(fn (string $code): array => ['locale' => $code, 'href' => SiteContent::url($code, 'check-store'), 'current' => $code === $locale], PublicPage::LOCALES),
             'header' => app(SiteContent::class)->menu($locale, PublicPage::MENU_HEADER),
             'footer' => app(SiteContent::class)->footerGroups($locale),

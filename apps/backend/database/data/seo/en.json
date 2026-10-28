@@ -71,6 +71,54 @@
       "stripe-woocommerce-mismatch",
       "paypal-pending-orders",
       "woocommerce-reconciliation"
+    ],
+    "extra": [
+      {
+        "type": "flow",
+        "id": "diagnosis",
+        "toc": "Diagnosis path",
+        "title": "Diagnosis path: four questions, in this order",
+        "intro": "Each answer rules out a group of causes. Stop at the first “no” — that is where the fix belongs.",
+        "steps": [
+          [
+            "Is there a capture for this amount and currency in the provider account?",
+            "Money was collected — go to question 2.",
+            "Only an authorization, a pending or a failed attempt. The pending order may be right; do not mark it paid."
+          ],
+          [
+            "Does the capture carry this order’s reference (order number, PaymentIntent or PayPal order ID)?",
+            "Go to question 3.",
+            "The payment may belong to another order or a repeated checkout. Find the order by the reference first."
+          ],
+          [
+            "Did the provider deliver a notification to the shop after the capture?",
+            "The event arrived — go to question 4.",
+            "A delivery problem: webhook address, signing secret, firewall or security plugin. Fix it, then re-send the event."
+          ],
+          [
+            "Do the order notes or the gateway log show the event being processed?",
+            "The shop processed it; something changed the status afterwards. Read the notes in time order.",
+            "The update failed inside WordPress. Look for an exception or a conflicting plugin in the gateway log at that minute."
+          ]
+        ]
+      },
+      {
+        "type": "example",
+        "id": "example",
+        "toc": "Example",
+        "title": "Example: a capture the shop never recorded",
+        "intro": "A Stripe card payment where a security plugin rejected the webhook and the buyer closed the tab before the return page loaded.",
+        "code_title": "Timeline (UTC)",
+        "lines": [
+          "10:41:58  WooCommerce  Order #10482 created — Pending payment",
+          "10:42:03  Stripe       pi_3Q8xY2… succeeded · ch_3Q8xY2… captured 89.90 EUR",
+          "10:42:04  Stripe       payment_intent.succeeded → /?wc-api=wc_stripe · HTTP 403",
+          "10:42:05  Browser      buyer closes the tab before “Order received”",
+          "10:43:10  Stripe       retry → HTTP 403 (live mode retries for up to three days)",
+          "11:30:00  WooCommerce  Order #10482 still Pending payment, no Stripe note"
+        ],
+        "takeaway": "The money is in Stripe and the reference is right; only the delivery failed. The fix is an allow rule for the webhook path and a re-send from the Stripe dashboard — not a second payment and not a manual “Processing” before the capture is confirmed."
+      }
     ]
   },
   "woocommerce-missing-orders": {
@@ -145,15 +193,62 @@
       "woocommerce-payment-pending",
       "woocommerce-reconciliation",
       "stripe-woocommerce-mismatch"
+    ],
+    "extra": [
+      {
+        "type": "flow",
+        "id": "diagnosis",
+        "toc": "Diagnosis path",
+        "title": "Diagnosis path: hidden, foreign or never stored?",
+        "intro": "Answer the questions in order before recreating anything.",
+        "steps": [
+          [
+            "Is there a successful capture in the provider account, in live mode?",
+            "There is money without a visible order — go to question 2.",
+            "No money was collected. A declined or abandoned attempt does not leave a paid order behind; nothing is missing."
+          ],
+          [
+            "Does a search by the provider reference find the order under All, including Trash and Drafts?",
+            "The order exists: hidden by a filter, trashed or left as a checkout draft. Restore or process it normally.",
+            "No order holds this payment — go to question 3."
+          ],
+          [
+            "Does the payment name this shop (Stripe metadata order_id and site_url, PayPal invoice ID with your prefix)?",
+            "The payment came from this checkout — go to question 4.",
+            "It may come from another shop, a staging copy or a payment link from the provider dashboard. Not a lost order of this shop."
+          ],
+          [
+            "Do the gateway log or the PHP error log show an error at the payment time?",
+            "The checkout broke after payment. Fix the cause, then create the order once by hand with the payment reference.",
+            "Check caching, an import or cleanup tool that deletes orders, and database errors at that time."
+          ]
+        ]
+      },
+      {
+        "type": "example",
+        "id": "example",
+        "toc": "Example",
+        "title": "Example: a payment from a staging copy",
+        "intro": "A support request: “I was charged, but there is no order.”",
+        "code_title": "What the trail showed",
+        "lines": [
+          "Stripe   pi_3Q9aB… succeeded · 54.00 EUR",
+          "         metadata.order_id = 2211 · metadata.site_url = https://staging.shop.example",
+          "Shop     https://shop.example → order #2211 is another order, 18.50 EUR, last week",
+          "Shop     search for pi_3Q9aB… in all statuses and trash → nothing",
+          "Stripe   the staging copy still uses the live API keys of the production shop"
+        ],
+        "takeaway": "No order was lost in the production shop. The purchase happened on a staging copy that had live keys. Handle that payment (deliver or refund), and switch staging to test keys — recreating an order in production would only add a wrong record."
+      }
     ]
   },
   "woocommerce-reconciliation": {
-    "title": "WooCommerce Payment Reconciliation: Orders vs Captures",
-    "description": "Compare WooCommerce orders with Stripe and PayPal captures and refunds. Learn a practical reconciliation workflow and the limits of payment monitoring.",
-    "h1": "WooCommerce Payment Reconciliation Without Guessing from Order Status",
+    "title": "WooCommerce Payment Reconciliation: A Routine for Every Payment Method",
+    "description": "Reconcile WooCommerce orders with every payment method you use — Stripe, PayPal, bank transfer, cash on delivery. A weekly routine, what to compare and where automation helps.",
+    "h1": "WooCommerce Payment Reconciliation as a Regular Routine",
     "label": "Payment reconciliation",
-    "eyebrow": "WooCommerce · Independent payment evidence",
-    "lead": "Reconciliation answers whether the payment evidence agrees with the order, not whether a status label looks reassuring. Compare each supported order with the actual captures and refunds, using reliable references and the same currency.",
+    "eyebrow": "WooCommerce · Reconciliation across payment methods",
+    "lead": "Reconciliation is a recurring control, not a one-off repair: every paid order should end with matching money from the method the buyer chose, and every payment should belong to an order. This guide sets up that routine across all your payment methods. For the Stripe mechanics behind one payment, see Stripe WooCommerce reconciliation.",
     "answer_title": "Compare like with like",
     "answer": "An order total, a capture, a refund, a processor fee and a bank payout describe different things. Combining them into one unexplained difference creates false alarms.",
     "checks": [
@@ -219,6 +314,77 @@
       "stripe-reconciliation",
       "woocommerce-payment-pending",
       "woocommerce-missing-orders"
+    ],
+    "extra": [
+      {
+        "type": "table",
+        "id": "methods",
+        "toc": "Payment methods",
+        "title": "What each payment method gives you to compare",
+        "intro": "Reconcile each method against its own independent record. Where there is none, the result stays unknown — not “fine”.",
+        "head": [
+          "Payment method",
+          "Independent record",
+          "What to compare per order",
+          "Business Watchdog"
+        ],
+        "rows": [
+          [
+            "Stripe (cards, wallets and other methods through Stripe)",
+            "Payment and charge in the Stripe account",
+            "Captured amount, currency, refunds",
+            "Automatic, restricted read key"
+          ],
+          [
+            "PayPal (PayPal Payments)",
+            "Capture in the PayPal account",
+            "Capture status and amount, refunds",
+            "Automatic, reading methods only"
+          ],
+          [
+            "Bank transfer",
+            "Your bank statement",
+            "Amount received and order number in the reference",
+            "Not covered — manual"
+          ],
+          [
+            "Cash on delivery",
+            "Carrier’s cash report",
+            "Amount collected per shipment",
+            "Not covered — manual"
+          ],
+          [
+            "Other gateways (Klarna, Mollie and others)",
+            "The provider’s own report",
+            "Report entries against orders",
+            "Not covered yet — shown as unknown"
+          ]
+        ]
+      },
+      {
+        "type": "cards",
+        "id": "routine",
+        "toc": "Weekly routine",
+        "title": "A weekly routine that takes minutes, not hours",
+        "items": [
+          [
+            "1. Close the period",
+            "Pick last week, one currency and live mode. Make sure every source has synchronized; note late imports instead of guessing."
+          ],
+          [
+            "2. Paid orders without money",
+            "Orders marked paid with no matching capture: check notification delivery and the payment reference before anything else."
+          ],
+          [
+            "3. Money without an order",
+            "Captures that no order claims: search the reference, other shops, staging copies and payment links."
+          ],
+          [
+            "4. Refunds on both sides",
+            "Every refund in WooCommerce needs a provider refund of the same amount — and every provider refund needs an order."
+          ]
+        ]
+      }
     ]
   },
   "woocommerce-order-processing": {
@@ -445,15 +611,50 @@
       "woocommerce-payment-pending",
       "woocommerce-reconciliation",
       "shopware-reconciliation"
+    ],
+    "extra": [
+      {
+        "type": "cards",
+        "id": "situations",
+        "toc": "With WooCommerce",
+        "title": "Typical situations with WooCommerce PayPal Payments",
+        "intro": "The same PayPal status means different things depending on how the plugin is set up.",
+        "items": [
+          [
+            "On hold after an authorization",
+            "With the payment intent set to Authorize, the order waits On hold until you capture the payment from the order. Nothing is missing — but an authorization does not last forever, so capture or void it in time."
+          ],
+          [
+            "Capture PENDING: RECEIVING_PREFERENCE_MANDATES_MANUAL_REVIEW",
+            "Often a payment in a currency your PayPal account does not accept automatically. PayPal holds it until you accept or decline it in the PayPal account; the order is right to wait."
+          ],
+          [
+            "Capture PENDING: ECHECK",
+            "The buyer paid from a bank account. The money clears after several days; ship only after the capture is COMPLETED."
+          ],
+          [
+            "Webhooks still go to the old address",
+            "After moving from staging or changing the site URL, PayPal keeps sending events to the previous address. Check the webhook status in the PayPal Payments settings and subscribe the webhooks again."
+          ],
+          [
+            "Approved, but never captured",
+            "The buyer approved in the PayPal window and closed it before returning to the shop. PayPal shows no completed payment, WooCommerce shows Pending payment — no money moved, do not ship."
+          ],
+          [
+            "Sandbox order, live check",
+            "A test order paid in the sandbox will never appear in the live PayPal account, and the other way round. Check which environment the plugin used."
+          ]
+        ]
+      }
     ]
   },
   "stripe-reconciliation": {
-    "title": "Stripe WooCommerce Reconciliation: Match Captures, Not Payouts",
-    "description": "Reconcile Stripe payments with WooCommerce orders using PaymentIntent and Charge references. Keep captures, refunds, fees and payouts separate.",
-    "h1": "Stripe WooCommerce Reconciliation at Order Level",
+    "title": "Stripe WooCommerce Reconciliation: From PaymentIntent to Payout",
+    "description": "The Stripe side of WooCommerce reconciliation: where the order stores the PaymentIntent and charge, what to compare for partial captures and refunds, and why fees and payouts are a separate check.",
+    "h1": "How Stripe Payments Map to WooCommerce Orders",
     "label": "Stripe reconciliation",
-    "eyebrow": "Stripe · Captures, refunds and order references",
-    "lead": "A Stripe payment flow can contain multiple attempts, while a bank payout can combine many payments. To reconcile WooCommerce correctly, identify the capture operations that belong to each order and check refunds separately.",
+    "eyebrow": "Stripe · Payment mechanics for reconciliation",
+    "lead": "This guide covers one mechanism: how a WooCommerce order points to Stripe objects and which Stripe numbers belong in an order-level comparison. For a reconciliation routine across all payment methods, see WooCommerce payment reconciliation.",
     "answer_title": "One payment flow is not one bank deposit",
     "answer": "Use the relationship between the order, PaymentIntent and Charge. Compare the actual captured amount; do not count a notification or authorization as another capture.",
     "checks": [
@@ -523,6 +724,68 @@
       "woocommerce-reconciliation",
       "stripe-woocommerce-mismatch",
       "woocommerce-payment-pending"
+    ],
+    "extra": [
+      {
+        "type": "table",
+        "id": "objects",
+        "toc": "Stripe objects",
+        "title": "From the order to the payout: the Stripe objects",
+        "intro": "Read the chain from top to bottom. Only the charge and its refunds belong in an order-level comparison.",
+        "head": [
+          "Object",
+          "Where you see it",
+          "What it means for reconciliation"
+        ],
+        "rows": [
+          [
+            "WooCommerce order",
+            "Order notes (“Stripe charge complete”), transaction ID, PaymentIntent in the order meta",
+            "The shop’s view and the starting point of the trail"
+          ],
+          [
+            "PaymentIntent pi_…",
+            "Stripe Dashboard → Payments",
+            "One checkout; can hold several attempts (a declined card, then a success). Count only the successful charge"
+          ],
+          [
+            "Charge ch_… / py_…",
+            "Payment details → latest charge",
+            "Captured amount and refunded amount — the numbers to compare with the order"
+          ],
+          [
+            "Refund re_…",
+            "Payment details → Refunds",
+            "Compare with each refund in WooCommerce"
+          ],
+          [
+            "Balance transaction txn_…",
+            "Balance → Transactions",
+            "Net after the fee, in the settlement currency — not the order amount"
+          ],
+          [
+            "Payout po_…",
+            "Balance → Payouts",
+            "Sum of many balance transactions — bank reconciliation, not order reconciliation"
+          ]
+        ]
+      },
+      {
+        "type": "example",
+        "id": "example",
+        "toc": "Example",
+        "title": "Example: a partial capture",
+        "intro": "An order paid with manual capture, captured for less than the authorized amount.",
+        "code_title": "Order and Stripe side by side",
+        "lines": [
+          "Order #5120  total 240.00 EUR · Processing · PaymentIntent pi_3QB…",
+          "Stripe       pi_3QB… authorized 240.00 EUR (manual capture)",
+          "Stripe       ch_3QB… amount_captured 200.00 EUR · 40.00 EUR released",
+          "Stripe       txn_… net 196.75 EUR · fee 3.25 EUR",
+          "Payout       po_… 3,418.55 EUR on Friday · 41 payments, 2 refunds"
+        ],
+        "takeaway": "The order says 240.00, the buyer paid 200.00 — that is the difference to review (an item out of stock?). The 3.25 fee and the 3,418.55 payout do not explain it; they belong to a different check."
+      }
     ]
   },
   "shopware-reconciliation": {
@@ -601,6 +864,52 @@
       "shopware-order-monitoring",
       "woocommerce-reconciliation",
       "paypal-pending-orders"
+    ],
+    "extra": [
+      {
+        "type": "table",
+        "id": "states",
+        "toc": "Payment states",
+        "title": "Shopware payment states and what the provider should show",
+        "intro": "Only the payment state of the order transaction matters for reconciliation; the order and delivery states answer other questions.",
+        "head": [
+          "Payment state (technical name)",
+          "Meaning in the shop",
+          "What Stripe or PayPal should show"
+        ],
+        "rows": [
+          [
+            "Open (open)",
+            "No result yet",
+            "No capture — or a capture the shop has not recorded: check it"
+          ],
+          [
+            "Authorized (authorized)",
+            "Amount reserved",
+            "An authorization, no capture yet"
+          ],
+          [
+            "Paid (paid)",
+            "The shop treats the payment as complete",
+            "A capture for the full amount"
+          ],
+          [
+            "Paid partially (paid_partially)",
+            "Part of the amount",
+            "A capture for that part"
+          ],
+          [
+            "Refunded / refunded partially (refunded, refunded_partially)",
+            "A refund recorded in the shop",
+            "A provider refund of the same amount"
+          ],
+          [
+            "Failed / cancelled (failed, cancelled)",
+            "An attempt without a result",
+            "No capture; if one exists, that is a reconciliation case"
+          ]
+        ]
+      }
     ]
   },
   "shopware-order-monitoring": {
@@ -675,6 +984,36 @@
       "shopware-reconciliation",
       "woocommerce-order-processing",
       "woocommerce-reconciliation"
+    ],
+    "extra": [
+      {
+        "type": "flow",
+        "id": "diagnosis",
+        "toc": "Diagnosis path",
+        "title": "Diagnosis path: not recorded or not processed?",
+        "steps": [
+          [
+            "Is there a capture at Stripe or PayPal for this order?",
+            "Money arrived — go to question 2.",
+            "Then the payment state Open is correct: no money was collected."
+          ],
+          [
+            "Is the payment state of the latest transaction Paid?",
+            "The payment is recorded. If the order is not processed further, check the Flow Builder, ERP or warehouse — an operational issue.",
+            "Go to question 3."
+          ],
+          [
+            "Does the order have several transactions (a new one per payment attempt)?",
+            "Compare the capture with the transaction it belongs to — the paid one may be an older attempt.",
+            "Go to question 4."
+          ],
+          [
+            "Do the payment extension’s logs (var/log) show the provider’s notification?",
+            "It arrived but was not applied — look for the error next to it.",
+            "A delivery problem: webhook address, sales channel domain, firewall."
+          ]
+        ]
+      }
     ]
   }
 }

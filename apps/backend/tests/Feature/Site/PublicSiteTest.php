@@ -74,7 +74,8 @@ class PublicSiteTest extends TestCase
         $this->assertContains('https://watchdog.test/en/about', $locs);
         $this->assertNotContains('https://watchdog.test/ru/about', $locs, 'a draft is not shown');
         $this->assertNotContains('https://watchdog.test/en/old', $locs, 'an archived page is not shown');
-        $this->assertSame([], array_values(array_filter($locs, fn (string $loc): bool => preg_match('#/(signup|check-store|pay)$#', $loc) === 1)));
+        $this->assertSame([], array_values(array_filter($locs, fn (string $loc): bool => preg_match('#/(signup|pay)$#', $loc) === 1)));
+        $this->assertSame(['https://watchdog.test/ru/check-store', 'https://watchdog.test/en/check-store', 'https://watchdog.test/de/check-store'], array_values(array_filter($locs, fn (string $loc): bool => str_ends_with($loc, '/check-store'))), 'the free check is a landing page for search');
         $this->assertSame(['https://watchdog.test/ru', 'https://watchdog.test/en', 'https://watchdog.test/de'], array_slice($locs, 0, 3), 'the home page comes first');
 
         $about = collect(iterator_to_array($xml->url, false))->first(fn ($url): bool => (string) $url->loc === 'https://watchdog.test/de/about');

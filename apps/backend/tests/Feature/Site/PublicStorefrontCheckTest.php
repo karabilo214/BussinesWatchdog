@@ -32,6 +32,23 @@ class PublicStorefrontCheckTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_the_form_page_explains_the_check_for_search_and_stays_indexable(): void
+    {
+        $html = $this->get('/de/check-store')->assertOk()
+            ->assertSee('Kostenloser Checkout-Check für WooCommerce und Shopware')
+            ->assertSee('data-check-store-about', false)
+            ->assertSee('Kostenlose Prüfung, Testkauf oder Monitoring?')
+            ->assertSee('Eine Prüfung je Shop-Adresse in 30 Tagen')
+            ->assertSee('hreflang="en"', false)
+            ->getContent();
+        $this->assertStringNotContainsString('noindex', $html);
+        $this->assertSame(1, substr_count($html, '<h1>'));
+        foreach (['en', 'ru'] as $locale) {
+            $this->get('/'.$locale.'/check-store')->assertOk()->assertSee('data-check-store-about', false);
+        }
+        $this->get('/sitemap.xml')->assertOk()->assertSee('<loc>'.url('/de/check-store').'</loc>', false);
+    }
+
     public function test_public_check_form_requires_captcha_and_records_cooldowns(): void
     {
         $form = $this->get('/ru/check-store')
@@ -41,7 +58,8 @@ class PublicStorefrontCheckTest extends TestCase
             ->assertSee('/ru/check-store/captcha', false)
             ->assertDontSee('name="captcha_token"', false)
             ->assertSee('Запускаем проверку...', false)
-            ->assertSee('noindex', false);
+            ->assertDontSee('noindex', false)
+            ->assertSee('rel="canonical" href="'.url('/ru/check-store').'"', false);
         $answer = $this->captchaAnswer('ru');
 
         $this->post('/ru/check-store', ['url' => 'https://shop.example.com'])
@@ -72,7 +90,9 @@ class PublicStorefrontCheckTest extends TestCase
         $this->get('/ru/check-store/'.$token)
             ->assertOk()
             ->assertSee('data-status-url="/ru/check-store/'.$token.'/status"', false)
-            ->assertSee('Результат появится здесь автоматически');
+            ->assertSee('Результат появится здесь автоматически')
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
+            ->assertDontSee('data-check-store-about', false);
         $this->getJson('/ru/check-store/'.$token.'/status')
             ->assertOk()
             ->assertJsonPath('status', PublicStorefrontCheck::STATUS_QUEUED)

@@ -71,6 +71,54 @@
       "stripe-woocommerce-mismatch",
       "paypal-pending-orders",
       "woocommerce-reconciliation"
+    ],
+    "extra": [
+      {
+        "type": "flow",
+        "id": "diagnosis",
+        "toc": "Diagnoseweg",
+        "title": "Diagnoseweg: vier Fragen in dieser Reihenfolge",
+        "intro": "Jede Antwort schließt eine Gruppe von Ursachen aus. Beim ersten „Nein“ liegt die Stelle, an der Sie ansetzen.",
+        "steps": [
+          [
+            "Gibt es im Konto des Anbieters eine Abbuchung über diesen Betrag und diese Währung?",
+            "Das Geld ist eingegangen — weiter mit Frage 2.",
+            "Nur eine Autorisierung, eine ausstehende oder fehlgeschlagene Zahlung. Der Status „Zahlung ausstehend“ kann stimmen; nicht als bezahlt markieren."
+          ],
+          [
+            "Trägt die Abbuchung die Referenz dieser Bestellung (Bestellnummer, PaymentIntent oder PayPal-Order-ID)?",
+            "Weiter mit Frage 3.",
+            "Die Zahlung gehört vielleicht zu einer anderen Bestellung oder einem wiederholten Checkout. Erst die Bestellung über die Referenz finden."
+          ],
+          [
+            "Hat der Anbieter nach der Abbuchung eine Benachrichtigung an den Shop zugestellt?",
+            "Das Ereignis kam an — weiter mit Frage 4.",
+            "Ein Zustellproblem: Webhook-Adresse, Signaturgeheimnis, Firewall oder Sicherheits-Plugin. Beheben und das Ereignis erneut senden."
+          ],
+          [
+            "Zeigen die Bestellnotizen oder das Gateway-Log, dass das Ereignis verarbeitet wurde?",
+            "Der Shop hat es verarbeitet; danach hat etwas den Status geändert. Notizen in zeitlicher Reihenfolge lesen.",
+            "Die Aktualisierung ist in WordPress gescheitert. Im Gateway-Log zu dieser Minute nach einer Exception oder einem Plugin-Konflikt suchen."
+          ]
+        ]
+      },
+      {
+        "type": "example",
+        "id": "example",
+        "toc": "Beispiel",
+        "title": "Beispiel: eine Abbuchung, die der Shop nie erfasst hat",
+        "intro": "Eine Stripe-Kartenzahlung: Ein Sicherheits-Plugin hat den Webhook abgewiesen, und der Käufer hat den Tab vor der Bestätigungsseite geschlossen.",
+        "code_title": "Zeitlicher Ablauf (UTC)",
+        "lines": [
+          "10:41:58  WooCommerce  Bestellung #10482 angelegt — Zahlung ausstehend",
+          "10:42:03  Stripe       pi_3Q8xY2… succeeded · ch_3Q8xY2… 89,90 EUR abgebucht",
+          "10:42:04  Stripe       payment_intent.succeeded → /?wc-api=wc_stripe · HTTP 403",
+          "10:42:05  Browser      Käufer schließt den Tab vor „Bestellung erhalten“",
+          "10:43:10  Stripe       erneuter Versuch → HTTP 403 (im Live-Modus bis zu drei Tage)",
+          "11:30:00  WooCommerce  Bestellung #10482 weiter „Zahlung ausstehend“, keine Stripe-Notiz"
+        ],
+        "takeaway": "Das Geld ist bei Stripe, die Referenz stimmt; nur die Zustellung ist gescheitert. Die Lösung ist eine Freigabe des Webhook-Pfads und ein erneutes Senden aus dem Stripe-Dashboard — keine zweite Zahlung und kein manuelles „In Bearbeitung“, bevor die Abbuchung bestätigt ist."
+      }
     ]
   },
   "woocommerce-missing-orders": {
@@ -145,15 +193,62 @@
       "woocommerce-payment-pending",
       "woocommerce-reconciliation",
       "stripe-woocommerce-mismatch"
+    ],
+    "extra": [
+      {
+        "type": "flow",
+        "id": "diagnosis",
+        "toc": "Diagnoseweg",
+        "title": "Diagnoseweg: ausgeblendet, fremd oder nie gespeichert?",
+        "intro": "Die Fragen der Reihe nach beantworten, bevor Sie etwas neu anlegen.",
+        "steps": [
+          [
+            "Gibt es im Live-Konto des Anbieters eine erfolgreiche Abbuchung?",
+            "Es gibt Geld ohne sichtbare Bestellung — weiter mit Frage 2.",
+            "Es wurde kein Geld eingezogen. Ein abgelehnter oder abgebrochener Versuch hinterlässt keine bezahlte Bestellung; es fehlt nichts."
+          ],
+          [
+            "Findet die Suche nach der Anbieter-Referenz die Bestellung unter „Alle“, einschließlich Papierkorb und Entwürfe?",
+            "Die Bestellung existiert: durch einen Filter ausgeblendet, im Papierkorb oder als Checkout-Entwurf liegen geblieben. Wiederherstellen und normal bearbeiten.",
+            "Keine Bestellung gehört zu dieser Zahlung — weiter mit Frage 3."
+          ],
+          [
+            "Nennt die Zahlung diesen Shop (Stripe-Metadaten order_id und site_url, PayPal-Rechnungsnummer mit Ihrem Präfix)?",
+            "Die Zahlung kam aus diesem Checkout — weiter mit Frage 4.",
+            "Sie stammt vielleicht aus einem anderen Shop, einer Staging-Kopie oder einem Zahlungslink aus dem Anbieter-Dashboard. Keine verlorene Bestellung dieses Shops."
+          ],
+          [
+            "Zeigen das Gateway-Log oder das PHP-Fehlerlog zum Zahlungszeitpunkt einen Fehler?",
+            "Der Checkout ist nach der Zahlung abgebrochen. Ursache beheben, dann die Bestellung einmal manuell mit der Zahlungsreferenz anlegen.",
+            "Caching, Import- oder Bereinigungs-Tools, die Bestellungen löschen, und Datenbankfehler zu diesem Zeitpunkt prüfen."
+          ]
+        ]
+      },
+      {
+        "type": "example",
+        "id": "example",
+        "toc": "Beispiel",
+        "title": "Beispiel: eine Zahlung aus einer Staging-Kopie",
+        "intro": "Eine Support-Anfrage: „Mir wurde Geld abgebucht, aber es gibt keine Bestellung.“",
+        "code_title": "Was die Spur zeigte",
+        "lines": [
+          "Stripe   pi_3Q9aB… succeeded · 54,00 EUR",
+          "         metadata.order_id = 2211 · metadata.site_url = https://staging.shop.example",
+          "Shop     https://shop.example → Bestellung #2211 ist eine andere, 18,50 EUR, letzte Woche",
+          "Shop     Suche nach pi_3Q9aB… in allen Status und im Papierkorb → nichts",
+          "Stripe   die Staging-Kopie nutzt noch die Live-API-Schlüssel des Produktivshops"
+        ],
+        "takeaway": "Im Produktivshop ist keine Bestellung verloren gegangen. Der Kauf lief über eine Staging-Kopie mit Live-Schlüsseln. Die Zahlung klären (liefern oder erstatten) und Staging auf Test-Schlüssel umstellen — eine nachträglich angelegte Bestellung im Produktivshop wäre nur ein falscher Datensatz."
+      }
     ]
   },
   "woocommerce-reconciliation": {
-    "title": "WooCommerce-Zahlungsabgleich mit Stripe und PayPal",
-    "description": "WooCommerce-Bestellungen mit Abbuchungen und Erstattungen von Stripe und PayPal abgleichen. Praktischer Ablauf, Grenzen und unabhängige Zahlungsnachweise.",
-    "h1": "WooCommerce-Zahlungsabgleich statt Vertrauen auf Statusangaben",
+    "title": "WooCommerce-Zahlungsabgleich für alle Zahlungsarten: Routine statt Einzelfall",
+    "description": "WooCommerce-Bestellungen mit allen Zahlungsarten abgleichen — Stripe, PayPal, Vorkasse, Nachnahme. Eine wöchentliche Routine, was zu vergleichen ist und wo Automatisierung hilft.",
+    "h1": "WooCommerce-Zahlungsabgleich als feste Routine",
     "label": "Zahlungsabgleich",
-    "eyebrow": "WooCommerce · Unabhängige Zahlungsnachweise",
-    "lead": "Beim Zahlungsabgleich geht es darum, ob die Zahlungsnachweise zur Bestellung passen. Vergleichen Sie unterstützte Bestellungen über verlässliche Referenzen mit den tatsächlichen Abbuchungen und Erstattungen in derselben Währung.",
+    "eyebrow": "WooCommerce · Abgleich über alle Zahlungsarten",
+    "lead": "Zahlungsabgleich ist eine wiederkehrende Kontrolle, keine einmalige Reparatur: Zu jeder bezahlten Bestellung gehört der passende Zahlungseingang aus der gewählten Zahlungsart, und jede Zahlung gehört zu einer Bestellung. Diese Anleitung richtet die Routine über alle Zahlungsarten ein. Die Stripe-Mechanik hinter einer einzelnen Zahlung erklärt die Seite zum Stripe-WooCommerce-Abgleich.",
     "answer_title": "Gleichartige Beträge vergleichen",
     "answer": "Bestellbetrag, Abbuchung, Erstattung, Anbietergebühr und Bankauszahlung sind unterschiedliche Vorgänge. Eine einzige vermischte Differenz führt leicht zu falschen Schlussfolgerungen.",
     "checks": [
@@ -219,6 +314,77 @@
       "stripe-reconciliation",
       "woocommerce-payment-pending",
       "woocommerce-missing-orders"
+    ],
+    "extra": [
+      {
+        "type": "table",
+        "id": "methods",
+        "toc": "Zahlungsarten",
+        "title": "Was jede Zahlungsart zum Abgleich liefert",
+        "intro": "Jede Zahlungsart gegen ihren eigenen unabhängigen Nachweis abgleichen. Fehlt er, bleibt das Ergebnis unbekannt — nicht „in Ordnung“.",
+        "head": [
+          "Zahlungsart",
+          "Unabhängiger Nachweis",
+          "Was je Bestellung zu vergleichen ist",
+          "Business Watchdog"
+        ],
+        "rows": [
+          [
+            "Stripe (Karten, Wallets und andere Methoden über Stripe)",
+            "Zahlung und Charge im Stripe-Konto",
+            "Abgebuchter Betrag, Währung, Erstattungen",
+            "Automatisch, eingeschränkter Leseschlüssel"
+          ],
+          [
+            "PayPal (PayPal Payments)",
+            "Capture im PayPal-Konto",
+            "Capture-Status und Betrag, Erstattungen",
+            "Automatisch, nur lesende Methoden"
+          ],
+          [
+            "Vorkasse / Überweisung",
+            "Ihr Kontoauszug",
+            "Eingegangener Betrag und Bestellnummer im Verwendungszweck",
+            "Nicht abgedeckt — manuell"
+          ],
+          [
+            "Nachnahme",
+            "Abrechnung des Versanddienstleisters",
+            "Kassierter Betrag je Sendung",
+            "Nicht abgedeckt — manuell"
+          ],
+          [
+            "Andere Anbieter (Klarna, Mollie u. a.)",
+            "Bericht des jeweiligen Anbieters",
+            "Berichtszeilen gegen Bestellungen",
+            "Noch nicht abgedeckt — als unbekannt angezeigt"
+          ]
+        ]
+      },
+      {
+        "type": "cards",
+        "id": "routine",
+        "toc": "Wochenroutine",
+        "title": "Eine Wochenroutine, die Minuten statt Stunden dauert",
+        "items": [
+          [
+            "1. Zeitraum abschließen",
+            "Letzte Woche, eine Währung, Live-Modus. Sicherstellen, dass alle Quellen synchronisiert sind; verspätete Importe notieren statt raten."
+          ],
+          [
+            "2. Bezahlte Bestellungen ohne Geld",
+            "Als bezahlt markierte Bestellungen ohne passende Abbuchung: zuerst Zustellung der Benachrichtigungen und Zahlungsreferenz prüfen."
+          ],
+          [
+            "3. Geld ohne Bestellung",
+            "Abbuchungen, zu denen keine Bestellung gehört: Referenz suchen, andere Shops, Staging-Kopien und Zahlungslinks prüfen."
+          ],
+          [
+            "4. Erstattungen auf beiden Seiten",
+            "Jede Erstattung in WooCommerce braucht eine Erstattung beim Anbieter in gleicher Höhe — und umgekehrt."
+          ]
+        ]
+      }
     ]
   },
   "woocommerce-order-processing": {
@@ -445,15 +611,50 @@
       "woocommerce-payment-pending",
       "woocommerce-reconciliation",
       "shopware-reconciliation"
+    ],
+    "extra": [
+      {
+        "type": "cards",
+        "id": "situations",
+        "toc": "Mit WooCommerce",
+        "title": "Typische Situationen mit WooCommerce PayPal Payments",
+        "intro": "Derselbe PayPal-Status bedeutet je nach Plugin-Einstellung etwas anderes.",
+        "items": [
+          [
+            "„In Wartestellung“ nach einer Autorisierung",
+            "Steht die Zahlungsabsicht auf „Autorisieren“, wartet die Bestellung, bis Sie die Zahlung aus der Bestellung heraus einziehen. Es fehlt nichts — eine Autorisierung gilt aber nicht unbegrenzt, also rechtzeitig einziehen oder stornieren."
+          ],
+          [
+            "Capture PENDING: RECEIVING_PREFERENCE_MANDATES_MANUAL_REVIEW",
+            "Häufig eine Zahlung in einer Währung, die Ihr PayPal-Konto nicht automatisch annimmt. PayPal hält sie zurück, bis Sie sie im PayPal-Konto annehmen oder ablehnen; die Bestellung wartet zu Recht."
+          ],
+          [
+            "Capture PENDING: ECHECK",
+            "Der Käufer hat vom Bankkonto bezahlt. Das Geld kommt nach einigen Tagen; erst versenden, wenn der Capture COMPLETED ist."
+          ],
+          [
+            "Webhooks gehen noch an die alte Adresse",
+            "Nach dem Umzug von Staging oder einer geänderten Website-Adresse sendet PayPal Ereignisse an die frühere Adresse. Webhook-Status in den Einstellungen von PayPal Payments prüfen und die Webhooks neu abonnieren."
+          ],
+          [
+            "Genehmigt, aber nie eingezogen",
+            "Der Käufer hat im PayPal-Fenster genehmigt und es geschlossen, bevor er zum Shop zurückkam. PayPal zeigt keine abgeschlossene Zahlung, WooCommerce „Zahlung ausstehend“ — kein Geld geflossen, nicht versenden."
+          ],
+          [
+            "Sandbox-Bestellung, Live-Prüfung",
+            "Eine in der Sandbox bezahlte Testbestellung erscheint nie im Live-Konto von PayPal und umgekehrt. Prüfen, welche Umgebung das Plugin verwendet hat."
+          ]
+        ]
+      }
     ]
   },
   "stripe-reconciliation": {
-    "title": "Stripe-WooCommerce-Abgleich: Abbuchungen statt Auszahlungen",
-    "description": "Stripe-Zahlungen über PaymentIntent- und Charge-Referenzen mit WooCommerce abgleichen. Abbuchungen, Erstattungen, Gebühren und Auszahlungen trennen.",
-    "h1": "Stripe und WooCommerce auf Bestellebene abgleichen",
+    "title": "Stripe-WooCommerce-Abgleich: vom PaymentIntent bis zur Auszahlung",
+    "description": "Die Stripe-Seite des WooCommerce-Abgleichs: wo die Bestellung PaymentIntent und Charge speichert, was bei Teil-Captures und Erstattungen zu vergleichen ist und warum Gebühren und Auszahlungen eine eigene Prüfung sind.",
+    "h1": "Wie Stripe-Zahlungen zu WooCommerce-Bestellungen gehören",
     "label": "Stripe-Zahlungsabgleich",
-    "eyebrow": "Stripe · Abbuchungen, Erstattungen und Zuordnung",
-    "lead": "Ein Stripe-Zahlungsablauf kann mehrere Versuche enthalten, eine Bankauszahlung viele Zahlungen zusammenfassen. Für den WooCommerce-Abgleich müssen Sie die zur Bestellung gehörenden Abbuchungen ermitteln und Erstattungen gesondert prüfen.",
+    "eyebrow": "Stripe · Zahlungsmechanik für den Abgleich",
+    "lead": "Diese Anleitung erklärt einen Mechanismus: wie eine WooCommerce-Bestellung auf Stripe-Objekte verweist und welche Stripe-Zahlen in einen Abgleich auf Bestellebene gehören. Eine Routine über alle Zahlungsarten beschreibt die Seite zum WooCommerce-Zahlungsabgleich.",
     "answer_title": "Zahlungsablauf ist nicht Bankgutschrift",
     "answer": "Verfolgen Sie Bestellung, PaymentIntent und Charge. Vergleichen Sie den tatsächlich abgebuchten Betrag und zählen Sie weder Benachrichtigungen noch Autorisierungen als zusätzliche Abbuchungen.",
     "checks": [
@@ -523,17 +724,79 @@
       "woocommerce-reconciliation",
       "stripe-woocommerce-mismatch",
       "woocommerce-payment-pending"
+    ],
+    "extra": [
+      {
+        "type": "table",
+        "id": "objects",
+        "toc": "Stripe-Objekte",
+        "title": "Von der Bestellung zur Auszahlung: die Stripe-Objekte",
+        "intro": "Die Kette von oben nach unten lesen. Nur die Charge und ihre Erstattungen gehören in den Abgleich auf Bestellebene.",
+        "head": [
+          "Objekt",
+          "Wo Sie es sehen",
+          "Bedeutung für den Abgleich"
+        ],
+        "rows": [
+          [
+            "WooCommerce-Bestellung",
+            "Bestellnotizen („Stripe charge complete“), Transaktions-ID, PaymentIntent in den Bestell-Metadaten",
+            "Sicht des Shops und Ausgangspunkt der Spur"
+          ],
+          [
+            "PaymentIntent pi_…",
+            "Stripe-Dashboard → Zahlungen",
+            "Ein Checkout; kann mehrere Versuche enthalten (abgelehnte Karte, dann Erfolg). Nur die erfolgreiche Charge zählt"
+          ],
+          [
+            "Charge ch_… / py_…",
+            "Zahlungsdetails → letzte Charge",
+            "Abgebuchter und erstatteter Betrag — die Zahlen für den Vergleich mit der Bestellung"
+          ],
+          [
+            "Erstattung re_…",
+            "Zahlungsdetails → Erstattungen",
+            "Mit jeder Erstattung in WooCommerce vergleichen"
+          ],
+          [
+            "Saldotransaktion txn_…",
+            "Saldo → Transaktionen",
+            "Netto nach Gebühr, in der Abrechnungswährung — nicht der Bestellbetrag"
+          ],
+          [
+            "Auszahlung po_…",
+            "Saldo → Auszahlungen",
+            "Summe vieler Saldotransaktionen — Bankabgleich, nicht Bestellabgleich"
+          ]
+        ]
+      },
+      {
+        "type": "example",
+        "id": "example",
+        "toc": "Beispiel",
+        "title": "Beispiel: ein Teil-Capture",
+        "intro": "Eine Bestellung mit manueller Abbuchung, abgebucht wurde weniger als autorisiert.",
+        "code_title": "Bestellung und Stripe nebeneinander",
+        "lines": [
+          "Bestellung #5120  Summe 240,00 EUR · In Bearbeitung · PaymentIntent pi_3QB…",
+          "Stripe            pi_3QB… autorisiert 240,00 EUR (manuelle Abbuchung)",
+          "Stripe            ch_3QB… amount_captured 200,00 EUR · 40,00 EUR freigegeben",
+          "Stripe            txn_… netto 196,75 EUR · Gebühr 3,25 EUR",
+          "Auszahlung        po_… 3.418,55 EUR am Freitag · 41 Zahlungen, 2 Erstattungen"
+        ],
+        "takeaway": "Die Bestellung sagt 240,00, gezahlt wurden 200,00 — das ist die Differenz, die geprüft werden muss (Artikel nicht lieferbar?). Die Gebühr von 3,25 und die Auszahlung von 3.418,55 erklären sie nicht; sie gehören zu einer anderen Prüfung."
+      }
     ]
   },
   "shopware-reconciliation": {
-    "title": "Shopware-Zahlungsabgleich mit Stripe und PayPal",
-    "description": "Unterstützte Shopware-6-Zahlungen mit unabhängigen Stripe- oder PayPal-Nachweisen vergleichen. Referenzen, Währungen und Datenabdeckung prüfen.",
-    "h1": "Shopware-Zahlungsabgleich mit unabhängigen Anbieternachweisen",
+    "title": "Shopware Zahlungsabgleich: Zahlungsstatus mit Stripe und PayPal prüfen",
+    "description": "Zahlungsabgleich für Shopware 6: Zahlungsstatus „Bezahlt“, „Offen“ oder „Teilweise erstattet“ gegen die tatsächlichen Abbuchungen und Erstattungen bei Stripe und PayPal prüfen.",
+    "h1": "Zahlungsabgleich in Shopware: Zahlungsstatus gegen Stripe und PayPal prüfen",
     "label": "Zahlungsabgleich",
-    "eyebrow": "Shopware 6 · Unterstützte Zahlungsszenarien",
-    "lead": "Shopware trennt Bestell-, Zahlungs- und Lieferstatus. Beginnen Sie beim Zahlungsabgleich mit der Bestelltransaktion und prüfen Sie danach die passende Abbuchung und unterstützte Erstattungen bei Stripe oder PayPal.",
-    "answer_title": "Welchen Status vergleichen Sie?",
-    "answer": "Eine bezahlte Zahlungstransaktion und eine Bestellung in Bearbeitung beschreiben unterschiedliche Phasen. Der allgemeine Bestellstatus ist kein unabhängiger Abbuchungsnachweis.",
+    "eyebrow": "Shopware 6 · Zahlungsabgleich",
+    "lead": "Im Shopware-Admin stehen Bestellstatus, Lieferstatus und Zahlungsstatus nebeneinander. Für den Zahlungsabgleich zählt nur der Zahlungsstatus der Transaktion — und der muss zu dem passen, was Stripe oder PayPal tatsächlich abgebucht oder erstattet hat.",
+    "answer_title": "„Bezahlt“ im Shop ist noch kein Zahlungseingang",
+    "answer": "Den Zahlungsstatus „Bezahlt“ setzt die Zahlungserweiterung. Ob das Geld wirklich abgebucht wurde, zeigt nur das Konto bei Stripe oder PayPal.",
     "checks": [
       "Die relevante Bestelltransaktion bestimmen.",
       "Anbieterreferenzen und Währung zuordnen.",
@@ -601,15 +864,61 @@
       "shopware-order-monitoring",
       "woocommerce-reconciliation",
       "paypal-pending-orders"
+    ],
+    "extra": [
+      {
+        "type": "table",
+        "id": "states",
+        "toc": "Zahlungsstatus",
+        "title": "Zahlungsstatus in Shopware und was beim Anbieter vorliegen sollte",
+        "intro": "Für den Abgleich zählt nur der Zahlungsstatus der Transaktion; Bestell- und Lieferstatus beantworten andere Fragen.",
+        "head": [
+          "Zahlungsstatus (technisch)",
+          "Bedeutung im Shop",
+          "Was Stripe oder PayPal zeigen sollte"
+        ],
+        "rows": [
+          [
+            "Offen (open)",
+            "Noch kein Ergebnis",
+            "Keine Abbuchung — oder eine Abbuchung, die der Shop nicht erfasst hat: prüfen"
+          ],
+          [
+            "Autorisiert (authorized)",
+            "Betrag reserviert",
+            "Eine Autorisierung, noch keine Abbuchung"
+          ],
+          [
+            "Bezahlt (paid)",
+            "Der Shop hält die Zahlung für vollständig",
+            "Eine Abbuchung über den vollen Betrag"
+          ],
+          [
+            "Teilweise bezahlt (paid_partially)",
+            "Ein Teilbetrag",
+            "Eine Abbuchung über diesen Teil"
+          ],
+          [
+            "Erstattet / Teilweise erstattet (refunded, refunded_partially)",
+            "Erstattung im Shop vermerkt",
+            "Eine Erstattung beim Anbieter in gleicher Höhe"
+          ],
+          [
+            "Fehlgeschlagen / Abgebrochen (failed, cancelled)",
+            "Ein Versuch ohne Ergebnis",
+            "Keine Abbuchung; gibt es doch eine, ist das ein Fall für den Abgleich"
+          ]
+        ]
+      }
     ]
   },
   "shopware-order-monitoring": {
-    "title": "Shopware: Zahlung abgebucht, Bestellung nicht aktualisiert?",
-    "description": "Unterstützter Fall: Stripe oder PayPal hat Geld abgebucht, Shopware erfasst die Zahlung aber nicht. Spätere Abwicklung muss getrennt geprüft werden.",
-    "h1": "Shopware: Zahlung abgebucht, Bestellung nicht aktualisiert",
-    "label": "Abbuchung nicht erfasst",
-    "eyebrow": "Shopware 6 · Zahlungserfassung statt Abwicklungsautomatisierung",
-    "lead": "Diese Anleitung behandelt einen unterstützten finanziellen Fall: Stripe oder PayPal hat Geld abgebucht, Shopware hat die Zahlung aber nicht korrekt erfasst. Ist die Zahlung dort bereits als bezahlt erfasst und fehlt erst der nächste Arbeitsschritt, muss der Ablauf gesondert untersucht werden.",
+    "title": "Shopware: Bestellung bezahlt, Zahlungsstatus aber noch „Offen“?",
+    "description": "Geld bei Stripe oder PayPal abgebucht, aber in Shopware steht beim Zahlungsstatus noch „Offen“? So finden Sie die Ursache — und so grenzen Sie „bezahlt, aber nicht bearbeitet“ davon ab.",
+    "h1": "Shopware: Kunde hat bezahlt, der Zahlungsstatus bleibt „Offen“",
+    "label": "Bezahlt, Status offen",
+    "eyebrow": "Shopware 6 · Zahlungsstatus",
+    "lead": "Der Kunde hat bezahlt, Stripe oder PayPal zeigt die Abbuchung — in Shopware steht beim Zahlungsstatus aber weiterhin „Offen“. Diese Anleitung klärt, ob das Zahlungsergebnis den Shop nicht erreicht hat. Steht der Zahlungsstatus bereits auf „Bezahlt“ und die Bestellung wird trotzdem nicht bearbeitet, ist das ein Ablaufthema (Flow Builder, ERP, Lager).",
     "answer_title": "Zuerst die Zahlungserfassung prüfen",
     "answer": "Anbieterabbuchung und Shopware-Zahlungsstatus können voneinander abweichen. Eine bereits bezahlte Transaktion bei offener Bestellung ist ein anderer Fall und beweist allein keinen finanziellen Fehler.",
     "checks": [
@@ -675,6 +984,36 @@
       "shopware-reconciliation",
       "woocommerce-order-processing",
       "woocommerce-reconciliation"
+    ],
+    "extra": [
+      {
+        "type": "flow",
+        "id": "diagnosis",
+        "toc": "Diagnoseweg",
+        "title": "Diagnoseweg: nicht erfasst oder nicht bearbeitet?",
+        "steps": [
+          [
+            "Gibt es bei Stripe oder PayPal eine Abbuchung zu dieser Bestellung?",
+            "Das Geld ist da — weiter mit Frage 2.",
+            "Dann stimmt der Zahlungsstatus „Offen“: Es wurde kein Geld eingezogen."
+          ],
+          [
+            "Steht der Zahlungsstatus der letzten Transaktion auf „Bezahlt“?",
+            "Die Zahlung ist erfasst. Wird die Bestellung nicht weiterbearbeitet, Flow Builder, ERP oder Lager prüfen — ein Ablaufthema.",
+            "Weiter mit Frage 3."
+          ],
+          [
+            "Hat die Bestellung mehrere Transaktionen (bei jedem Zahlungsversuch entsteht eine neue)?",
+            "Die Abbuchung mit der Transaktion vergleichen, zu der sie gehört — die bezahlte kann ein älterer Versuch sein.",
+            "Weiter mit Frage 4."
+          ],
+          [
+            "Zeigen die Logs der Zahlungserweiterung (var/log) die Benachrichtigung des Anbieters?",
+            "Sie kam an, wurde aber nicht angewendet — nach dem Fehler daneben suchen.",
+            "Ein Zustellproblem: Webhook-Adresse, Domain des Verkaufskanals, Firewall."
+          ]
+        ]
+      }
     ]
   }
 }

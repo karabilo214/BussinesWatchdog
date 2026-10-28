@@ -9,6 +9,7 @@ use App\Models\PublicPageVersion;
 use App\Models\User;
 use App\Support\Site\MenuSectionAdmin;
 use App\Support\Site\PageAdmin;
+use App\Support\Site\SeoPageImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -73,6 +74,14 @@ class SeoPagesTest extends TestCase
         $this->assertSame(27, DB::table('platform_audit_log')->where('action', 'site.page.published')->where('reason', 'Approved SEO release')->count());
         $this->get('/en/shopware-order-monitoring')->assertSee('This page covers payment-recording discrepancies');
         $this->get('/en/woocommerce-missing-orders')->assertSee('not proof that WooCommerce deleted an order');
+        foreach (['woocommerce-payment-pending', 'woocommerce-missing-orders', 'shopware-order-monitoring'] as $slug) {
+            $this->get('/ru/'.$slug)->assertSee('class="bw-flow"', false)->assertSee('href="#diagnosis"', false);
+        }
+        $this->get('/de/woocommerce-payment-pending')->assertSee('<pre class="bw-code"><code>', false)->assertSee('Beispielhafter Ablauf');
+        $this->get('/en/stripe-reconciliation')->assertSee('class="bw-table"', false)->assertSee('Balance transaction txn_…');
+        $this->get('/en/woocommerce-reconciliation')->assertSee('Cash on delivery')->assertSee('Not covered — manual');
+        $this->get('/en/paypal-pending-orders')->assertSee('RECEIVING_PREFERENCE_MANDATES_MANUAL_REVIEW');
+        $this->get('/de/shopware-reconciliation')->assertSee('Shopware Zahlungsabgleich: Zahlungsstatus mit Stripe und PayPal prüfen')->assertSee('Teilweise bezahlt (paid_partially)');
     }
 
     public function test_repeated_releases_preserve_edits_drafts_unpublication_archival_and_section_names(): void
@@ -102,6 +111,27 @@ class SeoPagesTest extends TestCase
         $this->get('/de/woocommerce-payment-pending')->assertNotFound();
         $this->get('/en/shopware-order-monitoring')->assertNotFound();
         $this->assertSame('Черновик владельца', PublicPageVersion::query()->where('page_id', $page->id)->where('locale', 'ru')->where('state', 'draft')->value('title'));
+    }
+
+    public function test_a_release_refreshes_only_pages_still_equal_to_a_shipped_version(): void
+    {
+        $owner = $this->owner();
+        $this->artisan('site:seo-pages', ['--publish' => 'Initial release'])->assertSuccessful();
+        $pages = app(PageAdmin::class);
+        $page = PublicPage::query()->where('path', 'woocommerce-payment-pending')->firstOrFail();
+        $old = fn (string $locale): string => $pages->updatePublished($owner->id, $page->id, $locale, ['title' => 'Older shipped title', 'description' => 'Older', 'body' => '<p>Older shipped copy</p>'], 'Simulate an older release')->content_hash;
+        $shipped = ['woocommerce-payment-pending' => ['en' => [$old('en')], 'de' => [$old('de')], 'ru' => [$old('ru')]]];
+        $pages->saveDraft($owner->id, $page->id, 'de', ['title' => 'Entwurf', 'body' => '<p>Entwurf des Inhabers</p>']);
+        $pages->updatePublished($owner->id, $page->id, 'ru', ['title' => 'Правка владельца', 'body' => '<p>Своя правка</p>'], 'Owner edit');
+
+        $this->assertSame(['pages_created' => 0, 'drafts_created' => 0, 'published' => 0, 'refreshed' => 0, 'preserved' => 27], app(SeoPageImporter::class)->import($owner->id, null, $shipped));
+        $counts = app(SeoPageImporter::class)->import($owner->id, 'Improved guides', $shipped);
+
+        $this->assertSame(1, $counts['refreshed']);
+        $this->get('/en/woocommerce-payment-pending')->assertOk()->assertDontSee('Older shipped copy')->assertSee('WooCommerce Payment Received but Order Still Pending');
+        $this->get('/de/woocommerce-payment-pending')->assertOk()->assertSee('Older shipped copy');
+        $this->get('/ru/woocommerce-payment-pending')->assertOk()->assertSee('Своя правка');
+        $this->assertSame(['pages_created' => 0, 'drafts_created' => 0, 'published' => 0, 'refreshed' => 0, 'preserved' => 27], app(SeoPageImporter::class)->import($owner->id, 'Again', $shipped));
     }
 
     public function test_an_edited_initial_draft_is_not_automatically_published(): void

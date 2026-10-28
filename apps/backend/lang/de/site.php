@@ -184,14 +184,85 @@ return [
         'policies_changed' => 'Die Dokumente wurden geändert, während Sie das Formular ausgefüllt haben. Lesen Sie die neue Fassung und bestätigen Sie erneut.',
     ],
     'check_store' => [
-        'title' => 'Shop per URL prüfen',
+        'title' => 'Kostenloser Checkout-Check für WooCommerce und Shopware',
         'result_title' => 'Ergebnis der öffentlichen Prüfung',
-        'meta' => 'Eine einmalige öffentliche Storefront-Prüfung per URL. Sie bestätigt weder Eigentum noch erfolgreiche Zahlungen oder Geldabgleich.',
+        'meta' => 'Kostenlose einmalige Prüfung des Wegs zur Kasse in WooCommerce- und Shopware-Shops: Produkt, Warenkorb, Checkout-Seite, Browserfehler und Screenshots. Ohne Registrierung, ohne Testkauf.',
         'eyebrow' => 'Öffentliche Diagnose',
-        'heading' => 'Öffentlichen Weg zum Checkout prüfen',
+        'heading' => 'Den Weg zur Kasse Ihres Shops prüfen — kostenlos, ohne Registrierung',
         'lead' => 'Geben Sie eine öffentliche HTTPS-Adresse des Shops ein. Wir öffnen nur öffentliche Seiten, legen bei Bedarf einmal sicher einen Artikel in den Warenkorb und zeigen, wo der Weg zum Checkout stoppt.',
         'limits_title' => 'Das ist kein Monitoring',
         'limits_body' => 'Diese Prüfung beweist nicht, dass Zahlungen funktionieren, bestätigt kein Eigentum und beobachtet keine echten Zahlungsversuche. Für laufendes Monitoring und finanzielle Abdeckung verbinden Sie den Shop.',
+        'about' => [
+            'what_title' => 'Was die kostenlose Prüfung macht',
+            'what' => [
+                'Öffnet die Startseite des Shops und findet Kategorien und Produkte im öffentlichen Katalog.',
+                'Legt ein Produkt in den Warenkorb, wenn das gefahrlos möglich ist (keine Pflichtoptionen, die sie nicht wählen kann), und prüft, dass es im Warenkorb erscheint.',
+                'Geht weiter zur Kasse und hält bei Kundendaten, Anmeldung oder Registrierung an. Persönliche Daten gibt sie nicht ein.',
+                'Zeichnet Browsermeldungen auf dem Weg auf: JavaScript-Exceptions, Serverfehler, nicht geladene oder blockierte Skripte und Stylesheets.',
+                'Erkennt WooCommerce oder Shopware und zeigt Screenshots der Schritte, die nach 5 Minuten gelöscht werden.',
+            ],
+            'finds_title' => 'Welche Probleme sie findet',
+            'finds' => [
+                [
+                    '„In den Warenkorb“ funktioniert nicht',
+                    'Der Button fehlt, der Klick bewirkt nichts, oder das Produkt erscheint nie im Warenkorb.',
+                ],
+                [
+                    'Kasse nicht erreichbar',
+                    'Warenkorb oder Checkout-Seite schlagen fehl, leiten im Kreis weiter oder antworten mit einem Serverfehler.',
+                ],
+                [
+                    'Defekte Skripte',
+                    'Eine JavaScript-Exception oder ein blockiertes Skript auf dem Weg zur Kasse — oft nach einem Plugin- oder Theme-Update.',
+                ],
+                [
+                    'Fehlende Dateien',
+                    'Skripte oder Stylesheets mit 404, 403 oder falschem Dateityp, sodass Teile der Seite anders funktionieren.',
+                ],
+            ],
+            'compare_title' => 'Kostenlose Prüfung, Testkauf oder Monitoring?',
+            'compare_head' => ['', 'Kostenlose Prüfung', 'Testkauf', 'Business Watchdog'],
+            'compare_rows' => [
+                ['Registrierung', 'Nicht nötig', '—', 'Konto und verbundener Shop'],
+                [
+                    'Weg zur Kasse',
+                    'Einmalig, öffentliche Seiten',
+                    'Einmalig, von Hand',
+                    'Regelmäßig, mit einem eingerichteten Produkt',
+                ],
+                [
+                    'Zahlung',
+                    'Nicht geprüft',
+                    'Echte Zahlung, danach Erstattung',
+                    'Kein Kauf; echte Zahlungen Ihrer Kunden werden mit Stripe und PayPal abgeglichen',
+                ],
+                ['Bestellung im Shop', 'Keine', 'Ja — muss storniert werden', 'Keine Testbestellungen'],
+                ['Benachrichtigungen', 'Nein', 'Nein', 'E-Mail oder Telegram'],
+            ],
+            'limits_title' => 'Grenzen',
+            'limits' => [
+                'Eine Prüfung je Shop-Adresse in 30 Tagen und je Besucher in 10 Tagen.',
+                'Nur öffentliche Seiten: keine Shops hinter Anmeldung oder Passwort, keine Kundenkonten.',
+                'Bot-Schutz (Challenge-Seite oder CAPTCHA) kann die Prüfung stoppen; das Ergebnis sagt das dann.',
+                'WooCommerce- und Shopware-Shops werden bis zur Kasse geprüft; für andere Plattformen erklärt das Ergebnis, was fehlt.',
+                'Eine bestandene Prüfung bestätigt nur den Weg, der in diesem Moment geprüft wurde — nicht, dass Zahlungen funktionieren.',
+            ],
+            'faq_title' => 'Fragen',
+            'faq' => [
+                [
+                    'Ist das ein Checkout-Test für WooCommerce?',
+                    'Er prüft den Weg eines Kunden — Produkt, Warenkorb, Checkout-Seite — in Ihrem Live-Shop, ohne eine Bestellung aufzugeben. Die Zahlung selbst wird nicht geprüft.',
+                ],
+                [
+                    'Ändert die Prüfung etwas in meinem Shop?',
+                    'Es entsteht keine Bestellung, und es werden keine persönlichen Daten eingegeben. Das Produkt landet im Warenkorb einer vorübergehenden Browsersitzung, den der Shop wie jeden verlassenen Warenkorb verwirft.',
+                ],
+                [
+                    'Kann ich den Shopware-Checkout dauerhaft überwachen?',
+                    'Ja, mit verbundenem Shop: Business Watchdog prüft dann regelmäßig ein eingerichtetes Produkt und die Kasse und benachrichtigt Sie bei bestätigten Fehlern.',
+                ],
+            ],
+        ],
         'url' => 'Shop-URL',
         'captcha' => 'Antwort aus dem Bild eingeben',
         'captcha_alt' => 'CAPTCHA mit Additionsbeispiel',
