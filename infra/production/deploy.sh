@@ -66,6 +66,7 @@ systemctl enable --now bw-backup.timer >/dev/null
 if [ -f /etc/apparmor.d/bw-browser-worker ]; then apparmor_parser -R /etc/apparmor.d/bw-browser-worker 2>/dev/null || true; rm -f /etc/apparmor.d/bw-browser-worker; fi
 install -m 644 fail2ban/filter.d/bw-mail.conf /etc/fail2ban/filter.d/
 install -m 644 fail2ban/jail.d/bw-mail.conf /etc/fail2ban/jail.d/
+install -m 644 fail2ban/fail2ban.d/bw.local /etc/fail2ban/fail2ban.d/
 sh rollout.sh
 fail2ban-client reload >/dev/null
 REMOTE
