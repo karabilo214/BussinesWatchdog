@@ -219,7 +219,7 @@ class PluginConnectTest extends TestCase
             'code_verifier' => $verifier,
             'install_id' => '550e8400-e29b-41d4-a716-446655440000',
             'connector_code' => 'woocommerce',
-            'plugin_version' => '0.4.3',
+            'plugin_version' => '0.4.2',
             'base_url' => self::SITE,
         ], fn ($value) => $value !== null));
     }

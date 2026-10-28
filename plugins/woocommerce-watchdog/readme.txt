@@ -4,7 +4,7 @@ Tags: woocommerce, stripe, paypal, failed payments, checkout
 Requires at least: 5.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.3
+Stable tag: 0.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,7 +130,7 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 
 == Changelog ==
 
-= 0.4.3 =
+= 0.4.2 =
 * Connect in one click: **Connect to Business Watchdog** opens business-watchdog.com, where you sign in or create a free account and confirm the store; you come back to WordPress connected, without copying a code. Connecting with a code still works.
 * A card on the Plugins screen with the buttons «Connect to Business Watchdog», «Create a free account» and «I have a connection code» until the plugin is connected. It can be hidden per user; the plugin page always shows how to connect.
 * Readable messages on the plugin page after connecting, disconnecting and failed attempts.
@@ -160,7 +160,7 @@ Uninstalling removes the plugin's options, schedules and connection. Its own tab
 
 == Upgrade Notice ==
 
-= 0.4.3 =
+= 0.4.2 =
 Connect to Business Watchdog in one click, without copying a code. No change in what the plugin records or sends about orders.
 
 = 0.4.1 =

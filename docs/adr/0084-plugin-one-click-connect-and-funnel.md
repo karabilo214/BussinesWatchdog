@@ -2,7 +2,7 @@
 
 Date: 2026-10-28
 
-Status: accepted (owner's request 2026-10-28, backlog 11.H and 11.I; implemented in Step 304, plugin 0.4.3)
+Status: accepted (owner's request 2026-10-28, backlog 11.H and 11.I; implemented in Step 305, plugin 0.4.2)
 
 ## Context
 
@@ -63,4 +63,4 @@ A merchant who installs the plugin from WordPress.org does not know that a Busin
 
 - A merchant can go from the plugins screen to a connected store without copying anything; the manual way stays for other cases (another browser, a staging site with another address).
 - Clicks and form views are counted per journey, so they can be inflated by link checkers or prefetching. The stages after them are confirmed by the server.
-- Plugin 0.4.3 is needed for the card and the one-click flow; older plugins keep connecting by code.
+- Plugin 0.4.2 is needed for the card and the one-click flow; older plugins keep connecting by code.

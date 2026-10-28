@@ -3,7 +3,7 @@
  * Plugin Name: Business Watchdog for WooCommerce
  * Plugin URI: https://business-watchdog.com/en
  * Description: Alerts you when a customer paid but the order stayed unpaid, when Stripe or PayPal disagree with WooCommerce, or when payments start failing. Requires a Business Watchdog account: <a href="https://business-watchdog.com/go/wordpress-plugin?placement=plugin_description&amp;lang=en">create one free</a>, then click «Connect to Business Watchdog» on the plugin page.
- * Version: 0.4.3
+ * Version: 0.4.2
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -19,7 +19,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('BUSINESS_WATCHDOG_VERSION', '0.4.3');
+define('BUSINESS_WATCHDOG_VERSION', '0.4.2');
 define('BUSINESS_WATCHDOG_FILE', __FILE__);
 define('BUSINESS_WATCHDOG_DIR', __DIR__);
 define('BUSINESS_WATCHDOG_MIN_PHP', '7.4');
