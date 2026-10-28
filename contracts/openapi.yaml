@@ -2501,6 +2501,39 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/pages/{page}/locales/{locale}/published:
+    put:
+      tags: [Platform]
+      operationId: platformUpdatePublishedPage
+      description: "Capability content.manage. Changes title, description and body of the published version of one language in place (ADR 0039, Step 297): same version, no draft, no history row; sanitized like a draft. The reason is required; the audit record site.page.published_updated keeps the text before and after. 409 not_published without a published version; 409 legal_page_needs_version for a legal document (consents refer to a version)."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {name: page, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: locale, in: path, required: true, schema: {enum: [ru, en, de]}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, reason]
+              properties:
+                title: {type: string, maxLength: 200}
+                description: {type: [string, "null"], maxLength: 300}
+                body: {type: [string, "null"], maxLength: 200000}
+                reason: {type: string, minLength: 3, maxLength: 500}
+      responses:
+        "200":
+          description: Page card
+          content:
+            application/json:
+              schema: {type: object}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/pages/{page}/locales/{locale}/draft:
     put:
       tags: [Platform]

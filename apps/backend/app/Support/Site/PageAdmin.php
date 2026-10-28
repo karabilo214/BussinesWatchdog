@@ -175,25 +175,10 @@ class PageAdmin
     {
         $page = $this->editable($pageId);
         $this->locale($locale);
-        $title = trim($input['title']);
-        $description = trim((string) ($input['description'] ?? ''));
-        $body = $this->sanitizer->sanitize((string) ($input['body'] ?? ''));
+        $content = $this->validatedContent($page, $input);
 
-        if ($title === '' || mb_strlen($title) > 200) {
-            throw new SiteRejected('title_invalid');
-        }
-
-        if (mb_strlen($description) > 300) {
-            throw new SiteRejected('description_invalid');
-        }
-
-        if ($body === '' && $page->kind === PublicPage::KIND_PAGE) {
-            throw new SiteRejected('body_required');
-        }
-
-        return DB::transaction(function () use ($staffId, $page, $locale, $title, $description, $body, $recordAudit): PublicPageVersion {
+        return DB::transaction(function () use ($staffId, $page, $locale, $content, $recordAudit): PublicPageVersion {
             $this->lock($page);
-            $content = ['title' => $title, 'description' => $description === '' ? null : $description, 'body' => $body, 'content_hash' => self::hash($title, $description, $body)];
             /** @var PublicPageVersion|null $draft */
             $draft = PublicPageVersion::query()->where('page_id', $page->id)->where('locale', $locale)->where('state', PublicPageVersion::STATE_DRAFT)->first();
             $before = $draft === null ? ['title' => null, 'description' => null, 'body' => null] : $draft->only(['title', 'description', 'body']);
@@ -220,6 +205,37 @@ class PageAdmin
             }
 
             return $draft;
+        });
+    }
+
+    /**
+     * @param  array{title: string, description?: ?string, body?: ?string}  $input
+     */
+    public function updatePublished(string $staffId, string $pageId, string $locale, array $input, string $reason): PublicPageVersion
+    {
+        $page = $this->editable($pageId);
+        $this->locale($locale);
+
+        if ($page->policy_type !== null) {
+            throw new SiteRejected('legal_page_needs_version', 409);
+        }
+
+        $content = $this->validatedContent($page, $input);
+
+        return DB::transaction(function () use ($staffId, $page, $locale, $content, $reason): PublicPageVersion {
+            $this->lock($page);
+            /** @var PublicPageVersion|null $published */
+            $published = PublicPageVersion::query()->where('page_id', $page->id)->where('locale', $locale)->where('state', PublicPageVersion::STATE_PUBLISHED)->lockForUpdate()->first();
+
+            if ($published === null) {
+                throw new SiteRejected('not_published', 409);
+            }
+
+            $before = $published->only(['title', 'description', 'body', 'content_hash']);
+            $published->forceFill($content)->save();
+            $this->audit->record($staffId, 'site.page.published_updated', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $page->path, 'locale' => $locale, 'version' => $published->version, 'before' => $before, 'after' => $content], $reason);
+
+            return $published;
         });
     }
 
@@ -426,6 +442,31 @@ class PageAdmin
         $page = PublicPage::query()->whereKey($pageId)->whereNull('archived_at')->first();
 
         return $page ?? throw new SiteRejected('page_not_found', 404);
+    }
+
+    /**
+     * @param  array{title: string, description?: ?string, body?: ?string}  $input
+     * @return array{title: string, description: ?string, body: string, content_hash: string}
+     */
+    private function validatedContent(PublicPage $page, array $input): array
+    {
+        $title = trim($input['title']);
+        $description = trim((string) ($input['description'] ?? ''));
+        $body = $this->sanitizer->sanitize((string) ($input['body'] ?? ''));
+
+        if ($title === '' || mb_strlen($title) > 200) {
+            throw new SiteRejected('title_invalid');
+        }
+
+        if (mb_strlen($description) > 300) {
+            throw new SiteRejected('description_invalid');
+        }
+
+        if ($body === '' && $page->kind === PublicPage::KIND_PAGE) {
+            throw new SiteRejected('body_required');
+        }
+
+        return ['title' => $title, 'description' => $description === '' ? null : $description, 'body' => $body, 'content_hash' => self::hash($title, $description, $body)];
     }
 
     public function editable(string $pageId): PublicPage

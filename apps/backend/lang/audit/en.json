@@ -51,6 +51,7 @@
       "restored": "Page version restored",
       "version_deleted": "Page version deleted",
       "draft_discarded": "Draft discarded",
+      "published_updated": "Published page changed",
       "draft_saved": "Page draft saved"
     },
     "block": {

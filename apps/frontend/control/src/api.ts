@@ -1153,6 +1153,10 @@ export async function discardPageDraft(id: string, locale: SiteLocale): Promise<
   return (await request<PageCard>('DELETE', `/platform-api/v1/pages/${encodeURIComponent(id)}/locales/${locale}/draft`)).data;
 }
 
+export async function updatePublishedPage(id: string, locale: SiteLocale, content: PageDraft, reason: string): Promise<PageCard> {
+  return (await request<PageCard>('PUT', `/platform-api/v1/pages/${encodeURIComponent(id)}/locales/${locale}/published`, { body: { ...content, reason } })).data;
+}
+
 export async function publishPage(id: string, locale: SiteLocale, reason: string): Promise<PageCard> {
   return (await request<PageCard>('POST', `/platform-api/v1/pages/${encodeURIComponent(id)}/locales/${locale}/publish`, { body: { reason } })).data;
 }

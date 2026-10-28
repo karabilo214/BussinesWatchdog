@@ -71,6 +71,22 @@ class PageController extends Controller
         }, $request);
     }
 
+    public function updatePublished(Request $request, string $page, string $locale): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:200'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:300'],
+            'body' => ['sometimes', 'nullable', 'string', 'max:'.PageSanitizer::MAX_LENGTH],
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        return $this->guard(function (PlatformStaff $staff) use ($page, $locale, $validated): JsonResponse {
+            $this->pages->updatePublished($staff->id, $page, $locale, $validated, $validated['reason']);
+
+            return response()->json($this->pages->page($page));
+        }, $request);
+    }
+
     public function discardDraft(Request $request, string $page, string $locale): JsonResponse
     {
         return $this->guard(function (PlatformStaff $staff) use ($page, $locale): JsonResponse {

@@ -29,3 +29,8 @@ spec/panels/PUBLIC-SUBSCRIPTION-FRONTEND.md §1, §2, §3, §8 and ADMIN-BACKEND
 ## Amendment (2026-10-13, Step 139, owner's backlog)
 
 15. **Deleting old versions**: an old (retired) version of a page can be deleted for good with a reason (audited with version and content hash). The published version and drafts cannot be deleted. Versions of a page marked as a legal document, and any version a customer accepted (`policy_acceptances`), are never deleted — they are the evidence of what was agreed (ADR 0042). Version numbers are not reused for the history that remains.
+
+## Amendment (Step 297, 2026-10-28): changing the published version in place
+
+Owner's decision: a small fix of a published page (one tag, a typo) must not require a draft and a new version. «Update published» (`PUT /platform-api/v1/pages/{page}/locales/{locale}/published`, `PageAdmin::updatePublished`, owner panel button) replaces title, description and HTML of the published version in place: same version number, no draft, no history row; the same sanitizer and checks as a draft; a reason is required and the audit record `site.page.published_updated` keeps the full text before and after. Not allowed for legal documents (`policy_type` set): consents of customers point to a specific version and its content hash (ADR 0042), so they change only through a new version (`legal_page_needs_version`, 409). Not offered while a draft of that language exists, so the editor never mixes draft and published text.
+

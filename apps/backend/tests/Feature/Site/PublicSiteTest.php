@@ -199,6 +199,32 @@ class PublicSiteTest extends TestCase
         $this->assertSame('Первая версия', DB::table('platform_audit_log')->where('action', 'site.page.published')->orderBy('id')->value('reason'));
     }
 
+    public function test_the_published_version_is_changed_in_place_except_for_legal_documents(): void
+    {
+        $this->signIn();
+        $page = $this->postJson('/platform-api/v1/pages', ['slug' => 'videos', 'menu' => 'header', 'sort' => 5])->assertCreated()->json();
+        $url = "/platform-api/v1/pages/{$page['id']}/locales/de/published";
+
+        $this->putJson($url, ['title' => 'Videos', 'body' => '<p>x</p>', 'reason' => 'Fix'])->assertStatus(409)->assertJsonPath('code', 'not_published');
+        $this->putJson("/platform-api/v1/pages/{$page['id']}/locales/de/draft", ['title' => 'Videos', 'body' => '<p class="site-stores">Buttons</p>'])->assertOk();
+        $this->postJson("/platform-api/v1/pages/{$page['id']}/locales/de/publish", ['reason' => 'Erste Version'])->assertOk();
+
+        $this->putJson($url, ['title' => 'Videos', 'body' => '<section class="site-stores">Buttons</section>'])->assertUnprocessable();
+        $this->putJson($url, ['title' => 'Videos', 'body' => '<section class="site-stores">Buttons</section><script>x()</script>', 'reason' => 'Abstand der Buttons'])
+            ->assertOk()->assertJsonPath('content.de.published.version', 1)->assertJsonPath('content.de.draft', null);
+
+        $this->get('/de/videos')->assertOk()->assertSee('<section class="site-stores">Buttons</section>', false)->assertDontSee('x()', false);
+        $this->assertSame(1, PublicPageVersion::query()->where('page_id', $page['id'])->count(), 'no new version, no draft');
+        $audit = DB::table('platform_audit_log')->where('action', 'site.page.published_updated')->sole();
+        $changes = json_decode($audit->sanitized_changes, true);
+        $this->assertSame('Abstand der Buttons', $audit->reason);
+        $this->assertSame('<p class="site-stores">Buttons</p>', $changes['before']['body']);
+        $this->assertSame('<section class="site-stores">Buttons</section>', $changes['after']['body']);
+
+        $this->patchJson("/platform-api/v1/pages/{$page['id']}", ['policy_type' => 'privacy_notice'])->assertOk();
+        $this->putJson($url, ['title' => 'Datenschutz', 'body' => '<p>Neu</p>', 'reason' => 'Fix'])->assertStatus(409)->assertJsonPath('code', 'legal_page_needs_version');
+    }
+
     public function test_slugs_are_fixed_at_creation_unique_and_nested_two_levels_deep(): void
     {
         $this->signIn();

@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, r
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { StatusBadge } from '@bw/ui';
-import { archivePage, deletePageVersion, discardPageDraft, fetchPage, fetchPageBlocks, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, type PageBlock, type PageCard, type PageMenu, type PolicyType, type SiteLocale } from '@/api';
+import { archivePage, deletePageVersion, discardPageDraft, fetchPage, fetchPageBlocks, previewPage, publishPage, restorePageVersion, savePageDraft, unpublishPage, updatePage, updatePublishedPage, type PageBlock, type PageCard, type PageMenu, type PolicyType, type SiteLocale } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import RichEditor from '@/components/editor/RichEditor.vue';
 import { CONTENT_CLASSES, SITE_LOCALES, publicUrl } from '@/components/site';
@@ -27,7 +27,7 @@ const locale = ref<SiteLocale>('ru');
 const form = reactive({ title: '', description: '', body: '' });
 const saved = ref({ title: '', description: '', body: '' });
 const settings = reactive({ menu: 'none' as PageMenu, sort: 0, policy: '' as PolicyType | '' });
-const confirm = reactive({ action: null as 'publish' | 'unpublish' | 'archive' | 'delete_version' | null, reason: '', version: '' });
+const confirm = reactive({ action: null as 'publish' | 'unpublish' | 'archive' | 'delete_version' | 'update_published' | null, reason: '', version: '' });
 const previewHtml = ref('');
 const previewError = ref<unknown>(null);
 const editorMode = ref<'visual' | 'html'>(storedMode());
@@ -59,6 +59,7 @@ function setEditorMode(mode: 'visual' | 'html'): void {
 const content = computed(() => page.value?.content[locale.value] ?? null);
 const dirty = computed(() => form.title !== saved.value.title || form.description !== saved.value.description || form.body !== saved.value.body);
 const history = computed(() => page.value?.history.filter((row) => row.locale === locale.value) ?? []);
+const canUpdatePublished = computed(() => !!content.value?.published && !content.value?.draft && !page.value?.policy_type);
 const titleReady = computed(() => form.title.trim() !== '' && (page.value?.kind !== 'page' || form.body.trim() !== ''));
 
 function fill(): void {
@@ -183,6 +184,8 @@ async function confirmAction(): Promise<void> {
 
   if (action === 'delete_version') {
     await run(() => deletePageVersion(id, confirm.version, reason), 'site.done.delete_version');
+  } else if (action === 'update_published') {
+    await run(() => updatePublishedPage(id, locale.value, { title: form.title.trim(), description: form.description.trim() || null, body: form.body }, reason), 'site.done.update_published', true);
   } else {
     await run(() => (action === 'publish' ? publishPage(id, locale.value, reason) : unpublishPage(id, locale.value, reason)), `site.done.${action}`, true);
   }
@@ -191,7 +194,7 @@ async function confirmAction(): Promise<void> {
   confirm.reason = '';
 }
 
-function ask(action: 'publish' | 'unpublish' | 'archive' | 'delete_version', version = ''): void {
+function ask(action: 'publish' | 'unpublish' | 'archive' | 'delete_version' | 'update_published', version = ''): void {
   confirm.action = action;
   confirm.version = version;
   confirm.reason = '';
@@ -310,10 +313,13 @@ onBeforeUnmount(() => {
               <div class="flex flex-wrap gap-2">
                 <button type="submit" class="rounded-md bg-primary px-4 py-2 font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60" :disabled="busy || !titleReady || !dirty" data-action="save">{{ $t('site.action.save') }}</button>
                 <button type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy || !content?.draft || dirty" data-action="publish" @click="ask('publish')">{{ $t('site.action.publish') }}</button>
+                <button v-if="canUpdatePublished" type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy || !titleReady || !dirty" data-action="update-published" :title="$t('site.update_published_hint')" @click="ask('update_published')">{{ $t('site.action.update_published') }}</button>
                 <button v-if="content?.draft" type="button" class="rounded-md border border-border-strong px-4 py-2 font-medium hover:bg-surface-muted disabled:opacity-60" :disabled="busy" data-action="discard" @click="discard">{{ $t('site.action.discard') }}</button>
                 <button v-if="content?.published" type="button" class="rounded-md border border-crit-border px-4 py-2 font-medium text-crit hover:bg-crit-soft disabled:opacity-60" :disabled="busy" data-action="unpublish" @click="ask('unpublish')">{{ $t('site.action.unpublish') }}</button>
               </div>
               <p v-if="dirty && content?.draft" class="text-text-muted">{{ $t('site.save_first') }}</p>
+              <p v-if="canUpdatePublished" class="text-text-muted" data-hint="update-published">{{ $t('site.update_published_hint') }}</p>
+              <p v-else-if="content?.published && page.policy_type" class="text-text-muted" data-hint="legal-versions">{{ $t('site.legal_needs_version') }}</p>
             </form>
 
             <section class="flex flex-col gap-2" :aria-label="$t('site.preview')">

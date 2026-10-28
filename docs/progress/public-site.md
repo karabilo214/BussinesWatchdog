@@ -383,3 +383,15 @@ Status: complete
 Verification: `PublicSiteTest` 16 (new: drafts give 404, `--publish` serves `<video>` with sources and posters in de, English videos with the note on ru, header menu link, sitemap entry, one page after a second run, every referenced file exists).
 
 Production (2026-10-28): deployed `418b224`; `site:videos-page <owner> --publish="Videos page"` published `/en|de|ru/videos` (header menu); the plugin description links the page (SVN r3770046, `trunk` and `tags/0.4.0`).
+
+### Step 297: Change the published version of a page in place (2026-10-28)
+
+Status: complete
+
+- Owner: editing a published page through a draft and a new version is too heavy for a one-tag fix; the videos page's button row `<p class="site-stores">` sticks to the section above and has to become `<section>`.
+- `PageAdmin::updatePublished` + `PUT /platform-api/v1/pages/{page}/locales/{locale}/published` (`content.manage`): replaces title, description and HTML of the published version in place (same version, no draft, no history row), same sanitizing and checks as a draft (shared `validatedContent`), reason required, audit `site.page.published_updated` with the text before and after. Legal documents are refused (`legal_page_needs_version`, 409) — consents refer to a version and its hash (ADR 0042); without a published version `not_published` (409). ADR 0039 amended.
+- Owner panel page editor: «Update published» next to «Save draft» when the language has a published version, no draft and the page is not a legal document; the reason is asked in the usual confirmation; a hint explains what it does, legal documents show why they need a version. Audit label ru/en/de in the panel and the CSV export (`lang/audit/*.json`).
+- Videos page source (`database/data/videos_page/*.html`): the button row is a `<section class="site-stores">`.
+
+Verification: `PublicSiteTest` 17 (new: 409 without a published version, reason required, in-place change keeps one version and no draft, sanitized, audit before/after, legal document refused); owner panel tests 96 (new: button disabled until changed, sends text and reason, no draft saved, notice; no button and a hint for a legal document), types, build.
+

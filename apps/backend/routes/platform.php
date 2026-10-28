@@ -155,6 +155,7 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
         Route::post('/pages/{page}/preview', [PageController::class, 'preview'])->whereUuid('page')->middleware('throttle:platform-preview');
         Route::put('/pages/{page}/locales/{locale}/draft', [PageController::class, 'saveDraft'])->whereUuid('page');
         Route::delete('/pages/{page}/locales/{locale}/draft', [PageController::class, 'discardDraft'])->whereUuid('page');
+        Route::put('/pages/{page}/locales/{locale}/published', [PageController::class, 'updatePublished'])->whereUuid('page');
         Route::post('/pages/{page}/locales/{locale}/publish', [PageController::class, 'publish'])->whereUuid('page');
         Route::post('/pages/{page}/locales/{locale}/unpublish', [PageController::class, 'unpublish'])->whereUuid('page');
         Route::post('/pages/{page}/versions/{version}/restore', [PageController::class, 'restore'])->whereUuid(['page', 'version']);

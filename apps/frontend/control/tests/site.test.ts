@@ -22,6 +22,7 @@ vi.mock('@/api', () => ({
   savePageDraft: vi.fn(),
   discardPageDraft: vi.fn(),
   publishPage: vi.fn(),
+  updatePublishedPage: vi.fn(),
   unpublishPage: vi.fn(),
   restorePageVersion: vi.fn(),
   deletePageVersion: vi.fn(),
@@ -149,6 +150,31 @@ describe('site', () => {
 
     expect(mocked.publishPage).toHaveBeenCalledWith('p-1', 'ru', 'Новая редакция');
     expect(wrapper.get('[data-notice]').text()).toBe('Опубликовано.');
+  });
+
+  it('changes the published version in place with a reason, but not for a legal document', async () => {
+    const published = card({ locales: { ru: { published: '2026-10-12T10:00:00Z', draft: false, title: 'О компании' }, en: NONE, de: NONE }, content: { ...card().content, ru: { draft: null, published: card().content.ru.published } } });
+    mocked.fetchPage.mockResolvedValue(published);
+    mocked.updatePublishedPage.mockResolvedValue(published);
+    const { wrapper } = await open('/owner/site/pages/p-1');
+
+    expect(wrapper.get('[data-action="update-published"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('[data-hint="update-published"]').exists()).toBe(true);
+    await setCode(wrapper, '<section class="site-stores">Кнопки</section>');
+    await wrapper.get('[data-action="update-published"]').trigger('click');
+    await wrapper.get('[data-field="reason"]').setValue('Отступ у кнопок');
+    await wrapper.get('[data-form="update_published"]').trigger('submit');
+    await flushPromises();
+
+    expect(mocked.updatePublishedPage).toHaveBeenCalledWith('p-1', 'ru', { title: 'О компании', description: null, body: '<section class="site-stores">Кнопки</section>' }, 'Отступ у кнопок');
+    expect(mocked.savePageDraft).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-notice]').text()).toBe('Опубликованная страница обновлена.');
+    wrapper.unmount();
+
+    mocked.fetchPage.mockResolvedValue({ ...published, policy_type: 'privacy_notice' });
+    const legal = (await open('/owner/site/pages/p-1')).wrapper;
+    expect(legal.find('[data-action="update-published"]').exists()).toBe(false);
+    expect(legal.find('[data-hint="legal-versions"]').exists()).toBe(true);
   });
 
   it('opens the home page with its built-in text ready to edit', async () => {
