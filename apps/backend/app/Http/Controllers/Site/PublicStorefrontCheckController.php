@@ -159,7 +159,7 @@ class PublicStorefrontCheckController extends Controller
             'alternates' => [],
             'languages' => array_map(fn (string $code): array => ['locale' => $code, 'href' => SiteContent::url($code, 'check-store'), 'current' => $code === $locale], PublicPage::LOCALES),
             'header' => app(SiteContent::class)->menu($locale, PublicPage::MENU_HEADER),
-            'footer' => app(SiteContent::class)->menu($locale, PublicPage::MENU_FOOTER),
+            'footer' => app(SiteContent::class)->footerGroups($locale),
             'preview' => false,
         ];
     }

@@ -54,7 +54,7 @@ class SignupController extends Controller
             'alternates' => array_map(fn (string $code): array => ['locale' => $code, 'href' => $origin.SiteContent::url($code, 'signup')], PublicPage::LOCALES),
             'languages' => array_map(fn (string $code): array => ['locale' => $code, 'href' => SiteContent::url($code, 'signup'), 'current' => $code === $locale], PublicPage::LOCALES),
             'header' => $this->content->menu($locale, PublicPage::MENU_HEADER),
-            'footer' => $this->content->menu($locale, PublicPage::MENU_FOOTER),
+            'footer' => $this->content->footerGroups($locale),
             'preview' => false,
             'documents' => $this->policies->required(Policies::PURPOSE_SIGNUP, $locale),
             'plan' => old('plan', $request->query('plan')),
