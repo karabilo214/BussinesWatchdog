@@ -382,3 +382,4 @@ Status: complete
 
 Verification: `PublicSiteTest` 16 (new: drafts give 404, `--publish` serves `<video>` with sources and posters in de, English videos with the note on ru, header menu link, sitemap entry, one page after a second run, every referenced file exists).
 
+Production (2026-10-28): deployed `418b224`; `site:videos-page <owner> --publish="Videos page"` published `/en|de|ru/videos` (header menu); the plugin description links the page (SVN r3770046, `trunk` and `tags/0.4.0`).
