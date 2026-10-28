@@ -2370,11 +2370,79 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/menu-sections:
+    get:
+      tags: [Platform]
+      operationId: platformListMenuSections
+      description: "Capability content.manage. Visual menu sections, independent of pages and URLs. Each has id, menu (header/footer), labels (ru/en/de), sort, footer_key (product/company/legal for built-in footer sections; null otherwise). Empty sections are hidden on the public site."
+      security: [{StaffSession: []}]
+      responses:
+        "200": {description: "Object with data array of menu sections"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Platform]
+      operationId: platformCreateMenuSection
+      description: "Capability content.manage. Creates a visual section with no page or URL. Audited."
+      security: [{StaffSession: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [menu, labels]
+              properties:
+                menu: {enum: [header, footer]}
+                labels:
+                  type: object
+                  required: [ru, en, de]
+                  additionalProperties: false
+                  properties:
+                    ru: {type: string, minLength: 1, maxLength: 40}
+                    en: {type: string, minLength: 1, maxLength: 40}
+                    de: {type: string, minLength: 1, maxLength: 40}
+                sort: {type: integer, minimum: -1000, maximum: 1000}
+      responses:
+        "201": {description: Menu section}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/menu-sections/{section}:
+    patch:
+      tags: [Platform]
+      operationId: platformUpdateMenuSection
+      description: "Capability content.manage. Rename a section in all languages and/or change its order; menu and built-in footer_key cannot change. Audited before/after."
+      security: [{StaffSession: []}]
+      parameters:
+        - {name: section, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                labels:
+                  type: object
+                  required: [ru, en, de]
+                  additionalProperties: false
+                  properties:
+                    ru: {type: string, minLength: 1, maxLength: 40}
+                    en: {type: string, minLength: 1, maxLength: 40}
+                    de: {type: string, minLength: 1, maxLength: 40}
+                sort: {type: integer, minimum: -1000, maximum: 1000}
+      responses:
+        "200": {description: Menu section}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/pages:
     get:
       tags: [Platform]
       operationId: platformListPages
-      description: "Capability content.manage. Pages of the public site (ADR 0039), not archived, by path: kind (home, pricing, contact are system pages; page), parent, slug fixed at creation, menu (none, header, footer), sort, editable (false for pricing and contact, whose text is changed only in code) and per language whether a draft exists and when the current version was published."
+      description: "Capability content.manage. Pages of the public site (ADR 0039), not archived, ordered by sort ascending then path: kind (home, pricing, contact are system pages; page), parent, slug fixed at creation, menu (none, header, footer), menu_section_id (nullable visual section UUID), footer_group (product, company, legal or null for automatic grouping), sort, editable (false for pricing and contact, whose text is changed only in code) and per language whether a draft exists and when the current version was published."
       security:
         - {StaffSession: []}
       responses:
@@ -2406,6 +2474,8 @@ paths:
                 slug: {type: string, maxLength: 60}
                 parent_id: {type: [string, "null"], format: uuid}
                 menu: {enum: [none, header, footer]}
+                menu_section_id: {type: [string, "null"], format: uuid}
+                footer_group: {type: [string, "null"], enum: [product, company, legal, null]}
                 sort: {type: integer, minimum: -1000, maximum: 1000}
       responses:
         "201":
@@ -2438,7 +2508,7 @@ paths:
     patch:
       tags: [Platform]
       operationId: platformUpdatePage
-      description: "Capability content.manage. Changes the menu, the order, the menu tree and labels, and the legal document type (service_terms, privacy_notice, recurring_payment — one page per type, ordinary pages only: 409 policy_taken, 422 policy_type_invalid; ADR 0042); the slug and the parent never change. menu_parent_id shows the page under another item of the same menu without changing its address: one level only (422 menu_parent_invalid, menu_parent_other_menu, menu_too_deep); changing the menu of an item with nested pages is refused (409 menu_has_children); changing the menu of a nested page drops its menu parent. menu_labels are short menu labels per language (up to 40 characters; empty falls back to the page title; 422 menu_label_invalid)."
+      description: "Capability content.manage. Changes the menu, the order, the menu tree and labels, and the legal document type (service_terms, privacy_notice, recurring_payment — one page per type, ordinary pages only: 409 policy_taken, 422 policy_type_invalid; ADR 0042); the slug and the parent never change. menu_parent_id shows the page under another item of the same menu without changing its address: one level only (422 menu_parent_invalid, menu_parent_other_menu, menu_too_deep); changing the menu of an item with nested pages is refused (409 menu_has_children); changing the menu of a nested page drops its menu parent. menu_section_id assigns the page to a visual section of the same menu (422 menu_section_invalid, menu_section_other_menu); null means a standalone header link or automatic footer grouping. Assignment clears the legacy page parent. Changing menu clears an omitted assignment. footer_group selects the legacy footer column (product, company, legal); null uses automatic grouping by legal document type/path and page kind. Footer links are flat, independent of menu_parent_id. menu_labels are short menu labels per language (up to 40 characters; empty falls back to the page title; 422 menu_label_invalid)."
       security:
         - {StaffSession: []}
       parameters:
@@ -2451,6 +2521,8 @@ paths:
               type: object
               properties:
                 menu: {enum: [none, header, footer]}
+                menu_section_id: {type: [string, "null"], format: uuid}
+                footer_group: {type: [string, "null"], enum: [product, company, legal, null]}
                 sort: {type: integer, minimum: -1000, maximum: 1000}
                 policy_type: {type: [string, "null"], enum: [service_terms, privacy_notice, recurring_payment, null]}
                 menu_parent_id: {type: [string, "null"], format: uuid}

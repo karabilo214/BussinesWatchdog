@@ -278,7 +278,7 @@ class PublicSiteTest extends TestCase
         $html = $this->get('/ru/videos')->assertOk()->getContent();
         $nav = substr($html, (int) strpos($html, 'class="site-nav site-nav-wide"'), 2000);
         $this->assertMatchesRegularExpression('#<summary\s+aria-current="true"\s*>Материалы</summary>#', $nav);
-        $this->assertMatchesRegularExpression('#<a href="/ru/resources"\s*>Материалы</a>\s*<a href="/ru/security"\s*>Безопасность</a>\s*<a href="/ru/videos"\s+aria-current="page"\s*>Видео</a>#', $nav);
+        $this->assertMatchesRegularExpression('#<a href="/ru/security"\s*>Безопасность</a>\s*<a href="/ru/videos"\s+aria-current="page"\s*>Видео</a>#', $nav);
         $this->assertStringNotContainsString('за минуту</a>', $nav);
         $this->assertStringContainsString('details[data-dropdown]', $html);
         $this->get('/ru/security')->assertOk();
@@ -292,6 +292,117 @@ class PublicSiteTest extends TestCase
         $this->assertNull(PublicPage::query()->findOrFail($videos)->menu_parent_id);
         $home = $this->get('/ru')->assertOk()->assertDontSee('data-dropdown', false)->getContent();
         $this->assertMatchesRegularExpression('#<a href="/ru/videos"\s*>Видео</a>#', $home);
+    }
+
+    public function test_visual_sections_have_no_page_or_link_and_can_group_multiple_pages(): void
+    {
+        $this->signIn();
+        $before = PublicPage::query()->count();
+        $section = $this->postJson('/platform-api/v1/menu-sections', ['menu' => 'header', 'labels' => ['ru' => 'Материалы', 'en' => 'Resources', 'de' => 'Ressourcen'], 'sort' => -50])->assertCreated()->json();
+        $empty = $this->postJson('/platform-api/v1/menu-sections', ['menu' => 'header', 'labels' => ['ru' => 'Пустой раздел', 'en' => 'Empty section', 'de' => 'Leerer Bereich']])->assertCreated()->json();
+        $this->assertSame($before, PublicPage::query()->count());
+        $footer = collect($this->getJson('/platform-api/v1/menu-sections')->assertOk()->json('data'))->firstWhere('footer_key', 'legal');
+        $this->postJson('/platform-api/v1/menu-sections', ['menu' => 'none', 'labels' => ['ru' => 'x', 'en' => 'x', 'de' => 'x']])->assertUnprocessable();
+        $this->postJson('/platform-api/v1/menu-sections', ['menu' => 'header', 'labels' => ['ru' => 'x']])->assertUnprocessable();
+        $pages = [];
+        foreach (['videos', 'security'] as $sort => $slug) {
+            $page = $this->postJson('/platform-api/v1/pages', ['slug' => $slug, 'menu' => 'header', 'menu_section_id' => $section['id'], 'sort' => $sort])->assertCreated()->assertJsonPath('menu_section_id', $section['id'])->json();
+            $pages[] = $page['id'];
+            foreach (PublicPage::LOCALES as $locale) {
+                $this->putJson("/platform-api/v1/pages/{$page['id']}/locales/{$locale}/draft", ['title' => $slug, 'body' => '<p>Text</p>'])->assertOk();
+                $this->postJson("/platform-api/v1/pages/{$page['id']}/locales/{$locale}/publish", ['reason' => 'First publication'])->assertOk();
+            }
+        }
+        foreach (PublicPage::LOCALES as $locale) {
+            $html = $this->get('/'.$locale.'/videos')->assertOk()->getContent();
+            $this->assertStringContainsString($section['labels'][$locale].'</summary>', $html);
+            $this->assertStringNotContainsString($empty['labels'][$locale].'</summary>', $html);
+            $this->assertStringNotContainsString('href="/'.$locale.'/resources"', $html);
+            $this->assertMatchesRegularExpression('#<div class="site-dropdown-panel">\s*<a href="/'.$locale.'/videos"\s+aria-current="page"[^>]*>videos</a>\s*<a href="/'.$locale.'/security"#', $html);
+        }
+        $this->get('/ru/resources')->assertNotFound();
+        $this->patchJson('/platform-api/v1/pages/'.$pages[0], ['menu_section_id' => $footer['id']])->assertUnprocessable()->assertJsonPath('code', 'menu_section_other_menu');
+        $this->patchJson('/platform-api/v1/pages/'.$pages[0], ['menu_section_id' => (string) Str::uuid()])->assertUnprocessable()->assertJsonPath('code', 'menu_section_invalid');
+        $this->patchJson('/platform-api/v1/menu-sections/'.$section['id'], ['labels' => ['ru' => 'О сервисе', 'en' => 'About', 'de' => 'Über uns'], 'sort' => 10])->assertOk()->assertJsonPath('sort', 10);
+        $this->get('/ru')->assertOk()->assertSee('О сервисе</summary>', false)->assertDontSee('Материалы</summary>', false);
+        // Renaming a footer heading does not create or change a legal document.
+        $this->patchJson('/platform-api/v1/menu-sections/'.$footer['id'], ['labels' => ['ru' => 'Документы', 'en' => 'Documents', 'de' => 'Dokumente']])->assertOk();
+        $this->patchJson('/platform-api/v1/pages/'.$pages[0], ['menu' => 'footer', 'menu_section_id' => $footer['id']])->assertOk();
+        $this->get('/ru')->assertOk()->assertSee('>Документы</h2>', false)->assertSee('/ru/videos', false);
+        $this->patchJson('/platform-api/v1/pages/'.$pages[1], ['menu' => 'footer'])->assertOk()->assertJsonPath('menu_section_id', null);
+        $this->get('/ru')->assertOk()->assertDontSee('О сервисе</summary>', false);
+        $this->assertSame(1, DB::table('platform_audit_log')->where('action', 'site.menu_section.updated')->where('target_id', $section['id'])->count());
+    }
+
+    public function test_menu_sections_require_content_management_permission(): void
+    {
+        $this->signIn('platform_support');
+        $this->getJson('/platform-api/v1/menu-sections')->assertForbidden();
+        $this->postJson('/platform-api/v1/menu-sections', ['menu' => 'header', 'labels' => ['ru' => 'x', 'en' => 'x', 'de' => 'x']])->assertForbidden();
+    }
+
+    public function test_footer_sections_keep_existing_links_and_allow_an_independent_section_for_each_page(): void
+    {
+        $this->signIn();
+        $publish = function (string $slug, array $input = []): string {
+            $page = $this->postJson('/platform-api/v1/pages', array_merge(['slug' => $slug, 'menu' => 'footer'], $input))->assertCreated()->json();
+            foreach (PublicPage::LOCALES as $locale) {
+                $this->putJson("/platform-api/v1/pages/{$page['id']}/locales/{$locale}/draft", ['title' => $slug.' '.$locale, 'body' => '<p>Text</p>'])->assertOk();
+                $this->postJson("/platform-api/v1/pages/{$page['id']}/locales/{$locale}/publish", ['reason' => 'Footer test'])->assertOk();
+            }
+
+            return $page['id'];
+        };
+        $videos = $publish('videos', ['sort' => 2]);
+        $about = $publish('about');
+        $refund = $publish('refund-policy');
+        $terms = $publish('agreement');
+        $this->patchJson("/platform-api/v1/pages/{$terms}", ['policy_type' => 'service_terms'])->assertOk();
+        $this->postJson('/platform-api/v1/pages', ['slug' => 'draft-only', 'menu' => 'footer'])->assertCreated();
+        $publish('hidden', ['menu' => 'none']);
+        $archived = $publish('archived');
+        $this->postJson("/platform-api/v1/pages/{$archived}/archive", ['reason' => 'Archive test'])->assertNoContent();
+
+        $section = function (string $html, string $group): string {
+            $this->assertSame(1, preg_match('#<nav[^>]*data-footer-group="'.$group.'"[^>]*>(.*?)</nav>#s', $html, $matches));
+
+            return $matches[1];
+        };
+        foreach (PublicPage::LOCALES as $locale) {
+            $html = $this->get('/'.$locale)->assertOk()->getContent();
+            $this->assertStringContainsString('/'.$locale.'/videos', $section($html, 'product'));
+            $this->assertStringContainsString('/'.$locale.'/about', $section($html, 'company'));
+            $this->assertStringContainsString('/'.$locale.'/refund-policy', $section($html, 'legal'));
+            $this->assertStringContainsString('/'.$locale.'/agreement', $section($html, 'legal'));
+            $this->assertStringContainsString(trans('site.footer.legal', [], $locale), $section($html, 'legal'));
+            $this->assertStringNotContainsString('/draft-only', $html);
+            $this->assertStringNotContainsString('/hidden', $html);
+            $this->assertStringNotContainsString('/archived', $html);
+        }
+        $this->getJson("/platform-api/v1/pages/{$videos}")->assertOk()->assertJsonPath('footer_group', null);
+        $this->patchJson("/platform-api/v1/pages/{$videos}", ['footer_group' => 'unknown'])->assertUnprocessable();
+        $this->postJson('/platform-api/v1/pages', ['slug' => 'invalid', 'footer_group' => 'unknown'])->assertUnprocessable();
+        $this->patchJson("/platform-api/v1/pages/{$videos}", ['footer_group' => 'company', 'menu_labels' => ['ru' => 'Видео']])->assertOk()->assertJsonPath('footer_group', 'company')->assertJsonPath('content.ru.published.title', 'videos ru');
+        $publish('extra', ['footer_group' => 'company', 'sort' => 1]);
+        // A legacy menu parent does not move a footer link out of its own section.
+        $this->patchJson("/platform-api/v1/pages/{$about}", ['menu_parent_id' => $refund])->assertOk();
+        $html = $this->get('/ru/videos')->assertOk()->getContent();
+        $company = $section($html, 'company');
+        $this->assertStringNotContainsString('data-footer-group="product"', $html);
+        $this->assertStringContainsString('/ru/about', $company);
+        $this->assertMatchesRegularExpression('#href="/ru/videos"\s+aria-current="page"[^>]*>Видео</a>#', $company);
+        $this->assertLessThan(strpos($company, '/ru/videos'), strpos($company, '/ru/extra'));
+        $audit = json_decode(DB::table('platform_audit_log')->where('target_id', $videos)->where('action', 'site.page.updated')->latest('id')->value('sanitized_changes'), true);
+        $this->assertSame('company', $audit['after']['footer_group']);
+        $this->assertNull($audit['before']['footer_group']);
+        $this->patchJson("/platform-api/v1/pages/{$videos}", ['footer_group' => null])->assertOk()->assertJsonPath('footer_group', null);
+        $this->assertStringContainsString('/ru/videos', $section($this->get('/ru')->assertOk()->getContent(), 'product'));
+        $this->patchJson("/platform-api/v1/pages/{$videos}", ['footer_group' => 'company', 'sort' => -10])->assertOk()->assertJsonPath('sort', -10);
+        $company = $section($this->get('/ru')->assertOk()->getContent(), 'company');
+        $this->assertLessThan(strpos($company, '/ru/extra'), strpos($company, '/ru/videos'));
+        $ids = array_column($this->getJson('/platform-api/v1/pages')->assertOk()->json('data'), 'id');
+        $this->assertLessThan(array_search($about, $ids, true), array_search($videos, $ids, true));
+
     }
 
     public function test_the_published_version_is_changed_in_place_except_for_legal_documents(): void

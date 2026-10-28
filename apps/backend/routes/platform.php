@@ -141,6 +141,9 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
 
     Route::middleware('platform.staff:'.PlatformCapabilities::CONTENT_MANAGE)->group(function (): void {
         Route::get('/pages', [PageController::class, 'index']);
+        Route::get('/menu-sections', [PageController::class, 'sections']);
+        Route::post('/menu-sections', [PageController::class, 'saveSection']);
+        Route::patch('/menu-sections/{section}', [PageController::class, 'saveSection'])->whereUuid('section');
         Route::get('/site-media', [SiteMediaController::class, 'index']);
         Route::post('/site-media', [SiteMediaController::class, 'store']);
         Route::post('/site-media/{media}/delete', [SiteMediaController::class, 'delete'])->whereUuid('media');

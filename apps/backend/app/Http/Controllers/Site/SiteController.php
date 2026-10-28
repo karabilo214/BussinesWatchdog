@@ -242,7 +242,7 @@ class SiteController extends Controller
             'alternates' => $page === null ? [] : array_map(fn (string $code): array => ['locale' => $code, 'href' => $origin.SiteContent::url($code, $path)], $locales),
             'languages' => array_map(fn (string $code): array => ['locale' => $code, 'href' => SiteContent::url($code, in_array($code, $locales, true) ? $path : ''), 'current' => $code === $locale], PublicPage::LOCALES),
             'header' => $this->content->menu($locale, PublicPage::MENU_HEADER),
-            'footer' => $this->content->menu($locale, PublicPage::MENU_FOOTER),
+            'footer' => $this->content->footerGroups($locale),
             'preview' => false,
         ];
     }

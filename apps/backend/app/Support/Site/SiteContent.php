@@ -2,6 +2,7 @@
 
 namespace App\Support\Site;
 
+use App\Models\PublicMenuSection;
 use App\Models\PublicPage;
 use App\Models\PublicPageVersion;
 
@@ -54,7 +55,7 @@ class SiteContent
     }
 
     /**
-     * @return list<array{href: string, label: string, path: string, children: list<array{href: string, label: string, path: string}>}>
+     * @return list<array{href: ?string, label: string, path: ?string, parent?: ?string, section?: ?string, footer_group?: string, sort?: int, children: list<array{href: string, label: string, path: string}>}>
      */
     public function menu(string $locale, string $menu): array
     {
@@ -67,7 +68,25 @@ class SiteContent
 
             if ($title !== null) {
                 $label = $page->menu_labels[$locale] ?? $title;
-                $items[$page->id] = ['href' => self::url($locale, $page->path), 'label' => (string) $label, 'path' => $page->path, 'parent' => $page->menu_parent_id, 'children' => []];
+                $items[$page->id] = ['href' => self::url($locale, $page->path), 'label' => (string) $label, 'path' => $page->path, 'parent' => $page->menu_parent_id, 'section' => $page->menu_section_id, 'sort' => $page->sort, 'children' => []];
+                if ($menu === PublicPage::MENU_FOOTER) {
+                    $items[$page->id]['footer_group'] = $page->footerGroup();
+                }
+            }
+        }
+
+        if ($menu === PublicPage::MENU_FOOTER) {
+            return array_values($items);
+        }
+
+        $sections = [];
+        foreach (PublicMenuSection::query()->where('menu', $menu)->orderBy('sort')->orderBy('id')->get() as $section) {
+            $sections[$section->id] = ['href' => null, 'path' => null, 'label' => $section->labels[$locale], 'sort' => $section->sort, 'children' => []];
+        }
+        foreach ($items as $id => $item) {
+            if ($item['section'] !== null && isset($sections[$item['section']])) {
+                $sections[$item['section']]['children'][] = ['href' => $item['href'], 'label' => $item['label'], 'path' => $item['path']];
+                unset($items[$id]);
             }
         }
 
@@ -78,7 +97,31 @@ class SiteContent
             }
         }
 
-        return array_values(array_map(fn (array $item): array => ['href' => $item['href'], 'label' => $item['label'], 'path' => $item['path'], 'children' => $item['children']], $items));
+        $roots = array_merge(array_values($items), array_values(array_filter($sections, fn ($section) => $section['children'] !== [])));
+        usort($roots, fn ($a, $b) => $a['sort'] <=> $b['sort'] ?: strcmp($a['path'] ?? $a['label'], $b['path'] ?? $b['label']));
+
+        return array_map(fn (array $item): array => ['href' => $item['children'] === [] ? $item['href'] : null, 'label' => $item['label'], 'path' => $item['children'] === [] ? $item['path'] : null, 'children' => $item['children']], $roots);
+    }
+
+    /**
+     * @return array<string, array{label: string, items: list<array{href: string, label: string, path: string}>}>
+     */
+    public function footerGroups(string $locale): array
+    {
+        $groups = [];
+        $keys = [];
+        foreach (PublicMenuSection::query()->where('menu', PublicPage::MENU_FOOTER)->orderBy('sort')->orderBy('id')->get() as $section) {
+            $key = $section->footer_key ?? $section->id;
+            $keys[$section->id] = $key;
+            $groups[$key] = ['label' => $section->labels[$locale], 'items' => []];
+        }
+        foreach ($this->menu($locale, PublicPage::MENU_FOOTER) as $item) {
+            $key = $keys[$item['section']] ?? $item['footer_group'];
+            $groups[$key]['items'][] = ['href' => $item['href'], 'label' => $item['label'], 'path' => $item['path']];
+        }
+        $groups = array_filter($groups, fn ($group) => $group['items'] !== []);
+
+        return $groups;
     }
 
     public static function url(string $locale, string $path = ''): string

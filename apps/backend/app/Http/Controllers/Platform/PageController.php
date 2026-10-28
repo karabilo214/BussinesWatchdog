@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Site\SiteController;
 use App\Models\PlatformStaff;
 use App\Models\PublicPage;
+use App\Support\Site\MenuSectionAdmin;
 use App\Support\Site\PageAdmin;
 use App\Support\Site\PageSanitizer;
 use App\Support\Site\SiteRejected;
@@ -17,7 +18,29 @@ use Illuminate\Validation\Rule;
 
 class PageController extends Controller
 {
-    public function __construct(private readonly PageAdmin $pages) {}
+    public function __construct(private readonly PageAdmin $pages, private readonly MenuSectionAdmin $sections) {}
+
+    public function sections(): JsonResponse
+    {
+        return response()->json(['data' => $this->sections->sections()]);
+    }
+
+    public function saveSection(Request $request, ?string $section = null): JsonResponse
+    {
+        $rules = [
+            'labels' => [$section === null ? 'required' : 'sometimes', 'array:ru,en,de'],
+            'sort' => ['sometimes', 'integer', 'min:-1000', 'max:1000'],
+        ];
+        foreach (PublicPage::LOCALES as $locale) {
+            $rules['labels.'.$locale] = ['required_with:labels', 'string', 'min:1', 'max:40'];
+        }
+        if ($section === null) {
+            $rules['menu'] = ['required', 'string', Rule::in(['header', 'footer'])];
+        }
+        $input = $request->validate($rules);
+
+        return $this->guard(fn (PlatformStaff $staff): JsonResponse => response()->json($this->sections->save($staff->id, $input, $section), $section === null ? 201 : 200), $request);
+    }
 
     public function index(): JsonResponse
     {
@@ -33,6 +56,8 @@ class PageController extends Controller
     {
         $validated = $request->validate([
             'slug' => ['required', 'string', 'max:60'],
+            'menu_section_id' => ['sometimes', 'nullable', 'uuid'],
+            'footer_group' => ['sometimes', 'nullable', 'string', Rule::in(PublicPage::FOOTER_GROUPS)],
             'parent_id' => ['sometimes', 'nullable', 'uuid'],
             'menu' => ['sometimes', 'string', Rule::in(PublicPage::MENUS)],
             'sort' => ['sometimes', 'integer', 'min:-1000', 'max:1000'],
@@ -47,6 +72,8 @@ class PageController extends Controller
             'menu' => ['sometimes', 'string', Rule::in(PublicPage::MENUS)],
             'sort' => ['sometimes', 'integer', 'min:-1000', 'max:1000'],
             'policy_type' => ['sometimes', 'nullable', 'string', Rule::in(PublicPage::POLICIES)],
+            'menu_section_id' => ['sometimes', 'nullable', 'uuid'],
+            'footer_group' => ['sometimes', 'nullable', 'string', Rule::in(PublicPage::FOOTER_GROUPS)],
             'menu_parent_id' => ['sometimes', 'nullable', 'uuid'],
             'menu_labels' => ['sometimes', 'nullable', 'array:'.implode(',', PublicPage::LOCALES)],
             'menu_labels.*' => ['nullable', 'string', 'max:'.PublicPage::MENU_LABEL_MAX],

@@ -70,6 +70,10 @@
     "media": {
       "uploaded": "Site file uploaded",
       "deleted": "Site file deleted"
+    },
+    "menu_section": {
+      "created": "Menu section created",
+      "updated": "Menu section updated"
     }
   },
   "audit": {

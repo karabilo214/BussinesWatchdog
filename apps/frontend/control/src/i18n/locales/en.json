@@ -194,6 +194,9 @@
     "slug_invalid": "Address: lowercase latin letters, digits and hyphens, up to 60 characters.",
     "slug_taken": "This address is taken.",
     "too_deep": "Pages can be nested one level only.",
+    "footer_group_invalid": "Choose a footer section from the list.",
+    "menu_section_invalid": "Menu section not found.",
+    "menu_section_other_menu": "Choose a section in the same menu as the page.",
     "menu_label_invalid": "The menu label can be up to 40 characters.",
     "menu_parent_invalid": "This item cannot be chosen: it is nested itself or deleted.",
     "menu_parent_other_menu": "The section item must be in the same menu as the page.",
@@ -783,6 +786,7 @@
       "password_link_sent": "Password change link sent to a staff member"
     },
     "site": {
+      "menu_section": {"created": "Menu section created", "updated": "Menu section updated"},
       "page": {
         "created": "Page created",
         "updated": "Page settings changed",
@@ -882,6 +886,10 @@
     }
   },
   "site": {
+    "sections": {"title": "Menu sections", "hint": "A section is a label without a page or link. It opens a submenu in the header and acts as a column heading in the footer. Empty sections are hidden. Lower order numbers come first.", "edit": "Edit section", "new": "New section", "choose": "Show in section", "standalone": "Standalone link", "name": "Section name", "create": "Create section", "cancel": "Cancel", "saved": "Section saved."},
+    "footer_group": "Footer section",
+    "footer": {"auto": "Automatic", "product": "Product", "company": "About us", "legal": "Legal information"},
+    "footer_hint": "Footer links appear individually in the selected section. Automatic grouping places legal documents under Legal information, contact and about pages under About us, and other pages under Product.",
     "tabs": {
       "pages": "Pages",
       "blocks": "Block templates"

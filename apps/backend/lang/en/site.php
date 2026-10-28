@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'footer' => [
+        'product' => 'Product',
+        'company' => 'About us',
+        'legal' => 'Legal information',
+    ],
     'brand' => 'Business Watchdog',
     'meta' => [
         'description' => 'We walk the shopper’s path to payment, watch real payment attempts and reconcile money with the payment provider. We tell you when shoppers stop paying successfully.',

@@ -194,6 +194,9 @@
     "slug_invalid": "Adresse: Kleinbuchstaben, Ziffern und Bindestriche, bis 60 Zeichen.",
     "slug_taken": "Diese Adresse ist vergeben.",
     "too_deep": "Seiten lassen sich nur eine Ebene tief verschachteln.",
+    "footer_group_invalid": "Wählen Sie einen Bereich im Footer aus der Liste.",
+    "menu_section_invalid": "Menübereich nicht gefunden.",
+    "menu_section_other_menu": "Wählen Sie einen Bereich im selben Menü wie die Seite.",
     "menu_label_invalid": "Die Menübezeichnung darf bis zu 40 Zeichen haben.",
     "menu_parent_invalid": "Dieser Punkt kann nicht gewählt werden: Er ist selbst untergeordnet oder gelöscht.",
     "menu_parent_other_menu": "Der Bereichspunkt muss im selben Menü sein wie die Seite.",
@@ -783,6 +786,7 @@
       "password_link_sent": "Link zur Passwortänderung an Mitarbeiter gesendet"
     },
     "site": {
+      "menu_section": {"created": "Menübereich erstellt", "updated": "Menübereich geändert"},
       "page": {
         "created": "Seite angelegt",
         "updated": "Seiteneinstellungen geändert",
@@ -882,6 +886,10 @@
     }
   },
   "site": {
+    "sections": {"title": "Menübereiche", "hint": "Ein Bereich ist eine Beschriftung ohne eigene Seite oder Verlinkung. Im Hauptmenü öffnet er ein Untermenü, im Footer ist er eine Spaltenüberschrift. Leere Bereiche werden ausgeblendet. Kleinere Sortierwerte stehen weiter oben.", "edit": "Bereich bearbeiten", "new": "Neuer Bereich", "choose": "In Bereich anzeigen", "standalone": "Einzelner Link", "name": "Bereichsname", "create": "Bereich erstellen", "cancel": "Abbrechen", "saved": "Bereich gespeichert."},
+    "footer_group": "Bereich im Footer",
+    "footer": {"auto": "Automatisch", "product": "Produkt", "company": "Über uns", "legal": "Rechtliche Informationen"},
+    "footer_hint": "Links im Footer erscheinen einzeln im gewählten Bereich. Automatisch werden rechtliche Dokumente unter Rechtliche Informationen, Kontakt und Über uns unter Über uns und andere Seiten unter Produkt eingeordnet.",
     "tabs": {
       "pages": "Seiten",
       "blocks": "Blockvorlagen"
@@ -992,7 +1000,7 @@
     },
     "settings": "Seiteneinstellungen",
     "slug_fixed": "Die Adresse wurde beim Anlegen festgelegt und ändert sich nicht.",
-    "menu_label": "Menübezeichnung",
+    "menu_label": "Name im Menü",
     "menu_label_hint": "Kurze Bezeichnung des Menüpunkts je Sprache, bis 40 Zeichen. Leer — das Menü zeigt den Seitentitel.",
     "menu_parent": "Anzeigen unter",
     "menu_parent_none": "Als eigener Punkt",

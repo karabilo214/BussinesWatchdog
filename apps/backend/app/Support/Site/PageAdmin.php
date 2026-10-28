@@ -3,6 +3,7 @@
 namespace App\Support\Site;
 
 use App\Models\PlatformStaff;
+use App\Models\PublicMenuSection;
 use App\Models\PublicPage;
 use App\Models\PublicPageVersion;
 use App\Support\Platform\PlatformAudit;
@@ -32,7 +33,7 @@ class PageAdmin
      */
     public function pages(): array
     {
-        $pages = PublicPage::query()->whereNull('archived_at')->orderBy('path')->get();
+        $pages = PublicPage::query()->whereNull('archived_at')->orderBy('sort')->orderBy('path')->get();
         $versions = PublicPageVersion::query()
             ->whereIn('page_id', $pages->pluck('id'))
             ->whereIn('state', [PublicPageVersion::STATE_DRAFT, PublicPageVersion::STATE_PUBLISHED])
@@ -77,7 +78,7 @@ class PageAdmin
     }
 
     /**
-     * @param  array{slug: string, parent_id?: ?string, menu?: string, sort?: int}  $input
+     * @param  array{slug: string, parent_id?: ?string, menu?: string, menu_section_id?: ?string, footer_group?: ?string, sort?: int}  $input
      */
     public function create(string $staffId, array $input): PublicPage
     {
@@ -88,12 +89,14 @@ class PageAdmin
         }
 
         $menu = $input['menu'] ?? PublicPage::MENU_NONE;
+        $footerGroup = $this->footerGroup($input['footer_group'] ?? null);
+        $sectionId = $this->menuSection($input['menu_section_id'] ?? null, $menu);
 
         if (! in_array($menu, PublicPage::MENUS, true)) {
             throw new SiteRejected('menu_invalid');
         }
 
-        return DB::transaction(function () use ($staffId, $input, $slug, $menu): PublicPage {
+        return DB::transaction(function () use ($staffId, $input, $slug, $menu, $footerGroup, $sectionId): PublicPage {
             $parent = null;
 
             if (($input['parent_id'] ?? null) !== null) {
@@ -125,17 +128,19 @@ class PageAdmin
                 'slug' => $slug,
                 'path' => $path,
                 'menu' => $menu,
+                'footer_group' => $footerGroup,
+                'menu_section_id' => $sectionId,
                 'sort' => (int) ($input['sort'] ?? 0),
                 'created_by' => $staffId,
             ]);
-            $this->audit->record($staffId, 'site.page.created', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $path, 'menu' => $menu]);
+            $this->audit->record($staffId, 'site.page.created', 'public_page', $page->id, PlatformAudit::RESULT_SUCCEEDED, ['path' => $path, 'menu' => $menu, 'footer_group' => $footerGroup, 'menu_section_id' => $sectionId]);
 
             return $page;
         });
     }
 
     /**
-     * @param  array{menu?: string, sort?: int, policy_type?: ?string, menu_parent_id?: ?string, menu_labels?: ?array<string, ?string>}  $input
+     * @param  array{menu?: string, menu_section_id?: ?string, footer_group?: ?string, sort?: int, policy_type?: ?string, menu_parent_id?: ?string, menu_labels?: ?array<string, ?string>}  $input
      */
     public function update(string $staffId, string $pageId, array $input): PublicPage
     {
@@ -146,6 +151,10 @@ class PageAdmin
         }
 
         $changes = array_filter(['menu' => $input['menu'] ?? null, 'sort' => isset($input['sort']) ? (int) $input['sort'] : null], fn ($value): bool => $value !== null);
+
+        if (array_key_exists('footer_group', $input)) {
+            $changes['footer_group'] = $this->footerGroup($input['footer_group']);
+        }
 
         if (array_key_exists('menu_labels', $input)) {
             $changes['menu_labels'] = $this->menuLabels($input['menu_labels']);
@@ -159,6 +168,13 @@ class PageAdmin
 
         if (isset($changes['menu']) && $changes['menu'] !== $page->menu && PublicPage::query()->where('menu_parent_id', $page->id)->whereNull('archived_at')->exists()) {
             throw new SiteRejected('menu_has_children', 409);
+        }
+
+        if (array_key_exists('menu_section_id', $input)) {
+            $changes['menu_section_id'] = $this->menuSection($input['menu_section_id'], $changes['menu'] ?? $page->menu);
+            $changes['menu_parent_id'] = null;
+        } elseif (isset($changes['menu']) && $changes['menu'] !== $page->menu) {
+            $changes['menu_section_id'] = null;
         }
 
         if (array_key_exists('policy_type', $input)) {
@@ -214,6 +230,31 @@ class PageAdmin
         }
 
         return $clean === [] ? null : $clean;
+    }
+
+    private function footerGroup(mixed $group): ?string
+    {
+        if ($group !== null && ! in_array($group, PublicPage::FOOTER_GROUPS, true)) {
+            throw new SiteRejected('footer_group_invalid');
+        }
+
+        return $group;
+    }
+
+    private function menuSection(?string $id, string $menu): ?string
+    {
+        if ($id === null) {
+            return null;
+        }
+        $section = PublicMenuSection::query()->find($id);
+        if ($section === null) {
+            throw new SiteRejected('menu_section_invalid');
+        }
+        if ($section->menu !== $menu) {
+            throw new SiteRejected('menu_section_other_menu');
+        }
+
+        return $id;
     }
 
     private function menuParent(PublicPage $page, mixed $parentId, string $menu): ?string
@@ -464,6 +505,8 @@ class PageAdmin
             'slug' => $page->slug,
             'path' => $page->path,
             'menu' => $page->menu,
+            'footer_group' => $page->footer_group,
+            'menu_section_id' => $page->menu_section_id,
             'menu_parent_id' => $page->menu_parent_id,
             'menu_labels' => (object) ($page->menu_labels ?? []),
             'sort' => $page->sort,

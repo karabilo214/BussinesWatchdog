@@ -1,20 +1,27 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { StatusBadge } from '@bw/ui';
-import { createPage, fetchPages, type PageMenu, type PageSummary, type SiteLocale } from '@/api';
+import { createPage, fetchPages, fetchMenuSections, type PageMenu, type MenuSection, type PageSummary, type SiteLocale } from '@/api';
 import ErrorNotice from '@/components/ErrorNotice.vue';
+import MenuSections from '@/components/MenuSections.vue';
 import SiteTabs from '@/components/SiteTabs.vue';
 import { SITE_LOCALES, publicUrl } from '@/components/site';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 
 const router = useRouter();
+const { locale: uiLocale } = useI18n();
 const pages = ref<PageSummary[]>([]);
 const loading = ref(true);
 const error = ref<unknown>(null);
 const creating = ref(false);
 const createError = ref<unknown>(null);
-const form = reactive({ slug: '', parent_id: '', menu: 'none' as PageMenu, sort: 0 });
+const form = reactive({ slug: '', parent_id: '', menu: 'none' as PageMenu, menuSection: '', sort: 0 });
+
+const sections = ref<MenuSection[]>([]);
+const availableSections = computed(() => sections.value.filter((section) => section.menu === form.menu));
+async function refreshSections(): Promise<void> { sections.value = await fetchMenuSections(); }
 
 const parents = computed(() => pages.value.filter((page) => page.kind === 'page' && page.parent_id === null));
 const slugValid = computed(() => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug) && form.slug.length <= 60);
@@ -24,9 +31,10 @@ const preview = computed(() => {
   return `/ru/${parent ? `${parent.path}/` : ''}${form.slug || '…'}`;
 });
 const ordered = computed(() => {
-  const roots = pages.value.filter((page) => page.parent_id === null);
+  const sorted = [...pages.value].sort((a, b) => a.sort - b.sort || a.path.localeCompare(b.path, 'en'));
+  const roots = sorted.filter((page) => page.parent_id === null);
 
-  return roots.flatMap((root) => [root, ...pages.value.filter((page) => page.parent_id === root.id)]);
+  return roots.flatMap((root) => [root, ...sorted.filter((page) => page.parent_id === root.id)]);
 });
 
 function status(page: PageSummary, locale: SiteLocale): { tone: 'ok' | 'note' | 'unknown'; label: string } {
@@ -44,6 +52,7 @@ async function load(): Promise<void> {
 
   try {
     pages.value = await fetchPages();
+    await refreshSections();
   } catch (caught) {
     error.value = caught;
   } finally {
@@ -57,7 +66,7 @@ async function create(): Promise<void> {
   createError.value = null;
 
   try {
-    const page = await createPage({ slug: form.slug, parent_id: form.parent_id === '' ? null : form.parent_id, menu: form.menu, sort: form.sort });
+    const page = await createPage({ slug: form.slug, parent_id: form.parent_id === '' ? null : form.parent_id, menu: form.menu, ...(form.menu !== 'none' ? { menu_section_id: availableSections.value.some((section) => section.id === form.menuSection) ? form.menuSection : null } : {}), sort: form.sort });
     await router.push({ name: 'owner-page', params: { id: page.id } });
   } catch (caught) {
     createError.value = caught;
@@ -78,6 +87,7 @@ onMounted(load);
       </div>
 
       <SiteTabs current="pages" />
+      <MenuSections @saved="refreshSections" />
 
       <p v-if="loading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
       <ErrorNotice v-else-if="error" :error="error" />
@@ -131,6 +141,13 @@ onMounted(load);
             <span class="font-medium">{{ $t('site.col.menu') }}</span>
             <select v-model="form.menu" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="menu">
               <option v-for="menu in (['none', 'header', 'footer'] as const)" :key="menu" :value="menu">{{ $t(`site.menu.${menu}`) }}</option>
+            </select>
+          </label>
+          <label v-if="form.menu !== 'none'" class="flex flex-col gap-1.5">
+            <span class="font-medium">{{ $t('site.sections.choose') }}</span>
+            <select v-model="form.menuSection" class="rounded-md border border-border-strong bg-surface px-3 py-2" data-field="menu-section">
+              <option value="">{{ $t(form.menu === 'footer' ? 'site.footer.auto' : 'site.sections.standalone') }}</option>
+              <option v-for="section in availableSections" :key="section.id" :value="section.id">{{ section.labels[uiLocale as SiteLocale] }}</option>
             </select>
           </label>
           <label class="flex w-24 flex-col gap-1.5">

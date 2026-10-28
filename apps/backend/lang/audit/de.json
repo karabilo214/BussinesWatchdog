@@ -70,6 +70,10 @@
     "media": {
       "uploaded": "Website-Datei hochgeladen",
       "deleted": "Website-Datei gelöscht"
+    },
+    "menu_section": {
+      "created": "Menübereich erstellt",
+      "updated": "Menübereich geändert"
     }
   },
   "audit": {

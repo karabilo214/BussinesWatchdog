@@ -435,3 +435,27 @@ Status: complete
 
 Verification: `PublicSiteTest` 19 (new: label length and language checks, self/other-menu/too-deep parents, refused menu change with children, dropdown with the section first and the current page marked, address unchanged, footer flat after moving out, archive releases children), backend 827 + 4 skipped, Pint; owner panel 98 tests (new: nesting with labels, no nesting offered for an item with children), types, build; site stylesheet check. Looked at 1366/1024 px (ru, de) and 390 px locally.
 
+
+
+### Step 302: Three Footer Sections and Page Ordering
+
+Status: complete; awaiting deployment.
+
+- Public footer: three localized sections, Product / About us / Legal information, desktop grid and a single column below 640 px. Links preserve their localized menu labels (independent of page headings), sort order, current-page marker and publication/archive filtering. Legacy menu nesting does not move a footer link into another section.
+- Owner panel: section selector on page creation and page settings, including automatic grouping and the existing no-menu option. Automatic grouping preserves existing legal, about/contact and product links without rewriting content. The separate label fields are called «Название в меню». Changing a selection records before/after in the existing audit action, with localized field and value names.
+- Owner correction: the page list ignored `sort` and returned address order. Backend list and frontend sibling ordering now honor `sort` then path; lower numbers come first. Added regression coverage for changing the saved order and observing the new public and owner-list order.
+- Schema: expand-only migration `2026_10_28_190000_add_footer_group_to_public_pages` adds nullable `public_pages.footer_group`, with a PostgreSQL check for the three supported values. Old release writes can omit the column. OpenAPI page list/create/update contracts updated. No event or billing contract changes. Traceability: owner's footer backlog, ADR 0039, spec §24 (localization, accessibility and 360 px); no acceptance status promoted.
+- Verification: PublicSiteTest 20/20 on PostgreSQL (795 assertions); owner panel typecheck, 101/101 tests and production build; public stylesheet build/check; Pint 11 changed PHP files. Rendered real Blade HTML against isolated in-memory SQLite and inspected Chromium screenshots on ru/en/de at 1366, 768 and 360 px: three columns at wide sizes, one on mobile, all nine fixture links visible, no horizontal overflow. Broader SQLite Site run: 44 passed, 10 failed because the existing local Docker PHP image lacks GD (image/CAPTCHA tests); these unrelated tests are not claimed as passed. Final SQLite PublicSiteTest + AuditJournalTest + PlatformChangeAuditTest: 33 passed, 924 assertions.
+- Remaining: deployment/migration and live verification. No production data changed.
+
+
+### Step 303: Menu Sections Without Pages or URLs
+
+Status: complete; awaiting deployment.
+
+- Owner's decision: visual menu parents are independent sections, not pages. Added localized section names and order, list/create/update API under `content.manage`, management on the pages screen and inline creation from page settings. A section can hold multiple page links; page titles, short menu labels, addresses and content are separate. Renaming a footer section changes only its heading.
+- Public site: sections in the header are disclosure controls with only the assigned page links, no section link. Empty sections are hidden per language; footer sections act as column headings. Legacy page-parent dropdowns also stop inserting the parent's page as a first link. Existing page URLs and content remain accessible. Page and section ordering stay independent.
+- Migration `2026_10_28_200000_create_public_menu_sections`: new `public_menu_sections` with three seeded default footer headings and a nullable `public_pages.menu_section_id` (indexed, PostgreSQL FK with ON DELETE SET NULL). Previous-release fields remain; unassigned old footer links retain automatic grouping via their existing attributes. SQLite adds the UUID column without a table rebuild to preserve its existing partial unique indexes. No production data changed.
+- Contracts: `GET/POST /platform-api/v1/menu-sections`, `PATCH /platform-api/v1/menu-sections/{section}`, optional page `menu_section_id` in OpenAPI. Same-menu assignment is validated; assigning a section clears the legacy parent; changing menus clears an omitted assignment. Created/updated sections and page assignments are audited, with localized object/section names and before/after. No event or billing changes. Traceability: owner's decision, ADR 0039, spec §24; no acceptance status promoted.
+- Verification: PostgreSQL PublicSiteTest + AuditJournalTest + PlatformChangeAuditTest: 35 passed, 986 assertions. Owner panel: typecheck, 103 tests, production build. Real Blade output rendered against isolated SQLite: Chromium ru/en/de at 1366 and 390 px, disclosure contains exactly two fixture page links and no section URL, Enter opens and Escape closes, no horizontal overflow. Tests cover no page creation for a section, empty hiding, multiple pages, localized rename, footer heading, same-menu/unknown IDs, menu changes and content permission. Final SQLite run: 35 passed, 986 assertions; Pint: 10 changed PHP files passed. Final owner check: 103 tests, typecheck and build passed.
+- Remaining: deployment/migrations and live verification.

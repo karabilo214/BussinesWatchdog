@@ -27,6 +27,8 @@ class PublicPage extends Model
 
     public const MENUS = [self::MENU_NONE, self::MENU_HEADER, self::MENU_FOOTER];
 
+    public const FOOTER_GROUPS = ['product', 'company', 'legal'];
+
     public const LOCALES = ['ru', 'en', 'de'];
 
     public const MENU_LABEL_MAX = 40;
@@ -39,7 +41,20 @@ class PublicPage extends Model
 
     public const POLICIES = [self::POLICY_SERVICE_TERMS, self::POLICY_PRIVACY_NOTICE, self::POLICY_RECURRING_PAYMENT];
 
-    protected $fillable = ['kind', 'parent_id', 'slug', 'path', 'menu', 'menu_parent_id', 'menu_labels', 'sort', 'policy_type', 'created_by', 'archived_at'];
+    protected $fillable = ['kind', 'parent_id', 'slug', 'path', 'menu', 'menu_parent_id', 'menu_labels', 'menu_section_id', 'footer_group', 'sort', 'policy_type', 'created_by', 'archived_at'];
+
+    public function footerGroup(): string
+    {
+        if ($this->footer_group !== null) {
+            return $this->footer_group;
+        }
+
+        if ($this->policy_type !== null || str_starts_with($this->path, 'legal/') || in_array($this->slug, ['imprint', 'terms', 'privacy', 'subscription', 'refunds', 'refund-policy'], true)) {
+            return 'legal';
+        }
+
+        return $this->kind === self::KIND_CONTACT || in_array($this->slug, ['about', 'contact'], true) ? 'company' : 'product';
+    }
 
     protected function casts(): array
     {

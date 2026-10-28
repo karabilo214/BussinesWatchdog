@@ -456,6 +456,14 @@ export async function fetchSubscriptions(filters: Partial<Record<'status' | 'pla
 export type SiteLocale = 'ru' | 'en' | 'de';
 export type PageKind = 'home' | 'pricing' | 'contact' | 'page';
 export type PageMenu = 'none' | 'header' | 'footer';
+export interface MenuSection { id: string; menu: 'header' | 'footer'; labels: Record<SiteLocale, string>; sort: number; footer_key: FooterGroup | null }
+export async function fetchMenuSections(): Promise<MenuSection[]> {
+  return (await request<{ data: MenuSection[] }>('GET', '/platform-api/v1/menu-sections')).data.data;
+}
+export async function saveMenuSection(id: string | null, input: { menu: 'header' | 'footer'; labels: Record<SiteLocale, string>; sort: number }): Promise<MenuSection> {
+  return (await request<MenuSection>(id ? 'PATCH' : 'POST', id ? `/platform-api/v1/menu-sections/${id}` : '/platform-api/v1/menu-sections', { body: input })).data;
+}
+export type FooterGroup = 'product' | 'company' | 'legal';
 export type PolicyType = 'service_terms' | 'privacy_notice' | 'recurring_payment';
 
 export interface PageSummary {
@@ -465,6 +473,8 @@ export interface PageSummary {
   slug: string | null;
   path: string;
   menu: PageMenu;
+  footer_group: FooterGroup | null;
+  menu_section_id: string | null;
   menu_parent_id: string | null;
   menu_labels: Partial<Record<SiteLocale, string>>;
   sort: number;
@@ -512,7 +522,7 @@ export async function fetchPages(): Promise<PageSummary[]> {
   return (await request<{ data: PageSummary[] }>('GET', '/platform-api/v1/pages')).data.data;
 }
 
-export async function createPage(input: { slug: string; parent_id: string | null; menu: PageMenu; sort: number }): Promise<PageCard> {
+export async function createPage(input: { slug: string; parent_id: string | null; menu: PageMenu; menu_section_id?: string | null; footer_group?: FooterGroup | null; sort: number }): Promise<PageCard> {
   return (await request<PageCard>('POST', '/platform-api/v1/pages', { body: input })).data;
 }
 
@@ -1143,7 +1153,7 @@ export async function fetchPage(id: string): Promise<PageCard> {
   return (await request<PageCard>('GET', `/platform-api/v1/pages/${encodeURIComponent(id)}`)).data;
 }
 
-export async function updatePage(id: string, input: { menu: PageMenu; sort: number; menu_parent_id?: string | null; menu_labels?: Record<SiteLocale, string | null>; policy_type?: PolicyType | null }): Promise<PageCard> {
+export async function updatePage(id: string, input: { menu: PageMenu; menu_section_id?: string | null; footer_group?: FooterGroup | null; sort: number; menu_parent_id?: string | null; menu_labels?: Record<SiteLocale, string | null>; policy_type?: PolicyType | null }): Promise<PageCard> {
   return (await request<PageCard>('PATCH', `/platform-api/v1/pages/${encodeURIComponent(id)}`, { body: input })).data;
 }
 

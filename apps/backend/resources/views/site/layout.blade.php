@@ -56,16 +56,18 @@
 </main>
 <footer class="site-footer">
     <div class="site-wrap site-footer-row">
-        @if ($footer !== [])
-            <nav aria-label="{{ __('site.nav.footer') }}" class="site-footer-nav">
-                @foreach ($footer as $item)
-                    <a href="{{ $item['href'] }}" @if ($item['path'] === $path) aria-current="page" @endif>{{ $item['label'] }}</a>
-                    @foreach ($item['children'] as $child)
-                        <a href="{{ $child['href'] }}" @if ($child['path'] === $path) aria-current="page" @endif>{{ $child['label'] }}</a>
-                    @endforeach
-                @endforeach
-            </nav>
-        @endif
+        <div class="site-footer-groups">
+            @foreach ($footer as $group => $section)
+                <nav aria-labelledby="footer-{{ $group }}" class="site-footer-group" data-footer-group="{{ $group }}">
+                    <h2 id="footer-{{ $group }}">{{ $section['label'] }}</h2>
+                    <ul class="site-footer-nav">
+                        @foreach ($section['items'] as $item)
+                            <li><a href="{{ $item['href'] }}" @if ($item['path'] === $path) aria-current="page" @endif>{{ $item['label'] }}</a></li>
+                        @endforeach
+                    </ul>
+                </nav>
+            @endforeach
+        </div>
         <nav aria-label="{{ __('site.nav.languages') }}" class="site-languages">
             @foreach ($languages as $language)
                 <a href="{{ $language['href'] }}" hreflang="{{ $language['locale'] }}" lang="{{ $language['locale'] }}" @if ($language['current']) aria-current="true" @endif>{{ strtoupper($language['locale']) }}</a>

@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'footer' => [
+        'product' => 'Produkt',
+        'company' => 'Über uns',
+        'legal' => 'Rechtliche Informationen',
+    ],
     'brand' => 'Business Watchdog',
     'meta' => [
         'description' => 'Wir prüfen den Weg des Käufers bis zur Zahlung, beobachten echte Zahlungsversuche und gleichen Geld mit dem Zahlungsanbieter ab. Wir melden, wenn Käufer nicht mehr erfolgreich bezahlen.',
