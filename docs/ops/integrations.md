@@ -11,6 +11,8 @@ php artisan browser:worker-create worker-1 --rotate   # замена токен�
 
 Браузеры (ADR 0087): запуски сценария по очереди идут в Chrome, Firefox и Safari (WebKit). Порядок — `WATCHDOG_BROWSER_ROTATION` в `.env` бэкенда (по умолчанию `chromium,firefox,webkit`; `chromium` — откат на один Chrome, применяется после `rollout.sh`). Воркер запускает браузеры из `BW_BROWSERS` (по умолчанию все три; Chromium обязателен, не запустившийся Firefox/WebKit пишется в лог `browser_unavailable` и пропускается). Проверка после выкладки: `docker compose --profile browser logs browser-worker | grep worker_started` — в `browsers` три версии. Запуск, браузера которого нет ни у одного воркера, через 5 минут уходит в Chrome.
 
+Сетевая политика воркера (ADR 0088): чтение публичных сторонних адресов разрешено, запись — нет; трекеры молча отбрасываются, платёжные провайдеры доступны только при «Проверять формы оплаты полностью». Списки — `apps/browser-worker/src/hosts.js` (`TRACKERS` по категориям, `PAYMENT_PROVIDERS`); новый трекер или провайдер добавляется туда с тестом в `test/networkPolicy.test.js`, выкладка — обычный deploy воркера.
+
 ## Telegram
 
 ```sh

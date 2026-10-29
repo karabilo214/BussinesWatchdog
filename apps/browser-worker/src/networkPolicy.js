@@ -1,3 +1,5 @@
+import { isTracker, looksLikePayment } from './hosts.js';
+
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 const ALLOWED_WC_AJAX = new Set([
@@ -12,6 +14,8 @@ const ALLOWED_WC_AJAX = new Set([
   'ppc-sdk-v6-client-token',
   'ppc-sdk-v6-simulate-cart',
 ]);
+
+const PROVIDER_WC_AJAX = /^ppc-/;
 
 const STORE_API = /^\/wc\/store(?:\/v\d+)?\/(.*)$/;
 
@@ -68,17 +72,19 @@ export function formFields(postData) {
   return fields;
 }
 
-const PAYMENT_PROVIDER_HOSTS = ['stripe.com', 'stripe.network', 'stripecdn.com', 'paypal.com', 'paypalobjects.com', 'braintreegateway.com', 'klarna.com', 'klarnacdn.net', 'klarnaservices.com', 'mollie.com', 'adyen.com', 'pay.google.com', 'novalnet.de', 'novalnet.com', 'unzer.com', 'payone.com', 'pay1.de', 'ratepay.com'];
+export function publicHostname(hostname) {
+  const name = hostname.toLowerCase().replace(/\.$/, '');
 
-function isPaymentProviderHost(host) {
-  const name = host.toLowerCase();
+  if (name.startsWith('[') || /^\d{1,3}(\.\d{1,3}){3}$/.test(name) || /^\d+$/.test(name) || /^0x/i.test(name)) {
+    return false;
+  }
 
-  return PAYMENT_PROVIDER_HOSTS.some((suffix) => name === suffix || name.endsWith(`.${suffix}`));
+  return name.includes('.') && !/(^|\.)(localhost|local|internal|intranet|lan|home|corp|test|invalid|example)$/.test(name);
 }
 
 export function isPaymentProviderScript(url) {
   try {
-    return isPaymentProviderHost(new URL(url).hostname);
+    return looksLikePayment(new URL(url));
   } catch {
     return false;
   }
@@ -103,10 +109,11 @@ export function restRoute(parsed) {
 }
 
 /**
- * Decides whether the browser may send a request. Read requests are allowed to allowed
- * origins only; any mutation must match an explicit allowlist of cart operations, so an
- * unknown mutation is blocked rather than trusted. Order placement, order-pay, capture and
- * refund are always blocked, whatever the button text.
+ * Decides whether the browser may send a request (ADR 0088). Pages of public third-party hosts may be read so the
+ * store works as for a customer; writes to them are blocked. Known trackers are dropped quietly. Payment providers are
+ * reached only with the full payment-form setting, and then only for reads. On the store any mutation must match an
+ * explicit allowlist of cart operations, so an unknown mutation is blocked rather than trusted. Order placement,
+ * order-pay, capture and refund are always blocked, whatever the button text.
  */
 export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal = false, platform = 'woocommerce', checkoutAccess = null, quietPaths = [], paymentProviders = false }) {
   const allowed = new Set(allowedOrigins.map((origin) => origin.toLowerCase().replace(/\/$/, '')));
@@ -132,6 +139,10 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
     if (wcAjax !== null) {
       if (wcAjax === 'checkout') {
         return 'classic_checkout_submit';
+      }
+
+      if (PROVIDER_WC_AJAX.test(wcAjax) && !paymentProviders) {
+        return 'unknown_mutation';
       }
 
       return ALLOWED_WC_AJAX.has(wcAjax) ? null : 'unknown_mutation';
@@ -363,8 +374,37 @@ export function createNetworkPolicy({ allowedOrigins, storeOrigin, insecureLocal
         return { allow: false, reason: 'quiet' };
       }
 
-      if (paymentProviders && parsed.protocol === 'https:' && parsed.port === '' && isPaymentProviderHost(parsed.hostname)) {
-        return READ_METHODS.has(verb) ? { allow: true } : { allow: false, reason: 'provider_write' };
+      const origin = `${parsed.protocol}//${parsed.host}`.toLowerCase();
+      const thirdParty = origin !== store && !(platform === 'public' && allowed.has(origin));
+
+      if (thirdParty && isTracker(parsed)) {
+        return { allow: false, reason: 'quiet' };
+      }
+
+      if (thirdParty && platform !== 'public' && looksLikePayment(parsed)) {
+        if (paymentProviders && parsed.protocol === 'https:' && parsed.port === '') {
+          return READ_METHODS.has(verb) ? { allow: true } : { allow: false, reason: 'provider_write' };
+        }
+
+        if (!allowed.has(origin)) {
+          return { allow: false, reason: 'origin_not_allowed' };
+        }
+      }
+
+      const thirdPartyRead = platform !== 'public'
+        && thirdParty
+        && !isNavigation
+        && parsed.protocol === 'https:'
+        && parsed.port === ''
+        && publicHostname(parsed.hostname)
+        && !allowed.has(origin);
+
+      if (thirdPartyRead) {
+        if (GATEWAY_MONEY_PATH.test(parsed.pathname)) {
+          return { allow: false, reason: 'mutation', operation: 'payment_capture' };
+        }
+
+        return READ_METHODS.has(verb) ? { allow: true } : { allow: false, reason: 'third_party_write' };
       }
 
       const publicExternalSubrequest = platform === 'public'

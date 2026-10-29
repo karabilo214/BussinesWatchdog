@@ -13,10 +13,14 @@ const decide = (method, url, postData = null) => policy.decide({ method, url, po
 test('reads are allowed only on allowed https origins', () => {
   assert.equal(decide('GET', `${store}/product/x/`).allow, true);
   assert.equal(decide('GET', 'https://js.stripe.com/v3/').allow, true);
-  assert.deepEqual(decide('GET', 'https://www.google-analytics.com/collect'), { allow: false, reason: 'origin_not_allowed' });
+  assert.deepEqual(decide('GET', 'https://www.google-analytics.com/collect'), { allow: false, reason: 'quiet' });
+  assert.deepEqual(decide('GET', 'https://cdn.example.org/widget.js'), { allow: true });
+  assert.deepEqual(policy.decide({ method: 'GET', url: 'https://cdn.example.org/', isNavigation: true }), { allow: false, reason: 'origin_not_allowed' });
   assert.equal(decide('GET', 'http://shop.example.test/').allow, false);
   assert.equal(decide('GET', 'https://shop.example.test:8443/').allow, false);
-  assert.equal(decide('GET', 'https://169.254.169.254/latest/meta-data').allow, false);
+  for (const url of ['https://169.254.169.254/latest/meta-data', 'https://[::1]/', 'https://2130706433/', 'https://0x7f000001/', 'https://localhost/', 'https://db.internal/', 'https://intranet/', 'https://router.home/']) {
+    assert.equal(decide('GET', url).allow, false, url);
+  }
   assert.equal(decide('GET', 'file:///etc/passwd').reason, 'scheme');
   assert.equal(decide('GET', 'data:image/png;base64,AAAA').allow, true);
 });
@@ -33,12 +37,16 @@ test('cart mutations are allowed', () => {
 
 const multipart = (fields) => fields.map(([name, value]) => `------B\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`).join('') + '------B--\r\n';
 
-test('PayPal Payments button lookups are allowed, its order and cart changes are not', () => {
-  assert.equal(decide('POST', `${store}/?wc-ajax=ppc-sdk-v6-client-token`, '{}').allow, true);
-  assert.equal(decide('POST', `${store}/?wc-ajax=ppc-sdk-v6-simulate-cart`, '{"products":[]}').allow, true);
+test('PayPal Payments button lookups are allowed only with payment forms checked fully, its order and cart changes never', () => {
+  const full = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, paymentProviders: true });
+
+  for (const action of ['ppc-sdk-v6-client-token', 'ppc-sdk-v6-simulate-cart']) {
+    assert.equal(full.decide({ method: 'POST', url: `${store}/?wc-ajax=${action}`, postData: '{}' }).allow, true, action);
+    assert.equal(decide('POST', `${store}/?wc-ajax=${action}`, '{}').allow, false, `${action} without the setting`);
+  }
 
   for (const action of ['ppc-create-order', 'ppc-approve-order', 'ppc-change-cart']) {
-    assert.equal(decide('POST', `${store}/?wc-ajax=${action}`, '{}').allow, false, action);
+    assert.equal(full.decide({ method: 'POST', url: `${store}/?wc-ajax=${action}`, postData: '{}' }).allow, false, action);
   }
 });
 
@@ -154,7 +162,7 @@ test('quiet paths on the store are dropped without counting as blocked traffic',
   assert.deepEqual(sw.decide({ method: 'POST', url: `${store}/de/storefront/script/bw-observe`, postData: 'page=confirm' }), { allow: false, reason: 'quiet' });
   assert.deepEqual(sw.decide({ method: 'GET', url: `${store}/storefront/script/bw-observe?config=1` }), { allow: true }, 'reading the store setting counts nothing');
   assert.deepEqual(sw.decide({ method: 'POST', url: `${store}/storefront/script/bw-observe?config=1`, postData: 'page=confirm' }), { allow: false, reason: 'quiet' });
-  assert.equal(sw.decide({ method: 'GET', url: 'https://other.example/storefront/script/bw-observe' }).reason, 'origin_not_allowed');
+  assert.equal(sw.decide({ method: 'GET', url: 'https://other.example/storefront/script/bw-observe', isNavigation: true }).reason, 'origin_not_allowed');
   assert.equal(sw.decide({ method: 'GET', url: `${store}/storefront/script/other` }).allow, true);
   assert.equal(sw.decide({ method: 'GET', url: `${store}/checkout/confirm` }).allow, true);
 
@@ -190,7 +198,7 @@ test('public storefront checks allow store cart-add and third-party subrequests 
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/?wc-ajax=update_order_review`, postData: 'security=x' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/checkout/order`, postData: 'tos=on' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
   assert.deepEqual(pub.decide({ method: 'POST', url: `${store}/account/login`, postData: 'username=a&password=b' }), { allow: false, reason: 'mutation', operation: 'forbidden_mutation' });
-  assert.equal(pub.decide({ method: 'POST', url: 'https://www.google-analytics.com/g/collect', postData: '{}' }).allow, true);
+  assert.deepEqual(pub.decide({ method: 'POST', url: 'https://www.google-analytics.com/g/collect', postData: '{}' }), { allow: false, reason: 'quiet' });
   assert.equal(pub.decide({ method: 'POST', url: 'https://cdn.example.test/api', postData: '{}' }).allow, true);
   assert.deepEqual(pub.decide({ method: 'GET', url: 'https://www.paypal.com/v2/checkout/orders/1/capture' }), { allow: false, reason: 'mutation', operation: 'payment_capture' });
   assert.deepEqual(pub.decide({ method: 'POST', url: 'https://api.stripe.com/v1/payment_intents/pi_1/confirm', postData: '{}' }), { allow: false, reason: 'mutation', operation: 'payment_capture' });
@@ -214,10 +222,42 @@ test('with payment providers allowed, provider hosts are readable and every writ
   for (const url of ['https://api.stripe.com/v1/payment_methods', 'https://api.stripe.com/v1/payment_intents/pi_1/confirm', 'https://r.stripe.com/b', 'https://m.stripe.com/6', 'https://api-m.paypal.com/v2/checkout/orders', 'https://seamless.novalnet.de/nn/x']) {
     assert.deepEqual(allowed.decide({ url, method: 'POST', postData: 'a=1' }), { allow: false, reason: 'provider_write' }, url);
   }
-  assert.equal(allowed.decide({ url: 'https://stripe.com.evil.test/v3/', method: 'GET' }).allow, false);
+  assert.deepEqual(allowed.decide({ url: 'https://stripe.com.evil-site.com/v3/', method: 'POST', postData: 'a=1' }), { allow: false, reason: 'third_party_write' });
+  assert.equal(isPaymentProviderScript('https://stripe.com.evil-site.com/v3/'), false);
   assert.equal(allowed.decide({ url: 'http://js.stripe.com/v3/', method: 'GET' }).allow, false);
 
   const closed = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store });
   assert.deepEqual(closed.decide({ url: 'https://js.stripe.com/v3/', method: 'GET' }), { allow: false, reason: 'origin_not_allowed' });
 });
 
+
+test('third-party pages may be read but never written to, and trackers are dropped quietly', () => {
+  const sw = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, platform: 'shopware', checkoutAccess: 'test_customer' });
+
+  for (const url of ['https://eu1-config.doofinder.com/2.x/abc.js', 'https://integrations.etrusted.com/applications/widget.js/v2', 'https://fonts.gstatic.com/s/x.woff2', 'https://www.google.com/recaptcha/api.js']) {
+    assert.deepEqual(sw.decide({ method: 'GET', url }), { allow: true }, url);
+  }
+  assert.deepEqual(sw.decide({ method: 'POST', url: 'https://eu1-search.doofinder.com/6/x/_dfids', postData: '{}' }), { allow: false, reason: 'third_party_write' });
+  assert.deepEqual(sw.decide({ method: 'GET', url: 'https://api.someshop-cdn.com/v1/orders/1/capture' }), { allow: false, reason: 'mutation', operation: 'payment_capture' });
+
+  for (const url of ['https://static.hj.contentsquare.net/c/csq-1.js', 'https://connect.facebook.net/en_US/fbevents.js', 'https://www.facebook.com/tr?id=1&ev=PageView', 'https://www.googletagmanager.com/gtm.js?id=GTM-X', 'https://bat.bing.com/bat.js', 'https://analytics.tiktok.com/i18n/pixel/events.js', 'https://static.klaviyo.com/onsite/js/klaviyo.js', 'https://www.awin1.com/sread.js', 'https://script.hotjar.com/modules.js', 'https://c.clarity.ms/c.gif', 'https://px.ads.linkedin.com/collect']) {
+    assert.deepEqual(sw.decide({ method: 'GET', url }), { allow: false, reason: 'quiet' }, url);
+  }
+  assert.equal(sw.decide({ method: 'GET', url: 'https://www.facebook.com/somepage' }).allow, true, 'only the pixel path of facebook.com is a tracker');
+  assert.equal(sw.decide({ method: 'GET', url: `${store}/bundles/matomo.js` }).allow, true, 'the store itself is never treated as a tracker');
+});
+
+test('without the full payment-form setting no payment provider is reached, even by a read that could hand out a token', () => {
+  const off = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, platform: 'shopware', checkoutAccess: 'test_customer' });
+  const on = createNetworkPolicy({ allowedOrigins: [store], storeOrigin: store, platform: 'shopware', checkoutAccess: 'test_customer', paymentProviders: true });
+
+  for (const url of ['https://cdn.novalnet.de/js/pv13/checkout.js', 'https://seamless.novalnet.de/nn/token', 'https://www.paypal.com/sdk/js?client-id=x', 'https://api.stripe.com/v1/elements/sessions?key=pk', 'https://x.klarnacdn.net/kp/lib/v1/api.js', 'https://pay.google.com/gp/p/js/pay.js', 'https://static-eu.payments-amazon.com/checkout.js', 'https://secure.pay1.de/client-api/js/v1/payone_hosted.js', 'https://checkout.payments.unknown-psp.com/v2/token', 'https://api.example-pay.io/client-token', 'https://songbird.cardinalcommerce.com/edge/v1/songbird.js']) {
+    assert.deepEqual(off.decide({ method: 'GET', url }), { allow: false, reason: 'origin_not_allowed' }, url);
+    assert.equal(isPaymentProviderScript(url), true, url);
+    assert.deepEqual(on.decide({ method: 'GET', url }), { allow: true }, `${url} with the setting`);
+    assert.deepEqual(on.decide({ method: 'POST', url, postData: '{}' }), { allow: false, reason: 'provider_write' }, `${url} write with the setting`);
+  }
+  for (const url of ['https://cdn.display-ads-free.com/x.js', 'https://fonts.googleapis.com/css2?family=Inter']) {
+    assert.equal(isPaymentProviderScript(url), false, url);
+  }
+});
