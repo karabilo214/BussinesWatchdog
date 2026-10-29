@@ -331,6 +331,22 @@ class BrowserChecksTest extends TestCase
         $this->assertSame(0, Incident::query()->whereIn('state', Incident::ACTIVE_STATES)->count());
     }
 
+    public function test_a_site_dialog_covering_the_button_ends_the_run_blocked_without_retries(): void
+    {
+        $context = $this->checkContext();
+        $scenario = $this->scenario($context);
+
+        $this->runWith($scenario, CheckRun::TRIGGER_SCHEDULED, $this->resultBody(1, 'blocked', 'blocking_overlay', failedStep: 'add_to_cart'));
+
+        $run = CheckRun::query()->sole();
+        $this->assertSame(CheckRun::STATUS_BLOCKED, $run->status);
+        $this->assertSame('blocking_overlay', $run->error_code);
+        $this->assertSame(1, CheckAttempt::query()->count());
+        $incident = Incident::query()->sole();
+        $this->assertSame(CheckOutcomeEvaluator::TITLE_MONITORING_BLOCKED, $incident->title_code);
+        $this->assertSame(Incident::SEVERITY_INFO, $incident->severity);
+    }
+
     public function test_results_must_be_sanitized_metadata(): void
     {
         $lease = $this->leasedAttempt();

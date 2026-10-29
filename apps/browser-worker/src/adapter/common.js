@@ -39,10 +39,35 @@ export async function navigate(page, url, timeout, context) {
   }
 
   await context.detectWaf(page, response);
+  await waitForPreloader(page, Math.min(timeout, 10000));
 
   if (response && response.status() >= 500) {
     throw SITE(`http_${response.status()}`);
   }
 
   return response;
+}
+
+const PRELOADER = /preload|loader|loading|spinner|splash|pace-|page-load/i;
+
+export async function waitForPreloader(page, timeout) {
+  await page.waitForFunction((pattern) => {
+    const name = new RegExp(pattern, 'i');
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    for (const [x, y] of [[width / 2, height / 2], [width / 4, height / 4], [(3 * width) / 4, (3 * height) / 4]]) {
+      for (let element = document.elementFromPoint(x, y); element && element !== document.body; element = element.parentElement) {
+        const style = getComputedStyle(element);
+        const box = element.getBoundingClientRect();
+        const label = `${element.id} ${typeof element.className === 'string' ? element.className : ''}`;
+
+        if (['fixed', 'absolute'].includes(style.position) && box.width >= width * 0.8 && box.height >= height * 0.8 && name.test(label)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }, PRELOADER.source, { timeout, polling: 250 }).catch(() => null);
 }

@@ -1459,6 +1459,7 @@
         "worker_capacity": "Not enough free browsers on our side.",
         "dns_failure": "The store domain could not be found.",
         "waf_challenge": "The site showed bot protection.",
+        "blocking_overlay": "A dialog on the site (cookies, age check or a promotion) covered the button and the check could not close it. Write to us and we will add this dialog.",
         "selector_changed": "A page element was not found: the site theme may have changed.",
         "adapter_unsupported": "The site's checkout is not supported by the check.",
         "forbidden_mutation": "The page tried a forbidden action; the check stopped.",

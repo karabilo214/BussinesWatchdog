@@ -179,12 +179,6 @@ export function createShopwareAdapter() {
     },
 
     async add_to_cart(page, step, context) {
-      const functionalCookies = page.locator('.cookie-consent-accept-only-functional-button:visible').first();
-      if (await functionalCookies.waitFor({ state: 'visible', timeout: Math.min(step.timeout_ms, 1500) }).then(() => true).catch(() => false)) {
-        await functionalCookies.click({ timeout: Math.min(step.timeout_ms, 5000) });
-        await page.locator('.cookie-consent-modal:visible, .modal.show:visible').first().waitFor({ state: 'hidden', timeout: Math.min(step.timeout_ms, 5000) }).catch(() => null);
-      }
-
       const preferredButton = page.locator('form.buy-widget button.btn-buy:not([tabindex="-1"]), .product-detail-buy button.btn-buy:not([tabindex="-1"])').first();
       const button = await preferredButton.count() > 0 ? preferredButton : page.locator(SELECTORS.buyButton).first();
       const added = page.waitForResponse((response) => response.request().method() === 'POST' && /\/checkout\/line-item\/add\/?$/.test(new URL(response.url()).pathname), { timeout: step.timeout_ms }).catch(() => null);

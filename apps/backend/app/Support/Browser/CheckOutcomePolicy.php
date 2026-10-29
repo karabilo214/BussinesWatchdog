@@ -23,6 +23,8 @@ class CheckOutcomePolicy
 
     public const TEST_ACCOUNT_REJECTED = 'test_account_rejected';
 
+    public const BLOCKING_OVERLAY = 'blocking_overlay';
+
     /**
      * Error codes a worker may report. Only site_failure can confirm a broken checkout;
      * the rest describe the test setup, access to the site or the worker itself.
@@ -38,6 +40,7 @@ class CheckOutcomePolicy
         self::FORBIDDEN_MUTATION,
         self::BLOCKED_EXTERNAL_ORIGIN,
         self::TEST_ACCOUNT_REJECTED,
+        self::BLOCKING_OVERLAY,
         'infra_timeout',
     ];
 

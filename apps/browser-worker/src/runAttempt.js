@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { StepOutcome } from './adapter/common.js';
+import { installInterruptionHandlers, interceptedOutcome } from './adapter/interruptions.js';
 import { ADAPTER_VERSION as PUBLIC_STOREFRONT_ADAPTER, createPublicStorefrontAdapter } from './adapter/publicStorefront.js';
 import { ADAPTER_VERSION as SHOPWARE_ADAPTER, createShopwareAdapter } from './adapter/shopware.js';
 import { ADAPTER_VERSION as WOOCOMMERCE_ADAPTER, createWooCommerceAdapter } from './adapter/woocommerce.js';
@@ -211,6 +212,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     }
 
     const page = await context.newPage();
+    await installInterruptionHandlers(page);
     const started = new Map();
 
     page.on('pageerror', (error) => {
@@ -335,7 +337,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
           }
         }
       } catch (error) {
-        let outcome = error instanceof StepOutcome ? error : new StepOutcome('inconclusive', 'infra_timeout', 'worker_exception');
+        let outcome = error instanceof StepOutcome ? error : (interceptedOutcome(error) ?? new StepOutcome('inconclusive', 'infra_timeout', 'worker_exception'));
 
         if (outcome.errorCode === 'site_failure' && state.blockedUnknownMutation) {
           outcome = new StepOutcome('unsupported', 'adapter_unsupported', 'blocked_unknown_mutation');

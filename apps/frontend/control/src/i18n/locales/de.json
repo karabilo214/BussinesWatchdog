@@ -1459,6 +1459,7 @@
         "worker_capacity": "Auf unserer Seite waren nicht genug Browser frei.",
         "dns_failure": "Die Shop-Domain wurde nicht gefunden.",
         "waf_challenge": "Die Website zeigte einen Bot-Schutz.",
+        "blocking_overlay": "Ein Fenster der Website (Cookies, Altersprüfung oder Werbung) hat die Schaltfläche verdeckt, und die Prüfung konnte es nicht schließen. Schreiben Sie uns – wir ergänzen dieses Fenster.",
         "selector_changed": "Ein Seitenelement wurde nicht gefunden: Das Theme hat sich eventuell geändert.",
         "adapter_unsupported": "Der Checkout der Website wird von der Prüfung nicht unterstützt.",
         "forbidden_mutation": "Die Seite versuchte eine verbotene Aktion; die Prüfung wurde gestoppt.",
