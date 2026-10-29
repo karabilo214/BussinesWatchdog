@@ -67,7 +67,7 @@ async function sendLink(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex flex-col gap-5 text-sm" data-profile-editor>
+  <section class="flex flex-col gap-5 text-sm rounded-xl border border-border bg-surface p-5" data-profile-editor>
     <ErrorNotice v-if="error" :error="error" />
     <p v-if="notice" role="status" class="rounded-md border border-ok-border bg-ok-soft px-3 py-2 text-ok" data-profile-notice>{{ $t(notice) }}</p>
 
@@ -114,5 +114,5 @@ async function sendLink(): Promise<void> {
       <label class="flex max-w-xs flex-col gap-1.5"><span class="font-medium">{{ $t('plans.code_confirm') }}</span><input v-model="linkCode" autocomplete="one-time-code" maxlength="32" class="rounded-md border border-border-strong bg-surface px-3 py-2 font-mono tracking-wider" data-field="link-code" /></label>
       <button type="submit" class="self-start rounded-md border border-border-strong px-4 py-2 font-medium text-primary hover:bg-primary-soft disabled:opacity-60" :disabled="busy || linkCode.trim().length < 6">{{ $t('profile.send_link') }}</button>
     </form>
-  </div>
+  </section>
 </template>

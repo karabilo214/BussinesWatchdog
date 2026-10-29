@@ -14,10 +14,11 @@ const { me, load } = useStaff();
         <h1 class="text-2xl font-semibold">{{ $t('profile.title') }}</h1>
         <p class="text-sm text-text-muted">{{ me?.email }}</p>
       </div>
-      <div v-if="me" class="rounded-xl border border-border bg-surface p-5">
+      <div v-if="me" class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <StaffProfileEditor :staff-id="me.staff_id" :first-name="me.first_name" :last-name="me.last_name" :name="me.name" :photo-url="me.photo_url" self @changed="load(true)" />
+        <StaffPasskeysPanel />
       </div>
-      <StaffPasskeysPanel v-if="me" />
+
     </div>
   </OwnerLayout>
 </template>
