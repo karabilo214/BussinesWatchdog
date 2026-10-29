@@ -39,19 +39,26 @@ class BrowserLeaseService
         private readonly Keyring $keyring,
     ) {}
 
+    public const UNSUPPORTED_BROWSER_WAIT_SECONDS = 300;
+
     /**
+     * @param  array<string, string>  $browserVersions
      * @return array<string, mixed>|null
      */
-    public function lease(BrowserWorker $worker, string $browserVersion, string $location): ?array
+    public function lease(BrowserWorker $worker, string $browserVersion, string $location, array $browserVersions = []): ?array
     {
         $this->recoverExpired();
+        $versions = array_intersect_key($browserVersions, array_flip(CheckRun::BROWSERS));
+        $versions[CheckRun::BROWSER_CHROMIUM] ??= $browserVersion;
 
         for ($tries = 0; $tries < 5; $tries++) {
-            $lease = DB::transaction(function () use ($worker, $browserVersion, $location): array|false|null {
+            $lease = DB::transaction(function () use ($worker, $versions, $location): array|false|null {
                 $now = Carbon::now();
                 $query = CheckRun::query()
                     ->where('status', CheckRun::STATUS_QUEUED)
                     ->where('next_attempt_at', '<=', $now)
+                    ->where(fn ($query) => $query->whereIn('browser', array_keys($versions))
+                        ->orWhere('next_attempt_at', '<=', $now->copy()->subSeconds(self::UNSUPPORTED_BROWSER_WAIT_SECONDS)))
                     ->orderBy('next_attempt_at')
                     ->orderBy('id');
                 /** @var CheckRun|null $run */
@@ -70,6 +77,7 @@ class BrowserLeaseService
                     return false;
                 }
 
+                $browser = isset($versions[$run->browser]) ? $run->browser : CheckRun::BROWSER_CHROMIUM;
                 $token = bin2hex(random_bytes(32));
                 $fencing = $run->last_fencing_token + 1;
                 $deadline = $now->copy()->addSeconds((int) config('watchdog.browser.absolute_run_seconds'));
@@ -84,7 +92,7 @@ class BrowserLeaseService
                     'lease_until' => $this->leaseUntil($now, $deadline),
                     'absolute_deadline_at' => $deadline,
                     'status' => CheckAttempt::STATUS_RUNNING,
-                    'browser_version' => $browserVersion,
+                    'browser_version' => $versions[$browser],
                     'location' => $location,
                     'started_at' => $now,
                 ]);
@@ -93,6 +101,7 @@ class BrowserLeaseService
                     'status' => CheckRun::STATUS_RUNNING,
                     'started_at' => $run->started_at ?? $now,
                     'last_fencing_token' => $fencing,
+                    'browser' => $browser,
                 ])->save();
 
                 $snapshot = $run->config_snapshot;
@@ -116,6 +125,7 @@ class BrowserLeaseService
                     'lease_token' => $token,
                     'lease_until' => $attempt->lease_until->toJSON(),
                     'absolute_deadline_at' => $deadline->toJSON(),
+                    'browser' => $browser,
                     'scenario' => $snapshot,
                     'network_policy' => $networkPolicy,
                 ];

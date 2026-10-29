@@ -48,6 +48,7 @@ return [
         'manual_runs_per_minute' => 1,
         'schedule_jitter' => 0.1,
         'default_interval_seconds' => 900,
+        'rotation' => array_values(array_filter(array_map('trim', explode(',', (string) env('WATCHDOG_BROWSER_ROTATION', 'chromium,firefox,webkit'))))),
     ],
 
     'artifacts' => [

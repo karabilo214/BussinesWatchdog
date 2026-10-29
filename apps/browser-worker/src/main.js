@@ -1,5 +1,5 @@
-import { chromium } from 'playwright';
 import { ApiError, createApi } from './api.js';
+import { launchBrowsers } from './browsers.js';
 import { loadConfig } from './config.js';
 import { runAttempt } from './runAttempt.js';
 
@@ -37,22 +37,16 @@ async function submit(lease, result) {
 }
 
 async function main() {
-  const browser = await chromium.launch({
-    headless: true,
-    chromiumSandbox: config.chromiumSandbox,
-    ...(config.chromiumExecutablePath !== '' ? { executablePath: config.chromiumExecutablePath } : {}),
-    ...(config.egressProxy ? { proxy: { server: config.egressProxy, bypass: '<-loopback>' } } : {}),
-  });
-  const browserVersion = `chromium-${browser.version()}`;
+  const browsers = await launchBrowsers(config, log);
   let idle = config.idleMinMs;
-  log('worker_started', { browser_version: browserVersion, location: config.location, sandbox: config.chromiumSandbox, egress_proxy: config.egressProxy !== null });
+  log('worker_started', { browsers: browsers.versions, location: config.location, sandbox: config.chromiumSandbox, egress_proxy: config.egressProxy !== null });
 
   try {
     while (!stopping) {
       let lease;
 
       try {
-        lease = await api.lease(browserVersion, config.location);
+        lease = await api.lease(browsers.versions.chromium, config.location, browsers.versions);
       } catch (error) {
         log('lease_error', { status: error.status ?? null, code: error.code ?? null });
         await sleep(idle);
@@ -73,7 +67,8 @@ async function main() {
       }
 
       idle = config.idleMinMs;
-      log('attempt_started', { attempt_id: lease.attempt_id, run_id: lease.run_id, fencing_token: lease.fencing_token });
+      const picked = browsers.pick(lease);
+      log('attempt_started', { attempt_id: lease.attempt_id, run_id: lease.run_id, fencing_token: lease.fencing_token, browser: picked.name });
 
       const heartbeat = setInterval(() => {
         api.heartbeat(lease)
@@ -85,7 +80,7 @@ async function main() {
 
       try {
         result = await runAttempt({
-          browser,
+          browser: picked.browser,
           lease,
           insecureLocal: config.insecureLocal,
           uploadScreenshot: (bytes, sha256) => api.artifact(lease, bytes, sha256),
@@ -110,7 +105,7 @@ async function main() {
       }
     }
   } finally {
-    await browser.close().catch(() => null);
+    await browsers.close();
   }
 }
 

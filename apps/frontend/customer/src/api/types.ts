@@ -605,6 +605,7 @@ export interface CheckRunSummary {
   scenario_id: string;
   scenario_version: number;
   trigger: 'scheduled' | 'manual' | 'incident';
+  browser?: 'chromium' | 'firefox' | 'webkit';
   status: CheckRunStatus;
   error_code: string | null;
   scheduled_at: string;

@@ -9,6 +9,8 @@ php artisan browser:worker-create worker-1 --rotate   # замена токен�
 
 Воркеру (`apps/browser-worker`) задаются `BW_WORKER_TOKEN` (токен из команды), `BW_API_URL` (адрес бэкенда) и `BW_EGRESS_PROXY` (egress-прокси `infra/docker/egress`); доступа к БД и Redis у воркера нет.
 
+Браузеры (ADR 0087): запуски сценария по очереди идут в Chrome, Firefox и Safari (WebKit). Порядок — `WATCHDOG_BROWSER_ROTATION` в `.env` бэкенда (по умолчанию `chromium,firefox,webkit`; `chromium` — откат на один Chrome, применяется после `rollout.sh`). Воркер запускает браузеры из `BW_BROWSERS` (по умолчанию все три; Chromium обязателен, не запустившийся Firefox/WebKit пишется в лог `browser_unavailable` и пропускается). Проверка после выкладки: `docker compose --profile browser logs browser-worker | grep worker_started` — в `browsers` три версии. Запуск, браузера которого нет ни у одного воркера, через 5 минут уходит в Chrome.
+
 ## Telegram
 
 ```sh

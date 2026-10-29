@@ -59,6 +59,7 @@ class CheckDto
             'scenario_id' => $run->scenario_id,
             'scenario_version' => $run->scenario_version,
             'trigger' => $run->trigger,
+            'browser' => $run->browser,
             'status' => $run->status,
             'error_code' => $run->error_code,
             'scheduled_at' => $run->scheduled_at->toJSON(),

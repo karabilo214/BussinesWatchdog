@@ -633,6 +633,7 @@ CREATE TABLE check_runs (
  last_fencing_token bigint NOT NULL DEFAULT 0 CHECK (last_fencing_token>=0),
  next_attempt_at timestamptz NOT NULL,
  error_code text,
+ browser text NOT NULL DEFAULT 'chromium' CHECK (browser IN ('chromium','firefox','webkit')),
  created_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE (store_id,dedupe_key),
  UNIQUE (tenant_id,store_id,id),

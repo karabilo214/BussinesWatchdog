@@ -1,3 +1,5 @@
+import { browserNames } from './browsers.js';
+
 export function loadConfig(env = process.env) {
   const apiUrl = (env.BW_API_URL ?? '').replace(/\/$/, '');
   const token = env.BW_WORKER_TOKEN ?? '';
@@ -23,6 +25,7 @@ export function loadConfig(env = process.env) {
     insecureLocal,
     location: env.BW_WORKER_LOCATION ?? 'local',
     egressProxy: egressProxy === '' ? null : egressProxy,
+    browsers: browserNames(env.BW_BROWSERS),
     chromiumSandbox: env.BW_CHROMIUM_SANDBOX !== '0',
     chromiumExecutablePath: env.BW_CHROMIUM_EXECUTABLE_PATH ?? '',
     runOnce: env.BW_RUN_ONCE === '1',

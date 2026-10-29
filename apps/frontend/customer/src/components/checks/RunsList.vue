@@ -110,7 +110,7 @@ onBeforeUnmount(() => {
             {{ dateTime(run.finished_at ?? run.started_at ?? run.scheduled_at) }}
           </RouterLink>
           <span class="text-[13px] text-text-muted">
-            {{ $t(`checks.trigger.${run.trigger}`) }}<template v-if="run.error_code"> · {{ $te(`checks.error.${run.error_code}`) ? $t(`checks.error.${run.error_code}`) : run.error_code }}</template>
+            {{ $t(`checks.trigger.${run.trigger}`) }}<template v-if="run.browser"> · {{ $t(`checks.browser.${run.browser}`) }}</template><template v-if="run.error_code"> · {{ $te(`checks.error.${run.error_code}`) ? $t(`checks.error.${run.error_code}`) : run.error_code }}</template>
           </span>
         </div>
         <StatusBadge :tone="RUN_TONES[run.status]" :label="$t(`checks.status.${run.status}`)" />

@@ -1747,6 +1747,11 @@
       "in_progress": "A check is running — the list updates by itself.",
       "empty": "No runs yet."
     },
+    "browser": {
+      "chromium": "Chrome",
+      "firefox": "Firefox",
+      "webkit": "Safari (WebKit)"
+    },
     "trigger": {
       "scheduled": "scheduled",
       "manual": "started manually",

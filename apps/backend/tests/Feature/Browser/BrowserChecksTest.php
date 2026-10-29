@@ -349,6 +349,44 @@ class BrowserChecksTest extends TestCase
         $this->assertSame(Incident::SEVERITY_INFO, $incident->severity);
     }
 
+    public function test_runs_of_a_scenario_take_chrome_firefox_and_safari_in_turn(): void
+    {
+        $context = $this->checkContext();
+        $scenario = $this->scenario($context);
+        $browsers = [];
+
+        foreach (range(1, 4) as $round) {
+            app(CheckScheduler::class)->scheduleDue();
+            $lease = $this->lease()->assertOk();
+            $browsers[] = $lease->json('browser');
+            $this->assertSame(['chromium' => 'chromium-140', 'firefox' => 'firefox-141', 'webkit' => 'webkit-26'][$lease->json('browser')], CheckAttempt::query()->findOrFail($lease->json('attempt_id'))->browser_version);
+            $this->submit($lease->json(), $this->resultBody(1, 'passed'))->assertOk();
+            Carbon::setTestNow(now()->addSeconds(1));
+            $scenario->forceFill(['next_due_at' => now()])->save();
+        }
+
+        $this->assertSame(['chromium', 'firefox', 'webkit', 'chromium'], $browsers);
+        $this->assertSame($browsers, CheckRun::query()->orderBy('created_at')->orderBy('id')->pluck('browser')->all());
+        $run = CheckRun::query()->where('browser', 'webkit')->sole();
+        $this->asOwner($context)->getJson("/api/v1/checks/{$run->id}")->assertOk()->assertJsonPath('browser', 'webkit');
+    }
+
+    public function test_a_worker_without_the_run_browser_leaves_it_to_another_worker_and_takes_it_in_chrome_after_five_minutes(): void
+    {
+        $scenario = $this->scenario($this->checkContext());
+        config(['watchdog.browser.rotation' => ['firefox', 'chromium']]);
+        app(CheckScheduler::class)->scheduleDue();
+        $this->assertSame('firefox', CheckRun::query()->sole()->browser);
+
+        $this->lease(null)->assertNoContent();
+        Carbon::setTestNow(now()->addSeconds(BrowserLeaseService::UNSUPPORTED_BROWSER_WAIT_SECONDS + 1));
+        $lease = $this->lease(null)->assertOk()->assertJsonPath('browser', 'chromium');
+
+        $this->assertSame('chromium', CheckRun::query()->sole()->browser);
+        $this->assertSame('chromium-140', CheckAttempt::query()->findOrFail($lease->json('attempt_id'))->browser_version);
+        $this->worker()->postJson('/internal/v1/browser/leases', ['browser_version' => 'chromium-140', 'location' => 'eu', 'browser_versions' => ['opera' => 'opera-1']])->assertStatus(422);
+    }
+
     public function test_results_must_be_sanitized_metadata(): void
     {
         $lease = $this->leasedAttempt();
@@ -643,9 +681,12 @@ class BrowserChecksTest extends TestCase
         ], $body);
     }
 
-    private function lease(): TestResponse
+    /**
+     * @param  array<string, string>|null  $browserVersions
+     */
+    private function lease(?array $browserVersions = ['chromium' => 'chromium-140', 'firefox' => 'firefox-141', 'webkit' => 'webkit-26']): TestResponse
     {
-        return $this->worker()->postJson('/internal/v1/browser/leases', ['browser_version' => 'chromium-140', 'location' => 'eu-central']);
+        return $this->worker()->postJson('/internal/v1/browser/leases', ['browser_version' => 'chromium-140', 'location' => 'eu-central', ...($browserVersions === null ? [] : ['browser_versions' => $browserVersions])]);
     }
 
     /**

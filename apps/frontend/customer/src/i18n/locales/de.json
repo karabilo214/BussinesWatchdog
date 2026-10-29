@@ -1747,6 +1747,11 @@
       "in_progress": "Eine Prüfung läuft – die Liste aktualisiert sich selbst.",
       "empty": "Noch keine Prüfungen."
     },
+    "browser": {
+      "chromium": "Chrome",
+      "firefox": "Firefox",
+      "webkit": "Safari (WebKit)"
+    },
     "trigger": {
       "scheduled": "geplant",
       "manual": "manuell gestartet",

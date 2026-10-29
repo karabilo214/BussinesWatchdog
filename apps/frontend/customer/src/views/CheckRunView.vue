@@ -94,7 +94,7 @@ onBeforeUnmount(() => {
         <header class="flex flex-col gap-2">
           <div class="flex flex-wrap items-center gap-2">
             <StatusBadge :tone="RUN_TONES[run.status]" :label="$t(`checks.status.${run.status}`)" solid />
-            <span class="text-sm text-text-muted">{{ $t(`checks.trigger.${run.trigger}`) }}</span>
+            <span class="text-sm text-text-muted">{{ $t(`checks.trigger.${run.trigger}`) }}<template v-if="run.browser"> · {{ $t(`checks.browser.${run.browser}`) }}</template></span>
           </div>
           <h1 class="text-2xl font-semibold">{{ $t('checks.run.title', { time: dateTime(run.scheduled_at) }) }}</h1>
           <p v-if="run.error_code" class="text-sm" data-run-error>{{ $te(`checks.error.${run.error_code}`) ? $t(`checks.error.${run.error_code}`) : run.error_code }}</p>

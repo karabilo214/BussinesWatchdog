@@ -177,8 +177,28 @@ class CheckScheduler
             'scheduled_at' => $now,
             'last_fencing_token' => 0,
             'next_attempt_at' => $now,
+            'browser' => $this->nextBrowser($scenario),
             'created_at' => $now,
         ]);
+    }
+
+    public function nextBrowser(CheckScenario $scenario): string
+    {
+        $rotation = array_values(array_intersect((array) config('watchdog.browser.rotation'), CheckRun::BROWSERS));
+
+        if ($rotation === []) {
+            return CheckRun::BROWSER_CHROMIUM;
+        }
+
+        $last = CheckRun::query()
+            ->where('tenant_id', $scenario->tenant_id)
+            ->where('scenario_id', $scenario->id)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->value('browser');
+        $index = array_search($last, $rotation, true);
+
+        return $index === false ? $rotation[0] : $rotation[($index + 1) % count($rotation)];
     }
 
     public function eligibleStore(CheckScenario $scenario): ?Store

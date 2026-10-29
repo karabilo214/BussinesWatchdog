@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/playwright:v1.55.0-noble
 
 ENV NODE_ENV=production \
+    HOME=/tmp \
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 WORKDIR /app

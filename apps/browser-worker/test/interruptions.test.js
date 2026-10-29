@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 
 import { waitForPreloader } from '../src/adapter/common.js';
 import { AGE_CONFIRM_LABEL, COOKIE_ACKNOWLEDGE, COOKIE_REJECT, installInterruptionHandlers, interceptedOutcome } from '../src/adapter/interruptions.js';
@@ -9,19 +9,24 @@ import { AGE_CONFIRM_LABEL, COOKIE_ACKNOWLEDGE, COOKIE_REJECT, installInterrupti
 const cover = 'position:fixed;inset:0;z-index:9999;background:#eee';
 const buyButton = '<form class="buy-widget"><button class="btn-buy" type="button" onclick="document.body.dataset.bought=1">In den Warenkorb</button></form>';
 
-let browser = null;
+const engines = { chromium, firefox, webkit };
+const browsers = {};
 
 before(async () => {
-  browser = await chromium.launch().catch(() => null);
+  for (const [name, engine] of Object.entries(engines)) {
+    browsers[name] = await engine.launch().catch(() => null);
+  }
 });
 
 after(async () => {
-  await browser?.close();
+  await Promise.all(Object.values(browsers).map((browser) => browser?.close()));
 });
 
-async function pageWith(t, html) {
-  if (browser === null) {
-    t.skip('Chromium is not installed');
+async function pageIn(t, name, html) {
+  const browser = browsers[name];
+
+  if (!browser) {
+    t.skip(`${name} is not installed`);
 
     return null;
   }
@@ -40,9 +45,10 @@ async function buy(page) {
   return page.evaluate(() => document.body.dataset.bought === '1');
 }
 
-describe('store dialogs in front of the robot', () => {
+for (const name of Object.keys(engines)) {
+  describe(`store dialogs in front of the robot (${name})`, () => {
   it('confirms the NetzP age check that covers a Shopware product page', async (t) => {
-    const setup = await pageWith(t, `${buyButton}<div id="netzpCheckAgeOverlay" class="netzp-app-age-check overlay" style="${cover}"><div class="buttons"><b>Sind Sie 18 Jahre alt oder älter?</b><a href="javascript:document.getElementById('netzpCheckAgeOverlay').remove(); void(0)">JA</a><a href="javascript:void(0)">NEIN</a></div></div>`);
+    const setup = await pageIn(t, name, `${buyButton}<div id="netzpCheckAgeOverlay" class="netzp-app-age-check overlay" style="${cover}"><div class="buttons"><b>Sind Sie 18 Jahre alt oder älter?</b><a href="javascript:document.getElementById('netzpCheckAgeOverlay').remove(); void(0)">JA</a><a href="javascript:void(0)">NEIN</a></div></div>`);
     if (!setup) return;
 
     assert.equal(await buy(setup.page), true);
@@ -50,7 +56,7 @@ describe('store dialogs in front of the robot', () => {
   });
 
   it('declines optional cookies on the classic Shopware cookie bar', async (t) => {
-    const setup = await pageWith(t, `${buyButton}<div class="cookie-permission-container" style="${cover}"><button class="js-cookie-permission-button" onclick="this.parentElement.remove();document.body.dataset.choice='necessary'">Nur technisch notwendige</button><button class="js-cookie-accept-all-button" onclick="this.parentElement.remove();document.body.dataset.choice='all'">Alle Cookies akzeptieren</button></div>`);
+    const setup = await pageIn(t, name, `${buyButton}<div class="cookie-permission-container" style="${cover}"><button class="js-cookie-permission-button" onclick="this.parentElement.remove();document.body.dataset.choice='necessary'">Nur technisch notwendige</button><button class="js-cookie-accept-all-button" onclick="this.parentElement.remove();document.body.dataset.choice='all'">Alle Cookies akzeptieren</button></div>`);
     if (!setup) return;
 
     assert.equal(await buy(setup.page), true);
@@ -58,7 +64,7 @@ describe('store dialogs in front of the robot', () => {
   });
 
   it('prefers rejecting over accepting all in an unknown cookie dialog', async (t) => {
-    const setup = await pageWith(t, `${buyButton}<div id="my-consent-layer" style="${cover}"><button onclick="this.parentElement.remove();document.body.dataset.choice='all'">Alle akzeptieren</button><button onclick="this.parentElement.remove();document.body.dataset.choice='rejected'">Alle ablehnen</button></div>`);
+    const setup = await pageIn(t, name, `${buyButton}<div id="my-consent-layer" style="${cover}"><button onclick="this.parentElement.remove();document.body.dataset.choice='all'">Alle akzeptieren</button><button onclick="this.parentElement.remove();document.body.dataset.choice='rejected'">Alle ablehnen</button></div>`);
     if (!setup) return;
 
     assert.equal(await buy(setup.page), true);
@@ -67,7 +73,7 @@ describe('store dialogs in front of the robot', () => {
   });
 
   it('confirms an unknown age dialog but never answers no', async (t) => {
-    const setup = await pageWith(t, `${buyButton}<div role="dialog" aria-modal="true" style="${cover}"><p>Sie müssen mindestens 18 Jahre alt sein.</p><button onclick="document.body.dataset.age='no'">Nein</button><button onclick="this.parentElement.remove();document.body.dataset.age='yes'">Ja, ich bin über 18</button></div>`);
+    const setup = await pageIn(t, name, `${buyButton}<div role="dialog" aria-modal="true" style="${cover}"><p>Sie müssen mindestens 18 Jahre alt sein.</p><button onclick="document.body.dataset.age='no'">Nein</button><button onclick="this.parentElement.remove();document.body.dataset.age='yes'">Ja, ich bin über 18</button></div>`);
     if (!setup) return;
 
     assert.equal(await buy(setup.page), true);
@@ -75,7 +81,7 @@ describe('store dialogs in front of the robot', () => {
   });
 
   it('reports a dialog it cannot close as blocking the button, not as a failure of the worker', async (t) => {
-    const setup = await pageWith(t, `${buyButton}<div class="newsletter-popup" style="${cover}"><p>Jetzt anmelden und 10 % sparen</p><button>Anmelden</button></div>`);
+    const setup = await pageIn(t, name, `${buyButton}<div class="newsletter-popup" style="${cover}"><p>Jetzt anmelden und 10 % sparen</p><button>Anmelden</button></div>`);
     if (!setup) return;
 
     const error = await setup.page.locator('button.btn-buy').click({ timeout: 1500 }).catch((caught) => caught);
@@ -87,7 +93,7 @@ describe('store dialogs in front of the robot', () => {
   });
 
   it('waits for a full-screen preloader to disappear', async (t) => {
-    const setup = await pageWith(t, `${buyButton}<div id="preloader" style="${cover}"></div><script>setTimeout(() => document.getElementById('preloader').remove(), 1200)</script>`);
+    const setup = await pageIn(t, name, `${buyButton}<div id="preloader" style="${cover}"></div><script>setTimeout(() => document.getElementById('preloader').remove(), 1200)</script>`);
     if (!setup) return;
 
     const started = Date.now();
@@ -99,7 +105,7 @@ describe('store dialogs in front of the robot', () => {
   });
 
   it('does not wait when the page has no preloader', async (t) => {
-    const setup = await pageWith(t, buyButton);
+    const setup = await pageIn(t, name, buyButton);
     if (!setup) return;
 
     const started = Date.now();
@@ -107,7 +113,8 @@ describe('store dialogs in front of the robot', () => {
 
     assert.ok(Date.now() - started < 1000);
   });
-});
+  });
+}
 
 describe('dialog button labels', () => {
   it('recognises declining and acknowledging labels without matching accept all', () => {

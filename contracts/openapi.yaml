@@ -7571,8 +7571,16 @@ paths:
               additionalProperties: false
               required: [browser_version, location]
               properties:
-                browser_version: {type: string, minLength: 1, maxLength: 100}
+                browser_version: {type: string, minLength: 1, maxLength: 100, description: Chromium version; the only browser of a worker that sends no browser_versions.}
                 location: {type: string, minLength: 1, maxLength: 100}
+                browser_versions:
+                  type: object
+                  additionalProperties: false
+                  description: "Browsers this worker can run (ADR 0087). A run waits for a worker with its browser; after 300 s it is taken in Chromium."
+                  properties:
+                    chromium: {type: string, minLength: 1, maxLength: 100}
+                    firefox: {type: string, minLength: 1, maxLength: 100}
+                    webkit: {type: string, minLength: 1, maxLength: 100}
       responses:
         '200':
           description: New attempt leased; secret token returned once and never logged
@@ -9193,6 +9201,7 @@ components:
         scenario_id: {type: string, format: uuid}
         scenario_version: {type: integer}
         trigger: {enum: [scheduled, manual, incident, support], description: "support: rerun by platform staff for the customer (ADR 0048), not counted against the customer's manual runs"}
+        browser: {enum: [chromium, firefox, webkit], description: "Browser of the run: runs of a scenario take Chrome, Firefox and Safari (WebKit) in turn (ADR 0087)."}
         status: {enum: [queued, running, passed, failed, inconclusive, blocked, unsupported, cancelled]}
         error_code: {type: [string, "null"]}
         scheduled_at: {type: string, format: date-time}
@@ -9269,6 +9278,7 @@ components:
         lease_token: {type: string, minLength: 32}
         lease_until: {type: string, format: date-time}
         absolute_deadline_at: {type: string, format: date-time}
+        browser: {enum: [chromium, firefox, webkit], description: "Browser to run the attempt in; absent for the public storefront check (Chromium)."}
         scenario:
           type: object
           required: [version, adapter_version, mode, store_origin, product_url, cart_url, checkout_url, steps]

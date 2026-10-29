@@ -35,6 +35,14 @@ class CheckRun extends Model
     /** Started by platform staff on behalf of the customer (ADR 0048): never counted against the customer's usage. */
     public const TRIGGER_SUPPORT = 'support';
 
+    public const BROWSER_CHROMIUM = 'chromium';
+
+    public const BROWSER_FIREFOX = 'firefox';
+
+    public const BROWSER_WEBKIT = 'webkit';
+
+    public const BROWSERS = [self::BROWSER_CHROMIUM, self::BROWSER_FIREFOX, self::BROWSER_WEBKIT];
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -52,6 +60,7 @@ class CheckRun extends Model
         'last_fencing_token',
         'next_attempt_at',
         'error_code',
+        'browser',
         'created_at',
     ];
 

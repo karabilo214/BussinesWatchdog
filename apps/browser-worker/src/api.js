@@ -38,8 +38,8 @@ export function createApi({ apiUrl, token, fetchImpl = fetch }) {
   }
 
   return {
-    lease(browserVersion, location) {
-      return call('/internal/v1/browser/leases', { browser_version: browserVersion, location });
+    lease(browserVersion, location, browserVersions = null) {
+      return call('/internal/v1/browser/leases', { browser_version: browserVersion, location, ...(browserVersions ? { browser_versions: browserVersions } : {}) });
     },
     heartbeat(lease) {
       return call(`/internal/v1/browser/attempts/${lease.attempt_id}/heartbeat`, { fencing_token: lease.fencing_token }, { 'X-BW-Lease-Token': lease.lease_token });

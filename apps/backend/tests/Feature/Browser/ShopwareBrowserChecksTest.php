@@ -245,7 +245,7 @@ class ShopwareBrowserChecksTest extends TestCase
 
     private function lease(): TestResponse
     {
-        return $this->worker()->postJson('/internal/v1/browser/leases', ['browser_version' => 'chromium-140', 'location' => 'eu-central']);
+        return $this->worker()->postJson('/internal/v1/browser/leases', ['browser_version' => 'chromium-140', 'location' => 'eu-central', 'browser_versions' => ['chromium' => 'chromium-140', 'firefox' => 'firefox-141', 'webkit' => 'webkit-26']]);
     }
 
     private function worker(): static

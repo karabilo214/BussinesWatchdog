@@ -224,7 +224,7 @@ describe('ScenarioPanel for Shopware (ADR 0055)', () => {
 describe('RunsList', () => {
   it('starts a manual run only when ready and shows run results', async () => {
     mocked.listRuns.mockResolvedValue({
-      data: [{ id: 'run-1', store_id: 's-1', scenario_id: 'sc-1', scenario_version: 2, trigger: 'scheduled', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-10T10:00:00Z', started_at: null, finished_at: '2026-10-10T10:02:00Z' }],
+      data: [{ id: 'run-1', store_id: 's-1', scenario_id: 'sc-1', scenario_version: 2, trigger: 'scheduled', browser: 'webkit', status: 'failed', error_code: 'site_failure', scheduled_at: '2026-10-10T10:00:00Z', started_at: null, finished_at: '2026-10-10T10:02:00Z' }],
       next_cursor: null,
     });
     mocked.startRun.mockResolvedValue({} as never);
@@ -234,6 +234,7 @@ describe('RunsList', () => {
     expect(notReady.findAll('button').find((button) => button.text() === 'Запустить сейчас')!.attributes('disabled')).toBeDefined();
     expect(notReady.get('[data-run-id="run-1"] [data-tone]').attributes('data-tone')).toBe('crit');
     expect(notReady.text()).toContain('Сайт не дал дойти до формы оплаты.');
+    expect(notReady.text()).toContain('по расписанию · Safari (WebKit)');
     notReady.unmount();
 
     const ready = mount(RunsList, { props: { storeId: 's-1', scenario: scenario(), canRun: true, ready: true }, global });

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Internal\Browser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Browser\CompleteAttemptRequest;
 use App\Models\BrowserWorker;
+use App\Models\CheckRun;
 use App\Support\Browser\ArtifactStore;
 use App\Support\Browser\BrowserLeaseService;
 use App\Support\Browser\LeaseConflict;
@@ -26,14 +27,17 @@ class BrowserLeaseController extends Controller
         $validated = $request->validate([
             'browser_version' => ['required', 'string', 'min:1', 'max:100'],
             'location' => ['required', 'string', 'min:1', 'max:100'],
+            'browser_versions' => ['sometimes', 'array:'.implode(',', CheckRun::BROWSERS)],
+            'browser_versions.*' => ['string', 'min:1', 'max:100'],
         ]);
+        $browserVersions = $validated['browser_versions'] ?? [];
 
         $worker = $this->worker($request);
         if ((bool) config('watchdog.public_check.prefer_public_leases') && ! app()->environment('production')) {
             $lease = $this->publicStorefront->lease($worker, $validated['browser_version'], $validated['location'])
-                ?? $this->leases->lease($worker, $validated['browser_version'], $validated['location']);
+                ?? $this->leases->lease($worker, $validated['browser_version'], $validated['location'], $browserVersions);
         } else {
-            $lease = $this->leases->lease($worker, $validated['browser_version'], $validated['location'])
+            $lease = $this->leases->lease($worker, $validated['browser_version'], $validated['location'], $browserVersions)
                 ?? $this->publicStorefront->lease($worker, $validated['browser_version'], $validated['location']);
         }
 
