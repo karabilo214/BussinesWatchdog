@@ -29,3 +29,17 @@ First implementation path:
 3. Durable ingestion slice before broad module generation.
 
 Every task report should include changed behavior, migrations/contracts touched, tests actually run, remaining gaps and traceability to spec/acceptance IDs.
+
+Actions only on the owner's explicit command (agents run without approval prompts on this machine):
+
+- Deploying to production (`infra/production/deploy.sh`, `rollout.sh`) or any change on the production server, including its `.env`.
+- Uploading the WooCommerce plugin to the WordPress.org SVN, or approving a plugin/App version for the cabinet.
+- Changing the owner's legal pages; sending anything to customers, merchants or external services on the owner's behalf.
+
+Working rules (shared with `CLAUDE.md`):
+
+- Talk to the owner in Russian; no code comments unless asked.
+- Backend tests with PHP 8.4 from Homebrew: `cd apps/backend && /opt/homebrew/opt/php@8.4/bin/php artisan test` (the system `php` may be older).
+- Commit and push after a task only when all tests are green; stage explicit paths (another agent may be editing the same tree) and recheck the step number in `docs/progress.md` before adding a step.
+- After a task update `PROJECT_STATE.md` (short) and the area file in `docs/progress/`; owner tasks and their checkboxes live in `docs/backlog.md`; every command, env variable or manual step needed to run or release goes into `docs/ops/`.
+- New financial or business assumptions go into an ADR in `docs/adr/` and are shown to the owner.
