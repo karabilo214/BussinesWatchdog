@@ -261,3 +261,11 @@ Status: complete; production `.env` set, applied by the next deploy. Owner: rais
 - Production `.env`: `BW_BROWSER_WORKERS=3` (replicas of `browser-worker` sharing one token; the backend allows parallel leases per worker, and one active run per store stays enforced). `docs/ops/integrations.md` documents both and the checks after a deploy.
 
 Verification: backend SQLite 864 + 4 skipped.
+
+### Step 318: The robot's browser runs in the store time zone (2026-10-29)
+
+Status: complete locally (backend and worker; not deployed). Investigation on the real Shopware store: its server answers 500 on the mini cart, the cart and the product page once the cart is filled when the `timezone` cookie (written by the Shopware storefront from the browser time zone) is a name its time zone database does not know — `Europe/Kyiv` (renamed 2022; Firefox reports it, Chrome still `Europe/Kiev`) and `Pacific/Kanton`; reproduced in Chrome by setting the cookie. The robot ran in `UTC` and could not see time-zone-dependent behaviour. Owner: run in the store's time zone (the store's customers), not the company's.
+
+- Scenario snapshot carries `timezone` = `stores.timezone`; `runAttempt` opens the context with `timezoneId` = that zone, `UTC` when the name is not a valid IANA zone (`browserTimezone`). OpenAPI lease scenario field.
+
+Verification: worker 60 + 7 skipped (the fake store sees `Europe/Berlin` from `Intl`; invalid name → UTC); backend SQLite 864 + 4 skipped incl. the lease field.

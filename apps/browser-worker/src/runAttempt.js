@@ -56,6 +56,20 @@ const FOCUS = {
   public_checkout: 'main, body',
 };
 
+export function browserTimezone(timezone) {
+  if (typeof timezone !== 'string' || timezone === '') {
+    return 'UTC';
+  }
+
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+
+    return timezone;
+  } catch {
+    return 'UTC';
+  }
+}
+
 export function serverErrorWarnings(serverErrors) {
   return [...new Set(serverErrors.filter((entry) => !entry.document).map((entry) => entry.status))]
     .map((status) => ({ code: 'store_server_error', passed: true, detail_code: `http_${status}` }));
@@ -145,6 +159,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     acceptDownloads: false,
     ignoreHTTPSErrors: insecureLocal,
     locale: 'en-US',
+    timezoneId: browserTimezone(scenario.timezone),
     viewport: { width: 1280, height: 900 },
   });
 

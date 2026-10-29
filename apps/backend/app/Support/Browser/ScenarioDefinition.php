@@ -162,6 +162,7 @@ class ScenarioDefinition
             'cart_url' => $definition['cart_url'] ?? $origin.($shopware ? '/checkout/cart' : '/cart/'),
             'checkout_url' => $definition['checkout_url'] ?? $origin.($shopware ? CheckoutLayout::effective($store)['confirm_path'] : '/checkout/'),
             'synthetic_location' => $definition['synthetic_location'] ?? null,
+            'timezone' => $store->timezone,
             'expect_checkout_script' => $this->expectsCheckoutScript($store, $access),
             'checkout_layout' => $shopware ? (object) CheckoutLayout::custom($store) : null,
             'steps' => $this->steps($store->platform, $access),

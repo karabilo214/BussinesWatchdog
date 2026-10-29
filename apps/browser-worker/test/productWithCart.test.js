@@ -5,7 +5,7 @@ import { after, before, describe, it } from 'node:test';
 import { chromium } from 'playwright';
 
 import { ADAPTER_VERSION } from '../src/adapter/shopware.js';
-import { runAttempt } from '../src/runAttempt.js';
+import { browserTimezone, runAttempt } from '../src/runAttempt.js';
 
 const lineItem = 'a'.repeat(32);
 let browser = null;
@@ -16,7 +16,9 @@ let mode = 'healthy';
 const productPage = `<!doctype html><html><body class="is-ctl-product"><h1>Mark Adams No. 1</h1>
   <form class="buy-widget" onsubmit="return false"><input type="hidden" name="lineItems[${lineItem}][id]" value="${lineItem}">
   <button class="btn-buy" type="button" onclick="fetch('/checkout/line-item/add', { method: 'POST', body: 'x=1' })">In den Warenkorb</button></form>
-  <script>fetch('/widgets/checkout/info')</script></body></html>`;
+  <script>fetch('/widgets/checkout/info'); fetch('/tz?' + Intl.DateTimeFormat().resolvedOptions().timeZone)</script></body></html>`;
+
+let seenTimezone = null;
 
 const errorPage = '<!doctype html><html><body class="is-ctl-error"><header>Tabak Hero</header><main>Leider ist etwas schief gelaufen</main><footer></footer></body></html>';
 
@@ -25,6 +27,9 @@ function handle(request, response) {
 
   if (request.url === '/checkout/line-item/add' && request.method === 'POST') {
     response.writeHead(200, { 'content-type': 'text/html', 'set-cookie': 'cart=1; Path=/' }).end('<div class="offcanvas">ok</div>');
+  } else if (request.url.startsWith('/tz?')) {
+    seenTimezone = request.url.slice(4);
+    response.writeHead(204).end();
   } else if (request.url === '/widgets/checkout/info') {
     response.writeHead(inCart && mode === 'widget_error' ? 500 : 200, { 'content-type': 'text/html' }).end('');
   } else if (request.url === '/product') {
@@ -56,6 +61,7 @@ function lease() {
       platform: 'shopware',
       adapter_version: ADAPTER_VERSION,
       store_origin: origin,
+      timezone: 'Europe/Berlin',
       product_url: `${origin}/product`,
       cart_url: `${origin}/checkout/cart`,
       checkout_url: `${origin}/checkout/confirm`,
@@ -106,5 +112,17 @@ describe('product page opened again with the product in the cart', () => {
     assert.equal(result.status, 'passed');
     assert.deepEqual(result.steps[2].assertions, [{ code: 'product_page_with_cart', passed: true }, { code: 'store_server_error', passed: true, detail_code: 'http_500' }]);
     assert.ok(result.steps[2].network_summary.some((entry) => entry.path === '/widgets/checkout/info' && entry.status === 500));
+  });
+});
+
+describe('the browser of the robot lives in the store time zone', () => {
+  it('uses the store time zone and falls back to UTC for an unknown name', async (t) => {
+    const result = await attempt(t, 'healthy');
+    if (result === null) return;
+
+    assert.equal(seenTimezone, 'Europe/Berlin');
+    assert.equal(browserTimezone('Europe/Kyiv'), 'Europe/Kyiv');
+    assert.equal(browserTimezone('Mars/Olympus_Mons'), 'UTC');
+    assert.equal(browserTimezone(null), 'UTC');
   });
 });

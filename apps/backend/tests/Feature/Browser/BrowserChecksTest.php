@@ -147,6 +147,7 @@ class BrowserChecksTest extends TestCase
         $this->assertSame(['product', 'add_to_cart', 'product_again', 'cart', 'checkout', 'shipping', 'payment_form'], array_column($lease->json('scenario.steps'), 'code'));
         $this->assertSame(['https://shop.example.test'], $lease->json('network_policy.allowed_origins'));
         $this->assertFalse($lease->json('network_policy.payment_providers'));
+        $this->assertSame($context['store']->timezone, $lease->json('scenario.timezone'));
         $attempt = CheckAttempt::query()->sole();
         $this->assertSame(hash('sha256', $lease->json('lease_token')), $attempt->lease_token_hash);
         $this->assertStringNotContainsString($lease->json('lease_token'), json_encode($attempt->toArray()));

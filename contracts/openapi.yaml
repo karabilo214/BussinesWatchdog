@@ -9304,6 +9304,7 @@ components:
               properties:
                 email: {type: string}
                 password: {type: string}
+            timezone: {type: string, description: "IANA time zone of the store; the browser of the attempt runs in it (UTC when unknown)."}
             synthetic_location:
               type: [object, 'null']
               properties:
