@@ -121,7 +121,7 @@ class ScenarioDefinition
         if ($platform === 'shopware') {
             return $access === CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN
                 ? ['payment_methods_stop_before_sign_in', 'redirect_gateways']
-                : ['provider_forms_shopware', 'redirect_gateways'];
+                : [($definition['load_payment_providers'] ?? false) ? 'provider_form_fields_shopware' : 'provider_forms_not_loaded', 'redirect_gateways'];
         }
 
         return [

@@ -234,3 +234,11 @@ Status: complete locally (worker only; not deployed). Owner: blocking every thir
 - `networkPolicy.decide` for connected stores: trackers → `quiet`; providers without the setting → blocked for every method (reads too), with it → reads only (`provider_write`); other public third-party hosts → reads allowed, writes `third_party_write`, money-looking paths `payment_capture`; IP literals, `localhost` and internal/reserved suffixes are never third-party reads; main-page navigation to another origin stays blocked. `wc-ajax=ppc-*` (PayPal Payments client token, simulated cart) only with the setting. Public storefront check: trackers dropped, otherwise unchanged.
 
 Verification: worker 56 + 7 skipped on the Mac, 63/63 in the worker image under the production limits (all three browsers); new policy tests (widgets readable, writes blocked, eleven tracker URLs quiet incl. path-only `facebook.com/tr`, the store never a tracker, eleven provider URLs incl. an unknown PSP blocked without the setting and read-only with it, IP/internal hosts refused, PayPal Payments routes only with the setting). Live product page of the real store with the new policy (load and trial click only): Doofinder and Trusted Shops widgets loaded, Contentsquare dropped, PayPal SDK blocked, two Doofinder POSTs blocked, «In den Warenkorb» clickable. Backend SQLite 863 + 4 skipped.
+
+### Step 315: Shopware «not covered» item follows the full payment-form setting (2026-10-29)
+
+Status: complete locally (backend and customer cabinet; not deployed). Owner: with «Check payment forms fully» on, the Shopware item «the check does not open provider forms» was wrong, and with it off the merchant was not told it can be checked.
+
+- Shopware guest/test customer: setting off → `provider_forms_not_loaded` (same as WooCommerce: names the setting to turn on); on → `provider_form_fields_shopware` (forms of the providers are loaded and payment methods and the order button work; form fields are not checked or filled). `provider_forms_shopware` removed. Novalnet named in the texts (ru/en/de).
+
+Verification: `ShopwareBrowserChecksTest` 4/4 (both lists), backend SQLite full run, customer 224 tests.

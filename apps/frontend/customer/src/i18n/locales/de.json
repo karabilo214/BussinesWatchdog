@@ -1735,9 +1735,9 @@
     "untested": {
       "payment_methods_stop_before_sign_in": "Zahlungsarten: Der Weg «Vor der Anmeldung anhalten» ist gewählt, daher erreicht die Prüfung nur die Anmeldeseite. Um Zahlungsarten zu prüfen, wählen Sie Gast oder Testkunde",
       "shipping_required_before_payment": "Zahlungsarten, die der Shop erst nach Eingabe einer Adresse zeigt: Geben Sie Lieferland und Postleitzahl unter «Erweitert» an",
-      "provider_forms_not_loaded": "Zahlungsformulare von Stripe, PayPal und anderen Anbietern: Die Prüfung sieht die Zahlungsarten, lädt aber deren Formulare nicht. Aktivieren Sie «Zahlungsformulare vollständig prüfen» unter «Erweitert»",
+      "provider_forms_not_loaded": "Zahlungsformulare von Stripe, PayPal, Novalnet und anderen Anbietern: Die Prüfung sieht die Zahlungsarten, lädt aber deren Formulare nicht. Aktivieren Sie «Zahlungsformulare vollständig prüfen» unter «Erweitert»",
       "provider_form_contents": "Felder im Formular des Anbieters (Kartennummer usw.): Die Prüfung sieht, dass das Formular erschienen ist, füllt es aber nicht aus",
-      "provider_forms_shopware": "Zahlungsformulare von Stripe, PayPal und anderen Anbietern: Die Prüfung sieht, dass die Zahlungsarten verfügbar sind, öffnet aber deren Formulare nicht",
+      "provider_form_fields_shopware": "Felder in den Formularen der Anbieter (Kartennummer usw.): Die Prüfung lädt die Formulare von Stripe, PayPal, Novalnet und anderen Anbietern und sieht, dass Zahlungsarten und Bestellbutton funktionieren, prüft und füllt die Formularfelder aber nicht",
       "redirect_gateways": "die Zahlung selbst: Die Prüfung klickt nie auf «Bezahlen», daher werden die Weiterleitung zum Zahlungsanbieter (PayPal, Klarna usw.) und die Abbuchung nicht geprüft"
     },
     "runs": {

@@ -72,7 +72,7 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form']);
         $this->assertStringNotContainsString(self::PASSWORD, $saved->getContent());
         $this->assertStringNotContainsString('check@shop.example.test', $saved->getContent());
-        $this->assertSame(['provider_forms_shopware', 'redirect_gateways'], $saved->json('untested_components'));
+        $this->assertSame(['provider_forms_not_loaded', 'redirect_gateways'], $saved->json('untested_components'));
         $stored = CheckScenario::query()->sole();
         $this->assertNotNull($stored->sign_in_ciphertext);
         $this->assertStringNotContainsString(self::PASSWORD, $stored->sign_in_ciphertext);
@@ -93,6 +93,9 @@ class ShopwareBrowserChecksTest extends TestCase
 
         $this->asOwner($context)->withHeader('If-Match', '"4"')->patchJson($scenarioUrl, ['checkout_access' => 'test_customer'])
             ->assertStatus(422)->assertJsonPath('code', 'sign_in_required');
+
+        $this->asOwner($context)->withHeader('If-Match', '"4"')->patchJson($scenarioUrl, ['load_payment_providers' => true])
+            ->assertOk()->assertJsonPath('untested_components', ['provider_form_fields_shopware', 'redirect_gateways']);
     }
 
     public function test_only_platforms_with_an_adapter_can_have_a_check_and_only_shopware_takes_a_way_to_payment(): void

@@ -1735,9 +1735,9 @@
     "untested": {
       "payment_methods_stop_before_sign_in": "payment methods: the path «Stop before signing in» is selected, so the check only reaches the sign-in page. To check payment methods, choose guest or test customer",
       "shipping_required_before_payment": "payment methods the store shows only after an address is entered: set the shipping country and postcode under «Advanced»",
-      "provider_forms_not_loaded": "payment forms of Stripe, PayPal and other providers: the check sees the payment methods but does not load their forms. Turn on «Check payment forms fully» under «Advanced»",
+      "provider_forms_not_loaded": "payment forms of Stripe, PayPal, Novalnet and other providers: the check sees the payment methods but does not load their forms. Turn on «Check payment forms fully» under «Advanced»",
       "provider_form_contents": "fields inside the provider form (card number etc.): the check sees that the form appeared but does not fill it in",
-      "provider_forms_shopware": "payment forms of Stripe, PayPal and other providers: the check sees that the payment methods are available but does not open their forms",
+      "provider_form_fields_shopware": "fields inside the provider forms (card number etc.): the check loads the forms of Stripe, PayPal, Novalnet and other providers and sees that the payment methods and the order button work, but does not check or fill in the form fields",
       "redirect_gateways": "the payment itself: the check never presses «Pay», so the redirect to the payment provider (PayPal, Klarna etc.) and the charge are not checked"
     },
     "runs": {
