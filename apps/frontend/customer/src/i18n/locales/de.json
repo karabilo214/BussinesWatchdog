@@ -1679,7 +1679,7 @@
       "disabled": "deaktiviert",
       "none": "Noch kein Szenario eingerichtet.",
       "product_url": "Seite des Testprodukts",
-      "product_hint": "Ein einfaches, vorrätiges Produkt auf der Shop-Domain (https://). Es wird in den Warenkorb gelegt, aber nie gekauft.",
+      "product_hint": "Ein lieferbares Produkt auf der Shop-Domain (https://). Bei einem Produkt mit Varianten (Größe, Farbe) wählt die Prüfung die erste verfügbare. Es wird in den Warenkorb gelegt, aber nicht gekauft.",
       "cart_url": "Warenkorbseite",
       "checkout_url": "Kassenseite",
       "auto": "wird automatisch ermittelt",
@@ -1733,11 +1733,12 @@
       "custom": "alle {n} Min."
     },
     "untested": {
-      "variable_products": "Produkte mit Varianten (Größe, Farbe)",
-      "shipping_required_before_payment": "Shops, die Zahlungsarten erst nach der Versandwahl zeigen",
-      "third_party_gateway_iframes": "Inhalte von Zahlungsformularen in externen Frames",
-      "redirect_gateways": "Zahlungen mit Weiterleitung zur Website des Anbieters",
-      "payment_methods_after_sign_in": "Zahlungsarten (erst nach Anmeldung oder Registrierung sichtbar)"
+      "payment_methods_stop_before_sign_in": "Zahlungsarten: Der Weg «Vor der Anmeldung anhalten» ist gewählt, daher erreicht die Prüfung nur die Anmeldeseite. Um Zahlungsarten zu prüfen, wählen Sie Gast oder Testkunde",
+      "shipping_required_before_payment": "Zahlungsarten, die der Shop erst nach Eingabe einer Adresse zeigt: Geben Sie Lieferland und Postleitzahl unter «Erweitert» an",
+      "provider_forms_not_loaded": "Zahlungsformulare von Stripe, PayPal und anderen Anbietern: Die Prüfung sieht die Zahlungsarten, lädt aber deren Formulare nicht. Aktivieren Sie «Zahlungsformulare vollständig prüfen» unter «Erweitert»",
+      "provider_form_contents": "Felder im Formular des Anbieters (Kartennummer usw.): Die Prüfung sieht, dass das Formular erschienen ist, füllt es aber nicht aus",
+      "provider_forms_shopware": "Zahlungsformulare von Stripe, PayPal und anderen Anbietern: Die Prüfung sieht, dass die Zahlungsarten verfügbar sind, öffnet aber deren Formulare nicht",
+      "redirect_gateways": "die Zahlung selbst: Die Prüfung klickt nie auf «Bezahlen», daher werden die Weiterleitung zum Zahlungsanbieter (PayPal, Klarna usw.) und die Abbuchung nicht geprüft"
     },
     "runs": {
       "title": "Verlauf der Prüfungen",

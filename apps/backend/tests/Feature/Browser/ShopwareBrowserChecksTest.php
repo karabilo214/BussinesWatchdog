@@ -55,8 +55,7 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertJsonPath('checkout_access', CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN)
             ->assertJsonPath('sign_in_configured', false)
             ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout']);
-        $this->assertContains('payment_methods_after_sign_in', $created->json('untested_components'));
-        $this->assertContains('shipping_required_before_payment', $created->json('untested_components'));
+        $this->assertSame(['payment_methods_stop_before_sign_in', 'redirect_gateways'], $created->json('untested_components'));
         $scenarioUrl = '/api/v1/scenarios/'.$created->json('id');
 
         $this->asOwner($context)->withHeader('If-Match', '"1"')->patchJson($scenarioUrl, ['checkout_access' => 'test_customer'])
@@ -73,8 +72,7 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form']);
         $this->assertStringNotContainsString(self::PASSWORD, $saved->getContent());
         $this->assertStringNotContainsString('check@shop.example.test', $saved->getContent());
-        $this->assertNotContains('payment_methods_after_sign_in', $saved->json('untested_components'));
-        $this->assertNotContains('shipping_required_before_payment', $saved->json('untested_components'));
+        $this->assertSame(['provider_forms_shopware', 'redirect_gateways'], $saved->json('untested_components'));
         $stored = CheckScenario::query()->sole();
         $this->assertNotNull($stored->sign_in_ciphertext);
         $this->assertStringNotContainsString(self::PASSWORD, $stored->sign_in_ciphertext);

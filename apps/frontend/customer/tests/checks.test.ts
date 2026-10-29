@@ -38,7 +38,7 @@ function scenario(overrides: Partial<CheckScenario> = {}): CheckScenario {
     extra_allowed_origins: [], load_payment_providers: false, synthetic_location: null, platform: 'woocommerce', checkout_access: null, sign_in_configured: false,
     interval_seconds: 900, next_due_at: '2026-10-10T10:15:00Z',
     supported_steps: ['product', 'add_to_cart', 'cart', 'checkout', 'shipping', 'payment_form'],
-    untested_components: ['variable_products', 'shipping_required_before_payment', 'third_party_gateway_iframes', 'redirect_gateways'],
+    untested_components: ['shipping_required_before_payment', 'provider_forms_not_loaded', 'redirect_gateways'],
     ...overrides,
   };
 }
@@ -133,7 +133,8 @@ describe('ScenarioPanel', () => {
     const wrapper = mount(ScenarioPanel, { props: { store: verifiedStore(), scenario: scenario(), canManage: false }, global });
 
     expect(wrapper.text()).toContain('форма оплаты');
-    expect(wrapper.text()).toContain('товары с вариантами');
+    expect(wrapper.text()).toContain('не загружает их формы');
+    expect(wrapper.text()).not.toContain('товары с вариантами');
     expect(wrapper.text()).toContain('не создаёт заказ');
     expect(wrapper.text()).toContain('каждые 15 минут');
     expect(wrapper.findAll('button')).toHaveLength(0);

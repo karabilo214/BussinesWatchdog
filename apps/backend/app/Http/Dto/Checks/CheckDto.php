@@ -44,7 +44,7 @@ class CheckDto
             'interval_seconds' => $scenario->interval_seconds,
             'next_due_at' => $scenario->next_due_at?->toJSON(),
             'supported_steps' => array_column($scenarios->steps($store->platform, $access), 'code'),
-            'untested_components' => $scenarios->untestedComponents($store->platform, $access),
+            'untested_components' => $scenarios->untestedComponents($store->platform, $access, $definition),
         ];
     }
 

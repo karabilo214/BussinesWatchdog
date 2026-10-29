@@ -113,19 +113,22 @@ class ScenarioDefinition
     }
 
     /**
+     * @param  array<string, mixed>  $definition
      * @return list<string>
      */
-    public function untestedComponents(string $platform = 'woocommerce', ?string $access = null): array
+    public function untestedComponents(string $platform = 'woocommerce', ?string $access = null, array $definition = []): array
     {
-        $common = ['variable_products', 'third_party_gateway_iframes', 'redirect_gateways'];
-
         if ($platform === 'shopware') {
             return $access === CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN
-                ? ['payment_methods_after_sign_in', 'shipping_required_before_payment', ...$common]
-                : $common;
+                ? ['payment_methods_stop_before_sign_in', 'redirect_gateways']
+                : ['provider_forms_shopware', 'redirect_gateways'];
         }
 
-        return ['shipping_required_before_payment', ...$common];
+        return [
+            ...(empty($definition['synthetic_location']) ? ['shipping_required_before_payment'] : []),
+            ($definition['load_payment_providers'] ?? false) ? 'provider_form_contents' : 'provider_forms_not_loaded',
+            'redirect_gateways',
+        ];
     }
 
     /**

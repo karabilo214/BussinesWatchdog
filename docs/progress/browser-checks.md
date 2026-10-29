@@ -187,3 +187,12 @@ Status: complete locally (worker, backend, both panels; no migration). Owner rep
 - A click intercepted by an element the robot could not close is `blocked / blocking_overlay` (`overlay_intercepts_click`) instead of «our failure»: new code in `CheckOutcomePolicy::ERROR_CODES`, final without retries, info incident `CHECKOUT_MONITORING_BLOCKED` (texts in ru/en/de mention site dialogs). TZ §18 error list updated.
 
 Verification: worker `npm test` 40/40 incl. `test/interruptions.test.js` on real Chromium (NetzP gate, classic Shopware bar picks «necessary», unknown consent dialog picks «reject» over «accept all», generic age dialog never answers «no», unclosable newsletter popup → `blocking_overlay`, preloader waited for, no wait without one; label regexes); the browser tests skip where Chromium is not installed (CI). Backend SQLite 860 + 4 skipped incl. the new blocked-run test; customer 219, owner panel 113 tests. Live: a local run on the real store's product page with the new handlers — both dialogs closed, a trial click on «In den Warenkorb» passes (no cart action). Not deployed; the next manual check on the store after the release shows whether the full path reaches the payment form.
+
+### Step 310: «What this check does not cover» follows the scenario settings (2026-10-29)
+
+Status: complete locally (backend and customer cabinet; no migration). Owner: the block on the real Shopware store's checks page did not match reality.
+
+- `ScenarioDefinition::untestedComponents` now depends on the platform, the Shopware checkout path and the scenario definition. Shopware «stop before sign-in» → payment methods (with what to change) and the payment itself; Shopware guest/test customer → provider forms are not opened (the Shopware adapter only lists payment methods) and the payment itself; WooCommerce → «address-dependent payment methods» only while no shipping country/postcode is set, «provider forms not loaded» or, with «Check payment forms fully», «fields inside the provider form are not filled», and the payment itself.
+- Removed the false items: products with variants (WooCommerce picks the first available variation, a Shopware variant has its own buyable page), «shipping before payment» on Shopware (the adapter selects shipping) and in the stop-before-sign-in mode. The product hint no longer asks for a simple product. Texts ru/en/de.
+
+Verification: `BrowserChecksTest` and `ShopwareBrowserChecksTest` assert the exact lists for each setting; backend SQLite 860 + 4 skipped; customer 219 tests and types.

@@ -117,11 +117,13 @@ class BrowserChecksTest extends TestCase
     {
         $context = $this->checkContext();
         $created = $this->asOwner($context)->postJson("/api/v1/stores/{$context['store']->id}/scenarios", ['product_url' => 'https://shop.example.test/product/x'])
-            ->assertCreated()->assertJsonPath('load_payment_providers', false);
+            ->assertCreated()->assertJsonPath('load_payment_providers', false)
+            ->assertJsonPath('untested_components', ['shipping_required_before_payment', 'provider_forms_not_loaded', 'redirect_gateways']);
         $this->asOwner($context)->withHeader('If-Match', '"1"')->patchJson('/api/v1/scenarios/'.$created->json('id'), ['load_payment_providers' => 'yes'])
             ->assertStatus(422);
-        $this->asOwner($context)->withHeader('If-Match', '"1"')->patchJson('/api/v1/scenarios/'.$created->json('id'), ['load_payment_providers' => true, 'enabled' => true])
-            ->assertOk()->assertJsonPath('load_payment_providers', true);
+        $this->asOwner($context)->withHeader('If-Match', '"1"')->patchJson('/api/v1/scenarios/'.$created->json('id'), ['load_payment_providers' => true, 'enabled' => true, 'synthetic_location' => ['country' => 'DE', 'postcode' => '10115']])
+            ->assertOk()->assertJsonPath('load_payment_providers', true)
+            ->assertJsonPath('untested_components', ['provider_form_contents', 'redirect_gateways']);
         CheckScenario::query()->whereKey($created->json('id'))->update(['next_due_at' => now()]);
         app(CheckScheduler::class)->scheduleDue();
 
