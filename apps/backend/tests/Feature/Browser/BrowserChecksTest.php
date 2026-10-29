@@ -144,7 +144,7 @@ class BrowserChecksTest extends TestCase
         $this->assertSame(1, $lease->json('fencing_token'));
         $this->assertSame($context['store']->id, $lease->json('store_id'));
         $this->assertSame('payment_form', $lease->json('scenario.mode'));
-        $this->assertSame(['product', 'add_to_cart', 'cart', 'checkout', 'shipping', 'payment_form'], array_column($lease->json('scenario.steps'), 'code'));
+        $this->assertSame(['product', 'add_to_cart', 'product_again', 'cart', 'checkout', 'shipping', 'payment_form'], array_column($lease->json('scenario.steps'), 'code'));
         $this->assertSame(['https://shop.example.test'], $lease->json('network_policy.allowed_origins'));
         $this->assertFalse($lease->json('network_policy.payment_providers'));
         $attempt = CheckAttempt::query()->sole();
@@ -220,7 +220,7 @@ class BrowserChecksTest extends TestCase
 
         $run = CheckRun::query()->sole();
         $this->assertSame(CheckRun::STATUS_PASSED, $run->status);
-        $this->assertSame(6, CheckAttempt::query()->sole()->steps()->count());
+        $this->assertSame(7, CheckAttempt::query()->sole()->steps()->count());
     }
 
     public function test_two_site_failures_confirm_one_checkout_incident_and_one_is_retried(): void
@@ -634,7 +634,7 @@ class BrowserChecksTest extends TestCase
     {
         $steps = [];
 
-        foreach (['product', 'add_to_cart', 'cart', 'checkout', 'shipping', 'payment_form'] as $index => $code) {
+        foreach (['product', 'add_to_cart', 'product_again', 'cart', 'checkout', 'shipping', 'payment_form'] as $index => $code) {
             $steps[] = [
                 'index' => $index,
                 'code' => $code,

@@ -242,3 +242,13 @@ Status: complete locally (backend and customer cabinet; not deployed). Owner: wi
 - Shopware guest/test customer: setting off → `provider_forms_not_loaded` (same as WooCommerce: names the setting to turn on); on → `provider_form_fields_shopware` (forms of the providers are loaded and payment methods and the order button work; form fields are not checked or filled). `provider_forms_shopware` removed. Novalnet named in the texts (ru/en/de).
 
 Verification: `ShopwareBrowserChecksTest` 4/4 (both lists), backend SQLite full run, customer 224 tests.
+
+### Step 316: Product page with the item in the cart, and store server errors on the way (ADR 0089) (2026-10-29)
+
+Status: complete locally (backend, worker, customer cabinet; no migration; not deployed). Owner found on the real Shopware store that the product page answers 500 once the product is in the cart (any session and browser); the check never opened the product page with a filled cart. Checked: none of the store's 19 runs recorded a 4xx/5xx — the request was never made.
+
+- `product_again` step after `add_to_cart` in every scenario (`ScenarioDefinition::steps`), `productWithCart` in `adapter/common.js` used by the Shopware and WooCommerce adapters: 4xx/5xx → `site_failure / product_page_fails_with_cart`, no buy button or sold-out notice → `product_page_broken_with_cart`.
+- `runAttempt`: first-party 5xx of documents and XHR/fetch are tracked per step; an inconclusive step whose main page answered 5xx becomes `site_failure / page_http_<status>`; a passing step with a failed request gets the warning `store_server_error / http_<status>`.
+- Labels and texts ru/en/de (cabinet step name, failure reasons, warning; notification step name); the run page shows warnings under passed steps.
+
+Verification: `test/productWithCart.test.js` runs the real `runAttempt` with the network policy against a local Shopware-like store: product page 500 with the cart cookie («Leider ist etwas schief gelaufen») → `failed / site_failure`, step `product_again` with `product_page_fails_with_cart`; healthy store → passed; `/widgets/checkout/info` 500 → passed with the warning and the request in the network summary. Worker 66/66 in the worker image under the production limits (all three browsers); backend SQLite 864 + 4 skipped, Pint; customer 227 tests and types. Live run on the real store after the release.

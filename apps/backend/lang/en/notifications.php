@@ -240,6 +240,7 @@ return [
     'check_step' => [
         'product' => 'product page',
         'add_to_cart' => 'add to cart',
+        'product_again' => 'product page with the item in the cart',
         'cart' => 'cart',
         'checkout' => 'checkout',
         'shipping' => 'address and shipping',

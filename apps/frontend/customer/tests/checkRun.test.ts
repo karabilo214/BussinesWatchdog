@@ -49,6 +49,32 @@ describe('check run', () => {
     expect(wrapper.get('[data-step="cart"]').find('[data-skip-reason]').exists()).toBe(false);
   });
 
+  it('names a product page that fails with the product in the cart and warns about server errors on the way', async () => {
+    setLocale('ru');
+    const failed = { ...step(2, 'product_again', 'failed', [{ code: 'product_again_check', passed: false, detail_code: 'product_page_fails_with_cart' }]), error_code: 'site_failure' };
+    const warned = step(1, 'add_to_cart', 'passed', [{ code: 'add_to_cart_submitted', passed: true }, { code: 'store_server_error', passed: true, detail_code: 'http_500' }]);
+    const run: CheckRunDetail = {
+      id: 'r-3', store_id: 's-1', scenario_id: 'sc-1', scenario_version: 1, trigger: 'manual', status: 'failed', error_code: 'site_failure',
+      scheduled_at: '2026-10-20T10:00:00Z', started_at: '2026-10-20T10:00:00Z', finished_at: '2026-10-20T10:01:00Z',
+      attempts: [{
+        id: 'a-3', attempt_number: 1, status: 'failed', error_code: 'site_failure', location: 'eu-de', browser_version: 'firefox-141.0', started_at: '2026-10-20T10:00:00Z', finished_at: '2026-10-20T10:01:00Z',
+        diagnostics: null, artifacts: [],
+        steps: [step(0, 'product', 'passed'), warned, failed],
+      }],
+    };
+    vi.mocked(checks.getRun).mockResolvedValue(run);
+    const router = createRouter({ history: createMemoryHistory('/app/'), routes: ['overview', 'checks', 'profile', 'incidents', 'reconciliation', 'notifications', 'login'].map((name) => ({ path: `/${name}`, name, component: { template: '<div />' } })) });
+    await router.push('/checks');
+
+    const wrapper = mount(CheckRunView, { props: { id: 'r-3' }, global: { plugins: [localization, router], stubs: { RouterLink: RouterLinkStub } } });
+    await flushPromises();
+
+    expect(wrapper.get('[data-step="product_again"]').text()).toContain('страница товара с товаром в корзине');
+    expect(wrapper.get('[data-step="product_again"] [data-failure-reason]').text()).toContain('когда этот товар уже лежит в корзине');
+    expect(wrapper.get('[data-step="add_to_cart"] [data-step-warning]').text()).toContain('ошибкой сервера (500)');
+    expect(wrapper.get('[data-step="product"]').find('[data-step-warning]').exists()).toBe(false);
+  });
+
   it('names the cause when the payment provider rejected the store key', async () => {
     setLocale('en');
     const failed = { ...step(1, 'payment_form', 'failed', [{ code: 'payment_form_check', passed: false, detail_code: 'payment_provider_rejected' }]), error_code: 'site_failure' };

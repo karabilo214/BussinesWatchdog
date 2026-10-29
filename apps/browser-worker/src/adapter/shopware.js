@@ -1,4 +1,4 @@
-import { PRODUCT, SITE, StepOutcome, UNSUPPORTED, navigate, present, visible } from './common.js';
+import { PRODUCT, SITE, StepOutcome, UNSUPPORTED, navigate, present, productWithCart, visible } from './common.js';
 import { displayedMinor, sameProductPath } from './cartAssertions.js';
 
 export const ADAPTER_VERSION = 'shopware-payment-form@1';
@@ -137,6 +137,7 @@ export function createShopwareAdapter() {
     focus: {
       product: '.product-detail-buy, .product-detail',
       add_to_cart: '.offcanvas, .product-detail-buy',
+      product_again: '.product-detail-buy, .product-detail',
       cart: '.checkout-main, .cart-table',
       checkout: '.checkout-main, form.register-form',
       sign_in: 'form.login-form, .checkout-main',
@@ -202,6 +203,10 @@ export function createShopwareAdapter() {
       }
 
       return [{ code: 'add_to_cart_submitted', passed: true }];
+    },
+
+    product_again(page, step, context) {
+      return productWithCart(page, step, context, `${SELECTORS.buyButton}, ${SELECTORS.soldOut}`);
     },
 
     async cart(page, step, context) {

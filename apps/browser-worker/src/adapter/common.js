@@ -71,3 +71,23 @@ export async function waitForPreloader(page, timeout) {
     return true;
   }, PRELOADER.source, { timeout, polling: 250 }).catch(() => null);
 }
+
+export async function productWithCart(page, step, context, ready) {
+  const response = await navigate(page, context.scenario.product_url, step.timeout_ms, context).catch((error) => {
+    if (error instanceof StepOutcome && error.errorCode === 'site_failure' && /^http_5\d\d$/.test(error.detailCode)) {
+      throw SITE('product_page_fails_with_cart');
+    }
+
+    throw error;
+  });
+
+  if (response && response.status() >= 400) {
+    throw SITE('product_page_fails_with_cart');
+  }
+
+  if (!(await visible(page, ready, step.timeout_ms))) {
+    throw SITE('product_page_broken_with_cart');
+  }
+
+  return [{ code: 'product_page_with_cart', passed: true }];
+}

@@ -47,6 +47,7 @@ export const SCREENSHOT_MASK = [
 
 const FOCUS = {
   product: 'form.cart, .product',
+  product_again: 'form.cart, .product',
   add_to_cart: '.woocommerce-error, .woocommerce-notices-wrapper, form.cart',
   cart: '.woocommerce-cart-form, .wp-block-woocommerce-cart, .cart-empty',
   checkout: 'form.checkout, .wp-block-woocommerce-checkout, .woocommerce-error',
@@ -54,6 +55,11 @@ const FOCUS = {
   public_home: 'body',
   public_checkout: 'main, body',
 };
+
+export function serverErrorWarnings(serverErrors) {
+  return [...new Set(serverErrors.filter((entry) => !entry.document).map((entry) => entry.status))]
+    .map((status) => ({ code: 'store_server_error', passed: true, detail_code: `http_${status}` }));
+}
 
 export function createErrorLog() {
   const entries = new Map();
@@ -118,6 +124,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
     lineItemId: null,
     signedIn: false,
     network: [],
+    serverErrors: [],
     async detectWaf(page, response) {
       if (!response || ![403, 429, 503].includes(response.status())) {
         return;
@@ -262,6 +269,10 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
         errors.add({ type: 'provider_rejected', party, origin, path, status: response.status(), step_code: state.stepCode ?? 'setup', cause_code: 'server_response' });
       }
 
+      if (response.status() >= 500 && party === 'first' && ['document', 'xhr', 'fetch'].includes(request.resourceType()) && state.serverErrors.length < 10) {
+        state.serverErrors.push({ status: response.status(), document: request.resourceType() === 'document' && request.frame() === page.mainFrame() });
+      }
+
       if (response.status() >= 500 && party !== 'third') {
         errors.add({ type: 'http_5xx', party, origin, path, status: response.status(), step_code: state.stepCode ?? 'setup', cause_code: 'server_response' });
       } else if (scenario.platform === 'public' && response.status() >= 400 && response.status() < 500 && party === 'first' && ['script', 'stylesheet'].includes(request.resourceType())) {
@@ -304,6 +315,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
 
       state.stepCode = step.code;
       state.network = [];
+      state.serverErrors = [];
       state.blockedUnknownMutation = false;
       const handler = adapter[step.code];
       const timeout = Math.min(step.timeout_ms ?? 20000, remaining);
@@ -320,7 +332,7 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
         }
 
         const skipped = outcome && !Array.isArray(outcome) && outcome.skipped;
-        const assertions = Array.isArray(outcome) ? outcome : (outcome?.assertions ?? []);
+        const assertions = [...(Array.isArray(outcome) ? outcome : (outcome?.assertions ?? [])), ...serverErrorWarnings(state.serverErrors)];
         const failedAssertion = assertions.find((assertion) => assertion.passed === false);
         if (failedAssertion) {
           const assertionFailure = new StepOutcome('inconclusive', 'selector_changed', failedAssertion.detail_code ?? failedAssertion.code);
@@ -338,6 +350,11 @@ export async function runAttempt({ browser, lease, insecureLocal = false, now = 
         }
       } catch (error) {
         let outcome = error instanceof StepOutcome ? error : (interceptedOutcome(error) ?? new StepOutcome('inconclusive', 'infra_timeout', 'worker_exception'));
+        const failedPage = state.serverErrors.find((entry) => entry.document);
+
+        if (failedPage && outcome.status === 'inconclusive' && ['selector_changed', 'infra_timeout'].includes(outcome.errorCode)) {
+          outcome = new StepOutcome('failed', 'site_failure', `page_http_${failedPage.status}`);
+        }
 
         if (outcome.errorCode === 'site_failure' && state.blockedUnknownMutation) {
           outcome = new StepOutcome('unsupported', 'adapter_unsupported', 'blocked_unknown_mutation');

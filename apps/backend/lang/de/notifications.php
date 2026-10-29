@@ -240,6 +240,7 @@ return [
     'check_step' => [
         'product' => 'Produktseite',
         'add_to_cart' => 'In den Warenkorb',
+        'product_again' => 'Produktseite mit dem Artikel im Warenkorb',
         'cart' => 'Warenkorb',
         'checkout' => 'Kasse',
         'shipping' => 'Adresse und Versand',

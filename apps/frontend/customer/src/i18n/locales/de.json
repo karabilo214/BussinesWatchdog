@@ -1024,6 +1024,7 @@
       "step": {
         "product": "Produktseite",
         "add_to_cart": "In den Warenkorb",
+        "product_again": "Produktseite mit dem Artikel im Warenkorb",
         "cart": "Warenkorb",
         "checkout": "Kasse",
         "shipping": "Versanddaten",
@@ -1091,6 +1092,7 @@
       "check_step": {
         "product": "Produktseite",
         "add_to_cart": "In den Warenkorb",
+        "product_again": "Produktseite mit dem Artikel im Warenkorb",
         "cart": "Warenkorb",
         "checkout": "Kasse",
         "shipping": "Adresse und Versand",
@@ -1637,8 +1639,16 @@
   },
   "checks": {
     "failure_reason": {
+      "product_page_fails_with_cart": "Die Produktseite öffnet sich nicht mehr, sobald dieses Produkt im Warenkorb liegt: Der Server antwortet mit einem Fehler. Wer zum Produkt zurückkehrt, sieht eine Fehlerseite.",
+      "product_page_broken_with_cart": "Die Produktseite mit dem Artikel im Warenkorb öffnete sich ohne Kaufen-Button: Der Kunde kann kein weiteres Stück hinzufügen.",
+      "page_http_500": "Die Seite öffnete sich nicht: Der Shop-Server antwortete mit einem Fehler.",
+      "page_http_502": "Die Seite öffnete sich nicht: Der Shop-Server antwortete mit einem Fehler.",
+      "page_http_503": "Die Seite öffnete sich nicht: Der Shop-Server antwortete mit einem Fehler.",
       "payment_provider_rejected": "Der Zahlungsanbieter hat den Schlüssel Ihres Shops abgelehnt: Kunden sehen einen Fehler statt des Zahlungsformulars. Prüfen Sie die API-Schlüssel in den Einstellungen des Zahlungs-Plugins.",
       "no_payment_methods": "Die Kassenseite zeigt keine Zahlungsart: Kunden können nicht bezahlen."
+    },
+    "warning": {
+      "store_server_error": "Der Shop hat eine Anfrage dieses Schritts mit einem Serverfehler ({code}) beantwortet. Der Weg ist bestanden, aber ein Teil der Seite funktioniert für Kunden womöglich nicht — prüfen Sie das Fehlerprotokoll des Shops."
     },
     "skip_reason": {
       "payment_methods_not_verified": "Der Weg bis zur Zahlungsseite ist bestanden. Die Formulare der Zahlungsanbieter (Stripe, PayPal, Novalnet usw.) hat die Prüfung nicht geladen und das Zahlungsformular selbst daher nicht geprüft. Um es ebenfalls zu prüfen, aktivieren Sie «Zahlungsformulare vollständig prüfen» unter «Erweitert» in den Prüfeinstellungen.",

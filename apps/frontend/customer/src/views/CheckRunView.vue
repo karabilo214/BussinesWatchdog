@@ -154,6 +154,9 @@ onBeforeUnmount(() => {
                 <template v-for="assertion in step.status === 'skipped' ? (step.assertions ?? []) : []" :key="assertion.code">
                   <span v-if="$te(`checks.skip_reason.${assertion.code}`)" class="text-[13px] text-text-muted" data-skip-reason>{{ $t(`checks.skip_reason.${assertion.code}`) }}</span>
                 </template>
+                <template v-for="assertion in step.status === 'passed' ? (step.assertions ?? []).filter((item) => item.code === 'store_server_error') : []" :key="`${assertion.code}-${assertion.detail_code}`">
+                  <span class="text-[13px] text-warn" data-step-warning>{{ $t('checks.warning.store_server_error', { code: String(assertion.detail_code ?? '').replace('http_', '') }) }}</span>
+                </template>
                 <template v-for="assertion in step.status === 'failed' ? (step.assertions ?? []).filter((item) => !item.passed && item.detail_code) : []" :key="assertion.code">
                   <span v-if="$te(`checks.failure_reason.${assertion.detail_code}`)" class="text-[13px] text-danger" data-failure-reason>{{ $t(`checks.failure_reason.${assertion.detail_code}`) }}</span>
                 </template>

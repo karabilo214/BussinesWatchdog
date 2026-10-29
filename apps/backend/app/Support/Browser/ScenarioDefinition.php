@@ -83,6 +83,7 @@ class ScenarioDefinition
             return [
                 ['code' => 'product', 'action' => 'goto', 'target' => 'product_url', 'timeout_ms' => 30000],
                 ['code' => 'add_to_cart', 'action' => 'click_safe', 'timeout_ms' => 20000],
+                ['code' => 'product_again', 'action' => 'goto', 'target' => 'product_url', 'timeout_ms' => 20000],
                 ['code' => 'cart', 'action' => 'assert_cart', 'target' => 'cart_url', 'timeout_ms' => 30000],
                 ['code' => 'checkout', 'action' => 'goto', 'target' => 'checkout_url', 'timeout_ms' => 30000],
                 ['code' => 'shipping', 'action' => 'fill_synthetic', 'timeout_ms' => 20000],
@@ -93,6 +94,7 @@ class ScenarioDefinition
         $steps = [
             ['code' => 'product', 'action' => 'goto', 'target' => 'product_url', 'timeout_ms' => 30000],
             ['code' => 'add_to_cart', 'action' => 'click_safe', 'timeout_ms' => 20000],
+            ['code' => 'product_again', 'action' => 'goto', 'target' => 'product_url', 'timeout_ms' => 20000],
             ['code' => 'cart', 'action' => 'assert_cart', 'target' => 'cart_url', 'timeout_ms' => 30000],
             ['code' => 'checkout', 'action' => 'goto', 'target' => 'checkout_url', 'timeout_ms' => 30000],
         ];

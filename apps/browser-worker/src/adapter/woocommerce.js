@@ -1,4 +1,4 @@
-import { PRODUCT, SITE, StepOutcome, UNSUPPORTED, navigate, present, visible } from './common.js';
+import { PRODUCT, SITE, StepOutcome, UNSUPPORTED, navigate, present, productWithCart, visible } from './common.js';
 import { displayedMinor, sameProductPath } from './cartAssertions.js';
 
 export { StepOutcome };
@@ -124,6 +124,10 @@ export function createWooCommerceAdapter() {
       }
 
       return [{ code: 'add_to_cart_submitted', passed: true }];
+    },
+
+    product_again(page, step, context) {
+      return productWithCart(page, step, context, `${SELECTORS.addToCart}, ${SELECTORS.outOfStock}`);
     },
 
     async cart(page, step, context) {

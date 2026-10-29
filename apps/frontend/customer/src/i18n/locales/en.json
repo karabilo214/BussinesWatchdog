@@ -1024,6 +1024,7 @@
       "step": {
         "product": "product page",
         "add_to_cart": "add to cart",
+        "product_again": "product page with the item in the cart",
         "cart": "cart",
         "checkout": "checkout",
         "shipping": "shipping details",
@@ -1091,6 +1092,7 @@
       "check_step": {
         "product": "product page",
         "add_to_cart": "adding to cart",
+        "product_again": "product page with the item in the cart",
         "cart": "cart",
         "checkout": "checkout",
         "shipping": "address and shipping",
@@ -1637,8 +1639,16 @@
   },
   "checks": {
     "failure_reason": {
+      "product_page_fails_with_cart": "The product page stops opening once this product is in the cart: the server answers with an error. A customer who returns to the product sees an error page instead.",
+      "product_page_broken_with_cart": "The product page opened with the item in the cart but without the buy button: the customer cannot add another one.",
+      "page_http_500": "The page did not open: the store server answered with an error.",
+      "page_http_502": "The page did not open: the store server answered with an error.",
+      "page_http_503": "The page did not open: the store server answered with an error.",
       "payment_provider_rejected": "The payment provider rejected your store's key: customers see an error instead of the payment form. Check the API keys in the payment plugin's settings.",
       "no_payment_methods": "The checkout shows no payment method: customers cannot pay."
+    },
+    "warning": {
+      "store_server_error": "The store answered one of the requests of this step with a server error ({code}). The path passed, but part of the page may not work for customers — check the store's error log."
     },
     "skip_reason": {
       "payment_methods_not_verified": "The path to the payment page passed. The check did not load the forms of payment providers (Stripe, PayPal, Novalnet etc.), so it did not check the payment form itself. To check it too, turn on «Check payment forms fully» under «Advanced» in the check settings.",

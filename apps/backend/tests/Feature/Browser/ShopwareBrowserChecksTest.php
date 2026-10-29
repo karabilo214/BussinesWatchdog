@@ -54,7 +54,7 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertJsonPath('platform', 'shopware')
             ->assertJsonPath('checkout_access', CheckScenario::ACCESS_STOP_BEFORE_SIGN_IN)
             ->assertJsonPath('sign_in_configured', false)
-            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout']);
+            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'product_again', 'cart', 'checkout']);
         $this->assertSame(['payment_methods_stop_before_sign_in', 'redirect_gateways'], $created->json('untested_components'));
         $scenarioUrl = '/api/v1/scenarios/'.$created->json('id');
 
@@ -69,7 +69,7 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertOk()
             ->assertJsonPath('checkout_access', 'test_customer')
             ->assertJsonPath('sign_in_configured', true)
-            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form']);
+            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'product_again', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form']);
         $this->assertStringNotContainsString(self::PASSWORD, $saved->getContent());
         $this->assertStringNotContainsString('check@shop.example.test', $saved->getContent());
         $this->assertSame(['provider_forms_not_loaded', 'redirect_gateways'], $saved->json('untested_components'));
@@ -88,7 +88,7 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertOk()
             ->assertJsonPath('checkout_access', 'guest')
             ->assertJsonPath('sign_in_configured', false)
-            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout', 'guest_details', 'shipping', 'payment_form']);
+            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'product_again', 'cart', 'checkout', 'guest_details', 'shipping', 'payment_form']);
         $this->assertNull(CheckScenario::query()->sole()->sign_in_ciphertext);
 
         $this->asOwner($context)->withHeader('If-Match', '"4"')->patchJson($scenarioUrl, ['checkout_access' => 'test_customer'])
@@ -107,7 +107,7 @@ class ShopwareBrowserChecksTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('adapter_version', ScenarioDefinition::ADAPTER_VERSION)
             ->assertJsonPath('checkout_access', null)
-            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'cart', 'checkout', 'shipping', 'payment_form']);
+            ->assertJsonPath('supported_steps', ['product', 'add_to_cart', 'product_again', 'cart', 'checkout', 'shipping', 'payment_form']);
 
         $other = $this->checkContext('magento');
         $this->asOwner($other)->postJson("/api/v1/stores/{$other['store']->id}/scenarios", ['product_url' => 'https://shop.example.test/product/x'])
@@ -136,7 +136,7 @@ class ShopwareBrowserChecksTest extends TestCase
         $this->assertSame(ScenarioDefinition::SHOPWARE_ADAPTER_VERSION, $lease->json('scenario.adapter_version'));
         $this->assertSame('https://shop.example.test/checkout/cart', $lease->json('scenario.cart_url'));
         $this->assertSame('https://shop.example.test/checkout/confirm', $lease->json('scenario.checkout_url'));
-        $this->assertSame(['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form'], array_column($lease->json('scenario.steps'), 'code'));
+        $this->assertSame(['product', 'add_to_cart', 'product_again', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form'], array_column($lease->json('scenario.steps'), 'code'));
         $this->assertContains('place_order', $lease->json('network_policy.blocked_operations'));
         $this->assertContains('customer_account_creation', $lease->json('network_policy.blocked_operations'));
 
@@ -148,7 +148,7 @@ class ShopwareBrowserChecksTest extends TestCase
         $guest = $this->lease()->assertOk();
         $this->assertNull($guest->json('scenario.sign_in'));
         $this->assertSame('guest', $guest->json('scenario.checkout_access'));
-        $this->assertSame(['product', 'add_to_cart', 'cart', 'checkout', 'guest_details', 'shipping', 'payment_form'], array_column($guest->json('scenario.steps'), 'code'));
+        $this->assertSame(['product', 'add_to_cart', 'product_again', 'cart', 'checkout', 'guest_details', 'shipping', 'payment_form'], array_column($guest->json('scenario.steps'), 'code'));
     }
 
     public function test_a_rejected_test_account_is_an_info_incident_not_a_broken_shop(): void
@@ -223,7 +223,7 @@ class ShopwareBrowserChecksTest extends TestCase
     {
         $steps = [];
 
-        foreach (['product', 'add_to_cart', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form'] as $index => $code) {
+        foreach (['product', 'add_to_cart', 'product_again', 'cart', 'checkout', 'sign_in', 'shipping', 'payment_form'] as $index => $code) {
             $steps[] = [
                 'index' => $index,
                 'code' => $code,
