@@ -11,6 +11,8 @@ php artisan browser:worker-create worker-1 --rotate   # замена токен�
 
 Браузеры (ADR 0087): запуски сценария по очереди идут в Chrome, Firefox и Safari (WebKit). Порядок — `WATCHDOG_BROWSER_ROTATION` в `.env` бэкенда (по умолчанию `chromium,firefox,webkit`; `chromium` — откат на один Chrome, применяется после `rollout.sh`). Воркер запускает браузеры из `BW_BROWSERS` (по умолчанию все три; Chromium обязателен, не запустившийся Firefox/WebKit пишется в лог `browser_unavailable` и пропускается). Проверка после выкладки: `docker compose --profile browser logs browser-worker | grep worker_started` — в `browsers` три версии. Запуск, браузера которого нет ни у одного воркера, через 5 минут уходит в Chrome.
 
+Лимит одной попытки — `WATCHDOG_BROWSER_RUN_SECONDS` в `.env` бэкенда (по умолчанию 180 с; аренда продлевается сердцебиением воркера до этого предела). Число параллельных воркеров — `BW_BROWSER_WORKERS` в `.env` (реплики сервиса `browser-worker`, один общий токен; на каждый — до 2 ГБ памяти и 2 ядер, на сервере 8 ядер / 23 ГБ — до 3 реплик). Один магазин всё равно проверяется одним запуском за раз. Применяется `rollout.sh` или обычным deploy; проверка — `docker compose --profile browser ps browser-worker` (столько строк, сколько реплик) и `worker_started` в логе каждой.
+
 Сетевая политика воркера (ADR 0088): чтение публичных сторонних адресов разрешено, запись — нет; трекеры молча отбрасываются, платёжные провайдеры доступны только при «Проверять формы оплаты полностью». Списки — `apps/browser-worker/src/hosts.js` (`TRACKERS` по категориям, `PAYMENT_PROVIDERS`); новый трекер или провайдер добавляется туда с тестом в `test/networkPolicy.test.js`, выкладка — обычный deploy воркера.
 
 ## Telegram

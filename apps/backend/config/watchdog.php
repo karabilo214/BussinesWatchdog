@@ -41,7 +41,7 @@ return [
     'browser' => [
         'lease_seconds' => 150,
         'heartbeat_seconds' => 15,
-        'absolute_run_seconds' => 120,
+        'absolute_run_seconds' => (int) env('WATCHDOG_BROWSER_RUN_SECONDS', 180),
         'result_grace_seconds' => 30,
         'retry_delay_seconds' => 60,
         'max_attempts' => 3,

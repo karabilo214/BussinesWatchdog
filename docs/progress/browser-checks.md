@@ -252,3 +252,12 @@ Status: complete locally (backend, worker, customer cabinet; no migration; not d
 - Labels and texts ru/en/de (cabinet step name, failure reasons, warning; notification step name); the run page shows warnings under passed steps.
 
 Verification: `test/productWithCart.test.js` runs the real `runAttempt` with the network policy against a local Shopware-like store: product page 500 with the cart cookie («Leider ist etwas schief gelaufen») → `failed / site_failure`, step `product_again` with `product_page_fails_with_cart`; healthy store → passed; `/widgets/checkout/info` 500 → passed with the warning and the request in the network summary. Worker 66/66 in the worker image under the production limits (all three browsers); backend SQLite 864 + 4 skipped, Pint; customer 227 tests and types. Live run on the real store after the release.
+
+### Step 317: Longer attempt budget and three parallel browser workers (2026-10-29)
+
+Status: complete; production `.env` set, applied by the next deploy. Owner: raise the limit for the extra step; run two or three workers in parallel (server: 8 cores, 23 GB, ~19 GB free; one worker ≈ 0.85 GB and up to 2 cores).
+
+- `watchdog.browser.absolute_run_seconds` = `WATCHDOG_BROWSER_RUN_SECONDS`, default 180 (was a fixed 120); the lease is renewed by heartbeats up to that deadline plus the result grace.
+- Production `.env`: `BW_BROWSER_WORKERS=3` (replicas of `browser-worker` sharing one token; the backend allows parallel leases per worker, and one active run per store stays enforced). `docs/ops/integrations.md` documents both and the checks after a deploy.
+
+Verification: backend SQLite 864 + 4 skipped.
