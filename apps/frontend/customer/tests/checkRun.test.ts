@@ -45,7 +45,7 @@ describe('check run', () => {
 
     const reasons = wrapper.findAll('[data-skip-reason]');
     expect(reasons).toHaveLength(1);
-    expect(reasons[0]!.text()).toContain('Способы оплаты не проверены');
+    expect(reasons[0]!.text()).toContain('Путь до страницы оплаты пройден');
     expect(wrapper.get('[data-step="cart"]').find('[data-skip-reason]').exists()).toBe(false);
   });
 

@@ -215,3 +215,13 @@ Status: complete locally (backend, worker, customer cabinet; migration; not depl
 - Cabinet: run list and run page show «Chrome / Firefox / Safari (WebKit)». OpenAPI: `CheckRun.browser`, lease `browser_versions` and `BrowserLease.browser`. TZ §18 sentence, `docs/ops/integrations.md`.
 
 Verification: backend SQLite 862 + 4 skipped (rotation over four runs incl. the API field; Chromium-only worker leaves a Firefox run and takes it in Chromium after 300 s; unknown browser key 422), browser tests on PostgreSQL 18 29/29; worker 58 tests — on the Mac WebKit 26 does not start (macOS 14), so in the worker image with the production limits (seccomp profile, read-only root, tmpfs /tmp, no capabilities, 2 GB, 512 pids): 58/58 with all three browsers. Live, in that container: the real store's product page in Chromium 140, Firefox 141 and WebKit 26 — age gate and cookie bar closed, trial click on «In den Warenkorb» passes (no cart action). Customer 219 tests and types; `spec/validate_spec.py` passed. Not yet: a failure confirmed in another browser and «fails only in Safari» incidents (next step).
+
+### Step 313: Reaching the payment page without provider forms is a pass with a hint, not «blocked» (2026-10-29)
+
+Status: complete locally (worker and customer cabinet; not deployed). Owner: the real Shopware store's check reached the confirm page with the payment methods and «Zahlungspflichtig bestellen» on the screenshot, yet the run said «blocked by the site» — it should pass and say how to check more.
+
+- Cause: on the confirm page a payment-method radio that could not be selected or a disabled/missing submit button ended the step as `site_failure`; with provider scripts held back (`blockedScripts`) the attempt was rewritten to `blocked / blocked_external_origin`. With «Check payment forms fully» off, Novalnet's scripts are held back by design.
+- Shopware `payment_form`, like WooCommerce already does: when payment methods are on the page and provider scripts were held back (`blockedPaymentScripts`), these three cases return the step `skipped` with `payment_methods_not_verified` (detail: which of them) — the run passes. Without held-back provider scripts they stay store failures.
+- The explanation (ru/en/de) now says the path to the payment page passed, the provider forms were not loaded and which setting checks them.
+
+Verification: `test/shopwarePaymentForm.test.js` on Chromium (disabled submit with held-back provider script → skipped; without → `site_failure`; working submit → passed); worker 54 + 7 skipped (WebKit on macOS 14); customer 219. Backend not changed (one `ContactFormTest` failure comes from the parallel session's uncommitted contact-form work; it passes without those edits).

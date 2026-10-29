@@ -1641,7 +1641,7 @@
       "no_payment_methods": "The checkout shows no payment method: customers cannot pay."
     },
     "skip_reason": {
-      "payment_methods_not_verified": "Payment methods not verified: the check does not load payment provider scripts (Stripe, PayPal, etc.) and the store's payment form needs them. Turn on «Check payment forms fully» in the check settings to verify them. The path up to the payment form is confirmed.",
+      "payment_methods_not_verified": "The path to the payment page passed. The check did not load the forms of payment providers (Stripe, PayPal, Novalnet etc.), so it did not check the payment form itself. To check it too, turn on «Check payment forms fully» under «Advanced» in the check settings.",
       "synthetic_location_not_configured": "No delivery address is set for the check — delivery was not checked."
     },
     "title": "Checkout checks",

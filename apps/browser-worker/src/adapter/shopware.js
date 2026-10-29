@@ -431,16 +431,22 @@ export function createShopwareAdapter() {
       const selectable = await selectableRadio(methods, step.timeout_ms);
       blocked(context);
       if (context.blockedUnknownMutation) throw UNSUPPORTED('payment_selection_blocked');
-      if (!selectable) throw SITE('payment_methods_unselectable');
+      const notVerified = (detail) => ({ skipped: true, assertions: [{ code: 'payment_methods_not_verified', passed: true, detail_code: detail }] });
+      if (!selectable) {
+        if (context.blockedPaymentScripts) return notVerified('payment_methods_unselectable');
+        throw SITE('payment_methods_unselectable');
+      }
 
       const submit = page.locator(layout.submit_button || SELECTORS.submitOrder).first();
 
       if ((await submit.count().catch(() => 0)) === 0) {
         if (layout.submit_button) throw new StepOutcome('inconclusive', 'selector_changed', 'layout_submit_button_not_found');
+        if (context.blockedPaymentScripts) return notVerified('order_submit_missing');
         throw SITE('order_submit_missing');
       }
 
       if (await submit.isDisabled()) {
+        if (context.blockedPaymentScripts) return notVerified('order_submit_unavailable');
         throw SITE('order_submit_unavailable');
       }
 

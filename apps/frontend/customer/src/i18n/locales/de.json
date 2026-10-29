@@ -1641,7 +1641,7 @@
       "no_payment_methods": "Die Kassenseite zeigt keine Zahlungsart: Kunden können nicht bezahlen."
     },
     "skip_reason": {
-      "payment_methods_not_verified": "Zahlungsarten nicht geprüft: Die Prüfung lädt keine Skripte von Zahlungsanbietern (Stripe, PayPal u. a.), und das Zahlungsformular des Shops braucht sie. Um sie zu prüfen, aktivieren Sie in den Prüfungseinstellungen „Zahlungsformulare vollständig prüfen“. Der Weg bis zum Zahlungsformular ist bestätigt.",
+      "payment_methods_not_verified": "Der Weg bis zur Zahlungsseite ist bestanden. Die Formulare der Zahlungsanbieter (Stripe, PayPal, Novalnet usw.) hat die Prüfung nicht geladen und das Zahlungsformular selbst daher nicht geprüft. Um es ebenfalls zu prüfen, aktivieren Sie «Zahlungsformulare vollständig prüfen» unter «Erweitert» in den Prüfeinstellungen.",
       "synthetic_location_not_configured": "Für die Prüfung ist keine Lieferadresse festgelegt — der Versand wurde nicht geprüft."
     },
     "title": "Checkout-Prüfungen",
