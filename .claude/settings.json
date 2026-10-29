@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh bw-prod:*)",
+      "Bash"
+    ]
+  }
+}

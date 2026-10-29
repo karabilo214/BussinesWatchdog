@@ -85,3 +85,6 @@ docker-compose.override.yml
 *.sqlite
 *.sqlite3
 apps/**/node_modules/
+
+.claude/settings.local.json
+__pycache__/
