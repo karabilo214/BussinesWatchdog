@@ -4,10 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && vite build && node ../scripts/security-headers.mjs control",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
-    "check": "vue-tsc --noEmit && vitest run && vite build"
+    "check": "vue-tsc --noEmit && vitest run && vite build && node ../scripts/security-headers.mjs control"
   },
   "dependencies": {
     "@bw/api-client": "*",
@@ -32,6 +32,7 @@
     "@tiptap/starter-kit": "3.31.4",
     "@tiptap/vue-3": "3.31.4",
     "@tiptap/y-tiptap": "3.0.7",
+    "dompurify": "3.4.17",
     "vue": "3.5.43",
     "vue-i18n": "11.4.12",
     "vue-router": "4.6.4",

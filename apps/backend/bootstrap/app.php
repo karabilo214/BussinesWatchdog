@@ -19,6 +19,7 @@ use App\Http\Middleware\Platform\RequirePlatformStaff;
 use App\Http\Middleware\Platform\RequireSupportGrant;
 use App\Http\Middleware\Platform\UsePlatformSession;
 use App\Http\Middleware\Platform\ValidatePlatformCsrfToken;
+use App\Http\Middleware\Security\SecurityHeaders;
 use App\Http\Middleware\Tenancy\RequireTenantPermission;
 use App\Http\Middleware\Tenancy\SetTenantContextFromSession;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -55,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
         PlanNotificationReminders::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(SecurityHeaders::class);
         $middleware->statefulApi();
         $middleware->validateCsrfTokens(except: ['api/v1/shopware/app/connect']);
 

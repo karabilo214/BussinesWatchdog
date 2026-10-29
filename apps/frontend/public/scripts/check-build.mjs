@@ -1,5 +1,5 @@
-// The public site is rendered by Laravel (resources/views/site); this package only builds its stylesheet into
-// apps/backend/public/site with a manifest that App\Support\Site\SiteAssets reads.
+// Laravel renders the public site; this package builds its stylesheet and checkout security bootstrap into
+// apps/backend/public/site with the manifest read by App\Support\Site\SiteAssets.
 import { readFileSync } from 'node:fs';
 
 const root = new URL('../../../backend/public/site/', import.meta.url);
@@ -16,6 +16,9 @@ if (entry?.file === undefined) {
     if (!css.includes(selector)) problems.push(`stylesheet has no ${selector}`);
   }
 }
+
+const paddle = manifest['src/paddle.ts'];
+if (!paddle?.file || !readFileSync(new URL(paddle.file, root), 'utf8').includes('Unapproved Paddle script URL')) problems.push('missing Paddle Trusted Types bootstrap');
 
 if (problems.length > 0) {
   console.error(problems.join('\n'));

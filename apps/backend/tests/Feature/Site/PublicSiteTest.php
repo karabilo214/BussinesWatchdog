@@ -182,7 +182,7 @@ class PublicSiteTest extends TestCase
             ->assertSee('hreflang="de" href="https://watchdog.test/de"', false)
             ->assertSee('href="/ru/pricing"', false)
             ->assertSee('href="/ru/contact"', false);
-        $this->assertStringContainsString('public', (string) $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control')); // Per-response CSP nonces must not enter a shared HTML cache.
         $this->assertSame([], $response->headers->getCookies());
         $this->get('/en')->assertSee('Find out that payments broke before your customers do');
         $this->get('/ru/nothing-here')->assertNotFound()->assertSee('Страница не найдена');

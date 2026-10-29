@@ -77,7 +77,7 @@
     </div>
 </footer>
 @if (collect($header)->contains(fn ($item) => $item['children'] !== []))
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 document.addEventListener('click', (event) => document.querySelectorAll('details[data-dropdown][open]').forEach((menu) => menu.contains(event.target) || menu.removeAttribute('open')));
 document.addEventListener('keydown', (event) => event.key === 'Escape' && document.querySelectorAll('details[data-dropdown][open]').forEach((menu) => { menu.removeAttribute('open'); menu.querySelector('summary').focus(); }));
 document.querySelectorAll('details[data-dropdown]').forEach((menu) => menu.addEventListener('toggle', () => menu.open && document.querySelectorAll('details[data-dropdown][open]').forEach((other) => other === menu || other.removeAttribute('open'))));

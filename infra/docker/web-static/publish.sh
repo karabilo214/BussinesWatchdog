@@ -16,6 +16,23 @@ stage() {
     rm -rf "$target.tmp"
     cp -a /dist "$target.tmp"
 
+    csp="${CSP_HEADER:-Content-Security-Policy}"
+    case "$csp" in Content-Security-Policy|Content-Security-Policy-Report-Only) ;; *) echo "invalid CSP_HEADER" >&2; exit 2 ;; esac
+    hsts="${HSTS_POLICY:-max-age=300; includeSubDomains}"
+    case "$hsts" in
+        'max-age=300; includeSubDomains'|'max-age=86400; includeSubDomains'|'max-age=31536000; includeSubDomains'|'max-age=31536000') ;;
+        *) echo "invalid HSTS_POLICY (preload needs a separate decision)" >&2; exit 2 ;;
+    esac
+    printf 'header Strict-Transport-Security "%s"\n' "$hsts" > "$target.tmp/transport.caddy"
+
+    # Keep each CSP hash bound to its HTML until caddy reloads the whole configuration.
+    # Switching current alone must not serve a new entry with the previous release's CSP.
+    for app in customer control; do
+        policy="$target.tmp/$app/security.caddy"
+        sed -e "s|/srv/web/current/$app|$target/$app|g" -e 's|{\$CSP_HEADER:Content-Security-Policy}|'"$csp"'|g' "$policy" > "$policy.tmp"
+        mv "$policy.tmp" "$policy"
+    done
+
     if [ -e "$ROOT/current" ]; then
         for dir in $ASSET_DIRS; do
             if [ -d "$ROOT/current/$dir" ]; then

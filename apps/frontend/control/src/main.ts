@@ -1,3 +1,4 @@
+import './security/trustedTypes';
 import './styles/main.css';
 import { createApp } from 'vue';
 import { configureCsrf, onUnauthorized } from '@bw/api-client';

@@ -1,10 +1,13 @@
 import './styles/main.css';
+import { installPaddleTrustedTypes } from '@bw/security/paddle';
 import { createApp } from 'vue';
 import App from './App.vue';
 import { onUnauthorized } from '@bw/api-client';
 import { useSession } from './composables/useSession';
 import { localization } from './i18n';
 import { buildRouter } from './router';
+
+installPaddleTrustedTypes();
 
 const router = buildRouter();
 

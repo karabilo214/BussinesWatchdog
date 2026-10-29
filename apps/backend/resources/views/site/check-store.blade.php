@@ -90,7 +90,7 @@
             </div>
         @endif
     </section>
-    <script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}">
         (() => {
             const form = document.querySelector('[data-form="public-storefront-check"]');
             if (form) {
@@ -105,14 +105,24 @@
                 });
             }
 
+            // Only the same-origin status response produced by Blade reaches this private policy.
+            // This is not a default policy and is never exposed to page content.
+            const resultPolicy = window.trustedTypes?.createPolicy('bw-store-result', {
+                createHTML: (html) => html,
+            });
             const result = document.querySelector('[data-public-check-result]');
             if (!result || result.dataset.pending !== '1') {
                 return;
             }
 
+            const statusUrl = new URL(result.dataset.statusUrl, window.location.href);
+            if (statusUrl.origin !== window.location.origin || !/^\/(en|de|ru)\/check-store\/[^/]+\/status$/.test(statusUrl.pathname)) {
+                return;
+            }
             const poll = async () => {
                 try {
-                    const response = await fetch(result.dataset.statusUrl, {
+                    const response = await fetch(statusUrl.href, {
+                        redirect: 'error',
                         headers: { 'Accept': 'application/json' },
                         cache: 'no-store',
                     });
@@ -124,7 +134,7 @@
 
                     const payload = await response.json();
                     if (typeof payload.html === 'string') {
-                        result.innerHTML = payload.html;
+                        result.innerHTML = resultPolicy ? resultPolicy.createHTML(payload.html) : payload.html;
                     }
 
                     if (!payload.terminal) {

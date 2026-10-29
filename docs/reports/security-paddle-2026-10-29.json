@@ -1,0 +1,341 @@
+{
+  "date": "2026-10-29",
+  "step": 313,
+  "adr": "0085",
+  "scope": "Actual provider SDK/network, locally served enforced CSP/TT; not deployed",
+  "traceability": [
+    "TZ §19",
+    "TZ §31",
+    "TZ §35.5",
+    "spec/ACCEPTANCE.md security checklist",
+    "spec/PANELS-ACCEPTANCE.md"
+  ],
+  "migrations_contracts": "None for this security change",
+  "found_and_fixed": [
+    "Paddle CDN stylesheet was blocked by parent CSP; exact live/sandbox stylesheet URLs now allowed",
+    "TT enforced on customer and public pay using a shared narrow policy; Report-Only exceptions removed"
+  ],
+  "policy_boundary": {
+    "HTML": "Only the two reviewed Paddle CSS strings (whitespace-normalized comparison) and empty clears; arbitrary markup and JS text rejected",
+    "ScriptURL": "Only fixed Paddle SDK and fixed ProfitWell bootstrap path with one alphanumeric/underscore auth parameter",
+    "Script": "No default conversion"
+  },
+  "actual_provider_smoke": {
+    "sdk": "Actual CDN Paddle.js; actual sandbox checkout transaction; no card/payment submitted; production Initialize only",
+    "results": [
+      {
+        "scenario": "public-pay",
+        "violations": [],
+        "errors": [],
+        "providerWarnings": [
+          "[Report Only] Refused to frame 'https://sandbox-buy.paddle.com/' because an ancestor violates the following Content Security Policy directive: \"frame-ancestors https://localhost/\".",
+          "[Report Only] Refused to frame 'https://sandbox-buy.paddle.com/' because an ancestor violates the following Content Security Policy directive: \"frame-ancestors https://localhost/\"."
+        ],
+        "sdkResources": [
+          {
+            "url": "https://cdn.paddle.com/paddle/v2/paddle.js",
+            "status": 200
+          },
+          {
+            "url": "https://sandbox-cdn.paddle.com/paddle/v2/assets/css/paddle.css",
+            "status": 200
+          }
+        ],
+        "failedResources": [
+          {
+            "url": "https://m.stripe.network/out-4.5.45.js",
+            "error": "net::ERR_ABORTED"
+          },
+          {
+            "url": "https://o522631.ingest.sentry.io/api/5637177/envelope/",
+            "error": "net::ERR_ABORTED"
+          },
+          {
+            "url": "https://sandbox-checkout-analytics.paddle.com/events",
+            "error": "net::ERR_ABORTED"
+          }
+        ],
+        "scripts": [
+          "https://localhost:8443/site/assets/paddle-BJ9Vb-tA.js",
+          "https://cdn.paddle.com/paddle/v2/paddle.js",
+          "https://global.localizecdn.com/localize.519.js",
+          "https://sandbox-buy.paddle.com/assets/fb1a5b0/index-CMGgwuR_.js",
+          "https://sandbox-buy.paddle.com/js/preInit.js",
+          "https://sandbox-buy.paddle.com/js/config.js",
+          "https://sandbox-buy.paddle.com/assets/fb1a5b0/checkout-BWDJ7G26.js",
+          "https://sandbox-buy.paddle.com/assets/fb1a5b0/txencrypt-Z_k99-9D.js",
+          "https://sandbox-buy.paddle.com/assets/fb1a5b0/index-DSmWlR3y.js",
+          "https://js.stripe.com/v3",
+          "https://js.stripe.com/v3/fingerprinted/js/shared-e-c2e4b2ac3ef706225cb16a4edc94d2e5.js",
+          "https://js.stripe.com/v3/fingerprinted/js/controller-with-preconnect-e-e432708fcaedc6777321a74c72d64c24.js",
+          "https://js.stripe.com/v3/fingerprinted/js/stripe-cookies-e-088bdcd4de7e8cbd5daced22bfd5ba7e.js",
+          "https://js.stripe.com/v3/fingerprinted/js/consumerSchema-e-88daaf8d1515b539510ee3c98b054e98.js",
+          "https://js.stripe.com/v3/fingerprinted/js/m-outer-15a2b40a058ddff1cffdb63779fe3de1.js",
+          "https://m.stripe.network/out-4.5.45.js"
+        ],
+        "frameOrigins": [],
+        "cardFormReady": true,
+        "trustedTypesEnforced": true,
+        "paymentOptions": [
+          "",
+          "\n\n\n\n\n\n\n\n\n",
+          "Add discount",
+          "Add VAT number",
+          "PayPal",
+          "Subscribe now",
+          "Change"
+        ],
+        "overlayClosed": true,
+        "sdkInitialized": true,
+        "injectionBlocked": {
+          "html": true,
+          "script": true,
+          "url": true
+        }
+      },
+      {
+        "scenario": "customer-checkout",
+        "violations": [],
+        "errors": [],
+        "providerWarnings": [
+          "[Report Only] Refused to frame 'https://sandbox-buy.paddle.com/' because an ancestor violates the following Content Security Policy directive: \"frame-ancestors https://localhost/\".",
+          "[Report Only] Refused to frame 'https://sandbox-buy.paddle.com/' because an ancestor violates the following Content Security Policy directive: \"frame-ancestors https://localhost/\"."
+        ],
+        "sdkResources": [
+          {
+            "url": "https://cdn.paddle.com/paddle/v2/paddle.js",
+            "status": 200
+          },
+          {
+            "url": "https://sandbox-cdn.paddle.com/paddle/v2/assets/css/paddle.css",
+            "status": 200
+          }
+        ],
+        "failedResources": [
+          {
+            "url": "https://o522631.ingest.sentry.io/api/5637177/envelope/",
+            "error": "net::ERR_ABORTED"
+          },
+          {
+            "url": "https://sandbox-checkout-analytics.paddle.com/events",
+            "error": "net::ERR_ABORTED"
+          }
+        ],
+        "scripts": [
+          "https://localhost:8443/app/assets/index-CoQUKNGj.js",
+          "https://localhost:8443/app/assets/src-DOR2pgkF.js",
+          "https://localhost:8443/app/assets/BillingView-D0nLVAjr.js",
+          "https://localhost:8443/app/assets/AppLayout-qWqsVo70.js",
+          "https://localhost:8443/app/assets/favicon-Brgjy_-x.js",
+          "https://localhost:8443/app/assets/account-ueZnjrF1.js",
+          "https://localhost:8443/app/assets/useFormat-DAA5HehL.js",
+          "https://localhost:8443/app/assets/StatusBadge-BU2wvW6-.js",
+          "https://localhost:8443/app/assets/money-DVznimGP.js",
+          "https://localhost:8443/app/assets/billing-DEhSx8Bz.js",
+          "https://localhost:8443/app/assets/stores-019w9EeW.js",
+          "https://localhost:8443/app/assets/SettingsTabs-Cq4P-1qP.js",
+          "https://cdn.paddle.com/paddle/v2/paddle.js",
+          "https://global.localizecdn.com/localize.519.js",
+          "https://sandbox-buy.paddle.com/assets/fb1a5b0/index-CMGgwuR_.js",
+          "https://sandbox-buy.paddle.com/js/preInit.js",
+          "https://sandbox-buy.paddle.com/js/config.js",
+          "https://sandbox-buy.paddle.com/assets/fb1a5b0/checkout-BWDJ7G26.js",
+          "https://sandbox-buy.paddle.com/assets/fb1a5b0/txencrypt-Z_k99-9D.js",
+          "https://sandbox-buy.paddle.com/assets/fb1a5b0/index-DSmWlR3y.js",
+          "https://js.stripe.com/v3",
+          "https://js.stripe.com/v3/fingerprinted/js/shared-e-c2e4b2ac3ef706225cb16a4edc94d2e5.js",
+          "https://js.stripe.com/v3/fingerprinted/js/controller-with-preconnect-e-e432708fcaedc6777321a74c72d64c24.js",
+          "https://js.stripe.com/v3/fingerprinted/js/stripe-cookies-e-088bdcd4de7e8cbd5daced22bfd5ba7e.js",
+          "https://js.stripe.com/v3/fingerprinted/js/consumerSchema-e-88daaf8d1515b539510ee3c98b054e98.js",
+          "https://js.stripe.com/v3/fingerprinted/js/m-outer-15a2b40a058ddff1cffdb63779fe3de1.js",
+          "https://m.stripe.network/out-4.5.45.js",
+          "https://js.stripe.com/v3/fingerprinted/js/trusted-types-checker-e80b3cae3b1db2e27d3062d4e7b03473.js"
+        ],
+        "frameOrigins": [],
+        "cardFormReady": true,
+        "trustedTypesEnforced": true,
+        "paymentOptions": [
+          "",
+          "\n\n\n\n\n\n\n\n\n",
+          "Add discount",
+          "Add VAT number",
+          "PayPal",
+          "Subscribe now",
+          "Change"
+        ],
+        "popup": {
+          "url": "https://www.sandbox.paypal.com/agreements/approve",
+          "sandbox": true,
+          "loginFormReady": true
+        },
+        "overlayClosed": true,
+        "sdkInitialized": true,
+        "injectionBlocked": {
+          "html": true,
+          "script": true,
+          "url": true
+        }
+      },
+      {
+        "scenario": "production-startup",
+        "violations": [],
+        "errors": [],
+        "providerWarnings": [],
+        "sdkResources": [
+          {
+            "url": "https://cdn.paddle.com/paddle/v2/paddle.js",
+            "status": 200
+          },
+          {
+            "url": "https://cdn.paddle.com/paddle/v2/assets/css/paddle.css",
+            "status": 200
+          },
+          {
+            "url": "https://public.profitwell.com/js/profitwell.js",
+            "status": 200
+          }
+        ],
+        "failedResources": [],
+        "scripts": [
+          "https://localhost:8443/app/assets/index-CoQUKNGj.js",
+          "https://localhost:8443/app/assets/src-DOR2pgkF.js",
+          "https://localhost:8443/app/assets/LoginView-LXHTAzFZ.js",
+          "https://localhost:8443/app/assets/AuthLayout-DmJDdaHo.js",
+          "https://localhost:8443/app/assets/favicon-Brgjy_-x.js",
+          "https://cdn.paddle.com/paddle/v2/paddle.js",
+          "https://public.profitwell.com/js/profitwell.js"
+        ],
+        "frameOrigins": [],
+        "cardFormReady": false,
+        "trustedTypesEnforced": true,
+        "sdkInitialized": true,
+        "injectionBlocked": {
+          "html": true,
+          "script": true,
+          "url": true
+        }
+      }
+    ]
+  },
+  "money_verification_and_cleanup": {
+    "transactions_checked": 3,
+    "before_cleanup": [
+      "canceled",
+      "ready",
+      "ready"
+    ],
+    "payment_attempt_statuses": [
+      "action_required",
+      "action_required",
+      "action_required"
+    ],
+    "captured_attempts": 0,
+    "authorized_attempts": 0,
+    "subscriptions": 0,
+    "canceled": 3
+  },
+  "general_browser_regression": [
+    {
+      "path": "/en",
+      "violations": []
+    },
+    {
+      "path": "/de",
+      "violations": []
+    },
+    {
+      "path": "/ru",
+      "violations": []
+    },
+    {
+      "path": "/en/contact",
+      "violations": []
+    },
+    {
+      "path": "/en/check-store",
+      "violations": []
+    },
+    {
+      "path": "/app/login",
+      "violations": []
+    },
+    {
+      "path": "/owner/login",
+      "violations": []
+    },
+    {
+      "path": "/",
+      "status": 302
+    },
+    {
+      "path": "/app",
+      "status": 302
+    },
+    {
+      "path": "/site/assets/missing.css",
+      "status": 404
+    },
+    {
+      "path": "/does-not-exist",
+      "status": 404
+    },
+    {
+      "path": "/app/security.caddy",
+      "status": 404
+    },
+    {
+      "editor": "password/MFA UI fixtures, Tiptap, srcdoc with CSS, CodeMirror, sanitized HTML",
+      "violations": []
+    },
+    {
+      "injection": {
+        "injected": false,
+        "htmlBlocked": true
+      }
+    }
+  ],
+  "tests": {
+    "backend": {
+      "passed": 36,
+      "assertions": 1223,
+      "runtime": "Docker PHP 8.4.27 + GD"
+    },
+    "customer": {
+      "passed": 219,
+      "types": true,
+      "build": true,
+      "runtime": "Node 24.21.0"
+    },
+    "public": {
+      "build": true,
+      "manifest_bootstrap_check": true
+    },
+    "pint": {
+      "changed_php_files": 4,
+      "passed": true
+    },
+    "empty_cleanup_context": {
+      "expected_exit_code": 1,
+      "before_external_api": true
+    }
+  },
+  "limitations": [
+    "Customer auth/catalog/checkout API responses were synthetic; provider transaction, CDN, stylesheet, checkout iframe and PayPal sandbox popup were real",
+    "Public pay used the real local Blade page and its configured sandbox token",
+    "Production scenario only Initialize with the public live client token read from the public page over verified HTTPS; no live transaction or purchase",
+    "No card entered/submitted, no PayPal credentials entered, no 3DS or completed payment tested",
+    "Provider frame reports its own Report-Only frame-ancestors warning for localhost:8443; own parent enforced policies have zero violations",
+    "Telemetry requests aborted when closing the provider iframe are retained as diagnostics; telemetry delivery is not claimed",
+    "Upstream SDK CSS changes require reviewing the narrow CSS whitelist and rerunning this smoke"
+  ],
+  "remaining": [
+    "Production deployment and smoke on deployed origin",
+    "HSTS staged observation/increase; separate preload decision",
+    "Production PageSpeed and remaining signup/auth checks from Step 308"
+  ],
+  "sources": [
+    "https://developer.paddle.com/paddle-js/methods/paddle-initialize/",
+    "https://developer.paddle.com/api-reference/transactions/get-transaction/"
+  ],
+  "reviewed_sdk_snapshot_sha256": "866cafe76ef02e07c0e7e149190ed9fafbfed1d7dfc7457a95ddf26c4541b0bc"
+}

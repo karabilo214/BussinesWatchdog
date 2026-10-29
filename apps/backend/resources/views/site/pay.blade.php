@@ -14,7 +14,10 @@
 @endsection
 
 @push('scripts')
-    <script>
+    <script type="module" nonce="{{ request()->attributes->get('csp_nonce') }}">
+        @if ($paddleScript = \App\Support\Site\SiteAssets::paddleScript())
+            import @json($paddleScript);
+        @endif
         (function () {
             var token = @json($paddle['token']);
             var sandbox = @json($paddle['environment'] === 'sandbox');

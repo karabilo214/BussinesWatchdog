@@ -8,7 +8,8 @@
     "check": "vite build && node scripts/check-build.mjs"
   },
   "dependencies": {
-    "@bw/design": "*"
+    "@bw/design": "*",
+    "@bw/security": "*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",

@@ -66,3 +66,5 @@ DNS у NIC.UA: `A` и `AAAA` для `@` и `www` на адреса сервер�
 Бэкапы — [backups.md](backups.md), почта — [mail.md](mail.md).
 
 **fail2ban и предупреждение `allowipv6`.** Пакет fail2ban 1.0.2 в Ubuntu 24.04 при каждом `fail2ban-client reload` пишет `WARNING 'allowipv6' not defined in 'Definition'. Using default one: 'auto'` — это не ошибка выкладки, значение по умолчанию то же. `deploy.sh` ставит `infra/production/fail2ban/fail2ban.d/bw.local` с `allowipv6 = auto`, и предупреждение пропадает.
+
+Заголовки браузерной безопасности (Step 308, локально, ожидает выкладки): [security-headers.md](security-headers.md). CSP кабинета и immutable root переключаются одним Caddy reload; HSTS и режим CSP генерируются на этапе stage, поэтому для смены их значений Caddy не нужно пересоздавать. Preload требует отдельного решения. TT Paddle включён после настоящего sandbox checkout/PayPal popup и production startup (Step 313); после выкладки повторить smoke на боевом origin.

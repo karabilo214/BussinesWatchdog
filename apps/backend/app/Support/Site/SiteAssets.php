@@ -43,7 +43,15 @@ final class SiteAssets
         return [$absolute ? rtrim((string) config('app.url'), '/').$path : $path];
     }
 
-    private static function file(): ?string
+    /** The small Trusted Types bootstrap imported before the public checkout script runs. */
+    public static function paddleScript(): ?string
+    {
+        $file = self::file('src/paddle.ts');
+
+        return $file === null ? null : '/'.self::DIRECTORY.'/'.ltrim($file, '/');
+    }
+
+    private static function file(string $entry = self::ENTRY): ?string
     {
         $manifest = public_path(self::DIRECTORY.'/.vite/manifest.json');
 
@@ -52,7 +60,7 @@ final class SiteAssets
         }
 
         $entries = json_decode((string) file_get_contents($manifest), true);
-        $file = is_array($entries) ? ($entries[self::ENTRY]['file'] ?? null) : null;
+        $file = is_array($entries) ? ($entries[$entry]['file'] ?? null) : null;
 
         return is_string($file) ? $file : null;
     }

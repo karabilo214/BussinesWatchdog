@@ -1,0 +1,390 @@
+{
+  "date": "2026-10-29",
+  "step": 308,
+  "adr": "0085",
+  "scope": "Local verification only; not deployed; backlog remains open",
+  "traceability": [
+    "TZ §19",
+    "TZ §31",
+    "TZ §35.5",
+    "spec/ACCEPTANCE.md additional security checklist",
+    "spec/PANELS-ACCEPTANCE.md"
+  ],
+  "schema_migrations_contracts": "none",
+  "tests": {
+    "backend": {
+      "runtime": "Docker PHP 8.4.27 + GD",
+      "passed": 36,
+      "assertions": 1223
+    },
+    "pint": {
+      "files": 5,
+      "passed": true
+    },
+    "customer": {
+      "runtime": "Node 24.21.0",
+      "typecheck": true,
+      "passed": 217,
+      "build": true
+    },
+    "control": {
+      "runtime": "Node 24.21.0",
+      "typecheck": true,
+      "passed": 113,
+      "build": true
+    },
+    "shell_syntax": true
+  },
+  "browser_report_only": [
+    {
+      "path": "/en",
+      "violations": []
+    },
+    {
+      "path": "/de",
+      "violations": []
+    },
+    {
+      "path": "/ru",
+      "violations": []
+    },
+    {
+      "path": "/en/contact",
+      "violations": []
+    },
+    {
+      "path": "/en/check-store",
+      "violations": []
+    },
+    {
+      "path": "/app/login",
+      "violations": []
+    },
+    {
+      "path": "/owner/login",
+      "violations": []
+    },
+    {
+      "path": "/",
+      "status": 302
+    },
+    {
+      "path": "/app",
+      "status": 302
+    },
+    {
+      "path": "/site/assets/missing.css",
+      "status": 404
+    },
+    {
+      "path": "/does-not-exist",
+      "status": 404
+    },
+    {
+      "editor": "password/MFA UI fixtures, Tiptap, srcdoc with CSS, CodeMirror, sanitized HTML",
+      "violations": []
+    },
+    {
+      "injection": {
+        "injected": true,
+        "htmlBlocked": false
+      }
+    }
+  ],
+  "browser_enforced_https": [
+    {
+      "path": "/en",
+      "violations": []
+    },
+    {
+      "path": "/de",
+      "violations": []
+    },
+    {
+      "path": "/ru",
+      "violations": []
+    },
+    {
+      "path": "/en/contact",
+      "violations": []
+    },
+    {
+      "path": "/en/check-store",
+      "violations": []
+    },
+    {
+      "path": "/app/login",
+      "violations": []
+    },
+    {
+      "path": "/owner/login",
+      "violations": []
+    },
+    {
+      "path": "/",
+      "status": 302
+    },
+    {
+      "path": "/app",
+      "status": 302
+    },
+    {
+      "path": "/site/assets/missing.css",
+      "status": 404
+    },
+    {
+      "path": "/does-not-exist",
+      "status": 404
+    },
+    {
+      "path": "/app/security.caddy",
+      "status": 404
+    },
+    {
+      "editor": "password/MFA UI fixtures, Tiptap, srcdoc with CSS, CodeMirror, sanitized HTML",
+      "violations": []
+    },
+    {
+      "injection": {
+        "injected": false,
+        "htmlBlocked": true
+      }
+    }
+  ],
+  "browser_limitations": [
+    "Local Caddy with internal TLS certificate; only local certificate validation bypassed",
+    "Password/MFA/editor API responses use synthetic browser fixtures",
+    "No actual signup, authentication, Paddle SDK checkout/3DS, purchase, capture or refund performed"
+  ],
+  "rollout": {
+    "before_reload": {
+      "current": "B",
+      "served": "A",
+      "csp_matches": true
+    },
+    "after_reload": {
+      "current": "B",
+      "served": "B",
+      "csp_matches": true
+    },
+    "report_only_and_year_hsts_expanded_at_stage": true
+  },
+  "https_host_inventory": {
+    "certificate_validation": "enabled for public-domain probes",
+    "hosts": {
+      "business-watchdog.com": 200,
+      "www.business-watchdog.com": 301,
+      "mail.business-watchdog.com": 301,
+      "woo-test.business-watchdog.com": 200,
+      "shopware-test.business-watchdog.com": 200
+    },
+    "limitation": "Known hosts from repository; DNS-zone and future-host readiness must also be reviewed before preload"
+  },
+  "lighthouse": {
+    "version": "13.6.0",
+    "url": "https://localhost:8443/en",
+    "environment": "local HTTPS with Caddy internal certificate; Chrome ignores only this test certificate",
+    "fetch_time": "2026-10-29T13:48:09.855Z",
+    "runtime_error": null,
+    "audits": {
+      "csp-xss": {
+        "title": "Ensure CSP is effective against XSS attacks",
+        "score": 1,
+        "scoreDisplayMode": "informative",
+        "description": "A strong Content Security Policy (CSP) significantly reduces the risk of cross-site scripting (XSS) attacks. [Learn how to use a CSP to prevent XSS](https://developer.chrome.com/docs/lighthouse/best-practices/csp-xss/)",
+        "details": {
+          "type": "table",
+          "headings": [
+            {
+              "key": "description",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "description"
+              },
+              "label": "Description"
+            },
+            {
+              "key": "directive",
+              "valueType": "code",
+              "subItemsHeading": {
+                "key": "directive"
+              },
+              "label": "Directive"
+            },
+            {
+              "key": "severity",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "severity"
+              },
+              "label": "Severity"
+            }
+          ],
+          "items": [
+            {
+              "directive": "script-src",
+              "description": "Consider adding `'unsafe-inline'` (ignored by browsers supporting nonces/hashes) to be backward compatible with older browsers.",
+              "severity": "Medium"
+            },
+            {
+              "directive": "script-src",
+              "description": "Consider adding https: and http: URL schemes (ignored by browsers supporting `'strict-dynamic'`) to be backward compatible with older browsers.",
+              "severity": "Medium"
+            }
+          ]
+        }
+      },
+      "has-hsts": {
+        "title": "Use a strong HSTS policy",
+        "score": 1,
+        "scoreDisplayMode": "informative",
+        "description": "Deployment of the HSTS header significantly reduces the risk of downgrading HTTP connections and eavesdropping attacks. A rollout in stages, starting with a low max-age is recommended. [Learn more about using a strong HSTS policy.](https://developer.chrome.com/docs/lighthouse/best-practices/has-hsts)",
+        "details": {
+          "type": "table",
+          "headings": [
+            {
+              "key": "description",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "description"
+              },
+              "label": "Description"
+            },
+            {
+              "key": "directive",
+              "valueType": "code",
+              "subItemsHeading": {
+                "key": "directive"
+              },
+              "label": "Directive"
+            },
+            {
+              "key": "severity",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "severity"
+              },
+              "label": "Severity"
+            }
+          ],
+          "items": [
+            {
+              "directive": "max-age",
+              "description": "`max-age` is too low",
+              "severity": "High"
+            },
+            {
+              "directive": "preload",
+              "description": "No `preload` directive found",
+              "severity": "Medium"
+            }
+          ]
+        }
+      },
+      "origin-isolation": {
+        "title": "Ensure proper origin isolation with COOP",
+        "score": null,
+        "scoreDisplayMode": "notApplicable",
+        "description": "The Cross-Origin-Opener-Policy (COOP) can be used to isolate the top-level window from other documents such as pop-ups. [Learn more about deploying the COOP header.](https://web.dev/articles/why-coop-coep#coop)",
+        "details": {
+          "type": "table",
+          "headings": [
+            {
+              "key": "description",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "description"
+              },
+              "label": "Description"
+            },
+            {
+              "key": "directive",
+              "valueType": "code",
+              "subItemsHeading": {
+                "key": "directive"
+              },
+              "label": "Directive"
+            },
+            {
+              "key": "severity",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "severity"
+              },
+              "label": "Severity"
+            }
+          ],
+          "items": []
+        }
+      },
+      "clickjacking-mitigation": {
+        "title": "Mitigate clickjacking with XFO or CSP",
+        "score": null,
+        "scoreDisplayMode": "notApplicable",
+        "description": "The `X-Frame-Options` (XFO) header or the `frame-ancestors` directive in the `Content-Security-Policy` (CSP) header control where a page can be embedded. These can mitigate clickjacking attacks by blocking some or all sites from embedding the page. [Learn more about mitigating clickjacking](https://developer.chrome.com/docs/lighthouse/best-practices/clickjacking-mitigation).",
+        "details": {
+          "type": "table",
+          "headings": [
+            {
+              "key": "description",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "description"
+              },
+              "label": "Description"
+            },
+            {
+              "key": "severity",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "severity"
+              },
+              "label": "Severity"
+            }
+          ],
+          "items": []
+        }
+      },
+      "trusted-types-xss": {
+        "title": "Mitigate DOM-based XSS with Trusted Types",
+        "score": null,
+        "scoreDisplayMode": "notApplicable",
+        "description": "The `require-trusted-types-for` directive in the `Content-Security-Policy` (CSP) header instructs user agents to control the data passed to DOM XSS sink functions. [Learn more about mitigating DOM-based XSS with Trusted Types](https://developer.chrome.com/docs/lighthouse/best-practices/trusted-types-xss).",
+        "details": {
+          "type": "table",
+          "headings": [
+            {
+              "key": "description",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "description"
+              },
+              "label": "Description"
+            },
+            {
+              "key": "severity",
+              "valueType": "text",
+              "subItemsHeading": {
+                "key": "severity"
+              },
+              "label": "Severity"
+            }
+          ],
+          "items": []
+        }
+      }
+    },
+    "interpretation": "Not an all-pass claim: several audits are notApplicable; short staged HSTS is flagged high and missing preload medium. CSP has only old-browser fallback suggestions."
+  },
+  "follow_up": {
+    "step": 313,
+    "report": "security-paddle-2026-10-29.json",
+    "status": "Paddle TT Report-Only exception removed after actual SDK/sandbox checkout/PayPal popup and production Retain startup verification; initial report retained as history"
+  },
+  "remaining_at_step_308": [
+    "Production deployment and PageSpeed on deployed URL",
+    "HSTS 300s → 1 day → 1 year observation; separate preload decision",
+    "Paddle/ProfitWell-compatible TT policies and real no-charge checkout/popup verification before customer/pay enforcement",
+    "Production signup, email confirmation and auth/MFA/passkey smoke"
+  ]
+}

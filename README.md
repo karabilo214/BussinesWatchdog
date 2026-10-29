@@ -35,4 +35,5 @@ SaaS для обнаружения денежных расхождений и п
 | [docs/ops/shopware-store.md](docs/ops/shopware-store.md) | Публикация Shopware App в Shopware Store: аккаунт, пакет, секрет, тексты страницы, картинки |
 | [docs/ops/maintenance.md](docs/ops/maintenance.md) | Команды обслуживания: ключи шифрования, сотрудники, внеочередные синхронизации и очистки |
 | [docs/ops/platform-passkeys.md](docs/ops/platform-passkeys.md) | Ключи доступа сотрудников: подключение, резервный вход, отзыв, настройки RP и проверки |
+| [docs/ops/security-headers.md](docs/ops/security-headers.md) | CSP, Trusted Types, COOP, frame-ancestors, этапы HSTS и проверка PageSpeed |
 | [docs/ops/development.md](docs/ops/development.md) | Локальная разработка, тесты, живые проверки; CI — `.github/workflows/ci.yml` |

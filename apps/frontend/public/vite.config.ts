@@ -9,6 +9,6 @@ export default defineConfig({
     outDir: fileURLToPath(new URL('../../backend/public/site', import.meta.url)),
     emptyOutDir: true,
     manifest: true,
-    rollupOptions: { input: 'src/site.css' },
+    rollupOptions: { input: ['src/site.css', 'src/paddle.ts'] },
   },
 });

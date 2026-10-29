@@ -1,0 +1,6 @@
+{
+  "name": "@bw/security",
+  "private": true,
+  "type": "module",
+  "exports": { "./paddle": "./src/paddle.ts" }
+}

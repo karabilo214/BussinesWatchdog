@@ -182,6 +182,8 @@ services:
       - tools
     environment:
       RELEASE: ${RELEASE:-latest}
+      HSTS_POLICY: "${HSTS_POLICY:-max-age=300; includeSubDomains}"
+      CSP_HEADER: ${CSP_HEADER:-Content-Security-Policy}
     volumes:
       - web-root:/srv/web
     network_mode: none
