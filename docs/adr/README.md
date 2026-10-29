@@ -1,13 +1,15 @@
-# ADRs
+# Архитектурные решения
 
-Architecture decision records live here.
+Принятые решения хранятся в отдельных ADR этого каталога; исходные требования и открытые вопросы внутри ADR читаются вместе с его последующими уточнениями, текущим бэклогом и историей реализации. Наличие принятого ADR не означает, что функция реализована или выложена.
 
-Initial required ADRs:
+Актуальные точки входа на 2026-10-29:
 
-- Exact runtime and image versions.
-- WooCommerce/Stripe gateway compatibility matrix.
-- Browser egress and SSRF enforcement.
-- Checkout Blocks side effects.
-- SaaS billing provider and commercial account boundaries.
-- Local S3-compatible storage choice.
+- [0007 — наблюдение попыток оплаты](0007-payment-attempt-monitoring.md): реализованные слои 1–2; аудит для расширения задачи 12 ещё открыт.
+- [0077 — API-first подключения](0077-api-first-connections-and-woocommerce-webhooks.md).
+- [0080 — выкладка без простоя](0080-zero-downtime-deploy.md): миграции совместимы с предыдущим выпуском.
+- [0084 — подключение из WooCommerce и воронка](0084-plugin-one-click-connect-and-funnel.md): 0.4.2 опубликован, живая приёмка за владельцем.
+- [0085 — заголовки безопасности](0085-browser-security-headers.md): локально готово, production-проверки открыты.
+- [0086 — окна магазина](0086-store-dialogs-in-browser-checks.md), [0087 — ротация браузеров](0087-browser-rotation.md), [0088 — сторонние ресурсы](0088-third-party-reads-trackers-and-providers.md), [0089 — товар с корзиной и 5xx](0089-product-page-with-cart-and-store-server-errors.md): локальные изменения браузерных проверок, не выложены.
+- [0090 — воронка настоящих покупателей](0090-checkout-funnel-of-real-customers.md): решения владельца приняты, реализация новой воронки ещё не начата.
 
+Статусы выпуска — в [PROJECT_STATE.md](../../PROJECT_STATE.md), история — в [progress](../progress.md), задачи владельца — в [бэклоге](../backlog.md).

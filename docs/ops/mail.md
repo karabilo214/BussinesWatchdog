@@ -31,6 +31,8 @@ php artisan mail:preview --to=<адрес> --locale=de --only=password_reset   #
 
 Локально в контейнере: `docker compose exec backend php artisan mail:preview --to=preview@example.test`. После выпуска изменений макета на боевом: `ssh bw-prod 'cd /opt/business-watchdog/repo/infra/production && docker compose exec -T app php artisan mail:preview --to=<адрес mail-tester.com> --only=password_reset --locale=de'` — проверить балл на mail-tester.com (SpamAssassin, DKIM/SPF/DMARC, вёрстка) и сравнить с прежними письмами. Команда базу не использует; данные в письмах вымышленные.
 
+Зафиксированная проверка доставки после выпуска Step 273: 2026-10-26 три письма пришли во «Входящие» Gmail с SPF/DKIM/DMARC pass; 2026-10-28 mail-tester дал 9.2/10 для `password_reset` de. Основной минус — возраст домена менее 14 дней; также отмечен `SPF_HELO_NONE`. Новая проверка в ходе сверки документации 2026-10-29 не выполнялась.
+
 ## Почтовый сервер на боевом сервере
 
 **Почта** (`mail.business-watchdog.com`) — свой почтовый сервер в контейнерах `mail` (Postfix + Dovecot) и `rspamd` (фильтр спама):

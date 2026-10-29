@@ -1,5 +1,7 @@
 # DTO и дополнительные контракты API
 
+Исторический снимок каталога DTO. Рабочая версия находится в [`../../contracts/ui-api-catalog.md`](../../contracts/ui-api-catalog.md), API — в корневом `contracts/`. Не использовать этот снимок как актуальный статус реализации или основание для изменения payload.
+
 Этот каталог является нормативным дополнением к OpenAPI core. Перед реализацией соответствующих endpoints разработчик переносит DTO в `openapi.yaml` и JSON Schemas без изменения смысла. Все маршруты ниже имеют `/api/v1`, кроме WordPress и SaaS billing webhooks. Schema для ограниченного JSON config должна появиться в contracts до первого использования, а не оставаться произвольным `object` в рабочем API.
 
 Версия1.1: billing DTO и flow этого каталога уточнены в `platform-billing-api.yaml` и `../panels/PUBLIC-SUBSCRIPTION-FRONTEND.md`; при расхождении они имеют приоритет для SaaS billing. Название invoice/payments в platform API относится к оплате нашей услуги, а в monitoring API — к данным магазина. Platform staff guard не принимает customer session.

@@ -32,7 +32,9 @@
 | P0 Технический пилот | Tenant, доступы, Woo-плагин, durable ingestion, heartbeat, заказы и возвраты, безопасный Playwright, серверное наблюдение попыток оплаты (§17.1, слой 1), инциденты, email, минимальный кабинет | Проверка пути до формы оплаты, целостности данных магазина и наблюдение за исходами реальных попыток оплаты |
 | P1 Первая коммерческая версия | Всё P0, Stripe read-only, PayPal read-only (§10.2), идентификация транзакций, backfill и reconciliation, скрипт наблюдения нажатия оплаты на странице checkout (§17.1, слой 2), контроль исполнения оплаченных заказов по дополнению 1.2 (§43) как функции отдельных тарифов, функциональные пакеты тарифов (§29.1), уведомления Telegram, подписка и лимиты, эксплуатационные процедуры | Независимая сверка поддерживаемых операций WooCommerce со Stripe и PayPal; обнаружение ситуаций, когда реальные покупатели не могут оплатить; на тарифах с дополнением 1.2 — подтверждение обязательных результатов оплаченных заказов в поддерживаемых системах |
 | P2 Аномалии продаж | Полнота истории, сезонные baseline, серверные продажи; при включённой телеметрии — наблюдаемая воронка | Обнаружение статистических отклонений с указанием ограничений |
-| LATER Расширения | Shopify, другие gateway (кандидат с приоритетом — easyCredit, §10.3), WebKit и Firefox, фактический тест платежа в sandbox, payout reconciliation | Отдельное ТЗ и матрица поддержки |
+| LATER Расширения | Shopify, другие gateway (кандидат с приоритетом — easyCredit, §10.3), фактический тест платежа в sandbox, payout reconciliation | Отдельное ТЗ и матрица поддержки |
+
+Уточнение состояния 2026-10-29: ротация Chromium/Firefox/WebKit реализована локально в Step 312 (ADR 0087), ещё не выложена; все три браузера в одном запуске не реализованы. Контроль исполнения §43 остаётся незавершённой частью P1, а новая сегментированная воронка задачи 12 — планом по ADR 0090; это не основания объявлять все критерии P1 закрытыми.
 
 Публично платный P0 возможен только с описанием его ограниченного покрытия; называть его независимым контролем денег нельзя. P1 должен пройти все обязательные тесты до первого коммерческого подключения. Разработка ИИ, vector DB, LLM SDK, промптов и AI-браузера не входит ни в один этап этого ТЗ.
 
@@ -108,7 +110,7 @@ business-watchdog/
 
 Локально MUST работать на macOS Apple Silicon и Linux amd64. Не требовать production credentials. Compose содержит PostgreSQL, Redis, MinIO, mail catcher, API, scheduler, PHP workers, frontend и browser worker; тестовый WooCommerce запускается отдельным profile. Fixtures с имитацией Stripe используются без внешней сети; sandbox smoke необязателен для каждого локального запуска, но обязателен перед коммерческой поддержкой gateway.
 
-Команды, которые должны существовать в готовом репозитории: `make setup`, `make up`, `make migrate`, `make seed-demo`, `make test`, `make lint`, `make reset-demo`, `make down`. Пока код отсутствует, эти команды не считаются реализованными. Bootstrap обязан создавать `.env.example` без секретов, lock-файлы, health endpoints и README.
+Команды, которые должны существовать в готовом репозитории: `make setup`, `make up`, `make migrate`, `make seed-demo`, `make test`, `make lint`, `make reset-demo`, `make down`. Это исходные требования bootstrap, а не перечень подтверждённых Makefile targets: актуальные команды — в корневом `Makefile` и `../docs/ops/development.md`. Bootstrap реализован; `.env.example`, lock-файлы, health endpoints и README находятся в репозитории.
 
 ## 7 Роли и права
 
@@ -340,7 +342,7 @@ Sales drop без browser failure и без воронки — signal «Прод
 
 ## 17 Телеметрия воронки P2
 
-Опциональный plugin JS/серверные наблюдения фиксируют cart_observed, checkout_observed, payment_attempt_observed, purchase_confirmed. Purchase подтверждается server-side; thank-you page не является единственным источником. Считать unique sessions, а не clicks. Session identifier случайный, краткоживущий, не содержит email/IP/телефон. Cross-device linkage отсутствует.
+Опциональный plugin JS/серверные наблюдения фиксируют cart_observed, checkout_observed, payment_attempt_observed, purchase_confirmed. Purchase подтверждается server-side; thank-you page не является единственным источником. Считать unique sessions, а не clicks. Для новой воронки задачи 12 идентификатор определяется ADR 0090: HMAC-SHA256 от существующего сеанса магазина на сервере магазина с отдельным секретом, без нового cookie или browser storage. Исходный ID сеанса, email/IP/телефон не передаются; cross-device linkage отсутствует. Признаки сегмента, Growth+, прогрев 7 дней и формула оценки потерь согласованы владельцем, но новая воронка ещё не реализована.
 
 Plugin не обходит отказ пользователя от analytics consent и не отключает adblock. Назвать такие данные «все посетители» нельзя. Кабинет показывает «наблюдаемая воронка» и coverage estimate только при наличии метода оценки. Неполное или изменившееся consent coverage блокирует сильный вывод о падении конверсии.
 
@@ -374,7 +376,7 @@ Plugin не обходит отказ пользователя от analytics co
 
 **Что можно обещать клиенту.** «Мы следим за реальными попытками оплаты и сообщаем, если покупатели перестали успешно оплачивать или страница оплаты перестала работать». Нельзя обещать гарантию, что каждая покупка проходит: подтверждение возможно только фактическим тестовым платежом (LATER, sandbox). Кабинет показывает покрытие: доля наблюдаемых сессий checkout, отсутствие согласия, блокировка скрипта, малый объём попыток (медленное обнаружение у магазинов с редкими заказами).
 
-**Контракты.** Требуется новый тип события агрегатов попыток оплаты и наблюдения checkout (имя и схема фиксируются в `contracts/event.schema.json` при реализации, совместимо с §11), правила сигналов в rule config и incident family `checkout_payment` в incident engine (§22). Слой 1 реализован (Step 49): событие `checkout.payment_attempts` (окна по 5 минут, счётчики по payment method), правило `CHECKOUT_PAYMENTS_FAILING` (3 подряд неуспешных исхода по способу оплаты), семантика исходов — ADR 0007.
+**Контракты.** Требуется новый тип события агрегатов попыток оплаты и наблюдения checkout (имя и схема фиксируются в `contracts/event.schema.json` при реализации, совместимо с §11), правила сигналов в rule config и incident family `checkout_payment` в incident engine (§22). Слои 1 и 2 уже реализованы: слой 1 — WooCommerce plugin (Step 49), Shopware (141), WooCommerce REST API (147); слой 2 — Shopware App (143) и WooCommerce plugin (146). Это агрегаты наблюдения, не новая сегментированная воронка ADR 0090. Слой 1 (Step 49): событие `checkout.payment_attempts` (окна по 5 минут, счётчики по payment method), правило `CHECKOUT_PAYMENTS_FAILING` (3 подряд неуспешных исхода по способу оплаты), семантика исходов — ADR 0007.
 
 ## 18 Браузерные сценарии
 
@@ -384,6 +386,7 @@ Plugin не обходит отказ пользователя от analytics co
 |---|---|---|
 | product | Открыть заранее выбранный product URL | Product и buy control найдены, товар доступен |
 | add_to_cart | Добавить quantity 1 | Корзина содержит expected product/variant |
+| product_again | Повторно открыть product URL с заполненной корзиной | Нет ошибки страницы и товар доступен (Step 316, ADR 0089) |
 | cart | Открыть cart URL | Correct line и положительная сумма, checkout control доступен |
 | checkout | Открыть checkout | Form/Blocks checkout отрисован без blocking error |
 | shipping | Ввести синтетические country/postcode при необходимости | Есть delivery option либо явно поддерживаемый virtual product |
@@ -393,7 +396,7 @@ Homepage step опционален; доступность home не доказ�
 
 Selectors versioned: prefer data-watchdog → stable platform semantics → reviewed CSS fallback. Не разрешать клиенту загружать произвольный JS. Сценарий декларативный, действия allowlisted: goto, click_safe, fill_synthetic, select, assert_visible, assert_cart, wait_response. Custom сценарии LATER.
 
-Assertions отличать от runtime exceptions. Playwright context tracing не записывает assertions приложения автоматически: результаты шагов MUST сохраняться самим worker. `networkidle` не использовать универсальным критерием завершения. Ждать конкретную готовность; timeout step 20 секунд, run 120 секунд, navigation 30 секунд. Эти values configurable per scenario в safe bounded ranges.
+Assertions отличать от runtime exceptions. Playwright context tracing не записывает assertions приложения автоматически: результаты шагов MUST сохраняться самим worker. `networkidle` не использовать универсальным критерием завершения. Ждать конкретную готовность; исходные ориентиры step 20 секунд и navigation 30 секунд уточняются адаптером. Текущий абсолютный лимит попытки подключённого магазина — 180 секунд, через `WATCHDOG_BROWSER_RUN_SECONDS` (Step 317); публичная проверка URL отдельно сохраняет 120 секунд. Не все эти значения являются настройкой пользователя на уровне сценария.
 
 Нормальные реальные сценарии могут иметь 3DS, redirect gateways и methods, которые показываются после создания order. В P1 такие участки обозначать untested/unsupported и не заявлять успешную оплату. Изображение payment iframe не доказывает capture. Если stock исчерпан, signal `test_product_unavailable`, нужна смена test product; не объявлять сломанным checkout магазина.
 
@@ -407,7 +410,7 @@ Assertions отличать от runtime exceptions. Playwright context tracing 
 
 Worker — непривилегированный контейнер, browser sandbox включён, read-only root filesystem, ephemeral profile, CPU/RAM/process limits, no Docker socket, no host credentials. Один context на attempt; secrets других tenant не присутствуют. Run cleanup в finally, hard watchdog process timeout. Chromium process можно переиспользовать, contexts изолировать, перезапускать по утечкам.
 
-SSRF защита MUST охватывать top-level navigation, subresources, fetch/XHR, redirects, WebSocket и DNS rebinding. Запрет loopback, RFC1918, link-local, metadata IP, IPv6 local, non-HTTPS и нестандартных ports. DNS resolution проверяется при соединении, а не только при сохранении URL. Контроль на уровне egress proxy/network обязателен; Playwright route alone недостаточен. Verified store origins плюс явно разрешённые public gateway/CDN origins; redirects вне policy дают blocked_external_origin. Egress не получает доступ к API internal network, DB и Redis.
+SSRF защита MUST охватывать top-level navigation, subresources, fetch/XHR, redirects, WebSocket и DNS rebinding. Запрет loopback, RFC1918, link-local, metadata IP, IPv6 local, non-HTTPS и нестандартных ports. DNS resolution проверяется при соединении, а не только при сохранении URL. Контроль на уровне egress proxy/network обязателен; Playwright route alone недостаточен. Текущая политика ADR 0088: чтение публичных сторонних ресурсов разрешено, трекеры отбрасываются, провайдеры оплаты читаются только при включённой полной проверке форм. Сторонние записи и платёжные mutations блокируются; top-level переход на другой origin — blocked_external_origin. Egress не получает доступ к API internal network, DB и Redis.
 
 Snapshots, trace и HAR могут содержать cookies, PII, tokens. По умолчанию сохраняются redacted screenshot и структурированные error/network metadata без headers/body. Full native trace в production выключен. Он включается для конкретного магазина на ограниченный срок только после подтверждения sanitization pipeline; если безопасно удалить секреты нельзя, trace остаётся выключенным. В sandbox traces разрешены без реальных PII. Нельзя обещать «сохраним все traces при ошибках» без этого условия.
 
@@ -415,7 +418,7 @@ Snapshots, trace и HAR могут содержать cookies, PII, tokens. По
 
 Default интервал 15 минут/store, jitter ±10%, max one active logical run per store/scenario, manual run лимит 1/минуту и общий plan quota. При финансовой аномалии разрешён дополнительный внеплановый run с dedupe и cooldown. Расписание maintenance учитывается до создания job. Browser checks в paused store не выполняются.
 
-Scheduler транзакционно создаёт check_run с scenario version и config snapshot. Worker `POST /internal/v1/browser/leases` получает attempt, lease_token и fencing_token. Запрос аутентифицирован per-worker credential; lease_token random, в БД хранится hash. Lease 150 секунд, heartbeat каждые 15 секунд, абсолютный run limit 120 секунд. Renew не продлевает абсолютный timeout.
+Scheduler транзакционно создаёт check_run с scenario version и config snapshot. Worker `POST /internal/v1/browser/leases` получает attempt, lease_token и fencing_token. Запрос аутентифицирован per-worker credential; lease_token random, в БД хранится hash. Lease 150 секунд, heartbeat каждые 15 секунд, абсолютный лимит попытки по умолчанию 180 секунд (`WATCHDOG_BROWSER_RUN_SECONDS`, Step 317). Renew не продлевает абсолютный timeout.
 
 Lease claim использует `FOR UPDATE SKIP LOCKED`, проверку quota и active limit. На recover истёкшая attempt становится expired, новая получает increased fencing_token. Только действующая attempt может записать финальный result; старый worker с stale fencing token получает 409. Worker retry не создаёт второй логический инцидент.
 
@@ -489,9 +492,9 @@ Checks page: сценарий и покрытые шаги, schedule, истор
 | Alerts | notification_channels, notification_deliveries | Recipients и отправка |
 | SaaS | subscriptions, usage_buckets, audit_log, data_deletion_requests | Доступ по тарифу, аудит и удаление |
 
-`schema.sql` включает 45 reference-таблиц; таблицы P2 используются только после соответствующих feature flags. Framework authentication, API idempotency и worker identity tables добавляются при bootstrap по выбранному механизму и не входят в это число. Справочники enums реализованы text+CHECK для контролируемых состояний; расширения требуют миграции, произвольные state values не принимаются. Provider-specific metadata jsonb ограничивается размером и JSON Schema; основные search/filter поля типизированы, не спрятаны в payload.
+`schema.sql` включает 47 reference-таблиц; таблицы P2 используются только после соответствующих feature flags. Framework authentication, API idempotency и worker identity tables добавляются при bootstrap по выбранному механизму и не входят в это число. Справочники enums реализованы text+CHECK для контролируемых состояний; расширения требуют миграции, произвольные state values не принимаются. Provider-specific metadata jsonb ограничивается размером и JSON Schema; основные search/filter поля типизированы, не спрятаны в payload.
 
-Дополнение `database/platform-billing-extension.sql` применяется после базовой схемы: ещё 22 таблицы и дополнительные поля subscriptions; всего 67 reference-таблиц. Оплаты нашей услуги, invoices, plan versions, checkout sessions, platform staff/audit/support grants хранятся отдельно от магазинных financial_transactions. Подробности — `panels/ADMIN-BACKEND.md`. Фактическая схема работающего приложения определяется Laravel migrations.
+Дополнение `database/platform-billing-extension.sql` применяется после базовой схемы: ещё 23 таблицы и дополнительные поля subscriptions; всего 70 reference-таблиц. Оплаты нашей услуги, invoices, plan versions, checkout sessions, platform staff/audit/support grants хранятся отдельно от магазинных financial_transactions. Подробности — `panels/ADMIN-BACKEND.md`. Фактическая схема работающего приложения определяется Laravel migrations.
 
 ### 25.1 Семантика важных полей
 
@@ -582,7 +585,7 @@ Scheduler должен иметь leader lock и unique due window keys; пов�
 
 ## 29 Подписка и лимиты SaaS
 
-До утверждения цен конкретные €19/29/49 не являются требованием. Тариф задаёт max active stores, check frequency, retention, monthly event budget, manual runs, supported integrations и artifact storage. P0 pilot entitlement выдаётся вручную. P1 billing provider и payment flow выбираются отдельным ADR; счета SaaS не смешиваются с финансовыми данными клиента.
+До утверждения цен конкретные €19/29/49 не являются требованием. Тариф задаёт max active stores, check frequency, retention, monthly event budget, manual runs, supported integrations и artifact storage. P0 pilot entitlement выдаётся вручную. Для P1 выбран и включён Paddle (ADR 0028/0030, live-цикл подтверждён владельцем 2026-10-22); счета SaaS не смешиваются с финансовыми данными клиента.
 
 Подробный коммерческий frontend определён в `panels/PUBLIC-SUBSCRIPTION-FRONTEND.md`; панель владельца сервиса — `panels/OWNER-PANEL.md`; platform backend — `panels/ADMIN-BACKEND.md`. Immutable plan/price versions, hosted checkout, verified fulfillment, invoices, failed renewals, cancellation, temporary overrides и subscription history входят в P1. Provider для нашей услуги выбирается отдельно от подключённого Stripe-магазина.
 
@@ -606,7 +609,7 @@ Past_due grace default 7 дней. Suspended tenant продолжает вид�
 
 Системная config отдельно от tenant rule config. Defaults из ТЗ лежат в versioned config; каждый effective config snapshot сохраняется с run/finding/signal. Runtime feature flags по tenant/store: stripe_reconciliation, browser_payment_form, anomaly_detection, funnel_telemetry, raw_trace_capture. ИИ flag в текущем коде не создаётся.
 
-Конфиги валидируются JSON Schema и bounded ranges. Минимальный interval browser 5 минут, maximum run120 seconds, max concurrency зависит от plan/capacity. Override documented, отображается в UI. Изменение rule имеет actor, old/new, effective_at; history пересчитывается только явной задачей, новые thresholds не переписывают старые результаты.
+Конфиги валидируются JSON Schema и bounded ranges. Минимальный interval browser 5 минут, абсолютный лимит попытки подключённого магазина по умолчанию 180 секунд (`WATCHDOG_BROWSER_RUN_SECONDS`, Step 317), max concurrency зависит от plan/capacity. Override documented, отображается в UI. Изменение rule имеет actor, old/new, effective_at; history пересчитывается только явной задачей, новые thresholds не переписывают старые результаты.
 
 ## 31 Нефункциональные требования
 
@@ -766,9 +769,9 @@ Tenant A не читает/меняет B при известном UUID, artifa
 
 В версии1.1 дополнительно обязательны пять файлов `panels/OWNER-PANEL.md`, `panels/ADMIN-PANEL.md`, `panels/CLIENT-PANELS.md`, `panels/PUBLIC-SUBSCRIPTION-FRONTEND.md`, `panels/ADMIN-BACKEND.md`, SQL extension, `contracts/platform-billing-api.yaml`, `examples/saas-billing-cases.json` и `PANELS-ACCEPTANCE.md`. Новые billing contracts уточняют и заменяют краткие billing DTO версии1.0; прочие monitoring contracts сохраняются. Каждый public/system/customer surface должен быть реализован по своей authorization boundary.
 
-`Business-Watchdog-TZ.md` — основное ТЗ. `database/schema.sql` — reference DDL. `contracts/openapi.yaml` — core API contracts. `contracts/ui-api-catalog.md` — DTO и дополнительные контракты остальных endpoints. `contracts/event.schema.json` — normalized event envelope; ingress проверяет capabilities конкретного credential дополнительно к schema. `examples/reconciliation-cases.json` — финансовые контрольные примеры, где арифметический пример отделён от разрешения публиковать mismatch. `CODEX-IMPLEMENTATION.md` — правила implementation и first tasks. `ACCEPTANCE.md` — traceability checklist. `README.md` — инструкция использования и ограничения пакета. `VALIDATION.md` и `validate_spec.py` — отчёт и воспроизводимые статические проверки.
+`Business-Watchdog-TZ.md` — основное ТЗ. `database/schema.sql` — reference DDL. `contracts/openapi.yaml` — core API contracts. `../contracts/ui-api-catalog.md` — рабочие DTO и дополнительные контракты остальных endpoints; файл внутри `spec/contracts/` — исторический снимок. `contracts/event.schema.json` — normalized event envelope; ingress проверяет capabilities конкретного credential дополнительно к schema. `examples/reconciliation-cases.json` — финансовые контрольные примеры, где арифметический пример отделён от разрешения публиковать mismatch. `CODEX-IMPLEMENTATION.md` — правила implementation и first tasks. `ACCEPTANCE.md` — traceability checklist. `README.md` — инструкция использования и ограничения пакета. `VALIDATION.md` и `validate_spec.py` — отчёт и воспроизводимые статические проверки.
 
-Пакет не содержит рабочий SaaS, plugin или исполняемые migrations. SQL и contracts — стартовая спецификация: они проверяются на синтаксис и внутреннюю согласованность при подготовке, а затем проходят реальные PostgreSQL/adapter tests в D0–D3. Если reference поле недостаточно для реального provider, расширение оформляется ADR и контрактом до code generation.
+Каталог `spec/` содержит требования и reference DDL, а рабочий SaaS, плагины и Laravel migrations находятся в `apps/` и `plugins/` этого репозитория. D0–D3 пройдены; текущие состояния реализации, выпуска и проверок — в `../PROJECT_STATE.md`, `../docs/readiness.md` и истории шагов. Статическая проверка reference SQL и контрактов не заменяет PostgreSQL/adapter tests. Если reference поле недостаточно для реального provider, расширение оформляется ADR и контрактом до code generation.
 
 ## 43 Дополнение 1.2: контроль исполнения оплаченных заказов
 

@@ -94,4 +94,4 @@ Platform audit отдельный от tenant `audit_log`: actor staff, action,t
 
 OWN-01 tenant_owner не открывает /owner и platform API. OWN-02 last active platform_owner защищён. OWN-03 MFA+step-up gates работают. OWN-04 LIVE/TEST и валюты не смешиваются. OWN-05 MRR не включает trials, pending checkout и деньги магазинов. OWN-06 publishing price не меняет старую подписку. OWN-07 suspend/resume не фальсифицирует оплату и не отменяет billing автоматически. OWN-08 refund retry не удваивает возврат. OWN-09 provider secrets отсутствуют в UI/export/logs. OWN-10 KPI drill-down воспроизводит суммы. OWN-11 trial/entitlement override имеет expiry и audit. OWN-12 cross-tenant detailed evidence требует support grant.
 
-Backend routes, schemas и таблицы описаны в `ADMIN-BACKEND.md` и `database/platform-billing-extension.sql`. Эта панель является ТЗ, не работающим интерфейсом.
+Backend routes, schemas и таблицы описаны в `ADMIN-BACKEND.md` и `database/platform-billing-extension.sql`. Этот файл задаёт требования к уже реализованной панели; состояние отдельных функций и незакрытых критериев — в `../../docs/readiness.md` и `../PANELS-ACCEPTANCE.md`.

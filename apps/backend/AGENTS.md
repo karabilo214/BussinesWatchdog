@@ -2,7 +2,7 @@
 
 Follow the repository root `AGENTS.md` and the Business Watchdog specification.
 
-Backend runtime is Docker PHP 8.4. Do not use host PHP 8.1 or install a different host PHP to satisfy Laravel commands.
+Backend runtime is PHP 8.4. Follow the root rule for backend tests: `cd apps/backend && /opt/homebrew/opt/php@8.4/bin/php artisan test`. Docker PHP 8.4 remains available for the container workflows below. Do not use an older system PHP.
 
 Use these commands from the repository root:
 

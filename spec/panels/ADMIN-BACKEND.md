@@ -129,7 +129,7 @@ BusinessKPIs: interval,timezone,mode,currency,metrics [{code,value/formatted,num
 
 ## 8 БД и ограничения
 
-Reference-схему читать в порядке `database/schema.sql`, затем `database/platform-billing-extension.sql`. Production source — Laravel migrations; reference DDL не запускается поверх действующей БД. Extension добавляет platform staff/access/audit/actions, immutable plan/prices, customers/contracts, checkout/events/invoices/attempts/refunds, overrides, usage ledger, content/legal acceptances и deletion tombstones. Валидатор пакета на 2026-10-26 считает 45 базовых и 22 дополнительных reference-таблицы.
+Reference-схему читать в порядке `database/schema.sql`, затем `database/platform-billing-extension.sql`. Production source — Laravel migrations; reference DDL не запускается поверх действующей БД. Extension добавляет platform staff/access/audit/actions, immutable plan/prices, customers/contracts, checkout/events/invoices/attempts/refunds, overrides, usage ledger, content/legal acceptances и deletion tombstones. Валидатор пакета на 2026-10-26 считает 47 базовых и 23 дополнительных reference-таблицы.
 
 Provider refs unique в `(provider,account,mode,external_ref)`. Все tenant billing links composite `(tenant_id,id)`. Суммы bigint nonnegative; refund total≤successful payment, invoice paid accounting consistency и singleton active contract проверять service locks+nightly audit, а не только CHECK.
 

@@ -6,10 +6,10 @@
 
 В комплекте:
 
-- `database/schema.sql` — 45 reference-таблиц, FK, CHECK, unique constraints и indexes для PostgreSQL 18.
+- `database/schema.sql` — 47 reference-таблиц, FK, CHECK, unique constraints и indexes для PostgreSQL 18.
 - `../contracts/openapi.yaml` — основные внешние и внутренние API (рабочий контракт живёт только в корневом `contracts/`).
 - `../contracts/event.schema.json` — основной versioned JSON Schema нормализованных событий; runtime-копия в `../apps/backend/resources/contracts/event.schema.json` синхронизируется с ним и проверяется `IngestEventsApiTest`.
-- `contracts/ui-api-catalog.md` — уточнения DTO остальных интерфейсов и правил API.
+- `../contracts/ui-api-catalog.md` — рабочие уточнения DTO остальных интерфейсов и правил API; `spec/contracts/ui-api-catalog.md` — исторический снимок.
 - `examples/ingest-batch.json` — synthetic Woo snapshot batch.
 - `examples/reconciliation-cases.json` — 24 финансовых примера.
 - `ACCEPTANCE.md` — 50 сценариев приёмки с traceability.
@@ -23,7 +23,7 @@
 - `panels/CLIENT-PANELS.md` — кабинеты владельца и администратора организации клиента.
 - `panels/PUBLIC-SUBSCRIPTION-FRONTEND.md` — сайт, тарифы, регистрация, hosted checkout, продление и отмена подписки нашей услуги.
 - `panels/ADMIN-BACKEND.md` — backend, права, lifecycle биллинга, API и эксплуатация.
-- `database/platform-billing-extension.sql` — 22 дополнительные reference-таблицы; вместе с base — 67.
+- `database/platform-billing-extension.sql` — 23 дополнительные reference-таблицы; вместе с base — 70.
 - `../contracts/platform-billing-api.yaml` — 25 операций дополнения.
 - `examples/saas-billing-cases.json` —16 сценариев собственного биллинга.
 - `PANELS-ACCEPTANCE.md` — приёмка дополнения1.1.

@@ -1,6 +1,11 @@
-# Operations
+# Эксплуатационная документация
 
-Operational runbooks will live here.
+Актуальные инструкции находятся в [`../ops/`](../ops/); оглавление — в [корневом README](../../README.md#документация-по-запуску-и-обслуживанию). Этот каталог сохранён для совместимости старых ссылок.
 
-Required runbooks from the specification include DB down, Redis down, revoked Stripe key, webhook backlog, stale Woo cron, browser pool exhaustion, SSRF rejection, notification outage, key rotation, replay, partial tenant deletion, and DB restore.
+- [Выкладка и production](../ops/production-server.md)
+- [Бэкапы и восстановление](../ops/backups.md)
+- [Обслуживание и очереди](../ops/maintenance.md)
+- [Интеграции и браузерные воркеры](../ops/integrations.md)
+- [Локальная разработка и проверки](../ops/development.md)
 
+Полный restore на новом сервере (ACC-41), нагрузочный прогон (ACC-43) и отказные проверки БД/Redis (ACC-10/11) остаются открытыми; наличие инструкции не означает прохождение приёмки.

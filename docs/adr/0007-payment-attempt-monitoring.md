@@ -18,9 +18,11 @@ Recorded in `spec/Business-Watchdog-TZ.md` §17.1 and the release table in §2:
 - Client promise: "we watch real payment attempts and alert when customers stop paying successfully", not a guarantee for every purchase.
 - No PII, no form values, no card data.
 
-## Open items for implementation
+## Historical implementation questions (settled below and in later ADRs)
 
 Event type name and schema, rule thresholds (defaults: N=3 consecutive failures per method, 30 min pending window, 5 min aggregation), incident family `checkout_payment`, optimiser exclusion list.
+
+Current status (2026-10-29): layers 1 and 2 are implemented as stated above; the original gaps below describe Step 49, not the whole current system. The order-pay page and statistical success-rate rule remain open. Task 12 starts with an audit of both layers before the new session funnel (accepted ADR 0090). Entitlements now exist (ADR 0008 and SaaS billing steps); their current enforcement is part of that audit.
 
 ## Layer 1 implementation decisions (Step 49, to be confirmed by the owner)
 

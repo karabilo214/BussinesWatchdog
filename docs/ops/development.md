@@ -1,5 +1,7 @@
 # Локальная разработка и тесты
 
+Бэкенд-тесты на Mac по AGENTS.md: `cd apps/backend && /opt/homebrew/opt/php@8.4/bin/php artisan test`. Команды Makefile ниже используют Docker PHP 8.4; системный PHP старой версии не подходит.
+
 ```sh
 make setup && make up               # PostgreSQL, Redis, S3Mock, Mailpit, бэкенд, планировщик
 make backend-test                   # тесты бэкенда (SQLite)
