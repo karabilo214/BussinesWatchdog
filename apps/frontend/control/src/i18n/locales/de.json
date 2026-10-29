@@ -46,6 +46,8 @@
     "platform_member": "Mitarbeiter"
   },
   "auth": {
+    "passkey_sign_in": "Mit Touch ID / Face ID anmelden",
+    "passkey_failed": "Anmeldung mit diesem Passkey fehlgeschlagen. Anderen Schlüssel oder Passwort und MFA verwenden.",
     "tagline": "Panel des Dienstinhabers",
     "title": "Anmeldung für Mitarbeiter",
     "email": "E-Mail",
@@ -139,6 +141,10 @@
     "close": "Schließen"
   },
   "errors": {
+    "passkey_invalid": "Anmeldung mit diesem Passkey fehlgeschlagen. Anderen Schlüssel oder Passwort und MFA verwenden.",
+    "passkey_registration_expired": "Anmeldung mit diesem Passkey fehlgeschlagen. Anderen Schlüssel oder Passwort und MFA verwenden.",
+    "passkey_challenge_expired": "Anmeldung mit diesem Passkey fehlgeschlagen. Anderen Schlüssel oder Passwort und MFA verwenden.",
+    "passkey_step_up_failed": "Aktuelles Passwort und MFA- oder Wiederherstellungscode prüfen.",
     "generic": "Die Aktion ist fehlgeschlagen. Versuchen Sie es erneut.",
     "network": "Keine Verbindung zum Server.",
     "request_id": "Anfrage-ID: {id}",
@@ -769,6 +775,9 @@
       "store_deleted": "Shop gelöscht"
     },
     "staff": {
+      "passkey_registered": "Mitarbeiter-Passkey hinzugefügt",
+      "passkey_deleted": "Mitarbeiter-Passkey gelöscht",
+      "passkey_login": "Mitarbeiteranmeldung mit Passkey",
       "login": "Anmeldung",
       "invited": "Mitarbeitende eingeladen",
       "invitation_revoked": "Einladung widerrufen",
@@ -1858,5 +1867,18 @@
     "hide_hint": "Aus Ihrem Verlauf ausblenden; Anfrage, Audit und Kundenverlauf bleiben erhalten",
     "until": "Bis",
     "open_store": "Shop-Details öffnen"
+  },
+  "passkeys": {
+    "title": "Passkeys",
+    "description": "Mit Touch ID, Face ID, Geräte-PIN oder Sicherheitsschlüssel im Adminbereich anmelden. Zum Hinzufügen oder Löschen sind das aktuelle Passwort und ein MFA- oder Wiederherstellungscode nötig.",
+    "unsupported": "Dieser Browser unterstützt keine Passkeys.",
+    "empty": "Noch keine Passkeys vorhanden.",
+    "last_used": "Zuletzt verwendet:",
+    "delete": "Löschen",
+    "confirm_delete": "Löschen bestätigen",
+    "cancel": "Abbrechen",
+    "name": "Gerätename",
+    "add": "Passkey hinzufügen",
+    "backup": "Passwort und Wiederherstellungscodes als Ersatz für die Anmeldung aufbewahren. Sensible Aktionen erfordern weiterhin einen MFA-Code."
   }
 }

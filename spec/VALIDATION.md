@@ -2,12 +2,12 @@
 
 Повторно проверено 26 октября 2026 года командой `python3 spec/validate_spec.py` для пакета версии 1.1 с последующими правками. Ниже перечислены проверки файлов, а не тесты рабочего SaaS.
 
-- OpenAPI YAML, internal references, path parameters and unique operation IDs: 292 operations
+- OpenAPI YAML, internal references, path parameters and unique operation IDs: 299 operations
 - Extension OpenAPI: 25 operations, references/paths and positive/negative purchase/action DTO fixtures
 - Positive Woo ingestion fixture conforms to the used JSON Schema subset
 - Negative event schema fixture checks: 6
 - Unique financial case IDs: 24; exact integer arithmetic checked: 22
-- SQL static structural checks: 69 tables, 114 FK targets/unique keys, index columns and balanced field lists
+- SQL static structural checks: 70 tables, 115 FK targets/unique keys, index columns and balanced field lists
 - 43 numbered TZ sections, 50 unique acceptance IDs, all listed deliverables present
 - Extension: five panel specifications, 16 unique billing cases, 29 additional acceptance scenarios
 

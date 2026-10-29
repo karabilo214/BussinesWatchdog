@@ -25,6 +25,9 @@
     "deletion_cancelled": "Organization deletion cancelled"
   },
   "staff": {
+    "passkey_registered": "Staff passkey added",
+    "passkey_deleted": "Staff passkey deleted",
+    "passkey_login": "Staff passkey sign-in",
     "login": "Staff sign-in",
     "invited": "Staff member invited",
     "invitation_revoked": "Staff invitation revoked",

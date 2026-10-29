@@ -175,6 +175,156 @@ paths:
         "401": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/auth/passkeys/login/options:
+    get:
+      tags: [Platform]
+      operationId: platformPasskeyLoginOptions
+      description: "Discoverable passkey challenge, user verification required. Separate platform session; valid 300 seconds, single use. 5 requests per minute per IP."
+      security: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyOptions"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/auth/passkeys/login:
+    post:
+      tags: [Platform]
+      operationId: platformPasskeyLogin
+      description: "Verify a platform-only credential; active staff, enabled user and enrolled MFA required. UV passkey replaces password plus MFA for login only. Starts the same limited platform session. Challenge is consumed even on failure."
+      security: []
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PlatformPasskeyAssertion"}
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformMe"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/me/passkeys:
+    get:
+      tags: [Platform]
+      operationId: platformListPasskeys
+      description: "Own staff credentials only; no credential material returned."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformPasskeyList"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/me/passkeys/authorize:
+    post:
+      tags: [Platform]
+      operationId: platformAuthorizePasskey
+      description: "Fresh password and authenticator or recovery code required. Authorization bound to staff and permission version for 300 seconds."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PlatformPasskeyStepUp"}
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PlatformPasskeyAuthorized"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/me/passkeys/register/options:
+    get:
+      tags: [Platform]
+      operationId: platformPasskeyRegistrationOptions
+      description: "Requires fresh enrollment authorization. Required resident key and user verification. Independent opaque staff user handle."
+      security:
+        - {StaffSession: []}
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyOptions"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/me/passkeys/register:
+    post:
+      tags: [Platform]
+      operationId: platformRegisterPasskey
+      description: "Consumes the authorized challenge and verifies origin, RP ID and UV before storing a platform-only credential."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PlatformPasskeyRegistration"}
+      responses:
+        "201":
+          description: Success
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AccountPasskey"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /platform-api/v1/me/passkeys/{platformPasskey}:
+    delete:
+      tags: [Platform]
+      operationId: platformDeletePasskey
+      description: "Delete own key after fresh password and MFA. Other staff credentials return 404. Password and MFA remain available for backup login."
+      security:
+        - {StaffSession: []}
+      parameters:
+        - {$ref: "#/components/parameters/CsrfToken"}
+        - {name: platformPasskey, in: path, required: true, schema: {type: integer}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PlatformPasskeyStepUp"}
+      responses:
+        "204":
+          description: Success
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
   /platform-api/v1/plans:
     get:
       tags: [Platform]
@@ -8172,6 +8322,33 @@ components:
                 requested_at: {type: string, format: date-time}
                 purge_after: {type: string, format: date-time}
                 can_cancel: {type: boolean, description: "Owner only, while status is requested (the 30 days)."}
+    PlatformPasskeyList:
+      type: object
+      required: [data]
+      properties:
+        data: {type: array, items: {$ref: "#/components/schemas/AccountPasskey"}}
+    PlatformPasskeyAuthorized:
+      type: object
+      required: [authorized]
+      properties:
+        authorized: {const: true}
+    PlatformPasskeyStepUp:
+      type: object
+      required: [current_password, code]
+      properties:
+        current_password: {type: string, maxLength: 128}
+        code: {type: string, maxLength: 32}
+    PlatformPasskeyAssertion:
+      type: object
+      required: [credential]
+      properties:
+        credential: {type: object, description: WebAuthn AuthenticationResponseJSON}
+    PlatformPasskeyRegistration:
+      type: object
+      required: [name, credential]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 100}
+        credential: {type: object, description: WebAuthn RegistrationResponseJSON}
     PasskeyOptions:
       type: object
       required: [options]

@@ -24,7 +24,7 @@ class RequirePlatformStaff
         $user = $request->user('platform');
         $staff = $user === null ? null : PlatformStaff::query()->where('user_id', $user->id)->first();
 
-        if ($user === null || $staff === null || ! $staff->active() || ! $this->mfa->enabled($user)) {
+        if ($user === null || $user->disabled_at !== null || $staff === null || ! $staff->active() || ! $this->mfa->enabled($user)) {
             if ($user !== null) {
                 $this->session->end($request);
             }

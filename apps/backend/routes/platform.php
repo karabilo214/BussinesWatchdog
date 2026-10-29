@@ -10,6 +10,7 @@ use App\Http\Controllers\Platform\PageController;
 use App\Http\Controllers\Platform\PaymentController;
 use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformAuthController;
+use App\Http\Controllers\Platform\PlatformPasskeyController;
 use App\Http\Controllers\Platform\PluginFunnelController;
 use App\Http\Controllers\Platform\PublicStorefrontCheckHistoryController;
 use App\Http\Controllers\Platform\RefundController;
@@ -31,6 +32,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): void {
     Route::get('/csrf-cookie', [PlatformAuthController::class, 'csrf']);
     Route::post('/auth/login', [PlatformAuthController::class, 'login'])->middleware('throttle:platform-login');
+    Route::get('/auth/passkeys/login/options', [PlatformPasskeyController::class, 'loginOptions'])->middleware('throttle:platform-passkeys')->block();
+    Route::post('/auth/passkeys/login', [PlatformPasskeyController::class, 'login'])->middleware('throttle:platform-passkeys')->block();
     Route::post('/auth/mfa', [PlatformAuthController::class, 'mfa'])->middleware('throttle:platform-mfa');
     Route::get('/staff-invitations/lookup', [StaffInvitationController::class, 'lookup'])->middleware('throttle:platform-invitation');
     Route::post('/staff-invitations/start', [StaffInvitationController::class, 'start'])->middleware('throttle:platform-invitation');
@@ -39,6 +42,11 @@ Route::prefix('/platform-api/v1')->middleware('platform')->group(function (): vo
 
     Route::middleware('platform.staff')->group(function (): void {
         Route::get('/me', [PlatformAuthController::class, 'show']);
+        Route::get('/me/passkeys', [PlatformPasskeyController::class, 'index']);
+        Route::post('/me/passkeys/authorize', [PlatformPasskeyController::class, 'authorizeRegistration'])->middleware('throttle:platform-step-up')->block();
+        Route::get('/me/passkeys/register/options', [PlatformPasskeyController::class, 'registrationOptions'])->middleware('throttle:platform-step-up')->block();
+        Route::post('/me/passkeys/register', [PlatformPasskeyController::class, 'register'])->middleware('throttle:platform-step-up')->block();
+        Route::delete('/me/passkeys/{platformPasskey}', [PlatformPasskeyController::class, 'destroy'])->whereNumber('platformPasskey')->middleware('throttle:platform-step-up')->block();
         Route::post('/auth/logout', [PlatformAuthController::class, 'logout']);
         Route::get('/attention', [AttentionController::class, 'show']);
         Route::post('/me/password', [StaffProfileController::class, 'changePassword'])->middleware('throttle:platform-step-up');

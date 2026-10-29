@@ -2,6 +2,8 @@
 
 namespace App\Support\Account;
 
+use App\Models\PlatformPasskey;
+use App\Models\PlatformStaff;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +72,7 @@ class PasswordResetService
                 'email_verified_at' => $user->email_verified_at ?? Carbon::now(),
             ])->save();
 
+            PlatformPasskey::query()->whereIn('staff_id', PlatformStaff::query()->where('user_id', $user->id)->select('id'))->delete();
             DB::table('sessions')->where('user_id', $user->id)->delete();
             DB::table('trusted_devices')->where('user_id', $user->id)->delete();
         });

@@ -6,10 +6,14 @@ use App\Support\Platform\PlatformCapabilities;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\PasskeyAuthenticatable;
 
-class PlatformStaff extends Model
+class PlatformStaff extends Authenticatable implements PasskeyUser
 {
-    use HasUuids;
+    use HasUuids, PasskeyAuthenticatable;
 
     public const ROLE_OWNER = 'platform_owner';
 
@@ -75,6 +79,21 @@ class PlatformStaff extends Model
     public function photoUrl(): ?string
     {
         return $this->photo_key === null ? null : '/platform-api/v1/staff/'.$this->id.'/photo?v='.$this->photo_updated_at?->getTimestamp();
+    }
+
+    public function passkeys(): HasMany
+    {
+        return $this->hasMany(PlatformPasskey::class, 'staff_id');
+    }
+
+    public function getPasskeyUsername(): string
+    {
+        return $this->user->email.' (admin)';
+    }
+
+    public function getPasskeyDisplayName(): string
+    {
+        return $this->user->name.' — Business Watchdog admin';
     }
 
     public function active(): bool

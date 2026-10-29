@@ -43,7 +43,7 @@ class PlatformAuthController extends Controller
         $user = $guard->validate($credentials) ? $guard->getProvider()->retrieveByCredentials($credentials) : null;
         $staff = $user === null ? null : PlatformStaff::query()->where('user_id', $user->id)->first();
 
-        if ($staff === null || ! $staff->active()) {
+        if ($staff === null || ! $staff->active() || $user->disabled_at !== null) {
             $this->audit->record($staff?->id, 'staff.login', 'staff_login', hash('sha256', $credentials['email']), PlatformAudit::RESULT_DENIED, ['stage' => 'password']);
 
             return response()->json(['code' => 'platform_login_failed', 'message' => 'Wrong email or password.'], 422);
@@ -79,7 +79,7 @@ class PlatformAuthController extends Controller
         /** @var PlatformStaff|null $staff */
         $staff = PlatformStaff::query()->with('user')->whereKey($pending['staff_id'])->first();
 
-        if ($staff === null || ! $staff->active()) {
+        if ($staff === null || ! $staff->active() || $staff->user->disabled_at !== null) {
             $request->session()->forget(self::PENDING);
 
             return response()->json(['code' => 'platform_mfa_expired', 'message' => 'Sign in again.'], 401);
@@ -117,7 +117,7 @@ class PlatformAuthController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function me(PlatformStaff $staff): array
+    public function me(PlatformStaff $staff): array
     {
         return [
             'staff_id' => $staff->id,

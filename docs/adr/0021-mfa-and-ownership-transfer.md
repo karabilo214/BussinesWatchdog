@@ -56,3 +56,7 @@ After a successful TOTP/recovery challenge, the customer may explicitly trust th
 ## Amendment 2026-10-25 (Step 257, team-member warning)
 
 The existing overview warning and profile setup link are available to all customer roles without MFA. The profile now gives admins, operators and viewers the same visible recommendation as owners, with explicit wording that enrollment is optional. Both warnings disappear once MFA is enabled. No server policy or sign-in behavior changes.
+
+## Platform passkeys (Step 307)
+
+Staff now have their own passkey enrollment and user-verified sign-in, independently of customer credentials, opaque user handles, challenge/session state and cookies. This does not enable customer trusted devices for staff. TOTP/recovery enrollment remains mandatory; password + TOTP/recovery remains the backup login and fresh confirmation of credential management. Existing sensitive platform actions retain their TOTP requirements. Resetting MFA or using password recovery revokes staff keys. See [ADR 0034](0034-platform-staff-sign-in.md#staff-passkeys-step-307-owners-instruction-2026-10-28) and [operations](../ops/platform-passkeys.md).

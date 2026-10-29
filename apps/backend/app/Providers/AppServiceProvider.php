@@ -57,6 +57,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perHour(30)->by('platform-email|'.mb_strtolower(trim((string) $request->input('email')))),
         ]);
 
+        RateLimiter::for('platform-passkeys', fn (Request $request): Limit => Limit::perMinute((int) config('watchdog.platform.login_per_minute'))
+            ->by('platform-passkey|'.$request->ip().'|'.$request->route()->getActionMethod()));
+
         RateLimiter::for('discount-check', fn (Request $request): Limit => Limit::perMinute(10)->by('discount-check|'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('plan-change-preview', fn (Request $request): Limit => Limit::perMinute(20)->by('plan-change-preview|'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 

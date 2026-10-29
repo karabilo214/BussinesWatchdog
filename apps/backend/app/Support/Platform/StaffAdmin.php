@@ -25,7 +25,7 @@ class StaffAdmin
     public function catalog(): array
     {
         $staff = PlatformStaff::query()->with('user')->orderBy('created_at')->get();
-        $logins = DB::table('platform_audit_log')->where('action', 'staff.login')->where('result', PlatformAudit::RESULT_SUCCEEDED)->whereIn('actor_staff_id', $staff->pluck('id'))
+        $logins = DB::table('platform_audit_log')->whereIn('action', ['staff.login', 'staff.passkey_login'])->where('result', PlatformAudit::RESULT_SUCCEEDED)->whereIn('actor_staff_id', $staff->pluck('id'))
             ->groupBy('actor_staff_id')->select('actor_staff_id', DB::raw('max(created_at) as last_login_at'))->pluck('last_login_at', 'actor_staff_id');
         $invitations = PlatformStaffInvitation::query()->where('purpose', PlatformStaffInvitation::PURPOSE_JOIN)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', Carbon::now())->orderByDesc('created_at')->get();
 
@@ -148,6 +148,9 @@ class StaffAdmin
                 'disabled_at' => $state === PlatformStaff::STATE_DISABLED ? ($member->disabled_at ?? Carbon::now()) : null,
                 'permission_version' => $member->permission_version + 1,
             ])->save();
+            if ($state === PlatformStaff::STATE_DISABLED) {
+                $member->passkeys()->delete();
+            }
             $this->audit->record($actor->id, 'staff.updated', 'staff', $member->id, PlatformAudit::RESULT_SUCCEEDED, ['before' => $before, 'after' => ['role' => $role, 'capabilities' => $capabilities, 'state' => $state]], $reason);
 
             return $member;

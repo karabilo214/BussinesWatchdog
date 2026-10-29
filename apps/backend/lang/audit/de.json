@@ -25,6 +25,9 @@
     "deletion_cancelled": "Löschung der Organisation storniert"
   },
   "staff": {
+    "passkey_registered": "Mitarbeiter-Passkey hinzugefügt",
+    "passkey_deleted": "Mitarbeiter-Passkey gelöscht",
+    "passkey_login": "Mitarbeiteranmeldung mit Passkey",
     "login": "Anmeldung",
     "invited": "Mitarbeitende eingeladen",
     "invitation_revoked": "Einladung widerrufen",

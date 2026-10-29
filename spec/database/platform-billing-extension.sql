@@ -13,6 +13,18 @@ CREATE TABLE platform_staff (
  created_at timestamptz NOT NULL DEFAULT now(),
  disabled_at timestamptz
 );
+-- Staff passkeys never refer to customer passkeys, even for the same user/RP.
+CREATE TABLE platform_passkeys (
+ id bigserial PRIMARY KEY,
+ staff_id uuid NOT NULL REFERENCES platform_staff(id) ON DELETE CASCADE,
+ name varchar(100) NOT NULL,
+ credential_id varchar(255) NOT NULL UNIQUE,
+ credential json NOT NULL,
+ last_used_at timestamp NULL,
+ created_at timestamp NULL,
+ updated_at timestamp NULL
+);
+CREATE INDEX platform_passkeys_staff_id_index ON platform_passkeys(staff_id);
 -- Last active owner protection is transactional under an owner-role advisory lock.
 CREATE TABLE platform_staff_invitations (
  id uuid PRIMARY KEY,

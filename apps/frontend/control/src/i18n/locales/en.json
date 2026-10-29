@@ -46,6 +46,8 @@
     "platform_member": "staff member"
   },
   "auth": {
+    "passkey_sign_in": "Sign in with Touch ID / Face ID",
+    "passkey_failed": "Could not sign in with this passkey. Try another key or your password and MFA.",
     "tagline": "Service owner panel",
     "title": "Staff sign-in",
     "email": "Email",
@@ -139,6 +141,10 @@
     "close": "Close"
   },
   "errors": {
+    "passkey_invalid": "Could not sign in with this passkey. Try another key or your password and MFA.",
+    "passkey_registration_expired": "Could not sign in with this passkey. Try another key or your password and MFA.",
+    "passkey_challenge_expired": "Could not sign in with this passkey. Try another key or your password and MFA.",
+    "passkey_step_up_failed": "Check your current password and MFA or recovery code.",
     "generic": "The action failed. Try again.",
     "network": "No connection to the server.",
     "request_id": "Request ID: {id}",
@@ -769,6 +775,9 @@
       "store_deleted": "Store deleted"
     },
     "staff": {
+      "passkey_registered": "Staff passkey added",
+      "passkey_deleted": "Staff passkey deleted",
+      "passkey_login": "Staff passkey sign-in",
       "login": "Staff sign-in",
       "invited": "Staff member invited",
       "invitation_revoked": "Staff invitation revoked",
@@ -1858,5 +1867,18 @@
     "hide_hint": "Hide from your history; the request, the audit and the customer history are kept",
     "until": "Until",
     "open_store": "Open store details"
+  },
+  "passkeys": {
+    "title": "Passkeys",
+    "description": "Sign in to the admin panel with Touch ID, Face ID, your device PIN or a security key. Adding or deleting keys requires your current password and an MFA or recovery code.",
+    "unsupported": "This browser does not support passkeys.",
+    "empty": "No passkeys yet.",
+    "last_used": "Last used:",
+    "delete": "Delete",
+    "confirm_delete": "Confirm deletion",
+    "cancel": "Cancel",
+    "name": "Device name",
+    "add": "Add passkey",
+    "backup": "Keep your password and recovery codes as a backup way to sign in. Sensitive actions still require an MFA code."
   }
 }

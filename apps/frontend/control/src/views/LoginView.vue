@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue';
+import { nextTick, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ApiError } from '@bw/api-client';
 import { LocaleSwitch } from '@bw/i18n';
+import { passkeyCancelled, passkeysSupported, signInWithPasskey } from '@/api/passkeys';
 import { useStaff } from '@/composables/useStaff';
 
 const route = useRoute();
 const router = useRouter();
-const { signIn, completeMfa } = useStaff();
+const { signIn, completeMfa, acceptSession } = useStaff();
+const supported = ref(false);
+onMounted(() => { supported.value = passkeysSupported(); });
 const email = ref('');
 const password = ref('');
 const code = ref('');
@@ -30,6 +33,21 @@ function failure(error: unknown, invalidKey: string): string {
   }
 
   return error instanceof ApiError && error.status === 0 ? 'auth.network' : 'auth.generic';
+}
+
+async function submitPasskey(): Promise<void> {
+  submitting.value = true;
+  errorKey.value = null;
+  try {
+    acceptSession(await signInWithPasskey());
+    const target = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/owner') ? route.query.redirect : { name: 'owner-overview' };
+    await router.replace(target);
+  } catch (error) {
+    if (!passkeyCancelled(error)) errorKey.value = failure(error, 'auth.passkey_failed');
+  } finally {
+    password.value = '';
+    submitting.value = false;
+  }
 }
 
 async function submit(): Promise<void> {
@@ -106,6 +124,7 @@ function back(): void {
         >
           {{ submitting ? $t('auth.submitting') : $t('auth.continue') }}
         </button>
+        <button v-if="supported" type="button" data-passkey-login class="rounded-md border border-border-strong px-4 py-2.5 text-sm font-semibold text-primary hover:bg-surface-muted disabled:opacity-60" :disabled="submitting" @click="submitPasskey">{{ $t('auth.passkey_sign_in') }}</button>
       </form>
 
       <form v-else class="flex flex-col gap-5 rounded-xl border border-border bg-surface p-6 shadow-sm" novalidate data-step="mfa" @submit.prevent="submitCode">

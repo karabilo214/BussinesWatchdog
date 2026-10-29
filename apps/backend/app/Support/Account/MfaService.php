@@ -5,6 +5,7 @@ namespace App\Support\Account;
 use App\Models\AuditLog;
 use App\Models\Membership;
 use App\Models\MfaRecoveryCode;
+use App\Models\PlatformPasskey;
 use App\Models\PlatformStaff;
 use App\Models\User;
 use App\Support\Security\Keyring;
@@ -153,6 +154,7 @@ class MfaService
             ])->save();
             MfaRecoveryCode::query()->where('user_id', $user->id)->delete();
             DB::table('trusted_devices')->where('user_id', $user->id)->delete();
+            PlatformPasskey::query()->whereIn('staff_id', PlatformStaff::query()->where('user_id', $user->id)->select('id'))->delete();
             $this->audit($user, 'user.mfa_disabled');
         });
     }

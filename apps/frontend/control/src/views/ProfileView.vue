@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StaffPasskeysPanel from '@/components/StaffPasskeysPanel.vue';
 import StaffProfileEditor from '@/components/StaffProfileEditor.vue';
 import { useStaff } from '@/composables/useStaff';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
@@ -16,6 +17,7 @@ const { me, load } = useStaff();
       <div v-if="me" class="rounded-xl border border-border bg-surface p-5">
         <StaffProfileEditor :staff-id="me.staff_id" :first-name="me.first_name" :last-name="me.last_name" :name="me.name" :photo-url="me.photo_url" self @changed="load(true)" />
       </div>
+      <StaffPasskeysPanel v-if="me" />
     </div>
   </OwnerLayout>
 </template>

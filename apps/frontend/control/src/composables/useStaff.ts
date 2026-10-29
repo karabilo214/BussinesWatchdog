@@ -44,6 +44,11 @@ export function useStaff() {
     }
   }
 
+  function acceptSession(value: StaffMe): void {
+    me.value = value;
+    loaded = Promise.resolve(value);
+  }
+
   function forget(): void {
     me.value = null;
     loaded = Promise.resolve(null);
@@ -53,5 +58,5 @@ export function useStaff() {
     return me.value?.capabilities.includes(capability) ?? false;
   }
 
-  return { me, load, signIn, completeMfa, signOut, forget, can };
+  return { me, load, signIn, completeMfa, acceptSession, signOut, forget, can };
 }
