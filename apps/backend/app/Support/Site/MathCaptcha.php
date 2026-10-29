@@ -9,13 +9,13 @@ use Illuminate\Support\Carbon;
 /**
  * The self-hosted image CAPTCHA of the public forms (a sum of two digits): no third-party script and no cookie beyond
  * the session. Each form keeps its challenge under its own session key; an answer is checked once and the challenge is
- * dropped whatever the result, so a new image is needed for the next try.
+ * dropped whatever the result. Contact forms reuse the same challenge for image and accessible text.
  */
 class MathCaptcha
 {
-    public function image(Request $request, string $sessionKey): Response
+    public function image(Request $request, string $sessionKey, bool $reuse = false): Response
     {
-        $question = $this->issue($request, $sessionKey);
+        $question = $reuse ? $this->question($request, $sessionKey) : $this->issue($request, $sessionKey);
         $image = function_exists('imagecreatetruecolor') ? $this->png($question) : $this->svg($question);
 
         return response($image['body'], 200, [
@@ -24,6 +24,33 @@ class MathCaptcha
             'Pragma' => 'no-cache',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    public function begin(Request $request, string $sessionKey): void
+    {
+        $this->issue($request, $sessionKey);
+    }
+
+    public function text(Request $request, string $sessionKey): Response
+    {
+        [$left, $right] = explode(' + ', $this->question($request, $sessionKey));
+
+        return response(trans('site.forms.captcha_question', compact('left', 'right')), 200, [
+            'Content-Type' => 'text/plain; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    private function question(Request $request, string $sessionKey): string
+    {
+        $challenge = $request->session()->get($sessionKey);
+        if (is_array($challenge) && is_string($challenge['question'] ?? null)
+            && ($challenge['expires_at'] ?? 0) >= Carbon::now()->timestamp) {
+            return $challenge['question'];
+        }
+
+        return $this->issue($request, $sessionKey);
     }
 
     public function passes(Request $request, string $sessionKey, string $answer): bool

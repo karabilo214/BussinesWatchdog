@@ -17,6 +17,9 @@ if (entry?.file === undefined) {
   }
 }
 
+const forms = manifest['src/forms.ts'];
+if (!forms?.file || !readFileSync(new URL(forms.file, root), 'utf8').includes('data-toggle-password')) problems.push('missing progressive form enhancement');
+
 const paddle = manifest['src/paddle.ts'];
 if (!paddle?.file || !readFileSync(new URL(paddle.file, root), 'utf8').includes('Unapproved Paddle script URL')) problems.push('missing Paddle Trusted Types bootstrap');
 

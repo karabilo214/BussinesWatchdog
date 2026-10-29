@@ -1,0 +1,33 @@
+{
+    auto_https disable_redirects
+    admin off
+}
+localhost {
+    tls internal
+    handle_path /app/* {
+        import /srv/web/current/customer/security.caddy
+        try_files {path} /index.html
+        file_server {
+            hide *.caddy
+        }
+    }
+    @control path /owner /owner/* /assets/*
+    handle @control {
+        import /srv/web/current/control/security.caddy
+        try_files {path} /index.html
+        file_server {
+            hide *.caddy
+        }
+    }
+    handle /site/assets/* {
+        root * /srv/public
+        file_server
+    }
+    handle /images/* {
+        root * /srv/public
+        file_server
+    }
+    handle {
+        reverse_proxy forms-backend:8000
+    }
+}

@@ -45,7 +45,7 @@ class ContactFormTest extends TestCase
             ->assertSee('enctype="multipart/form-data"', false)
             ->assertSee('name="captcha_answer"', false)
             ->assertSee('/ru/contact/captcha', false)
-            ->assertSee('name="attachment" type="file" accept=".jpg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"', false)
+            ->assertSee('accept=".jpg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"', false)
             ->assertSee('JPG, PNG, WEBP, PDF');
 
         $image = $this->get('/ru/contact/captcha')->assertOk();
@@ -65,6 +65,25 @@ class ContactFormTest extends TestCase
 
         $this->assertSame(1, ContactRequest::query()->count());
         $this->assertNull(ContactRequest::query()->sole()->attachment_key);
+    }
+
+    public function test_text_and_image_share_one_expiring_challenge_and_do_not_expose_the_answer(): void
+    {
+        foreach (['ru', 'en', 'de'] as $locale) {
+            $this->get('/'.$locale.'/contact')->assertOk()->assertSee('data-captcha-text=', false);
+            $challenge = session('contact_math_captcha');
+            $text = $this->get('/'.$locale.'/contact/captcha/text')->assertOk()
+                ->assertHeader('Content-Type', 'text/plain; charset=UTF-8');
+            [$left, $right] = explode(' + ', $challenge['question']);
+            $text->assertContent(trans('site.forms.captcha_question', compact('left', 'right'), $locale));
+            $this->assertStringContainsString('no-store', $text->headers->get('Cache-Control'));
+            $this->get('/'.$locale.'/contact/captcha')->assertOk();
+            $this->assertSame($challenge, session('contact_math_captcha'));
+            $this->post('/'.$locale.'/contact', $this->message() + ['captcha_answer' => (int) $left + (int) $right])
+                ->assertSessionHas('contact_sent', true);
+            $this->post('/'.$locale.'/contact', $this->message() + ['captcha_answer' => (int) $left + (int) $right])
+                ->assertSessionHasErrors('captcha_answer');
+        }
     }
 
     public function test_an_image_is_cleaned_kept_privately_and_given_to_staff_only_as_a_download(): void

@@ -91,6 +91,20 @@ class PolicyAcceptanceTest extends TestCase
         $this->get('/ru/signup')->assertRedirect('/app/settings/billing');
     }
 
+    public function test_signup_validation_links_errors_and_never_redisplays_passwords(): void
+    {
+        $this->post('/en/signup', $this->signup(['email' => 'not-an-email', 'password' => 'Secret-short', 'password_confirmation' => 'different']))
+            ->assertRedirect();
+        $page = $this->get('/en/signup');
+        $page->assertOk()
+            ->assertSee('id="form-errors"', false)
+            ->assertSee('href="#signup-email"', false)
+            ->assertSee('signup-password-hint', false)
+            ->assertSee('value="not-an-email"', false)
+            ->assertDontSee('value="Secret-short"', false)
+            ->assertDontSee('value="different"', false);
+    }
+
     public function test_pricing_selection_survives_signup_and_the_existing_account_link(): void
     {
         $price = (string) Str::uuid7();

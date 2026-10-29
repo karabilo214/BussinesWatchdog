@@ -11,9 +11,45 @@ export const SET_LOCALE: InjectionKey<(locale: Locale) => void> = Symbol('bw.set
 
 /** Strings every frontend shares (e.g. the language switch). Apps merge their own messages over these. */
 const SHARED = {
-  ru: { locale: { label: 'Язык' } },
-  en: { locale: { label: 'Language' } },
-  de: { locale: { label: 'Sprache' } },
+  ru: {
+    forms: {
+      required: 'Заполните это поле.',
+      email_invalid: 'Введите корректный адрес электронной почты.',
+      code_short: 'Введите код из приложения или код восстановления.',
+      invalid: 'Проверьте значение поля.',
+      fix_errors: 'Проверьте отмеченные поля.',
+      show_password: 'Показать пароль',
+      hide_password: 'Скрыть пароль',
+      fields: { email: 'Электронная почта', password: 'Пароль', code: 'Код' },
+    },
+    locale: { label: 'Язык' },
+  },
+  en: {
+    forms: {
+      required: 'Complete this field.',
+      email_invalid: 'Enter a valid email address.',
+      code_short: 'Enter your authenticator or recovery code.',
+      invalid: 'Check this field.',
+      fix_errors: 'Check the highlighted fields.',
+      show_password: 'Show password',
+      hide_password: 'Hide password',
+      fields: { email: 'Email', password: 'Password', code: 'Code' },
+    },
+    locale: { label: 'Language' },
+  },
+  de: {
+    forms: {
+      required: 'Bitte füllen Sie dieses Feld aus.',
+      email_invalid: 'Geben Sie eine gültige E-Mail-Adresse ein.',
+      code_short: 'Geben Sie Ihren Authenticator- oder Wiederherstellungscode ein.',
+      invalid: 'Prüfen Sie dieses Feld.',
+      fix_errors: 'Prüfen Sie die markierten Felder.',
+      show_password: 'Passwort anzeigen',
+      hide_password: 'Passwort verbergen',
+      fields: { email: 'E-Mail-Adresse', password: 'Passwort', code: 'Code' },
+    },
+    locale: { label: 'Sprache' },
+  },
 };
 
 type Messages = Record<string, unknown>;

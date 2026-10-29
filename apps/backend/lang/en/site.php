@@ -1,6 +1,18 @@
 <?php
 
 return [
+    'forms' => [
+        'submitting' => 'Sending…',
+        'show_password' => 'Show password',
+        'hide_password' => 'Hide password',
+        'password_mismatch' => 'The passwords do not match.',
+        'captcha_question' => 'What is :left plus :right?',
+        'captcha_text' => 'Read the challenge as text',
+        'captcha_text_tab' => 'Open the challenge as text in a new tab',
+        'captcha_unavailable' => 'The challenge could not be loaded. Try again.',
+        'required_hint' => 'All fields are required unless marked optional.',
+        'fix_errors' => 'Check the following fields:',
+    ],
     'footer' => [
         'product' => 'Product',
         'company' => 'About us',
@@ -132,10 +144,10 @@ return [
         'company' => 'Company or store (optional)',
         'message' => 'Message',
         'website' => 'Leave this field empty',
-        'captcha' => 'Enter the answer from the image',
+        'captcha' => 'Answer to the challenge',
         'captcha_alt' => 'CAPTCHA with a sum to solve',
         'captcha_hint' => 'Spam protection: the answer is valid for 10 minutes.',
-        'captcha_wrong' => 'The answer from the image is wrong or has expired. Please solve the new one.',
+        'captcha_wrong' => 'The answer is wrong or has expired. Please solve the new one.',
         'attachment' => 'File (optional)',
         'attachment_hint' => 'One file: :formats, up to :mb MB. For example, a screenshot of the error.',
         'attachment_again' => 'If you attached a file, please choose it again.',

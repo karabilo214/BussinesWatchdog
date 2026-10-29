@@ -71,30 +71,40 @@ class SiteController extends Controller
         ]);
     }
 
-    public function contact(Request $request, string $locale, ContactInbox $inbox): Response
+    public function contact(Request $request, string $locale, ContactInbox $inbox, MathCaptcha $captcha): Response
     {
         $page = $this->content->system(PublicPage::KIND_CONTACT);
         $version = $this->content->published($page, $locale);
         $privacy = app(Policies::class)->current(PublicPage::POLICY_PRIVACY_NOTICE, $locale);
         $limits = $inbox->attachmentLimits();
+        $captcha->begin($request, self::CONTACT_CAPTCHA_SESSION_KEY);
 
         return $this->render('site.contact', $locale, $page, $version, [
             'title' => $version?->title ?? trans('site.contact.title', [], $locale),
             'sent' => $request->session()->get('contact_sent') === true,
             'privacy' => $privacy === null ? null : SiteContent::url($privacy->locale, (string) app(Policies::class)->page(PublicPage::POLICY_PRIVACY_NOTICE)?->path),
+            'captcha_text_url' => SiteContent::url($locale, 'contact/captcha/text'),
             'captcha_url' => SiteContent::url($locale, 'contact/captcha').'?v='.bin2hex(random_bytes(4)),
             'attachment' => [
                 'accept' => implode(',', array_merge(array_map(fn (string $extension): string => '.'.$extension, $limits['extensions']), $limits['content_types'])),
                 'formats' => implode(', ', array_map('strtoupper', array_unique(array_map(fn (string $type): string => $type === 'jpeg' ? 'jpg' : $type, $limits['types'])))),
                 'max_mb' => rtrim(rtrim(number_format($limits['max_bytes'] / 1048576, 1, '.', ''), '0'), '.'),
                 'enabled' => $limits['types'] !== [],
+                'max_bytes' => $limits['max_bytes'],
             ],
         ], private: true);
     }
 
     public function contactCaptcha(Request $request, string $locale, MathCaptcha $captcha): Response
     {
-        return $captcha->image($request, self::CONTACT_CAPTCHA_SESSION_KEY);
+        return $captcha->image($request, self::CONTACT_CAPTCHA_SESSION_KEY, reuse: true);
+    }
+
+    public function contactCaptchaText(Request $request, string $locale, MathCaptcha $captcha): Response
+    {
+        app()->setLocale($locale);
+
+        return $captcha->text($request, self::CONTACT_CAPTCHA_SESSION_KEY);
     }
 
     public function submitContact(Request $request, string $locale, ContactInbox $inbox, MathCaptcha $captcha): RedirectResponse

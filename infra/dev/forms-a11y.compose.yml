@@ -1,0 +1,44 @@
+# Merge with docker-compose.yml. Local synthetic data only; never use the production database.
+services:
+  forms-backend:
+    extends:
+      file: docker-compose.yml
+      service: backend-cli
+    profiles: [forms-a11y]
+    container_name: bw-forms-backend
+    environment:
+      APP_ENV: local
+      APP_URL: https://localhost:8443
+      DB_URL: ''
+      DB_CONNECTION: pgsql
+      DB_DATABASE: bw_forms_a11y
+      SESSION_DRIVER: database
+      SESSION_DOMAIN: ''
+      SESSION_SECURE_COOKIE: 'true'
+      SANCTUM_STATEFUL_DOMAINS: localhost:8443
+      TRUSTED_PROXIES: '*'
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: '1025'
+      WATCHDOG_SITE_CONTACT_PER_HOUR: '100'
+      WATCHDOG_RATE_SIGNUP_PER_HOUR: '100'
+    command: [php, artisan, serve, --no-reload, --host=0.0.0.0, --port=8000]
+  forms-web:
+    image: caddy:2.10.2-alpine
+    profiles: [forms-a11y]
+    ports: ['127.0.0.1:8443:443']
+    volumes:
+      - ./infra/dev/forms-a11y.Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./apps/frontend/customer/dist:/srv/web/current/customer:ro
+      - ./apps/frontend/control/dist:/srv/web/current/control:ro
+      - ./apps/backend/public:/srv/public:ro
+    networks: [bw-local]
+  forms-webkit:
+    image: business-watchdog-browser-worker:latest
+    profiles: [forms-a11y]
+    command: [node, node_modules/playwright/cli.js, run-server, --port=3001, --host=0.0.0.0]
+    ports: ['127.0.0.1:3001:3001']
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [bw-local]

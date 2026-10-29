@@ -51,6 +51,13 @@ final class SiteAssets
         return $file === null ? null : '/'.self::DIRECTORY.'/'.ltrim($file, '/');
     }
 
+    public static function formsScript(): ?string
+    {
+        $file = self::file('src/forms.ts');
+
+        return $file === null ? null : '/'.self::DIRECTORY.'/'.ltrim($file, '/');
+    }
+
     private static function file(string $entry = self::ENTRY): ?string
     {
         $manifest = public_path(self::DIRECTORY.'/.vite/manifest.json');

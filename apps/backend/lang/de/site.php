@@ -1,6 +1,18 @@
 <?php
 
 return [
+    'forms' => [
+        'submitting' => 'Wird gesendet…',
+        'show_password' => 'Passwort anzeigen',
+        'hide_password' => 'Passwort verbergen',
+        'password_mismatch' => 'Die Passwörter stimmen nicht überein.',
+        'captcha_question' => 'Wie viel ist :left plus :right?',
+        'captcha_text' => 'Aufgabe als Text lesen',
+        'captcha_text_tab' => 'Aufgabe als Text in einem neuen Tab öffnen',
+        'captcha_unavailable' => 'Die Aufgabe konnte nicht geladen werden. Bitte erneut versuchen.',
+        'required_hint' => 'Alle Felder sind Pflichtfelder, sofern sie nicht als optional markiert sind.',
+        'fix_errors' => 'Prüfen Sie die folgenden Felder:',
+    ],
     'footer' => [
         'product' => 'Produkt',
         'company' => 'Über uns',
@@ -132,7 +144,7 @@ return [
         'company' => 'Firma oder Shop (optional)',
         'message' => 'Nachricht',
         'website' => 'Dieses Feld leer lassen',
-        'captcha' => 'Ergebnis aus dem Bild eingeben',
+        'captcha' => 'Antwort auf die Aufgabe',
         'captcha_alt' => 'CAPTCHA mit einer Additionsaufgabe',
         'captcha_hint' => 'Spamschutz: Die Antwort gilt 10 Minuten.',
         'captcha_wrong' => 'Die Antwort ist falsch oder abgelaufen. Bitte lösen Sie die neue Aufgabe.',
