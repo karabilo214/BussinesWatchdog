@@ -196,3 +196,11 @@ Status: complete locally (backend and customer cabinet; no migration). Owner: th
 - Removed the false items: products with variants (WooCommerce picks the first available variation, a Shopware variant has its own buyable page), «shipping before payment» on Shopware (the adapter selects shipping) and in the stop-before-sign-in mode. The product hint no longer asks for a simple product. Texts ru/en/de.
 
 Verification: `BrowserChecksTest` and `ShopwareBrowserChecksTest` assert the exact lists for each setting; backend SQLite 860 + 4 skipped; customer 219 tests and types.
+
+### Step 311: German payment providers in the full payment-form check (2026-10-29)
+
+Status: complete locally (worker only; not deployed). The real Shopware store with a test customer passed product → add to cart → cart → checkout → sign-in → shipping and stopped at `payment_form` as `blocked / blocked_external_origin` (`script_origin_not_allowed`): the payment page loads Novalnet (`cdn.novalnet.de/js/pv13/checkout.js`, `seamless.novalnet.de`), which the policy did not know as a payment provider, so even «Check payment forms fully» would not have let it load.
+
+- `PAYMENT_PROVIDER_HOSTS` gains `novalnet.de`, `novalnet.com`, `unzer.com`, `payone.com`, `pay1.de`, `ratepay.com`: readable with «Check payment forms fully», every write to them still `provider_write`.
+
+Verification: worker `npm test` 40/40 (Novalnet, Unzer, Payone scripts recognised; Novalnet GET allowed and POST blocked with providers on).

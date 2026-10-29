@@ -68,7 +68,7 @@ export function formFields(postData) {
   return fields;
 }
 
-const PAYMENT_PROVIDER_HOSTS = ['stripe.com', 'stripe.network', 'stripecdn.com', 'paypal.com', 'paypalobjects.com', 'braintreegateway.com', 'klarna.com', 'klarnacdn.net', 'klarnaservices.com', 'mollie.com', 'adyen.com', 'pay.google.com'];
+const PAYMENT_PROVIDER_HOSTS = ['stripe.com', 'stripe.network', 'stripecdn.com', 'paypal.com', 'paypalobjects.com', 'braintreegateway.com', 'klarna.com', 'klarnacdn.net', 'klarnaservices.com', 'mollie.com', 'adyen.com', 'pay.google.com', 'novalnet.de', 'novalnet.com', 'unzer.com', 'payone.com', 'pay1.de', 'ratepay.com'];
 
 function isPaymentProviderHost(host) {
   const name = host.toLowerCase();
