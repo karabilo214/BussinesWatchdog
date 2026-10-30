@@ -163,6 +163,8 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
         ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::patch('/stores/{store}', [StoreController::class, 'update'])
         ->middleware('tenant.can:'.TenantPermissions::STORES_MANAGE);
+    Route::put('/stores/{store}/sales-calendar', [StoreSalesExclusionController::class, 'updateCalendar'])
+        ->middleware('tenant.can:'.TenantPermissions::STORES_MANAGE);
     Route::get('/stores/{store}/sales-exclusions', [StoreSalesExclusionController::class, 'index'])
         ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::put('/stores/{store}/sales-exclusions', [StoreSalesExclusionController::class, 'update'])

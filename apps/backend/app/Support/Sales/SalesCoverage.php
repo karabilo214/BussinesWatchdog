@@ -178,14 +178,32 @@ class SalesCoverage
             ->where(fn ($query) => $query->whereNull('mode')->orWhere('mode', $mode))->get(['first_bad_at', 'created_at', 'resolved_at']);
         $exclusions = Store::query()->where('tenant_id', $tenantId)->findOrFail($store->id)->sales_baseline_exclusions ?? [];
         $result = [];
+        $calendar = app(GermanSalesCalendar::class);
+        $calendarConfig = $calendar->configuration($store);
 
         foreach ($buckets as $bucket) {
             $from = CarbonImmutable::parse($bucket['from']);
             $to = CarbonImmutable::parse($bucket['to']);
             $coverage = $pending ? 'awaiting_projection' : ($this->covers($intervals, $from, $to) ? 'complete' : 'unknown');
             $day = $from->setTimezone($store->timezone)->startOfDay();
-            $end = $day->addDay();
-            $reasons = [];
+            $lastDay = $to->subMicrosecond()->setTimezone($store->timezone)->startOfDay();
+            $end = $lastDay->addDay();
+            $crossesDays = ! $lastDay->equalTo($day);
+            $reasons = $crossesDays ? ['local_day_boundary'] : [];
+            $holidayStates = [];
+            $holidayCodes = [];
+            for ($localDay = $day; $localDay->lessThan($end); $localDay = $localDay->addDay()) {
+                $classification = $calendar->classify($localDay->toDateString(), $calendarConfig);
+                $holidayStates[] = $classification['state'];
+                $holidayCodes = [...$holidayCodes, ...$classification['codes']];
+            }
+            $holiday = ['state' => in_array('not_configured', $holidayStates, true) ? 'not_configured' : (in_array('out_of_range', $holidayStates, true) ? 'out_of_range' : 'ready'), 'codes' => array_values(array_unique($holidayCodes))];
+            if ($holiday['codes'] !== []) {
+                $reasons[] = 'holiday';
+            }
+            if ($holiday['state'] === 'out_of_range') {
+                $reasons[] = 'holiday_calendar_out_of_range';
+            }
 
             foreach ($exclusions as $exclusion) {
                 if ($exclusion['mode'] === $mode && CarbonImmutable::parse($exclusion['from'])->lessThan($end) && CarbonImmutable::parse($exclusion['to'])->greaterThan($day)) {
@@ -204,7 +222,16 @@ class SalesCoverage
                 $reasons[] = 'monitoring_paused';
             }
 
-            $result[] = ['orders_created' => $coverage, 'store_paid_markers' => 'unknown', 'orders_with_capture' => 'unknown', 'baseline_eligible' => $coverage === 'complete' && $reasons === [], 'baseline_exclusions' => array_values(array_unique($reasons))];
+            $result[] = [
+                'orders_created' => $coverage,
+                'store_paid_markers' => 'unknown',
+                'orders_with_capture' => 'unknown',
+                'baseline_eligible' => $coverage === 'complete' && $reasons === [],
+                'baseline_exclusions' => array_values(array_unique($reasons)),
+                'calendar_state' => $holiday['state'],
+                'holiday_codes' => $holiday['codes'],
+                'comparison_weekday' => $crossesDays || $holiday['state'] === 'out_of_range' ? null : (in_array('holiday', $reasons, true) ? 7 : $day->dayOfWeekIso),
+            ];
         }
 
         return $result;

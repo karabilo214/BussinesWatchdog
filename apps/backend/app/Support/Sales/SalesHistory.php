@@ -113,7 +113,7 @@ class SalesHistory
             'timezone' => $store->timezone,
             'from' => $from->toIso8601String(),
             'to' => $to->toIso8601String(),
-            'rule_version' => 'sales-history-v3',
+            'rule_version' => 'sales-history-v4',
             'status' => 'diagnostic_only',
             'baseline_state' => 'unknown',
             'warmup_stage' => 'unverified_history',

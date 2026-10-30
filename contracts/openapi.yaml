@@ -4739,6 +4739,49 @@ paths:
         "403": {$ref: "#/components/responses/Problem"}
         "404": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/sales-calendar:
+    put:
+      tags: [Stores]
+      operationId: setSalesCalendar
+      security:
+        - {UserSession: []}
+      description: Requires stores.manage. Sets explicit DE region and municipal holiday flags for both modes; no timezone inference. If-Match is the separate calendar.version from GET sales-exclusions, initially 1. A changed setting increments this version and is audited atomically; identical retries at the current version do not write. Other store settings and manual annotations are preserved. Null region clears configuration and requires no local flags. 409 requires reloading the calendar; no alerts enabled.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/IfMatch"}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [region, local_holidays]
+              properties:
+                region: {$ref: "#/components/schemas/SalesCalendarRegion"}
+                local_holidays:
+                  type: array
+                  maxItems: 2
+                  uniqueItems: true
+                  items: {enum: [assumption, augsburg_peace, corpus_christi]}
+                  description: assumption/augsburg_peace only for DE-BY; corpus_christi only for DE-SN or DE-TH. Empty means no municipal exceptions selected.
+      responses:
+        "200":
+          description: Current calendar configuration
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SalesCalendar"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "428": {$ref: "#/components/responses/Problem"}
   /api/v1/stores/{store_id}/checkout-layout:
     put:
       tags: [Stores]
@@ -8474,15 +8517,44 @@ components:
         memberships:
           type: array
           items: {$ref: "#/components/schemas/Membership"}
+    SalesCalendarRegion:
+      enum: [null, DE-BW, DE-BY, DE-BE, DE-BB, DE-HB, DE-HH, DE-HE, DE-MV, DE-NI, DE-NW, DE-RP, DE-SL, DE-SN, DE-ST, DE-SH, DE-TH]
+    SalesCalendar:
+      type: object
+      additionalProperties: false
+      required: [region, local_holidays, version, dataset_version, supported_years]
+      properties:
+        region: {$ref: "#/components/schemas/SalesCalendarRegion"}
+        local_holidays:
+          type: array
+          maxItems: 2
+          uniqueItems: true
+          items: {enum: [assumption, augsburg_peace, corpus_christi]}
+        version: {type: integer, minimum: 1}
+        dataset_version: {type: string}
+        supported_years: {type: array, items: {type: integer}}
     SalesExclusions:
       type: object
       additionalProperties: false
-      required: [timezone, min_date, max_date, mode, entries]
+      required: [timezone, min_date, max_date, mode, entries, calendar, holidays, calendar_state]
       properties:
         timezone: {type: string}
         min_date: {type: string, format: date}
         max_date: {type: string, format: date}
         mode: {enum: [live, test]}
+        calendar: {$ref: "#/components/schemas/SalesCalendar"}
+        calendar_state: {enum: [not_configured, ready, out_of_range]}
+        holidays:
+          type: array
+          maxItems: 29
+          items:
+            type: object
+            additionalProperties: false
+            required: [date, codes, comparison_weekday]
+            properties:
+              date: {type: string, format: date}
+              codes: {type: array, items: {type: string}}
+              comparison_weekday: {const: 7}
         entries:
           type: array
           maxItems: 116

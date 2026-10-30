@@ -6,9 +6,10 @@ import type { SalesExclusions } from '@/api/salesExclusions';
 import SalesExclusionSettings from '@/components/SalesExclusionSettings.vue';
 import { localization, setLocale } from '@/i18n';
 
-vi.mock('@/api/salesExclusions', () => ({ getSalesExclusions: vi.fn(), setSalesExclusion: vi.fn() }));
+vi.mock('@/api/salesExclusions', () => ({ getSalesExclusions: vi.fn(), setSalesExclusion: vi.fn(), setSalesCalendar: vi.fn(), SALES_CALENDAR_REGIONS: ['DE-BE', 'DE-BY', 'DE-SN', 'DE-TH'] }));
 const data = (mode: 'live' | 'test' = 'live'): SalesExclusions => ({
   timezone: 'Europe/Berlin', min_date: '2026-10-02', max_date: '2026-10-30', mode,
+  calendar: { region: null, local_holidays: [], version: 1, dataset_version: 'de-2026-2027-v1', supported_years: [2026, 2027] }, holidays: [], calendar_state: 'not_configured',
   entries: [
     { date: '2026-10-29', kind: 'promotion', timezone: 'Europe/Berlin', from: '2026-10-28T23:00:00Z', to: '2026-10-29T23:00:00Z', editable: true },
     { date: '2026-10-28', kind: 'pause', timezone: 'Europe/Berlin', from: '2026-10-27T23:00:00Z', to: '2026-10-28T23:00:00Z', editable: false },
@@ -31,7 +32,7 @@ describe('sales day annotations', () => {
     expect(wrapper.findAll('[data-action="remove-sales-exclusion"]')).toHaveLength(1);
     await wrapper.get('#sales-exclusions-date').setValue('2026-10-25');
     await wrapper.get('#sales-exclusions-kind').setValue('holiday');
-    await wrapper.get('form').trigger('submit');
+    await wrapper.get('form[data-sales-annotation-form]').trigger('submit');
     await flushPromises();
     expect(api.setSalesExclusion).toHaveBeenLastCalledWith('s-1', { date: '2026-10-25', kind: 'holiday', mode: 'live', excluded: true });
     await wrapper.get('[data-action="remove-sales-exclusion"]').trigger('click');
@@ -43,7 +44,7 @@ describe('sales day annotations', () => {
   it('gives a reader no mutation controls', async () => {
     const wrapper = render(false);
     await flushPromises();
-    expect(wrapper.find('form').exists()).toBe(false);
+    expect(wrapper.find('form[data-sales-annotation-form]').exists()).toBe(false);
     expect(wrapper.find('[data-action="remove-sales-exclusion"]').exists()).toBe(false);
     expect(wrapper.text()).toContain('Пауза наблюдения');
     expect(api.setSalesExclusion).not.toHaveBeenCalled();
@@ -53,7 +54,7 @@ describe('sales day annotations', () => {
     vi.mocked(api.setSalesExclusion).mockRejectedValue(new ApiError(422, 'validation_failed', { date: ['sales_exclusion_range_invalid'] }));
     const wrapper = render();
     await flushPromises();
-    await wrapper.get('form').trigger('submit');
+    await wrapper.get('form[data-sales-annotation-form]').trigger('submit');
     await flushPromises();
     expect(wrapper.get('[role="alert"]').text()).toContain('28 дней');
     expect(wrapper.text()).toContain('2026-10-29');
@@ -79,7 +80,7 @@ describe('sales day annotations', () => {
     vi.mocked(api.getSalesExclusions).mockReturnValueOnce(new Promise(() => {}));
     await wrapper.setProps({ storeId: 's-2' });
     expect(wrapper.text()).not.toContain('2026-10-29');
-    expect(wrapper.find('form').exists()).toBe(false);
+    expect(wrapper.find('form[data-sales-annotation-form]').exists()).toBe(false);
   });
 
   for (const locale of ['ru', 'en', 'de'] as const) {

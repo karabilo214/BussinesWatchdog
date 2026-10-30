@@ -4,6 +4,7 @@ import { ApiError } from '@bw/api-client';
 import { getSalesExclusions, setSalesExclusion } from '@/api/salesExclusions';
 import type { ManualExclusionKind, SalesExclusion, SalesExclusions, SalesMode } from '@/api/salesExclusions';
 import ErrorNotice from './ErrorNotice.vue';
+import SalesCalendarSettings from './SalesCalendarSettings.vue';
 
 const props = defineProps<{ storeId: string; canManage: boolean }>();
 const mode = ref<SalesMode>('live');
@@ -78,8 +79,9 @@ watch([() => props.storeId, mode], () => { saving.value = false; void load(); },
     </label>
     <p v-if="loading" role="status" class="text-sm text-text-muted">{{ $t('common.loading') }}</p>
     <template v-if="data">
+      <SalesCalendarSettings v-if="data.calendar" :key="storeId" :store-id="storeId" :configuration="data.calendar" :holidays="data.holidays" :state="data.calendar_state" :can-manage="canManage" @changed="load" />
       <p class="text-sm text-text-muted">{{ $t('sales_exclusions.range', { from: data.min_date, to: data.max_date, timezone: data.timezone }) }}</p>
-      <form v-if="canManage" class="flex flex-wrap items-end gap-3" @submit.prevent="change(true)">
+      <form data-sales-annotation-form v-if="canManage" class="flex flex-wrap items-end gap-3" @submit.prevent="change(true)">
         <label for="sales-exclusions-date" class="flex flex-col gap-1.5 text-sm font-medium">
           {{ $t('sales_exclusions.date') }}
           <input id="sales-exclusions-date" v-model="date" type="date" required :min="data.min_date" :max="data.max_date" :disabled="saving" :aria-invalid="invalid" class="rounded-md border border-border-strong bg-surface px-3 py-2" />

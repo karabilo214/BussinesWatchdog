@@ -28,11 +28,16 @@ class SalesWarmup
 
         $metrics = $this->coverage->forBuckets($store, $mode, $days, observedOnly: true);
         $eligible = 0;
+        $calendarStates = [];
         foreach ($days as $index => &$day) {
             $metric = $metrics[$index];
             $day['coverage'] = $metric['orders_created'];
             $day['eligible'] = $metric['baseline_eligible'];
             $day['exclusions'] = $metric['baseline_exclusions'];
+            $day['calendar_state'] = $metric['calendar_state'];
+            $day['holiday_codes'] = $metric['holiday_codes'];
+            $day['comparison_weekday'] = $metric['comparison_weekday'];
+            $calendarStates[] = $metric['calendar_state'];
             $eligible += (int) $day['eligible'];
         }
         unset($day);
@@ -52,6 +57,7 @@ class SalesWarmup
 
         return [
             'metric' => 'orders_created',
+            'calendar' => app(GermanSalesCalendar::class)->configuration($store),
             'status' => 'diagnostic_only',
             'as_of' => $asOf->utc()->toIso8601String(),
             'eligible_days' => $eligible,
@@ -60,7 +66,7 @@ class SalesWarmup
             'additional_eligible_days_required' => $next === null ? 0 : $next - $eligible,
             'baseline_state' => 'unknown',
             'alerts_enabled' => false,
-            'reason_codes' => ['holiday_calendar_pending', 'thresholds_not_calibrated', 'payment_history_coverage_unknown'],
+            'reason_codes' => [...(in_array('not_configured', $calendarStates, true) ? ['holiday_calendar_not_configured'] : []), ...(in_array('out_of_range', $calendarStates, true) ? ['holiday_calendar_out_of_range'] : []), 'thresholds_not_calibrated', 'payment_history_coverage_unknown'],
             'days' => $days,
         ];
     }
