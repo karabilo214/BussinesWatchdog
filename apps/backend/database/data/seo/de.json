@@ -462,48 +462,50 @@
     ]
   },
   "stripe-woocommerce-mismatch": {
-    "title": "Stripe-Zahlung fehlt in WooCommerce: Referenz verfolgen",
-    "description": "Stripe zeigt eine Zahlung, WooCommerce aber keine bezahlte Bestellung? PaymentIntent, Charge, Modus und Webhook-Zustellung nachvollziehen.",
-    "h1": "Stripe-Zahlung wird in WooCommerce nicht angezeigt",
-    "label": "Stripe und WooCommerce weichen ab",
-    "eyebrow": "Stripe + WooCommerce · Eine Zahlung zuordnen",
-    "lead": "Stripe und WooCommerce können unterschiedliche Datensätze oder Zahlungsphasen anzeigen. Verfolgen Sie PaymentIntent und Charge bis zur Bestellung, bevor Sie von fehlendem Geld oder einer verschwundenen Bestellung ausgehen.",
-    "answer_title": "Mit der Stripe-Referenz beginnen",
-    "answer": "Ein PaymentIntent steht für den Zahlungsablauf; der zugehörige Charge enthält Informationen zu Abbuchung und Erstattung. Eine Ereignis-ID bezeichnet eine Benachrichtigung, keine weitere Zahlung.",
+    "title": "Stripe bezahlt, WooCommerce-Bestellung offen? Webhook prüfen",
+    "description": "Stripe zeigt „Erfolgreich“, die Bestellung bleibt „Zahlung ausstehend“? Webhook, Webhook-Geheimnis und Test-/Live-Modus prüfen – Schritt für Schritt.",
+    "h1": "Stripe zeigt die Zahlung als erfolgreich, aber die WooCommerce-Bestellung ist nicht bezahlt",
+    "label": "Stripe bezahlt, Bestellung offen",
+    "eyebrow": "Stripe + WooCommerce · Webhook prüfen",
+    "lead": "Der Kunde hat bezahlt, in Stripe steht die Zahlung auf „Erfolgreich“ – aber in WooCommerce bleibt die Bestellung auf „Zahlung ausstehend“ oder fehlt ganz. Fast immer ist die Benachrichtigung von Stripe an Ihren Shop (Webhook) nicht angekommen oder wurde abgelehnt. So finden Sie die Ursache in wenigen Minuten, ohne den Kunden ein zweites Mal zahlen zu lassen.",
+    "answer_title": "Kurz: Was meistens dahintersteckt",
+    "answer": "Stripe meldet jede erfolgreiche Zahlung per Webhook an Ihren Shop. Erst dann setzt das Stripe-Plugin die Bestellung auf „In Bearbeitung“. Kommt der Webhook nicht an, wird abgelehnt oder gehört zum falschen Modus, bleibt die Bestellung offen – obwohl das Geld da ist.",
     "checks": [
-      "Passendes Stripe-Konto und richtigen Modus wählen.",
-      "Die Stripe-Referenz der Bestellung auflösen.",
-      "Abbuchung und Benachrichtigung getrennt prüfen."
+      "Webhook-Zustellung in Stripe unter Entwickler → Webhooks prüfen.",
+      "Webhook-Geheimnis (whsec_…) im Plugin mit dem Endpunkt vergleichen.",
+      "Test- und Live-Modus im Plugin und in Stripe abgleichen.",
+      "Fehler im Protokoll woocommerce-gateway-stripe zur Uhrzeit der Zahlung suchen."
     ],
-    "causes_title": "Wo Referenz und Status auseinanderlaufen",
-    "causes_intro": "Die genaue Kennung grenzt die Ursache oft schneller ein als die Zahlungsübersicht.",
+    "causes_title": "Die häufigsten Ursachen",
+    "causes_intro": "In dieser Reihenfolge prüfen – die ersten drei erklären die meisten Fälle.",
     "causes": [
       [
-        "Konto oder Modus stimmen nicht überein",
-        "Eine Testzahlung oder ein anderes Stripe-Konto erklärt nicht die Live-Bestellung dieses Shops."
+        "Webhook kommt nicht an",
+        "Der Endpunkt in Stripe ist deaktiviert, zeigt auf eine alte Adresse oder Ihr Server antwortet mit 4xx/5xx – etwa weil eine Firewall, Cloudflare oder ein Sicherheits-Plugin die Anfrage von Stripe blockiert."
       ],
       [
-        "Die Abbuchung ist noch nicht endgültig",
-        "Eine Autorisierung oder ein unvollständiger Zahlungsablauf darf nicht wie eine abgeschlossene Abbuchung behandelt werden."
+        "Falsches Webhook-Geheimnis",
+        "Das Geheimnis whsec_… im Plugin gehört zu einem anderen Endpunkt oder zum anderen Modus. Stripe stellt zu, das Plugin verwirft die Nachricht als ungültig."
       ],
       [
-        "Der Shop hat das Ereignis nicht verarbeitet",
-        "Zustellfehler, falsches Webhook-Geheimnis oder Gateway-Fehler können die Bezahlt-Aktualisierung verhindern."
+        "Test- und Live-Modus vertauscht",
+        "Plugin im Testmodus, Zahlung aber live – oder umgekehrt. Dann landet der Webhook beim falschen Endpunkt und die Bestellung wird nie aktualisiert."
       ]
     ],
-    "manual_title": "Stripe, Zahlungsanbindung und WooCommerce nachverfolgen",
+    "manual_title": "Schritt für Schritt nachprüfen",
     "manual": [
-      "Öffnen Sie die Bestellung und suchen Sie die Stripe-Referenz in Zahlungsdetails oder Notizen. Unterscheiden Sie PaymentIntent und Charge.",
-      "Prüfen Sie in Stripe den zugehörigen Charge, den abgebuchten Betrag, Währung und Modus. Spätere Erstattungen sind separat zu prüfen.",
-      "Kontrollieren Sie die Benachrichtigung, die den Shop aktualisieren sollte. Vergleichen Sie Zieladresse und Signaturkonfiguration mit der Anleitung der installierten Anbindung.",
-      "Suchen Sie dieselbe Referenz und Uhrzeit im Gateway-Protokoll. Auch nach einer Zustellung kann das Aktualisieren der Bestellung scheitern."
+      "Öffnen Sie in WooCommerce die Bestellung (WooCommerce → Bestellungen) und lesen Sie die Bestellnotizen rechts: Dort steht meist die Stripe-Kennung der Zahlung (pi_… oder ch_…).",
+      "Suchen Sie diese Kennung im Stripe-Dashboard unter Zahlungen. Prüfen Sie Status „Erfolgreich“, Betrag, Währung und ob „Testmodus“ oben eingeschaltet ist.",
+      "Öffnen Sie in Stripe Entwickler → Webhooks → Ihren Shop-Endpunkt → Ereignisse. Suchen Sie das Ereignis payment_intent.succeeded zu dieser Zahlung und den HTTP-Status der Zustellung.",
+      "Vergleichen Sie in WooCommerce → Einstellungen → Zahlungen → Stripe das Webhook-Geheimnis und den Modus mit dem Endpunkt in Stripe.",
+      "Sehen Sie in WooCommerce → Status → Protokolle das neueste Protokoll woocommerce-gateway-stripe-… zur Uhrzeit der Zahlung nach Fehlern durch."
     ],
-    "fix_title": "Synchronisierung wiederherstellen statt neu bezahlen lassen",
-    "fix_now": "Beheben Sie den nachgewiesenen Konto-, Modus- oder Zustellfehler. Nutzen Sie das dokumentierte Verbindungs- oder Wiederholungsverfahren Ihrer Stripe-Erweiterung. Übernehmen Sie kein Webhook-Geheimnis von einem anderen Ziel.",
-    "fix_verify": "Prüfen Sie, dass der ursprüngliche Charge genau einmal der richtigen Bestellung entspricht. Testen Sie den Ereignispfad im Testmodus. Fordern Sie keine zweite Zahlung an, solange die erste Abbuchung ungeklärt ist.",
-    "monitor_title": "Wie Business Watchdog Stripe und Shop vergleicht",
-    "monitor": "Business Watchdog löst unterstützte Stripe-Referenzen auf und vergleicht unabhängige Abbuchungsdaten mit WooCommerce. Eine zugeordnete, im Shop nicht erfasste Abbuchung kann nach der Wartefrist als Abweichung erscheinen; eine ungeklärte Referenz bleibt ein Zuordnungsproblem.",
-    "limit": "Nicht jede Stripe-Zahlung wird automatisch diesem Shop zugerechnet. Test-/Live-Abdeckung, Shopzuordnung im gemeinsamen Konto und Gateway-Metadaten müssen ausreichen. Der Dienst repariert keine Gateway-Konfiguration oder Bestelldatensätze.",
+    "fix_title": "Beheben – ohne doppelte Abbuchung",
+    "fix_now": "Korrigieren Sie die gefundene Ursache: richtiges Webhook-Geheimnis eintragen, Endpunkt aktivieren oder Adresse korrigieren, Stripe in Firewall/Cloudflare freigeben, Modus angleichen. Senden Sie danach in Stripe das fehlgeschlagene Ereignis über „Erneut senden“ – das Plugin setzt die Bestellung dann selbst auf bezahlt.",
+    "fix_verify": "Prüfen Sie, dass die Bestellung jetzt „In Bearbeitung“ ist und die Stripe-Kennung in den Notizen steht. Setzen Sie den Status nur dann von Hand, wenn die Zahlung in Stripe eindeutig zu dieser Bestellung gehört, und fordern Sie keine zweite Zahlung an. Testen Sie danach eine Zahlung im Testmodus.",
+    "monitor_title": "Damit Sie es künftig sofort merken",
+    "monitor": "Business Watchdog gleicht jede Bestellung mit den Zahlungen in Stripe ab. Steht in Stripe eine erfolgreiche Zahlung, die Bestellung bleibt aber offen, erhalten Sie nach einer Wartefrist eine Meldung mit Bestellnummer, Betrag und Stripe-Kennung – bevor der Kunde nachfragt oder Sie eine Bestellung nicht versenden.",
+    "limit": "Nicht jede Stripe-Zahlung lässt sich automatisch diesem Shop zuordnen: Bei geteilten Stripe-Konten oder fehlenden Metadaten bleibt eine Zahlung ungeklärt statt falsch zugeordnet. Business Watchdog liest nur und ändert weder Bestellungen noch Plugin-Einstellungen.",
     "connect": [
       "Verbinden Sie WooCommerce und Stripe als getrennte Quellen. Verwenden Sie für Stripe einen eingeschränkten Leseschlüssel statt eines vollständigen Secret Keys.",
       "Prüfen Sie Modus und Zahlungsreferenzen. Beachten Sie die im Dashboard angezeigte Plugin-Voraussetzung für WooCommerce-Testzahlungen.",
@@ -511,12 +513,24 @@
     ],
     "faq": [
       [
-        "Sind pi_, ch_ und evt_ austauschbar?",
-        "Nein. Sie kennzeichnen Zahlungsablauf, Charge und Ereignis. Nutzen Sie ihre Beziehung zueinander statt die Zeichenfolgen gleichzusetzen."
+        "Warum steht die Bestellung auf „Zahlung ausstehend“, obwohl Stripe „Erfolgreich“ zeigt?",
+        "Weil WooCommerce den Status erst ändert, wenn der Webhook von Stripe verarbeitet wurde. Fehlt er oder wird er abgelehnt, bleibt die Bestellung offen."
       ],
       [
-        "Beweist eine erfolgreiche Webhook-Zustellung eine korrekte Bestellung?",
-        "Nein. Prüfen Sie zusätzlich das Verarbeitungsergebnis der Anbindung und den Zahlungsstand der Bestellung."
+        "Wie sende ich einen Stripe-Webhook erneut?",
+        "Im Stripe-Dashboard unter Entwickler → Webhooks den Endpunkt öffnen, das Ereignis auswählen und „Erneut senden“ wählen – nachdem die Ursache behoben ist."
+      ],
+      [
+        "Woran erkenne ich ein falsches Webhook-Geheimnis?",
+        "Stripe zeigt die Zustellung mit einem Fehlerstatus vom Shop, und im Protokoll woocommerce-gateway-stripe steht ein Signaturfehler."
+      ],
+      [
+        "Darf ich die Bestellung einfach von Hand auf „In Bearbeitung“ setzen?",
+        "Nur wenn die Zahlung in Stripe eindeutig zu dieser Bestellung gehört. Sonst riskieren Sie Versand ohne Zahlung oder eine doppelte Zuordnung."
+      ],
+      [
+        "Sind pi_, ch_ und evt_ dasselbe?",
+        "Nein: pi_ ist der Zahlungsablauf, ch_ die Abbuchung, evt_ die Benachrichtigung darüber. Für die Suche in Stripe genügt meist pi_ oder ch_."
       ]
     ],
     "sources": [
@@ -537,6 +551,74 @@
       "woocommerce-payment-pending",
       "stripe-reconciliation",
       "woocommerce-missing-orders"
+    ],
+    "extra": [
+      {
+        "id": "quick",
+        "toc": "Schnellprüfung",
+        "type": "flow",
+        "title": "Schnellprüfung in fünf Fragen",
+        "intro": "Beantworten Sie die Fragen der Reihe nach – bei der ersten mit „Nein“ haben Sie die Ursache.",
+        "steps": [
+          [
+            "Steht die Zahlung in Stripe auf „Erfolgreich“?",
+            "Weiter mit der nächsten Frage.",
+            "Dann fehlt nicht der Webhook – die Zahlung ist nicht abgeschlossen (z. B. 3-D Secure abgebrochen). Die Bestellung bleibt zu Recht offen."
+          ],
+          [
+            "Ist sie im gleichen Modus wie das Plugin (Test/Live)?",
+            "Weiter.",
+            "Modus im Plugin oder in Stripe angleichen; Testzahlungen bezahlen keine Live-Bestellung."
+          ],
+          [
+            "Zeigt Stripe unter Entwickler → Webhooks eine Zustellung an Ihren Shop?",
+            "Weiter.",
+            "Endpunkt fehlt oder ist deaktiviert – Endpunkt im Plugin neu einrichten lassen oder in Stripe aktivieren."
+          ],
+          [
+            "Hat Ihr Shop mit HTTP 200 geantwortet?",
+            "Weiter.",
+            "Firewall, Cloudflare, Sicherheits-Plugin oder Wartungsmodus blockiert Stripe – freigeben und „Erneut senden“."
+          ],
+          [
+            "Ist das Protokoll woocommerce-gateway-stripe frei von Fehlern zur Uhrzeit?",
+            "Dann die Stripe-Kennung in den Bestellnotizen prüfen – die Zahlung gehört evtl. zu einer anderen Bestellung.",
+            "Fehlermeldung beheben (meist Webhook-Geheimnis), danach „Erneut senden“."
+          ]
+        ]
+      },
+      {
+        "id": "where",
+        "toc": "Wo finde ich was?",
+        "type": "table",
+        "title": "Wo finde ich was?",
+        "head": [
+          "Was",
+          "Wo"
+        ],
+        "rows": [
+          [
+            "Stripe-Kennung der Bestellung",
+            "WooCommerce → Bestellungen → Bestellung → Bestellnotizen"
+          ],
+          [
+            "Status der Zahlung",
+            "Stripe-Dashboard → Zahlungen → Suche nach pi_/ch_ oder Betrag"
+          ],
+          [
+            "Zustellung des Webhooks",
+            "Stripe-Dashboard → Entwickler → Webhooks → Endpunkt → Ereignisse"
+          ],
+          [
+            "Webhook-Geheimnis und Modus",
+            "WooCommerce → Einstellungen → Zahlungen → Stripe"
+          ],
+          [
+            "Fehler des Plugins",
+            "WooCommerce → Status → Protokolle → woocommerce-gateway-stripe-…"
+          ]
+        ]
+      }
     ]
   },
   "paypal-pending-orders": {

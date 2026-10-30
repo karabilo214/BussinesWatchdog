@@ -515,3 +515,13 @@ Status: complete locally (backend and site styles; no migration; not deployed). 
 
 Verification: `PublicSiteTest` new case (watch page markup, canonical/hreflang, JSON-LD fields and nonce, ru page with the English recording and note, unknown video 404, sitemap video entries, files exist); site tests 67/67, backend SQLite 900 + 4 skipped, Pint; public build and `check-build`; local page at 1280 px with the production CSP — no console errors, content aligned with the header.
 
+### Step 325: German Stripe/WooCommerce guide rewritten for the merchant's search intent (2026-10-30)
+
+Status: complete locally (content; no migration; not deployed). Owner: `/de/stripe-woocommerce-mismatch` ranks badly.
+
+- Findings: indexable (200, canonical, hreflang, no noindex), published two days earlier; ~600 words of mostly developer jargon (PaymentIntent, Charge, evt_), title «… Referenz verfolgen» not matching what merchants search, no concrete WooCommerce statuses, menu paths or checklist; the sibling `/woocommerce-payment-pending` targets «Zahlung ausstehend» in general.
+- `database/data/seo/de.json`: title «Stripe bezahlt, WooCommerce-Bestellung offen? Webhook prüfen» (60), description 149, h1 and lead in merchant language; causes webhook not delivered (disabled endpoint, 4xx/5xx, firewall/Cloudflare), wrong webhook secret, test/live mixed up; five manual steps with WooCommerce and Stripe menu paths and the `woocommerce-gateway-stripe` log; fix with «Erneut senden» and without a second charge; new blocks: five-question quick check (flow) and «Wo finde ich was?» (table); five FAQs. ~1100 words. en/ru unchanged.
+- `shipped.php`: the new de hash added, so later releases keep recognising the unedited page; the current production version is in the list, so the release refreshes it unless the owner edited it.
+
+Verification: site tests 67/67; rendered page contains the flow, table, menu paths and resend step.
+
