@@ -57,14 +57,15 @@ class SalesBaselineTest extends TestCase
         $this->assertStringNotContainsString('display_number', json_encode($report));
     }
 
-    public function test_holiday_target_uses_only_ordinary_sundays_and_omits_dst_hour_samples(): void
+    public function test_holiday_target_uses_ordinary_sundays_and_retains_unaffected_dst_hour_samples(): void
     {
         $this->clock('2026-10-31 12:00:00 UTC');
         $context = $this->fixture('DE-SN');
         $report = $this->report($context);
         $this->assertSame(7, $report['comparison_weekday']);
         $this->assertContains('holiday', $report['target_exclusions']);
-        $this->assertSame(['2026-10-04', '2026-10-11', '2026-10-18'], array_column($this->band($report, 1, 10)['samples'], 'date'));
+        $this->assertSame(['2026-10-04', '2026-10-11', '2026-10-18', '2026-10-25'], array_column($this->band($report, 1, 10)['samples'], 'date'));
+        $this->assertSame([['date' => '2026-10-25', 'reason' => 'local_band_occurrences_not_comparable']], $this->band($report, 1, 2)['omitted_samples']);
         $this->assertSame([['date' => '2026-10-25', 'reason' => 'dst_duration_not_comparable']], $this->band($report, 24)['omitted_samples']);
         $this->assertSame(['numerator' => 0, 'denominator' => 2], $this->band($report, 24)['expected_orders']);
     }
@@ -121,18 +122,75 @@ class SalesBaselineTest extends TestCase
         $this->assertSame(0, $this->band($this->report($context), 1, 10)['sample_max']);
     }
 
-    public function test_dst_target_has_no_invented_hour_bounds_or_zero_expected_counts(): void
+    public function test_fallback_target_keeps_ordinary_hours_and_two_separate_unknown_repeated_hours(): void
     {
-        foreach (['2026-10-25 12:00:00 UTC', '2026-03-29 12:00:00 UTC'] as $now) {
-            $this->clock($now);
-            $report = $this->report($this->fixture());
-            $band = $this->band($report, 1, 2);
-            $this->assertNull($band['target_from']);
-            $this->assertNull($band['target_to']);
+        $this->clock('2026-10-25 12:00:00 UTC');
+        $context = $this->fixture();
+        $this->order($context, ['source_created_at' => '2026-10-18 08:30:00', 'transaction_ref' => null]);
+        $report = $this->report($context);
+        $this->assertCount(40, $report['bands']);
+        $this->assertSame([], $report['missing_bands']);
+        $this->assertSame([0, 0, 0, 1], array_column($this->band($report, 1, 10)['samples'], 'orders_created'));
+        $this->assertSame(4, $this->band($report, 12, 12)['sample_count']);
+        $repeated = array_values(array_filter($report['bands'], fn (array $band): bool => $band['width_hours'] === 1 && $band['local_start_hour'] === 2));
+        $this->assertSame(['2026-10-25T00:00:00+00:00', '2026-10-25T01:00:00+00:00'], array_column($repeated, 'target_from'));
+        $this->assertSame(['2026-10-25T02:00:00+02:00', '2026-10-25T02:00:00+01:00'], array_column($repeated, 'target_local_from'));
+        foreach ($repeated as $band) {
             $this->assertNull($band['expected_orders']);
-            $this->assertContains('target_dst_bands_unsupported', $band['reason_codes']);
-            $this->assertNull($this->band($report, 24)['expected_orders']);
+            $this->assertSame(0, $band['sample_count']);
+            $this->assertSame(['local_band_occurrences_not_comparable'], array_unique(array_column($band['omitted_samples'], 'reason')));
         }
+        $this->assertSame(10800, $this->band($report, 2, 2)['duration_seconds']);
+        $this->assertNull($this->band($report, 24)['expected_orders']);
+    }
+
+    public function test_spring_target_has_no_missing_hour_bucket_and_preserves_other_samples(): void
+    {
+        $this->clock('2026-03-29 12:00:00 UTC');
+        $context = $this->fixture('DE-HH');
+        $this->order($context, ['source_created_at' => '2026-03-22 09:30:00', 'transaction_ref' => null]);
+        $report = $this->report($context);
+        $this->assertCount(38, $report['bands']);
+        $this->assertSame([['local_start_hour' => 2, 'width_hours' => 1, 'reason' => 'local_band_absent']], $report['missing_bands']);
+        $this->assertSame([], array_values(array_filter($report['bands'], fn (array $band): bool => $band['width_hours'] === 1 && $band['local_start_hour'] === 2)));
+        $this->assertSame([0, 0, 0, 1], array_column($this->band($report, 1, 10)['samples'], 'orders_created'));
+        $this->assertSame('2026-03-29T08:00:00+00:00', $this->band($report, 1, 10)['target_from']);
+        $this->assertSame(4, $this->band($report, 2, 0)['sample_count']);
+        $this->assertSame(0, $this->band($report, 2, 2)['sample_count']);
+        $this->assertSame(['dst_duration_not_comparable'], array_unique(array_column($this->band($report, 2, 2)['omitted_samples'], 'reason')));
+        $this->assertNull($this->band($report, 24)['expected_orders']);
+    }
+
+    public function test_spring_source_counts_exact_boundaries_and_omits_only_affected_windows(): void
+    {
+        $this->clock('2026-04-03 12:00:00 UTC');
+        $context = $this->fixture('DE-HH');
+        foreach (['00:59:59', '01:00:00', '01:59:59', '02:00:00'] as $time) {
+            $this->order($context, ['source_created_at' => "2026-03-29 $time", 'transaction_ref' => null]);
+        }
+        $report = $this->report($context);
+        $this->assertSame(7, $report['comparison_weekday']);
+        $this->assertSame([0, 0, 0, 1], array_column($this->band($report, 1, 1)['samples'], 'orders_created'));
+        $this->assertSame([0, 0, 0, 2], array_column($this->band($report, 1, 3)['samples'], 'orders_created'));
+        $this->assertSame([0, 0, 0, 1], array_column($this->band($report, 1, 4)['samples'], 'orders_created'));
+        $this->assertSame([['date' => '2026-03-29', 'reason' => 'local_band_absent']], $this->band($report, 1, 2)['omitted_samples']);
+        $this->assertSame(4, $this->band($report, 2, 0)['sample_count']);
+        $this->assertSame(3, $this->band($report, 2, 2)['sample_count']);
+    }
+
+    public function test_fallback_source_does_not_leak_repeated_hour_orders_into_adjacent_sample(): void
+    {
+        $this->clock('2026-10-31 12:00:00 UTC');
+        $context = $this->fixture('DE-SN');
+        foreach (['00:00:00', '00:59:59', '01:00:00', '01:59:59', '02:00:00', '02:59:59', '03:00:00'] as $time) {
+            $this->order($context, ['source_created_at' => "2026-10-25 $time", 'transaction_ref' => null]);
+        }
+        $report = $this->report($context);
+        $this->assertSame([0, 0, 0, 2], array_column($this->band($report, 1, 3)['samples'], 'orders_created'));
+        $this->assertSame([0, 0, 0, 1], array_column($this->band($report, 1, 4)['samples'], 'orders_created'));
+        $this->assertSame(3, $this->band($report, 1, 2)['sample_count']);
+        $this->assertSame([['date' => '2026-10-25', 'reason' => 'local_band_occurrences_not_comparable']], $this->band($report, 1, 2)['omitted_samples']);
+        $this->assertFalse($report['alerts_enabled']);
     }
 
     public function test_manual_holiday_target_uses_sundays_but_is_not_itself_a_future_sample(): void
@@ -165,12 +223,12 @@ class SalesBaselineTest extends TestCase
         $this->assertSame('2026-10-23T04:15:00+00:00', $band['samples'][3]['from']);
     }
 
-    public function test_history_v5_includes_profile_independent_of_requested_bucket_start_without_writes(): void
+    public function test_history_v6_includes_profile_independent_of_requested_bucket_start_without_writes(): void
     {
         $context = $this->fixture();
         $before = $context['source']->fresh()->getAttributes();
         $report = $this->scope($context, fn () => app(SalesHistory::class)->report($context['store']->id, CarbonImmutable::now()->subHour(), CarbonImmutable::now()));
-        $this->assertSame('sales-history-v5', $report['rule_version']);
+        $this->assertSame('sales-history-v6', $report['rule_version']);
         $this->assertSame($this->report($context), $report['order_baseline']);
         $this->assertSame($before, $context['source']->fresh()->getAttributes());
         $this->assertFalse($report['alerts_enabled']);
