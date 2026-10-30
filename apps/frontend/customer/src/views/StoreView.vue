@@ -9,6 +9,7 @@ import PaymentProviders from '@/components/PaymentProviders.vue';
 import ErrorNotice from '@/components/ErrorNotice.vue';
 import CheckoutLayoutSettings from '@/components/CheckoutLayoutSettings.vue';
 import StoreSettings from '@/components/StoreSettings.vue';
+import SalesExclusionSettings from '@/components/SalesExclusionSettings.vue';
 import VerificationPanel from '@/components/VerificationPanel.vue';
 import { setupSteps } from '@/components/setupSteps';
 import { storeHost } from '@/components/storeHost';
@@ -105,6 +106,7 @@ watch(
         <div id="payment-providers"><PaymentProviders :store-id="store.id" :can-manage="canManageIntegrations" @changed="load" /></div>
         <div id="store-verification"><VerificationPanel :key="store.verified_at ?? 'unverified'" :store="store" :can-manage="canManageStores" @verified="load" /></div>
         <StoreSettings :store="store" :can-manage="canManageStores" @updated="store = $event" @stale="load" />
+        <SalesExclusionSettings :key="store.id" :store-id="store.id" :can-manage="canManageStores" />
         <CheckoutLayoutSettings :store="store" :can-manage="canManageStores" @updated="store = $event" />
       </template>
     </div>

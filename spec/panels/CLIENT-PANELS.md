@@ -45,6 +45,8 @@ Onboarding resumable server state; закрытие browser не теряет pa
 
 Секреты при создании/вводе не уходят в frontend state persistence. API key и HMAC не сохраняются в Pinia/localStorage, analytics/events и console. Независимое payment connection read-only; user contract billing separately.
 
+Step 327 / ADR 0094: карточка магазина содержит пометки акций/праздников для сравнения продаж. stores.read — просмотр, stores.manage — добавление/удаление ручной пометки по локальной дате и live/test; автоматические паузы/пропуски доступны только для чтения. Последние 28 локальных дат и сегодня, границы вычисляет сервер, повторы идемпотентны, изменения аудируются. Эти пометки учитываются в диагностическом прогреве; календарь DE и статистические тревоги пока не включены.
+
 ## 4 Team и полномочия
 
 Tenant_owner: все tenant functions, subscription/payment documents, manage owner transfer, privacy export/delete organization. Tenant_admin: monitoring/configuration, invitations admin/operator/viewer; не может создать owner, изменить владельца, изменить billing subscription, delete tenant. Operator/viewer — existing matrix. С Step 263 роли admin/operator/viewer — готовые наборы разрешений участника, которые владелец (или участник с правом «Команда» в пределах своих прав) правит флажками по разделам; права владельца не выдаются (ADR 0079).

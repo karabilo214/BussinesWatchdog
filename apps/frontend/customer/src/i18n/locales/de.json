@@ -2672,5 +2672,28 @@
     "connecting": "Wird verbunden…",
     "expires": "Die Anfrage gilt bis {time}.",
     "manual": "Anderer Weg: Erstellen Sie auf der Shop-Seite einen Verbindungscode und fügen Sie ihn auf der Plugin-Seite ein."
+  },
+  "sales_exclusions": {
+    "title": "Tage für den Umsatzvergleich",
+    "intro": "Markieren Sie Aktionen und Feiertage, damit ungewöhnliche Verkäufe an diesen Tagen das übliche Niveau Ihres Shops nicht verzerren. Markierungen gelten getrennt für echte Bestellungen und Testbestellungen.",
+    "preparing": "Die Erkennung von Umsatzabweichungen wird noch vorbereitet. Diese Markierungen aktivieren keine Warnungen.",
+    "mode": "Bestellungen",
+    "live": "Echte Bestellungen",
+    "test": "Testbestellungen",
+    "range": "Verfügbare Daten: {from} — {to}. Zeitzone des Shops: {timezone}.",
+    "date": "Datum",
+    "kind": "Grund",
+    "kinds": {
+      "promotion": "Aktion",
+      "holiday": "Feiertag",
+      "pause": "Überwachung pausiert",
+      "data_gap": "Datenlücke"
+    },
+    "add": "Markierung hinzufügen",
+    "remove": "Entfernen",
+    "remove_label": "Markierung „{kind}“ für {date} entfernen",
+    "automatic": "automatisch",
+    "empty": "In diesem Modus sind keine Markierungen gespeichert.",
+    "invalid": "Wählen Sie ein gültiges Datum und einen Grund. Sie können heute und die letzten 28 Tage in der Zeitzone des Shops markieren."
   }
 }

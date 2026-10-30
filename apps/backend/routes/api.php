@@ -53,6 +53,7 @@ use App\Http\Controllers\Api\V1\Privacy\OrganizationDeletionController;
 use App\Http\Controllers\Api\V1\Reconciliation\ReconciliationController;
 use App\Http\Controllers\Api\V1\Stores\StoreCheckoutLayoutController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
+use App\Http\Controllers\Api\V1\Stores\StoreSalesExclusionController;
 use App\Http\Controllers\Api\V1\StoreVerifications\StoreVerificationController;
 use App\Http\Controllers\Api\V1\Tenancy\AttentionController;
 use App\Http\Controllers\Api\V1\Tenancy\MoneyVisibilityController;
@@ -161,6 +162,10 @@ Route::middleware(['stateful.session', 'auth:sanctum', 'tenant.session'])->prefi
     Route::get('/stores/{store}', [StoreController::class, 'show'])
         ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
     Route::patch('/stores/{store}', [StoreController::class, 'update'])
+        ->middleware('tenant.can:'.TenantPermissions::STORES_MANAGE);
+    Route::get('/stores/{store}/sales-exclusions', [StoreSalesExclusionController::class, 'index'])
+        ->middleware('tenant.can:'.TenantPermissions::STORES_READ);
+    Route::put('/stores/{store}/sales-exclusions', [StoreSalesExclusionController::class, 'update'])
         ->middleware('tenant.can:'.TenantPermissions::STORES_MANAGE);
     Route::put('/stores/{store}/checkout-layout', [StoreCheckoutLayoutController::class, 'update'])
         ->middleware('tenant.can:'.TenantPermissions::STORES_MANAGE);

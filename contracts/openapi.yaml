@@ -4679,6 +4679,66 @@ paths:
         "409": {$ref: "#/components/responses/Problem"}
         "422": {$ref: "#/components/responses/Problem"}
         "428": {$ref: "#/components/responses/Problem"}
+  /api/v1/stores/{store_id}/sales-exclusions:
+    get:
+      tags: [Stores]
+      operationId: listSalesExclusions
+      security:
+        - {UserSession: []}
+      description: Requires stores.read. Lists stored local-day baseline annotations for one mode. No order, payment or incident identifiers; not a baseline or alert readiness report.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: mode
+          in: query
+          schema: {enum: [live, test], default: live}
+      responses:
+        "200":
+          description: Stored day annotations and allowed date range in the store timezone
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SalesExclusions"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+    put:
+      tags: [Stores]
+      operationId: setSalesExclusion
+      security:
+        - {UserSession: []}
+      description: Requires stores.manage. Idempotently sets or removes one promotion/holiday annotation by local date and mode, under a row lock. Only the past 28 local dates and today are accepted; automatic pause/data_gap annotations cannot be changed here. Other annotations are preserved. A changed annotation is audited atomically. Does not enable alerts or represent an automatic holiday calendar.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - {$ref: "#/components/parameters/CsrfToken"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [date, kind, mode, excluded]
+              properties:
+                date: {type: string, format: date}
+                kind: {enum: [promotion, holiday]}
+                mode: {enum: [live, test]}
+                excluded: {type: boolean}
+      responses:
+        "200":
+          description: Current stored annotations in the requested mode
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SalesExclusions"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
   /api/v1/stores/{store_id}/checkout-layout:
     put:
       tags: [Stores]
@@ -8414,6 +8474,29 @@ components:
         memberships:
           type: array
           items: {$ref: "#/components/schemas/Membership"}
+    SalesExclusions:
+      type: object
+      additionalProperties: false
+      required: [timezone, min_date, max_date, mode, entries]
+      properties:
+        timezone: {type: string}
+        min_date: {type: string, format: date}
+        max_date: {type: string, format: date}
+        mode: {enum: [live, test]}
+        entries:
+          type: array
+          maxItems: 116
+          items:
+            type: object
+            additionalProperties: false
+            required: [date, kind, timezone, from, to, editable]
+            properties:
+              date: {type: string, format: date}
+              kind: {enum: [promotion, holiday, pause, data_gap]}
+              timezone: {type: string}
+              from: {type: string, format: date-time}
+              to: {type: string, format: date-time}
+              editable: {type: boolean, description: False for automatic pause/data_gap annotations. Mutation permission is checked separately.}
     StoreCoverage:
       type: object
       required: [connector, money, payment_attempts, browser_checks]

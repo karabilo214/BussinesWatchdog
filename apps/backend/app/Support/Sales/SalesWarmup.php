@@ -60,7 +60,7 @@ class SalesWarmup
             'additional_eligible_days_required' => $next === null ? 0 : $next - $eligible,
             'baseline_state' => 'unknown',
             'alerts_enabled' => false,
-            'reason_codes' => ['holiday_calendar_pending', 'promotion_ui_pending', 'thresholds_not_calibrated', 'payment_history_coverage_unknown'],
+            'reason_codes' => ['holiday_calendar_pending', 'thresholds_not_calibrated', 'payment_history_coverage_unknown'],
             'days' => $days,
         ];
     }

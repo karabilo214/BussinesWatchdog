@@ -86,10 +86,34 @@ class SalesCoverage
 
             $entries = $store->sales_baseline_exclusions ?? [];
             $entries[$mode.':'.$date.':'.$kind] = ['date' => $date, 'kind' => $kind, 'mode' => $mode, 'timezone' => $store->timezone, 'from' => $day->utc()->toIso8601String(), 'to' => $day->addDay()->utc()->toIso8601String()];
-            $cutoff = CarbonImmutable::now()->utc()->subDays(28)->startOfDay();
+            $cutoff = CarbonImmutable::now($store->timezone)->startOfDay()->subDays(28)->utc();
             $entries = array_filter($entries, fn (array $entry): bool => CarbonImmutable::parse($entry['to'])->greaterThan($cutoff));
             ksort($entries);
             if ($entries !== ($store->sales_baseline_exclusions ?? [])) {
+                $store->forceFill(['sales_baseline_exclusions' => $entries])->save();
+            }
+        });
+    }
+
+    public function removeManualDay(string $storeId, string $date, string $kind, string $mode): void
+    {
+        $tenantId = $this->tenants->requireTenantId('sales.coverage.remove');
+        if (! in_array($kind, ['promotion', 'holiday'], true) || ! in_array($mode, ['live', 'test'], true) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            throw new InvalidArgumentException('sales_exclusion_invalid');
+        }
+
+        DB::transaction(function () use ($tenantId, $storeId, $date, $kind, $mode): void {
+            $store = Store::query()->where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($storeId);
+            $day = CarbonImmutable::parse($date, $store->timezone)->startOfDay();
+            $today = CarbonImmutable::now($store->timezone)->startOfDay();
+            if ($day->format('Y-m-d') !== $date || $day->lessThan($today->subDays(28)) || $day->greaterThan($today)) {
+                throw new InvalidArgumentException('sales_exclusion_range_invalid');
+            }
+
+            $entries = $store->sales_baseline_exclusions ?? [];
+            $key = $mode.':'.$date.':'.$kind;
+            if (isset($entries[$key])) {
+                unset($entries[$key]);
                 $store->forceFill(['sales_baseline_exclusions' => $entries])->save();
             }
         });
@@ -101,7 +125,7 @@ class SalesCoverage
         DB::transaction(function () use ($tenantId, $storeId): void {
             $store = Store::query()->where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($storeId);
             $entries = $store->sales_baseline_exclusions ?? [];
-            $cutoff = CarbonImmutable::now()->utc()->subDays(28)->startOfDay();
+            $cutoff = CarbonImmutable::now($store->timezone)->startOfDay()->subDays(28)->utc();
             $next = array_filter($entries, fn (array $entry): bool => CarbonImmutable::parse($entry['to'])->greaterThan($cutoff));
 
             if ($next !== $entries) {

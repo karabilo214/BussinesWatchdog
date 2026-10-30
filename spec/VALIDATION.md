@@ -2,7 +2,7 @@
 
 Повторно проверено 26 октября 2026 года командой `python3 spec/validate_spec.py` для пакета версии 1.1 с последующими правками. Ниже перечислены проверки файлов, а не тесты рабочего SaaS.
 
-- OpenAPI YAML, internal references, path parameters and unique operation IDs: 299 operations
+- OpenAPI YAML, internal references, path parameters and unique operation IDs: 301 operations
 - Extension OpenAPI: 25 operations, references/paths and positive/negative purchase/action DTO fixtures
 - Positive Woo ingestion fixture conforms to the used JSON Schema subset
 - Negative event schema fixture checks: 6

@@ -2672,5 +2672,28 @@
     "connecting": "Connecting…",
     "expires": "The request is valid until {time}.",
     "manual": "Another way: create a connection code on the store page and paste it on the plugin page."
+  },
+  "sales_exclusions": {
+    "title": "Days for sales comparisons",
+    "intro": "Mark promotions and holidays so unusual sales on those days do not distort your store’s usual level. Annotations are separate for live and test orders.",
+    "preparing": "Sales anomaly monitoring is still being prepared. These annotations do not enable alerts.",
+    "mode": "Orders",
+    "live": "Live",
+    "test": "Test",
+    "range": "Available dates: {from} — {to}. Store time zone: {timezone}.",
+    "date": "Date",
+    "kind": "Reason",
+    "kinds": {
+      "promotion": "Promotion",
+      "holiday": "Holiday",
+      "pause": "Monitoring paused",
+      "data_gap": "Data gap"
+    },
+    "add": "Add annotation",
+    "remove": "Remove",
+    "remove_label": "Remove “{kind}” annotation for {date}",
+    "automatic": "automatic",
+    "empty": "No saved annotations in this mode.",
+    "invalid": "Choose a valid date and reason. You can mark today and the last 28 days in the store’s time zone."
   }
 }

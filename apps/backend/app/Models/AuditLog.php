@@ -52,6 +52,8 @@ class AuditLog extends Model
 
     public const ACTION_STORE_CHECKOUT_LAYOUT_SAVED = 'store.checkout_layout_saved';
 
+    public const ACTION_STORE_SALES_EXCLUSION_SET = 'store.sales_exclusion_set';
+
     public const ACTION_PAYMENT_ALLOCATION_CREATED = 'payment_allocation.created';
 
     public const ACTION_PAYMENT_ALLOCATION_REVOKED = 'payment_allocation.revoked';
