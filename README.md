@@ -37,4 +37,5 @@ SaaS для обнаружения денежных расхождений и п
 | [docs/ops/platform-passkeys.md](docs/ops/platform-passkeys.md) | Ключи доступа сотрудников: подключение, резервный вход, отзыв, настройки RP и проверки |
 | [docs/ops/security-headers.md](docs/ops/security-headers.md) | CSP, Trusted Types, COOP, frame-ancestors, этапы HSTS и проверка PageSpeed |
 | [docs/ops/forms-accessibility.md](docs/ops/forms-accessibility.md) | Доступность входа/MFA, регистрации и обратной связи: поведение, изолированный трёхбраузерный smoke |
+| [docs/ops/sales-monitoring.md](docs/ops/sales-monitoring.md) | Диагностика истории продаж задачи 12: счётчики, scope, неизвестное покрытие и ограничения до нормы |
 | [docs/ops/development.md](docs/ops/development.md) | Локальная разработка, тесты, живые проверки; CI — `.github/workflows/ci.yml` |

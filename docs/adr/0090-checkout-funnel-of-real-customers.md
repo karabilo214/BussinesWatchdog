@@ -4,7 +4,7 @@ Date: 2026-10-29, revised 2026-10-30. Status: accepted (owner, 2026-10-29; data 
 
 ## Context
 
-The synthetic check walks one path as one robot and cannot see what depends on the visitor (browser, device, language, time zone — the first real Shopware store failed only for browsers reporting the time zone `Europe/Kyiv`). The owner wants the product to show where and how much a merchant loses on the checkout. ADR 0007 already counts payment attempts per method (layer 1) and observes checkout stages with a script (layer 2), but there is no funnel per visitor session, no segments and no comparison with the store's own norm.
+The synthetic check walks one path as one robot and cannot see what depends on the visitor (browser, device, language, time zone — the first real Shopware store failed only for browsers reporting the time zone `Europe/Kyiv`). The owner wants the product to show where and how much a merchant loses on the checkout. ADR 0007 already counts payment attempts per method (layer 1) and observes checkout stages with a script (layer 2), but there are no segmented aggregate statistics and no comparison with the store's own norm. Exact per-visitor funnels are intentionally excluded by the revised decision.
 
 ## Decision
 
@@ -18,7 +18,9 @@ The synthetic check walks one path as one robot and cannot see what depends on t
    - N — count of the affected segment that reached the failing step during the incident (sum of window counters);
    - p₀ — the store's usual ratio of orders to that step's count in the segment (norm, same weekday and hour band);
    - p₁ — the same ratio during the incident;
-   - average order value — median of the store's paid orders over 28 days (minor units, store currency), (no per-visitor cart values).
+   - average order value — median of the store's paid orders over 28 days (minor units, separately by currency/mode; no per-visitor cart values).
+
+   These are ratios of aggregate counters, not individual session conversion probabilities. Without step counters, a sales-loss estimate uses the shortfall of orders against their expected count, multiplied by the median paid order value. Unknown history/coverage is not zero.
 
    Shown only when N is large enough and p₀ > p₁ is statistically significant; only the excess over the normal abandonment counts.
 5. **Staged warm-up instead of one threshold (owner, 2026-10-30; replaces «7 days»).** A single week holds one sample per weekday, so a sale, a holiday or an outage on that day would distort the norm.
@@ -36,4 +38,4 @@ The synthetic check walks one path as one robot and cannot see what depends on t
 
 - New plugin and App versions (WordPress.org SVN only on the owner's command; App version approval for the cabinet).
 - No device storage, no per-visitor data: merchants' cookie consent and our legal documents stay as they are.
-- Section B of task 12 starts with an audit of what layers 1 and 2 already send and store.
+- Section B starts with sales counts against the store norm using existing orders/payment projections, followed by the audit of layers 1 and 2. No individual checkout event schema is added.

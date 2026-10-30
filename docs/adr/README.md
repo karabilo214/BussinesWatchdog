@@ -4,12 +4,14 @@
 
 Актуальные точки входа на 2026-10-29:
 
-- [0007 — наблюдение попыток оплаты](0007-payment-attempt-monitoring.md): реализованные слои 1–2; аудит для расширения задачи 12 ещё открыт.
+- [0007 — наблюдение попыток оплаты](0007-payment-attempt-monitoring.md): реализованные слои 1–2; аудит для расширения задачи 12 выполнен в Step 323, [отчёт](../checkout-monitoring-audit.md).
 - [0077 — API-first подключения](0077-api-first-connections-and-woocommerce-webhooks.md).
 - [0080 — выкладка без простоя](0080-zero-downtime-deploy.md): миграции совместимы с предыдущим выпуском.
 - [0084 — подключение из WooCommerce и воронка](0084-plugin-one-click-connect-and-funnel.md): 0.4.2 опубликован, живая приёмка за владельцем.
 - [0085 — заголовки безопасности](0085-browser-security-headers.md): локально готово, production-проверки открыты.
 - [0086 — окна магазина](0086-store-dialogs-in-browser-checks.md), [0087 — ротация браузеров](0087-browser-rotation.md), [0088 — сторонние ресурсы](0088-third-party-reads-trackers-and-providers.md), [0089 — товар с корзиной и 5xx](0089-product-page-with-cart-and-store-server-errors.md): локальные изменения браузерных проверок, не выложены.
-- [0090 — воронка настоящих покупателей](0090-checkout-funnel-of-real-customers.md): решения владельца приняты, реализация новой воронки ещё не начата.
+- [0090 — воронка настоящих покупателей](0090-checkout-funnel-of-real-customers.md): решение 2026-10-30 — только агрегаты без session IDs, ступени 7/14/28 дней; реализация начата с диагностики истории.
+
+- [0091 — наблюдаемая история перед нормой](0091-sales-history-before-baseline.md): read-only диагностика; историческое покрытие unknown, тревоги ещё не включены.
 
 Статусы выпуска — в [PROJECT_STATE.md](../../PROJECT_STATE.md), история — в [progress](../progress.md), задачи владельца — в [бэклоге](../backlog.md).
