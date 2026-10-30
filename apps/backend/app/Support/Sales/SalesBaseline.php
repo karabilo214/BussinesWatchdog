@@ -7,7 +7,7 @@ use Carbon\CarbonImmutable;
 
 class SalesBaseline
 {
-    public function __construct(private readonly SalesWarmup $warmup, private readonly SalesCoverage $coverage, private readonly SalesOrderObservations $orders, private readonly SalesLocalBands $localBands) {}
+    public function __construct(private readonly SalesWarmup $warmup, private readonly SalesCoverage $coverage, private readonly SalesOrderObservations $orders, private readonly SalesLocalBands $localBands, private readonly SalesWarmupProfile $warmupProfile) {}
 
     public function report(Store $store, string $mode, CarbonImmutable $asOf): array
     {
@@ -18,7 +18,7 @@ class SalesBaseline
             'to' => $target->addDay()->utc()->toIso8601String(),
         ]])[0];
         $weekday = $targetMetric['comparison_weekday'];
-        $days = array_values(array_filter($warmup['days'], fn (array $day): bool => $day['eligible'] && $day['calendar_state'] === 'ready' && $day['comparison_weekday'] === $weekday));
+        $days = array_values(array_filter($warmup['days'], fn (array $day): bool => $targetMetric['calendar_state'] === 'ready' && $day['eligible'] && $day['calendar_state'] === 'ready'));
         $profiles = [];
         foreach ($days as $day) {
             $layout = $this->localBands->forDay(CarbonImmutable::parse($day['from'])->setTimezone($store->timezone));
@@ -54,11 +54,14 @@ class SalesBaseline
 
         $bands = [];
         $targetLayout = $this->localBands->forDay($target);
+        $targetDaily = array_values(array_filter($targetLayout['bands'], fn (array $band): bool => $band['width_hours'] === 24));
         foreach ($targetLayout['bands'] as $targetBand) {
             $width = $targetBand['width_hours'];
             $hour = $targetBand['local_start_hour'];
             $samples = [];
             $omitted = [];
+            $pairedSamples = [];
+            $pairedOmitted = [];
             foreach ($days as $day) {
                 $candidates = $profiles[$day['date']][$width][$hour] ?? [];
                 $sample = $candidates[$targetBand['occurrence'] - 1] ?? null;
@@ -69,11 +72,14 @@ class SalesBaseline
                     default => null,
                 };
                 if ($reason !== null) {
-                    $omitted[] = ['date' => $day['date'], 'reason' => $reason];
+                    $pairedOmitted[] = ['date' => $day['date'], 'reason' => $reason];
+                    if ($day['comparison_weekday'] === $weekday) {
+                        $omitted[] = ['date' => $day['date'], 'reason' => $reason];
+                    }
 
                     continue;
                 }
-                $samples[] = [
+                $observation = [
                     'date' => $day['date'],
                     'from' => $sample['from'],
                     'to' => $sample['to'],
@@ -83,6 +89,23 @@ class SalesBaseline
                     'occurrences' => $sample['occurrences'],
                     'duration_seconds' => $sample['duration_seconds'],
                     'orders_created' => $sample['orders_created'],
+                ];
+                if ($day['comparison_weekday'] === $weekday) {
+                    $samples[] = $observation;
+                }
+                $daily = $profiles[$day['date']][24][0] ?? [];
+                if (count($daily) !== 1 || count($targetDaily) !== 1 || $daily[0]['duration_seconds'] !== $targetDaily[0]['duration_seconds']) {
+                    $pairedOmitted[] = ['date' => $day['date'], 'reason' => 'daily_profile_duration_not_comparable'];
+
+                    continue;
+                }
+                $pairedSamples[] = [
+                    ...$observation,
+                    'same_weekday' => $day['comparison_weekday'] === $weekday,
+                    'comparison_weekday' => $day['comparison_weekday'],
+                    'day_from' => $daily[0]['from'],
+                    'day_to' => $daily[0]['to'],
+                    'day_orders_created' => $daily[0]['orders_created'],
                 ];
             }
             $values = array_column($samples, 'orders_created');
@@ -114,6 +137,11 @@ class SalesBaseline
                 'samples' => $samples,
                 'omitted_samples' => $omitted,
                 'reason_codes' => $reasons,
+                'warmup_profile' => $this->warmupProfile->report(
+                    $warmup['stage'], $targetMetric['calendar_state'], $samples,
+                    $samples === [] ? null : ['numerator' => $medianTwice, 'denominator' => 2],
+                    $pairedSamples, $pairedOmitted,
+                ),
             ];
         }
 
@@ -123,7 +151,7 @@ class SalesBaseline
             'mode' => $mode,
             'timezone' => $store->timezone,
             'status' => 'diagnostic_only',
-            'method_version' => 'same-weekday-bands-v2',
+            'method_version' => 'same-weekday-bands-v3',
             'as_of' => $asOf->utc()->toIso8601String(),
             'target_date' => $target->toDateString(),
             'history_from' => $warmup['days'][0]['from'],

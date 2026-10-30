@@ -68,6 +68,8 @@ class SalesBaselineTest extends TestCase
         $this->assertSame([['date' => '2026-10-25', 'reason' => 'local_band_occurrences_not_comparable']], $this->band($report, 1, 2)['omitted_samples']);
         $this->assertSame([['date' => '2026-10-25', 'reason' => 'dst_duration_not_comparable']], $this->band($report, 24)['omitted_samples']);
         $this->assertSame(['numerator' => 0, 'denominator' => 2], $this->band($report, 24)['expected_orders']);
+        $profileOmissions = $this->band($report, 1, 10)['warmup_profile']['daily_profile']['omitted_samples'];
+        $this->assertSame([['date' => '2026-10-25', 'reason' => 'daily_profile_duration_not_comparable']], array_values(array_filter($profileOmissions, fn (array $sample): bool => $sample['date'] === '2026-10-25')));
     }
 
     public function test_covered_zero_is_distinct_from_missing_calendar_or_coverage(): void
@@ -117,6 +119,7 @@ class SalesBaselineTest extends TestCase
         $sameTenant = $this->context(tenant: $context['tenant']);
         $this->order($sameTenant, ['source_created_at' => '2026-10-23 08:30:00', 'transaction_ref' => null]);
         $this->assertSame(1, $this->band($this->report($context), 1, 10)['sample_max']);
+        $this->assertSame(1, array_sum(array_column($this->band($this->report($context), 1, 10)['warmup_profile']['daily_profile']['samples'], 'orders_created')));
         $this->assertSame(1, $this->band($this->report($context, 'test'), 1, 10)['sample_max']);
         $new->forceFill(['deleted_at' => now()])->save();
         $this->assertSame(0, $this->band($this->report($context), 1, 10)['sample_max']);
@@ -223,12 +226,12 @@ class SalesBaselineTest extends TestCase
         $this->assertSame('2026-10-23T04:15:00+00:00', $band['samples'][3]['from']);
     }
 
-    public function test_history_v6_includes_profile_independent_of_requested_bucket_start_without_writes(): void
+    public function test_history_v7_includes_profile_independent_of_requested_bucket_start_without_writes(): void
     {
         $context = $this->fixture();
         $before = $context['source']->fresh()->getAttributes();
         $report = $this->scope($context, fn () => app(SalesHistory::class)->report($context['store']->id, CarbonImmutable::now()->subHour(), CarbonImmutable::now()));
-        $this->assertSame('sales-history-v6', $report['rule_version']);
+        $this->assertSame('sales-history-v7', $report['rule_version']);
         $this->assertSame($this->report($context), $report['order_baseline']);
         $this->assertSame($before, $context['source']->fresh()->getAttributes());
         $this->assertFalse($report['alerts_enabled']);
@@ -259,17 +262,158 @@ class SalesBaselineTest extends TestCase
         $this->assertNull($this->band($report, 24)['expected_orders']);
     }
 
+    public function test_stoppage_profile_scales_pooled_hours_by_the_same_weekday_daily_level(): void
+    {
+        $this->clock('2026-08-30 12:00:00 UTC');
+        $context = $this->fixture(observedDays: 7);
+        for ($day = 23; $day <= 29; $day++) {
+            $this->seedOrders($context, "2026-08-$day", 10, $day === 23 ? 1 : 2);
+            $this->seedOrders($context, "2026-08-$day", 20, $day === 23 ? 3 : 6);
+        }
+        $this->seedOrders($context, '2026-08-30', 10, 10);
+        $report = $this->report($context);
+        $profile = $this->band($report, 1, 10)['warmup_profile'];
+        $this->assertSame('stoppage_only', $profile['stage']);
+        $this->assertSame('available', $profile['structural_state']);
+        $this->assertSame(7, $profile['daily_profile']['sample_count']);
+        $this->assertSame(1, $profile['daily_profile']['weekday_day_sample_count']);
+        $this->assertSame(['numerator' => '8', 'denominator' => '2'], $profile['daily_profile']['weekday_daily_median']);
+        $this->assertSame(['numerator' => '13', 'denominator' => '52'], $profile['daily_profile']['pooled_band_share']);
+        $this->assertSame([['method' => 'weekday_daily_profile', 'expected_orders' => ['numerator' => '104', 'denominator' => '104']]], $profile['candidates']);
+        $this->assertSame('uncalibrated', $profile['statistical_state']);
+        $this->assertSame('unknown', $report['baseline_state']);
+        $this->assertFalse($profile['alerts_enabled']);
+        $this->assertFalse($report['alerts_enabled']);
+    }
+
+    public function test_major_drop_profile_keeps_two_estimates_separate_without_hidden_weights(): void
+    {
+        $this->clock('2026-08-30 12:00:00 UTC');
+        $context = $this->fixture(observedDays: 14);
+        for ($day = 16; $day <= 29; $day++) {
+            $band = $day === 23 ? 3 : 1;
+            $daily = match ($day) {
+                16 => 4, 23 => 8, default => 2
+            };
+            $this->seedOrders($context, "2026-08-$day", 10, $band);
+            $this->seedOrders($context, "2026-08-$day", 20, $daily - $band);
+        }
+        $profile = $this->band($this->report($context), 1, 10)['warmup_profile'];
+        $this->assertSame('major_drop', $profile['stage']);
+        $this->assertSame(2, $profile['required_same_weekday_samples']);
+        $this->assertSame(2, $profile['same_weekday_sample_count']);
+        $this->assertSame(14, $profile['daily_profile']['sample_count']);
+        $this->assertSame([
+            ['method' => 'same_weekday_band', 'expected_orders' => ['numerator' => '4', 'denominator' => '2']],
+            ['method' => 'weekday_daily_profile', 'expected_orders' => ['numerator' => '192', 'denominator' => '72']],
+        ], $profile['candidates']);
+    }
+
+    public function test_profile_boundaries_use_observed_days_and_never_enable_alerts(): void
+    {
+        $this->clock('2026-08-30 12:00:00 UTC');
+        foreach ([[0, null, []], [6, null, []], [7, 1, ['weekday_daily_profile']], [13, 1, ['weekday_daily_profile']], [14, 2, ['same_weekday_band', 'weekday_daily_profile']], [27, 2, ['same_weekday_band', 'weekday_daily_profile']], [28, 4, ['same_weekday_band']]] as [$days, $required, $methods]) {
+            $context = $this->fixture(observedDays: $days);
+            for ($ago = $days; $ago > 0; $ago--) {
+                $this->seedOrders($context, CarbonImmutable::now($context['store']->timezone)->subDays($ago)->toDateString(), 10, 1);
+            }
+            $profile = $this->band($this->report($context), 1, 10)['warmup_profile'];
+            $this->assertSame($required, $profile['required_same_weekday_samples']);
+            $this->assertSame($methods, array_column($profile['candidates'], 'method'));
+            $this->assertSame($days < 7 ? 'insufficient' : 'available', $profile['structural_state']);
+            $this->assertFalse($profile['alerts_enabled']);
+        }
+    }
+
+    public function test_zero_volume_is_not_a_daily_profile_but_a_covered_quiet_hour_can_be_zero(): void
+    {
+        $this->clock('2026-08-30 12:00:00 UTC');
+        $context = $this->fixture(observedDays: 7);
+        $profile = $this->band($this->report($context), 1, 2)['warmup_profile'];
+        $this->assertNull($profile['daily_profile']['pooled_band_share']);
+        $this->assertNull($profile['daily_profile']['expected_orders']);
+        $this->assertSame([], $profile['candidates']);
+        $this->assertContains('pooled_profile_order_volume_missing', $profile['reason_codes']);
+        for ($day = 23; $day <= 29; $day++) {
+            $this->seedOrders($context, "2026-08-$day", 10, 1);
+        }
+        $profile = $this->band($this->report($context), 1, 2)['warmup_profile'];
+        $this->assertSame('available', $profile['structural_state']);
+        $this->assertSame(['numerator' => '0', 'denominator' => '7'], $profile['daily_profile']['pooled_band_share']);
+        $this->assertSame(['numerator' => '0', 'denominator' => '14'], $profile['candidates'][0]['expected_orders']);
+        $this->assertSame('uncalibrated', $profile['statistical_state']);
+    }
+
+    public function test_exclusions_lower_profile_stage_separately_by_mode_without_fabricating_history(): void
+    {
+        $this->clock('2026-08-30 12:00:00 UTC');
+        $context = $this->fixture(observedDays: 14);
+        for ($day = 16; $day <= 29; $day++) {
+            $this->seedOrders($context, "2026-08-$day", 10, 1);
+            $this->seedOrders($context, "2026-08-$day", 10, 2, 'test');
+        }
+        $this->scope($context, fn () => app(SalesCoverage::class)->excludeDay($context['store']->id, '2026-08-16', 'promotion'));
+        $live = $this->band($this->report($context), 1, 10)['warmup_profile'];
+        $test = $this->band($this->report($context, 'test'), 1, 10)['warmup_profile'];
+        $this->assertSame('stoppage_only', $live['stage']);
+        $this->assertSame(13, $live['daily_profile']['sample_count']);
+        $this->assertSame(1, $live['daily_profile']['weekday_day_sample_count']);
+        $this->assertNotContains('2026-08-16', array_column($live['daily_profile']['samples'], 'date'));
+        $this->assertSame('major_drop', $test['stage']);
+        $this->assertSame(14, $test['daily_profile']['sample_count']);
+        $this->assertSame(28, array_sum(array_column($test['daily_profile']['samples'], 'orders_created')));
+        $journal = $context['source']->sales_coverage;
+        $journal['first_observed_at'] = CarbonImmutable::now()->toIso8601String();
+        $context['source']->forceFill(['sales_coverage' => $journal])->save();
+        $profile = $this->band($this->report($context), 1, 10)['warmup_profile'];
+        $this->assertSame('collecting', $profile['stage']);
+        $this->assertSame([], $profile['daily_profile']['samples']);
+        $this->assertSame([], $profile['candidates']);
+    }
+
+    public function test_other_weekdays_do_not_replace_missing_target_weekday_or_unknown_calendar(): void
+    {
+        $this->clock('2026-08-30 12:00:00 UTC');
+        $context = $this->fixture();
+        for ($day = 2; $day <= 29; $day++) {
+            $date = sprintf('2026-08-%02d', $day);
+            $this->seedOrders($context, $date, 10, 1);
+            if (in_array($day, [2, 9, 16, 23], true)) {
+                $this->scope($context, fn () => app(SalesCoverage::class)->excludeDay($context['store']->id, $date, 'promotion'));
+            }
+        }
+        $profile = $this->band($this->report($context), 1, 10)['warmup_profile'];
+        $this->assertSame(24, $profile['daily_profile']['sample_count']);
+        $this->assertNull($profile['daily_profile']['expected_orders']);
+        $this->assertSame([], $profile['candidates']);
+        $this->assertContains('same_weekday_samples_missing', $profile['reason_codes']);
+        $this->assertContains('weekday_daily_samples_missing', $profile['reason_codes']);
+        $context['store']->forceFill(['settings' => []])->save();
+        $profile = $this->band($this->report($context), 1, 10)['warmup_profile'];
+        $this->assertSame([], $profile['candidates']);
+        $this->assertSame([], $profile['daily_profile']['samples']);
+        $this->assertContains('holiday_calendar_not_configured', $profile['reason_codes']);
+    }
+
+    private function seedOrders(array $context, string $date, int $hour, int $count, string $mode = 'live'): void
+    {
+        $at = CarbonImmutable::parse(sprintf('%s %02d:30:00', $date, $hour), $context['store']->timezone)->utc();
+        for ($index = 0; $index < $count; $index++) {
+            $this->order($context, ['source_created_at' => $at, 'mode' => $mode, 'transaction_ref' => null]);
+        }
+    }
+
     private function clock(string $now): void
     {
         Carbon::setTestNow($now);
         CarbonImmutable::setTestNow($now);
     }
 
-    private function fixture(string $region = 'DE-BE', string $timezone = 'Europe/Berlin'): array
+    private function fixture(string $region = 'DE-BE', string $timezone = 'Europe/Berlin', int $observedDays = 28): array
     {
         $context = $this->context();
         $context['store']->forceFill(['status' => 'active', 'timezone' => $timezone, 'settings' => ['sales_calendar' => ['region' => $region, 'local_holidays' => []]]])->save();
-        $start = CarbonImmutable::now($timezone)->startOfDay()->subDays(28)->utc()->toIso8601String();
+        $start = CarbonImmutable::now($timezone)->startOfDay()->subDays($observedDays)->utc()->toIso8601String();
         $context['source'] = Integration::query()->create([
             'tenant_id' => $context['tenant']->id, 'store_id' => $context['store']->id, 'provider' => 'woocommerce_api',
             'mode' => 'live', 'source_authority' => 'store_reported', 'status' => 'active',
