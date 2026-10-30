@@ -1,0 +1,2 @@
+@php($shapes = (require resource_path('icons/lucide.php'))[$name])
+<svg class="site-icon" width="{{ $size ?? 20 }}" height="{{ $size ?? 20 }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" @isset($role) data-icon="{{ $role }}" @endisset @if (! empty($hidden)) hidden @endif>@foreach ($shapes as [$tag, $attrs])<{{ $tag }} @foreach ($attrs as $key => $value){{ $key }}="{{ $value }}" @endforeach/>@endforeach</svg>

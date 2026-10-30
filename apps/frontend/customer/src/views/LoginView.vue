@@ -4,7 +4,7 @@ import { Passkeys, UserCancelledError } from '@laravel/passkeys';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { ApiError } from '@bw/api-client';
-import { useAuthFeedback } from '@bw/ui';
+import { AppIcon, useAuthFeedback } from '@bw/ui';
 import { useSession } from '@/composables/useSession';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 
@@ -185,32 +185,41 @@ async function restart(reason: string | null = null): Promise<void> {
       </div>
       <div class="flex flex-col gap-1.5">
         <label for="login-password" class="text-sm font-medium">{{ $t('auth.password') }}</label>
-        <input
-          id="login-password" name="password" :aria-invalid="fieldErrors.password ? true : undefined" :aria-describedby="fieldErrors.password ? 'login-password-error' : undefined"
-          v-model="password"
-          :type="showPassword ? 'text' : 'password'" maxlength="128"
-          autocomplete="current-password"
-          required
-          class="rounded-md border border-border-strong bg-surface px-3 py-2 text-base"
-        />
+        <div class="flex items-stretch rounded-md border border-border-strong bg-surface focus-within:outline focus-within:outline-2 focus-within:outline-primary" data-input-group>
+          <input
+            id="login-password" name="password" :aria-invalid="fieldErrors.password ? true : undefined" :aria-describedby="fieldErrors.password ? 'login-password-error' : undefined"
+            v-model="password"
+            :type="showPassword ? 'text' : 'password'" maxlength="128"
+            autocomplete="current-password"
+            required
+            class="min-w-0 flex-1 rounded-l-md border-0 bg-transparent px-3 py-2 text-base focus:outline-none"
+          />
+          <button type="button" class="flex min-h-11 min-w-11 items-center justify-center rounded-r-md text-text-muted hover:text-primary" :aria-label="$t(showPassword ? 'forms.hide_password' : 'forms.show_password')" :title="$t(showPassword ? 'forms.hide_password' : 'forms.show_password')" aria-controls="login-password" :aria-pressed="showPassword" :disabled="submitting" data-toggle-password @click="showPassword = !showPassword">
+            <AppIcon :name="showPassword ? 'eye-off' : 'eye'" />
+          </button>
+        </div>
         <p v-if="fieldErrors.password" id="login-password-error" class="text-sm text-crit">{{ $t(fieldErrors.password) }}</p>
-        <button type="button" class="min-h-11 self-start text-sm text-primary underline" :aria-controls="'login-password'" :aria-pressed="showPassword" :disabled="submitting" @click="showPassword = !showPassword">{{ $t(showPassword ? 'forms.hide_password' : 'forms.show_password') }}</button>
       </div>
-      <RouterLink :to="{ name: 'forgot-password' }" class="-mt-2 self-start text-sm text-primary hover:underline">{{ $t('account.forgot.link') }}</RouterLink>
+      <div class="-mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+        <RouterLink :to="{ name: 'forgot-password' }" class="text-primary hover:underline">{{ $t('account.forgot.link') }}</RouterLink>
+        <a :href="`/${locale}/signup`" class="text-primary hover:underline" data-signup-link>{{ $t('auth.signup_link') }}</a>
+      </div>
       <label for="login-remember" class="flex items-center gap-2 text-sm">
         <input id="login-remember" v-model="remember" type="checkbox" class="size-4 accent-primary" />
         {{ $t('auth.remember') }}
       </label>
-      <button
-        type="submit"
-        class="rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"
-        :disabled="submitting"
-      >
-        {{ submitting ? $t('auth.submitting') : $t('auth.submit') }}
-      </button>
-      <button ref="passkeyButton" v-if="passkeySupported" type="button" class="rounded-md border border-border-strong px-4 py-2.5 text-sm font-semibold text-primary hover:bg-surface-muted disabled:opacity-60" :disabled="submitting" @click="submitPasskey">
-        {{ $t('auth.passkey_sign_in') }}
-      </button>
+      <div class="flex items-stretch gap-2">
+        <button
+          type="submit"
+          class="flex-1 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-60"
+          :disabled="submitting"
+        >
+          {{ submitting ? $t('auth.submitting') : $t('auth.submit') }}
+        </button>
+        <button ref="passkeyButton" v-if="passkeySupported" type="button" class="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border-strong px-3 text-primary hover:bg-surface-muted disabled:opacity-60" :aria-label="$t('auth.passkey_sign_in')" :title="$t('auth.passkey_sign_in')" :disabled="submitting" data-passkey @click="submitPasskey">
+          <AppIcon name="fingerprint" :size="22" />
+        </button>
+      </div>
     </form>
 
     <form ref="formRef" :aria-busy="submitting" aria-labelledby="auth-title" :aria-describedby="errorKey ? 'auth-errors' : undefined" v-else class="flex flex-col gap-5 rounded-xl border border-border bg-surface p-6 shadow-sm" novalidate data-step="mfa" @submit.prevent="submitCode">

@@ -87,6 +87,7 @@
   "auth": {
     "connect_hint": "Melden Sie sich an, um die Verbindung mit WordPress abzuschließen.",
     "connect_signup": "Noch kein Konto? Kostenlos erstellen",
+    "signup_link": "Registrieren",
     "title": "Anmelden",
     "subtitle": "Verwenden Sie die E-Mail-Adresse und das Passwort Ihrer Registrierung.",
     "email": "E-Mail",

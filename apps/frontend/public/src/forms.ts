@@ -10,8 +10,11 @@ for (const form of document.querySelectorAll<HTMLFormElement>('[data-form="signu
       const input = document.getElementById(button.dataset.togglePassword!) as HTMLInputElement;
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
-      button.textContent = show ? button.dataset.hide! : button.dataset.show!;
+      button.setAttribute('aria-label', show ? button.dataset.hide! : button.dataset.show!);
+      button.title = button.getAttribute('aria-label')!;
       button.setAttribute('aria-pressed', String(show));
+      button.querySelector<SVGElement>('[data-icon="show"]')!.toggleAttribute('hidden', show);
+      button.querySelector<SVGElement>('[data-icon="hide"]')!.toggleAttribute('hidden', !show);
     });
   }
   const password = form.querySelector<HTMLInputElement>('[name=password]');

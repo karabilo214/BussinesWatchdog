@@ -490,7 +490,10 @@ describe('LoginView', () => {
     const wrapper = await mountWith(LoginView, '/login');
     await flushPromises();
 
-    await wrapper.findAll('button').find((button) => button.text() === 'Войти с ключом доступа')!.trigger('click');
+    const passkey = wrapper.get('button[aria-label="Войти с ключом доступа"]');
+    expect(passkey.find('svg').exists()).toBe(true);
+    expect(wrapper.get('[data-signup-link]').attributes('href')).toBe('/ru/signup');
+    await passkey.trigger('click');
     await flushPromises();
     expect(signInWithPasskey).toHaveBeenCalledWith(false);
   });

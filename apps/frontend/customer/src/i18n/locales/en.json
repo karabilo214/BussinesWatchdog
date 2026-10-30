@@ -87,6 +87,7 @@
   "auth": {
     "connect_hint": "Sign in to finish connecting WordPress.",
     "connect_signup": "No account yet? Create one free",
+    "signup_link": "Sign up",
     "title": "Sign in",
     "subtitle": "Use the e-mail and password you registered with.",
     "email": "E-mail",

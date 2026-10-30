@@ -3,3 +3,5 @@ export { formatMinor, parseMinor } from './money';
 export { SOLID_TONE_CLASSES, TONE_CLASSES, type Tone } from './tones';
 export { PAYMENT_METHOD_KINDS, paymentMethodKind, paymentMethodLabelKey, paymentMethodDisplayName, type PaymentMethodKind } from './paymentMethods';
 export { useAuthFeedback } from './useAuthFeedback';
+export { default as AppIcon } from './AppIcon.vue';
+export type { IconName } from './icons/lucide';

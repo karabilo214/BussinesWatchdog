@@ -444,3 +444,13 @@ Verification: `orderSource.test.ts` checks the full Russian hints; cabinet 210 t
 Проверки на Node 24.21.0: `npm run check -w @bw/customer` из `apps/frontend` — типы, 231/231 тестов (35 файлов), production build и генерация security headers; проверка палитры — прошла. Тесты проверяют локализованную ссылку на нужный магазин, read-only доступ, раскрытие и фокус без записи. Chromium на локальном Vite с синтетическими API: ru/en/de × 1280/390 px, 6/6; выбран верный магазин из двух, «Дополнительно» открыто, checkbox в фокусе и видим под шапкой, значение false, записывающих запросов и ошибок страницы нет. Первоначальная проверка типов нового теста выявила WrapperLike вместо типизированного RouterLinkStub; исправлено, финальный полный прогон зелёный. `git diff --check` — прошёл. Backend и воркер не менялись, их тесты не запускались; production не трогался.
 
 Traceability: ТЗ §18/24, CLIENT-PANELS §3, CLT-01/11, ACC-15 (улучшение навигации, его незакрытый плановый прогон не закрывается), Step 313 browser-checks/315. Ограничение: проверено локально на тестовых API, выкладка остаётся отдельной командой владельца.
+
+### Step 323: Icons, sign-in and sign-up forms in rows (2026-10-30)
+
+Status: complete locally (customer cabinet, public site; no migration; not deployed).
+
+- Icons from Lucide (ISC licence, `lucide-static` 0.460.0) copied into the repository — `eye`, `eye-off`, `fingerprint` — with the licence text: `apps/frontend/packages/ui/src/icons/lucide.ts` + `AppIcon.vue` (cabinet), `apps/backend/resources/icons/lucide.php` + `site/partials/icon.blade.php` (site). Shapes are rendered as elements, no HTML strings (CSP / Trusted Types). Nothing is loaded from outside.
+- Cabinet sign-in: password as an input group with an eye button (accessible name «Показать/Скрыть пароль», `aria-pressed`); «Забыли пароль?» and new «Зарегистрироваться» (`/{locale}/signup`) in one row; «Войти» and a fingerprint button for passkey sign-in (accessible name «Войти с ключом доступа») in one row. ru/en/de.
+- Site sign-up: wider form (52 rem), salutation (narrower) / first name / last name in one row, company / organisation in one row, password and confirmation in one row as input groups with eye buttons (progressive enhancement kept: buttons appear with JavaScript), one column on phones.
+
+Verification: customer 231 tests (passkey button found by its accessible name, sign-up link) and types; backend site tests 66/66; public build and `check-build`; local screenshots of the sign-up form at 1366 and 390 px and the cabinet sign-in at 1280 px (toggle shows the password, labels switch).
