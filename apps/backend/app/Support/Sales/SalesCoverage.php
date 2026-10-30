@@ -14,6 +14,8 @@ use InvalidArgumentException;
 
 class SalesCoverage
 {
+    public const RETENTION_LOCAL_DAYS = 30;
+
     public function __construct(private readonly TenantContext $tenants) {}
 
     public function recordRead(string $integrationId, CarbonImmutable $from, CarbonImmutable $to, string $kind, bool $complete, bool $withoutSkippedObjects): void
@@ -86,7 +88,7 @@ class SalesCoverage
 
             $entries = $store->sales_baseline_exclusions ?? [];
             $entries[$mode.':'.$date.':'.$kind] = ['date' => $date, 'kind' => $kind, 'mode' => $mode, 'timezone' => $store->timezone, 'from' => $day->utc()->toIso8601String(), 'to' => $day->addDay()->utc()->toIso8601String()];
-            $cutoff = CarbonImmutable::now($store->timezone)->startOfDay()->subDays(28)->utc();
+            $cutoff = CarbonImmutable::now($store->timezone)->startOfDay()->subDays(self::RETENTION_LOCAL_DAYS)->utc();
             $entries = array_filter($entries, fn (array $entry): bool => CarbonImmutable::parse($entry['to'])->greaterThan($cutoff));
             ksort($entries);
             if ($entries !== ($store->sales_baseline_exclusions ?? [])) {
@@ -125,7 +127,7 @@ class SalesCoverage
         DB::transaction(function () use ($tenantId, $storeId): void {
             $store = Store::query()->where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($storeId);
             $entries = $store->sales_baseline_exclusions ?? [];
-            $cutoff = CarbonImmutable::now($store->timezone)->startOfDay()->subDays(28)->utc();
+            $cutoff = CarbonImmutable::now($store->timezone)->startOfDay()->subDays(self::RETENTION_LOCAL_DAYS)->utc();
             $next = array_filter($entries, fn (array $entry): bool => CarbonImmutable::parse($entry['to'])->greaterThan($cutoff));
 
             if ($next !== $entries) {
@@ -240,7 +242,7 @@ class SalesCoverage
     private function finalized(Integration $integration, array $journal, CarbonImmutable $now): array
     {
         $intervals = $journal['intervals'] ?? [];
-        $cutoff = $now->setTimezone($integration->store->timezone)->startOfDay()->subDays(28)->utc();
+        $cutoff = $now->setTimezone($integration->store->timezone)->startOfDay()->subDays(self::RETENTION_LOCAL_DAYS)->utc();
 
         foreach ($journal['pending'] ?? [] as $kind => $read) {
             $blocked = EventInbox::query()->where('tenant_id', $integration->tenant_id)->where('store_id', $integration->store_id)->where('integration_id', $integration->id)

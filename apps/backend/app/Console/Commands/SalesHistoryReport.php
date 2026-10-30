@@ -3,13 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Support\Sales\SalesHistory;
+use App\Support\Sales\SalesReportTime;
 use App\Support\Sales\SalesWindowSelection;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Str;
-use Throwable;
 
 class SalesHistoryReport extends Command
 {
@@ -17,7 +17,7 @@ class SalesHistoryReport extends Command
 
     protected $description = 'Read tenant-scoped hourly sales observations without inferring a healthy baseline or sending alerts.';
 
-    public function handle(TenantContext $tenants, SalesHistory $history, SalesWindowSelection $windows): int
+    public function handle(TenantContext $tenants, SalesHistory $history, SalesWindowSelection $windows, SalesReportTime $time): int
     {
         $tenant = (string) $this->option('tenant');
         $store = (string) $this->option('store');
@@ -37,8 +37,8 @@ class SalesHistoryReport extends Command
         }
 
         try {
-            $to = $this->date($this->option('to')) ?? CarbonImmutable::now()->utc()->startOfHour();
-            $from = $this->date($this->option('from')) ?? $to->subDays(28);
+            $to = $time->parse($this->option('to')) ?? CarbonImmutable::now()->utc()->startOfHour();
+            $from = $time->parse($this->option('from')) ?? $to->subDays(28);
             $report = $tenants->scope($tenant, 'sales:history', fn () => $history->report($store, $from, $to, (string) $this->option('mode'), $minimum));
         } catch (ModelNotFoundException) {
             $this->components->error('sales_history_store_not_found');
@@ -53,28 +53,5 @@ class SalesHistoryReport extends Command
         $this->line(json_encode($report, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
 
         return self::SUCCESS;
-    }
-
-    private function date(mixed $value): ?CarbonImmutable
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/', $value)) {
-            throw new \InvalidArgumentException;
-        }
-
-        try {
-            $date = CarbonImmutable::parse($value);
-
-            if ($date->format('Y-m-d\TH:i:sP') !== str_replace('Z', '+00:00', $value)) {
-                throw new \InvalidArgumentException;
-            }
-
-            return $date;
-        } catch (Throwable $error) {
-            throw new \InvalidArgumentException('sales_history_range_invalid', previous: $error);
-        }
     }
 }

@@ -17,8 +17,11 @@ class SalesWindowSelection
         return $value;
     }
 
-    public function report(array $bands, string $minimum = self::DEFAULT_MIN_EXPECTED_ORDERS): array
+    public function report(array $bands, string $minimum = self::DEFAULT_MIN_EXPECTED_ORDERS, string $kind = 'fixed_local_bands'): array
     {
+        if (! in_array($kind, ['fixed_local_bands', 'trailing_elapsed_windows'], true)) {
+            throw new InvalidArgumentException('sales_window_kind_invalid');
+        }
         $minimum = $this->minimum($minimum);
         $selections = [];
         foreach ($bands as $anchor) {
@@ -81,10 +84,10 @@ class SalesWindowSelection
         return [
             'status' => 'diagnostic_only',
             'policy' => [
-                'version' => 'sales-window-volume-v1',
+                'version' => $kind === 'fixed_local_bands' ? 'sales-window-volume-v1' : 'sales-rolling-volume-v1',
                 'min_expected_orders' => $minimum,
                 'default_min_expected_orders' => self::DEFAULT_MIN_EXPECTED_ORDERS,
-                'window_kind' => 'fixed_local_bands',
+                'window_kind' => $kind,
                 'candidate_requirement' => 'all_stage_candidates',
                 'calibration_state' => 'uncalibrated',
             ],
