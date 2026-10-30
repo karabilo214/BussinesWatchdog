@@ -34,6 +34,7 @@ Route::middleware([SubstituteBindings::class])->group(function (): void {
     Route::get('/{locale}', [SiteController::class, 'home'])->where('locale', 'ru|en|de');
     Route::get('/{locale}/pricing', [SiteController::class, 'pricing'])->where('locale', 'ru|en|de');
     Route::get('/{locale}/pay', [SiteController::class, 'pay'])->where('locale', 'ru|en|de');
+    Route::get('/{locale}/videos/{video}', [SiteController::class, 'video'])->where(['locale' => 'ru|en|de', 'video' => implode('|', array_keys((require database_path('data/videos.php'))['videos']))]);
     Route::get('/{locale}/{slug}/{child?}', [SiteController::class, 'page'])->where(['locale' => 'ru|en|de', 'slug' => '[a-z0-9]+(?:-[a-z0-9]+)*', 'child' => '[a-z0-9]+(?:-[a-z0-9]+)*']);
     Route::get('/{locale}/{any}', [SiteController::class, 'missing'])->where(['locale' => 'ru|en|de', 'any' => '.*']);
 });

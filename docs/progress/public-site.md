@@ -504,3 +504,14 @@ Status: complete locally (content and test; no migration; not deployed, nothing 
 
 Verification: `PublicSiteTest` new case (drafts are 404; after publishing the section lists and links the case, the case has its title, table and back link, ru text, footer link, sitemap entry), backend SQLite full run.
 
+### Step 324: Watch pages for the videos so Google indexes them (2026-10-30)
+
+Status: complete locally (backend and site styles; no migration; not deployed). Search Console: «Video isn't on a watch page» — `/videos` showed three players, none the main content; no `VideoObject`, no video sitemap.
+
+- `database/data/videos.php` — the three videos with ru/en/de texts (title, h1, description, four steps), files per language (ru uses the English recordings), durations measured from the files (48/53/84 s de, 48/51/81 s en) and the upload date.
+- Route `/{locale}/videos/{video}` (before the generic page route) → `SiteController::video` → `site.video`: video first, h1, description, «what you see» steps, recording note and download link, sign-up and store check, other videos with posters, link to all videos; canonical and hreflang for the three languages. `layout` gained `@stack('head')`; the watch page pushes Open Graph video tags and JSON-LD `VideoObject` (name, description, thumbnailUrl, contentUrl, uploadDate, ISO 8601 duration, url) with the CSP nonce.
+- `sitemap.xml`: `xmlns:video` and one entry per watch page and language with `video:thumbnail_loc`, title, description, `content_loc`, duration and publication date.
+- `data/pages/videos/*.html`: a «watch on its own page» link under each player (applies after the owner refreshes the `videos` page from the repository).
+
+Verification: `PublicSiteTest` new case (watch page markup, canonical/hreflang, JSON-LD fields and nonce, ru page with the English recording and note, unknown video 404, sitemap video entries, files exist); site tests 67/67, backend SQLite 900 + 4 skipped, Pint; public build and `check-build`; local page at 1280 px with the production CSP — no console errors, content aligned with the header.
+

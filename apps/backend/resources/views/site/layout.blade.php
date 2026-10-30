@@ -23,6 +23,7 @@
     @endforeach
 
     <style>{!! \App\Support\Site\SiteAssets::inline() !!}</style>
+    @stack('head')
 
 </head>
 <body class="site">

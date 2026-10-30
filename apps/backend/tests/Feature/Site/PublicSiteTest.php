@@ -93,6 +93,37 @@ class PublicSiteTest extends TestCase
             ->assertSee("User-agent: *\nDisallow:\n", false);
     }
 
+    public function test_every_video_has_a_watch_page_with_a_video_object_and_a_video_sitemap_entry(): void
+    {
+        $page = $this->get('/de/videos/checkout-check')->assertOk()
+            ->assertSee('<h1>Die Checkout-Prüfung</h1>', false)
+            ->assertSee('<source src="/videos/de-checkout-pruefung.mp4" type="video/mp4">', false)
+            ->assertSee('<link rel="canonical" href="https://watchdog.test/de/videos/checkout-check">', false)
+            ->assertSee('hreflang="ru" href="https://watchdog.test/ru/videos/checkout-check"', false)
+            ->assertSee('href="/de/videos/paid-without-money"', false);
+        preg_match('#<script type="application/ld\+json" nonce="([^"]*)">(.*?)</script>#s', (string) $page->getContent(), $match);
+        $this->assertNotEmpty($match[1] ?? '', 'the structured data carries the CSP nonce');
+        $object = json_decode($match[2], true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(['@context' => 'https://schema.org', '@type' => 'VideoObject', 'name' => 'Die Checkout-Prüfung'], array_intersect_key($object, array_flip(['@context', '@type', 'name'])));
+        $this->assertSame('https://watchdog.test/videos/de-checkout-pruefung.mp4', $object['contentUrl']);
+        $this->assertSame(['https://watchdog.test/videos/de-checkout-pruefung.webp'], $object['thumbnailUrl']);
+        $this->assertSame('PT0M48S', $object['duration']);
+        $this->assertSame('2026-10-27', $object['uploadDate']);
+
+        $this->get('/ru/videos/paid-without-money')->assertOk()->assertSee('/videos/en-paid-without-money.mp4', false)->assertSee('Видео на английском языке.');
+        $this->get('/de/videos/unknown-video')->assertNotFound();
+        foreach (array_keys((require database_path('data/videos.php'))['videos']) as $key) {
+            foreach (['de', 'en'] as $locale) {
+                $this->assertFileExists(public_path('videos/'.((require database_path('data/videos.php'))['videos'][$key]['files'][$locale][0]).'.mp4'));
+            }
+        }
+        $this->get('/sitemap.xml')->assertOk()
+            ->assertSee('xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"', false)
+            ->assertSee('<loc>https://watchdog.test/en/videos/payment-provider-failure</loc>', false)
+            ->assertSee('<video:content_loc>https://watchdog.test/videos/en-payment-provider-failure.mp4</video:content_loc>', false)
+            ->assertSee('<video:duration>53</video:duration>', false);
+    }
+
     public function test_solved_problems_are_editable_pages_kept_as_drafts_until_the_owner_publishes_them(): void
     {
         $this->owner('owner@platform.test');

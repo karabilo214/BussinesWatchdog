@@ -230,6 +230,55 @@ class SiteController extends Controller
     /**
      * @param  array<string, mixed>  $data
      */
+    public function video(string $locale, string $video): Response
+    {
+        $catalog = require database_path('data/videos.php');
+        $entry = $catalog['videos'][$video];
+        $text = $entry[$locale];
+        [$file, $seconds] = $entry['files'][$locale];
+        $origin = rtrim((string) config('app.url'), '/');
+        $path = 'videos/'.$video;
+        $url = $origin.SiteContent::url($locale, $path);
+        $others = [];
+        foreach ($catalog['videos'] as $key => $other) {
+            if ($key !== $video) {
+                $others[] = ['href' => SiteContent::url($locale, 'videos/'.$key), 'title' => $other[$locale]['h1'], 'poster' => '/videos/'.$other['files'][$locale][0].'.webp'];
+            }
+        }
+
+        return response()->view('site.video', array_merge($this->chrome($locale, null, null), [
+            'path' => $path,
+            'canonical' => $url,
+            'alternates' => array_map(fn (string $code): array => ['locale' => $code, 'href' => $origin.SiteContent::url($code, $path)], PublicPage::LOCALES),
+            'languages' => array_map(fn (string $code): array => ['locale' => $code, 'href' => SiteContent::url($code, $path), 'current' => $code === $locale], PublicPage::LOCALES),
+            'title' => $text['title'],
+            'description' => $text['description'],
+            'video' => $text + ['mp4' => '/videos/'.$file.'.mp4', 'poster' => '/videos/'.$file.'.webp'],
+            'copy' => $catalog['copy'][$locale],
+            'others' => $others,
+            'all' => SiteContent::url($locale, 'videos'),
+            'structured' => self::videoObject($catalog['uploaded'], $text, $origin, $file, $seconds, $url),
+        ]))->header('Cache-Control', 'public, max-age='.(int) config('watchdog.site.cache_seconds'));
+    }
+
+    /**
+     * @param  array{h1: string, description: string}  $text
+     */
+    public static function videoObject(string $uploaded, array $text, string $origin, string $file, int $seconds, string $url): string
+    {
+        return (string) json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'VideoObject',
+            'name' => $text['h1'],
+            'description' => $text['description'],
+            'thumbnailUrl' => [$origin.'/videos/'.$file.'.webp'],
+            'contentUrl' => $origin.'/videos/'.$file.'.mp4',
+            'uploadDate' => $uploaded,
+            'duration' => sprintf('PT%dM%dS', intdiv($seconds, 60), $seconds % 60),
+            'url' => $url,
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+    }
+
     private function render(string $view, string $locale, ?PublicPage $page, ?PublicPageVersion $version, array $data, bool $private = false): Response
     {
         app()->setLocale($locale);

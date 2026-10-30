@@ -23,7 +23,7 @@ class SitemapController extends Controller
         $origin = rtrim((string) config('app.url'), '/');
         $pages = PublicPage::query()->whereNull('archived_at')->orderByRaw("CASE kind WHEN 'home' THEN 0 WHEN 'pricing' THEN 1 WHEN 'contact' THEN 2 ELSE 3 END")->orderBy('path')->get();
         $published = PublicPageVersion::query()->whereIn('page_id', $pages->pluck('id'))->where('state', PublicPageVersion::STATE_PUBLISHED)->get(['page_id', 'locale', 'published_at'])->groupBy('page_id');
-        $xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'];
+        $xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">'];
 
         foreach ($pages as $page) {
             $locales = $this->content->locales($page);
@@ -55,6 +55,27 @@ class SitemapController extends Controller
             }
 
             $xml[] = '  </url>';
+        }
+
+        $videos = require database_path('data/videos.php');
+        foreach ($videos['videos'] as $key => $video) {
+            foreach (PublicPage::LOCALES as $locale) {
+                [$file, $seconds] = $video['files'][$locale];
+                $xml[] = '  <url>';
+                $xml[] = '    <loc>'.e($origin.SiteContent::url($locale, 'videos/'.$key)).'</loc>';
+                foreach (PublicPage::LOCALES as $alternate) {
+                    $xml[] = '    <xhtml:link rel="alternate" hreflang="'.$alternate.'" href="'.e($origin.SiteContent::url($alternate, 'videos/'.$key)).'"/>';
+                }
+                $xml[] = '    <video:video>';
+                $xml[] = '      <video:thumbnail_loc>'.e($origin.'/videos/'.$file.'.webp').'</video:thumbnail_loc>';
+                $xml[] = '      <video:title>'.e($video[$locale]['h1']).'</video:title>';
+                $xml[] = '      <video:description>'.e($video[$locale]['description']).'</video:description>';
+                $xml[] = '      <video:content_loc>'.e($origin.'/videos/'.$file.'.mp4').'</video:content_loc>';
+                $xml[] = '      <video:duration>'.$seconds.'</video:duration>';
+                $xml[] = '      <video:publication_date>'.$videos['uploaded'].'</video:publication_date>';
+                $xml[] = '    </video:video>';
+                $xml[] = '  </url>';
+            }
         }
 
         $xml[] = '</urlset>';
