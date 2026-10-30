@@ -21,7 +21,16 @@ The synthetic check walks one path as one robot and cannot see what depends on t
    - average order value — median of the store's paid orders over 28 days (minor units, store currency), (no per-visitor cart values).
 
    Shown only when N is large enough and p₀ > p₁ is statistically significant; only the excess over the normal abandonment counts.
-5. **Warm-up: no norm-based incidents before 7 days of observation** of the store (owner: otherwise false alarms). Until then the cabinet shows «collecting the norm, N days left» and the funnel without alerts. Between 7 and 28 days the norm uses the history available, with wider confidence bounds; from 28 days the full window. Hard signals that need no norm (e.g. a share of sessions getting 5xx from the store's cart, ADR 0007 layer 1 streaks) are not delayed.
+5. **Staged warm-up instead of one threshold (owner, 2026-10-30; replaces «7 days»).** A single week holds one sample per weekday, so a sale, a holiday or an outage on that day would distort the norm.
+
+   | History | Norm | Alerts |
+   |---|---|---|
+   | < 7 days | — | none, the cabinet shows «collecting the norm, N days left» |
+   | 7–13 days | — | only «sales stopped»: hours of zero orders where the store clearly sells more than zero |
+   | 14–27 days | 2–3 samples of the same weekday plus the store's overall daily profile | also «sales fell by half or more», only when it lasts several hours |
+   | ≥ 28 days | 4 samples of the same weekday and hour band | full sensitivity: smaller drops, segments, checkout steps |
+
+   Rules: small numbers are not compared per hour — the window widens (2 h, half a day, a day) until enough orders are expected, and the test is statistical (counts against the expected rate), not «−50%»; days with an incident, a sale or a public holiday stay out of the norm (German public holidays count as Sundays; the merchant can mark «we had a promotion» in the cabinet); the norm is the rolling last 28 days. Exact thresholds are tuned on real data of the test stores and the first client before release. Hard signals that need no norm (5xx share in the store's cart, ADR 0007 layer 1 streaks) are not delayed.
 
 ## Consequences
 
