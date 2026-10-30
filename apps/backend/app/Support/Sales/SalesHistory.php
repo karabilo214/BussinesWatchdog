@@ -3,7 +3,6 @@
 namespace App\Support\Sales;
 
 use App\Models\Integration;
-use App\Models\Order;
 use App\Models\Store;
 use App\Support\Integrations\ConnectorFreshness;
 use App\Support\Tenancy\TenantContext;
@@ -13,7 +12,7 @@ use InvalidArgumentException;
 
 class SalesHistory
 {
-    public function __construct(private readonly TenantContext $tenants, private readonly ConnectorFreshness $freshness, private readonly SalesCoverage $coverage, private readonly SalesWarmup $warmup) {}
+    public function __construct(private readonly TenantContext $tenants, private readonly ConnectorFreshness $freshness, private readonly SalesCoverage $coverage, private readonly SalesWarmup $warmup, private readonly SalesOrderObservations $observations, private readonly SalesBaseline $baseline) {}
 
     public function report(string $storeId, CarbonImmutable $from, CarbonImmutable $to, string $mode = 'live'): array
     {
@@ -42,11 +41,8 @@ class SalesHistory
             ];
         }
 
-        $ranked = DB::table('orders')->where('tenant_id', $tenantId)->where('store_id', $store->id)
-            ->selectRaw('id, row_number() over (partition by external_id order by source_updated_at desc, updated_at desc, id desc) as position');
-        $latestIds = DB::query()->fromSub($ranked, 'ranked_orders')->where('position', 1)->select('id');
-        $orders = fn () => Order::query()->where('tenant_id', $tenantId)->where('store_id', $store->id)->whereIn('id', $latestIds)
-            ->where('mode', $mode)->where('is_synthetic', false)->whereNull('deleted_at');
+        $latestIds = $this->observations->latestIds($store);
+        $orders = fn () => $this->observations->query($store, $mode);
 
         foreach ($orders()->where('source_created_at', '>=', $from)->where('source_created_at', '<', $to)->select('source_created_at')->cursor() as $order) {
             $bins[$order->source_created_at->utc()->format('Y-m-d H:00:00')]['orders_created_observed']++;
@@ -104,7 +100,7 @@ class SalesHistory
         if (count(array_filter($coverage, fn (array $item): bool => $item['orders_created'] === 'complete')) === count($coverage)) {
             $reasons = array_values(array_diff($reasons, ['historical_coverage_not_recorded']));
             $reasons[] = 'payment_history_coverage_unknown';
-            $reasons[] = 'baseline_not_computed';
+            $reasons[] = 'baseline_not_calibrated';
         }
 
         return [
@@ -113,11 +109,12 @@ class SalesHistory
             'timezone' => $store->timezone,
             'from' => $from->toIso8601String(),
             'to' => $to->toIso8601String(),
-            'rule_version' => 'sales-history-v4',
+            'rule_version' => 'sales-history-v5',
             'status' => 'diagnostic_only',
             'baseline_state' => 'unknown',
             'warmup_stage' => 'unverified_history',
             'order_history_warmup' => $this->warmup->report($store, $mode, $to),
+            'order_baseline' => $this->baseline->report($store, $mode, $to),
             'alerts_enabled' => false,
             'reason_codes' => $reasons,
             'buckets' => array_values($bins),

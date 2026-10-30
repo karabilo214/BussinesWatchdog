@@ -23,12 +23,16 @@
 
 Не использовать сегодняшний снимок как принятую норму; backfill и время первого заказа не запускают прогрев 7/14/28 дней. Следующий этап и пробелы наблюдения — [аудит](../checkout-monitoring-audit.md), задача 12.B бэклога.
 
+Step 329 / [ADR 0096](../adr/0096-diagnostic-sales-baseline-bands.md): та же команда теперь выдаёт v5 с `order_baseline`. Это профиль даты, содержащей `--to`, по 28 завершённым локальным дням перед ней; начало `--from` не меняет профиль. 39 фиксированных полос от полуночи: 24 × 1 час, 12 × 2 часа, 2 × 12 часов и сутки. Это подготовка более широких окон для малых чисел, автоматического выбора окна пока нет. Для каждой полосы показаны даты/UTC-границы образцов, число заказов, медиана `expected_orders`, MAD `mad_orders`, среднее `mean_orders` и min/max. Дроби `numerator/denominator` точные, могут быть несокращёнными. Нет образцов — значения null; покрытые образцы с нулём заказов могут дать ноль. MAD=0 не доказывает значимость отклонения.
+
+Обычный день сравнивается с тем же weekday, праздник — с обычными воскресеньями; исторические праздники/исключения/разрывы в образцы не входят. Календарь всех образцов и целевой даты должен быть ready. Суточные образцы разной фактической длительности не сравниваются; короткие полосы DST-дней консервативно пропускаются. В целевой DST-день их границы/норма null с `target_dst_bands_unsupported`, пропущенные образцы перечислены отдельно. Это ограничение будущего детектора, не нулевые продажи. Календарь DE остаётся явно выбранным рынком сравнения независимо от timezone. `baseline_state=unknown`, `alerts_enabled=false`, достаточность выборки и пороги не откалиброваны. Нет новых cron/env/миграций или действий на сервере. Пользовательский экран и тревоги этим шагом не включаются.
+
 Проверки:
 
 ```sh
 cd apps/backend
-/opt/homebrew/opt/php@8.4/bin/php artisan test --filter='SalesHistoryTest|SalesCoverageTest|SalesWarmupTest|SalesExclusionsApiTest|GermanSalesCalendarTest'
-DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=business_watchdog_test /opt/homebrew/opt/php@8.4/bin/php artisan test --filter='SalesHistoryTest|SalesCoverageTest|SalesWarmupTest|SalesExclusionsApiTest|GermanSalesCalendarTest'
+/opt/homebrew/opt/php@8.4/bin/php artisan test --filter='SalesBaselineTest|SalesHistoryTest|SalesCoverageTest|SalesWarmupTest|SalesExclusionsApiTest|GermanSalesCalendarTest'
+DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=business_watchdog_test /opt/homebrew/opt/php@8.4/bin/php artisan test --filter='SalesBaselineTest|SalesHistoryTest|SalesCoverageTest|SalesWarmupTest|SalesExclusionsApiTest|GermanSalesCalendarTest'
 ```
 
 PostgreSQL-команда использует локальную тестовую базу, принятую `make backend-test-pgsql`; до теста она должна существовать. Для backend-тестов использовать PHP 8.4 по AGENTS.md. Выкладка и любые изменения production — отдельная команда владельца.
