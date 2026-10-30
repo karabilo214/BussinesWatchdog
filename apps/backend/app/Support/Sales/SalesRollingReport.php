@@ -9,13 +9,16 @@ use InvalidArgumentException;
 
 class SalesRollingReport
 {
-    public function __construct(private readonly TenantContext $tenants, private readonly SalesRollingWindows $geometry, private readonly SalesWarmup $warmup, private readonly SalesCoverage $coverage, private readonly SalesOrderObservations $orders, private readonly SalesWarmupProfile $profiles, private readonly SalesWindowSelection $selection) {}
+    public function __construct(private readonly TenantContext $tenants, private readonly SalesRollingWindows $geometry, private readonly SalesWarmup $warmup, private readonly SalesCoverage $coverage, private readonly SalesOrderObservations $orders, private readonly SalesWarmupProfile $profiles, private readonly SalesWindowSelection $selection, private readonly SalesStatisticalAssessment $statistics, private readonly SalesCountTest $countTest) {}
 
-    public function report(string $storeId, string $mode, CarbonImmutable $asOf, string $lagSeconds, string $minimum = SalesWindowSelection::DEFAULT_MIN_EXPECTED_ORDERS): array
+    public function report(string $storeId, string $mode, CarbonImmutable $asOf, string $lagSeconds, string $minimum = SalesWindowSelection::DEFAULT_MIN_EXPECTED_ORDERS, ?string $alpha = null): array
     {
         $tenant = $this->tenants->requireTenantId('sales.rolling');
         $lag = $this->geometry->lag($lagSeconds);
         $this->selection->minimum($minimum);
+        if ($alpha !== null) {
+            $this->countTest->alpha($alpha);
+        }
         if (! in_array($mode, ['live', 'test'], true) || $asOf->greaterThan(CarbonImmutable::now()) || $asOf->microsecond !== 0) {
             throw new InvalidArgumentException('sales_window_range_invalid');
         }
@@ -141,14 +144,16 @@ class SalesRollingReport
             ];
         }
 
+        $selection = $this->selection->report($bands, $minimum, 'trailing_elapsed_windows');
+
         return [
-            'rule_version' => 'sales-rolling-v1', 'status' => 'diagnostic_only', 'store_id' => $store->id, 'mode' => $mode, 'timezone' => $store->timezone,
+            'rule_version' => 'sales-rolling-v2', 'status' => 'diagnostic_only', 'store_id' => $store->id, 'mode' => $mode, 'timezone' => $store->timezone,
             'as_of' => $asOf->utc()->toIso8601String(), 'lag_seconds' => (string) $lag, 'evaluation_time' => $end->toIso8601String(),
             'clock_policy' => ['version' => 'elapsed-local-endpoints-v1', 'max_lag_seconds' => (string) SalesRollingWindows::MAX_LAG_SECONDS, 'calibration_state' => 'uncalibrated'],
             'history_from' => $historyFrom, 'history_to' => $historyEnd->toIso8601String(), 'context_from' => $contextFrom->utc()->toIso8601String(),
             'context_days' => $contextDays, 'training_cutoff' => $trainingCutoff, 'order_history_warmup' => $warmup,
             'baseline_state' => 'unknown', 'alerts_enabled' => false, 'reason_codes' => ['thresholds_not_calibrated', 'payment_history_coverage_unknown'],
-            'windows' => $bands, 'window_selection' => $this->selection->report($bands, $minimum, 'trailing_elapsed_windows'),
+            'windows' => $bands, 'window_selection' => $selection, 'statistical_assessment' => $this->statistics->report($bands, $selection, $alpha),
         ];
     }
 

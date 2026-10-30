@@ -84,7 +84,7 @@ class SalesRollingReportTest extends TestCase
             ['from' => '2026-08-30T12:00:00Z', 'to' => CarbonImmutable::now()->toIso8601String()],
         ];
         $context['source']->forceFill(['sales_coverage' => $journal])->save();
-        $report = $this->report($context);
+        $report = $this->report($context, alpha: '0.01');
         $window = $report['windows'][0];
         $this->assertSame(0, $window['orders_created_observed']);
         $this->assertNull($window['orders_created']);
@@ -92,6 +92,8 @@ class SalesRollingReportTest extends TestCase
         $this->assertContains('target_orders_coverage_unknown', $window['warmup_profile']['reason_codes']);
         $this->assertNull($report['window_selection']['selections'][0]['selected_window']);
         $this->assertSame('unknown', $report['baseline_state']);
+        $this->assertSame('abstain', $report['statistical_assessment']['result']);
+        $this->assertNull($report['statistical_assessment']['test']);
     }
 
     public function test_cross_midnight_matches_the_whole_weekday_sequence_and_exclusive_end(): void
@@ -196,12 +198,13 @@ class SalesRollingReportTest extends TestCase
             $this->observations($context, sprintf('2026-08-%02d 11:45:00 UTC', $day), 2);
             $this->observations($context, sprintf('2026-08-%02d 13:00:00 UTC', $day - 1), 2);
         }
-        $report = $this->report($context, minimum: '2');
+        $report = $this->report($context, minimum: '2', alpha: '0.01');
         $profile = $report['windows'][0]['historical_profile'];
         $this->assertSame('major_drop', $profile['stage']);
         $this->assertSame(2, $profile['daily_profile']['weekday_day_sample_count']);
         $this->assertSame(['same_weekday_band', 'weekday_daily_profile'], array_column($profile['candidates'], 'method'));
         $this->assertSame(1, $report['window_selection']['selections'][0]['selected_window']['width_hours']);
+        $this->assertContains('profile_distribution_not_calibrated', $report['statistical_assessment']['reason_codes']);
         $journal['first_observed_at'] = CarbonImmutable::parse('2026-08-16', 'Europe/Berlin')->utc()->toIso8601String();
         $context['source']->forceFill(['sales_coverage' => $journal])->save();
         $report = $this->report($context, minimum: '2');
@@ -261,7 +264,11 @@ class SalesRollingReportTest extends TestCase
         $context = $this->fixture();
         $options = ['--tenant' => $context['tenant']->id, '--store' => $context['store']->id];
         $this->artisan('sales:window', $options)->expectsOutputToContain('sales_window_lag_invalid')->assertFailed();
-        $this->artisan('sales:window', [...$options, '--lag-seconds' => '300'])->expectsOutputToContain('sales-rolling-v1')->assertSuccessful();
+        $this->artisan('sales:window', [...$options, '--lag-seconds' => '300'])->expectsOutputToContain('sales-rolling-v2')->assertSuccessful();
+        $this->artisan('sales:window', [...$options, '--lag-seconds' => '300', '--alpha' => '0.01'])->expectsOutputToContain('"value": "0.01"')->assertSuccessful();
+        foreach (['0', '1', '1e-3', ''] as $alpha) {
+            $this->artisan('sales:window', [...$options, '--lag-seconds' => '300', '--alpha' => $alpha])->expectsOutputToContain('sales_count_alpha_invalid')->assertFailed();
+        }
         foreach (['-1', '1.5', '2419201'] as $lag) {
             $this->artisan('sales:window', [...$options, '--lag-seconds' => $lag])->expectsOutputToContain('sales_window_lag_invalid')->assertFailed();
         }
@@ -270,6 +277,41 @@ class SalesRollingReportTest extends TestCase
         $this->artisan('sales:window', [...$options, '--lag-seconds' => '0', '--min-expected-orders' => '0'])->expectsOutputToContain('sales_window_min_expected_orders_invalid')->assertFailed();
         $this->artisan('sales:window', ['--store' => $context['store']->id, '--lag-seconds' => '0'])->expectsOutputToContain('sales_window_scope_invalid')->assertFailed();
         $this->assertNull(app(TenantContext::class)->tenantId());
+    }
+
+    public function test_opt_in_exact_test_distinguishes_lower_tail_from_normal_counts_without_incidents(): void
+    {
+        $context = $this->fixture();
+        foreach ([2, 9, 16, 23] as $day) {
+            $this->observations($context, sprintf('2026-08-%02d 11:45:00 UTC', $day), 20);
+        }
+        $this->assertSame('not_requested', $this->report($context)['statistical_assessment']['result']);
+        $report = $this->report($context, alpha: '0.01');
+        $this->assertSame('lower_tail_candidate', $report['statistical_assessment']['result']);
+        $this->assertSame(4, $report['statistical_assessment']['test']['reference_windows']);
+        $this->assertSame('80', $report['statistical_assessment']['test']['historical_total']);
+        $this->assertSame(0, $report['statistical_assessment']['test']['observed']);
+        $this->assertFalse($report['alerts_enabled']);
+        $this->assertSame('unknown', $report['baseline_state']);
+        $this->assertSame(0, Incident::query()->where('tenant_id', $context['tenant']->id)->count());
+        $this->observations($context, '2026-08-30 12:00:00 UTC', 20);
+        $normal = $this->report($context, alpha: '0.01');
+        $this->assertSame('no_lower_tail_candidate', $normal['statistical_assessment']['result']);
+        $this->assertSame('uncalibrated', $normal['statistical_assessment']['statistical_state']);
+        $this->assertFalse($normal['alerts_enabled']);
+    }
+
+    public function test_variable_history_abstains_after_volume_selection(): void
+    {
+        $context = $this->fixture();
+        foreach ([2 => 20, 9 => 20, 16 => 20, 23 => 100] as $day => $count) {
+            $this->observations($context, sprintf('2026-08-%02d 11:45:00 UTC', $day), $count);
+        }
+        $report = $this->report($context, alpha: '0.01');
+        $this->assertNotNull($report['window_selection']['selections'][0]['selected_window']);
+        $this->assertSame('abstain', $report['statistical_assessment']['result']);
+        $this->assertContains('historical_overdispersion_observed', $report['statistical_assessment']['reason_codes']);
+        $this->assertNull($report['statistical_assessment']['test']['p_value']);
     }
 
     private function clock(string $now): void
@@ -299,9 +341,9 @@ class SalesRollingReportTest extends TestCase
         }
     }
 
-    private function report(array $context, string $lag = '300', ?CarbonImmutable $at = null, string $minimum = '20', string $mode = 'live'): array
+    private function report(array $context, string $lag = '300', ?CarbonImmutable $at = null, string $minimum = '20', string $mode = 'live', ?string $alpha = null): array
     {
-        return $this->scope($context, fn () => app(SalesRollingReport::class)->report($context['store']->id, $mode, $at ?? CarbonImmutable::now(), $lag, $minimum));
+        return $this->scope($context, fn () => app(SalesRollingReport::class)->report($context['store']->id, $mode, $at ?? CarbonImmutable::now(), $lag, $minimum, $alpha));
     }
 
     private function scope(array $context, callable $callback): mixed

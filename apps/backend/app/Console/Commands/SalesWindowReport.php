@@ -15,7 +15,7 @@ use InvalidArgumentException;
 
 class SalesWindowReport extends Command
 {
-    protected $signature = 'sales:window {--tenant=} {--store=} {--mode=live} {--at=} {--lag-seconds=} {--min-expected-orders='.SalesWindowSelection::DEFAULT_MIN_EXPECTED_ORDERS.'}';
+    protected $signature = 'sales:window {--tenant=} {--store=} {--mode=live} {--at=} {--lag-seconds=} {--alpha=} {--min-expected-orders='.SalesWindowSelection::DEFAULT_MIN_EXPECTED_ORDERS.'}';
 
     protected $description = 'Read completed rolling order windows with explicit lag and coverage without sending alerts.';
 
@@ -33,7 +33,7 @@ class SalesWindowReport extends Command
             $geometry->lag((string) $this->option('lag-seconds'));
             $minimum = $windows->minimum((string) $this->option('min-expected-orders'));
             $at = $time->parse($this->option('at')) ?? CarbonImmutable::now()->utc()->startOfSecond();
-            $result = $tenants->scope($tenant, 'sales:window', fn () => $report->report($store, $mode, $at, (string) $this->option('lag-seconds'), $minimum));
+            $result = $tenants->scope($tenant, 'sales:window', fn () => $report->report($store, $mode, $at, (string) $this->option('lag-seconds'), $minimum, $this->option('alpha')));
         } catch (ModelNotFoundException) {
             $this->components->error('sales_window_store_not_found');
 

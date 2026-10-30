@@ -47,18 +47,47 @@ Step 333 / [ADR 0100](../adr/0100-rolling-sales-windows-and-lag.md): отдел�
 
 `300` здесь — пример исследовательского запуска, принятого default lag нет. --lag-seconds обязателен: каноническое целое 0…2419200 (28 дней), --at без значения использует текущее UTC-время до секунды, явное значение — RFC3339 с секундой/offset; будущее/дробные секунды/невалидные даты отвергаются. Большой lag не обещает наличие старого покрытия. Все идентификаторы и at относятся к своему локальному тестовому окружению. Никаких новых cron/env или действий владельца для выпуска нет; команда не включена в scheduler.
 
-JSON sales-rolling-v1 показывает evaluation_time=at−lag, clock_policy, четыре завершённых фактических UTC-интервала 1/2/12/24 часа, локальные метки/endpoints с occurrence, исторические образцы/причины пропуска, ранний профиль и выбор минимального окна по политике sales-rolling-volume-v1. История — 28 завершённых дат окончания; context_days/context_from содержат два технических дня для начал интервалов. Они не ускоряют прогрев. Все reference-окна заканчиваются не позже training_cutoff (начала самого широкого проверяемого интервала), без пересечения с проверяемым периодом. Ранний суточный знаменатель — сопоставимое rolling 24h с тем же концом, а не ещё незавершённые календарные сутки. Исторические UTC-endpoints, длительность, повторы и вся последовательность weekdays/holiday-as-Sunday должны совпадать.
+JSON sales-rolling-v2 (с Step 334) показывает evaluation_time=at−lag, clock_policy, четыре завершённых фактических UTC-интервала 1/2/12/24 часа, локальные метки/endpoints с occurrence, исторические образцы/причины пропуска, ранний профиль и выбор минимального окна по политике sales-rolling-volume-v1. История — 28 завершённых дат окончания; context_days/context_from содержат два технических дня для начал интервалов. Они не ускоряют прогрев. Все reference-окна заканчиваются не позже training_cutoff (начала самого широкого проверяемого интервала), без пересечения с проверяемым периодом. Ранний суточный знаменатель — сопоставимое rolling 24h с тем же концом, а не ещё незавершённые календарные сутки. Исторические UTC-endpoints, длительность, повторы и вся последовательность weekdays/holiday-as-Sunday должны совпадать.
 
 orders_created_observed — найденное количество; orders_created — null до полного наблюдаемого покрытия фактического окна и обработки проекций. Gap любой длины/awaiting_projection не становится нулём благодаря lag. historical_profile показан отдельно от warmup_profile, допущенного к выбору: без факта последний блокируется. Текущие акция/пауза/data_gap блокируют сравнение; текущий incident остаётся в metadata, но не запрещает наблюдать его период и не закрывается отчётом. Исторические incident-дни по-прежнему не входят в норму. Все расчёты read-only, tenant/store/mode scoped, без денежных сумм, ссылок на заказы и PII. Late updates меняют повторный отчёт — это текущее состояние проекций, не архив снимков на at. Статистический verdict/калибровка и online-детектор ещё не включены: baseline unknown, alerts_enabled=false.
 
 Journal JSONB v1/старые поля совместимы с предыдущим кодом. Уже срезанный раньше запас не восстанавливается автоматически без нового полного чтения; старый финализатор при смешанных версиях может снова удалить два дня контекста, после чего новая диагностика откажется от неподтверждённых образцов. Новых миграций нет.
 
+Step 334 / [ADR 0101](../adr/0101-diagnostic-exact-sales-count-test.md): статистика включается только явной опцией для исследовательского запуска:
+
+```sh
+/opt/homebrew/opt/php@8.4/bin/php artisan sales:window --tenant=<tenant-uuid> --store=<store-uuid> --mode=test --lag-seconds=300 --alpha=0.01
+```
+
+`0.01` и lag `300` — примеры, принятых default alpha/lag нет. Alpha — десятичная строка 0.xxx строго между 0 и 1, до 100 знаков; 0/1/экспонента/знак/пустое значение отвергаются с sales_count_alpha_invalid. Без alpha statistical_assessment.result=not_requested. При alpha проверяется только одно окно, уже выбранное по объёму/покрытию; не ищется минимальный p-value среди ширин. Поддержан прямой same_weekday_band; ранний профиль даёт profile_distribution_not_calibrated, а не подставляется как пуассоновская история.
+
+При сопоставимой неперекрывающейся экспозиции и подтверждённом факте рассчитывается условный нижний хвост счётчиков. Sample variance > mean даёт консервативный abstain, не доказательство другой модели. При MAD=0 используется count fallback без epsilon. p_value — точная строковая дробь; p_decimal_bounds с 30 знаками — границы десятичного представления, не доверительный интервал. Результаты lower_tail_candidate/no_lower_tail_candidate/abstain не означают поломку/исправность checkout. Для кандидата одновременно нужны p<=alpha и наблюдаемый объём ниже reference-среднего. Неизвестное покрытие/история и невалидные данные не дают статистический вывод.
+
+Вычислительный бюджет записан в policy: сумма current+reference counts ≤10000, текущий count ≤2048, reference windows ≤28, alpha ≤100 знаков. Превышение даёт exact_test_computation_budget_exceeded, не нулевой p-value. Модель, поправки отбора окна и повторных/последовательных проверок остаются невалидированными (соответствующие flags=false); statistical_state=uncalibrated, baseline unknown и alerts_enabled=false сохраняются даже при lower_tail_candidate. Нет инцидентов/уведомлений/сохранения правил, изменений cron/env или новых release-действий владельцу.
+
+16 точных эталонов в apps/backend/tests/fixtures/sales-count-test-reference.json получены независимой прямой суммой Python math.comb/Fraction; PHPUnit сравнивает их с BCMath-рекуррентностью перекрёстным умножением. Проверка эталонов из корня репозитория без дополнительных пакетов:
+
+```sh
+python3 - <<'PYREF'
+import json, math
+from fractions import Fraction
+from pathlib import Path
+cases = json.loads(Path('apps/backend/tests/fixtures/sales-count-test-reference.json').read_text())['cases']
+for case in cases:
+    n = len(case['references'])
+    total = sum(case['references']) + case['observed']
+    p = Fraction(sum(math.comb(total, j) * n ** (total - j) for j in range(case['observed'] + 1)), (n + 1) ** total)
+    assert p == Fraction(int(case['p_numerator']), int(case['p_denominator']))
+print(len(cases), 'exact reference cases passed')
+PYREF
+```
+
 Проверки:
 
 ```sh
 cd apps/backend
-/opt/homebrew/opt/php@8.4/bin/php artisan test --filter='SalesRollingWindowsTest|SalesRollingReportTest|SalesWindowSelectionTest|SalesWarmupProfileTest|SalesLocalBandsTest|SalesBaselineTest|SalesHistoryTest|SalesCoverageTest|SalesWarmupTest|SalesExclusionsApiTest|GermanSalesCalendarTest'
-DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=business_watchdog_test /opt/homebrew/opt/php@8.4/bin/php artisan test --filter='SalesRollingWindowsTest|SalesRollingReportTest|SalesWindowSelectionTest|SalesWarmupProfileTest|SalesLocalBandsTest|SalesBaselineTest|SalesHistoryTest|SalesCoverageTest|SalesWarmupTest|SalesExclusionsApiTest|GermanSalesCalendarTest'
+/opt/homebrew/opt/php@8.4/bin/php artisan test --filter='SalesCountTestTest|SalesStatisticalAssessmentTest|SalesRollingWindowsTest|SalesRollingReportTest|SalesWindowSelectionTest|SalesWarmupProfileTest|SalesLocalBandsTest|SalesBaselineTest|SalesHistoryTest|SalesCoverageTest|SalesWarmupTest|SalesExclusionsApiTest|GermanSalesCalendarTest'
+DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=business_watchdog_test /opt/homebrew/opt/php@8.4/bin/php artisan test --filter='SalesCountTestTest|SalesStatisticalAssessmentTest|SalesRollingWindowsTest|SalesRollingReportTest|SalesWindowSelectionTest|SalesWarmupProfileTest|SalesLocalBandsTest|SalesBaselineTest|SalesHistoryTest|SalesCoverageTest|SalesWarmupTest|SalesExclusionsApiTest|GermanSalesCalendarTest'
 ```
 
 PostgreSQL-команда использует локальную тестовую базу, принятую `make backend-test-pgsql`; до теста она должна существовать. Для backend-тестов использовать PHP 8.4 по AGENTS.md. Выкладка и любые изменения production — отдельная команда владельца.
