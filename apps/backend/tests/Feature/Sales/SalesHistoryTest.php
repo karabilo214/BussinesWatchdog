@@ -212,6 +212,17 @@ class SalesHistoryTest extends TestCase
         $this->assertNull(app(TenantContext::class)->tenantId());
     }
 
+    public function test_command_records_an_explicit_minimum_and_rejects_non_integer_calibration_values(): void
+    {
+        $context = $this->context();
+        $options = ['--tenant' => $context['tenant']->id, '--store' => $context['store']->id, '--from' => '2026-10-30T08:00:00Z', '--to' => '2026-10-30T10:00:00Z'];
+        $this->artisan('sales:history', [...$options, '--min-expected-orders' => '5'])->expectsOutputToContain('"min_expected_orders": "5"')->assertSuccessful();
+        foreach (['0', '01', '-1', '1.5', '1e3', ''] as $minimum) {
+            $this->artisan('sales:history', [...$options, '--min-expected-orders' => $minimum])->expectsOutputToContain('sales_history_min_expected_orders_invalid')->assertFailed();
+        }
+        $this->assertNull(app(TenantContext::class)->tenantId());
+    }
+
     private function report(array $context, string $from = '2026-10-30 08:00:00 UTC', string $to = '2026-10-30 10:00:00 UTC'): array
     {
         return app(TenantContext::class)->scope($context['tenant']->id, 'test', fn () => app(SalesHistory::class)->report($context['store']->id, CarbonImmutable::parse($from), CarbonImmutable::parse($to)));

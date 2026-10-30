@@ -14,7 +14,7 @@ class SalesHistory
 {
     public function __construct(private readonly TenantContext $tenants, private readonly ConnectorFreshness $freshness, private readonly SalesCoverage $coverage, private readonly SalesWarmup $warmup, private readonly SalesOrderObservations $observations, private readonly SalesBaseline $baseline) {}
 
-    public function report(string $storeId, CarbonImmutable $from, CarbonImmutable $to, string $mode = 'live'): array
+    public function report(string $storeId, CarbonImmutable $from, CarbonImmutable $to, string $mode = 'live', string $minimumExpectedOrders = SalesWindowSelection::DEFAULT_MIN_EXPECTED_ORDERS): array
     {
         $tenantId = $this->tenants->requireTenantId('sales.history');
         $from = $from->utc();
@@ -109,12 +109,12 @@ class SalesHistory
             'timezone' => $store->timezone,
             'from' => $from->toIso8601String(),
             'to' => $to->toIso8601String(),
-            'rule_version' => 'sales-history-v7',
+            'rule_version' => 'sales-history-v8',
             'status' => 'diagnostic_only',
             'baseline_state' => 'unknown',
             'warmup_stage' => 'unverified_history',
             'order_history_warmup' => $this->warmup->report($store, $mode, $to),
-            'order_baseline' => $this->baseline->report($store, $mode, $to),
+            'order_baseline' => $this->baseline->report($store, $mode, $to, $minimumExpectedOrders),
             'alerts_enabled' => false,
             'reason_codes' => $reasons,
             'buckets' => array_values($bins),

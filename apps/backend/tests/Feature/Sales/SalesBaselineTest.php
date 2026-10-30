@@ -226,12 +226,12 @@ class SalesBaselineTest extends TestCase
         $this->assertSame('2026-10-23T04:15:00+00:00', $band['samples'][3]['from']);
     }
 
-    public function test_history_v7_includes_profile_independent_of_requested_bucket_start_without_writes(): void
+    public function test_history_v8_includes_profile_independent_of_requested_bucket_start_without_writes(): void
     {
         $context = $this->fixture();
         $before = $context['source']->fresh()->getAttributes();
         $report = $this->scope($context, fn () => app(SalesHistory::class)->report($context['store']->id, CarbonImmutable::now()->subHour(), CarbonImmutable::now()));
-        $this->assertSame('sales-history-v7', $report['rule_version']);
+        $this->assertSame('sales-history-v8', $report['rule_version']);
         $this->assertSame($this->report($context), $report['order_baseline']);
         $this->assertSame($before, $context['source']->fresh()->getAttributes());
         $this->assertFalse($report['alerts_enabled']);
@@ -395,6 +395,65 @@ class SalesBaselineTest extends TestCase
         $this->assertContains('holiday_calendar_not_configured', $profile['reason_codes']);
     }
 
+    public function test_window_selection_widens_to_two_hours_and_honors_an_explicit_calibration_minimum(): void
+    {
+        $this->clock('2026-08-30 12:00:00 UTC');
+        $context = $this->fixture();
+        for ($day = 2; $day <= 29; $day++) {
+            $date = sprintf('2026-08-%02d', $day);
+            $this->seedOrders($context, $date, 10, 10);
+            $this->seedOrders($context, $date, 11, 10);
+        }
+        $before = $context['source']->fresh()->getAttributes();
+        $report = $this->report($context);
+        $selection = $this->selection($report, 10);
+        $this->assertSame(2, $selection['selected_window']['width_hours']);
+        $this->assertSame([1, 2], array_column($selection['attempts'], 'width_hours'));
+        $this->assertSame(12, $this->selection($report, 0)['selected_window']['width_hours']);
+        $override = $this->report($context, minimum: '10');
+        $this->assertSame('10', $override['window_selection']['policy']['min_expected_orders']);
+        $this->assertSame(1, $this->selection($override, 10)['selected_window']['width_hours']);
+        $this->assertSame($before, $context['source']->fresh()->getAttributes());
+        $this->assertSame('unknown', $report['baseline_state']);
+        $this->assertFalse($report['window_selection']['alerts_enabled']);
+    }
+
+    public function test_one_order_per_day_abstains_even_after_daily_expansion(): void
+    {
+        $this->clock('2026-08-30 12:00:00 UTC');
+        $context = $this->fixture();
+        for ($day = 2; $day <= 29; $day++) {
+            $this->seedOrders($context, sprintf('2026-08-%02d', $day), 10, 1);
+        }
+        $report = $this->report($context);
+        foreach ($report['window_selection']['selections'] as $selection) {
+            $this->assertSame('abstain', $selection['selection_state']);
+            $this->assertNull($selection['selected_window']);
+            $this->assertSame([1, 2, 12, 24], array_column($selection['attempts'], 'width_hours'));
+            $this->assertContains('expected_order_volume_below_minimum', $selection['reason_codes']);
+        }
+        $this->assertSame('uncalibrated', $report['window_selection']['statistical_state']);
+        $this->assertFalse($report['alerts_enabled']);
+    }
+
+    public function test_collecting_history_cannot_promote_high_observed_volume_to_a_selected_window(): void
+    {
+        $this->clock('2026-08-30 12:00:00 UTC');
+        $context = $this->fixture(observedDays: 6);
+        for ($day = 24; $day <= 29; $day++) {
+            $this->seedOrders($context, "2026-08-$day", 10, 20);
+        }
+        $selection = $this->selection($this->report($context), 10);
+        $this->assertNull($selection['selected_window']);
+        $this->assertContains('collecting_history', $selection['reason_codes']);
+        $this->assertSame(['unknown'], array_values(array_unique(array_column($selection['attempts'], 'volume_state'))));
+    }
+
+    private function selection(array $report, int $hour): array
+    {
+        return array_values(array_filter($report['window_selection']['selections'], fn (array $selection): bool => $selection['anchor']['local_start_hour'] === $hour))[0];
+    }
+
     private function seedOrders(array $context, string $date, int $hour, int $count, string $mode = 'live'): void
     {
         $at = CarbonImmutable::parse(sprintf('%s %02d:30:00', $date, $hour), $context['store']->timezone)->utc();
@@ -424,9 +483,9 @@ class SalesBaselineTest extends TestCase
         return $context;
     }
 
-    private function report(array $context, string $mode = 'live'): array
+    private function report(array $context, string $mode = 'live', string $minimum = '20'): array
     {
-        return $this->scope($context, fn () => app(SalesBaseline::class)->report($context['store'], $mode, CarbonImmutable::now()));
+        return $this->scope($context, fn () => app(SalesBaseline::class)->report($context['store'], $mode, CarbonImmutable::now(), $minimum));
     }
 
     private function scope(array $context, callable $callback): mixed

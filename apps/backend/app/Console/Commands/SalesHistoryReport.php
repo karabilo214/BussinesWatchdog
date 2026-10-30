@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Support\Sales\SalesHistory;
+use App\Support\Sales\SalesWindowSelection;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
@@ -12,11 +13,11 @@ use Throwable;
 
 class SalesHistoryReport extends Command
 {
-    protected $signature = 'sales:history {--tenant=} {--store=} {--from=} {--to=} {--mode=live}';
+    protected $signature = 'sales:history {--tenant=} {--store=} {--from=} {--to=} {--mode=live} {--min-expected-orders='.SalesWindowSelection::DEFAULT_MIN_EXPECTED_ORDERS.'}';
 
     protected $description = 'Read tenant-scoped hourly sales observations without inferring a healthy baseline or sending alerts.';
 
-    public function handle(TenantContext $tenants, SalesHistory $history): int
+    public function handle(TenantContext $tenants, SalesHistory $history, SalesWindowSelection $windows): int
     {
         $tenant = (string) $this->option('tenant');
         $store = (string) $this->option('store');
@@ -28,9 +29,17 @@ class SalesHistoryReport extends Command
         }
 
         try {
+            $minimum = $windows->minimum((string) $this->option('min-expected-orders'));
+        } catch (\InvalidArgumentException) {
+            $this->components->error('sales_history_min_expected_orders_invalid');
+
+            return self::FAILURE;
+        }
+
+        try {
             $to = $this->date($this->option('to')) ?? CarbonImmutable::now()->utc()->startOfHour();
             $from = $this->date($this->option('from')) ?? $to->subDays(28);
-            $report = $tenants->scope($tenant, 'sales:history', fn () => $history->report($store, $from, $to, (string) $this->option('mode')));
+            $report = $tenants->scope($tenant, 'sales:history', fn () => $history->report($store, $from, $to, (string) $this->option('mode'), $minimum));
         } catch (ModelNotFoundException) {
             $this->components->error('sales_history_store_not_found');
 

@@ -7,9 +7,9 @@ use Carbon\CarbonImmutable;
 
 class SalesBaseline
 {
-    public function __construct(private readonly SalesWarmup $warmup, private readonly SalesCoverage $coverage, private readonly SalesOrderObservations $orders, private readonly SalesLocalBands $localBands, private readonly SalesWarmupProfile $warmupProfile) {}
+    public function __construct(private readonly SalesWarmup $warmup, private readonly SalesCoverage $coverage, private readonly SalesOrderObservations $orders, private readonly SalesLocalBands $localBands, private readonly SalesWarmupProfile $warmupProfile, private readonly SalesWindowSelection $windowSelection) {}
 
-    public function report(Store $store, string $mode, CarbonImmutable $asOf): array
+    public function report(Store $store, string $mode, CarbonImmutable $asOf, string $minimumExpectedOrders = SalesWindowSelection::DEFAULT_MIN_EXPECTED_ORDERS): array
     {
         $warmup = $this->warmup->report($store, $mode, $asOf);
         $target = $asOf->setTimezone($store->timezone)->startOfDay();
@@ -151,7 +151,7 @@ class SalesBaseline
             'mode' => $mode,
             'timezone' => $store->timezone,
             'status' => 'diagnostic_only',
-            'method_version' => 'same-weekday-bands-v3',
+            'method_version' => 'same-weekday-bands-v4',
             'as_of' => $asOf->utc()->toIso8601String(),
             'target_date' => $target->toDateString(),
             'history_from' => $warmup['days'][0]['from'],
@@ -166,6 +166,7 @@ class SalesBaseline
             'reason_codes' => ['sample_sufficiency_not_calibrated', 'thresholds_not_calibrated', 'payment_history_coverage_unknown'],
             'bands' => $bands,
             'missing_bands' => $targetLayout['missing_bands'],
+            'window_selection' => $this->windowSelection->report($bands, $minimumExpectedOrders),
         ];
     }
 
