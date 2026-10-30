@@ -120,7 +120,7 @@ class SalesCoverage
             || (EntitlementCalculator::enforced() && ! app(EntitlementCalculator::class)->forTenant($store->tenant_id)->serviceActive());
     }
 
-    public function forBuckets(Store $store, string $mode, array $buckets): array
+    public function forBuckets(Store $store, string $mode, array $buckets, bool $observedOnly = false): array
     {
         $tenantId = $this->tenants->requireTenantId('sales.coverage.read');
 
@@ -129,7 +129,23 @@ class SalesCoverage
         }
 
         $sources = Integration::query()->where('tenant_id', $tenantId)->where('store_id', $store->id)->get();
-        $intervals = $sources->flatMap(fn (Integration $integration): array => ($integration->sales_coverage['version'] ?? null) === 1 ? ($integration->sales_coverage['intervals'] ?? []) : [])->all();
+        $intervals = $sources->flatMap(function (Integration $integration) use ($observedOnly): array {
+            $journal = $integration->sales_coverage;
+            if (($journal['version'] ?? null) !== 1 || $integration->source_authority !== Integration::SOURCE_STORE_REPORTED) {
+                return [];
+            }
+            if (! $observedOnly) {
+                return $journal['intervals'] ?? [];
+            }
+            if (! isset($journal['first_observed_at'])) {
+                return [];
+            }
+
+            return array_map(fn (array $interval): array => [
+                'from' => CarbonImmutable::parse($interval['from'])->max(CarbonImmutable::parse($journal['first_observed_at']))->toIso8601String(),
+                'to' => $interval['to'],
+            ], $journal['intervals'] ?? []);
+        })->all();
         $paused = $this->isPaused($store);
         $pending = EventInbox::query()->where('tenant_id', $tenantId)->where('store_id', $store->id)
             ->whereIn('event_type', [EventInbox::EVENT_ORDER_SNAPSHOT, EventInbox::EVENT_ORDER_DELETED])->where('status', '!=', EventInbox::STATUS_PROCESSED)->exists();
@@ -160,7 +176,7 @@ class SalesCoverage
                 }
             }
 
-            if ($paused) {
+            if ($paused && (! $observedOnly || $day->isSameDay(CarbonImmutable::now($store->timezone)))) {
                 $reasons[] = 'monitoring_paused';
             }
 
@@ -173,7 +189,7 @@ class SalesCoverage
     private function finalized(Integration $integration, array $journal, CarbonImmutable $now): array
     {
         $intervals = $journal['intervals'] ?? [];
-        $cutoff = $now->subDays(28);
+        $cutoff = $now->setTimezone($integration->store->timezone)->startOfDay()->subDays(28)->utc();
 
         foreach ($journal['pending'] ?? [] as $kind => $read) {
             $blocked = EventInbox::query()->where('tenant_id', $integration->tenant_id)->where('store_id', $integration->store_id)->where('integration_id', $integration->id)

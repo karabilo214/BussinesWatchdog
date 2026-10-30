@@ -13,7 +13,7 @@ use InvalidArgumentException;
 
 class SalesHistory
 {
-    public function __construct(private readonly TenantContext $tenants, private readonly ConnectorFreshness $freshness, private readonly SalesCoverage $coverage) {}
+    public function __construct(private readonly TenantContext $tenants, private readonly ConnectorFreshness $freshness, private readonly SalesCoverage $coverage, private readonly SalesWarmup $warmup) {}
 
     public function report(string $storeId, CarbonImmutable $from, CarbonImmutable $to, string $mode = 'live'): array
     {
@@ -113,10 +113,11 @@ class SalesHistory
             'timezone' => $store->timezone,
             'from' => $from->toIso8601String(),
             'to' => $to->toIso8601String(),
-            'rule_version' => 'sales-history-v2',
+            'rule_version' => 'sales-history-v3',
             'status' => 'diagnostic_only',
             'baseline_state' => 'unknown',
             'warmup_stage' => 'unverified_history',
+            'order_history_warmup' => $this->warmup->report($store, $mode, $to),
             'alerts_enabled' => false,
             'reason_codes' => $reasons,
             'buckets' => array_values($bins),
