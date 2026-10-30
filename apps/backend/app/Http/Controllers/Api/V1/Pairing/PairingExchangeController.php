@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Pairing\ExchangePairingCodeRequest;
 use App\Models\AuditLog;
 use App\Models\Integration;
+use App\Models\IntegrationCredential;
 use App\Models\PairingCode;
 use App\Support\Integrations\IntegrationCredentialService;
 use App\Support\Integrations\OrderSourceContinuity;
@@ -79,6 +80,8 @@ class PairingExchangeController extends Controller
                 return ['error' => ['code' => 'order_source_already_connected', 'message' => 'The store already sends orders through its REST API connection.', 'status' => 409]];
             }
 
+            $replaced = $this->revokeActive($store->tenant_id, $store->id, $validated['connector_code']);
+
             $integration = Integration::query()->create([
                 'tenant_id' => $pairingCode->tenant_id,
                 'store_id' => $pairingCode->store_id,
@@ -92,7 +95,7 @@ class PairingExchangeController extends Controller
                 'health' => [],
             ]);
 
-            $previous = Integration::query()->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)
+            $previous = $replaced ?? Integration::query()->where('tenant_id', $store->tenant_id)->where('store_id', $store->id)
                 ->where('provider', $validated['connector_code'])->where('install_id', $validated['install_id'])
                 ->where('status', Integration::STATUS_REVOKED)->whereKeyNot($integration->id)
                 ->orderByDesc('created_at')->first();
@@ -147,6 +150,46 @@ class PairingExchangeController extends Controller
         }
 
         return response()->json($result['payload'], 201);
+    }
+
+    private function revokeActive(string $tenantId, string $storeId, string $provider): ?Integration
+    {
+        /** @var Integration|null $active */
+        $active = Integration::query()->where('tenant_id', $tenantId)->where('store_id', $storeId)->where('provider', $provider)
+            ->whereIn('status', [Integration::STATUS_PENDING, Integration::STATUS_ACTIVE, Integration::STATUS_DEGRADED])
+            ->lockForUpdate()->first();
+
+        if ($active === null) {
+            return null;
+        }
+
+        $previousStatus = $active->status;
+        $active->forceFill([
+            'status' => Integration::STATUS_REVOKED,
+            'health' => array_merge($active->health ?? [], ['revoked_at' => now()->toJSON(), 'revoked_reason' => 'replaced_by_pairing']),
+            'updated_at' => now(),
+        ])->save();
+        IntegrationCredential::query()->where('integration_id', $active->id)->where('status', '!=', IntegrationCredential::STATUS_REVOKED)
+            ->update(['status' => IntegrationCredential::STATUS_REVOKED, 'rotated_at' => now()]);
+
+        AuditLog::query()->create([
+            'tenant_id' => $active->tenant_id,
+            'store_id' => $active->store_id,
+            'actor_user_id' => null,
+            'actor_type' => AuditLog::ACTOR_CONNECTOR,
+            'action' => AuditLog::ACTION_INTEGRATION_REVOKED,
+            'entity_type' => AuditLog::ENTITY_INTEGRATION,
+            'entity_id' => $active->id,
+            'changes' => [
+                'status' => ['from' => $previousStatus, 'to' => Integration::STATUS_REVOKED],
+                'credentials' => ['status' => IntegrationCredential::STATUS_REVOKED],
+                'reason_code' => 'replaced_by_pairing',
+            ],
+            'request_id' => (string) Str::uuid(),
+            'created_at' => now(),
+        ]);
+
+        return $active;
     }
 
     private function verifierMatches(string $challenge, ?string $verifier): bool

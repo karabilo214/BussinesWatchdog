@@ -176,6 +176,42 @@ class PairingApiTest extends TestCase
         $this->assertSame(1, Order::query()->where('store_id', $store->id)->count());
     }
 
+    public function test_pairing_again_after_the_plugin_was_disconnected_only_in_wordpress_replaces_the_active_connection(): void
+    {
+        [, $tenant, $store] = $this->userWithStore();
+        $installId = '550e8400-e29b-41d4-a716-446655440001';
+        $first = 'bwpc_woocommerce_first_1234567890ab';
+        $this->pairingCodeFor($store, $first);
+        $old = $this->postJson('/api/v1/pairing/exchange', [
+            'pairing_code' => $first, 'install_id' => $installId, 'connector_code' => 'woocommerce',
+            'plugin_version' => '0.4.2', 'base_url' => $store->base_url,
+        ])->assertCreated();
+        $order = Order::query()->create([
+            'tenant_id' => $tenant->id, 'store_id' => $store->id, 'integration_id' => $old->json('integration_id'),
+            'external_id' => '77', 'display_number' => '77', 'source_revision' => 1,
+            'status' => 'processing', 'mode' => 'live', 'currency' => 'EUR', 'currency_exponent' => 2,
+            'total_minor' => 4800, 'payment_expected' => true, 'financial_support' => 'supported',
+            'is_synthetic' => false, 'source_created_at' => now()->subHour(), 'source_updated_at' => now()->subHour(),
+            'current_payload_hash' => str_repeat('b', 64), 'metadata' => [], 'created_at' => now()->subHour(), 'updated_at' => now()->subHour(),
+        ]);
+
+        $second = 'bwpc_woocommerce_second_1234567890a';
+        $this->pairingCodeFor($store, $second);
+        $new = $this->postJson('/api/v1/pairing/exchange', [
+            'pairing_code' => $second, 'install_id' => $installId, 'connector_code' => 'woocommerce',
+            'plugin_version' => '0.4.2', 'base_url' => $store->base_url,
+        ])->assertCreated();
+
+        $replaced = Integration::query()->findOrFail($old->json('integration_id'));
+        $this->assertSame(Integration::STATUS_REVOKED, $replaced->status);
+        $this->assertSame('replaced_by_pairing', $replaced->health['revoked_reason']);
+        $this->assertSame(0, $replaced->credentials()->where('status', '!=', 'revoked')->count());
+        $this->assertSame(Integration::STATUS_ACTIVE, Integration::query()->findOrFail($new->json('integration_id'))->status);
+        $this->assertSame(1, Integration::query()->where('store_id', $store->id)->where('status', Integration::STATUS_ACTIVE)->count());
+        $this->assertSame($new->json('integration_id'), $order->refresh()->integration_id);
+        $this->assertSame('replaced_by_pairing', AuditLog::query()->where('action', AuditLog::ACTION_INTEGRATION_REVOKED)->where('entity_id', $replaced->id)->sole()->changes['reason_code']);
+    }
+
     public function test_expired_pairing_code_is_rejected(): void
     {
         [, , $store] = $this->userWithStore();
