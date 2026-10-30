@@ -93,6 +93,33 @@ class PublicSiteTest extends TestCase
             ->assertSee("User-agent: *\nDisallow:\n", false);
     }
 
+    public function test_solved_problems_are_editable_pages_kept_as_drafts_until_the_owner_publishes_them(): void
+    {
+        $this->owner('owner@platform.test');
+
+        foreach (['solved-problems', 'shopware-cart-500-time-zone'] as $slug) {
+            $this->artisan('site:page', ['slug' => $slug, 'staff' => 'owner@platform.test'])->assertSuccessful();
+        }
+        $this->get('/de/solved-problems')->assertNotFound();
+        $this->get('/de/shopware-cart-500-time-zone')->assertNotFound();
+
+        foreach (['solved-problems', 'shopware-cart-500-time-zone'] as $slug) {
+            $this->artisan('site:page', ['slug' => $slug, 'staff' => 'owner@platform.test', '--publish' => 'Solved problems'])->assertSuccessful();
+        }
+        $this->get('/de/solved-problems')->assertOk()
+            ->assertSee('Echte Fehler in Online-Shops')
+            ->assertSee('href="/de/shopware-cart-500-time-zone"', false);
+        $this->get('/de/shopware-cart-500-time-zone')->assertOk()
+            ->assertSee('<title>Shopware: 500 im Warenkorb durch Zeitzone Europe/Kyiv', false)
+            ->assertSee('<table class="bw-table">', false)
+            ->assertSee('Europe/Kyiv')
+            ->assertSee('href="/de/solved-problems"', false);
+        $this->get('/ru/shopware-cart-500-time-zone')->assertOk()->assertSee('Уникальная проблема на сайте нашего клиента');
+        $this->get('/en/solved-problems')->assertOk()->assertSee('/en/shopware-cart-500-time-zone', false);
+        $this->get('/en')->assertOk()->assertSee('/en/solved-problems', false);
+        $this->get('/sitemap.xml')->assertOk()->assertSee('https://watchdog.test/de/shopware-cart-500-time-zone', false);
+    }
+
     public function test_the_videos_page_is_an_editable_page_created_by_command_with_working_video_tags(): void
     {
         $this->owner('owner@platform.test');
