@@ -525,3 +525,12 @@ Status: complete locally (content; no migration; not deployed). Owner: `/de/stri
 
 Verification: site tests 67/67; rendered page contains the flow, table, menu paths and resend step.
 
+### Step 326: German security page aimed at real searches (2026-10-30)
+
+Status: complete in the repository (content; no migration); production changes only after the owner refreshes the page (`site:page security` → publish; live page equals the repository version, so nothing of the owner's is overwritten).
+
+- Findings: strong content (~1500 words) but title, description and h1 built around the brand («Warum Business Watchdog … sicher ist») — found only by people who already know it; no steps for what merchants search: creating a read-only WooCommerce REST API key or a restricted Stripe key, shop monitoring and GDPR.
+- de: title «Shop-Monitoring mit Lesezugriff: Stripe, WooCommerce, DSGVO» (59), description 139, h1 «Shop-Monitoring mit reinem Lesezugriff – sicher und DSGVO-konform»; WooCommerce section «REST-API-Schlüssel nur mit Leserechten anlegen» with four steps (WooCommerce → Einstellungen → Erweitert → REST-API → Schlüssel hinzufügen → Berechtigungen «Lesen»); Stripe section «eingeschränkten Schlüssel mit Leserechten erstellen» with four steps (Entwickler → API-Schlüssel → Eingeschränkten Schlüssel erstellen, read permissions, rk_…). en/ru unchanged.
+
+Verification: site tests 67/67.
+

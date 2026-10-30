@@ -11,8 +11,8 @@ return [
             'body' => file_get_contents(__DIR__.'/security/en.html'),
         ],
         'de' => [
-            'title' => 'Warum Business Watchdog für Ihren Shop sicher ist',
-            'description' => 'Nur Lesezugriff, keine Kundendaten, Schlüssel statt Passwörter, Server in Deutschland und Auftragsverarbeitung nach Art. 28 DSGVO: was Business Watchdog liest und nie tut.',
+            'title' => 'Shop-Monitoring mit Lesezugriff: Stripe, WooCommerce, DSGVO',
+            'description' => 'WooCommerce-API-Schlüssel und eingeschränkten Stripe-Schlüssel nur mit Leserechten anlegen. Keine Kundendaten, Server in Deutschland, DSGVO.',
             'body' => file_get_contents(__DIR__.'/security/de.html'),
         ],
         'ru' => [
