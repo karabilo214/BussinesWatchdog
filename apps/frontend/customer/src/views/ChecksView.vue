@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { ApiError } from '@bw/api-client';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { listScenarios } from '@/api/checks';
 import { getStore, listStores, updateStore } from '@/api/stores';
 import type { CheckScenario, Store } from '@/api/types';
@@ -15,6 +15,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { StatusBadge } from '@bw/ui';
 
 const router = useRouter();
+const route = useRoute();
 const { canManageStores, canRunChecks } = useRole();
 
 const stores = ref<Store[]>([]);
@@ -164,7 +165,7 @@ watch(storeId, () => loadScenario(), { immediate: true });
         <p v-if="scenarioLoading" class="text-sm text-text-muted" role="status">{{ $t('common.loading') }}</p>
         <ErrorNotice v-else-if="scenarioError" :error="scenarioError" />
         <template v-else>
-          <ScenarioPanel id="check-scenario" :key="store.id" :store="store" :scenario="scenario" :can-manage="canRunChecks" @saved="onScenarioSaved" @stale="loadScenario" />
+          <ScenarioPanel id="check-scenario" :key="store.id" :store="store" :scenario="scenario" :can-manage="canRunChecks" :focus-providers="route.hash === '#scenario-providers'" @saved="onScenarioSaved" @stale="loadScenario" />
           <RunsList :key="`runs-${store.id}`" :store-id="store.id" :scenario="scenario" :can-run="canRunChecks" :ready="ready" @finished="refreshStore" />
         </template>
       </template>

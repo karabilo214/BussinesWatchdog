@@ -1651,7 +1651,7 @@
       "store_server_error": "Der Shop hat eine Anfrage dieses Schritts mit einem Serverfehler ({code}) beantwortet. Der Weg ist bestanden, aber ein Teil der Seite funktioniert für Kunden womöglich nicht — prüfen Sie das Fehlerprotokoll des Shops."
     },
     "skip_reason": {
-      "payment_methods_not_verified": "Der Weg bis zur Zahlungsseite ist bestanden. Die Formulare der Zahlungsanbieter (Stripe, PayPal, Novalnet usw.) hat die Prüfung nicht geladen und das Zahlungsformular selbst daher nicht geprüft. Um es ebenfalls zu prüfen, aktivieren Sie «Zahlungsformulare vollständig prüfen» unter «Erweitert» in den Prüfeinstellungen.",
+      "payment_methods_not_verified": "Der Weg bis zur Zahlungsseite ist bestanden. Die Formulare der Zahlungsanbieter (Stripe, PayPal, Novalnet usw.) hat die Prüfung nicht geladen und das Zahlungsformular selbst daher nicht geprüft. Um es ebenfalls zu prüfen, aktivieren Sie «{setting}» unter «Erweitert» in den Prüfeinstellungen.",
       "synthetic_location_not_configured": "Für die Prüfung ist keine Lieferadresse festgelegt — der Versand wurde nicht geprüft."
     },
     "title": "Checkout-Prüfungen",

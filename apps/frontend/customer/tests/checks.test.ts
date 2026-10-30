@@ -122,6 +122,27 @@ describe('ScenarioPanel', () => {
     expect(mocked.updateScenario.mock.calls.at(-1)?.[1]).toMatchObject({ load_payment_providers: true });
   });
 
+  it('opens Advanced and focuses the provider checkbox without enabling or saving it', async () => {
+    const wrapper = mount(ScenarioPanel, { attachTo: document.body, props: { store: verifiedStore(), scenario: scenario(), canManage: true, focusProviders: true }, global });
+    await flushPromises();
+
+    const checkbox = wrapper.get('#scenario-providers').element as HTMLInputElement;
+    expect(wrapper.get('details').element.open).toBe(true);
+    expect(document.activeElement).toBe(checkbox);
+    expect(checkbox.checked).toBe(false);
+    expect(mocked.updateScenario).not.toHaveBeenCalled();
+    expect(mocked.createScenario).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('does not open an editor for a read-only member following the provider setting link', async () => {
+    const wrapper = mount(ScenarioPanel, { props: { store: verifiedStore(), scenario: scenario(), canManage: false, focusProviders: true }, global });
+    await flushPromises();
+
+    expect(wrapper.find('form').exists()).toBe(false);
+    expect(wrapper.find('#scenario-providers').exists()).toBe(false);
+  });
+
   it('cannot enable checks before the domain is confirmed', () => {
     const wrapper = mount(ScenarioPanel, { props: { store: makeStore(), scenario: scenario({ enabled: false }), canManage: true }, global });
     const enable = wrapper.findAll('button').find((button) => button.text() === 'Включить проверки')!;

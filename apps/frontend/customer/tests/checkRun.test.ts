@@ -25,8 +25,8 @@ const step = (index: number, code: string, status: 'passed' | 'skipped' | 'faile
 });
 
 describe('check run', () => {
-  it('explains why the payment step was skipped when gateway scripts were not loaded', async () => {
-    setLocale('ru');
+  it.each(['ru', 'en', 'de'] as const)('links the skipped payment explanation to its store setting in %s', async (locale) => {
+    setLocale(locale);
     const run: CheckRunDetail = {
       id: 'r-1', store_id: 's-1', scenario_id: 'sc-1', scenario_version: 1, trigger: 'scheduled', status: 'passed', error_code: null,
       scheduled_at: '2026-10-20T10:00:00Z', started_at: '2026-10-20T10:00:00Z', finished_at: '2026-10-20T10:01:00Z',
@@ -45,7 +45,18 @@ describe('check run', () => {
 
     const reasons = wrapper.findAll('[data-skip-reason]');
     expect(reasons).toHaveLength(1);
-    expect(reasons[0]!.text()).toContain('Путь до страницы оплаты пройден');
+    expect(reasons[0]!.text()).toContain({ ru: 'Путь до страницы оплаты пройден', en: 'The path to the payment page passed', de: 'Der Weg bis zur Zahlungsseite ist bestanden' }[locale]);
+    const link = wrapper.findAllComponents(RouterLinkStub).find((item) => item.attributes('data-payment-settings-link') !== undefined)!;
+    expect(link.props('to')).toEqual({ name: 'checks', query: { store: 's-1' }, hash: '#scenario-providers' });
+    const label = { ru: 'Проверять формы оплаты полностью', en: 'Check payment forms fully', de: 'Zahlungsformulare vollständig prüfen' }[locale];
+    expect(link.text()).toBe(label);
+    expect(reasons[0]!.text()).not.toContain('{setting}');
+    session.value!.memberships[0]!.permissions = permissionsFor('viewer');
+    await flushPromises();
+    expect(wrapper.find('[data-payment-settings-link]').exists()).toBe(false);
+    expect(reasons[0]!.text()).toContain(label);
+    session.value!.memberships[0]!.permissions = permissionsFor('owner');
+    wrapper.unmount();
     expect(wrapper.get('[data-step="cart"]').find('[data-skip-reason]').exists()).toBe(false);
   });
 

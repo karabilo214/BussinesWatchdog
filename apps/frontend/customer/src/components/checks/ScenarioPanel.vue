@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { ApiError } from '@bw/api-client';
 import { createScenario, updateScenario } from '@/api/checks';
 import type { CheckScenario, CheckScenarioInput, CheckoutAccess, Store } from '@/api/types';
@@ -9,7 +9,7 @@ import { useFormat } from '@/composables/useFormat';
 import { StatusBadge } from '@bw/ui';
 import { INTERVALS } from './tones';
 
-const props = defineProps<{ store: Store; scenario: CheckScenario | null; canManage: boolean }>();
+const props = defineProps<{ store: Store; scenario: CheckScenario | null; canManage: boolean; focusProviders?: boolean }>();
 const emit = defineEmits<{ saved: [scenario: CheckScenario]; stale: [] }>();
 const { dateTime } = useFormat();
 
@@ -17,6 +17,8 @@ const ACCESSES: CheckoutAccess[] = ['stop_before_sign_in', 'test_customer', 'gue
 
 const form = reactive({ product_url: '', cart_url: '', checkout_url: '', interval_seconds: 900, enabled: false, origins: '', providers: false, country: '', postcode: '', access: 'stop_before_sign_in' as CheckoutAccess, email: '', password: '' });
 const editing = ref(false);
+const advanced = ref<HTMLDetailsElement | null>(null);
+const providers = ref<HTMLInputElement | null>(null);
 const saving = ref(false);
 const error = ref<unknown>(null);
 const saved = ref(false);
@@ -47,6 +49,18 @@ function reset(): void {
 }
 
 watch(() => props.scenario, reset, { immediate: true });
+
+watch(() => [props.focusProviders, props.canManage, props.scenario?.id], async () => {
+  if (!props.focusProviders || !props.canManage) return;
+
+  editing.value = true;
+  await nextTick();
+
+  if (advanced.value && providers.value) {
+    advanced.value.open = true;
+    providers.value.focus({ preventScroll: true });
+  }
+}, { immediate: true });
 
 function input(): CheckScenarioInput {
   const origins = form.origins.split(/\s+/).map((value) => value.trim()).filter((value) => value !== '');
@@ -218,11 +232,11 @@ function hours(seconds: number): string {
           <span v-if="!verified" class="block text-[13px]">{{ $t('checks.readiness.verify_first') }}</span>
         </span>
       </label>
-      <details class="rounded-lg border border-border p-3 text-sm">
+      <details ref="advanced" class="rounded-lg border border-border p-3 text-sm">
         <summary class="cursor-pointer font-medium">{{ $t('checks.scenario.advanced') }}</summary>
         <div class="mt-3 flex flex-col gap-3">
           <label class="flex items-start gap-2">
-            <input v-model="form.providers" type="checkbox" class="mt-0.5 size-4 accent-primary" data-scenario-providers />
+            <input id="scenario-providers" ref="providers" v-model="form.providers" type="checkbox" class="mt-0.5 size-4 accent-primary" data-scenario-providers />
             <span>
               <span class="font-medium">{{ $t('checks.scenario.providers_label') }}</span>
               <span class="block text-[13px] text-text-muted">{{ $t('checks.scenario.providers_hint') }}</span>

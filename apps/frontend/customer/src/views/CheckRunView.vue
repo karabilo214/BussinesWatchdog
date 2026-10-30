@@ -152,7 +152,13 @@ onBeforeUnmount(() => {
               <span class="flex flex-col">
                 <span>{{ step.index + 1 }}. {{ $te(`incident.facts.step.${step.code}`) ? $t(`incident.facts.step.${step.code}`) : step.code }}</span>
                 <template v-for="assertion in step.status === 'skipped' ? (step.assertions ?? []) : []" :key="assertion.code">
-                  <span v-if="$te(`checks.skip_reason.${assertion.code}`)" class="text-[13px] text-text-muted" data-skip-reason>{{ $t(`checks.skip_reason.${assertion.code}`) }}</span>
+                  <i18n-t v-if="assertion.code === 'payment_methods_not_verified'" keypath="checks.skip_reason.payment_methods_not_verified" scope="global" tag="span" class="text-[13px] text-text-muted" data-skip-reason>
+                    <template #setting>
+                      <RouterLink v-if="canRunChecks" :to="{ name: 'checks', query: { store: run.store_id }, hash: '#scenario-providers' }" class="text-primary underline hover:no-underline" data-payment-settings-link>{{ $t('checks.scenario.providers_label') }}</RouterLink>
+                      <span v-else>{{ $t('checks.scenario.providers_label') }}</span>
+                    </template>
+                  </i18n-t>
+                  <span v-else-if="$te(`checks.skip_reason.${assertion.code}`)" class="text-[13px] text-text-muted" data-skip-reason>{{ $t(`checks.skip_reason.${assertion.code}`) }}</span>
                 </template>
                 <template v-for="assertion in step.status === 'passed' ? (step.assertions ?? []).filter((item) => item.code === 'store_server_error') : []" :key="`${assertion.code}-${assertion.detail_code}`">
                   <span class="text-[13px] text-warn" data-step-warning>{{ $t('checks.warning.store_server_error', { code: String(assertion.detail_code ?? '').replace('http_', '') }) }}</span>

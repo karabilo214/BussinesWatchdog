@@ -1651,7 +1651,7 @@
       "store_server_error": "The store answered one of the requests of this step with a server error ({code}). The path passed, but part of the page may not work for customers — check the store's error log."
     },
     "skip_reason": {
-      "payment_methods_not_verified": "The path to the payment page passed. The check did not load the forms of payment providers (Stripe, PayPal, Novalnet etc.), so it did not check the payment form itself. To check it too, turn on «Check payment forms fully» under «Advanced» in the check settings.",
+      "payment_methods_not_verified": "The path to the payment page passed. The check did not load the forms of payment providers (Stripe, PayPal, Novalnet etc.), so it did not check the payment form itself. To check it too, turn on «{setting}» under «Advanced» in the check settings.",
       "synthetic_location_not_configured": "No delivery address is set for the check — delivery was not checked."
     },
     "title": "Checkout checks",
