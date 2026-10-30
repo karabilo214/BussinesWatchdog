@@ -42,6 +42,7 @@ class Store extends Model
             'telemetry_enabled' => 'boolean',
             'config_version' => 'integer',
             'settings' => 'array',
+            'sales_baseline_exclusions' => 'array',
         ];
     }
 

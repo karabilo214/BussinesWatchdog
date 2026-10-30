@@ -14,6 +14,6 @@ Step history is split by area. Read only the file you need; add a new step to th
 | [`progress/billing.md`](progress/billing.md) | SaaS billing and owner panel: plans and entitlements, Paddle adapter, trials, usage, subscription page, platform staff sign-in, plans/prices/discounts in the owner panel, plan change and cancellation, customers and subscriptions, volume packages, pause, add-ons, retention, invoices and payments, refunds | 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 108, 109, 110, 114, 115, 116, 117, 119, 120, 125, 126, 127, 130, 132, 166, 167, 168, 194, 195, 196, 234, 268, 269, 270, 307 |
 | [`progress/public-site.md`](progress/public-site.md) | Public site: server-rendered public site, content pages, contact form, sign-up and consent to legal documents | 111, 118, 121, 122, 123, 124, 128, 129, 138, 139, 145, 149, 150, 151, 152, 153, 158, 169, 170, 171, 172, 178, 183, 186, 193, 199, 212, 213, 224, 225, 228, 288, 302, 303, 304, 306, 316, 322 |
 
-Last step: 323 (`progress/dashboard.md`, icons and sign-in/sign-up forms in rows).
+Last step: 324 (`progress/reconciliation.md`, confirmed order-read coverage and baseline day exclusions).
 
 Контекст сверен 2026-10-29 (Step 319) по коду и записанным результатам. Последние зафиксированные выпуски SaaS — `9efa51e` и `dd23ead` (Step 307); Steps 308–318 не выложены. WooCommerce 0.4.2 опубликован и выдаётся из кабинета. Сервер при сверке не опрашивался. Номера 313 и 316 использованы параллельными сессиями в разных разделах; историю задним числом не перенумеровываем.

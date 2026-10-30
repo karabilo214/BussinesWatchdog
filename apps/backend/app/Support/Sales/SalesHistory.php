@@ -13,7 +13,7 @@ use InvalidArgumentException;
 
 class SalesHistory
 {
-    public function __construct(private readonly TenantContext $tenants, private readonly ConnectorFreshness $freshness) {}
+    public function __construct(private readonly TenantContext $tenants, private readonly ConnectorFreshness $freshness, private readonly SalesCoverage $coverage) {}
 
     public function report(string $storeId, CarbonImmutable $from, CarbonImmutable $to, string $mode = 'live'): array
     {
@@ -93,13 +93,27 @@ class SalesHistory
             $reasons[] = 'monitoring_paused';
         }
 
+        $coverage = $this->coverage->forBuckets($store, $mode, array_values($bins));
+        $bins = array_values($bins);
+
+        foreach ($bins as $index => &$bucket) {
+            $bucket['metric_coverage'] = $coverage[$index];
+        }
+        unset($bucket);
+
+        if (count(array_filter($coverage, fn (array $item): bool => $item['orders_created'] === 'complete')) === count($coverage)) {
+            $reasons = array_values(array_diff($reasons, ['historical_coverage_not_recorded']));
+            $reasons[] = 'payment_history_coverage_unknown';
+            $reasons[] = 'baseline_not_computed';
+        }
+
         return [
             'store_id' => $store->id,
             'mode' => $mode,
             'timezone' => $store->timezone,
             'from' => $from->toIso8601String(),
             'to' => $to->toIso8601String(),
-            'rule_version' => 'sales-history-v1',
+            'rule_version' => 'sales-history-v2',
             'status' => 'diagnostic_only',
             'baseline_state' => 'unknown',
             'warmup_stage' => 'unverified_history',

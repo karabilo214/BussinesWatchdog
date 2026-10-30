@@ -201,3 +201,8 @@ Schedule::command('plugin-funnel:prune')
     ->timezone('UTC')
     ->withoutOverlapping(60)
     ->onOneServer();
+
+Schedule::command('sales:finalize-coverage')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->onOneServer();

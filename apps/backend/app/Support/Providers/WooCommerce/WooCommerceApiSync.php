@@ -8,6 +8,8 @@ use App\Models\ReconciliationDirtySubject;
 use App\Models\Refund;
 use App\Support\Providers\ProviderEventEmitter;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
+use App\Support\Sales\SalesCoverage;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -115,7 +117,7 @@ class WooCommerceApiSync
                 $complete = true;
 
                 foreach (['any', 'trash'] as $status) {
-                    $complete = $this->walk($integration, $credentials, ['after' => $after->format('Y-m-d\TH:i:s'), 'orderby' => 'date', 'order' => 'asc', 'status' => $status])['complete'] && $complete;
+                    $complete = $this->walk($integration, $credentials, ['after' => $after->copy()->subSecond()->format('Y-m-d\TH:i:s'), 'orderby' => 'date', 'order' => 'asc', 'status' => $status])['complete'] && $complete;
                 }
 
                 if ($mode === self::MODE_AUDIT && $complete) {
@@ -141,6 +143,12 @@ class WooCommerceApiSync
             ],
             'last_error' => null,
         ], ['last_successful_sync_at' => $now]);
+
+        if (in_array($mode, [self::MODE_RECENT, self::MODE_AUDIT], true)) {
+            app(TenantContext::class)->scope($integration->tenant_id, 'sales.coverage.sync', fn () => app(SalesCoverage::class)->recordRead(
+                $integration->id, $after->toImmutable(), $now->toImmutable(), $mode, $complete, array_sum($this->totals['skipped']) === 0,
+            ));
+        }
 
         return ['status' => 'ok', 'emitted' => $this->totals['emitted'], 'unchanged' => $this->totals['unchanged'], 'complete' => $complete];
     }

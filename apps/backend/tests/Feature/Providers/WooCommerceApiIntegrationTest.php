@@ -236,6 +236,23 @@ class WooCommerceApiIntegrationTest extends TestCase
         $this->assertSame(1, Refund::query()->where('store_id', $this->store->id)->count());
     }
 
+    public function test_sales_coverage_is_recorded_from_a_full_created_order_read_after_projection(): void
+    {
+        $this->wcOrder(41, ['payment_method' => 'stripe', 'transaction_id' => 'ch_3Abc', 'total' => '184.000000']);
+        $integration = $this->connected();
+        app(WooCommerceApiSync::class)->run($integration);
+        $this->assertNull($integration->fresh()->sales_coverage);
+        $result = app(WooCommerceApiSync::class)->run($integration->fresh(), WooCommerceApiSync::MODE_RECENT);
+        $this->assertTrue($result['complete']);
+        $this->assertSame([], $integration->fresh()->sales_coverage['intervals']);
+        $this->drain();
+        $this->artisan('sales:finalize-coverage')->assertSuccessful();
+        $journal = $integration->fresh()->sales_coverage;
+        $this->assertCount(1, $journal['intervals']);
+        $this->assertSame('recent', $journal['last_read']['kind']);
+        $this->assertTrue($journal['last_read']['complete']);
+    }
+
     public function test_the_audit_finds_deleted_orders_and_keeps_trashed_ones(): void
     {
         $this->wcOrder(41, ['payment_method' => 'stripe', 'transaction_id' => 'ch_3Abc', 'total' => '184.000000']);

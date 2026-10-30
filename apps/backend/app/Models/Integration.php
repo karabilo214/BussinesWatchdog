@@ -47,6 +47,7 @@ class Integration extends Model
         return [
             'capabilities' => 'array',
             'health' => 'array',
+            'sales_coverage' => 'array',
             'last_heartbeat_at' => 'datetime',
             'last_successful_sync_at' => 'datetime',
         ];

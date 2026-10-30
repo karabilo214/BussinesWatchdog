@@ -94,6 +94,7 @@ CREATE TABLE stores (
  telemetry_enabled boolean NOT NULL DEFAULT false,
  config_version bigint NOT NULL DEFAULT 1 CHECK (config_version > 0),
  settings jsonb NOT NULL DEFAULT '{}',
+ sales_baseline_exclusions jsonb,
  created_at timestamptz NOT NULL DEFAULT now(),
  updated_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE (tenant_id,id)
@@ -130,6 +131,7 @@ CREATE TABLE integrations (
  last_heartbeat_at timestamptz,
  last_successful_sync_at timestamptz,
  health jsonb NOT NULL DEFAULT '{}',
+ sales_coverage jsonb,
  created_at timestamptz NOT NULL DEFAULT now(),
  updated_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE (tenant_id,store_id,id),

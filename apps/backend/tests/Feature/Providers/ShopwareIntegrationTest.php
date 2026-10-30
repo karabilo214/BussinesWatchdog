@@ -176,6 +176,21 @@ class ShopwareIntegrationTest extends TestCase
         $this->assertSame(0, $again['emitted']);
     }
 
+    public function test_sales_coverage_waits_for_projected_orders_after_an_audit(): void
+    {
+        $this->swOrder('a1', '10001', 10.0, 'EUR', 'open', [$this->transaction('t1', 'open', 'payment_prepayment')]);
+        $integration = $this->connected();
+        app(ShopwareSync::class)->run($integration);
+        $this->assertNull($integration->fresh()->sales_coverage);
+        $result = app(ShopwareSync::class)->run($integration->fresh(), ShopwareSync::MODE_AUDIT);
+        $this->assertTrue($result['complete']);
+        $this->assertSame([], $integration->fresh()->sales_coverage['intervals']);
+        $this->drain();
+        $this->artisan('sales:finalize-coverage')->assertSuccessful();
+        $this->assertCount(1, $integration->fresh()->sales_coverage['intervals']);
+        $this->assertSame('audit', $integration->fresh()->sales_coverage['last_read']['kind']);
+    }
+
     public function test_the_audit_finds_deleted_orders(): void
     {
         $this->swOrder('a1', '10001', 10.0, 'EUR', 'open', [$this->transaction('t1', 'open', 'payment_prepayment')]);

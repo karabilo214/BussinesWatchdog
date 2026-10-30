@@ -506,6 +506,8 @@ Checks page: сценарий и покрытые шаги, schedule, истор
 
 `integration_credentials.ciphertext` содержит ciphertext+authentication tag; key_version привязан к deployment keyring, key material отсутствует в БД. `notification_channels.destination_ciphertext` аналогично. `audit_log` не содержит secrets и полных payloads; entity ID plus sanitized changed fields. Tenant deletion не реализуется одним cascade без очистки private objects и revocation credentials.
 
+Step 324 / ADR 0092 добавляет nullable JSONB `integrations.sales_coverage` и `stores.sales_baseline_exclusions` для доказательств полных API-чтений и исключений локальных дней. Это внутренние метаданные, не принимаемые от покупателя: полный read, обработанный inbox и актуальная ревизия заказа обязательны для coverage созданных заказов; paid/capture из него не выводятся. Новых store-owned таблиц нет, чтобы предыдущая версия purge продолжала работать во время rollout; поля удаляются с прежними строками. Норма и пороги тревог пока не включены.
+
 ### 25.2 Индексы и ограничения
 
 Основные lookup indexes: event inbox `(tenant_id, integration_id, received_at)`, `(status,next_attempt_at)` partial; orders `(tenant_id,store_id,source_updated_at)`; transactions `(tenant_id,store_id,occurred_at)` и `(payment_id,kind)`; findings `(tenant_id,store_id,status,evaluated_at)`; metrics `(tenant_id,store_id,metric_key,currency,bucket_start,config_version)` unique; runs due queue `(status,scheduled_at)` partial; incidents `(tenant_id,store_id,state,last_seen_at)`.

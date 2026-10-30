@@ -8,6 +8,8 @@ use App\Models\ReconciliationDirtySubject;
 use App\Support\Checkout\CheckoutObservation;
 use App\Support\Providers\ProviderEventEmitter;
 use App\Support\Reconciliation\StoreReconciliationRequeue;
+use App\Support\Sales\SalesCoverage;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -198,6 +200,12 @@ class ShopwareSync
             'last_error' => null,
             ...($observation === null ? [] : ['observation' => $observation]),
         ], ['last_successful_sync_at' => $now]);
+
+        if (in_array($mode, [self::MODE_AUDIT], true)) {
+            app(TenantContext::class)->scope($integration->tenant_id, 'sales.coverage.sync', fn () => app(SalesCoverage::class)->recordRead(
+                $integration->id, $retentionStart->toImmutable(), $now->toImmutable(), $mode, $complete, array_sum($this->totals['skipped']) === 0,
+            ));
+        }
 
         return ['status' => 'ok', 'emitted' => $this->totals['emitted'], 'unchanged' => $this->totals['unchanged'], 'complete' => $complete];
     }
