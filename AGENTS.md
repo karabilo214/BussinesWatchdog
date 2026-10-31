@@ -19,7 +19,7 @@ Core invariants:
 - Node browser workers must not read serialized Laravel jobs.
 - Duplicate and out-of-order events must be safe.
 - Screenshots and traces must not contain secrets or real PII.
-- AI is not part of the current implementation.
+- AI only per ADR 0102 and within an accepted backlog stage (section 14): never a source of financial state, never closes incidents, no secrets or real PII sent to providers; no AI dependencies outside such a stage.
 - Migrations must work with the code of the previous release (expand/contract, ADR 0080): no rename or drop of anything the previous release still uses.
 
 First implementation path:
